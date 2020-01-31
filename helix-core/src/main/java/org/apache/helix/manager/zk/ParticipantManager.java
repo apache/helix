@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ParticipantManager {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantManager.class);
-  private static String CLOUD_PROCESSOR_PATH_PREFIX = "org.apache.helix.cloud.";
+  private static final String CLOUD_PROCESSOR_PATH_PREFIX = "org.apache.helix.cloud.";
 
   final HelixZkClient _zkclient;
   final HelixManager _manager;
@@ -142,6 +142,8 @@ public class ParticipantManager {
     // Read cluster config and see if an instance can auto join or auto register to the cluster
     boolean autoJoin = false;
     boolean autoRegistration = false;
+
+    // Read "allowParticipantAutoJoin" flag to see if an instance can auto join to the cluster
     try {
       HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
           .forCluster(_manager.getClusterName()).build();
@@ -149,17 +151,19 @@ public class ParticipantManager {
           .parseBoolean(_configAccessor.get(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
       LOG.info("instance: " + _instanceName + " auto-joining " + _clusterName + " is " + autoJoin);
     } catch (Exception e) {
-      // autoJoin is false
+      LOG.info("auto join is false for cluster" + _clusterName);
     }
 
     // Read cloud config and see if an instance can auto register to the cluster
+    // Difference between auto join and auto registration is that the latter will also populate the
+    // domain information in instance config
     try {
       autoRegistration =
           Boolean.valueOf(_helixManagerProperty.getHelixCloudProperty().getCloudEnabled());
       LOG.info("instance: " + _instanceName + " auto-register " + _clusterName + " is "
           + autoRegistration);
     } catch (Exception e) {
-      // autoRegistration is false
+      LOG.info("auto registration is false for cluster" + _clusterName);
     }
 
     if (!ZKUtil.isInstanceSetup(_zkclient, _clusterName, _instanceName, _instanceType)) {
@@ -169,70 +173,54 @@ public class ParticipantManager {
       } else {
         if (!autoRegistration) {
           LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
-          addInstanceConfig(null);
+          _helixAdmin.addInstance(_clusterName, HelixUtil.composeInstanceConfig(_instanceName));
         } else {
-          String cloudInstanceInformationProcessorName =
-              _helixManagerProperty.getHelixCloudProperty().getCloudInfoProcessorName();
-          try {
-            // fetch cloud instance information for the instance
-            String cloudInstanceInformationProcessorClassName = CLOUD_PROCESSOR_PATH_PREFIX
-                + _helixManagerProperty.getHelixCloudProperty().getCloudProvider().toLowerCase()
-                + "." + cloudInstanceInformationProcessorName;
-            Class processorClass = Class.forName(cloudInstanceInformationProcessorClassName);
-            Constructor constructor = processorClass.getConstructor(HelixCloudProperty.class);
-            CloudInstanceInformationProcessor processor =
-                (CloudInstanceInformationProcessor) constructor
-                    .newInstance(_helixManagerProperty.getHelixCloudProperty());
-            List<String> responses = processor.fetchCloudInstanceInformation();
+          LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
+          CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
+          String domain = cloudInstanceInformation
+              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
+          String cloudIdInRemote = cloudInstanceInformation
+              .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name());
+          String cloudIdInConfig = _configAccessor.getCloudConfig(_clusterName).getCloudID();
 
-            // parse cloud instance information for the participant
-            CloudInstanceInformation cloudInstanceInformation =
-                processor.parseCloudInstanceInformation(responses);
-            String domain = cloudInstanceInformation
-                .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
-            String cloudIdInRemote = cloudInstanceInformation
-                .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name());
-            String cloudIdInConfig = _configAccessor.getCloudConfig(_clusterName).getCloudID();
-
-            // validate that the instance is auto registering to the correct cluster
-            if (!cloudIdInRemote.equals(cloudIdInConfig)) {
-              throw new IllegalArgumentException(String.format(
-                  "cloudId in config: %s is not consistent with cloudId from remote: %s. The instance is auto registering to a wrong cluster.",
-                  cloudIdInConfig, cloudIdInRemote));
-            }
-            addInstanceConfig(domain);
-          } catch (ClassNotFoundException ex) {
-            throw new HelixException(
-                "Passed cloud instance information processor class is not found: "
-                    + cloudInstanceInformationProcessorName, ex);
-          } catch (NoSuchMethodException ex) {
-            throw new HelixException("Failed to get the constructor for the class: "
-                + cloudInstanceInformationProcessorName, ex);
-          } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
-            throw new HelixException("Failed to create a new instance for the class: "
-                + cloudInstanceInformationProcessorName, ex);
+          // validate that the instance is auto registering to the correct cluster
+          if (!cloudIdInRemote.equals(cloudIdInConfig)) {
+            throw new IllegalArgumentException(String.format(
+                "cloudId in config: %s is not consistent with cloudId from remote: %s. The instance is auto registering to a wrong cluster.",
+                cloudIdInConfig, cloudIdInRemote));
           }
+          InstanceConfig instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+          instanceConfig.setDomain(domain);
+          _helixAdmin.addInstance(_clusterName, instanceConfig);
         }
       }
     }
   }
 
-  private void addInstanceConfig(String domainInfo) {
-    InstanceConfig instanceConfig = new InstanceConfig(_instanceName);
-    String hostName = _instanceName;
-    String port = "";
-    int lastPos = _instanceName.lastIndexOf("_");
-    if (lastPos > 0) {
-      hostName = _instanceName.substring(0, lastPos);
-      port = _instanceName.substring(lastPos + 1);
+  private CloudInstanceInformation getCloudInstanceInformation() {
+    String cloudInstanceInformationProcessorName =
+        _helixManagerProperty.getHelixCloudProperty().getCloudInfoProcessorName();
+    try {
+      // fetch cloud instance information for the instance
+      String cloudInstanceInformationProcessorClassName = CLOUD_PROCESSOR_PATH_PREFIX
+          + _helixManagerProperty.getHelixCloudProperty().getCloudProvider().toLowerCase() + "."
+          + cloudInstanceInformationProcessorName;
+      Class processorClass = Class.forName(cloudInstanceInformationProcessorClassName);
+      Constructor constructor = processorClass.getConstructor(HelixCloudProperty.class);
+      CloudInstanceInformationProcessor processor = (CloudInstanceInformationProcessor) constructor
+          .newInstance(_helixManagerProperty.getHelixCloudProperty());
+      List<String> responses = processor.fetchCloudInstanceInformation();
+
+      // parse cloud instance information for the participant
+      CloudInstanceInformation cloudInstanceInformation =
+          processor.parseCloudInstanceInformation(responses);
+      return cloudInstanceInformation;
+    } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException
+        | IllegalAccessException | InvocationTargetException ex) {
+      throw new HelixException(
+          "Failed to create a new instance for the class: " + cloudInstanceInformationProcessorName,
+          ex);
     }
-    instanceConfig.setHostName(hostName);
-    instanceConfig.setPort(port);
-    instanceConfig.setInstanceEnabled(true);
-    if (domainInfo != null && !domainInfo.isEmpty()) {
-      instanceConfig.setDomain(domainInfo);
-    }
-    _helixAdmin.addInstance(_clusterName, instanceConfig);
   }
 
   private void createLiveInstance() {

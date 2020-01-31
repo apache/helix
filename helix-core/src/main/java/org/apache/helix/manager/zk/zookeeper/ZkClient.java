@@ -903,6 +903,9 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeDeleted
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
+    if (event.getType() == EventType.NodeDeleted) {
+      LOG.debug("Path {} is deleted", event.getPath());
+    }
 
     getEventLock().lock();
     try {
@@ -1276,12 +1279,12 @@ public class ZkClient implements Watcher {
             + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
+            if (!pathStatRecord.pathChecked()) {
+              pathStatRecord.recordPathStat(getStat(path, pathExists), notificationTime);
+            }
             if (!pathExists) {
               listener.getDataListener().handleDataDeleted(path);
               return;
-            }
-            if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, true), notificationTime);
             }
             Object data = null;
             if (listener.isPrefetchData()) {

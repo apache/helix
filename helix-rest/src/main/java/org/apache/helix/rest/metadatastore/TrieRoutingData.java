@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-import javassist.NotFoundException;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -50,7 +50,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     TrieNode curNode;
     try {
       curNode = findTrieNode(path, false);
-    } catch (NotFoundException e) {
+    } catch (NoSuchElementException e) {
       return Collections.emptyMap();
     }
 
@@ -70,28 +70,28 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return resultMap;
   }
 
-  public String getMetadataStoreRealm(String path) throws NotFoundException {
+  public String getMetadataStoreRealm(String path) throws NoSuchElementException {
     TrieNode leafNode = findTrieNode(path, true);
     return leafNode._realmAddress;
   }
 
   /**
    * If findLeafAlongPath is false, then starting from the root node, find the trie node that the
-   * given path is pointing to and return it; raise NotFoundException if the path does
+   * given path is pointing to and return it; raise NoSuchElementException if the path does
    * not point to any node. If findLeafAlongPath is true, then starting from the root node, find the
-   * leaf node along the provided path; raise NotFoundException if the path does not
+   * leaf node along the provided path; raise NoSuchElementException if the path does not
    * point to any node or if there is no leaf node along the path.
    * @param path - the path where the search is conducted
    * @param findLeafAlongPath - whether the search is for a leaf node on the path
    * @return the node pointed by the path or a leaf node along the path
-   * @throws NotFoundException - when the path points to nothing or when no leaf node is
+   * @throws NoSuchElementException - when the path points to nothing or when no leaf node is
    *           found
    */
   private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
-      throws NotFoundException {
+      throws NoSuchElementException {
     if (path.equals(DELIMITER) || path.equals("")) {
       if (findLeafAlongPath && !_rootNode._isLeaf) {
-        throw new NotFoundException("no leaf node found along the path");
+        throw new NoSuchElementException("no leaf node found along the path");
       }
       return _rootNode;
     }
@@ -109,7 +109,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     for (String pathSection : splitPath) {
       curNode = curChildren.get(pathSection);
       if (curNode == null) {
-        throw new NotFoundException("the provided path is missing from the trie");
+        throw new NoSuchElementException("the provided path is missing from the trie");
       }
       if (findLeafAlongPath && curNode._isLeaf) {
         return curNode;
@@ -117,7 +117,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       curChildren = curNode._children;
     }
     if (findLeafAlongPath) {
-      throw new NotFoundException("no leaf node found along the path");
+      throw new NoSuchElementException("no leaf node found along the path");
     }
     return curNode;
   }

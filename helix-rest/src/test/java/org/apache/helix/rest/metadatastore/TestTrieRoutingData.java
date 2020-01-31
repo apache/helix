@@ -22,7 +22,7 @@ package org.apache.helix.rest.metadatastore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import javassist.NotFoundException;
+import java.util.NoSuchElementException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -70,8 +70,8 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       Assert.assertEquals(trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddressD");
-    } catch (NotFoundException e) {
-      Assert.fail("Not expecting NotFoundException");
+    } catch (NoSuchElementException e) {
+      Assert.fail("Not expecting NoSuchElementException");
     }
   }
 
@@ -80,8 +80,8 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       trie.getMetadataStoreRealm("/x/y/z");
-      Assert.fail("Expecting NotFoundException");
-    } catch (NotFoundException e) {
+      Assert.fail("Expecting NoSuchElementException");
+    } catch (NoSuchElementException e) {
       Assert.assertTrue(e.getMessage().contains("the provided path is missing from the trie"));
     }
   }
@@ -91,8 +91,8 @@ public class TestTrieRoutingData {
     TrieRoutingData trie = constructTestTrie();
     try {
       trie.getMetadataStoreRealm("/b/c");
-      Assert.fail("Expecting NotFoundException");
-    } catch (NotFoundException e) {
+      Assert.fail("Expecting NoSuchElementException");
+    } catch (NoSuchElementException e) {
       Assert.assertTrue(e.getMessage().contains("no leaf node found along the path"));
     }
   }

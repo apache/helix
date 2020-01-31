@@ -20,7 +20,7 @@ package org.apache.helix.rest.metadatastore;
  */
 
 import java.util.Map;
-import javassist.NotFoundException;
+import java.util.NoSuchElementException;
 
 
 public interface MetadataStoreRoutingData {
@@ -38,10 +38,10 @@ public interface MetadataStoreRoutingData {
 
   /**
    * Given a path, return the realm address corresponding to the sharding key contained in the
-   * path. If the path doesn't contain a sharding key, throw NotFoundException.
+   * path. If the path doesn't contain a sharding key, throw NoSuchElementException.
    * @param path - the path where the search is conducted
    * @return the realm address corresponding to the sharding key contained in the path
-   * @throws NotFoundException - when the path doesn't contain a sharding key
+   * @throws NoSuchElementException - when the path doesn't contain a sharding key
    */
-  String getMetadataStoreRealm(String path) throws NotFoundException;
+  String getMetadataStoreRealm(String path) throws NoSuchElementException;
 }

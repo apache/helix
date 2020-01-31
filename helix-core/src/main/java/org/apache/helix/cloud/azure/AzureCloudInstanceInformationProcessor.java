@@ -41,6 +41,10 @@ public class AzureCloudInstanceInformationProcessor
       LoggerFactory.getLogger(AzureCloudInstanceInformationProcessor.class);
   private final CloseableHttpClient _closeableHttpClient;
   private final HelixCloudProperty _helixCloudProperty;
+  private final String COMPUTE = "compute";
+  private final String INSTANCE_NAME = "vmId";
+  private final String DOMAIN = "platformFaultDomain";
+  private final String INSTANCE_SET_NAME = "vmScaleSetName";
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
     _closeableHttpClient = AzureHttpUtil.getHttpClient(helixCloudProperty);
@@ -108,11 +112,11 @@ public class AzureCloudInstanceInformationProcessor
       ObjectMapper mapper = new ObjectMapper();
       try {
         JsonNode jsonNode = mapper.readTree(response);
-        JsonNode computeNode = jsonNode.path("compute");
+        JsonNode computeNode = jsonNode.path(COMPUTE);
         if (!computeNode.isMissingNode()) {
-          String vmName = computeNode.path("vmId").getTextValue();
-          String platformFaultDomain = computeNode.path("platformFaultDomain").getTextValue();
-          String vmssName = computeNode.path("vmScaleSetName").getValueAsText();
+          String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
+          String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
+          String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
           AzureCloudInstanceInformation.Builder builder =
               new AzureCloudInstanceInformation.Builder();
           builder.setInstanceName(vmName).setFaultDomain(platformFaultDomain)

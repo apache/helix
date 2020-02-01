@@ -150,27 +150,30 @@ public class ZkTestBase {
     // If multi-ZooKeeper is enabled, start more ZKs
     String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
     if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
-      int numZkFromConfig;
-      try {
-        numZkFromConfig = Integer.parseInt(System.getProperty(NUM_ZK_PROPERTY_KEY));
-        // Initialize maps to track multiple ZK servers
-        _zkServerMap = new HashMap<>();
-        _helixZkClientMap = new HashMap<>();
-        _clusterSetupMap = new HashMap<>();
-        _baseDataAccessorMap = new HashMap<>();
-        _zkServerMap.put(0, _zkServer);
-        _helixZkClientMap.put(0, _gZkClient);
-        _clusterSetupMap.put(0, _gSetupTool);
-        _baseDataAccessorMap.put(0, _baseAccessor);
+      String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
+      if (numZkFromConfig != null) {
+        try {
+          int numZkFromConfigInt = Integer.parseInt(numZkFromConfig);
+          // Initialize maps to track multiple ZK servers
+          // Initialize maps to track multiple ZK servers
+          _zkServerMap = new HashMap<>();
+          _helixZkClientMap = new HashMap<>();
+          _clusterSetupMap = new HashMap<>();
+          _baseDataAccessorMap = new HashMap<>();
+          _zkServerMap.put(0, _zkServer);
+          _helixZkClientMap.put(0, _gZkClient);
+          _clusterSetupMap.put(0, _gSetupTool);
+          _baseDataAccessorMap.put(0, _baseAccessor);
 
-        // Start (numZkFromConfig - 1) ZooKeepers
-        for (int i = 1; i < numZkFromConfig; i++) {
-          startZooKeeper();
+          // Start (numZkFromConfigInt - 1) ZooKeepers
+          for (int i = 1; i < numZkFromConfigInt; i++) {
+            startZooKeeper();
+          }
+        } catch (Exception e) {
+          Assert.fail("Failed to create multiple ZKs!");
         }
-      } catch (Exception e) {
-        // Parsing error - skip creating ZKs
-        System.out.println("Failed to create multiple ZooKeepers!");
       }
+      Assert.fail("multiZk config is set but numZk config is missing!");
     }
 
     // Clean up all JMX objects

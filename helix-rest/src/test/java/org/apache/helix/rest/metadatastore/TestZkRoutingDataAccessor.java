@@ -19,19 +19,7 @@ package org.apache.helix.rest.metadatastore;
  * under the License.
  */
 
-import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 
 public class TestZkRoutingDataAccessor {
 
-  @Test
-  public void testGetPartitionHealthOfInstanceWithValidZKRecord() {
-    ZkBaseDataAccessor<byte[]> zkBaseDataAccessor =
-        new ZkBaseDataAccessor<>("zk-ltx1-ring.stg.linkedin.com:3764");
-    byte[] record = zkBaseDataAccessor.get("/ERICB_TEST/CONFIGS/PARTICIPANT", null, 0);
-    System.out.println(record);
-  }
 }

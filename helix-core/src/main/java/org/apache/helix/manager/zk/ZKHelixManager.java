@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
@@ -806,7 +805,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       synchronized (this) {
         if (_leaderElectionHandler != null) {
-          _leaderElectionHandler.closeCallbackProcessor();
+          _leaderElectionHandler.closeBatchCallbackProcessor();
         }
         if (_controller != null) {
           _controller = null;
@@ -824,8 +823,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           _dataAccessor.getBaseDataAccessor().reset();
         }
         for (CallbackHandler handler : _handlers) {
-          handler.closeCallbackProcessor();
+          handler.closeBatchCallbackProcessor();
         }
+        _handlers.clear();
       }
       _sessionStartTime = null;
       LOG.info("Cluster manager: " + _instanceName + " disconnected");

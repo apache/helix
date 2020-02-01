@@ -352,10 +352,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     // This allows the listener to work with one change at a time
     synchronized (_manager) {
-      if (logger.isInfoEnabled()) {
-        logger.info(Thread.currentThread().getId() + " START:INVOKE " + _path + " listener:"
-            + _listener + " type: " + type);
-      }
+      logger.info(Thread.currentThread().getId() + " START:INVOKE " + _path + " listener:"
+          + _listener + " type: " + type);
 
       if (!_expectTypes.contains(type)) {
         logger.warn("Callback handler received event in wrong order. Listener: " + _listener
@@ -460,32 +458,32 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   private void subscribeChildChange(String path, NotificationContext.Type callbackType) {
+    String instanceName = _manager.getInstanceName();
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      if (logger.isDebugEnabled()) {
-        logger.debug(_manager.getInstanceName() + " subscribes child-change. path: " + path
-            + ", listener: " + _listener);
-      }
+      logger.info("{} subscribes child-change on path: {}, listener: {}, callbackType: {}",
+          instanceName, _path, _listener, callbackType);
       _zkClient.subscribeChildChanges(path, this);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
-      logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " + path
-          + ", listener: " + _listener);
+      logger.info(
+          "{} unsubscribes child-change on path: {}, listener: {}, callbackType: {}",
+          instanceName, _path, _listener, callbackType);
 
       _zkClient.unsubscribeChildChanges(path, this);
     }
   }
 
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
+    String instanceName = _manager.getInstanceName();
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
-      if (logger.isDebugEnabled()) {
-        logger.debug(_manager.getInstanceName() + " subscribe data-change. path: " + path
-            + ", listener: " + _listener);
-      }
+      logger.info("{} subscribes data-change on path: {}, listener: {}, callbackType: {}",
+          instanceName, _path, _listener, callbackType);
       _zkClient.subscribeDataChanges(path, this);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
-      logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " + path
-          + ", listener: " + _listener);
+      logger
+          .info("{} unsubscribes data-change on path: {}, listener: {}, callbackType: {}",
+              instanceName, _path, _listener, callbackType);
 
       _zkClient.unsubscribeDataChanges(path, this);
     }
@@ -501,9 +499,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private void subscribeForChanges(NotificationContext.Type callbackType, String path,
       boolean watchChild) {
-    logger
-        .info("Subscribing changes listener on path: {}, callbackType: {}, listener: {}, isWatchChild: {}",
-            path, callbackType, _listener, watchChild);
+    logger.info(
+        "START:INVOKE subscribing changes listener on path: {}, callbackType: {}, listener: {}, isWatchChild: {}",
+        path, callbackType, _listener, watchChild);
 
     long start = System.currentTimeMillis();
     if (_eventTypes.contains(EventType.NodeDataChanged)
@@ -568,7 +566,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
 
     long end = System.currentTimeMillis();
-    logger.info("Subscribing to path:" + path + " took:" + (end - start));
+    logger.info("END:INVOKE Subscribe all listeners to path: {}, took: {}ms", path, end - start);
   }
 
   public EventType[] getEventTypes() {
@@ -721,7 +719,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * *Caution*: currently it's only used during disconnecting from ZK and the
    * listeners unsubscription will be taken care by zkClient directly
    */
-  void closeCallbackProcessor() {
+  void closeBatchCallbackProcessor() {
     _ready = false;
     synchronized (this) {
       if (_batchCallbackProcessor != null) {

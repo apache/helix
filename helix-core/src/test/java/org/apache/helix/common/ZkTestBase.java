@@ -168,7 +168,7 @@ public class ZkTestBase {
         }
       } catch (Exception e) {
         // Parsing error - skip creating ZKs
-        LOG.error("Failed to create multiple ZooKeepers!");
+        System.out.println("Failed to create multiple ZooKeepers!");
       }
     }
 

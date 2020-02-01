@@ -20,9 +20,12 @@ package org.apache.helix.integration.controller;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.security.auth.callback.Callback;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -30,6 +33,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -88,6 +92,23 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     LOG.info(
         System.currentTimeMillis() - start + "ms spent on becoming the standby node from leader");
+  }
+
+  @Test
+  public void testControllerConnectThenSessionExpire() throws Exception {
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
+    long start = System.currentTimeMillis();
+    controller.syncStart();
+    verifyControllerIsLeader(controller);
+    LOG.info(System.currentTimeMillis() - start + "ms spent on becoming the leader");
+    List<CallbackHandler> handlersBefore = controller.getHandlers();
+    ZkTestHelper.expireSession(controller.getZkClient());
+    List<CallbackHandler> handlersAfter = controller.getHandlers();
+    Assert.assertEquals(handlersBefore.size(), handlersAfter.size()); // size equal
+    Assert.assertEquals(new HashSet<>(handlersBefore), new HashSet<>(handlersAfter)); // content equal
+
+    controller.syncStop();
   }
 
   @Test(description = "If the cluster has a controller, the second controller cannot take its leadership")

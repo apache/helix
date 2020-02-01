@@ -116,7 +116,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private HelixCallbackMonitor _monitor;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  public CallbackProcessor _batchCallbackProcessor;
+  private CallbackProcessor _batchCallbackProcessor;
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
                                       // change.
 
@@ -165,7 +165,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  public class CallbackProcessor
+  class CallbackProcessor
       extends DedupEventProcessor<NotificationContext.Type, NotificationContext> {
     private CallbackHandler _handler;
 

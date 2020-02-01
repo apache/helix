@@ -148,7 +148,8 @@ public class ZkTestBase {
     _numZk++; // Now we have 1 ZK
 
     // If multi-ZooKeeper is enabled, start more ZKs
-    if (System.getProperty(MULTI_ZK_PROPERTY_KEY) != null) {
+    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
+    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
       int numZkFromConfig;
       try {
         numZkFromConfig = Integer.parseInt(System.getProperty(NUM_ZK_PROPERTY_KEY));
@@ -222,8 +223,9 @@ public class ZkTestBase {
     TestHelper.stopZkServer(_zkServer);
 
     // If there are multiple ZooKeepers, close them all
-    if (System.getProperty(MULTI_ZK_PROPERTY_KEY) != null) {
-      for (int i = 0; i < _numZk; i++) {
+    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
+    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
+      for (int i = 1; i < _numZk; i++) {
         if (_baseDataAccessorMap != null && _baseDataAccessorMap.containsKey(i)) {
           _baseDataAccessorMap.get(i).close();
         }

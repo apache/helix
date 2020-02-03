@@ -29,6 +29,7 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 
 public class ZkRoutingDataAccessor implements MetadataStoreRoutingDataAccessor {
   private static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
+  private static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
 
   private final HelixZkClient _zkClient;
 
@@ -43,7 +44,10 @@ public class ZkRoutingDataAccessor implements MetadataStoreRoutingDataAccessor {
     List<String> children = _zkClient.getChildren(ROUTING_DATA_PATH);
     for (String child : children) {
       ZNRecord record = _zkClient.readData(ROUTING_DATA_PATH + "/" + child);
-      result.put(child, record.getListField("addresses"));
+      List<String> shardingKeys = record.getListField(ZNRECORD_LIST_FIELD_KEY);
+      if (shardingKeys != null) {
+        result.put(child, shardingKeys);
+      }
     }
     return result;
   }

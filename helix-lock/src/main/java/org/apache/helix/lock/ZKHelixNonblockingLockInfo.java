@@ -27,23 +27,42 @@ import org.apache.helix.ZNRecord;
 
 public class ZKHelixNonblockingLockInfo<T extends String> implements LockInfo<T> {
 
-  private Map<String, String>  lockInfo;
+  private Map<String, String> lockInfo;
+
+  enum InfoKey {
+    OWNER, MESSAGE, TIMEOUT
+  }
 
   public ZKHelixNonblockingLockInfo() {
     lockInfo = new HashMap<>();
   }
 
   @Override
-  public void setInfoValue(String infoKey, String infoValue) {
+  /**
+   * Create a single filed of LockInfo, or update the value of the field if it already exists
+   * @param infoKey the key of the LockInfo field
+   * @param infoValue the value of the LockInfo field
+   */ public void setInfoValue(String infoKey, String infoValue) {
     lockInfo.put(infoKey, infoValue);
   }
 
   @Override
-  public T getInfoValue(String infoKey) {
-    return (T)lockInfo.get(infoKey);
+  /**
+   * Get the value of a field in LockInfo
+   * @param infoKey the key of the LockInfo field
+   * @return the value of the field or null if this key does not exist
+   */ public T getInfoValue(String infoKey) {
+    return (T) lockInfo.get(infoKey);
   }
 
+  /**
+   * Update the lock info with information in a ZNRecord
+   * @param record Information about the lock that stored as ZNRecord format
+   */
   public void setLockInfoFields(ZNRecord record) {
+    if (record == null) {
+      return;
+    }
     Map<String, String> recordSimpleFields = record.getSimpleFields();
     lockInfo.putAll(recordSimpleFields);
   }

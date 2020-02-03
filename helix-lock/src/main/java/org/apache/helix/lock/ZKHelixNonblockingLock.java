@@ -26,6 +26,7 @@ import java.util.UUID;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.ZNRecordUpdater;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -33,6 +34,7 @@ import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.util.ZNRecordUtil;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 
 /**
@@ -80,32 +82,44 @@ public class ZKHelixNonblockingLock implements HelixLock {
   }
 
   @Override
-  public boolean acquireLock() {
+  /**
+   * Blocking call to acquire a lock
+   * @return true if the lock was successfully acquired,
+   * false if the lock could not be acquired
+   */ public boolean acquireLock() {
 
     // Set lock information fields
     ZNRecord lockInfo = new ZNRecord(_userID);
-    lockInfo.setSimpleField("Owner", _userID);
-    lockInfo.setSimpleField("message", _lockMsg);
+    lockInfo.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name(), _userID);
+    lockInfo.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE.name(), _lockMsg);
     long timeout = System.currentTimeMillis() + _timeout;
-    lockInfo.setSimpleField("timeout", String.valueOf(timeout));
+    lockInfo
+        .setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(), String.valueOf(timeout));
 
     // Try to create the lock node
     boolean success = _baseDataAccessor.create(_lockPath, lockInfo, AccessOption.PERSISTENT);
 
-    // If fail to create the lock node, compare the timeout timestamp of current lock node with current time, if already passes the timeout, delete current lock node and try to create lock node again
+    // If fail to create the lock node (acquire the lock), compare the timeout timestamp of current lock node with current time, if already passes the timeout, release current lock and try to acquire the lock again
     if (!success) {
-      ZNRecord curLock = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
-      long curTimeout = Long.parseLong(curLock.getSimpleField("timeout"));
+      Stat stat = new Stat();
+      ZNRecord curLock = _baseDataAccessor.get(_lockPath, stat, AccessOption.PERSISTENT);
+      long curTimeout =
+          Long.parseLong(curLock.getSimpleField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name()));
       if (System.currentTimeMillis() >= curTimeout) {
-        _baseDataAccessor.remove(_lockPath, AccessOption.PERSISTENT);
-        return _baseDataAccessor.create(_lockPath, lockInfo, AccessOption.PERSISTENT);
+        success =
+            _baseDataAccessor.set(_lockPath, lockInfo, stat.getVersion(), AccessOption.PERSISTENT);
       }
     }
     return success;
   }
 
   @Override
-  public boolean releaseLock() {
+  /**
+   * Blocking call to release a lock
+   * @return true if the lock was successfully released,
+   * false if the locked is not locked or is not locked by the user,
+   * or the lock could not be released
+   */ public boolean releaseLock() {
     if (isOwner()) {
       return _baseDataAccessor.remove(_lockPath, AccessOption.PERSISTENT);
     }
@@ -113,7 +127,13 @@ public class ZKHelixNonblockingLock implements HelixLock {
   }
 
   @Override
-  public LockInfo<String> getLockInfo() {
+  /**
+   * Retrieve the lock information, e.g. lock timeout, lock message, etc.
+   * @return lock metadata information, return null if there is no lock node for the path provided
+   */ public LockInfo<String> getLockInfo() {
+    if (!_baseDataAccessor.exists(_lockPath, AccessOption.PERSISTENT)) {
+      return null;
+    }
     ZKHelixNonblockingLockInfo<String> lockInfo = new ZKHelixNonblockingLockInfo<>();
     ZNRecord curLockInfo = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
     lockInfo.setLockInfoFields(curLockInfo);
@@ -121,12 +141,16 @@ public class ZKHelixNonblockingLock implements HelixLock {
   }
 
   @Override
-  public boolean isOwner() {
+  /**
+   * Check if the user is current lock owner
+   * @return true if the user is the lock owner,
+   * false if the user is not the lock owner or the lock doesn't have a owner
+   */ public boolean isOwner() {
     ZNRecord curLockInfo = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
     if (curLockInfo == null) {
       return false;
     }
-    String ownerID = curLockInfo.getSimpleField("owner");
+    String ownerID = curLockInfo.getSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name());
     if (ownerID == null) {
       return false;
     }

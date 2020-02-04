@@ -47,7 +47,7 @@ public class MockMetadataStoreDirectoryServer {
 
   private static final String REST_PREFIX = "/admin/v2/namespaces/";
   private static final String ZK_REALM_ENDPOINT = "/zk-realm/";
-  private static final int NOT_FOUND = 501;
+  private static final int NOT_IMPLEMENTED = 501;
   private static final int OK = 200;
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -107,7 +107,7 @@ public class MockMetadataStoreDirectoryServer {
             httpExchange.sendResponseHeaders(OK, htmlResponse.length());
           } else {
             htmlResponse = httpExchange.getRequestMethod() + " is not supported!\n";
-            httpExchange.sendResponseHeaders(NOT_FOUND, htmlResponse.length());
+            httpExchange.sendResponseHeaders(NOT_IMPLEMENTED, htmlResponse.length());
           }
           outputStream.write(htmlResponse.getBytes());
           outputStream.flush();
@@ -133,6 +133,7 @@ public class MockMetadataStoreDirectoryServer {
     // Start MockMSDS
     String host = "localhost";
     int port = 11000;
+    String endpoint = "http://" + host + ":" + port;
     String namespace = "MY-HELIX-APP";
     MockMetadataStoreDirectoryServer server =
         new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
@@ -141,8 +142,8 @@ public class MockMetadataStoreDirectoryServer {
 
     // Send a GET request
     String testZkRealm = "zk-0";
-    HttpGet getRequest = new HttpGet(
-        "http://localhost:" + port + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
+    HttpGet getRequest =
+        new HttpGet(endpoint + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
     try {
       CloseableHttpResponse getResponse = httpClient.execute(getRequest);
       System.out.println(getResponse.toString());
@@ -155,8 +156,8 @@ public class MockMetadataStoreDirectoryServer {
     }
 
     // Try sending a POST request (not supported)
-    HttpPost postRequest = new HttpPost(
-        "http://localhost:" + port + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
+    HttpPost postRequest =
+        new HttpPost(endpoint + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
     try {
       CloseableHttpResponse postResponse = httpClient.execute(postRequest);
       System.out.println(postResponse.toString());

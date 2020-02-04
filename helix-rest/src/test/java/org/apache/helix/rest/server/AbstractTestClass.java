@@ -93,6 +93,12 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
+  private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
+  private static final String NUM_ZK_PROPERTY_KEY = "numZk";
+  private static final String ZK_PREFIX = "localhost:";
+  private static final int ZK_START_PORT = 2123;
+  protected Map<String, ZkServer> _zkServerMap;
+
   protected static final String ZK_ADDR = "localhost:2123";
   protected static final String WORKFLOW_PREFIX = "Workflow_";
   protected static final String JOB_PREFIX = "Job_";
@@ -149,20 +155,43 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   @Override
   protected Application configure() {
     // start zk
+    _zkServerMap = new HashMap<>();
     try {
       if (_zkServer == null) {
         _zkServer = TestHelper.startZkServer(ZK_ADDR);
-        Assert.assertTrue(_zkServer != null);
+        Assert.assertNotNull(_zkServer);
+        _zkServerMap.put(ZK_ADDR, _zkServer);
         ZKClientPool.reset();
       }
 
       if (_zkServerTestNS == null) {
         _zkServerTestNS = TestHelper.startZkServer(_zkAddrTestNS);
-        Assert.assertTrue(_zkServerTestNS != null);
+        Assert.assertNotNull(_zkServerTestNS);
+        _zkServerMap.put(_zkAddrTestNS, _zkServerTestNS);
         ZKClientPool.reset();
       }
     } catch (Exception e) {
-      Assert.assertTrue(false, String.format("Failed to start ZK server: %s", e.toString()));
+      Assert.fail(String.format("Failed to start ZK server: %s", e.toString()));
+    }
+
+    // Start additional ZKs in a multi-ZK setup
+    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
+    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
+      String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
+      if (numZkFromConfig != null) {
+        try {
+          int numZkFromConfigInt = Integer.parseInt(numZkFromConfig);
+          // Start (numZkFromConfigInt - 2) ZooKeepers
+          for (int i = 2; i < numZkFromConfigInt; i++) {
+            String zkAddr = ZK_PREFIX + (ZK_START_PORT + i);
+            ZkServer zkServer = TestHelper.startZkServer(zkAddr);
+            Assert.assertNotNull(zkServer);
+            _zkServerMap.put(zkAddr, zkServer);
+          }
+        } catch (Exception e) {
+          Assert.fail("Failed to create multiple ZooKeepers!");
+        }
+      }
     }
 
     // Configure server context
@@ -285,6 +314,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       TestHelper.stopZkServer(_zkServerTestNS);
       _zkServerTestNS = null;
     }
+
+    // Stop all ZkServers
+    _zkServerMap.forEach((zkAddr, zkServer) -> TestHelper.stopZkServer(zkServer));
 
     if (_helixRestServer != null) {
       _helixRestServer.shutdown();

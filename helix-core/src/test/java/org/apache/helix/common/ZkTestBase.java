@@ -136,33 +136,32 @@ public class ZkTestBase {
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
     System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
 
-    // Start an in-memory ZooKeeper
-    _zkServer = TestHelper.startZkServer(ZK_ADDR);
-    AssertJUnit.assertNotNull(_zkServer);
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(new ZNRecordSerializer());
-    _gZkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
-    _gSetupTool = new ClusterSetup(_gZkClient);
-    _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
-
-    // If multi-ZooKeeper is enabled, start more ZKs
+    // Start in-memory ZooKeepers
+    // If multi-ZooKeeper is enabled, start more ZKs. Otherwise, just set up one ZK
+    int numZkToStart = 1;
     String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
     if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
       String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
       if (numZkFromConfig != null) {
         try {
-          int numZkFromConfigInt = Integer.parseInt(numZkFromConfig);
-          // Start (numZkFromConfigInt - 1) ZooKeepers
-          for (int i = 1; i < numZkFromConfigInt; i++) {
-            startZooKeeper(i);
-          }
+          numZkToStart = Math.max(Integer.parseInt(numZkFromConfig), numZkToStart);
         } catch (Exception e) {
-          Assert.fail("Failed to create multiple ZKs!");
+          Assert.fail("Failed to parse the number of ZKs from config!");
         }
       }
       Assert.fail("multiZk config is set but numZk config is missing!");
     }
+
+    // Start "numZkFromConfigInt" ZooKeepers
+    for (int i = 0; i < numZkToStart; i++) {
+      startZooKeeper(i);
+    }
+
+    // Set the references for backward-compatibility with a single ZK environment
+    _zkServer = _zkServerMap.get(ZK_ADDR);
+    _gZkClient = _helixZkClientMap.get(ZK_ADDR);
+    _gSetupTool = _clusterSetupMap.get(ZK_ADDR);
+    _baseAccessor = _baseDataAccessorMap.get(ZK_ADDR);
 
     // Clean up all JMX objects
     for (ObjectName mbean : _server.queryNames(null, null)) {

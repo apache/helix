@@ -22,6 +22,8 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
+import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkTimeoutException;
@@ -98,6 +101,57 @@ public class TestRawZkClient extends ZkUnitTestBase {
     _zkClient.writeData(path, "Test");
     newStat = _zkClient.getStat(path);
     AssertJUnit.assertNotSame(stat, newStat);
+  }
+
+  @Test
+  public void testWatcherAfterDataDeletion() throws Exception {
+    String path = "/tmp/dataWatcher";
+    _zkClient.createPersistent("/tmp/dataWatcher", true);
+    final CountDownLatch wait = new CountDownLatch(1);
+    _zkClient.subscribeDataChanges(path, new IZkDataListener() {
+      @Override
+      public void handleDataChange(String s, Object o) throws Exception {
+
+      }
+
+      @Override
+      public void handleDataDeleted(String s) throws Exception {
+        // wait for the callback event finishes the processing
+        wait.countDown();
+      }
+    });
+    Map<String, Set<String>> listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertEquals(listeners.size(), 1);
+    // Delete the /tmp/dataWatcher node
+    _zkClient.delete(path);
+    wait.await();
+    listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertEquals(listeners.size(), 0);
+  }
+
+  @Test
+  public void testChildWatcherAfterDataDeletion() throws Exception {
+    String parentPath = "/tmp";
+    String childPath = parentPath + "/childNode";
+    _zkClient.createPersistent(childPath, true);
+    final CountDownLatch wait = new CountDownLatch(1);
+
+    _zkClient.subscribeChildChanges(parentPath, new IZkChildListener() {
+      @Override
+      public void handleChildChange(String s, List<String> list) throws Exception {
+        wait.countDown();
+        System.out.println("handle child change");
+      }
+    });
+    Map<String, Set<String>> listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertEquals(listeners.size(), 1);
+    // Delete the child node
+    _zkClient.delete(childPath);
+    wait.await();
+    // Expectation: the child listener should still exist
+    listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertEquals(listeners.size(), 1);
+    Assert.assertTrue(listeners.containsKey(parentPath));
   }
 
   /*

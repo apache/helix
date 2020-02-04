@@ -1320,13 +1320,6 @@ public class ZkClient implements Watcher {
               try {
                 //TODO: duplicate reads when multiple child listener exists
                 children = getChildren(path);
-                if (children != null) {
-                  for (String child : children) {
-                    // add the exists watcher for all child path, it's to prevent watcher missing
-                    // in case of node recreation shortly after deletion
-                    watchForData(path + "/" + child);
-                  }
-                }
               } catch (ZkNoNodeException e) {
                 LOG.warn("Get children under path: {} failed.", path, e);
                 // Continue trigger the change handler

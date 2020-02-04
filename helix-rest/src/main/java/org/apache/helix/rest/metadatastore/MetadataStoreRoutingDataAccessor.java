@@ -21,17 +21,21 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 
 /**
  * An interface for a DAO that fetches routing data from a source and return a key-value mapping
  * that represent the said routing data.
  */
 public interface MetadataStoreRoutingDataAccessor {
+
   /**
    * Fetches routing data from the data source.
    * @return a mapping from "metadata store realm addresses" to lists of "metadata store sharding
    *         keys", where the sharding keys in a value list all route to the realm address in the
    *         key
+   * @throws InvalidRoutingDataException - when the routing data is malformed in any way that
+   *           disallows a meaningful mapping to be returned
    */
-  Map<String, List<String>> getRoutingData();
+  Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException;
 }

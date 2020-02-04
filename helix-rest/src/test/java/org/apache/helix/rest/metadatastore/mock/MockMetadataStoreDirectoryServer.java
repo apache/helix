@@ -22,21 +22,15 @@ package org.apache.helix.rest.metadatastore.mock;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.sun.net.httpserver.HttpServer;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.testng.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -44,22 +38,23 @@ import org.testng.Assert;
  * Helix applications may use this to write unit/integration tests without having to set up the routing ZooKeeper and creating routing data ZNodes.
  */
 public class MockMetadataStoreDirectoryServer {
+  private static final Logger LOG = LoggerFactory.getLogger(MockMetadataStoreDirectoryServer.class);
 
-  private static final String REST_PREFIX = "/admin/v2/namespaces/";
-  private static final String ZK_REALM_ENDPOINT = "/METADATA_STORE_ROUTING_DATA/";
-  private static final int NOT_IMPLEMENTED = 501;
-  private static final int OK = 200;
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  protected static final String REST_PREFIX = "/admin/v2/namespaces/";
+  protected static final String ZK_REALM_ENDPOINT = "/METADATA_STORE_ROUTING_DATA/";
+  protected static final int NOT_IMPLEMENTED = 501;
+  protected static final int OK = 200;
+  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final String _hostname;
-  private final int _mockServerPort;
-  private final Map<String, List<String>> _routingDataMap;
-  private final String _namespace;
-  private HttpServer _server;
-  private final ThreadPoolExecutor _executor =
+  protected final String _hostname;
+  protected final int _mockServerPort;
+  protected final Map<String, List<String>> _routingDataMap;
+  protected final String _namespace;
+  protected HttpServer _server;
+  protected final ThreadPoolExecutor _executor =
       (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
-  private enum SupportedHttpVerbs {
+  protected enum SupportedHttpVerbs {
     GET
   }
 
@@ -98,12 +93,15 @@ public class MockMetadataStoreDirectoryServer {
     generateContexts();
     _server.setExecutor(_executor);
     _server.start();
-    System.out.println("Started Mock MSDS at " + _hostname + ":" + _mockServerPort + "!");
+    LOG.info(
+        "Started MockMetadataStoreDirectoryServer at " + _hostname + ":" + _mockServerPort + "!");
   }
 
   public void stopServer() {
     _server.stop(0);
     _executor.shutdown();
+    LOG.info(
+        "Stopped MockMetadataStoreDirectoryServer at " + _hostname + ":" + _mockServerPort + "!");
   }
 
   /**
@@ -125,60 +123,5 @@ public class MockMetadataStoreDirectoryServer {
           outputStream.flush();
           outputStream.close();
         }));
-  }
-
-  /**
-   * Spins up MockMetadataStoreDirectoryServer and performs tests.
-   * A sample curl GET query might look like the following:
-   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-NAMESPACE/METADATA_STORE_ROUTING_DATA/zk-1
-   * @param args
-   * @throws IOException
-   */
-  public static void main(String[] args)
-      throws IOException {
-    // Create fake routing data
-    Map<String, List<String>> routingData = new HashMap<>();
-    routingData.put("zk-0", ImmutableList.of("sharding-key-0", "sharding-key-1", "sharding-key-2"));
-    routingData.put("zk-1", ImmutableList.of("sharding-key-3", "sharding-key-4", "sharding-key-5"));
-    routingData.put("zk-2", ImmutableList.of("sharding-key-6", "sharding-key-7", "sharding-key-8"));
-
-    // Start MockMSDS
-    String host = "localhost";
-    int port = 11000;
-    String endpoint = "http://" + host + ":" + port;
-    String namespace = "MY-HELIX-NAMESPACE";
-    MockMetadataStoreDirectoryServer server =
-        new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
-    server.startServer();
-    CloseableHttpClient httpClient = HttpClients.createDefault();
-
-    // Send a GET request
-    String testZkRealm = "zk-0";
-    HttpGet getRequest =
-        new HttpGet(endpoint + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
-    try {
-      CloseableHttpResponse getResponse = httpClient.execute(getRequest);
-      System.out.println(getResponse.toString());
-      List<String> shardingKeyList =
-          OBJECT_MAPPER.readValue(getResponse.getEntity().getContent(), List.class);
-      System.out.println(shardingKeyList);
-      Assert.assertEquals(shardingKeyList, routingData.get(testZkRealm));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    // Try sending a POST request (not supported)
-    HttpPost postRequest =
-        new HttpPost(endpoint + REST_PREFIX + namespace + ZK_REALM_ENDPOINT + testZkRealm);
-    try {
-      CloseableHttpResponse postResponse = httpClient.execute(postRequest);
-      System.out.println(postResponse.toString());
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    // Shutdown
-    server.stopServer();
-    System.out.println("MockMetadataStoreDirectoryServer test passed!");
   }
 }

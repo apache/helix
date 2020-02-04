@@ -24,9 +24,10 @@ import java.util.Map;
 
 /**
  * Generic interface for a map contains the Helix lock information
- * @param <T> The type of the LockInfo value
+ * @param <K> The type of the LockInfo key
+ * @param <V> the type of the LockInfo value
  */
-public interface LockInfo<T> {
+public interface LockInfo<K, V> {
 
   //TODO: add specific setter and getter for any field that is determined to be universal for all implementations of HelixLock
 
@@ -35,12 +36,12 @@ public interface LockInfo<T> {
    * @param infoKey the key of the LockInfo field
    * @param infoValue the value of the LockInfo field
    */
-  void setInfoValue(String infoKey, T infoValue);
+  void setInfoValue(K infoKey, V infoValue);
 
   /**
    * Get the value of a field in LockInfo
    * @param infoKey the key of the LockInfo field
    * @return the value of the field or null if this key does not exist
    */
-  T getInfoValue(String infoKey);
+  V getInfoValue(K infoKey);
 }

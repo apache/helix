@@ -25,45 +25,38 @@ import java.util.Map;
 import org.apache.helix.ZNRecord;
 
 
-public class ZKHelixNonblockingLockInfo<T extends String> implements LockInfo<T> {
+public class ZKHelixNonblockingLockInfo<K extends ZKHelixNonblockingLockInfo.InfoKey, V extends String> implements LockInfo<K, V> {
 
-  private Map<String, String> lockInfo;
+  public static final String DEFAULT_OWNER_TEXT = "";
+  public static final String DEFAULT_MESSAGE_TEXT = "";
+  public static final String DEFAULT_TIMEOUT_TEXT = String.valueOf(-1);
+  private Map<InfoKey, String> lockInfo;
 
-  enum InfoKey {
+  public enum InfoKey {
     OWNER, MESSAGE, TIMEOUT
   }
 
   public ZKHelixNonblockingLockInfo() {
     lockInfo = new HashMap<>();
+    lockInfo.put(InfoKey.OWNER, DEFAULT_OWNER_TEXT);
+    lockInfo.put(InfoKey.MESSAGE, DEFAULT_MESSAGE_TEXT);
+    lockInfo.put(InfoKey.TIMEOUT, DEFAULT_TIMEOUT_TEXT);
+  }
+
+  public ZKHelixNonblockingLockInfo(ZNRecord znRecord) {
+    this();
+    lockInfo.put(InfoKey.OWNER, znRecord.getSimpleField(InfoKey.OWNER.name()));
+    lockInfo.put(InfoKey.MESSAGE, znRecord.getSimpleField(InfoKey.MESSAGE.name()));
+    lockInfo.put(InfoKey.TIMEOUT, znRecord.getSimpleField(InfoKey.TIMEOUT.name()));
   }
 
   @Override
-  /**
-   * Create a single filed of LockInfo, or update the value of the field if it already exists
-   * @param infoKey the key of the LockInfo field
-   * @param infoValue the value of the LockInfo field
-   */ public void setInfoValue(String infoKey, String infoValue) {
+  public void setInfoValue(InfoKey infoKey, String infoValue) {
     lockInfo.put(infoKey, infoValue);
   }
 
   @Override
-  /**
-   * Get the value of a field in LockInfo
-   * @param infoKey the key of the LockInfo field
-   * @return the value of the field or null if this key does not exist
-   */ public T getInfoValue(String infoKey) {
-    return (T) lockInfo.get(infoKey);
-  }
-
-  /**
-   * Update the lock info with information in a ZNRecord
-   * @param record Information about the lock that stored as ZNRecord format
-   */
-  public void setLockInfoFields(ZNRecord record) {
-    if (record == null) {
-      return;
-    }
-    Map<String, String> recordSimpleFields = record.getSimpleFields();
-    lockInfo.putAll(recordSimpleFields);
+  public String getInfoValue(InfoKey infoKey) {
+    return lockInfo.get(infoKey);
   }
 }

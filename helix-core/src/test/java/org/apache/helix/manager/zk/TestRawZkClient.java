@@ -120,13 +120,20 @@ public class TestRawZkClient extends ZkUnitTestBase {
         wait.countDown();
       }
     });
-    Map<String, Set<String>> listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    Assert.assertEquals(listeners.size(), 1);
-    // Delete the /tmp/dataWatcher node
+    Map<String, List<String>> zkWatch = ZkTestHelper.getZkWatch(_zkClient);
+    Assert.assertEquals(zkWatch.get("dataWatches").size(), 1);
+    Assert.assertEquals(zkWatch.get("dataWatches").get(0), path);
+    Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
+    Assert.assertEquals(zkWatch.get("childWatches").size(), 0);
+
+    // Delete the child node
     _zkClient.delete(path);
     wait.await();
-    listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    Assert.assertEquals(listeners.size(), 0);
+    zkWatch = ZkTestHelper.getZkWatch(_zkClient);
+    // Expectation: the child listener should still exist
+    Assert.assertEquals(zkWatch.get("dataWatches").size(), 0);
+    Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
+    Assert.assertEquals(zkWatch.get("childWatches").size(), 0);
   }
 
   @Test
@@ -143,15 +150,24 @@ public class TestRawZkClient extends ZkUnitTestBase {
         System.out.println("handle child change");
       }
     });
-    Map<String, Set<String>> listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    Assert.assertEquals(listeners.size(), 1);
+    Map<String, List<String>> zkWatch = ZkTestHelper.getZkWatch(_zkClient);
+    Assert.assertEquals(zkWatch.get("dataWatches").size(), 1);
+    Assert.assertEquals(zkWatch.get("dataWatches").get(0), parentPath);
+    Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
+    Assert.assertEquals(zkWatch.get("childWatches").size(), 1);
+    Assert.assertEquals(zkWatch.get("childWatches").get(0), parentPath);
+
     // Delete the child node
     _zkClient.delete(childPath);
+
     wait.await();
+    zkWatch = ZkTestHelper.getZkWatch(_zkClient);
     // Expectation: the child listener should still exist
-    listeners = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    Assert.assertEquals(listeners.size(), 1);
-    Assert.assertTrue(listeners.containsKey(parentPath));
+    Assert.assertEquals(zkWatch.get("dataWatches").size(), 1);
+    Assert.assertEquals(zkWatch.get("dataWatches").get(0), parentPath);
+    Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
+    Assert.assertEquals(zkWatch.get("childWatches").size(), 1);
+    Assert.assertEquals(zkWatch.get("childWatches").get(0), parentPath);
   }
 
   /*

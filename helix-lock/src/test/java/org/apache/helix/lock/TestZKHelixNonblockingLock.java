@@ -31,16 +31,19 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
 public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
 
-  private final String _lockPath = "/testLockPath";
   private final String _className = TestHelper.getTestClassName();
   private final String _methodName = TestHelper.getTestMethodName();
   private final String _clusterName = _className + "_" + _methodName;
   private final String _lockMessage = "Test";
+  private String _lockPath;
+  private ZKHelixNonblockingLock _lock;
+  private String _userId;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -49,78 +52,46 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
 
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
-  }
-
-  @Test
-  public void testAcquireLockWithParticipantScope() {
-
-    // Initialize lock with participant config scope
+    _userId = UUID.randomUUID().toString();
     HelixConfigScope participantScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(_clusterName)
             .forParticipant("localhost_12918").build();
 
-    String userID = UUID.randomUUID().toString();
+    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + participantScope;
+    _lock = new ZKHelixNonblockingLock(_clusterName, participantScope, ZK_ADDR, Long.MAX_VALUE,
+        _lockMessage, _userId);
 
-    ZKHelixNonblockingLock lock =
-        new ZKHelixNonblockingLock(_clusterName, participantScope, ZK_ADDR, Long.MAX_VALUE,
-            _lockMessage, userID);
-
-    // Acquire lock
-    lock.acquireLock();
-    String lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + participantScope;
-    Assert.assertTrue(_gZkClient.exists(lockPath));
-
-    // Get lock information
-    LockInfo<String> record = lock.getLockInfo();
-    Assert
-        .assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name()), userID);
-    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE.name()),
-        _lockMessage);
-
-    // Check if the user is lock owner
-    Assert.assertTrue(lock.isOwner());
-
-    // Release lock
-    lock.releaseLock();
-    Assert.assertFalse(_gZkClient.exists(lockPath));
   }
 
-  @Test
-  public void testAcquireLockWithUserProvidedPath() {
-
-    // Initialize lock with user provided path
-    String userID = UUID.randomUUID().toString();
-
-    ZKHelixNonblockingLock lock =
-        new ZKHelixNonblockingLock(_lockPath, ZK_ADDR, Long.MAX_VALUE, _lockMessage, userID);
-
-    //Acquire lock
-    lock.acquireLock();
-    Assert.assertTrue(_gZkClient.exists(_lockPath));
-
-    // Get lock information
-    LockInfo<String> record = lock.getLockInfo();
-    Assert
-        .assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name()), userID);
-    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE.name()),
-        _lockMessage);
-
-    // Check if the user is lock owner
-    Assert.assertTrue(lock.isOwner());
-
-    // Release lock
-    lock.releaseLock();
+  @BeforeMethod
+  public void beforeMethod() {
+    _gZkClient.delete(_lockPath);
     Assert.assertFalse(_gZkClient.exists(_lockPath));
   }
 
   @Test
+  public void testAcquireLock() {
+
+    // Acquire lock
+    _lock.acquireLock();
+    Assert.assertTrue(_gZkClient.exists(_lockPath));
+
+    // Get lock information
+    LockInfo<ZKHelixNonblockingLockInfo.InfoKey, String> record = _lock.getLockInfo();
+    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.OWNER), _userId);
+    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE),
+        _lockMessage);
+
+    // Check if the user is lock owner
+    Assert.assertTrue(_lock.isOwner());
+
+    // Release lock
+    _lock.releaseLock();
+    Assert.assertFalse(_lock.isOwner());
+  }
+
+  @Test
   public void testAcquireLockWhenExistingLockNotExpired() {
-
-    // Initialize lock with user provided path
-    String ownerID = UUID.randomUUID().toString();
-
-    ZKHelixNonblockingLock lock =
-        new ZKHelixNonblockingLock(_lockPath, ZK_ADDR, 0L, _lockMessage, ownerID);
 
     // Fake condition when the lock owner is not current user
     String fakeUserID = UUID.randomUUID().toString();
@@ -131,27 +102,18 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
     // Check if the user is lock owner
-    Assert.assertFalse(lock.isOwner());
+    Assert.assertFalse(_lock.isOwner());
 
     // Acquire lock
-    Assert.assertFalse(lock.acquireLock());
-    Assert.assertFalse(lock.isOwner());
+    Assert.assertFalse(_lock.acquireLock());
+    Assert.assertFalse(_lock.isOwner());
 
     // Release lock
-    Assert.assertFalse(lock.releaseLock());
-    Assert.assertTrue(_gZkClient.exists(_lockPath));
-
-    _gZkClient.delete(_lockPath);
+    Assert.assertFalse(_lock.releaseLock());
   }
 
   @Test
   public void testAcquireLockWhenExistingLockExpired() {
-
-    // Initialize lock with user provided path
-    String ownerID = UUID.randomUUID().toString();
-
-    ZKHelixNonblockingLock lock =
-        new ZKHelixNonblockingLock(_lockPath, ZK_ADDR, Long.MAX_VALUE, _lockMessage, ownerID);
 
     // Fake condition when the current lock already expired
     String fakeUserID = UUID.randomUUID().toString();
@@ -162,15 +124,17 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
     // Acquire lock
-    Assert.assertTrue(lock.acquireLock());
-    Assert.assertTrue(_gZkClient.exists(_lockPath));
-
-    // Check if the current user is the lock owner
-    Assert.assertTrue(lock.isOwner());
+    Assert.assertTrue(_lock.acquireLock());
+    Assert.assertTrue(_lock.isOwner());
 
     // Release lock
-    Assert.assertTrue(lock.releaseLock());
-    Assert.assertFalse(_gZkClient.exists(_lockPath));
+    Assert.assertTrue(_lock.releaseLock());
+    Assert.assertFalse(_lock.isOwner());
+  }
+
+  @Test
+  public void testSimultaneousAcquire() {
+
   }
 }
 

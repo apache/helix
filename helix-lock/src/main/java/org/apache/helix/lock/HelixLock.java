@@ -42,7 +42,7 @@ public interface HelixLock {
    * Retrieve the lock information, e.g. lock timeout, lock message, etc.
    * @return lock metadata information
    */
-  <T> LockInfo<T> getLockInfo();
+  <K, V> LockInfo<K, V> getLockInfo();
 
   /**
    * If the user is current lock owner

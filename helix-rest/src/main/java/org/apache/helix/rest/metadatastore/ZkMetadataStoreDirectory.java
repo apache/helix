@@ -32,7 +32,7 @@ import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.zookeeper.Watcher;
 
 
-public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, IZkDataListener, IZkChildListener, IZkStateListener {
+public class ZkMetadataStoreDirectory implements MetadataStoreDirectory {
   // TODO: enable the line below when implementation is complete
 //  private final MetadataStoreRoutingDataAccessor _routingDataAccessor;
   private MetadataStoreRoutingData _routingData;
@@ -103,43 +103,9 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, IZkData
     return false;
   }
 
-  /*
-    The following methods reconstruct the MetadataStoreRoutingData by listening to child/data/state changes
-   */
   @Override
-  public void handleChildChange(String s, List<String> list)
-      throws Exception {
-
-  }
-
-  @Override
-  public void handleDataChange(String s, Object o)
-      throws Exception {
-
-  }
-
-  @Override
-  public void handleDataDeleted(String s)
-      throws Exception {
-
-  }
-
-  @Override
-  public void handleStateChanged(Watcher.Event.KeeperState state)
-      throws Exception {
-
-  }
-
-  @Override
-  public void handleNewSession(String sessionId)
-      throws Exception {
-
-  }
-
-  @Override
-  public void handleSessionEstablishmentError(Throwable error)
-      throws Exception {
-
+  public void updateRoutingData() {
+    // call constructRoutingData() here.
   }
 
 //  /**

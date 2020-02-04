@@ -119,4 +119,9 @@ public interface MetadataStoreDirectory {
    * @return false if failed; true if the deletion is successful or the key does not exist.
    */
   boolean deleteShardingKey(String namespace, String realm, String shardingKey);
+
+  /**
+   * Updates the internally-cached routing data if available.
+   */
+  void updateRoutingData();
 }

@@ -74,6 +74,18 @@ public class MockMetadataStoreDirectoryServer {
    */
   public MockMetadataStoreDirectoryServer(String hostname, int port, String namespace,
       Map<String, List<String>> routingData) {
+    if (hostname == null || hostname.isEmpty()) {
+      throw new IllegalArgumentException("hostname cannot be null or empty!");
+    }
+    if (port < 0 || port > 65535) {
+      throw new IllegalArgumentException("port is not a valid port!");
+    }
+    if (namespace == null || namespace.isEmpty()) {
+      throw new IllegalArgumentException("namespace cannot be null or empty!");
+    }
+    if (routingData == null || routingData.isEmpty()) {
+      throw new IllegalArgumentException("routingData cannot be null or empty!");
+    }
     _hostname = hostname;
     _mockServerPort = port;
     _namespace = namespace;

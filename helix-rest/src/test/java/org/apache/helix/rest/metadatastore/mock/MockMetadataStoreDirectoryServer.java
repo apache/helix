@@ -46,7 +46,7 @@ import org.testng.Assert;
 public class MockMetadataStoreDirectoryServer {
 
   private static final String REST_PREFIX = "/admin/v2/namespaces/";
-  private static final String ZK_REALM_ENDPOINT = "/zk-realm/";
+  private static final String ZK_REALM_ENDPOINT = "/METADATA_STORE_ROUTING_DATA/";
   private static final int NOT_IMPLEMENTED = 501;
   private static final int OK = 200;
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -66,10 +66,10 @@ public class MockMetadataStoreDirectoryServer {
   /**
    * Constructs a Mock MSDS.
    * A sample GET might look like the following:
-   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-APP/zk-realm/zk-1
+   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-NAMESPACE/METADATA_STORE_ROUTING_DATA/zk-1
    * @param hostname hostname for the REST server. E.g.) "localhost"
    * @param port port to use. E.g.) 11000
-   * @param namespace the Helix REST namespace to mock. E.g.) "MY-HELIX-APP"
+   * @param namespace the Helix REST namespace to mock. E.g.) "MY-HELIX-NAMESPACE"
    * @param routingData <ZK realm, List of ZK path sharding keys>
    */
   public MockMetadataStoreDirectoryServer(String hostname, int port, String namespace,
@@ -118,7 +118,7 @@ public class MockMetadataStoreDirectoryServer {
   /**
    * Spins up MockMetadataStoreDirectoryServer and performs tests.
    * A sample curl GET query might look like the following:
-   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-APP/zk-realm/zk-1
+   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-NAMESPACE/METADATA_STORE_ROUTING_DATA/zk-1
    * @param args
    * @throws IOException
    */
@@ -134,7 +134,7 @@ public class MockMetadataStoreDirectoryServer {
     String host = "localhost";
     int port = 11000;
     String endpoint = "http://" + host + ":" + port;
-    String namespace = "MY-HELIX-APP";
+    String namespace = "MY-HELIX-NAMESPACE";
     MockMetadataStoreDirectoryServer server =
         new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
     server.startServer();

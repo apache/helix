@@ -97,6 +97,8 @@ import org.testng.annotations.BeforeSuite;
 
 public class ZkTestBase {
   private static Logger LOG = LoggerFactory.getLogger(ZkTestBase.class);
+  private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
+  private static final String NUM_ZK_PROPERTY_KEY = "numZk";
 
   protected static ZkServer _zkServer;
   protected static HelixZkClient _gZkClient;
@@ -106,12 +108,23 @@ public class ZkTestBase {
 
   private Map<String, Map<String, HelixZkClient>> _liveInstanceOwners = new HashMap<>();
 
-  public static final String ZK_ADDR = "localhost:2183";
+  private static final String ZK_PREFIX = "localhost:";
+  private static final int ZK_START_PORT = 2183;
+  public static final String ZK_ADDR = ZK_PREFIX + ZK_START_PORT;
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
   protected final String CONTROLLER_PREFIX = "controller";
   protected final String PARTICIPANT_PREFIX = "localhost";
   private static final long MANUAL_GC_PAUSE = 4000L;
+
+  /*
+   * Multiple ZK references
+   */
+  // The following maps hold ZK connect string as keys
+  protected Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected Map<String, HelixZkClient> _helixZkClientMap = new HashMap<>();
+  protected Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
+  protected Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
   @BeforeSuite
   public void beforeSuite() throws Exception {
@@ -123,8 +136,32 @@ public class ZkTestBase {
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
     System.setProperty(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, "3000");
 
-    _zkServer = TestHelper.startZkServer(ZK_ADDR);
-    AssertJUnit.assertNotNull(_zkServer);
+    // Start in-memory ZooKeepers
+    // If multi-ZooKeeper is enabled, start more ZKs. Otherwise, just set up one ZK
+    int numZkToStart = 1;
+    String multiZkConfig = System.getProperty(MULTI_ZK_PROPERTY_KEY);
+    if (multiZkConfig != null && multiZkConfig.equalsIgnoreCase(Boolean.TRUE.toString())) {
+      String numZkFromConfig = System.getProperty(NUM_ZK_PROPERTY_KEY);
+      if (numZkFromConfig != null) {
+        try {
+          numZkToStart = Math.max(Integer.parseInt(numZkFromConfig), numZkToStart);
+        } catch (Exception e) {
+          Assert.fail("Failed to parse the number of ZKs from config!");
+        }
+      }
+      Assert.fail("multiZk config is set but numZk config is missing!");
+    }
+
+    // Start "numZkFromConfigInt" ZooKeepers
+    for (int i = 0; i < numZkToStart; i++) {
+      startZooKeeper(i);
+    }
+
+    // Set the references for backward-compatibility with a single ZK environment
+    _zkServer = _zkServerMap.get(ZK_ADDR);
+    _gZkClient = _helixZkClientMap.get(ZK_ADDR);
+    _gSetupTool = _clusterSetupMap.get(ZK_ADDR);
+    _baseAccessor = _baseDataAccessorMap.get(ZK_ADDR);
 
     // Clean up all JMX objects
     for (ObjectName mbean : _server.queryNames(null, null)) {
@@ -134,13 +171,29 @@ public class ZkTestBase {
         // OK
       }
     }
+  }
 
+  /**
+   * Starts an additional in-memory ZooKeeper for testing.
+   * @param i index to be added to the ZK port to avoid conflicts
+   * @throws Exception
+   */
+  private void startZooKeeper(int i)
+      throws Exception {
+    String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
+    ZkServer zkServer = TestHelper.startZkServer(zkAddress);
+    AssertJUnit.assertNotNull(zkServer);
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());
-    _gZkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
-    _gSetupTool = new ClusterSetup(_gZkClient);
-    _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
+    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
+    ClusterSetup gSetupTool = new ClusterSetup(zkClient);
+    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
+
+    _zkServerMap.put(zkAddress, zkServer);
+    _helixZkClientMap.put(zkAddress, zkClient);
+    _clusterSetupMap.put(zkAddress, gSetupTool);
+    _baseDataAccessorMap.put(zkAddress, baseDataAccessor);
   }
 
   @AfterSuite
@@ -154,8 +207,11 @@ public class ZkTestBase {
       }
     }
 
-    _gZkClient.close();
-    TestHelper.stopZkServer(_zkServer);
+    // Close all ZK resources
+    _baseDataAccessorMap.values().forEach(BaseDataAccessor::close);
+    _clusterSetupMap.values().forEach(ClusterSetup::close);
+    _helixZkClientMap.values().forEach(HelixZkClient::close);
+    _zkServerMap.values().forEach(TestHelper::stopZkServer);
   }
 
   @BeforeClass

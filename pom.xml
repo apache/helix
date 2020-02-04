@@ -633,11 +633,6 @@ under the License.
               </goals>
               <id>default-test</id>
               <phase>test</phase>
-              <configuration>
-                <systemPropertyVariables>
-                  <multiZk>false</multiZk>
-                </systemPropertyVariables>
-              </configuration>
             </execution>
             <execution>
               <goals>
@@ -648,6 +643,7 @@ under the License.
               <configuration>
                 <systemPropertyVariables>
                   <multiZk>true</multiZk>
+                  <numZk>3</numZk>
                 </systemPropertyVariables>
               </configuration>
             </execution>

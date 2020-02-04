@@ -296,11 +296,6 @@ public class ZkTestHelper {
     return 0;
   }
 
-  public static int getServerWatcherCount(String zkAddr) {
-    //TODO: get watcher count by zk address
-    return -1;
-  }
-
   /**
    * return a map from zk-path to a set of zk-session-id that put watches on the zk-path
    * @param zkAddr

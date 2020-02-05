@@ -21,18 +21,42 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 
 public class TestZkMetadataStoreDirectory extends AbstractTestClass {
+  /**
+   * The following are constants to be used for testing.
+   */
+  private static final String TEST_REALM_1 = "testRealm1";
+  private static final List<String> TEST_SHARDING_KEYS_1 =
+      Arrays.asList("/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c");
+  private static final String TEST_REALM_2 = "testRealm2";
+  private static final List<String> TEST_SHARDING_KEYS_2 =
+      Arrays.asList("/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f");
+  private static final String TEST_REALM_3 = "testRealm3";
+  private static final List<String> TEST_SHARDING_KEYS_3 =
+      Arrays.asList("/sharding/key/1/x", "/sharding/key/1/y", "/sharding/key/1/z");
+
+  // List of all ZK addresses, each of which corresponds to a namespace/routing ZK
   private List<String> _zkList;
+  // <Namespace, ZkAddr> mapping
   private Map<String, String> _routingZkAddrMap;
   private MetadataStoreDirectory _metadataStoreDirectory;
 
@@ -42,22 +66,177 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     _zkList = new ArrayList<>(_zkServerMap.keySet());
 
     // Populate routingZkAddrMap
+    _routingZkAddrMap = new LinkedHashMap<>();
     int namespaceIndex = 0;
     String namespacePrefix = "namespace_";
     for (String zk : _zkList) {
       _routingZkAddrMap.put(namespacePrefix + namespaceIndex, zk);
     }
 
-    // Create metadataStoreDirectory
-    _metadataStoreDirectory = new ZkMetadataStoreDirectory(_routingZkAddrMap);
-
     // Write dummy mappings in ZK
     // Create a node that represents a realm address and add 3 sharding keys to it
-    ZNRecord testRoutingInfo = new ZNRecord("testRoutingInfo");
-    List<String> testShardingKeys =
-        Arrays.asList("/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c");
-    testRoutingInfo
-        .setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, testShardingKeys);
-    _zkList.forEach(zk -> )
+    ZNRecord znRecord = new ZNRecord("RoutingInfo");
+
+    _zkList.forEach(zk -> {
+      _zkServerMap.get(zk).getZkClient().setZkSerializer(new ZNRecordSerializer());
+      // Write first realm and sharding keys pair
+      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
+          TEST_SHARDING_KEYS_1);
+      _zkServerMap.get(zk).getZkClient()
+          .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
+              true);
+      _zkServerMap.get(zk).getZkClient()
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
+              znRecord);
+
+      // Create another realm and sharding keys pair
+      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
+          TEST_SHARDING_KEYS_2);
+      _zkServerMap.get(zk).getZkClient()
+          .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
+              true);
+      _zkServerMap.get(zk).getZkClient()
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
+              znRecord);
+    });
+
+    // Create metadataStoreDirectory
+    _metadataStoreDirectory = new ZkMetadataStoreDirectory(_routingZkAddrMap);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    _metadataStoreDirectory.close();
+    _zkList.forEach(zk -> _zkServerMap.get(zk).getZkClient()
+        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1));
+    _zkList.forEach(zk -> _zkServerMap.get(zk).getZkClient()
+        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2));
+  }
+
+  @Test
+  public void testGetAllNamespaces() {
+    Assert.assertEquals(_metadataStoreDirectory.getAllNamespaces(), _routingZkAddrMap.keySet());
+  }
+
+  @Test(dependsOnMethods = "testGetAllNamespaces")
+  public void testGetAllMetadataStoreRealms() {
+    Set<String> realms = new HashSet<>();
+    realms.add(TEST_REALM_1);
+    realms.add(TEST_REALM_2);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      Assert.assertEquals(_metadataStoreDirectory.getAllMetadataStoreRealms(namespace), realms);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetAllMetadataStoreRealms")
+  public void testGetAllShardingKeys() {
+    Set<String> allShardingKeys = new HashSet<>();
+    allShardingKeys.addAll(TEST_SHARDING_KEYS_1);
+    allShardingKeys.addAll(TEST_SHARDING_KEYS_2);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      Assert.assertEquals(_metadataStoreDirectory.getAllShardingKeys(namespace), allShardingKeys);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetAllShardingKeys")
+  public void testGetAllShardingKeysInRealm() {
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      // Test two realms independently
+      Assert
+          .assertEquals(_metadataStoreDirectory.getAllShardingKeysInRealm(namespace, TEST_REALM_1),
+              TEST_SHARDING_KEYS_1);
+      Assert
+          .assertEquals(_metadataStoreDirectory.getAllShardingKeysInRealm(namespace, TEST_REALM_2),
+              TEST_SHARDING_KEYS_2);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetAllShardingKeysInRealm")
+  public void testDataChangeCallback()
+      throws Exception {
+    // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_1
+    String newKey = "/a/b/c/d/e";
+    _zkList.forEach(zk -> {
+      ZNRecord znRecord = _zkServerMap.get(zk).getZkClient()
+          .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1);
+      znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).add(newKey);
+      _zkServerMap.get(zk).getZkClient()
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
+              znRecord);
+    });
+
+    // Verify that the sharding keys field have been updated
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String namespace : _routingZkAddrMap.keySet()) {
+        try {
+          return _metadataStoreDirectory.getAllShardingKeys(namespace).contains(newKey)
+              && _metadataStoreDirectory.getAllShardingKeysInRealm(namespace, TEST_REALM_1)
+              .contains(newKey);
+        } catch (NoSuchElementException e) {
+          // Pass - wait until callback is called
+        }
+      }
+      return false;
+    }, TestHelper.WAIT_DURATION));
+  }
+
+  @Test(dependsOnMethods = "testDataChangeCallback")
+  public void testChildChangeCallback()
+      throws Exception {
+    // For all namespaces (Routing ZKs), add a realm with a sharding key list
+    _zkList.forEach(zk -> {
+      _zkServerMap.get(zk).getZkClient()
+          .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
+              true);
+      ZNRecord znRecord = new ZNRecord("RoutingInfo");
+      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
+          TEST_SHARDING_KEYS_3);
+      _zkServerMap.get(zk).getZkClient()
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
+              znRecord);
+    });
+
+    // Verify that the new realm and sharding keys have been updated in-memory via callback
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String namespace : _routingZkAddrMap.keySet()) {
+        try {
+          return _metadataStoreDirectory.getAllMetadataStoreRealms(namespace).contains(TEST_REALM_3)
+              && _metadataStoreDirectory.getAllShardingKeysInRealm(namespace, TEST_REALM_3)
+              .containsAll(TEST_SHARDING_KEYS_3);
+        } catch (NoSuchElementException e) {
+          // Pass - wait until callback is called
+        }
+      }
+      return false;
+    }, TestHelper.WAIT_DURATION));
+
+    // Since there was a child change callback, make sure data change works on the new child (realm) as well by adding a key
+    // This tests removing all subscriptions and subscribing with new children list
+    // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_3
+    String newKey = "/a/b/c/d/e";
+    _zkList.forEach(zk -> {
+      ZNRecord znRecord = _zkServerMap.get(zk).getZkClient()
+          .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3);
+      znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).add(newKey);
+      _zkServerMap.get(zk).getZkClient()
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
+              znRecord);
+    });
+
+    // Verify that the sharding keys field have been updated
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String namespace : _routingZkAddrMap.keySet()) {
+        try {
+          return _metadataStoreDirectory.getAllShardingKeys(namespace).contains(newKey)
+              && _metadataStoreDirectory.getAllShardingKeysInRealm(namespace, TEST_REALM_3)
+              .contains(newKey);
+        } catch (NoSuchElementException e) {
+          // Pass - wait until callback is called
+        }
+      }
+      return false;
+    }, TestHelper.WAIT_DURATION));
   }
 }

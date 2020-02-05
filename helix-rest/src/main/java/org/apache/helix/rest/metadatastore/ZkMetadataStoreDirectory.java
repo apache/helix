@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
@@ -38,16 +39,23 @@ import org.apache.helix.manager.zk.client.HelixZkClient.ZkClientConfig;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.zookeeper.Watcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
+/**
+ * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update callback.
+ */
 public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, RoutingDataListener {
+  private static final Logger LOG = LoggerFactory.getLogger(ZkMetadataStoreDirectory.class);
+
   // TODO: enable the line below when implementation is complete
   // The following maps' keys represent the namespace
   private final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
+  private final Map<String, MetadataStoreRoutingData> _routingDataMap;
   private final Map<String, String> _routingZkAddressMap;
   // (namespace, (realm, list of sharding keys)) mappping
   private final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
-  private final Map<String, MetadataStoreRoutingData> _routingDataMap;
 
   /**
    * Creates a ZkMetadataStoreDirectory based on the given routing ZK addresses.
@@ -68,6 +76,10 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     for (Map.Entry<String, String> routingEntry : _routingZkAddressMap.entrySet()) {
       _routingDataReaderMap.put(routingEntry.getKey(),
           new ZkRoutingDataReader(routingEntry.getKey(), routingEntry.getValue(), this));
+
+      // Populate realmToShardingKeys with ZkRoutingDataReader
+      _realmToShardingKeysMap.put(routingEntry.getKey(),
+          _routingDataReaderMap.get(routingEntry.getKey()).getRoutingData());
     }
   }
 
@@ -109,57 +121,73 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   @Override
   public Map<String, String> getAllMappingUnderPath(String namespace, String path) {
     // TODO: get it from routingData
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String getMetadataStoreRealm(String namespace, String shardingKey) {
     // TODO: get it from routingData
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean addNamespace(String namespace) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean deleteNamespace(String namespace) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean deleteMetadataStoreRealm(String namespace, String realm) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean addShardingKey(String namespace, String realm, String shardingKey) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean deleteShardingKey(String namespace, String realm, String shardingKey) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
-    return false;
+    throw new UnsupportedOperationException();
   }
 
+  /**
+   * Callback for updating the cached routing data.
+   * Note: this method should not synchronize on the class or the map. We do not want namespaces blocking each other.
+   * Threadsafe map is used for _realmToShardingKeysMap.
+   * The global consistency of the in-memory routing data is not a requirement (eventual consistency is enough).
+   * @param namespace
+   */
   @Override
   public void updateRoutingData(String namespace) {
-    // Safe to ignore the callback if routingDataMap is null
+    // Safe to ignore the callback if routingDataMap is null.
+    // If routingDataMap is null, then it will be populated by the constructor anyway
+    // If routingDataMap is not null, then it's safe for the callback function to update it
+    try {
+      _realmToShardingKeysMap.put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
+    } catch (InvalidRoutingDataException e) {
+      LOG.error("Failed to get routing data for namespace: " + namespace + "!");
+    }
+
     if (_routingDataMap != null) {
-      MetadataStoreRoutingData newRoutingData = null;
-      // call constructRoutingData() here.
+      MetadataStoreRoutingData newRoutingData =
+          new TrieRoutingData(new TrieRoutingData.TrieNode(null, null, false, null));
+      // TODO call constructRoutingData() here.
       _routingDataMap.put(namespace, newRoutingData);
     }
   }

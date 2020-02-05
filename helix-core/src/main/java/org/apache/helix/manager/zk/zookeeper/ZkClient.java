@@ -1276,6 +1276,7 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
+              // getStat will re-install watcher only when the path exists
               pathStatRecord.recordPathStat(getStat(path, pathExists), notificationTime);
             }
             if (!pathStatRecord.pathExists()) {

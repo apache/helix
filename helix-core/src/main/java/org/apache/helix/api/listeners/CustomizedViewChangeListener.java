@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  CustomizedViewChange,
-  TargetExternalViewChange,
-  Resume,
-  PeriodicalRebalance,
-  OnDemandRebalance,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+import java.util.List;
+
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.CustomizedView;
+
+/**
+ * Interface to implement to be notified of changes to the customized view
+ */
+public interface CustomizedViewChangeListener {
+
+  /**
+   * Invoked when customized view changes
+   * @param customizedViewList a list of CustomizedViews
+   * @param changeContext the change event and state
+   */
+  void onCustomizedViewChange(List<CustomizedView> customizedViewList,
+      NotificationContext changeContext);
+
 }

@@ -49,6 +49,7 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -61,6 +62,7 @@ import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -77,6 +79,7 @@ import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
+import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_VIEW;
 import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.INSTANCE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
@@ -84,6 +87,7 @@ import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
+
 
 @PreFetch(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
@@ -289,6 +293,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     case TARGET_EXTERNAL_VIEW:
       listenerClass = ExternalViewChangeListener.class;
       break;
+    case CUSTOMIZED_VIEW:
+      listenerClass = CustomizedViewChangeListener.class;
+      break;
     case CONTROLLER:
       listenerClass = ControllerChangeListener.class;
     }
@@ -433,6 +440,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         List<ExternalView> externalViewList = preFetch(_propertyKey);
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
 
+      } else if (_changeType == CUSTOMIZED_VIEW) {
+        CustomizedViewChangeListener customizedViewListener = (CustomizedViewChangeListener) _listener;
+        List<CustomizedView> customizedViewListList = preFetch(_propertyKey);
+        customizedViewListener.onCustomizedViewChange(customizedViewListList, changeContext);
+
       } else if (_changeType == CONTROLLER) {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         controllerChangelistener.onControllerChange(changeContext);
@@ -523,6 +535,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           case CURRENT_STATE:
           case IDEAL_STATE:
           case EXTERNAL_VIEW:
+          case CUSTOMIZED_VIEW:
           case TARGET_EXTERNAL_VIEW: {
             // check if bucketized
             BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);

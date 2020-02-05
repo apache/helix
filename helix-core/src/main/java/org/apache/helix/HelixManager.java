@@ -27,6 +27,7 @@ import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -216,6 +217,12 @@ public interface HelixManager {
    * @param listener
    */
   void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
+
+  /**
+   * @see CustomizedViewChangeListener#onCustomizedViewChange(List, NotificationContext)
+   * @param listener
+   */
+  void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)

@@ -28,6 +28,7 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -57,6 +58,7 @@ import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
 import static org.apache.helix.PropertyType.ERRORS;
 import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
+import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
 import static org.apache.helix.PropertyType.INSTANCE_HISTORY;
@@ -71,6 +73,7 @@ import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 import static org.apache.helix.PropertyType.TARGETEXTERNALVIEW;
+
 
 /**
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.
@@ -625,6 +628,33 @@ public class PropertyKey {
      */
     public PropertyKey externalView(String resourceName) {
       return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
+    }
+
+    /**
+     * Get a property key associated with all {@link CustomizedView}
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedView() {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with an {@link CustomizedView} of a type
+     * @param type
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedView(String type) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, type);
+    }
+
+    /**
+     * Get a property key associated with an {@link CustomizedView} of a type and resource
+     * @param type
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedView(String type, String resourceName) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, type,
+          resourceName);
     }
 
     /**

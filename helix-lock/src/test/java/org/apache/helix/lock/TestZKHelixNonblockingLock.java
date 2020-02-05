@@ -19,12 +19,21 @@
 
 package org.apache.helix.lock;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
+import org.apache.helix.AccessOption;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.TestWtCacheAsyncOpMultiThread;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -44,6 +53,7 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
   private String _lockPath;
   private ZKHelixNonblockingLock _lock;
   private String _userId;
+  private HelixConfigScope _participantScope;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -53,14 +63,13 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
     _userId = UUID.randomUUID().toString();
-    HelixConfigScope participantScope =
+    _participantScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(_clusterName)
             .forParticipant("localhost_12918").build();
 
-    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + participantScope;
-    _lock = new ZKHelixNonblockingLock(_clusterName, participantScope, ZK_ADDR, Long.MAX_VALUE,
+    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + _participantScope;
+    _lock = new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
-
   }
 
   @BeforeMethod
@@ -134,7 +143,29 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
 
   @Test
   public void testSimultaneousAcquire() {
+    List<Callable<Boolean>> threads = new ArrayList<>();
+    for (int i = 0; i < 2; i++) {
+      ZKHelixNonblockingLock lock =
+          new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
+              _lockMessage, UUID.randomUUID().toString());
+      threads.add(new TestSimultaneousAcquireLock(lock));
+    }
+    Map<String, Boolean> resultMap = TestHelper.startThreadsConcurrently(threads, 1000);
+    Assert.assertEquals(resultMap.size(), 2);
+    Assert.assertEqualsNoOrder(resultMap.values().toArray(), new Boolean[]{true, false});
+  }
 
+  private static class TestSimultaneousAcquireLock implements Callable<Boolean> {
+    final ZKHelixNonblockingLock _lock;
+
+    TestSimultaneousAcquireLock(ZKHelixNonblockingLock lock) {
+      _lock = lock;
+    }
+
+    @Override
+    public Boolean call() throws Exception {
+      return _lock.acquireLock();
+    }
   }
 }
 

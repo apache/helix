@@ -152,10 +152,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
     if (curLockInfo == null) {
       return false;
     }
-    if (userIdMatches(curLockInfo)) {
-      return !hasTimedOut(curLockInfo);
-    }
-    return false;
+    return userIdMatches(curLockInfo) && !hasTimedOut(curLockInfo);
   }
 
   /**

@@ -2,6 +2,7 @@ package org.apache.helix.integration.spectator;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -145,8 +147,9 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
     @Override
     protected synchronized void refresh(List<ExternalView> externalViewList,
-        NotificationContext changeContext) {
-      super.refresh(externalViewList, changeContext);
+        List<CustomizedView> customizedViewList, NotificationContext changeContext,
+        String referenceKey) {
+      super.refresh(externalViewList, Collections.emptyList(), changeContext, referenceKey);
       _refreshCount++;
       if (DEBUG) {
         print();
@@ -155,8 +158,10 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
     @Override
     protected synchronized void refresh(Collection<ExternalView> externalViews,
-        Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
-      super.refresh(externalViews, instanceConfigs, liveInstances);
+        Collection<CustomizedView> customizedView, Collection<InstanceConfig> instanceConfigs,
+        Collection<LiveInstance> liveInstances, String referenceKey) {
+      super.refresh(externalViews, Collections.emptyList(), instanceConfigs, liveInstances,
+          referenceKey);
       _refreshCount++;
       if (DEBUG) {
         print();
@@ -166,8 +171,9 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     @Override
     protected synchronized void refresh(
         Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
-        Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
-      super.refresh(currentStateMap, instanceConfigs, liveInstances);
+        Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances,
+        String referenceKey) {
+      super.refresh(currentStateMap, instanceConfigs, liveInstances, "Test");
       _refreshCount++;
       if (DEBUG) {
         print();

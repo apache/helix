@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.helix.PropertyType;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -33,9 +35,13 @@ import org.apache.helix.model.LiveInstance;
  */
 public class RoutingTableSnapshot {
   private final RoutingTable _routingTable;
+  private final PropertyType _propertyType;
+  private final String _type;
 
   public RoutingTableSnapshot(RoutingTable routingTable) {
     _routingTable = routingTable;
+    _propertyType = routingTable.getPropertyType();
+    _type = routingTable.getType();
   }
 
   /**
@@ -144,5 +150,30 @@ public class RoutingTableSnapshot {
    */
   public Collection<ExternalView> getExternalViews() {
     return _routingTable.getExternalViews();
+  }
+
+  /**
+   * Returns a Collection of latest snapshot of CustomizedView. Note that if the RoutingTable is
+   * instantiated using CurrentStates, this Collection will be empty.
+   * @return
+   */
+  public Collection<CustomizedView> getCustomizeViews() {
+    return _routingTable.geCustomizedViews();
+  }
+
+  /**
+   * Returns the PropertyType associated with this RoutingTableSnapshot
+   * @return
+   */
+  public PropertyType getPropertyType() {
+    return _propertyType;
+  }
+
+  /**
+   * Return the Type associated with thi RoutingTableSnapshot (mainly used for CustomizedView)
+   * @return
+   */
+  public String getType() {
+    return _type;
   }
 }

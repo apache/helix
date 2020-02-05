@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.helix.PropertyType;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -38,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A class to consume ExternalViews of a cluster and provide {resource, partition, state} to
+ * A class to consume ExternalViews or CustomizedViews of a cluster and provide {resource, partition, state} to
  * {instances} map function.
  */
 class RoutingTable {
@@ -46,37 +48,60 @@ class RoutingTable {
 
   // mapping a resourceName to the ResourceInfo
   private final Map<String, ResourceInfo> _resourceInfoMap;
+
   // mapping a resource group name to a resourceGroupInfo
   private final Map<String, ResourceGroupInfo> _resourceGroupInfoMap;
 
   private final Collection<LiveInstance> _liveInstances;
   private final Collection<InstanceConfig> _instanceConfigs;
   private final Collection<ExternalView> _externalViews;
+  private final Collection<CustomizedView> _customizedViews;
+
+  private final PropertyType _propertyType;
+  private final String _type;
 
   public RoutingTable() {
     this(Collections.<ExternalView> emptyList(), Collections.<InstanceConfig> emptyList(),
         Collections.<LiveInstance> emptyList());
   }
 
+  public RoutingTable(PropertyType propertyType, String type) {
+    this(Collections.<ExternalView> emptyList(), Collections.<CustomizedView> emptyList(), Collections.<InstanceConfig> emptyList(),
+        Collections.<LiveInstance> emptyList(), propertyType, type);
+  }
+
   public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
     // TODO Aggregate currentState to an ExternalView in the RoutingTable, so there is no need to
     // refresh according to the currentStateMap. - jjwang
-    this(Collections.<ExternalView> emptyList(), instanceConfigs, liveInstances);
+    this(Collections.<ExternalView> emptyList(), Collections.<CustomizedView> emptyList(), instanceConfigs, liveInstances, PropertyType.CURRENTSTATES, null);
     refresh(currentStateMap);
   }
 
   public RoutingTable(Collection<ExternalView> externalViews,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    this(externalViews, Collections.<CustomizedView> emptyList(), instanceConfigs, liveInstances, PropertyType.EXTERNALVIEW, null);
+  }
+
+
+  protected RoutingTable(Collection<ExternalView> externalViews, Collection<CustomizedView> customizedViews,
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances, PropertyType propertytype, String type) {
+    _propertyType = propertytype;
+    _type = type;
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = new HashSet<>(liveInstances);
     _instanceConfigs = new HashSet<>(instanceConfigs);
     _externalViews = new HashSet<>(externalViews);
-    refresh(externalViews);
+    _customizedViews = new HashSet<>(customizedViews);
+    if (_propertyType == PropertyType.CUSTOMIZEDVIEW) {
+      refreshCustomizedView(customizedViews);
+    } else {
+      refreshExternalView(externalViews);
+    }
   }
 
-  private void refresh(Collection<ExternalView> externalViewList) {
+  private void refreshExternalView(Collection<ExternalView> externalViewList) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     if (externalViewList != null && !externalViewList.isEmpty()) {
       for (InstanceConfig config : _instanceConfigs) {
@@ -96,6 +121,34 @@ class RoutingTable {
               } else {
                 addEntry(resourceName, partitionName, currentState, instanceConfig);
               }
+            } else {
+              logger.warn(
+                  "Participant {} is not found with proper configuration information. It might already be removed from the cluster. "
+                      + "Skip recording partition assignment entry: Partition {}, Participant {}, State {}.",
+                  instanceName, partitionName, instanceName, stateMap.get(instanceName));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void refreshCustomizedView(Collection<CustomizedView> customizedViewList) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    if (customizedViewList != null && !customizedViewList.isEmpty()) {
+      for (InstanceConfig config : _instanceConfigs) {
+        instanceConfigMap.put(config.getId(), config);
+      }
+      for (CustomizedView customView : customizedViewList) {
+        String resourceName = customView.getId();
+        for (String partitionName : customView.getPartitionSet()) {
+          Map<String, String> stateMap = customView.getStateMap(partitionName);
+          for (String instanceName : stateMap.keySet()) {
+
+            String currentState = stateMap.get(instanceName);
+            if (instanceConfigMap.containsKey(instanceName)) {
+              InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
+              addEntry(resourceName, partitionName, currentState, instanceConfig);
             } else {
               logger.warn(
                   "Participant {} is not found with proper configuration information. It might already be removed from the cluster. "
@@ -349,6 +402,23 @@ class RoutingTable {
    */
   protected Collection<ExternalView> getExternalViews() {
     return Collections.unmodifiableCollection(_externalViews);
+  }
+
+
+  /**
+   * Returns CustomizedView.
+   * @return a collection of CustomizedView
+   */
+  protected Collection<CustomizedView> geCustomizedViews() {
+    return Collections.unmodifiableCollection(_customizedViews);
+  }
+
+  protected PropertyType getPropertyType() {
+    return _propertyType;
+  }
+
+  protected String getType() {
+    return _type;
   }
 
   /**

@@ -27,8 +27,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.CurrentStateSnapshot;
+import org.apache.helix.common.caches.CustomizedViewCache;
+import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.common.caches.TargetExternalViewCache;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
@@ -42,12 +45,20 @@ class RoutingDataCache extends BasicClusterDataCache {
 
   private final PropertyType _sourceDataType;
   private CurrentStateCache _currentStateCache;
+  private CustomizedViewCache _customizedViewCache;
   private TargetExternalViewCache _targetExternalViewCache;
+  private String _type;   // Used only for customized view
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
+    this (clusterName, sourceDataType, null);
+  }
+
+  public RoutingDataCache(String clusterName, PropertyType sourceDataType, String type) {
     super(clusterName);
+    _type = type;
     _sourceDataType = sourceDataType;
     _currentStateCache = new CurrentStateCache(clusterName);
+    _customizedViewCache = new CustomizedViewCache(clusterName, type);
     _targetExternalViewCache = new TargetExternalViewCache(clusterName);
     requireFullRefresh();
   }
@@ -84,6 +95,15 @@ class RoutingDataCache extends BasicClusterDataCache {
       LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
     }
 
+    if (_sourceDataType.equals(PropertyType.CUSTOMIZEDVIEW) && _propertyDataChangedMap
+        .get(HelixConstants.ChangeType.CUSTOMIZED_VIEW) && _type != null) {
+      long start = System.currentTimeMillis();
+      _propertyDataChangedMap.put(HelixConstants.ChangeType.CUSTOMIZED_VIEW, false);
+      _customizedViewCache.refresh(accessor);
+      LOG.info("Reload " + _customizedViewCache.getCustomizedViewMap().keySet().size()
+          + " CustomizedView. Takes " + (System.currentTimeMillis() - start) + " ms");
+    }
+
     long endTime = System.currentTimeMillis();
     LOG.info("END: RoutingDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
         - startTime) + " ms");
@@ -91,6 +111,7 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (LOG.isDebugEnabled()) {
       LOG.debug("CurrentStates: " + _currentStateCache);
       LOG.debug("TargetExternalViews: " + _targetExternalViewCache.getExternalViewMap());
+      LOG.debug("CustomizedViews: " + _customizedViewCache.getCustomizedViewMap());
     }
   }
 
@@ -101,6 +122,14 @@ class RoutingDataCache extends BasicClusterDataCache {
    */
   public Map<String, ExternalView> getTargetExternalViews() {
     return _targetExternalViewCache.getExternalViewMap();
+  }
+
+  /**
+   * Retrieves the CustomizedView for all resources
+   * @return
+   */
+  public Map<String, CustomizedView> getCustomizedView() {
+    return _customizedViewCache.getCustomizedViewMap();
   }
 
   /**

@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.helix.ClusterMessagingService;
@@ -37,6 +38,7 @@ import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -131,6 +133,12 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type) throws Exception {
     // TODO Auto-generated method stub
 
   }

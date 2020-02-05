@@ -54,7 +54,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   private final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
   private final Map<String, MetadataStoreRoutingData> _routingDataMap;
   private final Map<String, String> _routingZkAddressMap;
-  // (namespace, (realm, list of sharding keys)) mappping
+  // <namespace, <realm, <list of sharding keys>> mappings
   private final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
 
   /**

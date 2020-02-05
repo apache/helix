@@ -80,7 +80,7 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
 
   @Test
   public void testGetRoutingDataMissingMSRDChildren() {
-    _baseAccessor.create("/METADATA_STORE_ROUTING_DATA", new ZNRecord("test"),
+    _baseAccessor.create(ROUTING_DATA_PATH, new ZNRecord("test"),
         AccessOption.PERSISTENT);
     MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
     try {
@@ -97,8 +97,8 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
   @Test
   public void testGetRoutingDataMSRDChildEmptyValue() {
     ZNRecord testZnRecord1 = new ZNRecord("testZnRecord1");
-    testZnRecord1.setListField("ZK_PATH_SHARDING_KEYS", Collections.emptyList());
-    _baseAccessor.create("/METADATA_STORE_ROUTING_DATA/testRealmAddress1", testZnRecord1,
+    testZnRecord1.setListField(ZNRECORD_LIST_FIELD_KEY, Collections.emptyList());
+    _baseAccessor.create(ROUTING_DATA_PATH + "/testRealmAddress1", testZnRecord1,
         AccessOption.PERSISTENT);
     MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
     try {
@@ -111,6 +111,6 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
               + ". Routing ZooKeeper address: " + ZK_ADDR));
     }
 
-    _baseAccessor.remove("/METADATA_STORE_ROUTING_DATA", AccessOption.PERSISTENT);
+    _baseAccessor.remove(ROUTING_DATA_PATH, AccessOption.PERSISTENT);
   }
 }

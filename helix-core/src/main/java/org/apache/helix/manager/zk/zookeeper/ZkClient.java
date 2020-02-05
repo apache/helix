@@ -1311,10 +1311,15 @@ public class ZkClient implements Watcher {
 
   private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists) {
     try {
+      final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       for (final IZkChildListener listener : childListeners) {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
+            if (!pathStatRecord.pathChecked()) {
+              pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && !pathExists),
+                  OptionalLong.empty());
+            }
             List<String> children = null;
             if (pathExists) {
               try {

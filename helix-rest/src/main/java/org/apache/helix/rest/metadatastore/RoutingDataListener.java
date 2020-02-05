@@ -23,5 +23,5 @@ public interface RoutingDataListener {
   /**
    * Callback for updating the internally-cached routing data.
    */
-  void updateRoutingData(String namespace);
+  void refreshRoutingData(String namespace);
 }

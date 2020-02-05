@@ -63,7 +63,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   @BeforeClass
   public void beforeClass()
       throws InvalidRoutingDataException {
-    _zkList = new ArrayList<>(_zkServerMap.keySet());
+    _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
     // Populate routingZkAddrMap
     _routingZkAddrMap = new LinkedHashMap<>();
@@ -78,24 +78,24 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     ZNRecord znRecord = new ZNRecord("RoutingInfo");
 
     _zkList.forEach(zk -> {
-      _zkServerMap.get(zk).getZkClient().setZkSerializer(new ZNRecordSerializer());
+      ZK_SERVER_MAP.get(zk).getZkClient().setZkSerializer(new ZNRecordSerializer());
       // Write first realm and sharding keys pair
       znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
           TEST_SHARDING_KEYS_1);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
               true);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
               znRecord);
 
       // Create another realm and sharding keys pair
       znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
           TEST_SHARDING_KEYS_2);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
               true);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
               znRecord);
     });
@@ -107,10 +107,8 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   @AfterClass
   public void afterClass() {
     _metadataStoreDirectory.close();
-    _zkList.forEach(zk -> _zkServerMap.get(zk).getZkClient()
-        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1));
-    _zkList.forEach(zk -> _zkServerMap.get(zk).getZkClient()
-        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2));
+    _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
+        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
   }
 
   @Test
@@ -159,10 +157,10 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_1
     String newKey = "/a/b/c/d/e";
     _zkList.forEach(zk -> {
-      ZNRecord znRecord = _zkServerMap.get(zk).getZkClient()
+      ZNRecord znRecord = ZK_SERVER_MAP.get(zk).getZkClient()
           .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1);
       znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).add(newKey);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
               znRecord);
     });
@@ -187,13 +185,13 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
       throws Exception {
     // For all namespaces (Routing ZKs), add a realm with a sharding key list
     _zkList.forEach(zk -> {
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
               true);
       ZNRecord znRecord = new ZNRecord("RoutingInfo");
       znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
           TEST_SHARDING_KEYS_3);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
               znRecord);
     });
@@ -217,10 +215,10 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_3
     String newKey = "/a/b/c/d/e";
     _zkList.forEach(zk -> {
-      ZNRecord znRecord = _zkServerMap.get(zk).getZkClient()
+      ZNRecord znRecord = ZK_SERVER_MAP.get(zk).getZkClient()
           .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3);
       znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).add(newKey);
-      _zkServerMap.get(zk).getZkClient()
+      ZK_SERVER_MAP.get(zk).getZkClient()
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3,
               znRecord);
     });

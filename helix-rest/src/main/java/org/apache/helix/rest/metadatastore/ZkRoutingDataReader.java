@@ -120,7 +120,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 
   @Override
@@ -129,14 +129,14 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    _zkClient.unsubscribeAll();
+
     // Renew subscription
     _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
     for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
       _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
           this);
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 
   @Override
@@ -145,12 +145,14 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    // Subscribe data changes again
+
+    // Subscribe data changes again because some children might have been deleted or added
+    _zkClient.unsubscribeAll();
     for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
       _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
           this);
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 
   @Override
@@ -159,7 +161,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 
   @Override
@@ -168,7 +170,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 
   @Override
@@ -177,6 +179,6 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient.isClosed()) {
       return;
     }
-    _routingDataListener.updateRoutingData(_namespace);
+    _routingDataListener.refreshRoutingData(_namespace);
   }
 }

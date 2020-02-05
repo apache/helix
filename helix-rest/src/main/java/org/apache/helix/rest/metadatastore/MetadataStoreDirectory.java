@@ -21,6 +21,7 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -30,7 +31,7 @@ import java.util.Map;
  * realm: a metadata store deployable/ensemble. for example, if an application wishes to use 3 ZK quorums, then each ZK quorum would be considered a realm (ZK realm)
  * metadata store path sharding key: assuming the metadata store uses a file system APIs, this sharding key denotes the key that maps to a particular metadata store realm. an example of a key is a cluster name mapping to a particular ZK realm (ZK address)
  */
-public interface MetadataStoreDirectory {
+public interface MetadataStoreDirectory extends AutoCloseable {
 
   /**
    * Retrieves all existing namespaces in the routing metadata store.
@@ -74,24 +75,8 @@ public interface MetadataStoreDirectory {
    * @param shardingKey
    * @return
    */
-  String getMetadataStoreRealm(String namespace, String shardingKey);
-
-  /**
-   * NOTE: The following CRUD methods are idempotent.
-   */
-  /**
-   * Creates a namespace in the routing metadata store.
-   * @param namespace
-   * @return true if successful or if the namespace already exists. false if not successful.
-   */
-  boolean addNamespace(String namespace);
-
-  /**
-   * Deletes a namespace in the routing metadata store.
-   * @param namespace
-   * @return true if successful or if the namespace does not exist. false otherwise.
-   */
-  boolean deleteNamespace(String namespace);
+  String getMetadataStoreRealm(String namespace, String shardingKey)
+      throws NoSuchElementException;
 
   /**
    * Creates a realm. If the namespace does not exist, it creates one.

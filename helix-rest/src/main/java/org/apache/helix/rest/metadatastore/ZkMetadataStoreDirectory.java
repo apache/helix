@@ -131,18 +131,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   }
 
   @Override
-  public boolean addNamespace(String namespace) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean deleteNamespace(String namespace) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
     // TODO implement when MetadataStoreRoutingDataWriter is ready
     throw new UnsupportedOperationException();
@@ -174,10 +162,16 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
    * @param namespace
    */
   @Override
-  public void updateRoutingData(String namespace) {
+  public void refreshRoutingData(String namespace) {
     // Safe to ignore the callback if routingDataMap is null.
     // If routingDataMap is null, then it will be populated by the constructor anyway
     // If routingDataMap is not null, then it's safe for the callback function to update it
+
+    // Check if namespace exists; otherwise, return as a NOP and log it
+    if (!_routingZkAddressMap.containsKey(namespace)) {
+      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: " + namespace);
+    }
+
     try {
       _realmToShardingKeysMap.put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
     } catch (InvalidRoutingDataException e) {

@@ -30,7 +30,8 @@ import org.apache.helix.rest.server.AbstractTestClass;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.rest.metadatastore.ZkRoutingDataReader.*;
+import static org.apache.helix.rest.metadatastore.ZkRoutingDataReader.ROUTING_DATA_PATH;
+import static org.apache.helix.rest.metadatastore.ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY;
 
 public class TestZkRoutingDataReader extends AbstractTestClass {
   @Test
@@ -80,8 +81,7 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
 
   @Test
   public void testGetRoutingDataMissingMSRDChildren() {
-    _baseAccessor.create(ROUTING_DATA_PATH, new ZNRecord("test"),
-        AccessOption.PERSISTENT);
+    _baseAccessor.create(ROUTING_DATA_PATH, new ZNRecord("test"), AccessOption.PERSISTENT);
     MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
     try {
       zkRoutingDataReader.getRoutingData();

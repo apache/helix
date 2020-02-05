@@ -22,11 +22,13 @@ package org.apache.helix.rest.metadatastore;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+
 
 public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
   static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
@@ -43,12 +45,15 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
   }
 
   public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
-    Map<String, List<String>> result = new HashMap<>();
-    if (!_zkClient.exists(ROUTING_DATA_PATH)) {
+    Map<String, List<String>> routingData = new HashMap<>();
+    List<String> children;
+    try {
+      children = _zkClient.getChildren(ROUTING_DATA_PATH);
+    }
+    catch (ZkNoNodeException e) {
       throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
           + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    List<String> children = _zkClient.getChildren(ROUTING_DATA_PATH);
     if (children.isEmpty()) {
       throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
           + " does not have any child node. Routing ZooKeeper address: " + _zkAddress);
@@ -61,8 +66,8 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
             + child + " does not have a value for key " + ZNRECORD_LIST_FIELD_KEY
             + ". Routing ZooKeeper address: " + _zkAddress);
       }
-      result.put(child, shardingKeys);
+      routingData.put(child, shardingKeys);
     }
-    return result;
+    return routingData;
   }
 }

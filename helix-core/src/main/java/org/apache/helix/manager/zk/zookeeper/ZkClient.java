@@ -1282,7 +1282,7 @@ public class ZkClient implements Watcher {
             if (!pathStatRecord.pathChecked()) {
               pathStatRecord.recordPathStat(getStat(path, pathExists), notificationTime);
             }
-            if (!pathExists) {
+            if (!pathStatRecord.pathExists()) {
               listener.getDataListener().handleDataDeleted(path);
             } else {
               Object data = null;
@@ -1321,7 +1321,7 @@ public class ZkClient implements Watcher {
                   OptionalLong.empty());
             }
             List<String> children = null;
-            if (pathExists) {
+            if (!pathStatRecord.pathExists()) {
               try {
                 //TODO: duplicate reads when multiple child listener exists
                 children = getChildren(path);

@@ -1313,7 +1313,7 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && !pathExists),
+              pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && pathExists),
                   OptionalLong.empty());
             }
             List<String> children = null;

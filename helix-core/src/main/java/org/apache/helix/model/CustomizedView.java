@@ -33,14 +33,6 @@ import org.apache.helix.ZNRecord;
 public class CustomizedView extends HelixProperty {
 
   /**
-   * Properties that are persisted and are queryable for a customized view
-   */
-  public enum CustomizedViewProperty {
-    STATE_MODEL_DEF_REF,
-    REPLICAS
-  }
-
-  /**
    * Instantiate a customized view with the resource it corresponds to
    * @param resource the name of the resource
    */
@@ -102,21 +94,5 @@ public class CustomizedView extends HelixProperty {
    */
   public String getResourceName() {
     return _record.getId();
-  }
-
-  /**
-   * Get the state model associated with this resource
-   * @return an identifier of the state model
-   */
-  public String getStateModelDefRef() {
-    return _record.getSimpleField(CustomizedViewProperty.STATE_MODEL_DEF_REF.toString());
-  }
-
-  /**
-   * Get the number of replicas for each partition of this resource
-   * @return number of replicas (as a string)
-   */
-  public String getReplicas() {
-    return _record.getSimpleField(CustomizedViewProperty.REPLICAS.name());
   }
 }

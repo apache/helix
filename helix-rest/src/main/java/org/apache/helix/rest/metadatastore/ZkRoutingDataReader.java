@@ -28,13 +28,15 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 
-public class ZkRoutingDataAccessor implements MetadataStoreRoutingDataAccessor {
-  private static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
-  private static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
+public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
+  static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
+  static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
 
+  private final String _zkAddress;
   private final HelixZkClient _zkClient;
 
-  public ZkRoutingDataAccessor(String zkAddress) {
+  public ZkRoutingDataReader(String zkAddress) {
+    _zkAddress = zkAddress;
     _zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
         new HelixZkClient.ZkConnectionConfig(zkAddress),
         new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
@@ -43,22 +45,21 @@ public class ZkRoutingDataAccessor implements MetadataStoreRoutingDataAccessor {
   public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
     Map<String, List<String>> result = new HashMap<>();
     if (!_zkClient.exists(ROUTING_DATA_PATH)) {
-      throw new InvalidRoutingDataException(ROUTING_DATA_PATH + " node doesn't exist.");
+      throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
+          + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
     List<String> children = _zkClient.getChildren(ROUTING_DATA_PATH);
     if (children.isEmpty()) {
-      throw new InvalidRoutingDataException(ROUTING_DATA_PATH + " does not have any child node.");
+      throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
+          + " does not have any child node. Routing ZooKeeper address: " + _zkAddress);
     }
     for (String child : children) {
       ZNRecord record = _zkClient.readData(ROUTING_DATA_PATH + "/" + child);
       List<String> shardingKeys = record.getListField(ZNRECORD_LIST_FIELD_KEY);
-      if (shardingKeys == null) {
-        throw new InvalidRoutingDataException(ROUTING_DATA_PATH + "/" + child
-            + " does not have the key " + ZNRECORD_LIST_FIELD_KEY + ".");
-      }
-      if (shardingKeys.isEmpty()) {
-        throw new InvalidRoutingDataException(ROUTING_DATA_PATH + "/" + child
-            + " has an empty value for the key " + ZNRECORD_LIST_FIELD_KEY + ".");
+      if (shardingKeys == null || shardingKeys.isEmpty()) {
+        throw new InvalidRoutingDataException("Realm address node " + ROUTING_DATA_PATH + "/"
+            + child + " does not have a value for key " + ZNRECORD_LIST_FIELD_KEY
+            + ". Routing ZooKeeper address: " + _zkAddress);
       }
       result.put(child, shardingKeys);
     }

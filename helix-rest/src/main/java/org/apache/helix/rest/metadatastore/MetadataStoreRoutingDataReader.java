@@ -27,7 +27,7 @@ import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataExceptio
  * An interface for a DAO that fetches routing data from a source and return a key-value mapping
  * that represent the said routing data.
  */
-public interface MetadataStoreRoutingDataAccessor {
+public interface MetadataStoreRoutingDataReader {
 
   /**
    * Fetches routing data from the data source.

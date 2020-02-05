@@ -19,8 +19,15 @@ package org.apache.helix.rest.metadatastore;
  * under the License.
  */
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -29,97 +36,136 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.client.HelixZkClient.ZkClientConfig;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.zookeeper.Watcher;
 
 
-public class ZkMetadataStoreDirectory implements MetadataStoreDirectory {
+public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, RoutingDataListener {
   // TODO: enable the line below when implementation is complete
-//  private final MetadataStoreRoutingDataAccessor _routingDataAccessor;
-  private MetadataStoreRoutingData _routingData;
+  // The following maps' keys represent the namespace
+  private final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
+  private final Map<String, String> _routingZkAddressMap;
+  // (namespace, (realm, list of sharding keys)) mappping
+  private final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
+  private final Map<String, MetadataStoreRoutingData> _routingDataMap;
 
-  public ZkMetadataStoreDirectory(String zkAddress) {
-//    _routingDataAccessor = new ZkRoutingDataAccessor(zkAddress, this); // dependency injection
-    // 1. Create a RoutingDataTrieNode using routingDataAccessor
-    // _routingData = constructRoutingData(_routingDataAccessor);
+  /**
+   * Creates a ZkMetadataStoreDirectory based on the given routing ZK addresses.
+   * @param routingZkAddressMap (namespace, routing ZK connect string)
+   * @throws InvalidRoutingDataException
+   */
+  public ZkMetadataStoreDirectory(Map<String, String> routingZkAddressMap)
+      throws InvalidRoutingDataException {
+    if (routingZkAddressMap == null || routingZkAddressMap.isEmpty()) {
+      throw new InvalidRoutingDataException("Routing ZK Addresses given are invalid!");
+    }
+    _routingDataReaderMap = new HashMap<>();
+    _routingZkAddressMap = routingZkAddressMap;
+    _realmToShardingKeysMap = new ConcurrentHashMap<>();
+    _routingDataMap = new ConcurrentHashMap<>();
+
+    // Create RoutingDataReaders
+    for (Map.Entry<String, String> routingEntry : _routingZkAddressMap.entrySet()) {
+      _routingDataReaderMap.put(routingEntry.getKey(),
+          new ZkRoutingDataReader(routingEntry.getKey(), routingEntry.getValue(), this));
+    }
   }
 
   @Override
-  public List<String> getAllNamespaces() {
-    return null;
+  public Collection<String> getAllNamespaces() {
+    return Collections.unmodifiableCollection(_routingZkAddressMap.keySet());
   }
 
   @Override
-  public List<String> getAllMetadataStoreRealms(String namespace) {
-    return null;
+  public Collection<String> getAllMetadataStoreRealms(String namespace) {
+    if (!_realmToShardingKeysMap.containsKey(namespace)) {
+      throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
+    }
+    return Collections.unmodifiableCollection(_realmToShardingKeysMap.get(namespace).keySet());
   }
 
   @Override
-  public List<String> getAllShardingKeys(String namespace) {
-    return null;
+  public Collection<String> getAllShardingKeys(String namespace) {
+    if (!_realmToShardingKeysMap.containsKey(namespace)) {
+      throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
+    }
+    Set<String> allShardingKeys = new HashSet<>();
+    _realmToShardingKeysMap.get(namespace).values().forEach(keys -> allShardingKeys.addAll(keys));
+    return allShardingKeys;
   }
 
   @Override
-  public List<String> getAllShardingKeysInRealm(String namespace, String realm) {
-    return null;
+  public Collection<String> getAllShardingKeysInRealm(String namespace, String realm) {
+    if (!_realmToShardingKeysMap.containsKey(namespace)) {
+      throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
+    }
+    if (!_realmToShardingKeysMap.get(namespace).containsKey(realm)) {
+      throw new NoSuchElementException(
+          "Realm " + realm + " does not exist in namespace " + namespace);
+    }
+    return Collections.unmodifiableCollection(_realmToShardingKeysMap.get(namespace).get(realm));
   }
 
   @Override
-  public Map<String, String> getAllShardingKeysUnderPath(String namespace, String path) {
+  public Map<String, String> getAllMappingUnderPath(String namespace, String path) {
+    // TODO: get it from routingData
     return null;
   }
 
   @Override
   public String getMetadataStoreRealm(String namespace, String shardingKey) {
+    // TODO: get it from routingData
     return null;
   }
 
   @Override
   public boolean addNamespace(String namespace) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
   public boolean deleteNamespace(String namespace) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
   public boolean deleteMetadataStoreRealm(String namespace, String realm) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
   public boolean addShardingKey(String namespace, String realm, String shardingKey) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
   public boolean deleteShardingKey(String namespace, String realm, String shardingKey) {
+    // TODO implement when MetadataStoreRoutingDataWriter is ready
     return false;
   }
 
   @Override
-  public void updateRoutingData() {
-    // call constructRoutingData() here.
+  public void updateRoutingData(String namespace) {
+    // Safe to ignore the callback if routingDataMap is null
+    if (_routingDataMap != null) {
+      MetadataStoreRoutingData newRoutingData = null;
+      // call constructRoutingData() here.
+      _routingDataMap.put(namespace, newRoutingData);
+    }
   }
 
-//  /**
-//   * Reconstructs MetadataStoreRoutingData by reading from the metadata store.
-//   * @param routingDataAccessor
-//   * @return
-//   */
-//  private MetadataStoreRoutingData constructRoutingData(MetadataStoreRoutingDataAccessor routingDataAccessor) {
-//    /**
-//     * Trie construction logic
-//     */
-//
-//    // 1. Construct
-//    // 2. Update the in-memory reference when complete
-//    _routingData = newRoutingData;
-//  }
+  @Override
+  public synchronized void close() {
+    _routingDataReaderMap.values().forEach(MetadataStoreRoutingDataReader::close);
+  }
 }

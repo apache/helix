@@ -19,29 +19,36 @@ package org.apache.helix.rest.metadatastore;
  * under the License.
  */
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 
+/**
+ * MetadataStoreDirectory interface that provides methods that are used to route requests to appropriate metadata store realm.
+ *
+ * namespace: tied to a namespace used in Helix REST (Metadata Store Directory Service endpoints will be served by Helix REST deployables)
+ * realm: a metadata store deployable/ensemble. for example, if an application wishes to use 3 ZK quorums, then each ZK quorum would be considered a realm (ZK realm)
+ * metadata store path sharding key: assuming the metadata store uses a file system APIs, this sharding key denotes the key that maps to a particular metadata store realm. an example of a key is a cluster name mapping to a particular ZK realm (ZK address)
+ */
 public interface MetadataStoreDirectory {
 
   /**
    * Retrieves all existing namespaces in the routing metadata store.
    * @return
    */
-  List<String> getAllNamespaces();
+  Collection<String> getAllNamespaces();
 
   /**
    * Returns all metadata store realms in the given namespace.
    * @return
    */
-  List<String> getAllMetadataStoreRealms(String namespace);
+  Collection<String> getAllMetadataStoreRealms(String namespace);
 
   /**
    * Returns all path-based sharding keys in the given namespace.
    * @return
    */
-  List<String> getAllShardingKeys(String namespace);
+  Collection<String> getAllShardingKeys(String namespace);
 
   /**
    * Returns all path-based sharding keys in the given namespace and the realm.
@@ -49,17 +56,17 @@ public interface MetadataStoreDirectory {
    * @param realm
    * @return
    */
-  List<String> getAllShardingKeysInRealm(String namespace, String realm);
+  Collection<String> getAllShardingKeysInRealm(String namespace, String realm);
 
   /**
    * Returns all sharding keys that have the given path as the prefix substring.
    * E.g) Given that there are sharding keys: /a/b/c, /a/b/d, /a/e,
-   * getAllShardingKeysUnderPath(namespace, "/a/b") returns ["/a/b/c", "/a/b/d"].
+   * getAllShardingKeysUnderPath(namespace, "/a/b") returns ["/a/b/c": "realm", "/a/b/d": "realm].
    * @param namespace
    * @param path
    * @return
    */
-  Map<String, String> getAllShardingKeysUnderPath(String namespace, String path);
+  Map<String, String> getAllMappingUnderPath(String namespace, String path);
 
   /**
    * Returns the name of the metadata store realm based on the namespace and the sharding key given.
@@ -121,7 +128,7 @@ public interface MetadataStoreDirectory {
   boolean deleteShardingKey(String namespace, String realm, String shardingKey);
 
   /**
-   * Updates the internally-cached routing data if available.
+   * Close MetadataStoreDirectory.
    */
-  void updateRoutingData();
+  void close();
 }

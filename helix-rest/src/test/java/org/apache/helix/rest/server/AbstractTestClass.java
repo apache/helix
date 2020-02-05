@@ -95,8 +95,8 @@ import org.testng.annotations.BeforeSuite;
 public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
   private static final String NUM_ZK_PROPERTY_KEY = "numZk";
-  private static final String ZK_PREFIX = "localhost:";
-  private static final int ZK_START_PORT = 2123;
+  protected static final String ZK_PREFIX = "localhost:";
+  protected static final int ZK_START_PORT = 2123;
   protected Map<String, ZkServer> _zkServerMap;
 
   protected static final String ZK_ADDR = "localhost:2123";

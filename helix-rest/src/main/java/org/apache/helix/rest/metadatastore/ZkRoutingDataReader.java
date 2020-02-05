@@ -29,7 +29,6 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 
-
 public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
   static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
   static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
@@ -49,25 +48,28 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader {
     List<String> children;
     try {
       children = _zkClient.getChildren(ROUTING_DATA_PATH);
-    }
-    catch (ZkNoNodeException e) {
-      throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
+    } catch (ZkNoNodeException e) {
+      throw new InvalidRoutingDataException("Routing data directory ZNode " + ROUTING_DATA_PATH
           + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    if (children.isEmpty()) {
-      throw new InvalidRoutingDataException("Routing data directory node " + ROUTING_DATA_PATH
-          + " does not have any child node. Routing ZooKeeper address: " + _zkAddress);
+    if (children == null || children.isEmpty()) {
+      throw new InvalidRoutingDataException(
+          "There are no metadata store realms defined. Routing ZooKeeper address: " + _zkAddress);
     }
     for (String child : children) {
       ZNRecord record = _zkClient.readData(ROUTING_DATA_PATH + "/" + child);
       List<String> shardingKeys = record.getListField(ZNRECORD_LIST_FIELD_KEY);
       if (shardingKeys == null || shardingKeys.isEmpty()) {
-        throw new InvalidRoutingDataException("Realm address node " + ROUTING_DATA_PATH + "/"
+        throw new InvalidRoutingDataException("Realm address ZNode " + ROUTING_DATA_PATH + "/"
             + child + " does not have a value for key " + ZNRECORD_LIST_FIELD_KEY
             + ". Routing ZooKeeper address: " + _zkAddress);
       }
       routingData.put(child, shardingKeys);
     }
     return routingData;
+  }
+
+  public void close() {
+    _zkClient.close();
   }
 }

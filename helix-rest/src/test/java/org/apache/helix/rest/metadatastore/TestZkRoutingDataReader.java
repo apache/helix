@@ -28,31 +28,48 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.rest.metadatastore.ZkRoutingDataReader.ROUTING_DATA_PATH;
-import static org.apache.helix.rest.metadatastore.ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY;
-
 public class TestZkRoutingDataReader extends AbstractTestClass {
+  private MetadataStoreRoutingDataReader _zkRoutingDataReader;
+
+  @BeforeClass
+  public void beforeClass() {
+    _zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    _zkRoutingDataReader.close();
+  }
+
+  @AfterMethod
+  public void afterMethod() {
+    _baseAccessor.remove(ZkRoutingDataReader.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+  }
+
   @Test
   public void testGetRoutingData() {
     // Create a node that represents a realm address and add 3 sharding keys to it
     ZNRecord testZnRecord1 = new ZNRecord("testZnRecord1");
     List<String> testShardingKeys1 =
         Arrays.asList("/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c");
-    testZnRecord1.setListField(ZNRECORD_LIST_FIELD_KEY, testShardingKeys1);
+    testZnRecord1.setListField(ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY, testShardingKeys1);
 
     // Create another node that represents a realm address and add 3 sharding keys to it
     ZNRecord testZnRecord2 = new ZNRecord("testZnRecord2");
     List<String> testShardingKeys2 = Arrays.asList("/sharding/key/2/a", "/sharding/key/2/b",
         "/sharding/key/2/c", "/sharding/key/2/d");
-    testZnRecord2.setListField(ZNRECORD_LIST_FIELD_KEY, testShardingKeys2);
+    testZnRecord2.setListField(ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY, testShardingKeys2);
 
-    // Add both nodes as children nodes to ROUTING_DATA_PATH
-    _baseAccessor.create(ROUTING_DATA_PATH + "/testRealmAddress1", testZnRecord1,
-        AccessOption.PERSISTENT);
-    _baseAccessor.create(ROUTING_DATA_PATH + "/testRealmAddress2", testZnRecord2,
-        AccessOption.PERSISTENT);
+    // Add both nodes as children nodes to ZkRoutingDataReader.ROUTING_DATA_PATH
+    _baseAccessor.create(ZkRoutingDataReader.ROUTING_DATA_PATH + "/testRealmAddress1",
+        testZnRecord1, AccessOption.PERSISTENT);
+    _baseAccessor.create(ZkRoutingDataReader.ROUTING_DATA_PATH + "/testRealmAddress2",
+        testZnRecord2, AccessOption.PERSISTENT);
 
     MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
     try {
@@ -63,8 +80,6 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     } catch (InvalidRoutingDataException e) {
       Assert.fail("Not expecting InvalidRoutingDataException");
     }
-
-    _baseAccessor.remove(ROUTING_DATA_PATH, AccessOption.PERSISTENT);
   }
 
   @Test
@@ -74,43 +89,43 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
       zkRoutingDataReader.getRoutingData();
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("Routing data directory node " + ROUTING_DATA_PATH
-          + " does not exist. Routing ZooKeeper address: " + ZK_ADDR));
+      Assert.assertTrue(e.getMessage()
+          .contains("Routing data directory ZNode " + ZkRoutingDataReader.ROUTING_DATA_PATH
+              + " does not exist. Routing ZooKeeper address: " + ZK_ADDR));
     }
   }
 
   @Test
   public void testGetRoutingDataMissingMSRDChildren() {
-    _baseAccessor.create(ROUTING_DATA_PATH, new ZNRecord("test"), AccessOption.PERSISTENT);
-    MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
-    try {
-      zkRoutingDataReader.getRoutingData();
-      Assert.fail("Expecting InvalidRoutingDataException");
-    } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("Routing data directory node " + ROUTING_DATA_PATH
-          + " does not have any child node. Routing ZooKeeper address: " + ZK_ADDR));
-    }
-
-    _baseAccessor.remove(ROUTING_DATA_PATH, AccessOption.PERSISTENT);
-  }
-
-  @Test
-  public void testGetRoutingDataMSRDChildEmptyValue() {
-    ZNRecord testZnRecord1 = new ZNRecord("testZnRecord1");
-    testZnRecord1.setListField(ZNRECORD_LIST_FIELD_KEY, Collections.emptyList());
-    _baseAccessor.create(ROUTING_DATA_PATH + "/testRealmAddress1", testZnRecord1,
+    _baseAccessor.create(ZkRoutingDataReader.ROUTING_DATA_PATH, new ZNRecord("test"),
         AccessOption.PERSISTENT);
     MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
     try {
       zkRoutingDataReader.getRoutingData();
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Realm address node " + ROUTING_DATA_PATH
-              + "/testRealmAddress1 does not have a value for key " + ZNRECORD_LIST_FIELD_KEY
-              + ". Routing ZooKeeper address: " + ZK_ADDR));
+      Assert.assertTrue(e.getMessage().contains(
+          "There are no metadata store realms defined. Routing ZooKeeper address: " + ZK_ADDR));
     }
+  }
 
-    _baseAccessor.remove(ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+  @Test
+  public void testGetRoutingDataMSRDChildEmptyValue() {
+    ZNRecord testZnRecord1 = new ZNRecord("testZnRecord1");
+    testZnRecord1.setListField(ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY,
+        Collections.emptyList());
+    _baseAccessor.create(ZkRoutingDataReader.ROUTING_DATA_PATH + "/testRealmAddress1",
+        testZnRecord1, AccessOption.PERSISTENT);
+    MetadataStoreRoutingDataReader zkRoutingDataReader = new ZkRoutingDataReader(ZK_ADDR);
+    try {
+      zkRoutingDataReader.getRoutingData();
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("Realm address ZNode " + ZkRoutingDataReader.ROUTING_DATA_PATH
+              + "/testRealmAddress1 does not have a value for key "
+              + ZkRoutingDataReader.ZNRECORD_LIST_FIELD_KEY + ". Routing ZooKeeper address: "
+              + ZK_ADDR));
+    }
   }
 }

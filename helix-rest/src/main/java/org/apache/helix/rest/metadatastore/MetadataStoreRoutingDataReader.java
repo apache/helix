@@ -38,4 +38,9 @@ public interface MetadataStoreRoutingDataReader {
    *           disallows a meaningful mapping to be returned
    */
   Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException;
+
+  /**
+   * Closes any stateful resources such as connections or threads.
+   */
+  void close();
 }

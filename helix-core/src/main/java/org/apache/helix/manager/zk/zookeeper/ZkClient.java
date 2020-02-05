@@ -959,7 +959,7 @@ public class ZkClient implements Watcher {
       fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
-      fireDataChangedEvents(entry.getKey(), entry.getValue());
+      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true);
     }
   }
 
@@ -1265,10 +1265,6 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners) {
-    fireDataChangedEvents(path, listeners, OptionalLong.empty(), true);
-  }
-
   private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners,
       final OptionalLong notificationTime, boolean pathExists) {
     try {
@@ -1321,7 +1317,7 @@ public class ZkClient implements Watcher {
                   OptionalLong.empty());
             }
             List<String> children = null;
-            if (!pathStatRecord.pathExists()) {
+            if (pathStatRecord.pathExists()) {
               try {
                 //TODO: duplicate reads when multiple child listener exists
                 children = getChildren(path);

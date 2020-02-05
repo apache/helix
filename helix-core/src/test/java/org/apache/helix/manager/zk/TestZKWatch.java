@@ -48,7 +48,7 @@ public class TestZKWatch extends ZkUnitTestBase {
 
   @Test
   public void testSubscribeDataChange() throws Exception {
-    String existPath = "/nonExistPath";
+    String existPath = "/existPath";
     _zkClient.createPersistent(existPath);
     final CountDownLatch deleteCondition = new CountDownLatch(1);
     final IZkDataListener dataListener = new IZkDataListener() {
@@ -58,10 +58,9 @@ public class TestZKWatch extends ZkUnitTestBase {
       }
 
       @Override
-      public void handleDataDeleted(String s) throws Exception {
+      public void handleDataDeleted(String path) throws Exception {
         deleteCondition.countDown();
-        // unsubscribe itself
-        _zkClient.unsubscribeDataChanges(existPath, this);
+        _zkClient.unsubscribeDataChanges(path, this);
       }
     };
     _zkClient.subscribeDataChanges(existPath, dataListener);
@@ -82,7 +81,7 @@ public class TestZKWatch extends ZkUnitTestBase {
     Assert.assertEquals(_zkClient.numberOfListeners(), 0);
   }
 
-  @Test (dependsOnMethods = "testSubscribeDataChange")
+  @Test(dependsOnMethods = "testSubscribeDataChange")
   public void testSubscribeChildChange() throws Exception {
     String parentPath = "/tmp";
     String childPath = parentPath + "/childNode";
@@ -91,9 +90,9 @@ public class TestZKWatch extends ZkUnitTestBase {
 
     IZkChildListener childListener = new IZkChildListener() {
       @Override
-      public void handleChildChange(String s, List<String> children) throws Exception {
+      public void handleChildChange(String parentPath, List<String> childrenPaths) throws Exception {
         deleteCondition.countDown();
-        _zkClient.unsubscribeChildChanges(s, this);
+        _zkClient.unsubscribeChildChanges(parentPath, this);
       }
     };
     _zkClient.subscribeChildChanges(parentPath, childListener);
@@ -125,7 +124,7 @@ public class TestZKWatch extends ZkUnitTestBase {
     Assert.assertEquals(zkWatch.get("childWatches").size(), 0);
   }
 
-  @Test (dependsOnMethods = "testSubscribeChildChange")
+  @Test(dependsOnMethods = "testSubscribeChildChange")
   public void testSubscribeDataChangeOnNonExistPath() throws Exception {
     String nonExistPath = "/nonExistPath";
     IZkDataListener dataListener = new IZkDataListener() {

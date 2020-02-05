@@ -1284,23 +1284,23 @@ public class ZkClient implements Watcher {
             }
             if (!pathExists) {
               listener.getDataListener().handleDataDeleted(path);
-              return;
-            }
-            Object data = null;
-            if (listener.isPrefetchData()) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Prefetch data for path: {}", path);
+            } else {
+              Object data = null;
+              if (listener.isPrefetchData()) {
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("Prefetch data for path: {}", path);
+                }
+                try {
+                  // TODO: the data is redundantly read multiple times when multiple listeners exist
+                  data = readData(path, null, true);
+                } catch (ZkNoNodeException e) {
+                  LOG.warn("Prefetch data for path: {} failed.", path, e);
+                  listener.getDataListener().handleDataDeleted(path);
+                  return;
+                }
               }
-              try {
-                // TODO: the data is redundantly read multiple times when multiple listeners exist
-                data = readData(path, null, true);
-              } catch (ZkNoNodeException e) {
-                LOG.warn("Prefetch data for path: {} failed.", path, e);
-                listener.getDataListener().handleDataDeleted(path);
-                return;
-              }
+              listener.getDataListener().handleDataChange(path, data);
             }
-            listener.getDataListener().handleDataChange(path, data);
           }
         });
       }

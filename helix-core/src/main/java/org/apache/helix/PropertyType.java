@@ -55,6 +55,8 @@ public enum PropertyType {
   ERRORS(Type.INSTANCE, true, true),
   INSTANCE_HISTORY(Type.INSTANCE, true, true, true),
   HEALTHREPORT(Type.INSTANCE, true, false, false, false, false, true),
+  CUSTOMIZEDSTATES(Type.INSTANCE, true, false, false, true, true),
+
 
   // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),

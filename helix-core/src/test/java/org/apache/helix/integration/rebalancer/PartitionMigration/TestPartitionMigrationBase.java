@@ -49,7 +49,7 @@ import org.testng.annotations.BeforeClass;
 
 
 public class TestPartitionMigrationBase extends ZkTestBase {
-  final int NUM_NODE = 6;
+  protected final int NUM_NODE = 6;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 50;
 
@@ -57,15 +57,15 @@ public class TestPartitionMigrationBase extends ZkTestBase {
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
 
-  List<MockParticipantManager> _participants = new ArrayList<>();
-  int _replica = 3;
-  int _minActiveReplica = _replica - 1;
-  ZkHelixClusterVerifier _clusterVerifier;
-  List<String> _testDBs = new ArrayList<>();
+  protected List<MockParticipantManager> _participants = new ArrayList<>();
+  protected int _replica = 3;
+  protected int _minActiveReplica = _replica - 1;
+  protected ZkHelixClusterVerifier _clusterVerifier;
+  protected List<String> _testDBs = new ArrayList<>();
 
-  MigrationStateVerifier _migrationVerifier;
-  HelixManager _manager;
-  ConfigAccessor _configAccessor;
+  protected MigrationStateVerifier _migrationVerifier;
+  protected HelixManager _manager;
+  protected ConfigAccessor _configAccessor;
 
 
   @BeforeClass
@@ -90,8 +90,8 @@ public class TestPartitionMigrationBase extends ZkTestBase {
 
     enablePersistIntermediateAssignment(_gZkClient, CLUSTER_NAME, true);
 
-    _manager =
-        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
     _configAccessor = new ConfigAccessor(_gZkClient);
   }
@@ -134,7 +134,7 @@ public class TestPartitionMigrationBase extends ZkTestBase {
     return idealStateMap;
   }
 
-  class MigrationStateVerifier implements IdealStateChangeListener, ExternalViewChangeListener {
+  protected class MigrationStateVerifier implements IdealStateChangeListener, ExternalViewChangeListener {
     static final int EXTRA_REPLICA = 1;
 
     boolean _hasMoreReplica = false;
@@ -143,7 +143,6 @@ public class TestPartitionMigrationBase extends ZkTestBase {
     HelixManager _manager;
     boolean trackEnabled = false;
     Map<String, IdealState> _resourceMap;
-
 
     public MigrationStateVerifier(Map<String, IdealState> resourceMap, HelixManager manager) {
       _resourceMap = resourceMap;
@@ -242,7 +241,6 @@ public class TestPartitionMigrationBase extends ZkTestBase {
       _hasLessReplica = false;
     }
   }
-
 
   @AfterClass
   public void afterClass() throws Exception {

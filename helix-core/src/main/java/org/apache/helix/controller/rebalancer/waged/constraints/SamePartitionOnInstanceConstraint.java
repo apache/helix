@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.mbeans;
+package org.apache.helix.controller.rebalancer.waged.constraints;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,33 +19,21 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
+import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
-/**
- * A basic bean describing the status of a single instance
- */
-public interface InstanceMonitorMBean extends SensorNameProvider {
-  /**
-   * Check if this instance is live
-   * @return 1 if running, 0 otherwise
-   */
-  public long getOnline();
+class SamePartitionOnInstanceConstraint extends HardConstraint {
 
-  /**
-   * Check if this instance is enabled
-   * @return 1 if enabled, 0 if disabled
-   */
-  public long getEnabled();
+  @Override
+  boolean isAssignmentValid(AssignableNode node, AssignableReplica replica,
+      ClusterContext clusterContext) {
+    return !node.getAssignedPartitionsByResource(replica.getResourceName())
+        .contains(replica.getPartitionName());
+  }
 
-  /**
-   * Get total message received for this instances
-   * @return The total number of messages sent to this instance
-   */
-  public long getTotalMessageReceived();
-
-  /**
-   * Get the total disabled partitions number for this instance
-   * @return The total number of disabled partitions
-   */
-  public long getDisabledPartitions();
+  @Override
+  String getDescription() {
+    return "Same partition of different states cannot co-exist in one instance";
+  }
 }

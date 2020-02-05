@@ -27,14 +27,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.mock.participant.MockTransition;
@@ -60,13 +59,12 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
   private final String CLASS_NAME = getShortClassName();
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
-  private ClusterControllerManager _controller;
 
+  private ClusterControllerManager _controller;
   private List<MockParticipantManager> _participants = new ArrayList<>();
   private int _replica = 3;
   private ZkHelixClusterVerifier _clusterVerifier;
   private ConfigAccessor _configAccessor;
-  private HelixDataAccessor _dataAccessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -96,7 +94,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     _configAccessor = new ConfigAccessor(_gZkClient);
-    _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
   }
 
   @DataProvider(name = "stateModels")
@@ -112,89 +109,125 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     };
   }
 
-  @Test(dataProvider = "stateModels")
-  public void testUserDefinedPreferenceListsInFullAuto(
-      String stateModel, boolean delayEnabled, String rebalanceStrateyName) throws Exception {
-    String db = "Test-DB-" + stateModel;
+  protected void createResource(String dbName, String stateModel, int numPartition, int replica,
+      boolean delayEnabled, String rebalanceStrategy) {
     if (delayEnabled) {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica - 1, 200, rebalanceStrateyName);
+      createResourceWithDelayedRebalance(CLUSTER_NAME, dbName, stateModel, numPartition, replica,
+          replica - 1, 200, rebalanceStrategy);
     } else {
-      createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-          _replica, 0, rebalanceStrateyName);
+      createResourceWithDelayedRebalance(CLUSTER_NAME, dbName, stateModel, numPartition, replica,
+          replica, 0, rebalanceStrategy);
     }
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-    Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
-    List<String> userDefinedPartitions = new ArrayList<>();
-    for (String partition : userDefinedPreferenceLists.keySet()) {
-      List<String> preferenceList = new ArrayList<>();
-      for (int k = _replica; k >= 0; k--) {
-        String instance = _participants.get(k).getInstanceName();
-        preferenceList.add(instance);
+  }
+
+  @Test(dataProvider = "stateModels")
+  public void testUserDefinedPreferenceListsInFullAuto(String stateModel, boolean delayEnabled,
+      String rebalanceStrateyName) throws Exception {
+    String dbName = "Test-DB-" + stateModel;
+    createResource(dbName, stateModel, _PARTITIONS, _replica, delayEnabled,
+        rebalanceStrateyName);
+    try {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+      Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
+      List<String> userDefinedPartitions = new ArrayList<>();
+      for (String partition : userDefinedPreferenceLists.keySet()) {
+        List<String> preferenceList = new ArrayList<>();
+        for (int k = _replica; k >= 0; k--) {
+          String instance = _participants.get(k).getInstanceName();
+          preferenceList.add(instance);
+        }
+        userDefinedPreferenceLists.put(partition, preferenceList);
+        userDefinedPartitions.add(partition);
       }
-      userDefinedPreferenceLists.put(partition, preferenceList);
-      userDefinedPartitions.add(partition);
-    }
 
-    ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(dbName).setPreferenceLists(userDefinedPreferenceLists).build();
+      _configAccessor.setResourceConfig(CLUSTER_NAME, dbName, resourceConfig);
 
-    Assert.assertTrue(_clusterVerifier.verify(1000));
-    verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
+      // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
+      Thread.sleep(500);
 
-    while (userDefinedPartitions.size() > 0) {
-      IdealState originIS = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      Set<String> nonUserDefinedPartitions = new HashSet<>(originIS.getPartitionSet());
-      nonUserDefinedPartitions.removeAll(userDefinedPartitions);
+      Assert.assertTrue(_clusterVerifier.verify(3000));
+      verifyUserDefinedPreferenceLists(dbName, userDefinedPreferenceLists,
+          userDefinedPartitions);
 
-      removePartitionFromUserDefinedList(db, userDefinedPartitions);
-      Assert.assertTrue(_clusterVerifier.verify(1000));
-      verifyUserDefinedPreferenceLists(db, userDefinedPreferenceLists, userDefinedPartitions);
-      verifyNonUserDefinedAssignment(db, originIS, nonUserDefinedPartitions);
+      while (userDefinedPartitions.size() > 0) {
+        IdealState originIS =
+            _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+        Set<String> nonUserDefinedPartitions = new HashSet<>(originIS.getPartitionSet());
+        nonUserDefinedPartitions.removeAll(userDefinedPartitions);
+
+        removePartitionFromUserDefinedList(dbName, userDefinedPartitions);
+        // TODO: Remove wait once we enable the BestPossibleExternalViewVerifier for the WAGED rebalancer.
+        Thread.sleep(1000);
+        Assert.assertTrue(_clusterVerifier.verify(3000));
+        verifyUserDefinedPreferenceLists(dbName, userDefinedPreferenceLists,
+            userDefinedPartitions);
+        verifyNonUserDefinedAssignment(dbName, originIS, nonUserDefinedPartitions);
+      }
+    } finally {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, dbName);
+      _clusterVerifier.verify(5000);
     }
   }
 
   @Test
   public void testUserDefinedPreferenceListsInFullAutoWithErrors() throws Exception {
-    String db = "Test-DB-1";
-    createResourceWithDelayedRebalance(CLUSTER_NAME, db,
-        BuiltInStateModelDefinitions.MasterSlave.name(), 5, _replica, _replica, 0,
+    String dbName = "Test-DB-withErrors";
+    createResource(dbName, BuiltInStateModelDefinitions.MasterSlave.name(), 5, _replica, false,
         CrushRebalanceStrategy.class.getName());
+    try {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+      Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
 
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-    Map<String, List<String>> userDefinedPreferenceLists = idealState.getPreferenceLists();
+      List<String> newNodes = new ArrayList<>();
+      for (int i = NUM_NODE; i < NUM_NODE + _replica; i++) {
+        String instance = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+        _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance);
 
-    List<String> newNodes = new ArrayList<>();
-    for (int i = NUM_NODE; i < NUM_NODE + _replica; i++) {
-      String instance = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance);
+        // start dummy participants
+        MockParticipantManager participant =
+            new TestMockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance);
+        participant.syncStart();
+        _participants.add(participant);
+        newNodes.add(instance);
+      }
 
-      // start dummy participants
-      MockParticipantManager participant =
-          new TestMockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance);
-      participant.syncStart();
-      _participants.add(participant);
-      newNodes.add(instance);
+      List<String> userDefinedPartitions = new ArrayList<>();
+      for (String partition : userDefinedPreferenceLists.keySet()) {
+        userDefinedPreferenceLists.put(partition, newNodes);
+        userDefinedPartitions.add(partition);
+      }
+
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(dbName).setPreferenceLists(userDefinedPreferenceLists).build();
+      _configAccessor.setResourceConfig(CLUSTER_NAME, dbName, resourceConfig);
+
+      TestHelper.verify(() -> {
+        ExternalView ev =
+            _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+        if (ev != null) {
+          for (String partition : ev.getPartitionSet()) {
+            Map<String, String> stateMap = ev.getStateMap(partition);
+            if (stateMap.values().contains("ERROR")) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }, 2000);
+
+      ExternalView ev =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+      IdealState is =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+      validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
+    } finally {
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, dbName);
+      _clusterVerifier.verify(5000);
     }
-
-    List<String> userDefinedPartitions = new ArrayList<>();
-    for (String partition : userDefinedPreferenceLists.keySet()) {
-      userDefinedPreferenceLists.put(partition, newNodes);
-      userDefinedPartitions.add(partition);
-    }
-
-    ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(db).setPreferenceLists(userDefinedPreferenceLists).build();
-    _configAccessor.setResourceConfig(CLUSTER_NAME, db, resourceConfig);
-
-    Thread.sleep(1000);
-    ExternalView ev =
-        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-    IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-    validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
   }
 
   private void verifyUserDefinedPreferenceLists(String db,

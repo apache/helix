@@ -3,6 +3,7 @@ package org.apache.helix.monitoring.mbeans;
 import java.lang.management.ManagementFactory;
 import java.util.HashSet;
 import java.util.Set;
+import javax.management.AttributeNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -82,8 +83,15 @@ public class TestRoutingTableProviderMonitor {
     Assert.assertEquals((long) _beanServer.getAttribute(name, "EventQueueSizeGauge"), 15);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshLatencyGauge.Max"), 0);
     Assert.assertEquals((long) _beanServer.getAttribute(name, "DataRefreshCounter"), 0);
+
     // StatePropagationLatencyGauge only apply for current state
-    Assert.assertEquals(_beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max"), null);
+    try {
+      _beanServer.getAttribute(name, "StatePropagationLatencyGauge.Max");
+      Assert.fail();
+    } catch (AttributeNotFoundException ex) {
+      // Expected AttributeNotFoundException because the metric does not exist in
+      // MBean server.
+    }
 
     long startTime = System.currentTimeMillis();
     Thread.sleep(5);

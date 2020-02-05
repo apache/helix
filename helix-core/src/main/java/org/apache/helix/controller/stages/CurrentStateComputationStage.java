@@ -20,19 +20,31 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
+import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
+import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
+import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +62,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     _eventId = event.getEventId();
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    final Map<String, Resource> resourceToRebalance =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
 
     if (cache == null || resourceMap == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -74,6 +88,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    final ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    if (clusterStatusMonitor != null && cache instanceof ResourceControllerDataProvider) {
+      final ResourceControllerDataProvider dataProvider = (ResourceControllerDataProvider) cache;
+      reportInstanceCapacityMetrics(clusterStatusMonitor, dataProvider, resourceToRebalance,
+          currentStateOutput);
+      reportResourcePartitionCapacityMetrics(dataProvider.getAsyncTasksThreadPool(),
+          clusterStatusMonitor, dataProvider.getResourceConfigMap().values());
+    }
   }
 
   // update all pending messages to CurrentStateOutput.
@@ -219,5 +243,56 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     } else {
       currentStateOutput.setCancellationMessage(resourceName, partition, instanceName, message);
     }
+  }
+
+  private void reportInstanceCapacityMetrics(ClusterStatusMonitor clusterStatusMonitor,
+      ResourceControllerDataProvider dataProvider, Map<String, Resource> resourceMap,
+      CurrentStateOutput currentStateOutput) {
+    asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
+      try {
+        // ResourceToRebalance map also has resources from current states.
+        // Only use the resources in ideal states to parse all replicas.
+        Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
+        Map<String, Resource> resourceToMonitorMap = resourceMap.entrySet().stream()
+            .filter(idealStateMap::containsKey)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        Map<String, ResourceAssignment> currentStateAssignment =
+            currentStateOutput.getAssignment(resourceToMonitorMap.keySet());
+        ClusterModel clusterModel = ClusterModelProvider.generateClusterModelFromExistingAssignment(
+            dataProvider, resourceToMonitorMap, currentStateAssignment);
+
+        for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
+          String instanceName = node.getInstanceName();
+          // There is no new usage adding to this node, so an empty map is passed in.
+          double usage = node.getProjectedHighestUtilization(Collections.emptyMap());
+          clusterStatusMonitor
+              .updateInstanceCapacityStatus(instanceName, usage, node.getMaxCapacity());
+        }
+      } catch (Exception ex) {
+        LOG.error("Failed to report instance capacity metrics. Exception message: {}",
+            ex.getMessage());
+      }
+
+      return null;
+    });
+  }
+
+  private void reportResourcePartitionCapacityMetrics(ExecutorService executorService,
+      ClusterStatusMonitor clusterStatusMonitor, Collection<ResourceConfig> resourceConfigs) {
+    asyncExecute(executorService, () -> {
+      try {
+        for (ResourceConfig config : resourceConfigs) {
+          Map<String, Integer> averageWeight = ResourceUsageCalculator
+              .calculateAveragePartitionWeight(config.getPartitionCapacityMap());
+          clusterStatusMonitor.updatePartitionWeight(config.getResourceName(), averageWeight);
+        }
+      } catch (Exception ex) {
+        LOG.error("Failed to report resource partition capacity metrics. Exception message: {}",
+            ex.getMessage());
+      }
+
+      return null;
+    });
   }
 }

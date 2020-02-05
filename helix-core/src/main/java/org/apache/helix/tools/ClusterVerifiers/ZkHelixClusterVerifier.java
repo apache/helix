@@ -20,7 +20,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  */
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,7 +36,6 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,10 +166,6 @@ public abstract class ZkHelixClusterVerifier
       long start = System.currentTimeMillis();
       boolean success;
       do {
-        // Add a rebalance invoker in case some callbacks got buried - sometimes callbacks get
-        // processed even before changes get fully written to ZK.
-        invokeRebalance(_accessor);
-
         success = verifyState();
         if (success) {
           return true;
@@ -306,16 +300,5 @@ public abstract class ZkHelixClusterVerifier
 
   public String getClusterName() {
     return _clusterName;
-  }
-
-  /**
-   * Invoke a cluster rebalance in case some callbacks get ignored. This is for Helix integration
-   * testing purposes only.
-   */
-  public static synchronized void invokeRebalance(HelixDataAccessor accessor) {
-    String dummyName = UUID.randomUUID().toString();
-    ResourceConfig dummyConfig = new ResourceConfig(dummyName);
-    accessor.updateProperty(accessor.keyBuilder().resourceConfig(dummyName), dummyConfig);
-    accessor.removeProperty(accessor.keyBuilder().resourceConfig(dummyName));
   }
 }

@@ -236,27 +236,28 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       // Unregister beans for instances that are no longer configured
       Set<String> toUnregister = Sets.newHashSet(_instanceMonitorMap.keySet());
       toUnregister.removeAll(instanceSet);
-      try {
-        unregisterInstances(toUnregister);
-      } catch (MalformedObjectNameException e) {
-        LOG.error("Could not unregister instances from MBean server: " + toUnregister, e);
-      }
+      unregisterInstances(toUnregister);
 
       // Register beans for instances that are newly configured
       Set<String> toRegister = Sets.newHashSet(instanceSet);
       toRegister.removeAll(_instanceMonitorMap.keySet());
       Set<InstanceMonitor> monitorsToRegister = Sets.newHashSet();
       for (String instanceName : toRegister) {
-        InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName);
-        bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
-            oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
-            !disabledInstanceSet.contains(instanceName));
-        monitorsToRegister.add(bean);
+        try {
+          ObjectName objectName = getObjectName(getInstanceBeanName(instanceName));
+          InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName, objectName);
+          bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
+              oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
+              !disabledInstanceSet.contains(instanceName));
+          monitorsToRegister.add(bean);
+        } catch (MalformedObjectNameException ex) {
+          LOG.error("Failed to create instance monitor for instance: {}.", instanceName);
+        }
       }
       try {
         registerInstances(monitorsToRegister);
-      } catch (MalformedObjectNameException e) {
-        LOG.error("Could not register instances with MBean server: " + toRegister, e);
+      } catch (JMException e) {
+        LOG.error("Could not register instances with MBean server: {}.", toRegister, e);
       }
 
       // Update all the sets
@@ -282,8 +283,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             try {
               unregisterInstances(Arrays.asList(instanceName));
               registerInstances(Arrays.asList(bean));
-            } catch (MalformedObjectNameException e) {
-              LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
+            } catch (JMException e) {
+              LOG.error("Could not refresh registration with MBean server: {}", instanceName, e);
             }
           }
         }
@@ -363,6 +364,28 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         resourceMonitor.increaseMessageCount(messageCountPerResource.get(resource));
       }
     }
+  }
+
+  /**
+   * Updates instance capacity status for per instance, including max usage and capacity of each
+   * capacity key. Before calling this API, we assume the instance monitors are already registered
+   * in ReadClusterDataStage. If the monitor is not registered, this instance capacity status update
+   * will fail.
+   *
+   * @param instanceName This instance name
+   * @param maxUsage Max capacity usage of this instance
+   * @param capacityMap A map of this instance capacity, {capacity key: capacity value}
+   */
+  public void updateInstanceCapacityStatus(String instanceName, double maxUsage,
+      Map<String, Integer> capacityMap) {
+    InstanceMonitor monitor = _instanceMonitorMap.get(instanceName);
+    if (monitor == null) {
+      LOG.warn("Failed to update instance capacity status because instance monitor is not found, "
+          + "instance: {}.", instanceName);
+      return;
+    }
+    monitor.updateMaxCapacityUsage(maxUsage);
+    monitor.updateCapacity(capacityMap);
   }
 
   /**
@@ -472,6 +495,25 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     } catch (Exception e) {
       LOG.error("Fail to set resource status, resource: " + idealState.getResourceName(), e);
     }
+  }
+
+  /**
+   * Updates metrics of average partition weight per capacity key for a resource. If a resource
+   * monitor is not yet existed for this resource, a new resource monitor will be created for this
+   * resource.
+   *
+   * @param resourceName The resource name for which partition weight is updated
+   * @param averageWeightMap A map of average partition weight of each capacity key:
+   *                         capacity key -> average partition weight
+   */
+  public void updatePartitionWeight(String resourceName, Map<String, Integer> averageWeightMap) {
+    ResourceMonitor monitor = getOrCreateResourceMonitor(resourceName);
+    if (monitor == null) {
+      LOG.warn("Failed to update partition weight metric for resource: {} because resource monitor"
+          + " is not created.", resourceName);
+      return;
+    }
+    monitor.updatePartitionWeightStats(averageWeightMap);
   }
 
   public void updateMissingTopStateDurationStats(String resourceName, long totalDuration,
@@ -694,31 +736,35 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   private void registerInstances(Collection<InstanceMonitor> instances)
-      throws MalformedObjectNameException {
+      throws JMException {
     synchronized (_instanceMonitorMap) {
       for (InstanceMonitor monitor : instances) {
         String instanceName = monitor.getInstanceName();
-        String beanName = getInstanceBeanName(instanceName);
-        register(monitor, getObjectName(beanName));
+        // If this instance MBean is already registered, unregister it.
+        InstanceMonitor removedMonitor = _instanceMonitorMap.remove(instanceName);
+        if (removedMonitor != null) {
+          removedMonitor.unregister();
+        }
+        monitor.register();
         _instanceMonitorMap.put(instanceName, monitor);
       }
     }
   }
 
-  private void unregisterAllInstances() throws MalformedObjectNameException {
+  private void unregisterAllInstances() {
     synchronized (_instanceMonitorMap) {
       unregisterInstances(_instanceMonitorMap.keySet());
     }
   }
 
-  private void unregisterInstances(Collection<String> instances)
-      throws MalformedObjectNameException {
+  private void unregisterInstances(Collection<String> instances) {
     synchronized (_instanceMonitorMap) {
       for (String instanceName : instances) {
-        String beanName = getInstanceBeanName(instanceName);
-        unregister(getObjectName(beanName));
+        InstanceMonitor monitor = _instanceMonitorMap.remove(instanceName);
+        if (monitor != null) {
+          monitor.unregister();
+        }
       }
-      _instanceMonitorMap.keySet().removeAll(instances);
     }
   }
 

@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.constant;
+package org.apache.helix.rest.metadatastore.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,12 +19,7 @@ package org.apache.helix.rest.metadatastore.constant;
  * under the License.
  */
 
-public class MetadataStoreRoutingConstants {
-  public static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
+public class TestZkRoutingDataWriter {
 
-  // For ZK only
-  public static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
 
-  // This is the name of the ZNode that will be used to implement a mutex for ZkRoutingDataWriter
-  public static final String ZK_LOCK_BASE_PATH = ROUTING_DATA_PATH + "/LOCK_ZK_ROUTING_DATA_WRITER";
 }

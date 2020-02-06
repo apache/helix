@@ -22,8 +22,6 @@ package org.apache.helix.rest.metadatastore.accessor;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-
 
 /**
  * An interface for a DAO that writes to the metadata store that stores routing data.
@@ -31,7 +29,43 @@ import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataExceptio
  */
 public interface MetadataStoreRoutingDataWriter {
 
-  boolean setRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException;
+  /**
+   * Creates a realm. If the namespace does not exist, it creates one.
+   * @param realm
+   * @return true if successful or if the realm already exists. false otherwise.
+   */
+  boolean addMetadataStoreRealm(String realm);
+
+  /**
+   * Deletes a realm.
+   * @param realm
+   * @return true if successful or the realm or namespace does not exist. false otherwise.
+   */
+  boolean deleteMetadataStoreRealm(String realm);
+
+  /**
+   * Creates a mapping between the sharding key to the realm. If realm doesn't exist, it will be created (this call is idempotent).
+   * @param realm
+   * @param shardingKey
+   * @return false if failed
+   */
+  boolean addShardingKey(String realm, String shardingKey);
+
+  /**
+   * Deletes the mapping between the sharding key to the realm.
+   * @param realm
+   * @param shardingKey
+   * @return false if failed; true if the deletion is successful or the key does not exist.
+   */
+  boolean deleteShardingKey(String realm, String shardingKey);
+
+  /**
+   * Sets (overwrites) the routing data with the given <realm, list of sharding keys> mapping.
+   * WARNING: This overwrites all existing routing data. Use with care!
+   * @param routingData
+   * @return
+   */
+  boolean setRoutingData(Map<String, List<String>> routingData);
 
   /**
    * Closes any stateful resources such as connections or threads.

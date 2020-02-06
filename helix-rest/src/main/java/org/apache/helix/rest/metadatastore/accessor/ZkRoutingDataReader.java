@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.rest.metadatastore.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,6 +31,8 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.rest.metadatastore.RoutingDataListener;
+import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.zookeeper.Watcher;

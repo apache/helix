@@ -29,16 +29,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient.ZkClientConfig;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
+import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

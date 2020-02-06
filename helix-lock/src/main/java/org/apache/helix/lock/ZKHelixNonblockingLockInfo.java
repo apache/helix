@@ -29,13 +29,17 @@ public class ZKHelixNonblockingLockInfo<K extends ZKHelixNonblockingLockInfo.Inf
 
   public static final String DEFAULT_OWNER_TEXT = "";
   public static final String DEFAULT_MESSAGE_TEXT = "";
-  public static final String DEFAULT_TIMEOUT_TEXT = String.valueOf(-1);
+  public static final long DEFAULT_TIMEOUT_LONG = -1L;
+  public static final String DEFAULT_TIMEOUT_TEXT = String.valueOf(DEFAULT_TIMEOUT_LONG);
   private Map<InfoKey, String> lockInfo;
 
   public enum InfoKey {
     OWNER, MESSAGE, TIMEOUT
   }
 
+  /**
+   * Constructor of ZKHelixNonblockingLockInfo that set each field to default data
+   */
   public ZKHelixNonblockingLockInfo() {
     lockInfo = new HashMap<>();
     lockInfo.put(InfoKey.OWNER, DEFAULT_OWNER_TEXT);
@@ -43,11 +47,22 @@ public class ZKHelixNonblockingLockInfo<K extends ZKHelixNonblockingLockInfo.Inf
     lockInfo.put(InfoKey.TIMEOUT, DEFAULT_TIMEOUT_TEXT);
   }
 
+  /**
+   * Construct a ZKHelixNonblockingLockInfo using a ZNRecord format of data
+   * @param znRecord A ZNRecord that contains lock information in its simple fields
+   */
   public ZKHelixNonblockingLockInfo(ZNRecord znRecord) {
     this();
-    lockInfo.put(InfoKey.OWNER, znRecord.getSimpleField(InfoKey.OWNER.name()));
-    lockInfo.put(InfoKey.MESSAGE, znRecord.getSimpleField(InfoKey.MESSAGE.name()));
-    lockInfo.put(InfoKey.TIMEOUT, znRecord.getSimpleField(InfoKey.TIMEOUT.name()));
+    if (znRecord == null) {
+      return;
+    }
+    Map<String, String> simpleFields = znRecord.getSimpleFields();
+    lockInfo
+        .put(InfoKey.OWNER, simpleFields.getOrDefault(InfoKey.OWNER.name(), DEFAULT_OWNER_TEXT));
+    lockInfo.put(InfoKey.MESSAGE,
+        simpleFields.getOrDefault(InfoKey.MESSAGE.name(), DEFAULT_MESSAGE_TEXT));
+    lockInfo.put(InfoKey.TIMEOUT,
+        simpleFields.getOrDefault(InfoKey.TIMEOUT.name(), DEFAULT_TIMEOUT_TEXT));
   }
 
   @Override
@@ -58,5 +73,20 @@ public class ZKHelixNonblockingLockInfo<K extends ZKHelixNonblockingLockInfo.Inf
   @Override
   public String getInfoValue(InfoKey infoKey) {
     return lockInfo.get(infoKey);
+  }
+
+  /**
+   * Method to convert a ZKHelixNonblockingLockInfo to ZNRecord
+   * @return a ZNRecord format data contains lock information in its simple fields
+   */
+  public ZNRecord toZNRecord() {
+    ZNRecord znRecord = new ZNRecord("");
+    znRecord.setSimpleField(InfoKey.OWNER.name(),
+        lockInfo.getOrDefault(InfoKey.OWNER, DEFAULT_OWNER_TEXT));
+    znRecord.setSimpleField(InfoKey.MESSAGE.name(),
+        lockInfo.getOrDefault(InfoKey.MESSAGE, DEFAULT_MESSAGE_TEXT));
+    znRecord.setSimpleField(InfoKey.TIMEOUT.name(),
+        lockInfo.getOrDefault(InfoKey.TIMEOUT, DEFAULT_TIMEOUT_TEXT));
+    return znRecord;
   }
 }

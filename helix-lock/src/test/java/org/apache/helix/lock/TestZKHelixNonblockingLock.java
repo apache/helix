@@ -26,17 +26,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.TestWtCacheAsyncOpMultiThread;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -44,16 +39,15 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
-public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
+public class TestZKHelixNonblockingLock extends ZkTestBase {
 
-  private final String _className = TestHelper.getTestClassName();
-  private final String _methodName = TestHelper.getTestMethodName();
-  private final String _clusterName = _className + "_" + _methodName;
+  private final String _clusterName = TestHelper.getTestClassName();
+  private final String _lockRoot = "/LOCK";
   private final String _lockMessage = "Test";
   private String _lockPath;
   private ZKHelixNonblockingLock _lock;
   private String _userId;
-  private HelixConfigScope _participantScope;
+  private HelixLockScope _participantScope;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -63,10 +57,14 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
     _userId = UUID.randomUUID().toString();
-    _participantScope =
-        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(_clusterName)
-            .forParticipant("localhost_12918").build();
-    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + _participantScope.getZkPath();
+
+    List<String> pathKeys = new ArrayList<>();
+    pathKeys.add("participant_name");
+    pathKeys.add("resource_name");
+    pathKeys.add("partition_name");
+
+    _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.PARTITION, pathKeys);
+    _lockPath = "/" + _clusterName + _lockRoot + _participantScope.getZkPath();
     _lock = new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
   }

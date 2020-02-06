@@ -28,6 +28,8 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -48,8 +50,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
 
   private static final Logger LOG = Logger.getLogger(ZKHelixNonblockingLock.class);
 
-  private static final String LOCK_ROOT = "LOCKS";
-  private static final String PATH_DELIMITER = "/";
+  private static final String LOCK_ROOT = "/LOCK";
   private final String _lockPath;
   private final String _userId;
   private final long _timeout;
@@ -65,10 +66,9 @@ public class ZKHelixNonblockingLock implements HelixLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  public ZKHelixNonblockingLock(String clusterName, HelixConfigScope scope, String zkAddress,
+  public ZKHelixNonblockingLock(String clusterName, HelixLockScope scope, String zkAddress,
       Long timeout, String lockMsg, String userId) {
-    this(PATH_DELIMITER +  String.join(PATH_DELIMITER, clusterName, LOCK_ROOT, scope.getZkPath()), zkAddress, timeout, lockMsg,
-        userId);
+    this("/" + clusterName + LOCK_ROOT + scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
   }
 
   /**

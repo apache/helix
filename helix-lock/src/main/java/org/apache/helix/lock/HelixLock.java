@@ -32,9 +32,8 @@ public interface HelixLock {
 
   /**
    * Blocking call to release a lock
-   * @return true if the lock was successfully released,
-   * false if the locked is not locked or is not locked by the user,
-   * or the lock could not be released
+   * @return true if the lock was successfully released or if the locked is not currently locked,
+   * false if the lock is not locked by the user or the release operation failed
    */
   boolean releaseLock();
 

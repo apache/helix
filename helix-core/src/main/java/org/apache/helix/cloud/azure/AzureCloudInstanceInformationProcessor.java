@@ -20,15 +20,22 @@ package org.apache.helix.cloud.azure;
  */
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.net.ssl.SSLException;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.cloud.CloudInstanceInformationProcessor;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -47,8 +54,22 @@ public class AzureCloudInstanceInformationProcessor
   private final String INSTANCE_SET_NAME = "vmScaleSetName";
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
-    _closeableHttpClient = AzureHttpUtil.getHttpClient(helixCloudProperty);
     _helixCloudProperty = helixCloudProperty;
+
+    RequestConfig requestConifg = RequestConfig.custom()
+        .setConnectionRequestTimeout((int) helixCloudProperty.getCloudRequestTimeout())
+        .setConnectTimeout((int) helixCloudProperty.getCloudConnectionTimeout()).build();
+
+    HttpRequestRetryHandler httpRequestRetryHandler =
+        (IOException exception, int executionCount, HttpContext context) -> {
+          LOG.warn("Execution count: " + executionCount + ".", exception);
+          return !(executionCount >= helixCloudProperty.getCloudMaxRetry()
+              || exception instanceof InterruptedIOException
+              || exception instanceof UnknownHostException || exception instanceof SSLException);
+        };
+
+    _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConifg)
+        .setRetryHandler(httpRequestRetryHandler).build();
   }
 
   /**

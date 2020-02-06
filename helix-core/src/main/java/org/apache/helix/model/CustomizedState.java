@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomizedState extends HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedState.class);
+  private static long NON_EXIST = -1L;
 
   /**
    * Lookup keys for the customized state
@@ -70,16 +71,16 @@ public class CustomizedState extends HelixProperty {
   }
 
   /**
-   * Get the partitions on this instance and the state that each partition is currently in.
-   * @return (partition, state) pairs
+   * Get the partitions on this instance and the specified property that each partition is currently having.
+   * @return (partition, property) pairs
    */
-  public Map<String, String> getPartitionStateMap() {
+  public Map<String, String> getPartitionStateMap(CustomizedStateProperty property) {
     Map<String, String> map = new HashMap<String, String>();
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
     for (String partitionName : mapFields.keySet()) {
       Map<String, String> tempMap = mapFields.get(partitionName);
       if (tempMap != null) {
-        map.put(partitionName, tempMap.get(CustomizedStateProperty.CURRENT_STATE.name()));
+        map.put(partitionName, tempMap.get(property.name()));
       }
     }
     return map;
@@ -95,13 +96,11 @@ public class CustomizedState extends HelixProperty {
   }
 
   public long getStartTime(String partitionName) {
-    String startTime = getProperty(partitionName, CustomizedStateProperty.START_TIME);
-    return startTime == null ? -1L : Long.parseLong(startTime);
+    return _record.getLongField(CustomizedStateProperty.START_TIME.name(), NON_EXIST);
   }
 
   public long getEndTime(String partitionName) {
-    String endTime = getProperty(partitionName, CustomizedStateProperty.END_TIME);
-    return endTime == null ? -1L : Long.parseLong(endTime);
+    return _record.getLongField(CustomizedStateProperty.END_TIME.name(), NON_EXIST);
   }
 
   public String getPreviousState(String partitionName) {
@@ -147,7 +146,7 @@ public class CustomizedState extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getPartitionStateMap() == null) {
+    if (getPartitionStateMap(CustomizedStateProperty.CURRENT_STATE) == null) {
       LOG.error("Customized state does not contain state map. id:" + getResourceName());
       return false;
     }

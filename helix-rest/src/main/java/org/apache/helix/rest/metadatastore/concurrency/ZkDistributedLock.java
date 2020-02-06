@@ -46,12 +46,14 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
   public void lock()
       throws RoutingDataLockException {
     try {
-      // lockPath will be different than (lockBasePath + "/" + lockName) becuase of the sequence number ZooKeeper appends
+      // lockPath will be different than (lockBasePath + "/" + lockName)
+      // because of the sequence number ZooKeeper appends (ephemeral sequential)
       _lockPath = _zkClient
           .create(_lockBasePath + "/" + _lockName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE,
               CreateMode.EPHEMERAL_SEQUENTIAL);
       synchronized (_lock) {
         while (true) {
+          // TODO: Can optimize this by making it only be triggered on Event.EventType.NodeDeleted
           _zkClient.subscribeChildChanges(_lockBasePath, this);
           List<String> nodes = _zkClient.getChildren(_lockBasePath);
           Collections.sort(nodes); // ZooKeeper node names can be sorted lexographically
@@ -72,6 +74,12 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
     _lockPath = null;
   }
 
+  /**
+   * Let ZooKeeper notify the lock of any unlock operations.
+   * @param s
+   * @param list
+   * @throws Exception
+   */
   @Override
   public void handleChildChange(String s, List<String> list)
       throws Exception {

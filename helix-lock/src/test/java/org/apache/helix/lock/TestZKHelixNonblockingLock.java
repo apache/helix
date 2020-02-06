@@ -66,8 +66,7 @@ public class TestZKHelixNonblockingLock extends ZkUnitTestBase {
     _participantScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(_clusterName)
             .forParticipant("localhost_12918").build();
-
-    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + _participantScope;
+    _lockPath = "/" + _clusterName + '/' + "LOCKS" + '/' + _participantScope.getZkPath();
     _lock = new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
   }

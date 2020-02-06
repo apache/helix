@@ -23,8 +23,10 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 
 /**
  * This is a class that uses a data structure similar to trie to represent metadata store routing
@@ -37,12 +39,14 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   private final TrieNode _rootNode;
 
-  // TODO: THIS IS A TEMPORARY PLACEHOLDER. A proper constructor will be created, which will not
-  // take in a TrieNode; it instead initializes the rootNode and creates a trie based on
-  // some input data. The constructor is blocked by the implementation of RoutingDataAccessor, and
-  // will therefore be implemented later.
-  public TrieRoutingData(TrieNode rootNode) {
-    _rootNode = rootNode;
+  public TrieRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException {
+    if (isRootShardingKey(routingData)) {
+      Map.Entry<String, List<String>> entry = routingData.entrySet().iterator().next();
+      _rootNode = new TrieNode(Collections.emptyMap(), "/", true, entry.getKey());
+    } else {
+      _rootNode = new TrieNode(new HashMap<>(), "/", false, "");
+      constructTrie(routingData);
+    }
   }
 
   public Map<String, String> getAllMappingUnderPath(String path) {
@@ -124,8 +128,91 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return curNode;
   }
 
-  // TODO: THE CLASS WILL BE CHANGED TO PRIVATE ONCE THE CONSTRUCTOR IS CREATED.
-  static class TrieNode {
+  /**
+   * Checks for the edge case when the only sharding key in provided routing data is the delimiter
+   * or an empty string. When this is the case, the trie is valid and contains only one node, which
+   * is the root node, and the root node is a leaf node with a realm address associated with it.
+   * @param routingData - a mapping from "sharding keys" to "realm addresses" to be parsed into a
+   *          trie
+   * @return whether the edge case is true
+   */
+  private boolean isRootShardingKey(Map<String, List<String>> routingData) {
+    if (routingData.values().size() == 1) {
+      for (List<String> shardingKeys : routingData.values()) {
+        return shardingKeys.size() == 1
+            && (shardingKeys.get(0).equals(DELIMITER) || shardingKeys.get(0).equals(""));
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Constructs a trie based on the provided routing data. It loops through all sharding keys and
+   * construct the trie in a top down manner.
+   * @param routingData- a mapping from "sharding keys" to "realm addresses" to be parsed into a
+   *          * trie
+   * @throws InvalidRoutingDataException - when there is an empty sharding key (edge case that
+   *           always renders the routing data invalid); when there is a sharding key which already
+   *           contains a sharding key (invalid); when there is a sharding key that is a part of
+   *           another sharding key (invalid)
+   */
+  private void constructTrie(Map<String, List<String>> routingData)
+      throws InvalidRoutingDataException {
+    for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
+      for (String shardingKey : entry.getValue()) {
+        // Add a leading delimiter if there isn't any
+        if (!shardingKey.substring(0, 1).equals(DELIMITER)) {
+          shardingKey = DELIMITER + shardingKey;
+        }
+
+        // Root can only be a sharding key if it's the only sharding key. Since this method is
+        // running, the special case has already been checked, therefore it's definitely invalid
+        if (shardingKey.equals(DELIMITER)) {
+          throw new InvalidRoutingDataException(
+              "There exists other sharding keys. Root cannot be a sharding key.");
+        }
+
+        // Locate the next delimiter
+        int nextDelimiterIndex = shardingKey.indexOf(DELIMITER, 1);
+        int prevDelimiterIndex = 0;
+        String keySection = shardingKey.substring(prevDelimiterIndex + 1,
+            nextDelimiterIndex > 0 ? nextDelimiterIndex : shardingKey.length());
+        TrieNode curNode = _rootNode;
+        TrieNode nextNode = curNode._children.get(keySection);
+
+        // If the key section is not the last section yet, perform the following
+        while (nextDelimiterIndex > 0) {
+          // If the node is already a leaf node, the current sharding key is invalid
+          if (nextNode != null && nextNode._isLeaf) {
+            throw new InvalidRoutingDataException(shardingKey.substring(0, nextDelimiterIndex)
+                + " is already a sharding key. " + shardingKey + " cannot be a sharding key.");
+          } else if (nextNode == null) {
+            nextNode = new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex),
+                false, "");
+            curNode._children.put(keySection, nextNode);
+          }
+          prevDelimiterIndex = nextDelimiterIndex;
+          nextDelimiterIndex = shardingKey.indexOf(DELIMITER, prevDelimiterIndex + 1);
+          keySection = shardingKey.substring(prevDelimiterIndex + 1,
+              nextDelimiterIndex > 0 ? nextDelimiterIndex : shardingKey.length());
+          curNode = nextNode;
+          nextNode = curNode._children.get(keySection);
+        }
+
+        // If the last node already exists, it's a part of another sharding key, making the current
+        // sharding key invalid
+        if (nextNode != null) {
+          throw new InvalidRoutingDataException(shardingKey
+              + " is a part of another sharding key, therefore it cannot be a sharding key.");
+        }
+        nextNode = new TrieNode(new HashMap<>(), shardingKey, true, entry.getKey());
+        curNode._children.put(keySection, nextNode);
+      }
+    }
+  }
+
+  private static class TrieNode {
     /**
      * This field is a mapping between trie key and children nodes. For example, node "a" has
      * children "ab" and "ac", therefore the keys are "b" and "c" respectively.

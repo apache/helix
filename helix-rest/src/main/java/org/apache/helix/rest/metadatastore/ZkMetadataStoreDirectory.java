@@ -179,10 +179,10 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     }
 
     if (_routingDataMap != null) {
-      MetadataStoreRoutingData newRoutingData =
-          new TrieRoutingData(new TrieRoutingData.TrieNode(null, null, false, null));
+//      MetadataStoreRoutingData newRoutingData =
+//          new TrieRoutingData(new TrieRoutingData.TrieNode(null, null, false, null));
       // TODO call constructRoutingData() here.
-      _routingDataMap.put(namespace, newRoutingData);
+//      _routingDataMap.put(namespace, newRoutingData);
     }
   }
 

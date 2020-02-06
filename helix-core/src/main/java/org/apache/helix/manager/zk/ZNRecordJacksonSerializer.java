@@ -20,10 +20,11 @@ package org.apache.helix.manager.zk;
  */
 
 import java.io.IOException;
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**

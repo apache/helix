@@ -56,7 +56,7 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
           // TODO: Can optimize this by making it only be triggered on Event.EventType.NodeDeleted
           _zkClient.subscribeChildChanges(_lockBasePath, this);
           List<String> nodes = _zkClient.getChildren(_lockBasePath);
-          Collections.sort(nodes); // ZooKeeper node names can be sorted lexographically
+          Collections.sort(nodes); // ZNode names can be sorted lexicographically
           if (_lockPath.endsWith(nodes.get(0))) {
             return;
           } else {

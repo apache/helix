@@ -19,7 +19,87 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
-public class TestZkRoutingDataWriter {
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
+import org.apache.helix.AccessOption;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.rest.server.AbstractTestClass;
+import org.junit.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 
+public class TestZkRoutingDataWriter extends AbstractTestClass {
+  private static final String DUMMY_NAMESPACE = "NAMESPACE";
+  private static final String DUMMY_REALM = "REALM";
+  private static final String DUMMY_SHARDING_KEY = "SHARDING_KEY";
+  private MetadataStoreRoutingDataWriter _zkRoutingDataWriter;
+
+  @BeforeClass
+  public void beforeClass() {
+    _zkRoutingDataWriter = new ZkRoutingDataWriter(DUMMY_NAMESPACE, ZK_ADDR);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+    _zkRoutingDataWriter.close();
+  }
+
+  @Test
+  public void testAddMetadataStoreRealm() {
+    _zkRoutingDataWriter.addMetadataStoreRealm(DUMMY_REALM);
+    ZNRecord znRecord = _baseAccessor
+        .get(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM, null,
+            AccessOption.PERSISTENT);
+    Assert.assertNotNull(znRecord);
+  }
+
+  @Test(dependsOnMethods = "testAddMetadataStoreRealm")
+  public void testDeleteMetadataStoreRealm() {
+    _zkRoutingDataWriter.deleteMetadataStoreRealm(DUMMY_REALM);
+    Assert.assertFalse(_baseAccessor
+        .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM,
+            AccessOption.PERSISTENT));
+  }
+
+  @Test(dependsOnMethods = "testDeleteMetadataStoreRealm")
+  public void testAddShardingKey() {
+    _zkRoutingDataWriter.addShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
+    ZNRecord znRecord = _baseAccessor
+        .get(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM, null,
+            AccessOption.PERSISTENT);
+    Assert.assertNotNull(znRecord);
+    Assert.assertTrue(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .contains(DUMMY_SHARDING_KEY));
+  }
+
+  @Test(dependsOnMethods = "testAddShardingKey")
+  public void testDeleteShardingKey() {
+    _zkRoutingDataWriter.deleteShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
+    ZNRecord znRecord = _baseAccessor
+        .get(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM, null,
+            AccessOption.PERSISTENT);
+    Assert.assertNotNull(znRecord);
+    Assert.assertFalse(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .contains(DUMMY_SHARDING_KEY));
+  }
+
+  @Test(dependsOnMethods = "testDeleteShardingKey")
+  public void testSetRoutingData() {
+    Map<String, List<String>> testRoutingDataMap =
+        ImmutableMap.of(DUMMY_REALM, Collections.singletonList(DUMMY_SHARDING_KEY));
+    _zkRoutingDataWriter.setRoutingData(testRoutingDataMap);
+    ZNRecord znRecord = _baseAccessor
+        .get(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM, null,
+            AccessOption.PERSISTENT);
+    Assert.assertNotNull(znRecord);
+    Assert.assertTrue(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .contains(DUMMY_SHARDING_KEY));
+  }
 }

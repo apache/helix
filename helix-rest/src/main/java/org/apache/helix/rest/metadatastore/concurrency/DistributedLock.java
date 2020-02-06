@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.exceptions;
+package org.apache.helix.rest.metadatastore.concurrency;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,11 +19,24 @@ package org.apache.helix.rest.metadatastore.exceptions;
  * under the License.
  */
 
-/**
- * This exception is thrown by RoutingDataLock if it gets interrupted.
- */
-public class RoutingDataLockException extends Exception {
-  public RoutingDataLockException(Throwable e) {
-    super(e);
-  }
+import org.apache.helix.rest.metadatastore.exceptions.ZkLockException;
+
+
+public interface DistributedLock {
+
+  /**
+   * Acquires the lock.
+   */
+  void lock()
+      throws ZkLockException;
+
+  /**
+   * Attempts to release this lock.
+   */
+  void unlock();
+
+  /**
+   * Cleans up all lock-related resources.
+   */
+  void close();
 }

@@ -26,5 +26,5 @@ public class MetadataStoreRoutingConstants {
   public static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
 
   // This is the name of the ZNode that will be used to implement a mutex for ZkRoutingDataWriter
-  public static final String ZK_LOCK_BASE_PATH = ROUTING_DATA_PATH + "/LOCK_ZK_ROUTING_DATA_WRITER";
+  public static final String ZK_LOCK_BASE_PATH = "/LOCK_ZK_ROUTING_DATA";
 }

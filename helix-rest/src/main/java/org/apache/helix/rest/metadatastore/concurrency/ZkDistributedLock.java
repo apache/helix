@@ -1,6 +1,5 @@
 package org.apache.helix.rest.metadatastore.concurrency;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,13 +23,14 @@ import java.util.List;
  */
 
 import org.I0Itec.zkclient.IZkChildListener;
+import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.rest.metadatastore.exceptions.RoutingDataLockException;
+import org.apache.helix.rest.metadatastore.exceptions.ZkLockException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 
 
-public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
+public class ZkDistributedLock implements IZkChildListener, DistributedLock {
   private final HelixZkClient _zkClient;
   private final String _lockBasePath;
   private final String _lockName;
@@ -38,19 +38,33 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
   private final Object _lock = new Object();
 
   public ZkDistributedLock(HelixZkClient zkClient, String lockBasePath, String lockName) {
+    if (zkClient == null || zkClient.isClosed()) {
+      throw new IllegalArgumentException("ZkClient cannot be null or closed!");
+    }
     _zkClient = zkClient;
+    if (lockBasePath == null || lockBasePath.isEmpty()) {
+      throw new IllegalArgumentException("lockBasePath cannot be null or empty!");
+    }
     _lockBasePath = lockBasePath;
+    if (lockName == null || lockName.isEmpty()) {
+      throw new IllegalArgumentException("lockName cannot be null or empty!");
+    }
     _lockName = lockName;
   }
 
   public void lock()
-      throws RoutingDataLockException {
+      throws ZkLockException {
     try {
+      setupLockPath(_lockBasePath);
       // lockPath will be different than (lockBasePath + "/" + lockName)
       // because of the sequence number ZooKeeper appends (ephemeral sequential)
       _lockPath = _zkClient
           .create(_lockBasePath + "/" + _lockName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE,
               CreateMode.EPHEMERAL_SEQUENTIAL);
+      if (_lockPath == null) {
+        throw new ZkLockException(
+            "lock() failed! Check whether base path has been properly created!");
+      }
       synchronized (_lock) {
         while (true) {
           // TODO: Can optimize this by making it only be triggered on Event.EventType.NodeDeleted
@@ -65,13 +79,18 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
         }
       }
     } catch (InterruptedException e) {
-      throw new RoutingDataLockException(e);
+      throw new ZkLockException(e);
     }
   }
 
   public void unlock() {
     _zkClient.delete(_lockPath);
     _lockPath = null;
+  }
+
+  @Override
+  public void close() {
+    _zkClient.deleteRecursively(_lockBasePath);
   }
 
   /**
@@ -85,6 +104,21 @@ public class ZkDistributedLock implements IZkChildListener, RoutingDataLock {
       throws Exception {
     synchronized (_lock) {
       _lock.notifyAll();
+    }
+  }
+
+  private void setupLockPath(String lockBasePath) {
+    String[] elements = lockBasePath.split("/");
+    String path = "/";
+    for (int i = 1; i < elements.length; i++) {
+      if (i == 1) {
+        path = path + elements[i];
+      } else {
+        path = path + "/" + elements[i];
+      }
+      if (!_zkClient.exists(path)) {
+        _zkClient.create(path, null, CreateMode.PERSISTENT);
+      }
     }
   }
 }

@@ -19,24 +19,20 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.exception.ZkException;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.rest.metadatastore.concurrency.RoutingDataLock;
+import org.apache.helix.rest.metadatastore.concurrency.DistributedLock;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLock;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-import org.apache.helix.rest.metadatastore.exceptions.RoutingDataLockException;
+import org.apache.helix.rest.metadatastore.exceptions.ZkLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +43,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final String _namespace;
   private final String _zkAddress;
   private final HelixZkClient _zkClient;
-  private final RoutingDataLock _routingDataLock;
+  private final DistributedLock _routingDataLock;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
     if (namespace == null || namespace.isEmpty()) {
@@ -67,7 +63,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
     // create() semantic will fail if it already exists
-    _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+    try {
+      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+    } catch (ZkNodeExistsException e) {
+      // This is okay
+    }
   }
 
   @Override
@@ -78,7 +78,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalStateException("ZkClient is closed!");
       }
       return createZkRealm(realm);
-    } catch (RoutingDataLockException e) {
+    } catch (ZkLockException e) {
       return false;
     } finally {
       _routingDataLock.unlock();
@@ -93,7 +93,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalStateException("ZkClient is closed!");
       }
       return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
-    } catch (RoutingDataLockException e) {
+    } catch (ZkLockException e) {
       return false;
     } finally {
       _routingDataLock.unlock();
@@ -108,7 +108,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalStateException("ZkClient is closed!");
       }
       // If the realm does not exist already, then create the realm
-      if (_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
+      if (!_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
         // Create the realm
         if (!createZkRealm(realm)) {
           // Failed to create the realm - log and return false
@@ -142,7 +142,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         return false;
       }
       return true;
-    } catch (RoutingDataLockException e) {
+    } catch (ZkLockException e) {
       return false;
     } finally {
       _routingDataLock.unlock();
@@ -161,7 +161,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (znRecord == null || !znRecord
           .getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
           .contains(shardingKey)) {
-        // This realm does not exist, so shardingKey doesn't exist. Return true!
+        // This realm does not exist or shardingKey doesn't exist. Return true!
         return true;
       }
       znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
@@ -177,7 +177,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         return false;
       }
       return true;
-    } catch (RoutingDataLockException e) {
+    } catch (ZkLockException e) {
       return false;
     } finally {
       _routingDataLock.unlock();
@@ -215,6 +215,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         znRecord
             .setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeyList);
         try {
+          if (!_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm)) {
+            _zkClient
+                .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          }
           _zkClient
               .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm, znRecord);
         } catch (Exception e) {
@@ -224,7 +228,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         }
       }
       return true;
-    } catch (RoutingDataLockException e) {
+    } catch (ZkLockException e) {
       return false;
     } finally {
       _routingDataLock.unlock();
@@ -248,6 +252,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     } else {
       try {
+        _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
         _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm,
             new ZNRecord(realm));
       } catch (Exception e) {

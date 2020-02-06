@@ -208,5 +208,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   @Override
   public synchronized void close() {
     _routingDataReaderMap.values().forEach(MetadataStoreRoutingDataReader::close);
+    _routingDataWriterMap.values().forEach(MetadataStoreRoutingDataWriter::close);
   }
 }

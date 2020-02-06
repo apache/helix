@@ -179,7 +179,9 @@ public class ParticipantManager {
           CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
           String domain = cloudInstanceInformation
               .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
-          String cloudIdInRemote = cloudInstanceInformation
+
+          // Disable the verification for now
+          /*String cloudIdInRemote = cloudInstanceInformation
               .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name());
           String cloudIdInConfig = _configAccessor.getCloudConfig(_clusterName).getCloudID();
 
@@ -188,7 +190,8 @@ public class ParticipantManager {
             throw new IllegalArgumentException(String.format(
                 "cloudId in config: %s is not consistent with cloudId from remote: %s. The instance is auto registering to a wrong cluster.",
                 cloudIdInConfig, cloudIdInRemote));
-          }
+          }*/
+
           InstanceConfig instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
           instanceConfig.setDomain(domain);
           _helixAdmin.addInstance(_clusterName, instanceConfig);

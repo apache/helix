@@ -55,7 +55,8 @@ public class TestTrieRoutingData {
       new TrieRoutingData(routingData);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("There exists other sharding keys. Root cannot be a sharding key."));
+      Assert.assertTrue(e.getMessage()
+          .contains("There exists other sharding keys. Root cannot be a sharding key."));
     }
   }
 
@@ -67,7 +68,8 @@ public class TestTrieRoutingData {
       new TrieRoutingData(routingData);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("/a/b is already a sharding key. /a/b/c cannot be a sharding key."));
+      Assert.assertTrue(e.getMessage()
+          .contains("/a/b is already a sharding key. /a/b/c cannot be a sharding key."));
     }
   }
 
@@ -79,7 +81,8 @@ public class TestTrieRoutingData {
       new TrieRoutingData(routingData);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("/a/b is a part of another sharding key, therefore it cannot be a sharding key."));
+      Assert.assertTrue(e.getMessage().contains(
+          "/a/b is a part of another sharding key, therefore it cannot be a sharding key."));
     }
   }
 
@@ -92,7 +95,8 @@ public class TestTrieRoutingData {
    * ---c--f--i--j
    * --/-\
    * -d--e
-   * Note: "g", "i", "j" lead to "realmAddress1"; "d", "f" lead to "realmAddress2"; "e" leads to "realmAddress3"
+   * Note: "g", "i", "j" lead to "realmAddress1"; "d", "f" lead to "realmAddress2"; "e" leads to
+   * "realmAddress3"
    */
   @Test
   public void testConstructionNormal() {
@@ -177,7 +181,8 @@ public class TestTrieRoutingData {
       _trie.getMetadataStoreRealm("/x/y/z");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
-      Assert.assertTrue(e.getMessage().contains("The provided path is missing from the trie. Path: /x/y/z"));
+      Assert.assertTrue(
+          e.getMessage().contains("The provided path is missing from the trie. Path: /x/y/z"));
     }
   }
 

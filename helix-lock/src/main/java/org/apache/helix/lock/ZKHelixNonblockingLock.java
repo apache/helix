@@ -105,20 +105,8 @@ public class ZKHelixNonblockingLock implements HelixLock {
     }
     lockInfo.setLongField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(), deadline);
 
-    // Try to create the lock node
-    boolean success = _baseDataAccessor.create(_lockPath, lockInfo, AccessOption.PERSISTENT);
-
-    // If fail to create the lock node (acquire the lock), compare the timeout timestamp of current lock node with current time, if already passes the timeout, release current lock and try to acquire the lock again
-    if (!success) {
-      Stat stat = new Stat();
-      ZNRecord curLock = _baseDataAccessor.get(_lockPath, stat, AccessOption.PERSISTENT);
-      if (hasTimedOut(curLock)) {
-        // set may fail when the znode version changes in between the get and set, meaning there are some changes in the lock
-        success =
-            _baseDataAccessor.set(_lockPath, lockInfo, stat.getVersion(), AccessOption.PERSISTENT);
-      }
-    }
-    return success;
+    LockUpdater updater = new LockUpdater(lockInfo);
+    return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
   }
 
   @Override

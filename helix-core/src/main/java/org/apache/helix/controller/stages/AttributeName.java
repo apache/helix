@@ -38,6 +38,5 @@ public enum AttributeName {
   AsyncFIFOWorkerPool,
   PipelineType,
   LastRebalanceFinishTimeStamp,
-  ControllerDataProvider,
-  STATEFUL_REBALANCER
+  ControllerDataProvider
 }

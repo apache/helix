@@ -22,7 +22,6 @@ package org.apache.helix.rest.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,6 @@ import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -399,69 +397,5 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode())
         .format(CLUSTER_NAME, instanceName).post(this, entity);
     System.out.println("End test :" + TestHelper.getTestMethodName());
-  }
-
-  /**
-   * Check that validateWeightForInstance() works by
-   * 1. First call validate -> We should get "true" because nothing is set in ClusterConfig.
-   * 2. Define keys in ClusterConfig and call validate -> We should get BadRequest.
-   * 3. Define weight configs in InstanceConfig and call validate -> We should get OK with "true".
-   */
-  @Test(dependsOnMethods = "checkUpdateFails")
-  public void testValidateWeightForInstance()
-      throws IOException {
-    // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.getRecord()
-        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
-            new ArrayList<>());
-    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    List<String> instances =
-        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME);
-    for (String instance : instances) {
-      InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instance);
-      instanceConfig.setInstanceCapacityMap(Collections.emptyMap());
-      _configAccessor.setInstanceConfig(CLUSTER_NAME, instance, instanceConfig);
-    }
-
-    // Get one instance in the cluster
-    String selectedInstance =
-        _gSetupTool.getClusterManagementTool().getInstancesInCluster(CLUSTER_NAME).iterator()
-            .next();
-
-    // Issue a validate call
-    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance).get(this);
-
-    JsonNode node = OBJECT_MAPPER.readTree(body);
-    // Must have the result saying (true) because there's no capacity keys set
-    // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
-
-    // Define keys in ClusterConfig
-    clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setInstanceCapacityKeys(Arrays.asList("FOO", "BAR"));
-    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-
-    body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance)
-        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
-    node = OBJECT_MAPPER.readTree(body);
-    // Since instance does not have weight-related configs, the result should return error
-    Assert.assertTrue(node.has("error"));
-
-    // Now set weight-related config in InstanceConfig
-    InstanceConfig instanceConfig =
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, selectedInstance);
-    instanceConfig.setInstanceCapacityMap(ImmutableMap.of("FOO", 1000, "BAR", 1000));
-    _configAccessor.setInstanceConfig(CLUSTER_NAME, selectedInstance, instanceConfig);
-
-    body = new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=validateWeight")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, selectedInstance)
-        .expectedReturnStatusCode(Response.Status.OK.getStatusCode()).get(this);
-    node = OBJECT_MAPPER.readTree(body);
-    // Must have the results saying they are all valid (true) because capacity keys are set
-    // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
   }
 }

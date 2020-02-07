@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Splitter;
 import org.apache.helix.HelixException;
@@ -55,8 +54,7 @@ public class InstanceConfig extends HelixProperty {
     INSTANCE_WEIGHT,
     DOMAIN,
     DELAY_REBALANCE_ENABLED,
-    MAX_CONCURRENT_TASK,
-    INSTANCE_CAPACITY_MAP
+    MAX_CONCURRENT_TASK
   }
 
   public static final int WEIGHT_NOT_SET = -1;
@@ -504,54 +502,6 @@ public class InstanceConfig extends HelixProperty {
 
   public void setMaxConcurrentTask(int maxConcurrentTask) {
     _record.setIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.name(), maxConcurrentTask);
-  }
-
-  /**
-   * Get the instance capacity information from the map fields.
-   * @return data map if it exists, or empty map
-   */
-  public Map<String, Integer> getInstanceCapacityMap() {
-    Map<String, String> capacityData =
-        _record.getMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
-
-    if (capacityData != null) {
-      return capacityData.entrySet().stream().collect(
-          Collectors.toMap(entry -> entry.getKey(), entry -> Integer.parseInt(entry.getValue())));
-    }
-    return Collections.emptyMap();
-  }
-
-  /**
-   * Set the instance capacity information with an Integer mapping.
-   * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is incomplete
-   *
-   * This information is required by the global rebalancer.
-   * @see <a href="Rebalance Algorithm">
-   *   https://github.com/apache/helix/wiki/Design-Proposal---Weight-Aware-Globally-Even-Distribute-Rebalancer#rebalance-algorithm-adapter
-   *   </a>
-   * If the instance capacity is not configured in neither Instance Config nor Cluster Config, the
-   * cluster topology is considered invalid. So the rebalancer may stop working.
-   * Note that when a rebalancer requires this capacity information, it will ignore INSTANCE_WEIGHT.
-   */
-  public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
-      throws IllegalArgumentException {
-    if (capacityDataMap == null) {
-      throw new IllegalArgumentException("Capacity Data is null");
-    }
-
-    Map<String, String> capacityData = new HashMap<>();
-
-    capacityDataMap.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() < 0) {
-        throw new IllegalArgumentException(String
-            .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
-                entry.getValue()));
-      }
-      capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
-    });
-
-    _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
   }
 
   @Override

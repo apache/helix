@@ -143,11 +143,6 @@ public class RebalanceUtil {
   }
 
   public static void scheduleOnDemandPipeline(String clusterName, long delay) {
-    scheduleOnDemandPipeline(clusterName, delay, true);
-  }
-
-  public static void scheduleOnDemandPipeline(String clusterName, long delay,
-      boolean shouldRefreshCache) {
     if (clusterName == null) {
       LOG.error("Failed to issue a pipeline run. ClusterName is null.");
       return;
@@ -158,7 +153,7 @@ public class RebalanceUtil {
     }
     GenericHelixController controller = GenericHelixController.getController(clusterName);
     if (controller != null) {
-      controller.scheduleOnDemandRebalance(delay, shouldRefreshCache);
+      controller.scheduleOnDemandRebalance(delay);
     } else {
       LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
           clusterName);

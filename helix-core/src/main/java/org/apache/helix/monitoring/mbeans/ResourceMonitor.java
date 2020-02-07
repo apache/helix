@@ -19,19 +19,18 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 import javax.management.ObjectName;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import com.google.common.collect.Lists;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -49,8 +48,6 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     BEST_POSSIBLE_STATE_CAL_FAILED,
     INTERMEDIATE_STATE_CAL_FAILED
   }
-
-  private static final String GAUGE_METRIC_SUFFIX = "Gauge";
 
   // Gauges
   private SimpleDynamicMetric<Long> _numOfPartitions;
@@ -86,13 +83,31 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private final String _clusterName;
   private final ObjectName _initObjectName;
 
-  // A map of dynamic capacity Gauges. The map's keys could change.
-  private final Map<String, SimpleDynamicMetric<Long>> _dynamicCapacityMetricsMap;
-
   @Override
-  public DynamicMBeanProvider register() throws JMException {
-    doRegister(buildAttributeList(), _initObjectName);
-
+  public ResourceMonitor register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_numOfPartitions);
+    attributeList.add(_numOfPartitionsInExternalView);
+    attributeList.add(_numOfErrorPartitions);
+    attributeList.add(_numNonTopStatePartitions);
+    attributeList.add(_numLessMinActiveReplicaPartitions);
+    attributeList.add(_numLessReplicaPartitions);
+    attributeList.add(_numPendingRecoveryRebalancePartitions);
+    attributeList.add(_numPendingLoadRebalancePartitions);
+    attributeList.add(_numRecoveryRebalanceThrottledPartitions);
+    attributeList.add(_numLoadRebalanceThrottledPartitions);
+    attributeList.add(_externalViewIdealStateDiff);
+    attributeList.add(_successfulTopStateHandoffDurationCounter);
+    attributeList.add(_successTopStateHandoffCounter);
+    attributeList.add(_failedTopStateHandoffCounter);
+    attributeList.add(_maxSinglePartitionTopStateHandoffDuration);
+    attributeList.add(_partitionTopStateHandoffDurationGauge);
+    attributeList.add(_partitionTopStateHandoffHelixLatencyGauge);
+    attributeList.add(_partitionTopStateNonGracefulHandoffDurationGauge);
+    attributeList.add(_totalMessageReceived);
+    attributeList.add(_numPendingStateTransitions);
+    attributeList.add(_rebalanceState);
+    doRegister(attributeList, _initObjectName);
     return this;
   }
 
@@ -101,12 +116,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   }
 
   @SuppressWarnings("unchecked")
-  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName)
-      throws JMException {
+  public ResourceMonitor(String clusterName, String resourceName, ObjectName objectName) {
     _clusterName = clusterName;
     _resourceName = resourceName;
     _initObjectName = objectName;
-    _dynamicCapacityMetricsMap = new ConcurrentHashMap<>();
 
     _externalViewIdealStateDiff = new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0L);
     _numLoadRebalanceThrottledPartitions =
@@ -369,36 +382,6 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
   }
 
-  /**
-   * Updates partition weight metric. If the partition capacity keys are changed, all MBean
-   * attributes will be updated accordingly: old capacity keys will be replaced with new capacity
-   * keys in MBean server.
-   *
-   * @param partitionWeightMap A map of partition weight: capacity key -> partition weight
-   */
-  void updatePartitionWeightStats(Map<String, Integer> partitionWeightMap) {
-    synchronized (_dynamicCapacityMetricsMap) {
-      if (_dynamicCapacityMetricsMap.keySet().equals(partitionWeightMap.keySet())) {
-        for (Map.Entry<String, Integer> entry : partitionWeightMap.entrySet()) {
-          _dynamicCapacityMetricsMap.get(entry.getKey()).updateValue((long) entry.getValue());
-        }
-        return;
-      }
-
-      // Capacity keys are changed, so capacity attribute map needs to be updated.
-      _dynamicCapacityMetricsMap.clear();
-      for (Map.Entry<String, Integer> entry : partitionWeightMap.entrySet()) {
-        String capacityKey = entry.getKey();
-        _dynamicCapacityMetricsMap.put(capacityKey,
-            new SimpleDynamicMetric<>(capacityKey + GAUGE_METRIC_SUFFIX, (long) entry.getValue()));
-      }
-    }
-
-    // Update all MBean attributes.
-    updateAttributesInfo(buildAttributeList(),
-        "Resource monitor for resource: " + getResourceName());
-  }
-
   public void setRebalanceState(RebalanceStatus state) {
     _rebalanceState.updateValue(state.name());
   }
@@ -444,35 +427,5 @@ public class ResourceMonitor extends DynamicMBeanProvider {
       _maxSinglePartitionTopStateHandoffDuration.updateValue(0L);
       _lastResetTime = System.currentTimeMillis();
     }
-  }
-
-  private List<DynamicMetric<?, ?>> buildAttributeList() {
-    List<DynamicMetric<?, ?>> attributeList = Lists.newArrayList(
-        _numOfPartitions,
-        _numOfPartitionsInExternalView,
-        _numOfErrorPartitions,
-        _numNonTopStatePartitions,
-        _numLessMinActiveReplicaPartitions,
-        _numLessReplicaPartitions,
-        _numPendingRecoveryRebalancePartitions,
-        _numPendingLoadRebalancePartitions,
-        _numRecoveryRebalanceThrottledPartitions,
-        _numLoadRebalanceThrottledPartitions,
-        _externalViewIdealStateDiff,
-        _successfulTopStateHandoffDurationCounter,
-        _successTopStateHandoffCounter,
-        _failedTopStateHandoffCounter,
-        _maxSinglePartitionTopStateHandoffDuration,
-        _partitionTopStateHandoffDurationGauge,
-        _partitionTopStateHandoffHelixLatencyGauge,
-        _partitionTopStateNonGracefulHandoffDurationGauge,
-        _totalMessageReceived,
-        _numPendingStateTransitions,
-        _rebalanceState
-    );
-
-    attributeList.addAll(_dynamicCapacityMetricsMap.values());
-
-    return attributeList;
   }
 }

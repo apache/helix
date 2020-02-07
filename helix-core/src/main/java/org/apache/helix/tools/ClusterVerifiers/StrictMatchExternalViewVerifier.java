@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -55,34 +56,19 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private final Set<String> _resources;
   private final Set<String> _expectLiveInstances;
-  private final boolean _isDeactivatedNodeAware;
 
-  @Deprecated
   public StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Set<String> expectLiveInstances) {
-    this(zkAddr, clusterName, resources, expectLiveInstances, false);
-  }
-
-  @Deprecated
-  public StrictMatchExternalViewVerifier(HelixZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances) {
-    this(zkClient, clusterName, resources, expectLiveInstances, false);
-  }
-
-  private StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
-      Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkAddr, clusterName);
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
-    _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  private StrictMatchExternalViewVerifier(HelixZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
+  public StrictMatchExternalViewVerifier(HelixZkClient zkClient, String clusterName,
+      Set<String> resources, Set<String> expectLiveInstances) {
     super(zkClient, clusterName);
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
-    _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
   public static class Builder {
@@ -91,8 +77,6 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     private Set<String> _expectLiveInstances;
     private String _zkAddr;
     private HelixZkClient _zkClient;
-    // For backward compatibility, set the default isDeactivatedNodeAware to be false.
-    private boolean _isDeactivatedNodeAware = false;
 
     public StrictMatchExternalViewVerifier build() {
       if (_clusterName == null || (_zkAddr == null && _zkClient == null)) {
@@ -101,10 +85,10 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
       if (_zkClient != null) {
         return new StrictMatchExternalViewVerifier(_zkClient, _clusterName, _resources,
-            _expectLiveInstances, _isDeactivatedNodeAware);
+            _expectLiveInstances);
       }
       return new StrictMatchExternalViewVerifier(_zkAddr, _clusterName, _resources,
-          _expectLiveInstances, _isDeactivatedNodeAware);
+          _expectLiveInstances);
     }
 
     public Builder(String clusterName) {
@@ -153,15 +137,6 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     public Builder setZkClient(HelixZkClient zkClient) {
       _zkClient = zkClient;
-      return this;
-    }
-
-    public boolean getDeactivatedNodeAwareness() {
-      return _isDeactivatedNodeAware;
-    }
-
-    public Builder setDeactivatedNodeAwareness(boolean isDeactivatedNodeAware) {
-      _isDeactivatedNodeAware = isDeactivatedNodeAware;
       return this;
     }
   }
@@ -303,21 +278,17 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
 
-    Map<String, Map<String, String>> idealPartitionState = new HashMap<>();
+    Map<String, Map<String, String>> idealPartitionState =
+        new HashMap<String, Map<String, String>>();
+
+    Set<String> liveEnabledInstances = new HashSet<String>(cache.getLiveInstances().keySet());
+    liveEnabledInstances.removeAll(cache.getDisabledInstances());
 
     for (String partition : idealState.getPartitionSet()) {
       List<String> preferenceList = AbstractRebalancer
-          .getPreferenceList(new Partition(partition), idealState, cache.getEnabledLiveInstances());
-      Map<String, String> idealMapping;
-      if (_isDeactivatedNodeAware) {
-        idealMapping = HelixUtil
-            .computeIdealMapping(preferenceList, stateModelDef, cache.getLiveInstances().keySet(),
-                cache.getDisabledInstancesForPartition(idealState.getResourceName(), partition));
-      } else {
-        idealMapping = HelixUtil
-            .computeIdealMapping(preferenceList, stateModelDef, cache.getEnabledLiveInstances(),
-                Collections.emptySet());
-      }
+          .getPreferenceList(new Partition(partition), idealState, liveEnabledInstances);
+      Map<String, String> idealMapping =
+          HelixUtil.computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
       idealPartitionState.put(partition, idealMapping);
     }
 

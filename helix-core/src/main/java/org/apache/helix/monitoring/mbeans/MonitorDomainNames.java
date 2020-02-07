@@ -28,6 +28,5 @@ public enum MonitorDomainNames {
   HelixThreadPoolExecutor,
   HelixCallback,
   RoutingTableProvider,
-  CLMParticipantReport,
-  Rebalancer
+  CLMParticipantReport
 }

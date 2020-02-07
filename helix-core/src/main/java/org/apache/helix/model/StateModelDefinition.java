@@ -46,8 +46,6 @@ public class StateModelDefinition extends HelixProperty {
     STATE_PRIORITY_LIST
   }
 
-  public static final int TOP_STATE_PRIORITY = 1;
-
   /**
    * state model's initial state
    */
@@ -100,7 +98,7 @@ public class StateModelDefinition extends HelixProperty {
     _stateTransitionTable = new HashMap<>();
     _statesCountMap = new HashMap<>();
     if (_statesPriorityList != null) {
-      int priority = TOP_STATE_PRIORITY;
+      int priority = 1;
       for (String state : _statesPriorityList) {
         Map<String, String> metaData = record.getMapField(state + ".meta");
         if (metaData != null) {

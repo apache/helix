@@ -20,7 +20,6 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
-import javax.management.AttributeNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -118,13 +117,7 @@ public class TestZkClientMonitor {
     requestGauge = (long) _beanServer.getAttribute(name, "OutstandingRequestGauge");
     Assert.assertEquals(requestGauge, 0);
 
-    try {
-      _beanServer.getAttribute(name, "PendingCallbackGauge");
-      Assert.fail();
-    } catch (AttributeNotFoundException ex) {
-      // Expected AttributeNotFoundException because the metric does not exist in
-      // MBean server.
-    }
+    Assert.assertNull(_beanServer.getAttribute(name, "PendingCallbackGauge"));
 
     monitor.record("TEST/IDEALSTATES/myResource", 0, System.currentTimeMillis() - 10,
         ZkClientMonitor.AccessType.READ);

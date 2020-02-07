@@ -19,14 +19,12 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+
 import org.apache.helix.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -54,73 +52,10 @@ public class TestInstanceConfig {
   }
 
   @Test
-  public void testGetParsedDomainEmptyDomain() {
+  public void testGetParsedDomain_emptyDomain() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
 
     Map<String, String> parsedDomain = instanceConfig.getDomainAsMap();
     Assert.assertTrue(parsedDomain.isEmpty());
-  }
-
-  @Test
-  public void testGetInstanceCapacityMap() {
-    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
-        "item2", 2,
-        "item3", 3);
-
-    Map<String, String> capacityDataMapString = ImmutableMap.of("item1", "1",
-        "item2", "2",
-        "item3", "3");
-
-    ZNRecord rec = new ZNRecord("testId");
-    rec.setMapField(InstanceConfig.InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityDataMapString);
-    InstanceConfig testConfig = new InstanceConfig(rec);
-
-    Assert.assertTrue(testConfig.getInstanceCapacityMap().equals(capacityDataMap));
-  }
-
-  @Test
-  public void testGetInstanceCapacityMapEmpty() {
-    InstanceConfig testConfig = new InstanceConfig("testId");
-
-    Assert.assertTrue(testConfig.getInstanceCapacityMap().equals(Collections.emptyMap()));
-  }
-
-  @Test
-  public void testSetInstanceCapacityMap() {
-    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
-        "item2", 2,
-        "item3", 3);
-
-    Map<String, String> capacityDataMapString = ImmutableMap.of("item1", "1",
-        "item2", "2",
-        "item3", "3");
-
-    InstanceConfig testConfig = new InstanceConfig("testConfig");
-    testConfig.setInstanceCapacityMap(capacityDataMap);
-
-    Assert.assertEquals(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
-        INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
-  }
-
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data is null")
-  public void testSetInstanceCapacityMapEmpty() {
-    Map<String, Integer> capacityDataMap = new HashMap<>();
-
-    InstanceConfig testConfig = new InstanceConfig("testConfig");
-    // This operation shall be done. This will clear the instance capacity map in the InstanceConfig
-    testConfig.setInstanceCapacityMap(capacityDataMap);
-    // This operation will fall.
-    testConfig.setInstanceCapacityMap(null);
-  }
-
-  @Test(expectedExceptions = IllegalArgumentException.class,
-      expectedExceptionsMessageRegExp = "Capacity Data contains a negative value: item3 = -3")
-  public void testSetInstanceCapacityMapInvalid() {
-    Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
-        "item2", 2,
-        "item3", -3);
-
-    InstanceConfig testConfig = new InstanceConfig("testConfig");
-    testConfig.setInstanceCapacityMap(capacityDataMap);
   }
 }

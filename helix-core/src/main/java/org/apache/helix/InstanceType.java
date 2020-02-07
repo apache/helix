@@ -36,8 +36,7 @@ public enum InstanceType {
   CONTROLLER(new String[] {
       MonitorDomainNames.ClusterStatus.name(),
       MonitorDomainNames.HelixZkClient.name(),
-      MonitorDomainNames.HelixCallback.name(),
-      MonitorDomainNames.Rebalancer.name()
+      MonitorDomainNames.HelixCallback.name()
   }),
 
   PARTICIPANT(new String[] {
@@ -52,8 +51,7 @@ public enum InstanceType {
       MonitorDomainNames.HelixZkClient.name(),
       MonitorDomainNames.HelixCallback.name(),
       MonitorDomainNames.HelixThreadPoolExecutor.name(),
-      MonitorDomainNames.CLMParticipantReport.name(),
-      MonitorDomainNames.Rebalancer.name()
+      MonitorDomainNames.CLMParticipantReport.name()
   }),
 
   SPECTATOR(new String[] {

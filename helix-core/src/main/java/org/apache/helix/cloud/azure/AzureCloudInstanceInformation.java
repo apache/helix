@@ -43,11 +43,6 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
   }
 
   public static class Builder {
-    /**
-     * Default constructor
-     */
-    public Builder() {
-    }
 
     private Map<String, String> _cloudInstanceInfoMap = new HashMap<>();
 

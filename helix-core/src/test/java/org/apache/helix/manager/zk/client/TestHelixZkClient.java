@@ -163,6 +163,8 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       // expected to be here.
     }
 
+    // client B needs to re-install the data watch
+    sharedZkClientB.watchForData(TEST_PATH);
     // Now modify using client B, and client A won't get notification.
     sharedZkClientB.createPersistent(TEST_PATH, true);
     Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 2, 1000));

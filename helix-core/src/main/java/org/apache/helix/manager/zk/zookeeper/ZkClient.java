@@ -226,6 +226,12 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
@@ -903,12 +909,8 @@ public class ZkClient implements Watcher {
         || event.getType() == Event.EventType.NodeDeleted
         || event.getType() == Event.EventType.NodeCreated
         || event.getType() == Event.EventType.NodeChildrenChanged;
-
-    if (event.getType() == Event.EventType.NodeDeleted) {
-      if (LOG.isDebugEnabled()) {
-        String path = event.getPath();
-        LOG.debug(path);
-      }
+    if (event.getType() == EventType.NodeDeleted) {
+      LOG.debug("Path {} is deleted", event.getPath());
     }
 
     getEventLock().lock();
@@ -959,11 +961,12 @@ public class ZkClient implements Watcher {
   }
 
   private void fireAllEvents() {
+    //TODO: During handling new session, if the path is deleted, watcher leakage could still happen
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
-      fireChildChangedEvents(entry.getKey(), entry.getValue());
+      fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
     }
     for (Entry<String, Set<IZkDataListenerEntry>> entry : _dataListener.entrySet()) {
-      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty());
+      fireDataChangedEvents(entry.getKey(), entry.getValue(), OptionalLong.empty(), true);
     }
   }
 
@@ -1248,6 +1251,7 @@ public class ZkClient implements Watcher {
 
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
     final String path = event.getPath();
+    final boolean pathExists = event.getType() != EventType.NodeDeleted;
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
         || event.getType() == EventType.NodeDeleted) {
@@ -1255,7 +1259,7 @@ public class ZkClient implements Watcher {
       if (childListeners != null && !childListeners.isEmpty()) {
         // TODO recording child changed event propagation latency as well. Note this change will
         // introduce additional ZK access.
-        fireChildChangedEvents(path, childListeners);
+        fireChildChangedEvents(path, childListeners, pathExists);
       }
     }
 
@@ -1263,13 +1267,13 @@ public class ZkClient implements Watcher {
         || event.getType() == EventType.NodeCreated) {
       Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null && !listeners.isEmpty()) {
-        fireDataChangedEvents(event.getPath(), listeners, OptionalLong.of(notificationTime));
+        fireDataChangedEvents(event.getPath(), listeners, OptionalLong.of(notificationTime), pathExists);
       }
     }
   }
 
   private void fireDataChangedEvents(final String path, Set<IZkDataListenerEntry> listeners,
-      final OptionalLong notificationTime) {
+      final OptionalLong notificationTime, boolean pathExists) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       // Trigger listener callbacks
@@ -1278,12 +1282,11 @@ public class ZkClient implements Watcher {
             + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
-            // Reinstall watch before listener callbacks to check the znode status
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, true), notificationTime);
+              // getStat will re-install watcher only when the path exists
+              pathStatRecord.recordPathStat(getStat(path, pathExists), notificationTime);
             }
             if (!pathStatRecord.pathExists()) {
-              // no znode found at the path, trigger data deleted handler.
               listener.getDataListener().handleDataDeleted(path);
             } else {
               Object data = null;
@@ -1292,6 +1295,7 @@ public class ZkClient implements Watcher {
                   LOG.debug("Prefetch data for path: {}", path);
                 }
                 try {
+                  // TODO: the data is redundantly read multiple times when multiple listeners exist
                   data = readData(path, null, true);
                 } catch (ZkNoNodeException e) {
                   LOG.warn("Prefetch data for path: {} failed.", path, e);
@@ -1309,21 +1313,21 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners) {
+  private void fireChildChangedEvents(final String path, Set<IZkChildListener> childListeners, boolean pathExists) {
     try {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       for (final IZkChildListener listener : childListeners) {
         _eventThread.send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
           @Override
           public void run() throws Exception {
-            // Reinstall watch before listener callbacks to check the znode status
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)),
+              pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && pathExists),
                   OptionalLong.empty());
             }
             List<String> children = null;
             if (pathStatRecord.pathExists()) {
               try {
+                //TODO: duplicate reads when multiple child listener exists
                 children = getChildren(path);
               } catch (ZkNoNodeException e) {
                 LOG.warn("Get children under path: {} failed.", path, e);

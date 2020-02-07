@@ -148,7 +148,7 @@ public class AzureCloudInstanceInformationProcessor
         azureCloudInstanceInformation = builder.build();
       }
     } catch (IOException e) {
-      LOG.error("Error in parsing cloud instance information: {}", response, e);
+      throw new HelixException(String.format("Error in parsing cloud instance information: {}", response, e));
     }
     return azureCloudInstanceInformation;
   }

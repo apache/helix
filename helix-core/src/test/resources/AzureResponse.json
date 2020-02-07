@@ -1,0 +1,104 @@
+{
+  "compute": {
+    "azEnvironment": "AzurePublicCloud",
+    "customData": "",
+    "location": "southcentralus",
+    "name": "test-helix_1",
+    "offer": "",
+    "osType": "Linux",
+    "placementGroupId": "81e605b2-a807-48ee-a84a-63c76a9c9543",
+    "plan": {
+      "name": "",
+      "product": "",
+      "publisher": ""
+    },
+    "platformFaultDomain": "2",
+    "platformUpdateDomain": "2",
+    "provider": "Microsoft.Compute",
+    "publicKeys": [],
+    "publisher": "",
+    "resourceGroupName": "scus-lpsazureei1-app-rg",
+    "resourceId": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/virtualMachines/test-helix_2",
+    "sku": "",
+    "storageProfile": {
+      "dataDisks": [],
+      "imageReference": {
+        "id": "/subscriptions/7dd5a659-67c4-441c-ac0b-d48b7a029668/resourceGroups/scus-infra-app-rg/providers/Microsoft.Compute/galleries/pieimagerepo/images/FastCOP4/versions/190924.1.1",
+        "offer": "",
+        "publisher": "",
+        "sku": "",
+        "version": ""
+      },
+      "osDisk": {
+        "caching": "ReadWrite",
+        "createOption": "FromImage",
+        "diskSizeGB": "32",
+        "encryptionSettings": {
+          "enabled": "false"
+        },
+        "image": {
+          "uri": ""
+        },
+        "managedDisk": {
+          "id": "/subscriptions/c9a251d8-1272-4c0f-8055-8271bbc1d677/resourceGroups/scus-lpsazureei1-app-rg/providers/Microsoft.Compute/disks/test-helix_test-helix_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
+          "storageAccountType": "Standard_LRS"
+        },
+        "name": "test-helix_test-helix_2_OsDisk_1_124c3534b8e848e296ec22b24d44c027",
+        "osType": "Linux",
+        "vhd": {
+          "uri": ""
+        },
+        "writeAcceleratorEnabled": "false"
+      }
+    },
+    "subscriptionId": "c9a251d8-1272-4c0f-8055-8271bbc1d677",
+    "tags": "automation:terraform;environment:dev;module:lid-vmss;moduleVersion:0.0.1",
+    "tagsList": [
+      {
+        "name": "automation",
+        "value": "terraform"
+      },
+      {
+        "name": "environment",
+        "value": "dev"
+      },
+      {
+        "name": "module",
+        "value": "lid-vmss"
+      },
+      {
+        "name": "moduleVersion",
+        "value": "0.0.1"
+      }
+    ],
+    "version": "",
+    "vmId": "d2b921cc-c16c-41f7-a86d-a445eac6ec26",
+    "vmScaleSetName": "test-helix",
+    "vmSize": "Standard_D16s_v3",
+    "zone": ""
+  },
+  "network": {
+    "interface": [
+      {
+        "ipv4": {
+          "ipAddress": [
+            {
+              "privateIpAddress": "10.3.64.12",
+              "publicIpAddress": ""
+            }
+          ],
+          "subnet": [
+            {
+              "address": "10.3.64.0",
+              "prefix": "19"
+            }
+          ]
+        },
+        "ipv6": {
+          "ipAddress": []
+        },
+        "macAddress": "000D3A769010"
+      }
+    ]
+  }
+}

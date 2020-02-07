@@ -34,11 +34,13 @@ public class HelixLockScope {
    */
   public enum LockScopeProperty {
 
-    PARTICIPANT(1, 0),
+    CLUSTER(1, 0),
 
-    RESOURCE(2, 1),
+    PARTICIPANT(2, 1),
 
-    PARTITION(3, 2);
+    RESOURCE(3, 2),
+
+    PARTITION(4, 3);
 
     final int _zkPathArgNum;
     final int _argumentPos;
@@ -71,14 +73,17 @@ public class HelixLockScope {
   private static final StringTemplate template = new StringTemplate();
 
   static {
-    template.addEntry(HelixLockScope.LockScopeProperty.PARTICIPANT, 1, "/{participantName}");
-    template.addEntry(HelixLockScope.LockScopeProperty.RESOURCE, 2,
-        "/{participantName}/{resourceName}");
-    template.addEntry(HelixLockScope.LockScopeProperty.PARTITION, 3,
-        "/{participantName}/{resourceName}/{partitionName}");
+    template.addEntry(LockScopeProperty.CLUSTER, 1, "/{clusterName}");
+    template.addEntry(HelixLockScope.LockScopeProperty.PARTICIPANT, 2,
+        "/{clusterName}/{participantName}");
+    template.addEntry(HelixLockScope.LockScopeProperty.RESOURCE, 3,
+        "/{clusterName}/{participantName}/{resourceName}");
+    template.addEntry(HelixLockScope.LockScopeProperty.PARTITION, 4,
+        "/{clusterName}/{participantName}/{resourceName}/{partitionName}");
   }
 
   private final HelixLockScope.LockScopeProperty _type;
+  private final String _clusterName;
   private final String _participantName;
   private final String _resourceName;
   private final String _partitionName;
@@ -101,7 +106,13 @@ public class HelixLockScope {
     _type = type;
 
     //Initialize the name fields for various scope
-    _participantName = zkPathKeys.get(LockScopeProperty.PARTICIPANT.getArgumentPos());
+    _clusterName = zkPathKeys.get(LockScopeProperty.CLUSTER.getArgumentPos());
+
+    if (type.getZkPathArgNum() >= LockScopeProperty.PARTICIPANT.getZkPathArgNum()) {
+      _participantName = zkPathKeys.get(LockScopeProperty.PARTICIPANT.getArgumentPos());
+    } else {
+      _participantName = null;
+    }
 
     if (type.getZkPathArgNum() >= LockScopeProperty.RESOURCE.getZkPathArgNum()) {
       _resourceName = zkPathKeys.get(LockScopeProperty.RESOURCE.getArgumentPos());
@@ -115,7 +126,7 @@ public class HelixLockScope {
       _partitionName = null;
     }
 
-    _zkPath = template.instantiate(type, zkPathKeys.toArray(new String[0]));
+    _zkPath = template.instantiate(type, zkPathKeys.toArray(new String[0])).toUpperCase();
   }
 
   /**
@@ -124,6 +135,14 @@ public class HelixLockScope {
    */
   public HelixLockScope.LockScopeProperty getType() {
     return _type;
+  }
+
+  /**
+   * Get the cluster name if it exists
+   * @return the cluster name
+   */
+  public String getClusterName() {
+    return _clusterName;
   }
 
   /**

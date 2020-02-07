@@ -22,6 +22,7 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -48,6 +49,7 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
   protected MockMSModelFactory _msModelFactory;
   protected DummyLeaderStandbyStateModelFactory _lsModelFactory;
   protected DummyOnlineOfflineStateModelFactory _ofModelFactory;
+  protected HelixCloudProperty _helixCloudProperty;
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
     this(zkAddr, clusterName, instanceName, 10);
@@ -55,11 +57,17 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
       int transDelay) {
+    this(zkAddr, clusterName, instanceName, transDelay, null);
+  }
+
+  public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
+      int transDelay, HelixCloudProperty helixCloudProperty) {
     super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
     _transDelay = transDelay;
     _msModelFactory = new MockMSModelFactory(null);
     _lsModelFactory = new DummyLeaderStandbyStateModelFactory(_transDelay);
     _ofModelFactory = new DummyOnlineOfflineStateModelFactory(_transDelay);
+    _helixCloudProperty = helixCloudProperty;
   }
 
   public void setTransition(MockTransition transition) {

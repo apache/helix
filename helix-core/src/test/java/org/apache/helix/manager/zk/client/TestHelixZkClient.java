@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

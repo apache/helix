@@ -226,6 +226,12 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
@@ -955,6 +961,7 @@ public class ZkClient implements Watcher {
   }
 
   private void fireAllEvents() {
+    //TODO: During handling new session, if the path is deleted, watcher leakage could still happen
     for (Entry<String, Set<IZkChildListener>> entry : _childListener.entrySet()) {
       fireChildChangedEvents(entry.getKey(), entry.getValue(), true);
     }

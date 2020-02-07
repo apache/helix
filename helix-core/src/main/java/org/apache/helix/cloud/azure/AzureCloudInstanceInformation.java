@@ -19,17 +19,17 @@ package org.apache.helix.cloud.azure;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.api.cloud.CloudInstanceInformation;
-
 
 public class AzureCloudInstanceInformation implements CloudInstanceInformation {
   private Map<String, String> _cloudInstanceInfoMap;
 
   /**
    * Instantiate the AzureCloudInstanceInformation using each field individually.
-   * Users should use AzureCloudInstanceInformation.Builder to create information.
+   * Users should use AzureCloudInstanceInformation.Builder to set field information.
    * @param cloudInstanceInfoMap
    */
   protected AzureCloudInstanceInformation(Map<String, String> cloudInstanceInfoMap) {
@@ -42,10 +42,11 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
   }
 
   public static class Builder {
-    private Map<String, String> _cloudInstanceInfoMap = null;
+
+    private final Map<String, String> _cloudInstanceInfoMap = new HashMap<>();
 
     public AzureCloudInstanceInformation build() {
-      return new AzureCloudInstanceInformation(_cloudInstanceInfoMap);
+      return new AzureCloudInstanceInformation(new HashMap<>(_cloudInstanceInfoMap));
     }
 
     public Builder setInstanceName(String name) {

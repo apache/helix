@@ -290,4 +290,23 @@ public final class HelixUtil {
     return propertyDefaultValue;
   }
 
+  /**
+   * Compose the config for an instance
+   * @param instanceName
+   * @return InstanceConfig
+   */
+  public static InstanceConfig composeInstanceConfig(String instanceName) {
+    InstanceConfig instanceConfig = new InstanceConfig(instanceName);
+    String hostName = instanceName;
+    String port = "";
+    int lastPos = instanceName.lastIndexOf("_");
+    if (lastPos > 0) {
+      hostName = instanceName.substring(0, lastPos);
+      port = instanceName.substring(lastPos + 1);
+    }
+    instanceConfig.setHostName(hostName);
+    instanceConfig.setPort(port);
+    instanceConfig.setInstanceEnabled(true);
+    return instanceConfig;
+  }
 }

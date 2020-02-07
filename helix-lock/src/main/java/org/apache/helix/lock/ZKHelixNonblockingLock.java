@@ -20,24 +20,14 @@
 package org.apache.helix.lock;
 
 import java.util.Date;
-import java.util.UUID;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
 
 import static org.apache.helix.lock.ZKHelixNonblockingLockInfo.DEFAULT_OWNER_TEXT;
 import static org.apache.helix.lock.ZKHelixNonblockingLockInfo.DEFAULT_TIMEOUT_LONG;
@@ -68,7 +58,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
    */
   public ZKHelixNonblockingLock(String clusterName, HelixLockScope scope, String zkAddress,
       Long timeout, String lockMsg, String userId) {
-    this("/" + clusterName + LOCK_ROOT + scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
+    this("/" + clusterName.toUpperCase() + LOCK_ROOT + scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
   }
 
   /**

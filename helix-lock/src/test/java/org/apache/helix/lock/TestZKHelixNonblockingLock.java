@@ -26,11 +26,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
@@ -59,12 +56,13 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     _userId = UUID.randomUUID().toString();
 
     List<String> pathKeys = new ArrayList<>();
+    pathKeys.add(_clusterName);
     pathKeys.add("participant_name");
     pathKeys.add("resource_name");
     pathKeys.add("partition_name");
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.PARTITION, pathKeys);
-    _lockPath = "/" + _clusterName + _lockRoot + _participantScope.getZkPath();
+    _lockPath = "/" + _clusterName.toUpperCase() + _lockRoot + _participantScope.getZkPath();
     _lock = new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
   }

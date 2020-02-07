@@ -21,7 +21,6 @@ package org.apache.helix.api.cloud;
 
 import java.util.List;
 
-
 /**
  * Generic interface to fetch and parse cloud instance information
  */

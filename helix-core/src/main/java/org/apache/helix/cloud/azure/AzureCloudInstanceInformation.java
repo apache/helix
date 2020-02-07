@@ -46,7 +46,7 @@ public class AzureCloudInstanceInformation implements CloudInstanceInformation {
     private final Map<String, String> _cloudInstanceInfoMap = new HashMap<>();
 
     public AzureCloudInstanceInformation build() {
-      return new AzureCloudInstanceInformation(_cloudInstanceInfoMap);
+      return new AzureCloudInstanceInformation(new HashMap<>(_cloudInstanceInfoMap));
     }
 
     public Builder setInstanceName(String name) {

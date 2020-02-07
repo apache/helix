@@ -68,6 +68,7 @@ public class AzureCloudInstanceInformationProcessor
               || exception instanceof UnknownHostException || exception instanceof SSLException);
         };
 
+    //TODO: we should regularize the way how httpClient should be used throughout Helix. e.g. Helix-rest could also use in the same way
     _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConifg)
         .setRetryHandler(httpRequestRetryHandler).build();
   }
@@ -129,24 +130,25 @@ public class AzureCloudInstanceInformationProcessor
   @Override
   public AzureCloudInstanceInformation parseCloudInstanceInformation(List<String> responses) {
     AzureCloudInstanceInformation azureCloudInstanceInformation = null;
-    for (String response : responses) {
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        JsonNode jsonNode = mapper.readTree(response);
-        JsonNode computeNode = jsonNode.path(COMPUTE);
-        if (!computeNode.isMissingNode()) {
-          String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
-          String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
-          String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
-          AzureCloudInstanceInformation.Builder builder =
-              new AzureCloudInstanceInformation.Builder();
-          builder.setInstanceName(vmName).setFaultDomain(platformFaultDomain)
-              .setInstanceSetName(vmssName);
-          azureCloudInstanceInformation = builder.build();
-        }
-      } catch (IOException e) {
-        LOG.error("Error in parsing cloud instance information: {}", response, e);
+    if (responses.size() > 1) {
+      throw new HelixException("Multiple responses are not supported for Azure now");
+    }
+    String response = responses.get(0);
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      JsonNode jsonNode = mapper.readTree(response);
+      JsonNode computeNode = jsonNode.path(COMPUTE);
+      if (!computeNode.isMissingNode()) {
+        String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
+        String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
+        String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
+        AzureCloudInstanceInformation.Builder builder = new AzureCloudInstanceInformation.Builder();
+        builder.setInstanceName(vmName).setFaultDomain(platformFaultDomain)
+            .setInstanceSetName(vmssName);
+        azureCloudInstanceInformation = builder.build();
       }
+    } catch (IOException e) {
+      LOG.error("Error in parsing cloud instance information: {}", response, e);
     }
     return azureCloudInstanceInformation;
   }

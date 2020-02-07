@@ -30,6 +30,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.concurrency.DistributedLock;
+import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLock;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.ZkLockException;
@@ -43,7 +44,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final String _namespace;
   private final String _zkAddress;
   private final HelixZkClient _zkClient;
-  private final DistributedLock _routingDataLock;
+  private final ZkDistributedLeaderElection _leaderElection;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
     if (namespace == null || namespace.isEmpty()) {
@@ -57,9 +58,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
-    _routingDataLock =
-        new ZkDistributedLock(_zkClient, MetadataStoreRoutingConstants.ZK_LOCK_BASE_PATH,
-            namespace);
 
     // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
     // create() semantic will fail if it already exists
@@ -68,42 +66,42 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     } catch (ZkNodeExistsException e) {
       // This is okay
     }
+
+    // Get the hostname (REST endpoint) from System property
+    ZNRecord myServerInfo = new ZNRecord("dummy hostname");
+    _leaderElection = new ZkDistributedLeaderElection(_zkClient,
+        MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
   }
 
   @Override
   public synchronized boolean addMetadataStoreRealm(String realm) {
-    try {
-      _routingDataLock.lock();
+    if (_leaderElection.isLeader()) {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
       return createZkRealm(realm);
-    } catch (ZkLockException e) {
-      return false;
-    } finally {
-      _routingDataLock.unlock();
     }
+
+    // TODO: Forward the request to leader
+    return true;
   }
 
   @Override
   public synchronized boolean deleteMetadataStoreRealm(String realm) {
-    try {
-      _routingDataLock.lock();
+    if (_leaderElection.isLeader()) {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
       return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
-    } catch (ZkLockException e) {
-      return false;
-    } finally {
-      _routingDataLock.unlock();
     }
+
+    // TODO: Forward the request to leader
+    return true;
   }
 
   @Override
   public synchronized boolean addShardingKey(String realm, String shardingKey) {
-    try {
-      _routingDataLock.lock();
+    if (_leaderElection.isLeader()) {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
@@ -142,17 +140,15 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         return false;
       }
       return true;
-    } catch (ZkLockException e) {
-      return false;
-    } finally {
-      _routingDataLock.unlock();
     }
+
+    // TODO: Forward the request to leader
+    return true;
   }
 
   @Override
   public synchronized boolean deleteShardingKey(String realm, String shardingKey) {
-    try {
-      _routingDataLock.lock();
+    if (_leaderElection.isLeader()) {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
@@ -177,17 +173,15 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         return false;
       }
       return true;
-    } catch (ZkLockException e) {
-      return false;
-    } finally {
-      _routingDataLock.unlock();
     }
+
+    // TODO: Forward the request to leader
+    return true;
   }
 
   @Override
   public synchronized boolean setRoutingData(Map<String, List<String>> routingData) {
-    try {
-      _routingDataLock.lock();
+    if (_leaderElection.isLeader()) {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
@@ -228,11 +222,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         }
       }
       return true;
-    } catch (ZkLockException e) {
-      return false;
-    } finally {
-      _routingDataLock.unlock();
     }
+
+    // TODO: Forward the request to leader
+    return true;
   }
 
   @Override

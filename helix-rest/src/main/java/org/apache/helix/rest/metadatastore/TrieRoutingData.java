@@ -145,7 +145,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
    * @return whether the edge case is true
    */
   private boolean isRootShardingKey(Map<String, List<String>> routingData) {
-    if (routingData.values().size() == 1) {
+    if (routingData.size() == 1) {
       for (List<String> shardingKeys : routingData.values()) {
         return shardingKeys.size() == 1 && shardingKeys.get(0).equals(DELIMITER);
       }

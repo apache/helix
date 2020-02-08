@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.HelixZkClient;
 
 public class MockZkClient extends ZkClient implements HelixZkClient {
   Map<String, byte[]> _dataMap;

@@ -19,28 +19,20 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+
 
 /**
+ * Deprecated - Use ZNRecordUpdater in zookeeper-api intstead.
  * Class that specifies how a ZNRecord should be updated with another ZNRecord
  */
-public class ZNRecordUpdater implements DataUpdater<ZNRecord> {
-  final ZNRecord _record;
-
+@Deprecated
+public class ZNRecordUpdater extends org.apache.helix.zookeeper.api.datamodel.ZNRecordUpdater {
   /**
    * Initialize with the record that will be updated
    * @param record
    */
   public ZNRecordUpdater(ZNRecord record) {
-    _record = record;
-  }
-
-  @Override
-  public ZNRecord update(ZNRecord current) {
-    if (current != null) {
-      current.merge(_record);
-      return current;
-    }
-    return _record;
+    super(record);
   }
 }

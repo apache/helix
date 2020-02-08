@@ -36,7 +36,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.

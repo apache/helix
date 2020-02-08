@@ -19,33 +19,10 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.List;
-
 /**
+ * Deprecated - use ZNRecordAssembler in zookeeper-api instead.
  * Constructs ZNRecords from collections of ZNRecords
  */
-public class ZNRecordAssembler {
-  /**
-   * Merge a list of ZNRecords into a single ZNRecord
-   * @param records
-   * @return {@link ZNRecord}
-   */
-  public ZNRecord assemble(List<ZNRecord> records) {
-    ZNRecord assembledRecord = null;
-    if (records != null && records.size() > 0) {
-      for (ZNRecord record : records) {
-        if (record == null) {
-          continue;
-        }
-
-        if (assembledRecord == null) {
-          assembledRecord = new ZNRecord(record.getId());
-        }
-
-        assembledRecord.merge(record);
-      }
-    }
-    return assembledRecord;
-  }
-
+@Deprecated
+public class ZNRecordAssembler extends org.apache.helix.zookeeper.api.datamodel.ZNRecordAssembler {
 }

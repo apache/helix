@@ -19,65 +19,11 @@ package org.apache.helix.manager.zk.serializer;
  * under the License.
  */
 
-import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
-
-import org.apache.helix.HelixException;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
 /**
+ * Deprecated; please use JacksonPayloadSerializer in zookeeper-api instead.
+ *
  * Serializes and deserializes data of a generic type using Jackson
  */
-public class JacksonPayloadSerializer implements PayloadSerializer {
-
-  private static Logger logger = LoggerFactory.getLogger(JacksonPayloadSerializer.class);
-
-  @Override
-  public <T> byte[] serialize(final T data) {
-    if (data == null) {
-      return null;
-    }
-
-    ObjectMapper mapper = new ObjectMapper();
-    SerializationConfig serializationConfig = mapper.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
-    StringWriter sw = new StringWriter();
-    try {
-      mapper.writeValue(sw, data);
-    } catch (Exception e) {
-      logger.error("Exception during payload data serialization.", e);
-      throw new HelixException(e);
-    }
-    return sw.toString().getBytes();
-  }
-
-  @Override
-  public <T> T deserialize(final Class<T> clazz, final byte[] bytes) {
-    if (bytes == null || bytes.length == 0) {
-      return null;
-    }
-
-    ObjectMapper mapper = new ObjectMapper();
-    ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-
-    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-    try {
-      T payload = mapper.readValue(bais, clazz);
-      return payload;
-    } catch (Exception e) {
-      logger.error("Exception during deserialization of payload bytes: " + new String(bytes), e);
-      return null;
-    }
-  }
-
+@Deprecated
+public class JacksonPayloadSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.JacksonPayloadSerializer {
 }

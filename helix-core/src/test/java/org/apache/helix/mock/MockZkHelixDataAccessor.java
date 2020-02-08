@@ -8,7 +8,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 
 public class MockZkHelixDataAccessor extends ZKHelixDataAccessor {

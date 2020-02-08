@@ -28,6 +28,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 
 
 /**
@@ -37,9 +38,13 @@ import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
  */
 public interface HelixDataAccessor {
   boolean createStateModelDef(StateModelDefinition stateModelDef);
+
   boolean createControllerMessage(Message message);
+
   boolean createControllerLeader(LiveInstance leader);
+
   boolean createPause(PauseSignal pauseSignal);
+
   boolean createMaintenance(MaintenanceSignal maintenanceSignal);
 
   /**
@@ -68,7 +73,8 @@ public interface HelixDataAccessor {
    * @param value
    * @return true if the update was successful
    */
-  <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value);
+  <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater,
+      T value);
 
   /**
    * Return the property value, it must be refer to a single Helix Property. i.e

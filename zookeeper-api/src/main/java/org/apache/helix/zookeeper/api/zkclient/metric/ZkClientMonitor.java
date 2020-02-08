@@ -31,13 +31,13 @@ import javax.management.MBeanAttributeInfo;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
-import org.apache.helix.HelixException;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
-import org.apache.helix.zookeeper.api.zkclient.ZkEventThread;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.monitoring.mbeans.exception.MetricException;
+import org.apache.helix.zookeeper.api.zkclient.ZkEventThread;
 
 
 public class ZkClientMonitor extends DynamicMBeanProvider {
@@ -68,7 +68,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
       boolean monitorRootOnly, ZkEventThread zkEventThread) {
     if (monitorKey == null || monitorKey.isEmpty() || monitorType == null || monitorType
         .isEmpty()) {
-      throw new HelixException("Cannot create ZkClientMonitor without monitor key and type.");
+      throw new MetricException("Cannot create ZkClientMonitor without monitor key and type.");
     }
 
     _sensorName =
@@ -240,7 +240,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
       case "TotalCallbackHandledCounter":
         return getMetricObject().getTotalHandledEventCount();
       default:
-        throw new HelixException("Unknown attribute name: " + attributeName);
+        throw new MetricException("Unknown attribute name: " + attributeName);
       }
     }
 

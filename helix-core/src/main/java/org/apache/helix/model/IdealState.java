@@ -29,7 +29,6 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.model.ResourceConfig.ResourceConfigProperty;
 import org.apache.helix.task.FixedTargetTaskRebalancer;
@@ -37,6 +36,7 @@ import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowRebalancer;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

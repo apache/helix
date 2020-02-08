@@ -33,6 +33,8 @@ import org.apache.helix.util.RebalanceUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+
 
 public class TestEspressoStorageClusterIdealState {
   @Test()
@@ -82,7 +84,6 @@ public class TestEspressoStorageClusterIdealState {
     slaveKeepRatio = result[1];
     Assert.assertTrue(0.66 < masterKeepRatio && 0.67 > masterKeepRatio);
     Assert.assertTrue(0.49 < slaveKeepRatio && 0.51 > slaveKeepRatio);
-
   }
 
   @Test
@@ -209,7 +210,6 @@ public class TestEspressoStorageClusterIdealState {
         AssertJUnit.assertTrue(slaveCountMap.get(masterPartitionId) == replicas);
       }
     }
-
   }
 
   public void printStat(Map<String, Object> result) {
@@ -259,8 +259,9 @@ public class TestEspressoStorageClusterIdealState {
     }
 
     result[0] = 1.0 * commonMasters / partitions;
-    System.out.println(commonMasters + " master partitions are kept, "
-        + (partitions - commonMasters) + " moved, keep ratio:" + 1.0 * commonMasters / partitions);
+    System.out.println(
+        commonMasters + " master partitions are kept, " + (partitions - commonMasters)
+            + " moved, keep ratio:" + 1.0 * commonMasters / partitions);
 
     // maps from the partition id to the instance names that holds its slave partition
     Map<Integer, Set<String>> slaveMap1 = new TreeMap<Integer, Set<String>>();
@@ -290,10 +291,9 @@ public class TestEspressoStorageClusterIdealState {
       }
     }
     result[1] = 1.0 * commonSlaves / partitions / replicas;
-    System.out.println(commonSlaves + " slave partitions are kept, "
-        + (partitions * replicas - commonSlaves) + " moved. keep ratio:" + 1.0 * commonSlaves
-        / partitions / replicas);
+    System.out.println(
+        commonSlaves + " slave partitions are kept, " + (partitions * replicas - commonSlaves)
+            + " moved. keep ratio:" + 1.0 * commonSlaves / partitions / replicas);
     return result;
   }
-
 }

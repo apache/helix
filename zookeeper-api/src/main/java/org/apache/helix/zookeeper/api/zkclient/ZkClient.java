@@ -24,6 +24,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkInterruptedException;
@@ -31,8 +33,6 @@ import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.zookeeper.api.zkclient.annotation.PreFetch;
 import org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer;
@@ -60,9 +60,11 @@ import org.slf4j.LoggerFactory;
 
 
 /**
+ * "Native ZkClient": not to be used directly.
+ *
  * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on
  * nodes in ZooKeeper.
- * WARN: Do not use this class directly, use {@link org.apache.helix.manager.zk.ZkClient} instead.
+ * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.api.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
@@ -165,7 +167,7 @@ public class ZkClient implements Watcher {
         if (notificationTime.getAsLong() > updateTime) {
           _monitor.recordDataPropagationLatency(_path, notificationTime.getAsLong() - updateTime);
         } // else, the node was updated again after the notification. Propagation latency is
-          // unavailable.
+        // unavailable.
       }
     }
   }
@@ -185,10 +187,11 @@ public class ZkClient implements Watcher {
 
     // initiate monitor
     try {
-      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null
-          && !monitorType.isEmpty()) {
-        _monitor = new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName,
-            monitorRootPathOnly, _eventThread);
+      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
+          .isEmpty()) {
+        _monitor =
+            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
+                _eventThread);
         _monitor.register();
       } else {
         LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
@@ -252,15 +255,15 @@ public class ZkClient implements Watcher {
 
     Method callbackMethod = IZkDataListener.class.getMethods()[0];
     try {
-      Method method = dataListener.getClass().getMethod(callbackMethod.getName(),
-          callbackMethod.getParameterTypes());
+      Method method = dataListener.getClass()
+          .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
       PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
       if (preFetchInMethod != null) {
         return preFetchInMethod.enabled();
       }
     } catch (NoSuchMethodException e) {
-      LOG.warn("No method " + callbackMethod.getName() + " defined in listener "
-          + dataListener.getClass().getCanonicalName());
+      LOG.warn("No method " + callbackMethod.getName() + " defined in listener " + dataListener
+          .getClass().getCanonicalName());
     }
 
     return true;
@@ -295,7 +298,8 @@ public class ZkClient implements Watcher {
    * @param listener {@link org.apache.helix.zookeeper.api.zkclient.IZkStateListener} listener
    */
   @Deprecated
-  public void subscribeStateChanges(final org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener) {
+  public void subscribeStateChanges(
+      final org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener) {
     subscribeStateChanges(new IZkStateListenerI0ItecImpl(listener));
   }
 
@@ -315,7 +319,8 @@ public class ZkClient implements Watcher {
    * @param stateListener {@link org.apache.helix.zookeeper.api.zkclient.IZkStateListener} listener
    */
   @Deprecated
-  public void unsubscribeStateChanges(org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener stateListener) {
+  public void unsubscribeStateChanges(
+      org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener stateListener) {
     unsubscribeStateChanges(new IZkStateListenerI0ItecImpl(stateListener));
   }
 
@@ -892,10 +897,10 @@ public class ZkClient implements Watcher {
 
     boolean stateChanged = event.getPath() == null;
     boolean znodeChanged = event.getPath() != null;
-    boolean dataChanged = event.getType() == EventType.NodeDataChanged
-        || event.getType() == EventType.NodeDeleted
-        || event.getType() == EventType.NodeCreated
-        || event.getType() == EventType.NodeChildrenChanged;
+    boolean dataChanged =
+        event.getType() == EventType.NodeDataChanged || event.getType() == EventType.NodeDeleted
+            || event.getType() == EventType.NodeCreated
+            || event.getType() == EventType.NodeChildrenChanged;
 
     if (event.getType() == EventType.NodeDeleted) {
       if (LOG.isDebugEnabled()) {
@@ -1204,7 +1209,7 @@ public class ZkClient implements Watcher {
     try {
       deleteRecursively(path);
       return true;
-    } catch (HelixException e) {
+    } catch (ZkClientException e) {
       LOG.error("Failed to recursively delete path " + path, e);
       return false;
     }
@@ -1215,7 +1220,7 @@ public class ZkClient implements Watcher {
    * @param path
    * @throws HelixException
    */
-  public void deleteRecursively(String path) throws HelixException {
+  public void deleteRecursively(String path) throws ZkClientException {
     List<String> children;
     try {
       children = getChildren(path, false);
@@ -1235,7 +1240,7 @@ public class ZkClient implements Watcher {
       delete(path);
     } catch (Exception e) {
       LOG.error("Failed to delete " + path, e);
-      throw new HelixException("Failed to delete " + path, e);
+      throw new ZkClientException("Failed to delete " + path, e);
     }
   }
 
@@ -1267,8 +1272,9 @@ public class ZkClient implements Watcher {
       final ZkPathStatRecord pathStatRecord = new ZkPathStatRecord(path);
       // Trigger listener callbacks
       for (final IZkDataListenerEntry listener : listeners) {
-        _eventThread.send(new ZkEvent("Data of " + path + " changed sent to "
-            + listener.getDataListener() + " prefetch data: " + listener.isPrefetchData()) {
+        _eventThread.send(new ZkEvent(
+            "Data of " + path + " changed sent to " + listener.getDataListener()
+                + " prefetch data: " + listener.isPrefetchData()) {
           @Override
           public void run() throws Exception {
             // Reinstall watch before listener callbacks to check the znode status
@@ -1311,8 +1317,8 @@ public class ZkClient implements Watcher {
           public void run() throws Exception {
             // Reinstall watch before listener callbacks to check the znode status
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path)),
-                  OptionalLong.empty());
+              pathStatRecord
+                  .recordPathStat(getStat(path, hasListeners(path)), OptionalLong.empty());
             }
             List<String> children = null;
             if (pathStatRecord.pathExists()) {
@@ -1715,11 +1721,11 @@ public class ZkClient implements Watcher {
     retryUntilConnected(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        ((ZkConnection) getConnection()).getZookeeper().create(path, data,
-            ZooDefs.Ids.OPEN_ACL_UNSAFE,
-            // Arrays.asList(DEFAULT_ACL),
-            mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
-                data == null ? 0 : data.length, false));
+        ((ZkConnection) getConnection()).getZookeeper()
+            .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                // Arrays.asList(DEFAULT_ACL),
+                mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
+                    data == null ? 0 : data.length, false));
         return null;
       }
     });
@@ -1779,9 +1785,10 @@ public class ZkClient implements Watcher {
 
   private void checkDataSizeLimit(byte[] data) {
     if (data != null && data.length > ZNRecord.SIZE_LIMIT) {
-      LOG.error("Data size larger than 1M, will not write to zk. Data (first 1k): "
-          + new String(data).substring(0, 1024));
-      throw new HelixException("Data size larger than 1M");
+      LOG.error(
+          "Data size larger than 1M, will not write to zk. Data (first 1k): " + new String(data)
+              .substring(0, 1024));
+      throw new ZkClientException("Data size larger than 1M");
     }
   }
 
@@ -1871,7 +1878,7 @@ public class ZkClient implements Watcher {
       } else {
         // if the client is not managing connection, the input connection is supposed to connect.
         if (isConnectionClosed()) {
-          throw new HelixException(
+          throw new ZkClientException(
               "Unable to connect to zookeeper server with the specified ZkConnection");
         }
         // TODO Refine the init state here. Here we pre-config it to be connected. This may not be
@@ -1937,7 +1944,6 @@ public class ZkClient implements Watcher {
       // send state change notification to unlock any wait
       setCurrentState(null);
       getEventLock().getStateChangedCondition().signalAll();
-
     } catch (InterruptedException e) {
       /**
        * Workaround for HELIX-264: calling ZkClient#close() in its own eventThread context will
@@ -1982,8 +1988,8 @@ public class ZkClient implements Watcher {
 
   public boolean isConnectionClosed() {
     IZkConnection connection = getConnection();
-    return (connection == null || connection.getZookeeperState() == null
-        || !connection.getZookeeperState().isAlive());
+    return (connection == null || connection.getZookeeperState() == null || !connection
+        .getZookeeperState().isAlive());
   }
 
   public void setShutdownTrigger(boolean triggerState) {
@@ -2032,7 +2038,7 @@ public class ZkClient implements Watcher {
     ZkConnection zkConnection = ((ZkConnection) getConnection());
     ZooKeeper zk = zkConnection.getZookeeper();
     if (zk == null) {
-      throw new HelixException(
+      throw new ZkClientException(
           "ZooKeeper connection information is not available now. ZkClient might be disconnected.");
     } else {
       return zkConnection.getZookeeper().getSessionId();
@@ -2053,8 +2059,8 @@ public class ZkClient implements Watcher {
    * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
    */
   private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
-    return expectedSessionId != null && !expectedSessionId.isEmpty()
-        && (mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
+    return expectedSessionId != null && !expectedSessionId.isEmpty() && (
+        mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
   }
 
   // operations to update monitor's counters
@@ -2093,7 +2099,8 @@ public class ZkClient implements Watcher {
   private static class IZkStateListenerI0ItecImpl implements IZkStateListener {
     private org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener _listener;
 
-    IZkStateListenerI0ItecImpl(org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener) {
+    IZkStateListenerI0ItecImpl(
+        org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener) {
       _listener = listener;
     }
 

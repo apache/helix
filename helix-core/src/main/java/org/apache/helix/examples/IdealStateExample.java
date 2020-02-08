@@ -22,12 +22,13 @@ package org.apache.helix.examples;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
+
 
 /**
  * Ideal state json format file used in this example for CUSTOMIZED ideal state mode

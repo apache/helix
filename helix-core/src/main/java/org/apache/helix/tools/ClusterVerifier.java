@@ -25,11 +25,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.HelixZkClient;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.slf4j.Logger;

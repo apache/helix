@@ -19,7 +19,7 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.Message;
 import org.testng.annotations.Test;

@@ -25,12 +25,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 //TODO find a proper place for these methods
-public final class ZNRecordUtil {
+public class ZNRecordUtil {
   private static final Logger logger = LoggerFactory.getLogger(ZNRecordUtil.class.getName());
 
   private ZNRecordUtil() {

@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 
 public class IdealCalculatorByConsistentHashing {

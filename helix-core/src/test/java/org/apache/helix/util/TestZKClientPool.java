@@ -22,7 +22,7 @@ package org.apache.helix.util;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;

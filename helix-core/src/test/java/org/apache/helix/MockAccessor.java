@@ -33,6 +33,9 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecordUpdater;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+
 
 public class MockAccessor implements HelixDataAccessor {
   private final String _clusterName;
@@ -69,11 +72,13 @@ public class MockAccessor implements HelixDataAccessor {
     return false;
   }
 
-  @Override public boolean createMaintenance(MaintenanceSignal maintenanceSignal) {
+  @Override
+  public boolean createMaintenance(MaintenanceSignal maintenanceSignal) {
     return false;
   }
 
-  @Override public boolean setProperty(PropertyKey key, HelixProperty value) {
+  @Override
+  public boolean setProperty(PropertyKey key, HelixProperty value) {
     String path = key.getPath();
     _baseDataAccessor.set(path, value.getRecord(), AccessOption.PERSISTENT);
     return true;
@@ -81,11 +86,12 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override
   public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value) {
-    return updateProperty(key, new ZNRecordUpdater(value.getRecord()) , value);
+    return updateProperty(key, new ZNRecordUpdater(value.getRecord()), value);
   }
 
   @Override
-  public <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value) {
+  public <T extends HelixProperty> boolean updateProperty(PropertyKey key,
+      DataUpdater<ZNRecord> updater, T value) {
     String path = key.getPath();
     PropertyType type = key.getType();
     if (type.updateOnlyOnExists) {
@@ -143,7 +149,8 @@ public class MockAccessor implements HelixDataAccessor {
     try {
       Stat stat = _baseDataAccessor.getStat(path, 0);
       if (stat != null) {
-        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime(), stat.getEphemeralOwner());
+        return new HelixProperty.Stat(stat.getVersion(), stat.getCtime(), stat.getMtime(),
+            stat.getEphemeralOwner());
       }
     } catch (ZkNoNodeException e) {
 
@@ -170,7 +177,8 @@ public class MockAccessor implements HelixDataAccessor {
       HelixProperty.Stat propertyStat = null;
       if (zkStat != null) {
         propertyStat =
-            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime(), zkStat.getEphemeralOwner());
+            new HelixProperty.Stat(zkStat.getVersion(), zkStat.getCtime(), zkStat.getMtime(),
+                zkStat.getEphemeralOwner());
       }
       propertyStats.add(propertyStat);
     }
@@ -185,14 +193,15 @@ public class MockAccessor implements HelixDataAccessor {
   }
 
   @SuppressWarnings("unchecked")
-  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
+  @Override
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
     String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
     List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0);
     return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), children);
   }
 
-  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
-      boolean throwException) {
+  @Override
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey key, boolean throwException) {
     return getChildValues(key);
   }
 
@@ -202,7 +211,8 @@ public class MockAccessor implements HelixDataAccessor {
     return HelixProperty.convertListToMap(list);
   }
 
-  @Override public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
+  @Override
+  public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
       boolean throwException) {
     return getChildValuesMap(key);
   }
@@ -250,7 +260,8 @@ public class MockAccessor implements HelixDataAccessor {
     return list;
   }
 
-  @Override public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
+  @Override
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
       boolean throwException) {
     return getProperty(keys);
   }

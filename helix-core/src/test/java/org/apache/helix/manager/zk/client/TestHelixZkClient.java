@@ -24,10 +24,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.zookeeper.api.HelixZkClient;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestHelixZkClient extends ZkUnitTestBase {
   private final String TEST_NODE = "/test_helix_zkclient";
@@ -37,8 +39,9 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     final String TEST_ROOT = "/testZkConnectionManager/IDEALSTATES";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    ZkConnectionManager zkConnectionManager = new ZkConnectionManager(new ZkConnection(ZK_ADDR),
-        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, null);
+    ZkConnectionManager zkConnectionManager =
+        new ZkConnectionManager(new ZkConnection(ZK_ADDR), HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            null);
     Assert.assertTrue(zkConnectionManager.waitUntilConnected(1, TimeUnit.SECONDS));
 
     // This client can write/read from ZK
@@ -102,9 +105,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(sharedZkClientA.getSessionId(), sharedZkClientB.getSessionId());
     long sessionId = sharedZkClientA.getSessionId();
 
-    final int[] notificationCountA = {
-        0, 0
-    };
+    final int[] notificationCountA = {0, 0};
     sharedZkClientA.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
       @Override
       public void handleDataChange(String s, Object o) {
@@ -116,9 +117,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
         notificationCountA[1]++;
       }
     });
-    final int[] notificationCountB = {
-        0, 0
-    };
+    final int[] notificationCountB = {0, 0};
     sharedZkClientB.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
       @Override
       public void handleDataChange(String s, Object o) {

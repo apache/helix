@@ -26,10 +26,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // TODO: move to mananger.zk
+
 /**
  * Support committing updates to data such that they are ordered for each key
  */
@@ -94,8 +96,9 @@ public class GroupCommit {
       if (queue._running.compareAndSet(null, Thread.currentThread())) {
         ArrayList<Entry> processed = new ArrayList<>();
         try {
-          if (queue._pending.peek() == null)
+          if (queue._pending.peek() == null) {
             return true;
+          }
 
           // remove from queue
           Entry first = queue._pending.poll();
@@ -123,8 +126,9 @@ public class GroupCommit {
           Iterator<Entry> it = queue._pending.iterator();
           while (it.hasNext()) {
             Entry ent = it.next();
-            if (!ent._key.equals(mergedKey))
+            if (!ent._key.equals(mergedKey)) {
               continue;
+            }
             processed.add(ent);
             merged.merge(ent._record);
             // System.out.println("After merging:" + merged);
@@ -162,7 +166,8 @@ public class GroupCommit {
           try {
             entry.wait(10);
           } catch (InterruptedException e) {
-            LOG.error("Interrupted while committing change, key: " + key + ", record: " + record, e);
+            LOG.error("Interrupted while committing change, key: " + key + ", record: " + record,
+                e);
             // Restore interrupt status
             Thread.currentThread().interrupt();
             return false;
@@ -172,5 +177,4 @@ public class GroupCommit {
     }
     return success;
   }
-
 }

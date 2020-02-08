@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.management.MBeanAttributeInfo;
 
-import org.apache.helix.HelixException;
+import org.apache.helix.monitoring.mbeans.exception.MetricException;
 
 
 /**
@@ -49,7 +49,7 @@ public abstract class DynamicMetric<O, T> {
    */
   public DynamicMetric(String metricName, O metricObject) {
     if (metricName == null || metricObject == null) {
-      throw new HelixException("Failed to construct metric due to missing argument.");
+      throw new MetricException("Failed to construct metric due to missing argument.");
     }
     _metricObject = metricObject;
     _attributeInfoSet =

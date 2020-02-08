@@ -31,11 +31,11 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
-import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
@@ -139,7 +139,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model.
+   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.zookeeper.api.datamodel.ZNRecord} as the data model.
    * Uses a shared ZkConnection resource.
    * Does NOT support ephemeral node creation, callbacks, or session management.
    * Uses {@link ZNRecordSerializer} serializer
@@ -150,7 +150,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.ZNRecord} as the data model.
+   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.zookeeper.api.datamodel.ZNRecord} as the data model.
    * If DEDICATED, it will use a dedicated ZkConnection, which allows ephemeral
    * node creation, callbacks, and session management.
    * If SHARED, it will use a shared ZkConnection, which only allows simple

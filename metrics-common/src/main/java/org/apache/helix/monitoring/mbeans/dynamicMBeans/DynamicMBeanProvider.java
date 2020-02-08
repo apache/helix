@@ -40,7 +40,6 @@ import javax.management.MBeanOperationInfo;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
-import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.monitoring.SensorNameProvider;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.slf4j.Logger;
@@ -53,6 +52,9 @@ import org.slf4j.LoggerFactory;
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
   protected final Logger _logger = LoggerFactory.getLogger(getClass());
   protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // Reset time every hour
+  private static final String HELIX_MONITOR_TIME_WINDOW_LENGTH_MS =
+      "helix.monitor.slidingTimeWindow.ms";
+
   private static String SENSOR_NAME_TAG = "SensorName";
   private static String DEFAULT_DESCRIPTION =
       "Information on the management interface of the MBean";
@@ -70,8 +72,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param keyValuePairs the MBean object name components
    */
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
-      String description, String domain, String... keyValuePairs)
-      throws JMException {
+      String description, String domain, String... keyValuePairs) throws JMException {
     return doRegister(dynamicMetrics, description,
         MBeanRegistrar.buildObjectName(domain, keyValuePairs));
   }
@@ -83,8 +84,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * @param objectName the proposed MBean ObjectName
    */
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
-      String description, ObjectName objectName)
-      throws JMException {
+      String description, ObjectName objectName) throws JMException {
     if (_objectName != null) {
       _logger.debug("Mbean {} has already been registered. Ignore register request.",
           objectName.getCanonicalName());
@@ -96,8 +96,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   protected synchronized boolean doRegister(Collection<DynamicMetric<?, ?>> dynamicMetrics,
-      ObjectName objectName)
-      throws JMException {
+      ObjectName objectName) throws JMException {
     return doRegister(dynamicMetrics, null, objectName);
   }
 
@@ -148,8 +147,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   /**
    * Call doRegister() to finish registration MBean and the attributes.
    */
-  public abstract DynamicMBeanProvider register()
-      throws JMException;
+  public abstract DynamicMBeanProvider register() throws JMException;
 
   /**
    * Unregister the MBean and clean up object name record.
@@ -235,8 +233,7 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
    * in the system env variables. If not found, use default value.
    */
   protected Long getResetIntervalInMs() {
-    return getSystemPropertyAsLong(SystemPropertyKeys.HELIX_MONITOR_TIME_WINDOW_LENGTH_MS,
-        DEFAULT_RESET_INTERVAL_MS);
+    return getSystemPropertyAsLong(HELIX_MONITOR_TIME_WINDOW_LENGTH_MS, DEFAULT_RESET_INTERVAL_MS);
   }
 
   /**

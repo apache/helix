@@ -22,10 +22,10 @@ package org.apache.helix.tools;
 import java.util.UUID;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;

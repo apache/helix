@@ -19,50 +19,12 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
-
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
-import org.codehaus.jackson.map.ObjectMapper;
-
 /**
+ * Use ZNRecordJacksonSerializer in zookeeper-api instead.
+ *
  * ZNRecordJacksonSerializer serializes ZNRecord objects into a byte array using Jackson. Note that
  * this serializer doesn't check for the size of the resulting binary.
  */
-public class ZNRecordJacksonSerializer implements ZkSerializer {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Override
-  public byte[] serialize(Object record) throws ZkMarshallingError {
-    if (!(record instanceof ZNRecord)) {
-      // null is NOT an instance of any class
-      throw new HelixException("Input object is not of type ZNRecord (was " + record + ")");
-    }
-    ZNRecord znRecord = (ZNRecord) record;
-
-    try {
-      return OBJECT_MAPPER.writeValueAsBytes(znRecord);
-    } catch (IOException e) {
-      throw new HelixException(
-          String.format("Exception during serialization. ZNRecord id: %s", znRecord.getId()), e);
-    }
-  }
-
-  @Override
-  public Object deserialize(byte[] bytes) throws ZkMarshallingError {
-    if (bytes == null || bytes.length == 0) {
-      // reading a parent/null node
-      return null;
-    }
-
-    ZNRecord record;
-    try {
-      record = OBJECT_MAPPER.readValue(bytes, ZNRecord.class);
-    } catch (IOException e) {
-      throw new HelixException("Exception during deserialization!", e);
-    }
-    return record;
-  }
+@Deprecated
+public class ZNRecordJacksonSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.ZNRecordJacksonSerializer {
 }

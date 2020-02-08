@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.helix.mock.MockBaseDataAccessor;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+
 
 public class TestGroupCommit {
   // @Test
@@ -38,7 +40,6 @@ public class TestGroupCommit {
     System.out.println(accessor.get("test", null, 0));
     System.out.println(accessor.get("test", null, 0).getSimpleFields().size());
   }
-
 }
 
 class MyClass implements Runnable {
@@ -63,5 +64,4 @@ class MyClass implements Runnable {
     // System.out.println("END " + System.currentTimeMillis() + " --"
     // + Thread.currentThread().getId());
   }
-
 }

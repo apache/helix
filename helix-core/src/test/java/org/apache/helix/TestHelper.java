@@ -46,8 +46,8 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -64,10 +64,12 @@ import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.api.zkclient.ZkClient;
 import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+
 
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
@@ -104,8 +106,8 @@ public class TestHelper {
 
   static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces,
       boolean overwrite) throws Exception {
-    System.out.println("Start zookeeper at " + zkAddress + " in thread "
-        + Thread.currentThread().getName());
+    System.out.println(
+        "Start zookeeper at " + zkAddress + " in thread " + Thread.currentThread().getName());
 
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
@@ -143,8 +145,9 @@ public class TestHelper {
   static public void stopZkServer(ZkServer zkServer) {
     if (zkServer != null) {
       zkServer.shutdown();
-      System.out.println("Shut down zookeeper at port " + zkServer.getPort() + " in thread "
-          + Thread.currentThread().getName());
+      System.out.println(
+          "Shut down zookeeper at port " + zkServer.getPort() + " in thread " + Thread
+              .currentThread().getName());
     }
   }
 
@@ -187,8 +190,8 @@ public class TestHelper {
       // debug
       // LOG.info(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify ("
       // + result + ")");
-      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify " + " ("
-          + result + ")");
+      System.err.println(
+          verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify " + " (" + result + ")");
       LOG.debug("args:" + Arrays.toString(args));
       // System.err.println("args:" + Arrays.toString(args));
 
@@ -241,7 +244,6 @@ public class TestHelper {
         if (extView != null && extView.getRecord().getMapFields().size() != 0) {
           return false;
         }
-
       }
 
       return true;
@@ -257,9 +259,10 @@ public class TestHelper {
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    TestHelper.setupCluster(clusterName, zkAddr, startPort, participantNamePrefix,
-        resourceNamePrefix, resourceNb, partitionNb, nodesNb, replica, stateModelDef,
-        RebalanceMode.SEMI_AUTO, doRebalance);
+    TestHelper
+        .setupCluster(clusterName, zkAddr, startPort, participantNamePrefix, resourceNamePrefix,
+            resourceNb, partitionNb, nodesNb, replica, stateModelDef, RebalanceMode.SEMI_AUTO,
+            doRebalance);
   }
 
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
@@ -339,12 +342,13 @@ public class TestHelper {
         ExternalView extView = accessor.getProperty(keyBuilder.externalView(resGroup));
         for (String instance : stateMap.get(resGroupPartitionKey)) {
           String actualState = extView.getStateMap(partitionKey).get(instance);
-          Assert.assertNotNull(actualState, "externalView doesn't contain state for " + resGroup
-              + "/" + partitionKey + " on " + instance + " (expect " + state + ")");
+          Assert.assertNotNull(actualState,
+              "externalView doesn't contain state for " + resGroup + "/" + partitionKey + " on "
+                  + instance + " (expect " + state + ")");
 
-          Assert
-              .assertEquals(actualState, state, "externalView for " + resGroup + "/" + partitionKey
-                  + " on " + instance + " is " + actualState + " (expect " + state + ")");
+          Assert.assertEquals(actualState, state,
+              "externalView for " + resGroup + "/" + partitionKey + " on " + instance + " is "
+                  + actualState + " (expect " + state + ")");
         }
       }
     } finally {
@@ -520,8 +524,9 @@ public class TestHelper {
       ZNode node = map.get(key);
       TreeSet<String> childSet = new TreeSet<String>();
       childSet.addAll(node.getChildSet());
-      System.out.print(key + "=" + node.getData() + ", " + childSet + ", "
-          + (node.getStat() == null ? "null\n" : node.getStat()));
+      System.out.print(
+          key + "=" + node.getData() + ", " + childSet + ", " + (node.getStat() == null ? "null\n"
+              : node.getStat()));
     }
     System.out.println("END:Print cache");
   }
@@ -601,8 +606,8 @@ public class TestHelper {
       Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
     // equal size
     if (zkMap.size() != cache.size()) {
-      System.err.println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: "
-          + zkMap.size());
+      System.err
+          .println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: " + zkMap.size());
       System.out.println("cache: (" + cache.size() + ")");
       TestHelper.printCache(cache);
 
@@ -623,31 +628,33 @@ public class TestHelper {
         return false;
       }
 
-      if ((zkNode.getData() == null && cacheNode.getData() != null)
-          || (zkNode.getData() != null && cacheNode.getData() == null)
-          || (zkNode.getData() != null && cacheNode.getData() != null && !zkNode.getData().equals(
-              cacheNode.getData()))) {
+      if ((zkNode.getData() == null && cacheNode.getData() != null) || (zkNode.getData() != null
+          && cacheNode.getData() == null) || (zkNode.getData() != null
+          && cacheNode.getData() != null && !zkNode.getData().equals(cacheNode.getData()))) {
         // data not equal
-        System.err.println("data mismatch on path: " + path + ", inCache: " + cacheNode.getData()
-            + ", onZk: " + zkNode.getData());
+        System.err.println(
+            "data mismatch on path: " + path + ", inCache: " + cacheNode.getData() + ", onZk: "
+                + zkNode.getData());
         return false;
       }
 
-      if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null)
-          || (zkNode.getChildSet() != null && cacheNode.getChildSet() == null)
-          || (zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode
-              .getChildSet().equals(cacheNode.getChildSet()))) {
+      if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null) || (
+          zkNode.getChildSet() != null && cacheNode.getChildSet() == null) || (
+          zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode.getChildSet()
+              .equals(cacheNode.getChildSet()))) {
         // childSet not equal
-        System.err.println("childSet mismatch on path: " + path + ", inCache: "
-            + cacheNode.getChildSet() + ", onZk: " + zkNode.getChildSet());
+        System.err.println(
+            "childSet mismatch on path: " + path + ", inCache: " + cacheNode.getChildSet()
+                + ", onZk: " + zkNode.getChildSet());
         return false;
       }
 
       if (needVerifyStat && pathsExcludeForStat != null && !pathsExcludeForStat.contains(path)) {
         if (cacheNode.getStat() == null || !zkNode.getStat().equals(cacheNode.getStat())) {
           // stat not equal
-          System.err.println("Stat mismatch on path: " + path + ", inCache: " + cacheNode.getStat()
-              + ", onZk: " + zkNode.getStat());
+          System.err.println(
+              "Stat mismatch on path: " + path + ", inCache: " + cacheNode.getStat() + ", onZk: "
+                  + zkNode.getStat());
           return false;
         }
       }
@@ -801,8 +808,8 @@ public class TestHelper {
     for (int i = 0; i < handlers.size(); i++) {
       CallbackHandler handler = handlers.get(i);
       String path = handler.getPath();
-      sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
-          + handler.getListener());
+      sb.append(
+          path.substring(manager.getClusterName().length() + 1) + ": " + handler.getListener());
       if (i < (handlers.size() - 1)) {
         sb.append(", ");
       }

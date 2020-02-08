@@ -42,9 +42,9 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update callback.
+ * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update
+ * callback.
  */
 public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, RoutingDataListener {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetadataStoreDirectory.class);
@@ -170,20 +170,21 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
       LOG.error("Failed to refresh internally-cached routing data! Namespace not found: " + namespace);
+      return;
     }
 
     try {
-      _realmToShardingKeysMap.put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
+      Map<String, List<String>> routingData = _routingDataReaderMap.get(namespace).getRoutingData();
+      _realmToShardingKeysMap.put(namespace, routingData);
+
+      if (_routingDataMap != null) {
+        MetadataStoreRoutingData newRoutingData = new TrieRoutingData(routingData);
+        _routingDataMap.put(namespace, newRoutingData);
+      }
     } catch (InvalidRoutingDataException e) {
-      LOG.error("Failed to get routing data for namespace: " + namespace + "!");
+      LOG.error("Routing data construction has failed for namespace: " + namespace + "!");
     }
 
-    if (_routingDataMap != null) {
-//      MetadataStoreRoutingData newRoutingData =
-//          new TrieRoutingData(new TrieRoutingData.TrieNode(null, null, false, null));
-      // TODO call constructRoutingData() here.
-//      _routingDataMap.put(namespace, newRoutingData);
-    }
   }
 
   @Override

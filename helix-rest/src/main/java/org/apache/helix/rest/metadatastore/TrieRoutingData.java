@@ -40,6 +40,10 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   private final TrieNode _rootNode;
 
   public TrieRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException {
+    if (routingData == null || routingData.isEmpty()) {
+      throw new InvalidRoutingDataException("Missing routing data");
+    }
+
     if (isRootShardingKey(routingData)) {
       Map.Entry<String, List<String>> entry = routingData.entrySet().iterator().next();
       _rootNode = new TrieNode(Collections.emptyMap(), "/", true, entry.getKey());
@@ -49,7 +53,12 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     }
   }
 
-  public Map<String, String> getAllMappingUnderPath(String path) {
+  public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
+    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
+      throw new IllegalArgumentException(
+          "Provided path is empty or does not have a leading delimiter: " + path);
+    }
+
     TrieNode curNode;
     try {
       curNode = findTrieNode(path, false);
@@ -62,10 +71,10 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     nodeStack.push(curNode);
     while (!nodeStack.isEmpty()) {
       curNode = nodeStack.pop();
-      if (curNode._isLeaf) {
-        resultMap.put(curNode._name, curNode._realmAddress);
+      if (curNode.isLeaf()) {
+        resultMap.put(curNode.getName(), curNode.getRealmAddress());
       } else {
-        for (TrieNode child : curNode._children.values()) {
+        for (TrieNode child : curNode.getChildren().values()) {
           nodeStack.push(child);
         }
       }
@@ -73,9 +82,15 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return resultMap;
   }
 
-  public String getMetadataStoreRealm(String path) throws NoSuchElementException {
+  public String getMetadataStoreRealm(String path)
+      throws IllegalArgumentException, NoSuchElementException {
+    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
+      throw new IllegalArgumentException(
+          "Provided path is empty or does not have a leading delimiter: " + path);
+    }
+
     TrieNode leafNode = findTrieNode(path, true);
-    return leafNode._realmAddress;
+    return leafNode.getRealmAddress();
   }
 
   /**
@@ -92,35 +107,28 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
    */
   private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
       throws NoSuchElementException {
-    if (path.equals(DELIMITER) || path.equals("")) {
-      if (findLeafAlongPath && !_rootNode._isLeaf) {
+    if (path.equals(DELIMITER)) {
+      if (findLeafAlongPath && !_rootNode.isLeaf()) {
         throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
       }
       return _rootNode;
     }
 
-    String[] splitPath;
-    if (path.substring(0, 1).equals(DELIMITER)) {
-      splitPath = path.substring(1).split(DELIMITER, 0);
-    } else {
-      splitPath = path.split(DELIMITER, 0);
-    }
-
     TrieNode curNode = _rootNode;
-    if (findLeafAlongPath && curNode._isLeaf) {
+    if (findLeafAlongPath && curNode.isLeaf()) {
       return curNode;
     }
-    Map<String, TrieNode> curChildren = curNode._children;
-    for (String pathSection : splitPath) {
+    Map<String, TrieNode> curChildren = curNode.getChildren();
+    for (String pathSection : path.substring(1).split(DELIMITER, 0)) {
       curNode = curChildren.get(pathSection);
       if (curNode == null) {
         throw new NoSuchElementException(
             "The provided path is missing from the trie. Path: " + path);
       }
-      if (findLeafAlongPath && curNode._isLeaf) {
+      if (findLeafAlongPath && curNode.isLeaf()) {
         return curNode;
       }
-      curChildren = curNode._children;
+      curChildren = curNode.getChildren();
     }
     if (findLeafAlongPath) {
       throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
@@ -139,8 +147,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   private boolean isRootShardingKey(Map<String, List<String>> routingData) {
     if (routingData.values().size() == 1) {
       for (List<String> shardingKeys : routingData.values()) {
-        return shardingKeys.size() == 1
-            && (shardingKeys.get(0).equals(DELIMITER) || shardingKeys.get(0).equals(""));
+        return shardingKeys.size() == 1 && shardingKeys.get(0).equals(DELIMITER);
       }
     }
 
@@ -149,9 +156,9 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   /**
    * Constructs a trie based on the provided routing data. It loops through all sharding keys and
-   * construct the trie in a top down manner.
+   * constructs the trie in a top down manner.
    * @param routingData- a mapping from "sharding keys" to "realm addresses" to be parsed into a
-   *          * trie
+   *          trie
    * @throws InvalidRoutingDataException - when there is an empty sharding key (edge case that
    *           always renders the routing data invalid); when there is a sharding key which already
    *           contains a sharding key (invalid); when there is a sharding key that is a part of
@@ -160,17 +167,22 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   private void constructTrie(Map<String, List<String>> routingData)
       throws InvalidRoutingDataException {
     for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
+      if (entry.getValue().isEmpty()) {
+        throw new InvalidRoutingDataException(
+            "Realm address does not have associating sharding keys: " + entry.getKey());
+      }
       for (String shardingKey : entry.getValue()) {
-        // Add a leading delimiter if there isn't any
-        if (!shardingKey.substring(0, 1).equals(DELIMITER)) {
-          shardingKey = DELIMITER + shardingKey;
+        // Missing leading delimiter is invalid
+        if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
+          throw new InvalidRoutingDataException(
+              "Sharding key does not have a leading delimiter: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
         // running, the special case has already been checked, therefore it's definitely invalid
         if (shardingKey.equals(DELIMITER)) {
           throw new InvalidRoutingDataException(
-              "There exists other sharding keys. Root cannot be a sharding key.");
+              "There exist other sharding keys. Root cannot be a sharding key.");
         }
 
         // Locate the next delimiter
@@ -179,25 +191,27 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
         String keySection = shardingKey.substring(prevDelimiterIndex + 1,
             nextDelimiterIndex > 0 ? nextDelimiterIndex : shardingKey.length());
         TrieNode curNode = _rootNode;
-        TrieNode nextNode = curNode._children.get(keySection);
+        TrieNode nextNode = curNode.getChildren().get(keySection);
 
-        // If the key section is not the last section yet, perform the following
+        // If the key section is not the last section yet, go in the loop; if the key section is the
+        // last section, exit
         while (nextDelimiterIndex > 0) {
-          // If the node is already a leaf node, the current sharding key is invalid
-          if (nextNode != null && nextNode._isLeaf) {
+          // If the node is already a leaf node, the current sharding key is invalid; if the node
+          // doesn't exist, construct a node and continue
+          if (nextNode != null && nextNode.isLeaf()) {
             throw new InvalidRoutingDataException(shardingKey.substring(0, nextDelimiterIndex)
                 + " is already a sharding key. " + shardingKey + " cannot be a sharding key.");
           } else if (nextNode == null) {
             nextNode = new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex),
                 false, "");
-            curNode._children.put(keySection, nextNode);
+            curNode.addChild(keySection, nextNode);
           }
           prevDelimiterIndex = nextDelimiterIndex;
           nextDelimiterIndex = shardingKey.indexOf(DELIMITER, prevDelimiterIndex + 1);
           keySection = shardingKey.substring(prevDelimiterIndex + 1,
               nextDelimiterIndex > 0 ? nextDelimiterIndex : shardingKey.length());
           curNode = nextNode;
-          nextNode = curNode._children.get(keySection);
+          nextNode = curNode.getChildren().get(keySection);
         }
 
         // If the last node already exists, it's a part of another sharding key, making the current
@@ -207,7 +221,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
               + " is a part of another sharding key, therefore it cannot be a sharding key.");
         }
         nextNode = new TrieNode(new HashMap<>(), shardingKey, true, entry.getKey());
-        curNode._children.put(keySection, nextNode);
+        curNode.addChild(keySection, nextNode);
       }
     }
   }
@@ -217,30 +231,50 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
      * This field is a mapping between trie key and children nodes. For example, node "a" has
      * children "ab" and "ac", therefore the keys are "b" and "c" respectively.
      */
-    Map<String, TrieNode> _children;
+    private Map<String, TrieNode> _children;
     /**
      * This field means if the node is a terminal node in the tree sense, not the trie sense. Any
      * node that has children cannot possibly be a leaf node because only the node without children
      * can store information. If a node is leaf, then it shouldn't have any children.
      */
-    final boolean _isLeaf;
+    private final boolean _isLeaf;
     /**
      * This field aligns the traditional trie design: it entails the complete path/prefix leading to
      * the current node. For example, the name of root node is "/", then the name of its child node
      * is "/a", and the name of the child's child node is "/a/b".
      */
-    final String _name;
+    private final String _name;
     /**
      * This field represents the data contained in a node(which represents a path), and is only
      * available to the terminal nodes.
      */
-    final String _realmAddress;
+    private final String _realmAddress;
 
     TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
       _children = children;
       _isLeaf = isLeaf;
       _name = name;
       _realmAddress = realmAddress;
+    }
+
+    public Map<String, TrieNode> getChildren() {
+      return _children;
+    }
+
+    public boolean isLeaf() {
+      return _isLeaf;
+    }
+
+    public String getName() {
+      return _name;
+    }
+
+    public String getRealmAddress() {
+      return _realmAddress;
+    }
+
+    public void addChild(String key, TrieNode node) {
+      _children.put(key, node);
     }
   }
 }

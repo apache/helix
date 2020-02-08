@@ -33,9 +33,28 @@ public class TestTrieRoutingData {
   private TrieRoutingData _trie;
 
   @Test
+  public void testConstructionMissingRoutingData() {
+    try {
+      new TrieRoutingData(null);
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(e.getMessage().contains("Missing routing data"));
+    }
+    try {
+      new TrieRoutingData(Collections.emptyMap());
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(e.getMessage().contains("Missing routing data"));
+    }
+  }
+
+  /**
+   * This test case is for the situation when there's only one sharding key and it's root.
+   */
+  @Test
   public void testConstructionSpecialCase() {
     Map<String, List<String>> routingData = new HashMap<>();
-    routingData.put("realmAddress", Collections.singletonList(""));
+    routingData.put("realmAddress", Collections.singletonList("/"));
     TrieRoutingData trie;
     try {
       trie = new TrieRoutingData(routingData);
@@ -48,6 +67,34 @@ public class TestTrieRoutingData {
   }
 
   @Test
+  public void testConstructionEmptyShardingKeys() {
+    Map<String, List<String>> routingData = new HashMap<>();
+    routingData.put("realmAddress1", Collections.emptyList());
+    try {
+      new TrieRoutingData(routingData);
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("Realm address does not have associating sharding keys: realmAddress1"));
+    }
+  }
+
+  @Test
+  public void testConstructionShardingKeyNoLeadingSlash() {
+    Map<String, List<String>> routingData = new HashMap<>();
+    routingData.put("realmAddress1", Arrays.asList("/g", "/h/i", "/h/j"));
+    routingData.put("realmAddress2", Arrays.asList("b/c/d", "/b/f"));
+    routingData.put("realmAddress3", Collections.singletonList("/b/c/e"));
+    try {
+      new TrieRoutingData(routingData);
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(
+          e.getMessage().contains("Sharding key does not have a leading delimiter: b/c/d"));
+    }
+  }
+
+  @Test
   public void testConstructionRootAsShardingKeyInvalid() {
     Map<String, List<String>> routingData = new HashMap<>();
     routingData.put("realmAddress1", Arrays.asList("/a/b", "/"));
@@ -56,7 +103,7 @@ public class TestTrieRoutingData {
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
       Assert.assertTrue(e.getMessage()
-          .contains("There exists other sharding keys. Root cannot be a sharding key."));
+          .contains("There exist other sharding keys. Root cannot be a sharding key."));
     }
   }
 
@@ -101,8 +148,8 @@ public class TestTrieRoutingData {
   @Test
   public void testConstructionNormal() {
     Map<String, List<String>> routingData = new HashMap<>();
-    routingData.put("realmAddress1", Arrays.asList("/g", "h/i", "/h/j"));
-    routingData.put("realmAddress2", Arrays.asList("b/c/d", "/b/f"));
+    routingData.put("realmAddress1", Arrays.asList("/g", "/h/i", "/h/j"));
+    routingData.put("realmAddress2", Arrays.asList("/b/c/d", "/b/f"));
     routingData.put("realmAddress3", Collections.singletonList("/b/c/e"));
     try {
       _trie = new TrieRoutingData(routingData);
@@ -112,20 +159,30 @@ public class TestTrieRoutingData {
   }
 
   @Test(dependsOnMethods = "testConstructionNormal")
-  public void testGetAllMappingUnderPathFromRoot() {
-    Map<String, String> result = _trie.getAllMappingUnderPath("/");
-    Assert.assertEquals(result.size(), 6);
-    Assert.assertEquals(result.get("/b/c/d"), "realmAddress2");
-    Assert.assertEquals(result.get("/b/c/e"), "realmAddress3");
-    Assert.assertEquals(result.get("/b/f"), "realmAddress2");
-    Assert.assertEquals(result.get("/g"), "realmAddress1");
-    Assert.assertEquals(result.get("/h/i"), "realmAddress1");
-    Assert.assertEquals(result.get("/h/j"), "realmAddress1");
+  public void testGetAllMappingUnderPathEmptyPath() {
+    try {
+      _trie.getAllMappingUnderPath("");
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(
+          e.getMessage().contains("Provided path is empty or does not have a leading delimiter: "));
+    }
   }
 
   @Test(dependsOnMethods = "testConstructionNormal")
-  public void testGetAllMappingUnderPathFromRootEmptyPath() {
-    Map<String, String> result = _trie.getAllMappingUnderPath("");
+  public void testGetAllMappingUnderPathNoLeadingSlash() {
+    try {
+      _trie.getAllMappingUnderPath("test");
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("Provided path is empty or does not have a leading delimiter: test"));
+    }
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testGetAllMappingUnderPathFromRoot() {
+    Map<String, String> result = _trie.getAllMappingUnderPath("/");
     Assert.assertEquals(result.size(), 6);
     Assert.assertEquals(result.get("/b/c/d"), "realmAddress2");
     Assert.assertEquals(result.get("/b/c/e"), "realmAddress3");
@@ -158,11 +215,13 @@ public class TestTrieRoutingData {
   }
 
   @Test(dependsOnMethods = "testConstructionNormal")
-  public void testGetMetadataStoreRealm() {
+  public void testGetMetadataStoreRealmEmptyPath() {
     try {
-      Assert.assertEquals(_trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddress2");
-    } catch (NoSuchElementException e) {
-      Assert.fail("Not expecting NoSuchElementException");
+      Assert.assertEquals(_trie.getMetadataStoreRealm(""), "realmAddress2");
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(
+          e.getMessage().contains("Provided path is empty or does not have a leading delimiter: "));
     }
   }
 
@@ -170,6 +229,17 @@ public class TestTrieRoutingData {
   public void testGetMetadataStoreRealmNoSlash() {
     try {
       Assert.assertEquals(_trie.getMetadataStoreRealm("b/c/d/x/y/z"), "realmAddress2");
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("Provided path is empty or does not have a leading delimiter: b/c/d/x/y/z"));
+    }
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testGetMetadataStoreRealm() {
+    try {
+      Assert.assertEquals(_trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddress2");
     } catch (NoSuchElementException e) {
       Assert.fail("Not expecting NoSuchElementException");
     }

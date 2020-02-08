@@ -33,6 +33,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -514,8 +515,10 @@ public class TestWagedRebalance extends ZkTestBase {
     ExternalView oldEV =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, moreDB);
 
-    // Expire the controller session so it will reset the internal rebalancer's status.
-    simulateSessionExpiry(_controller.getZkClient());
+    _controller.handleNewSession();
+    // Trigger a rebalance to test if the rebalancer calculate with empty cache states.
+    RebalanceScheduler.invokeRebalance(_controller.getHelixDataAccessor(), moreDB);
+
     // After reset done, the rebalancer will try to rebalance all the partitions since it has
     // forgotten the previous state.
     // TODO remove this sleep after fix https://github.com/apache/helix/issues/526

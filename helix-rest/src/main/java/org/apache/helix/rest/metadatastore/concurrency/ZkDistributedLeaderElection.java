@@ -19,14 +19,9 @@ package org.apache.helix.rest.metadatastore.concurrency;
  * under the License.
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.ZNRecord;
@@ -45,14 +40,11 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
 
   private final HelixZkClient _zkClient;
   private final String _basePath;
-  // TODO: make this a Map and serialize to make it generic
   private final ZNRecord _participantInfo;
   private ZNRecord _currentLeaderInfo;
 
   private String _myEphemeralSequentialPath;
-  private String _watchedEphemeralSequentialPath;
   private volatile boolean _isLeader;
-  private ReentrantLock _lock = new ReentrantLock();
 
   public ZkDistributedLeaderElection(HelixZkClient zkClient, String basePath,
       ZNRecord participantInfo) {
@@ -82,8 +74,9 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
       // Okay if it exists already
     }
 
-    _myEphemeralSequentialPath =
-        _zkClient.create(_basePath + "/" + PREFIX, null, CreateMode.EPHEMERAL_SEQUENTIAL);
+    // Create my ephemeral sequential node with my information
+    _myEphemeralSequentialPath = _zkClient
+        .create(_basePath + "/" + PREFIX, _participantInfo, CreateMode.EPHEMERAL_SEQUENTIAL);
     if (_myEphemeralSequentialPath == null) {
       throw new IllegalStateException(
           "Unable to create ephemeral sequential node at path: " + _basePath);
@@ -104,8 +97,9 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
       // My turn for leadership
       _isLeader = true;
       _currentLeaderInfo = leaderInfo;
+      LOG.info("{} acquired leadership! Info: {}", myName, leaderInfo);
     } else {
-      // Watch the guy before me
+      // Watch the ephemeral ZNode before me for a deletion event
       String beforeMe = children.get(children.indexOf(myName) - 1);
       _zkClient.subscribeDataChanges(_basePath + "/" + beforeMe, this);
     }
@@ -120,29 +114,29 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
   }
 
   @Override
-  public synchronized void handleStateChanged(Watcher.Event.KeeperState state) throws Exception {
+  public synchronized void handleStateChanged(Watcher.Event.KeeperState state) {
     if (state == Watcher.Event.KeeperState.SyncConnected) {
       init();
     }
   }
 
   @Override
-  public void handleNewSession(String sessionId) throws Exception {
+  public void handleNewSession(String sessionId) {
     return;
   }
 
   @Override
-  public void handleSessionEstablishmentError(Throwable error) throws Exception {
+  public void handleSessionEstablishmentError(Throwable error) {
     return;
   }
 
   @Override
-  public void handleDataChange(String s, Object o) throws Exception {
+  public void handleDataChange(String s, Object o) {
     return;
   }
 
   @Override
-  public void handleDataDeleted(String s) throws Exception {
+  public void handleDataDeleted(String s) {
     tryAcquiringLeadership();
   }
 }

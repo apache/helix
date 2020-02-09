@@ -31,7 +31,6 @@ import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.metadatastore.exceptions.ZkLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private static final Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final String _namespace;
-  private final String _zkAddress;
   private final HelixZkClient _zkClient;
   private final ZkDistributedLeaderElection _leaderElection;
 
@@ -52,7 +50,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     if (zkAddress == null || zkAddress.isEmpty()) {
       throw new IllegalArgumentException("Zk address cannot be null or empty!");
     }
-    _zkAddress = zkAddress;
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));

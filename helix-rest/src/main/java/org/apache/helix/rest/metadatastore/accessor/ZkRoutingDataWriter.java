@@ -66,6 +66,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     }
 
     // Get the hostname (REST endpoint) from System property
+    // TODO: Fill in when Helix REST implementations are ready
     ZNRecord myServerInfo = new ZNRecord("dummy hostname");
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
@@ -104,7 +105,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalStateException("ZkClient is closed!");
       }
       // If the realm does not exist already, then create the realm
-      if (!_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
+      String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm;
+      if (!_zkClient.exists(realmPath)) {
         // Create the realm
         if (!createZkRealm(realm)) {
           // Failed to create the realm - log and return false
@@ -118,8 +120,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       // Add the sharding key to an empty ZNRecord
       ZNRecord znRecord;
       try {
-        znRecord =
-            _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+        znRecord = _zkClient.readData(realmPath);
       } catch (Exception e) {
         LOG.error(
             "Failed to read the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
@@ -129,8 +130,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
           Collections.singletonList(shardingKey));
       try {
-        _zkClient
-            .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
+        _zkClient.writeData(realmPath, znRecord);
       } catch (Exception e) {
         LOG.error(
             "Failed to write the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
@@ -206,13 +206,13 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         ZNRecord znRecord = new ZNRecord(zkRealm);
         znRecord
             .setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeyList);
+
+        String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm;
         try {
-          if (!_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm)) {
-            _zkClient
-                .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          if (!_zkClient.exists(realmPath)) {
+            _zkClient.createPersistent(realmPath);
           }
-          _zkClient
-              .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm, znRecord);
+          _zkClient.writeData(realmPath, znRecord);
         } catch (Exception e) {
           LOG.error("Failed to write data in setRoutingData()! Namespace: {}, Realm: {}",
               _namespace, zkRealm, e);

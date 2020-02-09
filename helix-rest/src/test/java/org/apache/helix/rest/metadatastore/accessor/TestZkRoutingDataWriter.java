@@ -45,7 +45,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     _zkRoutingDataWriter = new ZkRoutingDataWriter(DUMMY_NAMESPACE, ZK_ADDR);
   }
 
-  @AfterClass
+  @AfterClassc
   public void afterClass() {
     _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
     _zkRoutingDataWriter.close();
@@ -99,7 +99,10 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
         .get(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM, null,
             AccessOption.PERSISTENT);
     Assert.assertNotNull(znRecord);
+    Assert.assertEquals(
+        znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).size(), 1);
     Assert.assertTrue(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
         .contains(DUMMY_SHARDING_KEY));
+
   }
 }

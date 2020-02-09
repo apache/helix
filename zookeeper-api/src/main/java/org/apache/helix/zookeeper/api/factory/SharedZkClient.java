@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.helix.zookeeper.api.HelixZkClient;
 import org.apache.helix.zookeeper.api.ZkClient;
-import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.apache.zookeeper.CreateMode;

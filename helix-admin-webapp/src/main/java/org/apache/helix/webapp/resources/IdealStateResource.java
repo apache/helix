@@ -27,7 +27,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.codehaus.jackson.JsonGenerationException;

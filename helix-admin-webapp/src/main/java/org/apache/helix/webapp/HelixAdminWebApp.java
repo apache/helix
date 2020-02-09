@@ -21,7 +21,7 @@ package org.apache.helix.webapp;
 
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.webapp.resources.ResourceUtil;
 import org.restlet.Component;
 import org.restlet.Context;

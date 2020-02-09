@@ -35,14 +35,15 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestHandleNewSession extends ZkTestBase {
   @Test
   public void testHandleNewSession() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -127,8 +128,9 @@ public class TestHandleNewSession extends ZkTestBase {
     accessor.removeProperty(keyBuilder.controllerLeader());
     // 3. expire the session and create a new session
     ZkTestHelper.asyncExpireSession(manager._zkclient);
-    Assert.assertTrue(TestHelper.verify(
-        () -> !((ZkClient) manager._zkclient).getConnection().getZookeeperState().isAlive(), 3000));
+    Assert.assertTrue(TestHelper
+        .verify(() -> !((ZkClient) manager._zkclient).getConnection().getZookeeperState().isAlive(),
+            3000));
     // 4. start processing event again
     ((ZkClient) manager._zkclient).getEventLock().unlock();
 
@@ -151,14 +153,17 @@ public class TestHandleNewSession extends ZkTestBase {
       // Newly created node should have a new creating time but with old session.
       LiveInstance invalidLeaderNode = accessor.getProperty(keyBuilder.controllerLeader());
       // node exist
-      if (invalidLeaderNode == null)
+      if (invalidLeaderNode == null) {
         return false;
+      }
       // node is newly created
-      if (invalidLeaderNode.getStat().getCreationTime() == originalCreationTime)
+      if (invalidLeaderNode.getStat().getCreationTime() == originalCreationTime) {
         return false;
+      }
       // node has the same session as the old one, so it's invalid
-      if (!invalidLeaderNode.getSessionId().equals(originalSessionId))
+      if (!invalidLeaderNode.getSessionId().equals(originalSessionId)) {
         return false;
+      }
       return true;
     }, 2000));
     Assert.assertFalse(manager.isLeader());
@@ -194,16 +199,14 @@ public class TestHandleNewSession extends ZkTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(ZK_ADDR));
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR,
-        12918, // participant port
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
         10, // partitions per resource
         5, // number of nodes
         3, // replicas
-        "MasterSlave",
-        true); // do rebalance
+        "MasterSlave", true); // do rebalance
 
     final String instanceName = "localhost_12918";
     final BlockingHandleNewSessionZkHelixManager manager =
@@ -319,16 +322,14 @@ public class TestHandleNewSession extends ZkTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(ZK_ADDR));
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR,
-        12918, // participant port
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
         10, // partitions per resource
         5, // number of nodes
         3, // replicas
-        "MasterSlave",
-        true); // do rebalance
+        "MasterSlave", true); // do rebalance
 
     // 1. Original session S0 initialized
     final String instanceName = "localhost_12918";
@@ -412,7 +413,6 @@ public class TestHandleNewSession extends ZkTestBase {
 
       // Notify the main thread that live instance is already created by session S2.
       mainThreadBlocker.countDown();
-
     }).start();
 
     // Lock zk event processing to simulate a long backlog queue.
@@ -452,14 +452,14 @@ public class TestHandleNewSession extends ZkTestBase {
       // and have a new creation time.
       LiveInstance newLiveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
       return newLiveInstance != null
-          && newLiveInstance.getStat().getCreationTime() != originalCreationTime
-          && newLiveInstance.getEphemeralOwner().equals(latestSessionId);
+          && newLiveInstance.getStat().getCreationTime() != originalCreationTime && newLiveInstance
+          .getEphemeralOwner().equals(latestSessionId);
     }, 2000L));
 
     // All the callback handlers shall be recovered.
     Assert.assertTrue(TestHelper.verify(() -> manager.getHandlers().size() == handlerCount, 1000L));
-    Assert.assertTrue(TestHelper.verify(
-        () -> manager.getHandlers().stream().allMatch(CallbackHandler::isReady), 3000L));
+    Assert.assertTrue(TestHelper
+        .verify(() -> manager.getHandlers().stream().allMatch(CallbackHandler::isReady), 3000L));
 
     // Clean up.
     manager.disconnect();

@@ -22,7 +22,7 @@ package org.apache.helix.webapp.resources;
 import java.io.IOException;
 
 import org.apache.helix.PropertyType;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;

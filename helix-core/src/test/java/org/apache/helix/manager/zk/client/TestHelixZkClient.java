@@ -21,10 +21,10 @@ package org.apache.helix.manager.zk.client;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.testng.Assert;
@@ -56,7 +56,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       zkConnectionManager.close();
       Assert.fail("Dedicated ZkClient cannot be closed while sharing!");
-    } catch (HelixException hex) {
+    } catch (ZkClientException hex) {
       // expected
     }
 
@@ -73,7 +73,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       new SharedZkClient(zkConnectionManager, new HelixZkClient.ZkClientConfig(), null);
       Assert.fail("Sharing a closed dedicated ZkClient shall fail.");
-    } catch (HelixException hex) {
+    } catch (ZkClientException hex) {
       // expected
     }
 
@@ -142,7 +142,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       sharedZkClientA.createEphemeral(TEST_PATH, true);
       Assert.fail("Create Ephemeral nodes using shared client should fail.");
-    } catch (HelixException he) {
+    } catch (UnsupportedOperationException e) {
       // expected.
     }
 

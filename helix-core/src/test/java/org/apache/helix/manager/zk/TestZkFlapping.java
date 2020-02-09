@@ -33,8 +33,10 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.model.LiveInstance;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestZkFlapping extends ZkUnitTestBase {
   private final int _disconnectThreshold = 5;

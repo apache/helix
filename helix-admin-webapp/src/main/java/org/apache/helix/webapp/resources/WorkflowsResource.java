@@ -33,7 +33,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;

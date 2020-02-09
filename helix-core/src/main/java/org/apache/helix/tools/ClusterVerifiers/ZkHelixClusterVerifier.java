@@ -31,7 +31,7 @@ import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.zookeeper.api.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.api.HelixZkClient;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;

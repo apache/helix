@@ -50,7 +50,7 @@ public class ZkConnectionManager extends ZkClient {
   private final static String MONITOR_TYPE = "ZkConnectionManager";
   private final String _monitorKey;
   // Set of all registered watchers
-  private final Set<Watcher> _sharedWatchers = new HashSet<>();
+  protected final Set<Watcher> _sharedWatchers = new HashSet<>();
 
   /**
    * Construct and init a ZkConnection Manager.
@@ -129,7 +129,7 @@ public class ZkConnectionManager extends ZkClient {
     LOG.info("ZkConnection {} was closed.", _monitorKey);
   }
 
-  private void cleanupInactiveWatchers() {
+  protected void cleanupInactiveWatchers() {
     Set<Watcher> closedWatchers = new HashSet<>();
     for (Watcher watcher : _sharedWatchers) {
       // TODO ideally, we shall have a ClosableWatcher interface so as to check accordingly. -- JJ

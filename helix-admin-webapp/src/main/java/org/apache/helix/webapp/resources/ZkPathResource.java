@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.zookeeper.data.Stat;
 import org.restlet.data.MediaType;

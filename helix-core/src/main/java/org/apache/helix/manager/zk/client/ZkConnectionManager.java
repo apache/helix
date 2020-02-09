@@ -19,7 +19,11 @@ package org.apache.helix.manager.zk.client;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
+import org.apache.zookeeper.Watcher;
 
 
 /**
@@ -36,5 +40,21 @@ class ZkConnectionManager extends org.apache.helix.zookeeper.api.factory.ZkConne
   protected ZkConnectionManager(IZkConnection zkConnection, long connectionTimeout,
       String monitorKey) {
     super(zkConnection, connectionTimeout, monitorKey);
+  }
+
+  /**
+   * Need to override because of the "instanceof" usage doesn't cover subclasses.
+   */
+  @Override
+  protected void cleanupInactiveWatchers() {
+    super.cleanupInactiveWatchers();
+    Set<Watcher> closedWatchers = new HashSet<>();
+    for (Watcher watcher : _sharedWatchers) {
+      // TODO ideally, we shall have a ClosableWatcher interface so as to check accordingly. -- JJ
+      if (watcher instanceof SharedZkClient && ((SharedZkClient) watcher).isClosed()) {
+        closedWatchers.add(watcher);
+      }
+    }
+    _sharedWatchers.removeAll(closedWatchers);
   }
 }

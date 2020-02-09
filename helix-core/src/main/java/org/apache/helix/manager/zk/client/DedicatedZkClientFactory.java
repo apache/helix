@@ -19,7 +19,7 @@ package org.apache.helix.manager.zk.client;
  * under the License.
  */
 
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.api.ZkClient;
 
 
 /**

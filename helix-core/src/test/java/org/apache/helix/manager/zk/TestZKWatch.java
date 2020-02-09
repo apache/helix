@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;

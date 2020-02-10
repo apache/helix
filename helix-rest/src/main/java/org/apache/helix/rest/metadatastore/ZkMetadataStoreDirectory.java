@@ -168,7 +168,8 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     // Safe to ignore the callback if any of the mapping is null.
     // If routingDataMap is null, then it will be populated by the constructor anyway
     // If routingDataMap is not null, then it's safe for the callback function to update it
-    if (_routingZkAddressMap == null || _routingDataMap == null || _realmToShardingKeysMap == null) {
+    if (_routingZkAddressMap == null || _routingDataMap == null
+        || _realmToShardingKeysMap == null) {
       LOG.error("Construction is not completed! ");
       return;
     }
@@ -188,8 +189,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       MetadataStoreRoutingData routingData = new TrieRoutingData(rawRoutingData);
       _routingDataMap.put(namespace, routingData);
     } catch (InvalidRoutingDataException e) {
-      LOG.error("Failed to refresh cached routing data for namespace {}, exception: {}", namespace,
-          e.getMessage());
+      LOG.error("Failed to refresh cached routing data for namespace {}", namespace, e);
     }
 
   }

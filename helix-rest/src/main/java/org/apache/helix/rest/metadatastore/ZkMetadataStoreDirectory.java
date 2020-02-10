@@ -165,9 +165,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
    */
   @Override
   public void refreshRoutingData(String namespace) {
-    // Safe to ignore the callback if routingDataMap is null.
+    // Safe to ignore the callback if any of the mapping is null.
     // If routingDataMap is null, then it will be populated by the constructor anyway
     // If routingDataMap is not null, then it's safe for the callback function to update it
+    if (_routingZkAddressMap == null || _routingDataMap == null || _realmToShardingKeysMap == null) {
+      LOG.error("Construction is not completed! ");
+      return;
+    }
 
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
@@ -181,10 +185,8 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           _routingDataReaderMap.get(namespace).getRoutingData();
       _realmToShardingKeysMap.put(namespace, rawRoutingData);
 
-      if (_routingDataMap != null) {
-        MetadataStoreRoutingData routingData = new TrieRoutingData(rawRoutingData);
-        _routingDataMap.put(namespace, routingData);
-      }
+      MetadataStoreRoutingData routingData = new TrieRoutingData(rawRoutingData);
+      _routingDataMap.put(namespace, routingData);
     } catch (InvalidRoutingDataException e) {
       LOG.error("Failed to refresh cached routing data for namespace {}, exception: {}", namespace,
           e.getMessage());

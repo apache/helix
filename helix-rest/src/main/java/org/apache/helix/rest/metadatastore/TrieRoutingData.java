@@ -55,8 +55,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: " + path);
+      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
+          + DELIMITER + "\" character: " + path);
     }
 
     TrieNode curNode;
@@ -85,8 +85,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   public String getMetadataStoreRealm(String path)
       throws IllegalArgumentException, NoSuchElementException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: " + path);
+      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
+          + DELIMITER + "\" character: " + path);
     }
 
     TrieNode leafNode = findTrieNode(path, true);
@@ -174,8 +174,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
         if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
-          throw new InvalidRoutingDataException(
-              "Sharding key does not have a leading \"" + DELIMITER + "\" character: " + shardingKey);
+          throw new InvalidRoutingDataException("Sharding key does not have a leading \""
+              + DELIMITER + "\" character: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
@@ -199,8 +199,9 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
           // If the node is already a leaf node, the current sharding key is invalid; if the node
           // doesn't exist, construct a node and continue
           if (nextNode != null && nextNode.isLeaf()) {
-            throw new InvalidRoutingDataException(shardingKey.substring(0, nextDelimiterIndex)
-                + " is already a sharding key. " + shardingKey + " cannot be a sharding key.");
+            throw new InvalidRoutingDataException(shardingKey + " cannot be a sharding key because "
+                + shardingKey.substring(0, nextDelimiterIndex)
+                + " is its parent key and is also a sharding key.");
           } else if (nextNode == null) {
             nextNode = new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex),
                 false, "");
@@ -218,7 +219,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
         // sharding key invalid
         if (nextNode != null) {
           throw new InvalidRoutingDataException(shardingKey
-              + " is a part of another sharding key, therefore it cannot be a sharding key.");
+              + " cannot be a sharding key because it is a parent key to another sharding key.");
         }
         nextNode = new TrieNode(new HashMap<>(), shardingKey, true, entry.getKey());
         curNode.addChild(keySection, nextNode);

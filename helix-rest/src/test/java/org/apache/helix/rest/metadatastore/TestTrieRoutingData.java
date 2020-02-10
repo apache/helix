@@ -115,8 +115,8 @@ public class TestTrieRoutingData {
       new TrieRoutingData(routingData);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("/a/b is already a sharding key. /a/b/c cannot be a sharding key."));
+      Assert.assertTrue(e.getMessage().contains(
+          "/a/b/c cannot be a sharding key because /a/b is its parent key and is also a sharding key."));
     }
   }
 
@@ -129,7 +129,7 @@ public class TestTrieRoutingData {
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
       Assert.assertTrue(e.getMessage().contains(
-          "/a/b is a part of another sharding key, therefore it cannot be a sharding key."));
+          "/a/b cannot be a sharding key because it is a parent key to another sharding key."));
     }
   }
 

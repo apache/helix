@@ -57,7 +57,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
     // create() semantic will fail if it already exists
     try {
-      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
     } catch (ZkNodeExistsException e) {
       // This is okay
     }
@@ -238,16 +238,16 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       LOG.warn("createZkRealm() called for realm: {}, but this realm already exists! Namespace: {}",
           realm, _namespace);
       return true;
-    } else {
-      try {
-        _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
-        _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm,
-            new ZNRecord(realm));
-      } catch (Exception e) {
-        LOG.error("Failed to create ZkRealm: {}, Namespace: ", realm, _namespace);
-        return false;
-      }
     }
+    try {
+      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+      _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm,
+          new ZNRecord(realm));
+    } catch (Exception e) {
+      LOG.error("Failed to create ZkRealm: {}, Namespace: ", realm, _namespace);
+      return false;
+    }
+
     return true;
   }
 }

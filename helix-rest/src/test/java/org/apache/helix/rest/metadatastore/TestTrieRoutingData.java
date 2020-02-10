@@ -38,13 +38,13 @@ public class TestTrieRoutingData {
       new TrieRoutingData(null);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("Missing routing data"));
+      Assert.assertTrue(e.getMessage().contains("routingData cannot be null or empty"));
     }
     try {
       new TrieRoutingData(Collections.emptyMap());
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains("Missing routing data"));
+      Assert.assertTrue(e.getMessage().contains("routingData cannot be null or empty"));
     }
   }
 
@@ -90,7 +90,7 @@ public class TestTrieRoutingData {
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
       Assert.assertTrue(
-          e.getMessage().contains("Sharding key does not have a leading delimiter: b/c/d"));
+          e.getMessage().contains("Sharding key does not have a leading \"/\" character: b/c/d"));
     }
   }
 
@@ -164,8 +164,8 @@ public class TestTrieRoutingData {
       _trie.getAllMappingUnderPath("");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(
-          e.getMessage().contains("Provided path is empty or does not have a leading delimiter: "));
+      Assert.assertTrue(e.getMessage()
+          .contains("Provided path is empty or does not have a leading \"/\" character: "));
     }
   }
 
@@ -176,7 +176,7 @@ public class TestTrieRoutingData {
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       Assert.assertTrue(e.getMessage()
-          .contains("Provided path is empty or does not have a leading delimiter: test"));
+          .contains("Provided path is empty or does not have a leading \"/\" character: test"));
     }
   }
 
@@ -220,8 +220,8 @@ public class TestTrieRoutingData {
       Assert.assertEquals(_trie.getMetadataStoreRealm(""), "realmAddress2");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(
-          e.getMessage().contains("Provided path is empty or does not have a leading delimiter: "));
+      Assert.assertTrue(e.getMessage()
+          .contains("Provided path is empty or does not have a leading \"/\" character: "));
     }
   }
 
@@ -231,8 +231,8 @@ public class TestTrieRoutingData {
       Assert.assertEquals(_trie.getMetadataStoreRealm("b/c/d/x/y/z"), "realmAddress2");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Provided path is empty or does not have a leading delimiter: b/c/d/x/y/z"));
+      Assert.assertTrue(e.getMessage().contains(
+          "Provided path is empty or does not have a leading \"/\" character: b/c/d/x/y/z"));
     }
   }
 

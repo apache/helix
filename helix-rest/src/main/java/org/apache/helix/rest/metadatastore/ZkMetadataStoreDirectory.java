@@ -156,9 +156,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   /**
    * Callback for updating the cached routing data.
-   * Note: this method should not synchronize on the class or the map. We do not want namespaces blocking each other.
+   * Note: this method should not synchronize on the class or the map. We do not want namespaces
+   * blocking each other.
    * Threadsafe map is used for _realmToShardingKeysMap.
-   * The global consistency of the in-memory routing data is not a requirement (eventual consistency is enough).
+   * The global consistency of the in-memory routing data is not a requirement (eventual consistency
+   * is enough).
    * @param namespace
    */
   @Override
@@ -169,20 +171,23 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
-      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: " + namespace);
+      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: {}",
+          namespace);
       return;
     }
 
     try {
-      Map<String, List<String>> routingData = _routingDataReaderMap.get(namespace).getRoutingData();
-      _realmToShardingKeysMap.put(namespace, routingData);
+      Map<String, List<String>> rawRoutingData =
+          _routingDataReaderMap.get(namespace).getRoutingData();
+      _realmToShardingKeysMap.put(namespace, rawRoutingData);
 
       if (_routingDataMap != null) {
-        MetadataStoreRoutingData newRoutingData = new TrieRoutingData(routingData);
-        _routingDataMap.put(namespace, newRoutingData);
+        MetadataStoreRoutingData routingData = new TrieRoutingData(rawRoutingData);
+        _routingDataMap.put(namespace, routingData);
       }
     } catch (InvalidRoutingDataException e) {
-      LOG.error("Routing data construction has failed for namespace: " + namespace + "!");
+      LOG.error("Failed to refresh cached routing data for namespace {}, exception: {}", namespace,
+          e.getMessage());
     }
 
   }

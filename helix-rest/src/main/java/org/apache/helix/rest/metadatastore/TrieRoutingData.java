@@ -41,7 +41,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public TrieRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException {
     if (routingData == null || routingData.isEmpty()) {
-      throw new InvalidRoutingDataException("Missing routing data");
+      throw new InvalidRoutingDataException("routingData cannot be null or empty");
     }
 
     if (isRootShardingKey(routingData)) {
@@ -56,7 +56,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
       throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading delimiter: " + path);
+          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: " + path);
     }
 
     TrieNode curNode;
@@ -86,7 +86,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       throws IllegalArgumentException, NoSuchElementException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
       throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading delimiter: " + path);
+          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: " + path);
     }
 
     TrieNode leafNode = findTrieNode(path, true);
@@ -175,7 +175,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
         // Missing leading delimiter is invalid
         if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
           throw new InvalidRoutingDataException(
-              "Sharding key does not have a leading delimiter: " + shardingKey);
+              "Sharding key does not have a leading \"" + DELIMITER + "\" character: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is

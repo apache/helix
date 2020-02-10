@@ -71,8 +71,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     nodeStack.push(curNode);
     while (!nodeStack.isEmpty()) {
       curNode = nodeStack.pop();
-      if (curNode.isLeaf()) {
-        resultMap.put(curNode.getName(), curNode.getRealmAddress());
+      if (curNode.isShardingKey()) {
+        resultMap.put(curNode.getPath(), curNode.getRealmAddress());
       } else {
         for (TrieNode child : curNode.getChildren().values()) {
           nodeStack.push(child);
@@ -108,14 +108,14 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
       throws NoSuchElementException {
     if (path.equals(DELIMITER)) {
-      if (findLeafAlongPath && !_rootNode.isLeaf()) {
+      if (findLeafAlongPath && !_rootNode.isShardingKey()) {
         throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
       }
       return _rootNode;
     }
 
     TrieNode curNode = _rootNode;
-    if (findLeafAlongPath && curNode.isLeaf()) {
+    if (findLeafAlongPath && curNode.isShardingKey()) {
       return curNode;
     }
     Map<String, TrieNode> curChildren = curNode.getChildren();
@@ -125,7 +125,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
         throw new NoSuchElementException(
             "The provided path is missing from the trie. Path: " + path);
       }
-      if (findLeafAlongPath && curNode.isLeaf()) {
+      if (findLeafAlongPath && curNode.isShardingKey()) {
         return curNode;
       }
       curChildren = curNode.getChildren();
@@ -198,7 +198,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
         while (nextDelimiterIndex > 0) {
           // If the node is already a leaf node, the current sharding key is invalid; if the node
           // doesn't exist, construct a node and continue
-          if (nextNode != null && nextNode.isLeaf()) {
+          if (nextNode != null && nextNode.isShardingKey()) {
             throw new InvalidRoutingDataException(shardingKey + " cannot be a sharding key because "
                 + shardingKey.substring(0, nextDelimiterIndex)
                 + " is its parent key and is also a sharding key.");
@@ -234,27 +234,26 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
      */
     private Map<String, TrieNode> _children;
     /**
-     * This field means if the node is a terminal node in the tree sense, not the trie sense. Any
-     * node that has children cannot possibly be a leaf node because only the node without children
-     * can store information. If a node is leaf, then it shouldn't have any children.
+     * This field states whether the path represented by the node is a sharding key
      */
-    private final boolean _isLeaf;
+    private final boolean _isShardingKey;
     /**
-     * This field aligns the traditional trie design: it entails the complete path/prefix leading to
-     * the current node. For example, the name of root node is "/", then the name of its child node
+     * This field contains the complete path/prefix leading to the current node. For example, the
+     * name of root node is "/", then the name of its child node
      * is "/a", and the name of the child's child node is "/a/b".
      */
-    private final String _name;
+    private final String _path;
     /**
      * This field represents the data contained in a node(which represents a path), and is only
      * available to the terminal nodes.
      */
     private final String _realmAddress;
 
-    TrieNode(Map<String, TrieNode> children, String name, boolean isLeaf, String realmAddress) {
+    TrieNode(Map<String, TrieNode> children, String path, boolean isShardingKey,
+        String realmAddress) {
       _children = children;
-      _isLeaf = isLeaf;
-      _name = name;
+      _isShardingKey = isShardingKey;
+      _path = path;
       _realmAddress = realmAddress;
     }
 
@@ -262,12 +261,12 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       return _children;
     }
 
-    public boolean isLeaf() {
-      return _isLeaf;
+    public boolean isShardingKey() {
+      return _isShardingKey;
     }
 
-    public String getName() {
-      return _name;
+    public String getPath() {
+      return _path;
     }
 
     public String getRealmAddress() {

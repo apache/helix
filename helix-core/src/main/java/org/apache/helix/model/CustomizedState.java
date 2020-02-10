@@ -138,9 +138,7 @@ public class CustomizedState extends HelixProperty {
 
   private void setProperty(String partitionName, CustomizedStateProperty property, String value) {
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
-    if (mapFields.get(partitionName) == null) {
-      mapFields.put(partitionName, new TreeMap<String, String>());
-    }
+    mapFields.putIfAbsent(partitionName, new TreeMap<String, String>());
     mapFields.get(partitionName).put(property.name(), value);
   }
 

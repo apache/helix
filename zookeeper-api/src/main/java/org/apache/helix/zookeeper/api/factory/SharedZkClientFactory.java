@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * Singleton factory that build shared ZkClient which use a shared ZkConnection.
  */
 public class SharedZkClientFactory extends HelixZkClientFactory {
-  private static Logger LOG = LoggerFactory.getLogger(SharedZkClient.class);
+  private static Logger LOG = LoggerFactory.getLogger(SharedZkClientFactory.class);
   // The connection pool to track all created connections.
   private final HashMap<HelixZkClient.ZkConnectionConfig, ZkConnectionManager>
       _connectionManagerPool = new HashMap<>();

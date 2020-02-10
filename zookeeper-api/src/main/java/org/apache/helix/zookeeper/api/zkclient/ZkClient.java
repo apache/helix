@@ -1221,7 +1221,7 @@ public class ZkClient implements Watcher {
   /**
    * Delete the path as well as all its children.
    * @param path
-   * @throws HelixException
+   * @throws ZkClientException
    */
   public void deleteRecursively(String path) throws ZkClientException {
     List<String> children;

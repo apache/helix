@@ -277,7 +277,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
                 wagedRebalancer.getClass().getSimpleName(), ex.getFailureType()), ex);
       }
     } else {
-      LogUtil.logError(logger, _eventId,
+      LogUtil.logWarn(logger, _eventId,
           "Skip rebalancing using the WAGED rebalancer since it is not configured in the rebalance pipeline.");
     }
 

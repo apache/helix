@@ -115,12 +115,6 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.CURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
-    addEntry(PropertyType.CUSTOMIZEDSTATES, 2,
-        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES");
-    addEntry(PropertyType.CUSTOMIZEDSTATES, 3,
-        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}");
-    addEntry(PropertyType.CUSTOMIZEDSTATES, 4,
-        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}/{resourceName}");
     addEntry(PropertyType.STATUSUPDATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES, 3,

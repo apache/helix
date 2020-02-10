@@ -1043,22 +1043,34 @@ public class TaskUtil {
    * @param dataProvider
    * @param manager
    */
-  public static void workflowGarbageCollection(WorkflowControllerDataProvider dataProvider,
+  public static void workflowGarbageCollection(final WorkflowControllerDataProvider dataProvider,
       final HelixManager manager) {
     // Garbage collections for conditions where workflow context exists but config is missing.
-    Map<String, ZNRecord> contexts = dataProvider.getContexts();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
+    // toBeDeletedWorkflows is a set that contains the name of the workflows that their contexts
+    // should be deleted.
     Set<String> toBeDeletedWorkflows = new HashSet<>();
-    for (Map.Entry<String, ZNRecord> entry : contexts.entrySet()) {
-      if (entry.getValue() != null
-          && entry.getValue().getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
-        if (dataProvider.getWorkflowConfig(entry.getKey()) == null) {
-          toBeDeletedWorkflows.add(entry.getKey());
+    try {
+      Set<String> existingWorkflowContexts = new HashSet<>(dataProvider.getContexts().keySet());
+      for (String entry : existingWorkflowContexts) {
+        if (entry != null) {
+          WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
+          WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
+          if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
+            if (cfg == null) {
+              toBeDeletedWorkflows.add(entry);
+            }
+          }
         }
       }
+    } catch (Exception e) {
+      LOG.warn(String.format(
+          "Exception occurred while creating a list of all existing contexts with missing config!! Reason: %s"),
+          e.getMessage());
     }
+
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
     for (String workflowName : toBeDeletedWorkflows) {
       LOG.warn(String.format(

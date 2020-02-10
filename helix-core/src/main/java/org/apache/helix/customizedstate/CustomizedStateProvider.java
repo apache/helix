@@ -19,6 +19,7 @@ package org.apache.helix.customizedstate;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -30,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class for Helix customers to input customized state
+ * Class for Helix customers to operate on customized state
  */
 public class CustomizedStateProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
@@ -42,20 +43,46 @@ public class CustomizedStateProvider {
     _instanceName = instanceName;
   }
 
-  public synchronized void updateCustomizedState(String customizedStateName,
-      Map<String, Map<String, Map<String, String>>> customizedState) {
-    for (String resourceName : customizedState.keySet()) {
-      ZNRecord record = new ZNRecord(resourceName);
-      record.setMapFields(customizedState.get(resourceName));
-      HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      if (!accessor.setProperty(
-          keyBuilder.customizedState(_instanceName, customizedStateName, record.getId()),
-          new CustomizedState(record))) {
+  /**
+   * Update the customized state based on the resource name and partition name
+   */
+  public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
+      String partitionName, Map<String, String> customizedState) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey propertyKey =
+        keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
+    ZNRecord record = new ZNRecord(resourceName);
+    Map<String, Map<String, String>> mapFields = new HashMap<>();
+    mapFields.put(partitionName, customizedState);
+    record.setMapFields(mapFields);
+    if (!accessor.updateProperty(propertyKey, new CustomizedState(record))) {
         throw new HelixException(String.format(
             "Failed to persist customized state %s to zk for instance %s, resource %s",
             customizedStateName, _instanceName, record.getId()));
       }
     }
+
+  /**
+   * Get the customized state for a specified resource
+   */
+  public CustomizedState getCustomizedState(String customizedStateName, String resourceName) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return (CustomizedState) accessor
+        .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName));
+  }
+
+  /**
+   * Get the customized state for a specified resource and a specified partition
+   */
+  public Map<String, String> getPerPartitionCustomizedState(String customizedStateName,
+      String resourceName, String partitionName) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Map<String, Map<String, String>> mapView = accessor
+        .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
+        .getRecord().getMapFields();
+    return mapView.get(partitionName);
   }
 }

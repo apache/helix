@@ -23,6 +23,6 @@ package org.apache.helix.manager.zk.zookeeper;
  * Use IZkStateListener in zookeeper-api module instead.
  */
 @Deprecated
-public interface IZkStateListener extends org.apache.helix.zookeeper.api.zkclient.IZkStateListener {
+public interface IZkStateListener extends org.apache.helix.zookeeper.zkclient.IZkStateListener {
 
 }

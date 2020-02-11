@@ -19,7 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

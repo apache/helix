@@ -34,9 +34,9 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
-import org.apache.helix.zookeeper.api.zkclient.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 public class IntegrationTest {

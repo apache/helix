@@ -32,7 +32,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CardDealingAdjustmentAlgorithmV2;

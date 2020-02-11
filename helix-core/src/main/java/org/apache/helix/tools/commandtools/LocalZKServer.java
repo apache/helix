@@ -19,9 +19,9 @@ package org.apache.helix.tools.commandtools;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
-import org.apache.helix.zookeeper.api.zkclient.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 /**

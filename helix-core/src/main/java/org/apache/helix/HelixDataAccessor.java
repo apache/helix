@@ -27,8 +27,8 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**

@@ -19,14 +19,14 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.zkclient.ZkEventThread;
+import org.apache.helix.zookeeper.zkclient.ZkEventThread;
 
 /**
  * Use ZkClientMonitor in zookeeper-api module instead.
  */
 @Deprecated
 public class ZkClientMonitor
-    extends org.apache.helix.zookeeper.api.zkclient.metric.ZkClientMonitor {
+    extends org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor {
   public ZkClientMonitor(String monitorType, String monitorKey, String monitorInstanceName,
       boolean monitorRootOnly, ZkEventThread zkEventThread) {
     super(monitorType, monitorKey, monitorInstanceName, monitorRootOnly, zkEventThread);

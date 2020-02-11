@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
 public class ChainedPathZkSerializer implements PathBasedZkSerializer {

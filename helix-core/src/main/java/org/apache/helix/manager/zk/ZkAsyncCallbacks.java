@@ -24,5 +24,5 @@ package org.apache.helix.manager.zk;
  */
 @Deprecated
 public class ZkAsyncCallbacks
-    extends org.apache.helix.zookeeper.api.zkclient.callback.ZkAsyncCallbacks {
+    extends org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks {
 }

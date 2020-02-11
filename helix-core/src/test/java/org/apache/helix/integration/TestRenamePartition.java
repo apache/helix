@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;

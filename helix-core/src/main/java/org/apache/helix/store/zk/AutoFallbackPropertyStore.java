@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

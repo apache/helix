@@ -30,7 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ConstraintItem;

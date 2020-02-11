@@ -27,12 +27,12 @@ import java.util.List;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecordUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

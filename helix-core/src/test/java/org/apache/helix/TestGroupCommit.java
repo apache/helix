@@ -23,7 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.helix.mock.MockBaseDataAccessor;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class TestGroupCommit {

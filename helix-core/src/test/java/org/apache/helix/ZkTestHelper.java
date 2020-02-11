@@ -41,13 +41,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
-import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
-import org.apache.helix.zookeeper.api.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.api.zkclient.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -57,7 +57,7 @@ import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class ZkTestHelper {

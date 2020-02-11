@@ -26,5 +26,5 @@ package org.apache.helix.manager.zk;
  * this serializer doesn't check for the size of the resulting binary.
  */
 @Deprecated
-public class ZNRecordJacksonSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.ZNRecordJacksonSerializer {
+public class ZNRecordJacksonSerializer extends org.apache.helix.zookeeper.datamodel.serializer.ZNRecordJacksonSerializer {
 }

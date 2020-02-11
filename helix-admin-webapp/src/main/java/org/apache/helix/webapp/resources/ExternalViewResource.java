@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;

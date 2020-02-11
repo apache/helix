@@ -25,5 +25,5 @@ package org.apache.helix.manager.zk.serializer;
  * Serializes and deserializes data of a generic type using Jackson
  */
 @Deprecated
-public class JacksonPayloadSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.JacksonPayloadSerializer {
+public class JacksonPayloadSerializer extends org.apache.helix.zookeeper.datamodel.serializer.JacksonPayloadSerializer {
 }

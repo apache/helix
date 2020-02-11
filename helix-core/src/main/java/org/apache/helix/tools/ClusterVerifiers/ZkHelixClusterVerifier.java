@@ -31,11 +31,11 @@ import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
-import org.apache.helix.zookeeper.api.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
-import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,14 +19,17 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+
+
 /**
  * Use BasicZkSerializer in zookeeper-api module instead.
  */
 @Deprecated
 public class BasicZkSerializer
-    extends org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer {
+    extends org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer {
   public BasicZkSerializer(
-      org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer delegate) {
+      ZkSerializer delegate) {
     super(delegate);
   }
 }

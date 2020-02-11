@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;

@@ -22,10 +22,10 @@ package org.apache.helix.util;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

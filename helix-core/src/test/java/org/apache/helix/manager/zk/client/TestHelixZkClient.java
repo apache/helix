@@ -23,10 +23,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.exception.ZkClientException;
-import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
-import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

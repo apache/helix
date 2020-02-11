@@ -24,7 +24,7 @@ package org.apache.helix;
  * Operations to divide a ZNRecord into specified buckets
  */
 @Deprecated
-public class ZNRecordBucketizer extends org.apache.helix.zookeeper.api.datamodel.ZNRecordBucketizer {
+public class ZNRecordBucketizer extends org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer {
   /**
    * Instantiate a bucketizer with the number of buckets
    * @param bucketSize

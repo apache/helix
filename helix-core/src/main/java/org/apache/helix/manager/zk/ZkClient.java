@@ -20,12 +20,13 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
-import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer;
-import org.apache.helix.zookeeper.api.zkclient.serialize.SerializableSerializer;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,42 +84,42 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
    *            Should only stat of access to root path be reported to JMX bean or path-specific stat be reported too.
    */
   public ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
     super(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
         monitorKey, monitorInstanceName, monitorRootPathOnly);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       long operationRetryTimeout) {
     this(connection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
         monitorKey, null, true);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
     this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, DEFAULT_OPERATION_TIMEOUT);
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), Integer.MAX_VALUE,
-        new org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer(new SerializableSerializer()), monitorType, monitorKey);
+    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), Integer.MAX_VALUE,
+        new BasicZkSerializer(new SerializableSerializer()), monitorType, monitorKey);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer, monitorType,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer, monitorType,
         monitorKey);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer) {
+      PathBasedZkSerializer zkSerializer) {
     this(connection, connectionTimeout, zkSerializer, null, null);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout, ZkSerializer zkSerializer) {
-    this(connection, connectionTimeout, new org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer(zkSerializer));
+    this(connection, connectionTimeout, new BasicZkSerializer(zkSerializer));
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout) {
@@ -131,21 +132,21 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
       ZkSerializer zkSerializer) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
-      org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+      PathBasedZkSerializer zkSerializer) {
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, sessionTimeout), connectionTimeout,
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout,
         new SerializableSerializer());
   }
 
   public ZkClient(String zkServers, int connectionTimeout) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), connectionTimeout,
+    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), connectionTimeout,
         new SerializableSerializer());
   }
 
@@ -155,21 +156,21 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
 
   public ZkClient(final String zkServers, final int sessionTimeout, final int connectionTimeout,
       final ZkSerializer zkSerializer, final long operationRetryTimeout) {
-    this(new org.apache.helix.zookeeper.api.zkclient.ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer,
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer,
         operationRetryTimeout);
   }
 
   public ZkClient(final IZkConnection zkConnection, final int connectionTimeout,
       final ZkSerializer zkSerializer, final long operationRetryTimeout) {
     this(zkConnection, connectionTimeout, operationRetryTimeout,
-        new org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer(zkSerializer), null, null, null, false);
+        new BasicZkSerializer(zkSerializer), null, null, null, false);
   }
 
   public static class Builder {
     IZkConnection _connection;
     String _zkServer;
 
-    org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer _zkSerializer;
+    PathBasedZkSerializer _zkSerializer;
 
     long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
     int _connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
@@ -191,7 +192,7 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
     }
 
     public Builder setZkSerializer(
-        org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer zkSerializer) {
+        PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
       return this;
     }
@@ -260,7 +261,7 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
       }
 
       if (_zkSerializer == null) {
-        _zkSerializer = new org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer(new SerializableSerializer());
+        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
       }
 
       return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,

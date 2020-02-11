@@ -30,12 +30,12 @@ import java.util.TreeMap;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;

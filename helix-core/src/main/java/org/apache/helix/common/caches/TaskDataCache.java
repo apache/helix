@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.ResourceAssignment;

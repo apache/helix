@@ -19,7 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**
@@ -27,7 +27,7 @@ import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
  * Class that specifies how a ZNRecord should be updated with another ZNRecord
  */
 @Deprecated
-public class ZNRecordUpdater extends org.apache.helix.zookeeper.api.datamodel.ZNRecordUpdater {
+public class ZNRecordUpdater extends org.apache.helix.zookeeper.datamodel.ZNRecordUpdater {
   /**
    * Initialize with the record that will be updated
    * @param record

@@ -35,9 +35,9 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
-import org.apache.helix.zookeeper.api.zkclient.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 public class Quickstart {

@@ -24,7 +24,7 @@ package org.apache.helix.util;
  */
 @Deprecated
 public class ExponentialBackoffStrategy
-    extends org.apache.helix.zookeeper.api.zkclient.util.ExponentialBackoffStrategy {
+    extends org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy {
   public ExponentialBackoffStrategy(long maxRetryInterval, boolean addJitter) {
     super(maxRetryInterval, addJitter);
   }

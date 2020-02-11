@@ -30,8 +30,8 @@ import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.model.builder.SemiAutoModeISBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 
 
 public class IdealStateBuilderExample {

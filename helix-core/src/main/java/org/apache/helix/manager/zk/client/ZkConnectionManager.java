@@ -22,7 +22,7 @@ package org.apache.helix.manager.zk.client;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.zookeeper.Watcher;
 
 
@@ -30,7 +30,7 @@ import org.apache.zookeeper.Watcher;
  * Deprecated - use ZkConnectionManager in zookeeper-api instead.
  */
 @Deprecated
-class ZkConnectionManager extends org.apache.helix.zookeeper.api.impl.factory.ZkConnectionManager {
+class ZkConnectionManager extends org.apache.helix.zookeeper.impl.factory.ZkConnectionManager {
   /**
    * Construct and init a ZkConnection Manager.
    *  @param zkConnection

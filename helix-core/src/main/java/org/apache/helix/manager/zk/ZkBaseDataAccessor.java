@@ -33,18 +33,19 @@ import org.apache.helix.HelixException;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
-import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
-import org.apache.helix.zookeeper.api.zkclient.callback.ZkAsyncCallbacks;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkBadVersionException;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkException;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
@@ -139,7 +140,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.zookeeper.api.datamodel.ZNRecord} as the data model.
+   * Creates a ZkBaseDataAccessor with {@link ZNRecord} as the data model.
    * Uses a shared ZkConnection resource.
    * Does NOT support ephemeral node creation, callbacks, or session management.
    * Uses {@link ZNRecordSerializer} serializer
@@ -150,7 +151,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Creates a ZkBaseDataAccessor with {@link org.apache.helix.zookeeper.api.datamodel.ZNRecord} as the data model.
+   * Creates a ZkBaseDataAccessor with {@link ZNRecord} as the data model.
    * If DEDICATED, it will use a dedicated ZkConnection, which allows ephemeral
    * node creation, callbacks, and session management.
    * If SHARED, it will use a shared ZkConnection, which only allows simple

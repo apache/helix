@@ -26,7 +26,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;

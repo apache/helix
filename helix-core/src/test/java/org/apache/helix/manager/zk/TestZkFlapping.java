@@ -33,7 +33,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.model.LiveInstance;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

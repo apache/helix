@@ -40,7 +40,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.util.WeightAwareRebalanceUtil;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 public class WeightAwareRebalanceUtilExample {

@@ -22,7 +22,7 @@ package org.apache.helix.model;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

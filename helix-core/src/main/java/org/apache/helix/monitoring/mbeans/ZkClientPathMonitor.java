@@ -24,7 +24,7 @@ package org.apache.helix.monitoring.mbeans;
  */
 @Deprecated
 public class ZkClientPathMonitor
-    extends org.apache.helix.zookeeper.api.zkclient.metric.ZkClientPathMonitor {
+    extends org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor {
   public ZkClientPathMonitor(PredefinedPath path, String monitorType, String monitorKey,
       String monitorInstanceName) {
     super(path, monitorType, monitorKey, monitorInstanceName);

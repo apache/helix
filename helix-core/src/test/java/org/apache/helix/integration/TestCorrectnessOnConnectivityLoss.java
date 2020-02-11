@@ -39,7 +39,7 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;

@@ -19,7 +19,7 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.LeaderStandbySMD;
 import org.apache.helix.model.MasterSlaveSMD;

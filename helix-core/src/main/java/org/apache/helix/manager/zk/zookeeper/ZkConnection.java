@@ -15,7 +15,7 @@ package org.apache.helix.manager.zk.zookeeper;
  * Use ZkConnection in zookeeper-api module instead.
  */
 @Deprecated
-public class ZkConnection extends org.apache.helix.zookeeper.api.zkclient.ZkConnection {
+public class ZkConnection extends org.apache.helix.zookeeper.zkclient.ZkConnection {
 
   public ZkConnection(String zkServers) {
     super(zkServers);

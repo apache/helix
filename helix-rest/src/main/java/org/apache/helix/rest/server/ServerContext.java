@@ -27,18 +27,18 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
 public class ServerContext {

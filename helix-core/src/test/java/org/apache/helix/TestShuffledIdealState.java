@@ -34,7 +34,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class TestShuffledIdealState {

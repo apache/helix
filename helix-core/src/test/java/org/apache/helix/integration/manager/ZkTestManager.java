@@ -22,7 +22,7 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 
 public interface ZkTestManager {
   HelixZkClient getZkClient();

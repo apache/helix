@@ -5,5 +5,5 @@ package org.apache.helix.manager.zk.client;
  * HelixZkClient interface.
  */
 @Deprecated
-public interface HelixZkClient extends org.apache.helix.zookeeper.api.api.client.HelixZkClient {
+public interface HelixZkClient extends org.apache.helix.zookeeper.api.client.HelixZkClient {
 }

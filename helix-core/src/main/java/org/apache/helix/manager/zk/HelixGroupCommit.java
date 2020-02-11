@@ -25,9 +25,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkBadVersionException;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

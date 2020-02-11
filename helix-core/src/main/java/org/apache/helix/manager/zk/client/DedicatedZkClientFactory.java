@@ -25,5 +25,5 @@ package org.apache.helix.manager.zk.client;
  * Singleton factory that build dedicated clients using the raw ZkClient.
  */
 @Deprecated
-public class DedicatedZkClientFactory extends org.apache.helix.zookeeper.api.impl.factory.DedicatedZkClientFactory {
+public class DedicatedZkClientFactory extends org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory {
 }

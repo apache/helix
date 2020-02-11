@@ -23,5 +23,5 @@ package org.apache.helix.util;
  * Deprecated - please use GZipCompressionUtil in zookeeper-api.
  */
 @Deprecated
-public class GZipCompressionUtil extends org.apache.helix.zookeeper.api.util.GZipCompressionUtil {
+public class GZipCompressionUtil extends org.apache.helix.zookeeper.util.GZipCompressionUtil {
 }

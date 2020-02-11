@@ -22,9 +22,9 @@ package org.apache.helix.webapp.resources;
 import java.util.Map;
 
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.tools.ClusterSetup;
 import org.restlet.data.MediaType;

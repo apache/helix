@@ -22,7 +22,7 @@ package org.apache.helix.tools;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 
 /**
  * Please use the class is in tools.ClusterVerifiers.

@@ -51,8 +51,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecordDelta;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

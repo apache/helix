@@ -24,5 +24,5 @@ package org.apache.helix.manager.zk;
  */
 @Deprecated
 public interface PathBasedZkSerializer
-    extends org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer {
+    extends org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer {
 }

@@ -19,7 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * A ZNode that signals that the cluster is in maintenance mode.

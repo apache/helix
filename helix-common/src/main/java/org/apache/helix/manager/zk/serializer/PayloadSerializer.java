@@ -25,5 +25,5 @@ package org.apache.helix.manager.zk.serializer;
  * Interface for converting back and forth between raw bytes and generic objects
  */
 @Deprecated
-public interface PayloadSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.PayloadSerializer {
+public interface PayloadSerializer extends org.apache.helix.zookeeper.datamodel.serializer.PayloadSerializer {
 }

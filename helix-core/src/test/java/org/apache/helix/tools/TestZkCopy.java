@@ -23,7 +23,7 @@ import java.util.Date;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.tools.commandtools.ZkCopy;

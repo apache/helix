@@ -19,7 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**

@@ -23,11 +23,11 @@ import java.util.logging.Level;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.zookeeper.api.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.webapp.AdminTestHelper.AdminThread;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.restlet.Client;
 import org.restlet.data.Protocol;
 import org.slf4j.Logger;

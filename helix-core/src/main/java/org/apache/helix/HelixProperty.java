@@ -27,9 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecordDelta;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

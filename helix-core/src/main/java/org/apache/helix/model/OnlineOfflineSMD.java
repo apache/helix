@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Helix built-in Online-offline state model definition

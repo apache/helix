@@ -32,7 +32,7 @@ import org.apache.helix.model.CurrentState.CurrentStateProperty;
 import org.apache.helix.model.Message;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class TestZKRoutingInfoProvider {

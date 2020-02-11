@@ -10,15 +10,15 @@
  */
 package org.apache.helix.manager.zk.zookeeper;
 
-import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
-import org.apache.helix.zookeeper.api.zkclient.serialize.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 
 
 /**
  * Use ZkClient in zookeeper-api module instead.
  */
 @Deprecated
-public class ZkClient extends org.apache.helix.zookeeper.api.zkclient.ZkClient {
+public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient {
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {

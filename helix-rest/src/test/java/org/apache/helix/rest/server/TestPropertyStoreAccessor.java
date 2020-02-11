@@ -24,11 +24,11 @@ import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.http.HttpStatus;
 import org.codehaus.jackson.JsonNode;
 import org.junit.Assert;

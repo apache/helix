@@ -26,7 +26,7 @@ import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -28,9 +28,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.taskexecution.Dag.Node;
-import org.apache.helix.zookeeper.api.zkclient.IDefaultNameSpace;
-import org.apache.helix.zookeeper.api.zkclient.ZkClient;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 /**

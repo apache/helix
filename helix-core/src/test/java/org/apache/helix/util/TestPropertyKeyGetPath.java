@@ -22,7 +22,7 @@ package org.apache.helix.util;
 import com.google.common.base.Joiner;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowContext;

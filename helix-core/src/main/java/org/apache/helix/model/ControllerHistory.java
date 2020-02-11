@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**

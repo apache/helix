@@ -22,11 +22,11 @@ package org.apache.helix.mock.participant;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.Message;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 
 
 // simulate access property store and update one znode

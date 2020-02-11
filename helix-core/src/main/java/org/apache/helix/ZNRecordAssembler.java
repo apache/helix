@@ -24,5 +24,5 @@ package org.apache.helix;
  * Constructs ZNRecords from collections of ZNRecords
  */
 @Deprecated
-public class ZNRecordAssembler extends org.apache.helix.zookeeper.api.datamodel.ZNRecordAssembler {
+public class ZNRecordAssembler extends org.apache.helix.zookeeper.datamodel.ZNRecordAssembler {
 }

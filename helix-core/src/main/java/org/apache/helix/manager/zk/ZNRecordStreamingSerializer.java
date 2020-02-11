@@ -23,5 +23,5 @@ package org.apache.helix.manager.zk;
  * Use ZNRecordStreamingSerializer in zookeeper-api module instead.
  */
 @Deprecated
-public class ZNRecordStreamingSerializer extends org.apache.helix.zookeeper.api.datamodel.serializer.ZNRecordStreamingSerializer {
+public class ZNRecordStreamingSerializer extends org.apache.helix.zookeeper.datamodel.serializer.ZNRecordStreamingSerializer {
 }

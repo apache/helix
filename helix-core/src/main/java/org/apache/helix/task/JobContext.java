@@ -29,7 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Provides a typed interface to the context information stored by {@link TaskRebalancer} in the

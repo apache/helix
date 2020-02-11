@@ -23,7 +23,7 @@ package org.apache.helix.manager.zk.client;
  * Deprecated; use SharedZkClient in zookeeper-api instead.
  */
 @Deprecated
-class SharedZkClient extends org.apache.helix.zookeeper.api.impl.client.SharedZkClient {
+class SharedZkClient extends org.apache.helix.zookeeper.impl.client.SharedZkClient {
   /**
    * Construct a shared RealmAwareZkClient that uses a shared ZkConnection.
    *  @param connectionManager     The manager of the shared ZkConnection.
@@ -31,7 +31,7 @@ class SharedZkClient extends org.apache.helix.zookeeper.api.impl.client.SharedZk
    * @param callback              Clean up logic when the shared RealmAwareZkClient is closed.
    */
   protected SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
-      org.apache.helix.zookeeper.api.impl.client.SharedZkClient.OnCloseCallback callback) {
+      org.apache.helix.zookeeper.impl.client.SharedZkClient.OnCloseCallback callback) {
     super(connectionManager, clientConfig, callback);
   }
 }

@@ -30,11 +30,11 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.zookeeper.api.zkclient.DataUpdater;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecordUpdater;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class MockAccessor implements HelixDataAccessor {

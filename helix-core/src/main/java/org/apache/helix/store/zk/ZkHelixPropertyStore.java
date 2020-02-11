@@ -23,7 +23,7 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
 public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {

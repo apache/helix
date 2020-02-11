@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceHardConstraint;
 import org.apache.helix.api.rebalancer.constraint.AbstractRebalanceSoftConstraint;
 import org.apache.helix.api.rebalancer.constraint.dataprovider.CapacityProvider;

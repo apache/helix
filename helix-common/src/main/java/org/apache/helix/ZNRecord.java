@@ -33,16 +33,16 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 @Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
-public class ZNRecord extends org.apache.helix.zookeeper.api.datamodel.ZNRecord {
+public class ZNRecord extends org.apache.helix.zookeeper.datamodel.ZNRecord {
   public ZNRecord(String id) {
     super(id);
   }
 
-  public ZNRecord(org.apache.helix.zookeeper.api.datamodel.ZNRecord record) {
+  public ZNRecord(org.apache.helix.zookeeper.datamodel.ZNRecord record) {
     super(record);
   }
 
-  public ZNRecord(org.apache.helix.zookeeper.api.datamodel.ZNRecord record, String id) {
+  public ZNRecord(org.apache.helix.zookeeper.datamodel.ZNRecord record, String id) {
     super(record, id);
   }
 }

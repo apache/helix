@@ -41,12 +41,12 @@ import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
-import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
-import org.apache.helix.zookeeper.api.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.api.zkclient.ZkServer;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkSessionMismatchedException;
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkTimeoutException;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -144,7 +144,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * Tests session expiry for the helix's IZkStateListener.
    */
   @Test
-  void testSessionExpiry() throws Exception {
+  void testSessionExpiry()
+      throws Exception {
     long lastSessionId = _zkClient.getSessionId();
 
     // Test multiple times to make sure each time the new session id is increasing.
@@ -166,27 +167,29 @@ public class TestRawZkClient extends ZkUnitTestBase {
   @Test
   public void testSubscribeStateChangesForI0ItecIZkStateListener() {
     int numListeners = _zkClient.numberOfListeners();
-    List<org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener> listeners = new ArrayList<>();
+    List<org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener> listeners =
+        new ArrayList<>();
 
     // Subscribe multiple listeners to test that listener's hashcode works as expected.
     // Each listener is subscribed and unsubscribed successfully.
     for (int i = 0; i < 3; i++) {
-      org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener = new org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener() {
-        @Override
-        public void handleStateChanged(KeeperState state) {
-          System.out.println("Handle new state: " + state);
-        }
+      org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener =
+          new org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener() {
+            @Override
+            public void handleStateChanged(KeeperState state) {
+              System.out.println("Handle new state: " + state);
+            }
 
-        @Override
-        public void handleNewSession() {
-          System.out.println("Handle new session: ");
-        }
+            @Override
+            public void handleNewSession() {
+              System.out.println("Handle new session: ");
+            }
 
-        @Override
-        public void handleSessionEstablishmentError(Throwable error) {
-          System.out.println("Handle session establishment error: " + error);
-        }
-      };
+            @Override
+            public void handleSessionEstablishmentError(Throwable error) {
+              System.out.println("Handle session establishment error: " + error);
+            }
+          };
 
       _zkClient.subscribeStateChanges(listener);
       Assert.assertEquals(_zkClient.numberOfListeners(), ++numListeners);
@@ -199,7 +202,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       listeners.add(listener);
     }
 
-    for (org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener : listeners) {
+    for (org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener : listeners) {
       _zkClient.unsubscribeStateChanges(listener);
       Assert.assertEquals(_zkClient.numberOfListeners(), --numListeners);
     }
@@ -212,9 +215,10 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * TODO: remove this test when getting rid of I0Itec.
    */
   @Test
-  public void testSessionExpiryForI0IItecZkStateListener() throws Exception {
-    org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener listener =
-        new org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener() {
+  public void testSessionExpiryForI0IItecZkStateListener()
+      throws Exception {
+    org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener =
+        new org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener() {
 
           @Override
           public void handleStateChanged(KeeperState state) {
@@ -237,8 +241,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
     long oldSessionId = zookeeper.getSessionId();
     System.out.println("old sessionId= " + oldSessionId);
     Watcher watcher = event -> System.out.println("In New connection In process event:" + event);
-    ZooKeeper newZookeeper = new ZooKeeper(connection.getServers(), zookeeper.getSessionTimeout(),
-        watcher, zookeeper.getSessionId(), zookeeper.getSessionPasswd());
+    ZooKeeper newZookeeper =
+        new ZooKeeper(connection.getServers(), zookeeper.getSessionTimeout(), watcher,
+            zookeeper.getSessionId(), zookeeper.getSessionPasswd());
     Thread.sleep(3000);
     System.out.println("New sessionId= " + newZookeeper.getSessionId());
     Thread.sleep(3000);
@@ -252,7 +257,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
   }
 
   @Test
-  public void testZkClientMonitor() throws Exception {
+  public void testZkClientMonitor()
+      throws Exception {
     final String TEST_KEY = "testZkClientMonitor";
     ZkClient.Builder builder = new ZkClient.Builder();
     builder.setZkServer(ZK_ADDR).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
@@ -273,14 +279,17 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 
-    ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
-    ObjectName rootname = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY,
-        ZkClientPathMonitor.MONITOR_PATH, "Root");
-    ObjectName idealStatename = MBeanRegistrar.buildObjectName(
-        MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE, TEST_TAG,
-        ZkClientMonitor.MONITOR_KEY, TEST_KEY, ZkClientPathMonitor.MONITOR_PATH, "IdealStates");
+    ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
+    ObjectName rootname = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY, ZkClientPathMonitor.MONITOR_PATH,
+            "Root");
+    ObjectName idealStatename = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY, ZkClientPathMonitor.MONITOR_PATH,
+            "IdealStates");
     Assert.assertTrue(beanServer.isRegistered(rootname));
     Assert.assertTrue(beanServer.isRegistered(idealStatename));
 
@@ -337,27 +346,27 @@ public class TestRawZkClient extends ZkUnitTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadLatencyGauge.Max"), 0);
     zkClient.readData(TEST_PATH, new Stat());
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"),
-        TEST_DATA_SIZE);
+    Assert
+        .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"),
         TEST_DATA_SIZE);
-    Assert.assertTrue((long) beanServer.getAttribute(rootname,
-        "ReadTotalLatencyCounter") >= origReadTotalLatencyCounter);
-    Assert.assertTrue((long) beanServer.getAttribute(idealStatename,
-        "ReadTotalLatencyCounter") >= origIdealStatesReadTotalLatencyCounter);
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter")
+        >= origReadTotalLatencyCounter);
+    Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "ReadTotalLatencyCounter")
+        >= origIdealStatesReadTotalLatencyCounter);
     Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "ReadLatencyGauge.Max") >= 0);
     zkClient.getChildren(TEST_PATH);
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 3);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"),
-        TEST_DATA_SIZE);
+    Assert
+        .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"),
         TEST_DATA_SIZE);
     zkClient.getStat(TEST_PATH);
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 4);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"),
-        TEST_DATA_SIZE);
+    Assert
+        .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 3);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"),
         TEST_DATA_SIZE);
@@ -378,10 +387,10 @@ public class TestRawZkClient extends ZkUnitTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "WriteCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "WriteBytesCounter"),
         TEST_DATA_SIZE * 2);
-    Assert.assertTrue((long) beanServer.getAttribute(rootname,
-        "WriteTotalLatencyCounter") >= origWriteTotalLatencyCounter);
-    Assert.assertTrue((long) beanServer.getAttribute(idealStatename,
-        "WriteTotalLatencyCounter") >= origIdealStatesWriteTotalLatencyCounter);
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "WriteTotalLatencyCounter")
+        >= origWriteTotalLatencyCounter);
+    Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "WriteTotalLatencyCounter")
+        >= origIdealStatesWriteTotalLatencyCounter);
 
     // Test data change count
     final Lock lock = new ReentrantLock();
@@ -428,12 +437,14 @@ public class TestRawZkClient extends ZkUnitTestBase {
   }
 
   @Test(dependsOnMethods = "testZkClientMonitor")
-  void testPendingRequestGauge() throws Exception {
+  void testPendingRequestGauge()
+      throws Exception {
     final String TEST_KEY = "testPendingRequestGauge";
 
     final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
-    final ObjectName name = MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(),
-        ZkClientMonitor.MONITOR_TYPE, TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
+    final ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
 
     final int zkPort = TestHelper.getRandomPort();
     final String zkAddr = String.format("localhost:%d", zkPort);
@@ -456,13 +467,15 @@ public class TestRawZkClient extends ZkUnitTestBase {
       executorService.submit(() -> {
         zkClient.exists(TEST_ROOT);
       });
-      Assert.assertTrue(TestHelper.verify(
-          () -> (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 1, 1000));
+      Assert.assertTrue(TestHelper
+          .verify(() -> (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 1,
+              1000));
 
       zkServer.start();
       Assert.assertTrue(zkClient.waitUntilConnected(5000, TimeUnit.MILLISECONDS));
-      Assert.assertTrue(TestHelper.verify(
-          () -> (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 0, 2000));
+      Assert.assertTrue(TestHelper
+          .verify(() -> (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 0,
+              2000));
       zkClient.close();
     } finally {
       zkServer.shutdown();
@@ -473,21 +486,20 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * This test checks that a valid session can successfully create an ephemeral node.
    */
   @Test
-  public void testCreateEphemeralWithValidSession() throws Exception {
+  public void testCreateEphemeralWithValidSession()
+      throws Exception {
     final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR,
-        12918, // participant port
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
         10, // partitions per resource
         5, // number of nodes
         3, // replicas
-        "MasterSlave",
-        true); // do rebalance
+        "MasterSlave", true); // do rebalance
 
     final String originalSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());
     final String path = "/" + methodName;
@@ -533,21 +545,20 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * 4. ZkSessionMismatchedException is expected for the creation and ephemeral node is not created
    */
   @Test
-  public void testCreateEphemeralWithMismatchedSession() throws Exception {
+  public void testCreateEphemeralWithMismatchedSession()
+      throws Exception {
     final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR,
-        12918, // participant port
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
         10, // partitions per resource
         5, // number of nodes
         3, // replicas
-        "MasterSlave",
-        true); // do rebalance
+        "MasterSlave", true); // do rebalance
 
     final long originalSessionId = _zkClient.getSessionId();
     final String originalHexSessionId = ZKUtil.toHexSessionId(originalSessionId);
@@ -592,13 +603,13 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * see if ConnectionLossException was thrown before retry.
    */
   @Test(timeOut = 5 * 60 * 1000L)
-  public void testConnectionLossWhileCreateEphemeral() throws Exception {
+  public void testConnectionLossWhileCreateEphemeral()
+      throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
-    final ZkClient zkClient = new ZkClient.Builder()
-        .setZkServer(ZK_ADDR)
-        .setOperationRetryTimeout(3000L) // 3 seconds
-        .build();
+    final ZkClient zkClient =
+        new ZkClient.Builder().setZkServer(ZK_ADDR).setOperationRetryTimeout(3000L) // 3 seconds
+            .build();
 
     final String expectedSessionId = ZKUtil.toHexSessionId(zkClient.getSessionId());
     final String path = "/" + methodName;
@@ -656,7 +667,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
    * 5. zk client reconnects successfully and creates an ephemeral node
    */
   @Test(timeOut = 5 * 60 * 1000L)
-  public void testRetryUntilConnectedAfterConnectionLoss() throws Exception {
+  public void testRetryUntilConnectedAfterConnectionLoss()
+      throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
     final String expectedSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());

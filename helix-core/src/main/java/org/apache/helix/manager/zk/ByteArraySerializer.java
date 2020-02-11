@@ -19,8 +19,8 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
 public class ByteArraySerializer implements ZkSerializer {

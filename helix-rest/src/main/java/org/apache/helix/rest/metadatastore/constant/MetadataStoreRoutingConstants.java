@@ -24,4 +24,7 @@ public class MetadataStoreRoutingConstants {
 
   // For ZK only
   public static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
+
+  // Leader election ZNode for ZkRoutingDataWriter
+  public static final String LEADER_ELECTION_ZNODE = "/_ZK_ROUTING_DATA_WRITER_LEADER";
 }

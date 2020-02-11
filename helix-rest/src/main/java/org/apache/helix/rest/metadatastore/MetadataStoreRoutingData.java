@@ -22,7 +22,6 @@ package org.apache.helix.rest.metadatastore;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-
 public interface MetadataStoreRoutingData {
   /**
    * Given a path, return all the "metadata store sharding key-metadata store realm address" pairs
@@ -33,15 +32,17 @@ public interface MetadataStoreRoutingData {
    * @param path - the path where the search is conducted
    * @return all "sharding key-realm address" pairs where the sharding keys contain the given
    *         path if the path is valid; empty mapping otherwise
+   * @throws IllegalArgumentException - when the path is invalid
    */
-  Map<String, String> getAllMappingUnderPath(String path);
+  Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException;
 
   /**
    * Given a path, return the realm address corresponding to the sharding key contained in the
    * path. If the path doesn't contain a sharding key, throw NoSuchElementException.
    * @param path - the path where the search is conducted
    * @return the realm address corresponding to the sharding key contained in the path
+   * @throws IllegalArgumentException - when the path is invalid
    * @throws NoSuchElementException - when the path doesn't contain a sharding key
    */
-  String getMetadataStoreRealm(String path) throws NoSuchElementException;
+  String getMetadataStoreRealm(String path) throws IllegalArgumentException, NoSuchElementException;
 }

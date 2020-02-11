@@ -39,7 +39,6 @@ import org.testng.annotations.Test;
 public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   private final String _clusterName = TestHelper.getTestClassName();
-  private final String _lockRoot = "/LOCK";
   private final String _lockMessage = "Test";
   private String _lockPath;
   private ZKHelixNonblockingLock _lock;
@@ -62,8 +61,8 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     pathKeys.add("partition_name");
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.PARTITION, pathKeys);
-    _lockPath = "/" + _clusterName.toUpperCase() + _lockRoot + _participantScope.getZkPath();
-    _lock = new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
+    _lockPath = _participantScope.getZkPath();
+    _lock = new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
   }
 
@@ -81,9 +80,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertTrue(_gZkClient.exists(_lockPath));
 
     // Get lock information
-    LockInfo<ZKHelixNonblockingLockInfo.InfoKey, String> record = _lock.getLockInfo();
-    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.OWNER), _userId);
-    Assert.assertEquals(record.getInfoValue(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE),
+    LockInfo lockInfo = _lock.getLockInfo();
+    Assert.assertEquals(lockInfo.getOwner(), _userId);
+    Assert.assertEquals(lockInfo.getMessage(),
         _lockMessage);
 
     // Check if the user is lock owner
@@ -100,8 +99,8 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     // Fake condition when the lock owner is not current user
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
-    fakeRecord.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name(), fakeUserID);
-    fakeRecord.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(),
+    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
+    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
         String.valueOf(Long.MAX_VALUE));
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
@@ -122,8 +121,8 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     // Fake condition when the current lock already expired
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
-    fakeRecord.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name(), fakeUserID);
-    fakeRecord.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(),
+    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
+    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
         String.valueOf(System.currentTimeMillis()));
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
@@ -141,7 +140,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     List<Callable<Boolean>> threads = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
       ZKHelixNonblockingLock lock =
-          new ZKHelixNonblockingLock(_clusterName, _participantScope, ZK_ADDR, Long.MAX_VALUE,
+          new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE,
               _lockMessage, UUID.randomUUID().toString());
       threads.add(new TestSimultaneousAcquireLock(lock));
     }

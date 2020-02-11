@@ -29,16 +29,11 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient.ZkClientConfig;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
+import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataWriter;
+import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
+import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +47,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   // TODO: enable the line below when implementation is complete
   // The following maps' keys represent the namespace
   private final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
+  private final Map<String, MetadataStoreRoutingDataWriter> _routingDataWriterMap;
   private final Map<String, MetadataStoreRoutingData> _routingDataMap;
   private final Map<String, String> _routingZkAddressMap;
   // <namespace, <realm, <list of sharding keys>> mappings
@@ -68,14 +64,17 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       throw new InvalidRoutingDataException("Routing ZK Addresses given are invalid!");
     }
     _routingDataReaderMap = new HashMap<>();
+    _routingDataWriterMap = new HashMap<>();
     _routingZkAddressMap = routingZkAddressMap;
     _realmToShardingKeysMap = new ConcurrentHashMap<>();
     _routingDataMap = new ConcurrentHashMap<>();
 
-    // Create RoutingDataReaders
+    // Create RoutingDataReaders and RoutingDataWriters
     for (Map.Entry<String, String> routingEntry : _routingZkAddressMap.entrySet()) {
       _routingDataReaderMap.put(routingEntry.getKey(),
           new ZkRoutingDataReader(routingEntry.getKey(), routingEntry.getValue(), this));
+      _routingDataWriterMap.put(routingEntry.getKey(),
+          new ZkRoutingDataWriter(routingEntry.getKey(), routingEntry.getValue()));
 
       // Populate realmToShardingKeys with ZkRoutingDataReader
       _realmToShardingKeysMap.put(routingEntry.getKey(),
@@ -132,26 +131,38 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to add metadata store realm: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataWriterMap.get(namespace).addMetadataStoreRealm(realm);
   }
 
   @Override
   public boolean deleteMetadataStoreRealm(String namespace, String realm) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to delete metadata store realm: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataWriterMap.get(namespace).deleteMetadataStoreRealm(realm);
   }
 
   @Override
   public boolean addShardingKey(String namespace, String realm, String shardingKey) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to add sharding key: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataWriterMap.get(namespace).addShardingKey(realm, shardingKey);
   }
 
   @Override
   public boolean deleteShardingKey(String namespace, String realm, String shardingKey) {
-    // TODO implement when MetadataStoreRoutingDataWriter is ready
-    throw new UnsupportedOperationException();
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to delete sharding key: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataWriterMap.get(namespace).deleteShardingKey(realm, shardingKey);
   }
 
   /**
@@ -165,20 +176,20 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
    */
   @Override
   public void refreshRoutingData(String namespace) {
-    // Safe to ignore the callback if any of the mapping is null.
+    // Safe to ignore the callback if any of the maps are null.
     // If routingDataMap is null, then it will be populated by the constructor anyway
     // If routingDataMap is not null, then it's safe for the callback function to update it
-    if (_routingZkAddressMap == null || _routingDataMap == null
-        || _realmToShardingKeysMap == null) {
-      LOG.error("Construction is not completed! ");
+    if (_routingZkAddressMap == null || _routingDataMap == null || _realmToShardingKeysMap == null
+        || _routingDataReaderMap == null || _routingDataWriterMap == null) {
+      LOG.warn(
+          "refreshRoutingData callback called before ZKMetadataStoreDirectory was fully initialized. Skipping refresh!");
       return;
     }
 
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
-      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: {}",
-          namespace);
-      return;
+      LOG.error(
+          "Failed to refresh internally-cached routing data! Namespace not found: " + namespace);
     }
 
     try {
@@ -197,5 +208,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   @Override
   public synchronized void close() {
     _routingDataReaderMap.values().forEach(MetadataStoreRoutingDataReader::close);
+    _routingDataWriterMap.values().forEach(MetadataStoreRoutingDataWriter::close);
   }
 }

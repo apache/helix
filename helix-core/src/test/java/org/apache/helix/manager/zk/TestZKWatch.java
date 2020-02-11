@@ -25,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.testng.Assert;
@@ -78,7 +79,9 @@ public class TestZKWatch extends ZkUnitTestBase {
     Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
     Assert.assertEquals(zkWatch.get("childWatches").size(), 0);
 
-    Assert.assertEquals(_zkClient.numberOfListeners(), 0);
+    boolean noListenerExists =
+        TestHelper.verify(() -> _zkClient.numberOfListeners() == 0, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(noListenerExists);
   }
 
   @Test(dependsOnMethods = "testSubscribeDataChange")
@@ -114,7 +117,10 @@ public class TestZKWatch extends ZkUnitTestBase {
     Assert.assertEquals(zkWatch.get("existWatches").size(), 0);
     Assert.assertEquals(zkWatch.get("childWatches").size(), 1);
     Assert.assertEquals(zkWatch.get("childWatches").get(0), parentPath);
-    Assert.assertEquals(_zkClient.numberOfListeners(), 0);
+
+    boolean noListenerExists =
+        TestHelper.verify(() -> _zkClient.numberOfListeners() == 0, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(noListenerExists);
 
     // delete the parent path
     _zkClient.delete(parentPath);

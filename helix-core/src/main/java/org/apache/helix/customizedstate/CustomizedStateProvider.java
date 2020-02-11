@@ -37,11 +37,13 @@ import org.slf4j.LoggerFactory;
 public class CustomizedStateProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
   private final HelixManager _helixManager;
+  private final HelixDataAccessor _helixDataAccessor;
   String _instanceName;
 
   public CustomizedStateProvider(HelixManager helixManager, String instanceName) {
     _helixManager = helixManager;
     _instanceName = instanceName;
+    _helixDataAccessor  = _helixManager.getHelixDataAccessor();
   }
 
   /**
@@ -49,15 +51,25 @@ public class CustomizedStateProvider {
    */
   public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
       String partitionName, Map<String, String> customizedState) {
-    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     ZNRecord record = new ZNRecord(resourceName);
     Map<String, Map<String, String>> mapFields = new HashMap<>();
-    mapFields.put(partitionName, customizedState);
+    CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
+    if (existingState != null
+        && existingState.getRecord().getMapFields().containsKey(partitionName)) {
+      Map<String, String> existingMap = new HashMap<>();
+      for (String key : customizedState.keySet()) {
+        existingMap.put(key, customizedState.get(key));
+      }
+
+      mapFields.put(partitionName, existingMap);
+    } else {
+      mapFields.put(partitionName, customizedState);
+    }
     record.setMapFields(mapFields);
-    if (!accessor.updateProperty(propertyKey, new CustomizedState(record))) {
+    if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {
       throw new HelixException(
           String.format("Failed to persist customized state %s to zk for instance %s, resource %s",
               customizedStateName, _instanceName, record.getId()));
@@ -79,27 +91,28 @@ public class CustomizedStateProvider {
    */
   public Map<String, String> getPerPartitionCustomizedState(String customizedStateName,
       String resourceName, String partitionName) {
-    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Map<String, Map<String, String>> mapView = accessor
+    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
+    Map<String, Map<String, String>> mapView = _helixDataAccessor
         .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
         .getRecord().getMapFields();
     return mapView.get(partitionName);
   }
 
+  /**
+   * Delete the customized state for a specified resource and a specified partition
+   */
   public void deletePerPartitionCustomizedState(String customizedStateName, String resourceName,
       String partitionName) {
-    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
-    accessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
+    _helixDataAccessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord current) {
         current.getMapFields().remove(partitionName);
         return current;
-      }},
-      existingState);
+      }
+    }, existingState);
   }
 }

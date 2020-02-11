@@ -76,8 +76,24 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
-    // test update customized state for previous partition
+    // test partial update customized state for previous partition
     Map<String, String> stateMap1 = new HashMap<>();
+    stateMap1.put("PREVIOUS_STATE", "END_OF_PUSH_RECEIVED");
+    mockProvider.updateCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1,
+        stateMap1);
+
+    customizedState = mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME);
+    Assert.assertNotNull(customizedState);
+    Assert.assertEquals(customizedState.getId(), RESOURCE_NAME);
+    mapView = customizedState.getRecord().getMapFields();
+    Assert.assertEquals(mapView.keySet().size(), 1);
+    Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME1);
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 2);
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).get("PREVIOUS_STATE"), "END_OF_PUSH_RECEIVED");
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
+
+    // test full update customized state for previous partition
+    stateMap1 = new HashMap<>();
     stateMap1.put("PREVIOUS_STATE", "END_OF_PUSH_RECEIVED");
     stateMap1.put("CURRENT_STATE", "COMPLETED");
     mockProvider.updateCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1,
@@ -121,8 +137,9 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertEquals(partitionMap2.get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(partitionMap2.get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
-    // test delete
-    mockProvider.deletePerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
+    // test delete customized state for a partition
+    mockProvider.deletePerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME,
+        PARTITION_NAME1);
     customizedState = mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME);
     Assert.assertNotNull(customizedState);
     Assert.assertEquals(customizedState.getId(), RESOURCE_NAME);

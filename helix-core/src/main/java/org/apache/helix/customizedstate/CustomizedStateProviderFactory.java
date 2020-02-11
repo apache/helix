@@ -20,6 +20,7 @@ package org.apache.helix.customizedstate;
  */
 
 import java.util.HashMap;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,7 @@ public class CustomizedStateProviderFactory {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
   private final HashMap<String, CustomizedStateProvider> _customizedStateProviderMap =
       new HashMap<>();
+  private HelixManager _helixManager;
 
   protected CustomizedStateProviderFactory() {
   }
@@ -42,6 +44,14 @@ public class CustomizedStateProviderFactory {
 
   public static CustomizedStateProviderFactory getInstance() {
     return SingletonHelper.INSTANCE;
+  }
+
+  public CustomizedStateProvider buildCustomizedStateProvider(String instanceName) {
+    if (_helixManager == null) {
+      throw new HelixException("Helix Manager has not been set yet.");
+    } else {
+      return buildCustomizedStateProvider(_helixManager, instanceName);
+    }
   }
 
   /**
@@ -63,5 +73,9 @@ public class CustomizedStateProviderFactory {
         return customizedStateProvider;
       }
     }
+  }
+
+  public void setHelixManager(HelixManager helixManager) {
+    _helixManager = helixManager;
   }
 }

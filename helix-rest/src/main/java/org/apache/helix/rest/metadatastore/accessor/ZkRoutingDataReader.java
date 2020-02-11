@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.rest.metadatastore.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,6 +31,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
+import org.apache.helix.rest.metadatastore.RoutingDataListener;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.zookeeper.Watcher;
@@ -41,10 +42,6 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   private final String _zkAddress;
   private final HelixZkClient _zkClient;
   private final RoutingDataListener _routingDataListener;
-
-  public ZkRoutingDataReader(String namespace, String zkAddress) {
-    this(namespace, zkAddress, null);
-  }
 
   public ZkRoutingDataReader(String namespace, String zkAddress,
       RoutingDataListener routingDataListener) {
@@ -115,8 +112,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleDataChange(String s, Object o)
-      throws Exception {
+  public synchronized void handleDataChange(String s, Object o) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -124,8 +120,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleDataDeleted(String s)
-      throws Exception {
+  public synchronized void handleDataDeleted(String s) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -140,8 +135,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleChildChange(String s, List<String> list)
-      throws Exception {
+  public synchronized void handleChildChange(String s, List<String> list) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -156,8 +150,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleStateChanged(Watcher.Event.KeeperState state)
-      throws Exception {
+  public synchronized void handleStateChanged(Watcher.Event.KeeperState state) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -165,8 +158,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleNewSession(String sessionId)
-      throws Exception {
+  public synchronized void handleNewSession(String sessionId) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -174,8 +166,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleSessionEstablishmentError(Throwable error)
-      throws Exception {
+  public synchronized void handleSessionEstablishmentError(Throwable error) {
     if (_zkClient.isClosed()) {
       return;
     }

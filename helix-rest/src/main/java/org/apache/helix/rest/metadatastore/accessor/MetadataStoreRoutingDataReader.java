@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.rest.metadatastore.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -26,6 +26,7 @@ import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataExceptio
 /**
  * An interface for a DAO that fetches routing data from a source and return a key-value mapping
  * that represent the said routing data.
+ * Note: Each data reader connects to a single namespace.
  */
 public interface MetadataStoreRoutingDataReader {
 

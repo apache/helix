@@ -112,8 +112,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleDataChange(String s, Object o)
-      throws Exception {
+  public synchronized void handleDataChange(String s, Object o) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -121,8 +120,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleDataDeleted(String s)
-      throws Exception {
+  public synchronized void handleDataDeleted(String s) {
     if (_zkClient.isClosed()) {
       return;
     }
@@ -137,8 +135,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   }
 
   @Override
-  public synchronized void handleChildChange(String s, List<String> list)
-      throws Exception {
+  public synchronized void handleChildChange(String s, List<String> list) {
     if (_zkClient.isClosed()) {
       return;
     }

@@ -77,7 +77,7 @@ public interface RealmAwareZkClient {
    * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener} listener.
    * @deprecated
    *             This is deprecated. It is kept for backwards compatibility. Please use
-   *             {@link #subscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   *             {@link #subscribeStateChanges(org.apache.helix.zookeeper.api.zkclient.IZkStateListener)}.
    * @param listener {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}
    *          listener
    */
@@ -90,7 +90,7 @@ public interface RealmAwareZkClient {
    * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener} listener.
    * @deprecated
    *             This is deprecated. It is kept for backwards compatibility. Please use
-   *             {@link #unsubscribeStateChanges(org.apache.helix.manager.zk.zookeeper.IZkStateListener)}.
+   *             {@link #unsubscribeStateChanges(org.apache.helix.zookeeper.api.zkclient.IZkStateListener)}.
    * @param listener {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}
    *          listener
    */
@@ -245,8 +245,8 @@ public interface RealmAwareZkClient {
 
   /**
    * A class that wraps a default implementation of
-   * {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}, which means this listener
-   * runs the methods of {@link org.apache.helix.manager.zk.zookeeper.IZkStateListener}.
+   * {@link org.apache.helix.zookeeper.api.zkclient.IZkStateListener}, which means this listener
+   * runs the methods of {@link org.apache.helix.zookeeper.api.zkclient.IZkStateListener}.
    * This is for backward compatibility and to avoid breaking the original implementation of
    * {@link org.apache.helix.zookeeper.api.zkclient.deprecated.IZkStateListener}.
    */

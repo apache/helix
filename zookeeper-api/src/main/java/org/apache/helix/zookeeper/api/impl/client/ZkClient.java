@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * "Raw ZkClient".
  *
- * Raw ZkClient that wraps {@link org.apache.helix.manager.zk.zookeeper.ZkClient},
+ * Raw ZkClient that wraps {@link org.apache.helix.zookeeper.api.zkclient.ZkClient},
  * with additional constructors and builder.
  *
  * Note that, instead of directly constructing a raw RealmAwareZkClient, applications should always use

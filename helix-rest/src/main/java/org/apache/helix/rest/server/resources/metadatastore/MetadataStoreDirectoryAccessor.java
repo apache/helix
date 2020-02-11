@@ -96,14 +96,14 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         shardingKeys =
             getMetadataStoreDirectory().getAllShardingKeys(getHelixNamespace().getName());
         // To avoid allocating unnecessary resource, limit the map's capacity only for
-        // SHARDING_KEYS_NAME.
+        // SHARDING_KEYS.
         responseMap = new HashMap<>(1);
       } else {
         // For endpoint: "/sharding-keys?realm={realmName}"
         shardingKeys = getMetadataStoreDirectory()
             .getAllShardingKeysInRealm(getHelixNamespace().getName(), realm);
         // To avoid allocating unnecessary resource, limit the map's capacity only for
-        // SHARDING_KEYS_NAME and "metadataStoreRealm".
+        // SHARDING_KEYS and SINGLE_METADATA_STORE_REALM.
         responseMap = new HashMap<>(2);
         responseMap.put(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, realm);
       }

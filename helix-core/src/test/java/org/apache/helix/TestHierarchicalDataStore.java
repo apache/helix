@@ -22,8 +22,8 @@ package org.apache.helix;
 import java.io.FileFilter;
 
 import org.apache.helix.controller.HierarchicalDataHolder;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 

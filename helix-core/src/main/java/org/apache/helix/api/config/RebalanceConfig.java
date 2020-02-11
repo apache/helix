@@ -22,7 +22,7 @@ package org.apache.helix.api.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.task.TaskRebalancer;
 import org.slf4j.Logger;

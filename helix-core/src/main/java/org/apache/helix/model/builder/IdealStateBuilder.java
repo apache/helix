@@ -21,7 +21,7 @@ package org.apache.helix.model.builder;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.IdealState;
 
 public abstract class IdealStateBuilder {

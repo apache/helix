@@ -276,11 +276,16 @@ public class TestResourceChangeDetector extends ZkTestBase {
    * Remove an instance completely and see if detector detects.
    */
   @Test(dependsOnMethods = "testDisconnectReconnectInstance")
-  public void testRemoveInstance() {
+  public void testRemoveInstance()
+      throws Exception {
     _participants[0].syncStop();
     InstanceConfig instanceConfig =
         _dataAccessor.getProperty(_keyBuilder.instanceConfig(_participants[0].getInstanceName()));
     _gSetupTool.getClusterManagementTool().dropInstance(CLUSTER_NAME, instanceConfig);
+    // Verify that instance has been removed
+    Assert.assertTrue(TestHelper.verify(() -> _dataAccessor
+        .getProperty(_dataAccessor.keyBuilder().instance(_participants[0].getInstanceName()))
+        == null, TestHelper.WAIT_DURATION));
 
     _dataProvider.notifyDataChange(ChangeType.LIVE_INSTANCE);
     _dataProvider.notifyDataChange(ChangeType.INSTANCE_CONFIG);

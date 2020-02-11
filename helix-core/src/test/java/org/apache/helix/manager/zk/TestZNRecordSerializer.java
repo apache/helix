@@ -14,8 +14,8 @@ import java.util.concurrent.Future;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -35,7 +35,6 @@ package org.apache.helix.controller;
 
 import java.util.Arrays;
 
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -50,6 +49,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

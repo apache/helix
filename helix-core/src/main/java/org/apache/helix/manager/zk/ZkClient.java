@@ -19,12 +19,14 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.I0Itec.zkclient.IZkConnection;
-import org.I0Itec.zkclient.serialize.SerializableSerializer;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,7 +191,8 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
       return this;
     }
 
-    public Builder setZkSerializer(PathBasedZkSerializer zkSerializer) {
+    public Builder setZkSerializer(
+        PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
       return this;
     }

@@ -21,17 +21,18 @@ package org.apache.helix.mock.spectator;
 
 import java.util.List;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 
 /**
@@ -79,7 +80,7 @@ public class MockSpectatorProcess {
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient client) {
+      public void createDefaultNameSpace(ZkClient client) {
         client.deleteRecursive("/" + clusterName);
 
       }

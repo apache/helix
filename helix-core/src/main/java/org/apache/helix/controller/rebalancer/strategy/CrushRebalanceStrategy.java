@@ -30,7 +30,7 @@ import java.util.Set;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;

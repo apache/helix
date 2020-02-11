@@ -27,7 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +41,7 @@ public class HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
   public enum HelixPropertyAttribute {
-    BUCKET_SIZE,
-    BATCH_MESSAGE_MODE
+    BUCKET_SIZE, BATCH_MESSAGE_MODE
   }
 
   protected final ZNRecord _record;
@@ -172,7 +173,8 @@ public class HelixProperty {
    */
   public HelixProperty(ZNRecord record, String id) {
     _record = new ZNRecord(record, id);
-    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(), _record.getEphemeralOwner());
+    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
+        _record.getEphemeralOwner());
   }
 
   /**
@@ -201,7 +203,7 @@ public class HelixProperty {
 
   @Override
   public String toString() {
-    return "ZnRecord=" + _record.toString() + ", Stat=" + _stat.toString() ;
+    return "ZnRecord=" + _record.toString() + ", Stat=" + _stat.toString();
   }
 
   /**
@@ -226,8 +228,9 @@ public class HelixProperty {
    * @param bucketSize the bucket size (will default to 0 if negative)
    */
   public void setBucketSize(int bucketSize) {
-    if (bucketSize <= 0)
+    if (bucketSize <= 0) {
       bucketSize = 0;
+    }
 
     _record.setSimpleField(HelixPropertyAttribute.BUCKET_SIZE.toString(), "" + bucketSize);
   }
@@ -238,7 +241,8 @@ public class HelixProperty {
    * @param record the ZNRecord describing the property
    * @return typed instance corresponding to the record, or null if conversion fails
    */
-  public static <T extends HelixProperty> T convertToTypedInstance(Class<T> clazz, ZNRecord record) {
+  public static <T extends HelixProperty> T convertToTypedInstance(Class<T> clazz,
+      ZNRecord record) {
     if (record == null) {
       return null;
     }
@@ -302,7 +306,7 @@ public class HelixProperty {
       return Collections.emptyList();
     }
 
-    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<ZNRecord> records = new ArrayList<>();
     for (T typedInstance : typedInstances) {
       records.add(typedInstance.getRecord());
     }

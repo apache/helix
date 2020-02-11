@@ -21,11 +21,11 @@ package org.apache.helix.manager.zk;
 
 import java.util.List;
 
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

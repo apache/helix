@@ -21,7 +21,7 @@ package org.apache.helix.participant;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;

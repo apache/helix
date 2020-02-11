@@ -25,13 +25,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZNRecordUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -22,12 +22,14 @@ package org.apache.helix;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 /**
  * Interface used to interact with Helix Data Types like IdealState, Config,
@@ -36,9 +38,13 @@ import org.apache.helix.model.StateModelDefinition;
  */
 public interface HelixDataAccessor {
   boolean createStateModelDef(StateModelDefinition stateModelDef);
+
   boolean createControllerMessage(Message message);
+
   boolean createControllerLeader(LiveInstance leader);
+
   boolean createPause(PauseSignal pauseSignal);
+
   boolean createMaintenance(MaintenanceSignal maintenanceSignal);
 
   /**
@@ -67,7 +73,8 @@ public interface HelixDataAccessor {
    * @param value
    * @return true if the update was successful
    */
-  <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value);
+  <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater,
+      T value);
 
   /**
    * Return the property value, it must be refer to a single Helix Property. i.e

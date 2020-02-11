@@ -38,16 +38,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -57,6 +57,8 @@ import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 public class ZkTestHelper {
   private static Logger LOG = LoggerFactory.getLogger(ZkTestHelper.class);
@@ -116,7 +118,7 @@ public class ZkTestHelper {
     };
 
     zkClient.subscribeStateChanges(listener);
-    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZkConnection connection = (ZkConnection) zkClient.getConnection();
     ZooKeeper curZookeeper = connection.getZookeeper();
     LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
 
@@ -202,8 +204,8 @@ public class ZkTestHelper {
 
     String newSessionId = Long.toHexString(curZookeeper.getSessionId());
     LOG.info("After session expiry. sessionId: " + newSessionId + ", zk: " + curZookeeper);
-    Assert.assertFalse(newSessionId.equals(oldSessionId), "Fail to expire current session, zk: "
-        + curZookeeper);
+    Assert.assertFalse(newSessionId.equals(oldSessionId),
+        "Fail to expire current session, zk: " + curZookeeper);
   }
 
   /**
@@ -270,8 +272,9 @@ public class ZkTestHelper {
             String expectState = expectInstanceStateMap.get(expectInstance);
             boolean equals = expectState.equals(actualState);
             if (op.equals("==") && !equals || op.equals("!=") && equals) {
-              System.out.println(partition + "/" + instance + " state mismatch. actual state: "
-                  + actualState + ", but expect: " + expectState + ", op: " + op);
+              System.out.println(
+                  partition + "/" + instance + " state mismatch. actual state: " + actualState
+                      + ", but expect: " + expectState + ", op: " + op);
               result = false;
             }
           }
@@ -345,8 +348,9 @@ public class ZkTestHelper {
         // so add this retry logic
         retry--;
       } finally {
-        if (sock != null)
+        if (sock != null) {
           sock.close();
+        }
       }
     }
     return listenerMap;

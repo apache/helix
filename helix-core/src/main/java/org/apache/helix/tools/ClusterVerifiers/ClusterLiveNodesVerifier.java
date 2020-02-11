@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.helix.manager.zk.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 
 public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 

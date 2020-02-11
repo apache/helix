@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -40,6 +39,7 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;

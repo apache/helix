@@ -23,20 +23,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * This provides the ability for users to run a custom code in exactly one
@@ -136,12 +136,11 @@ public class HelixCustomCodeRunner {
       // model
       HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
       clientConfig.setZkSerializer(new ZNRecordSerializer());
-      zkClient = SharedZkClientFactory
-          .getInstance().buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+      zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
 
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
-              zkClient));
+          new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       IdealState idealState = new IdealState(_resourceName);
@@ -150,8 +149,8 @@ public class HelixCustomCodeRunner {
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);
       idealState.setStateModelFactoryName(_resourceName);
-      List<String> prefList =
-          new ArrayList<String>(Arrays.asList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
+      List<String> prefList = new ArrayList<String>(
+          Arrays.asList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
       idealState.getRecord().setListField(_resourceName + "_0", prefList);
 
       List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());
@@ -160,14 +159,13 @@ public class HelixCustomCodeRunner {
         idealStates = accessor.getChildNames(keyBuilder.idealStates());
       }
 
-      LOG.info("Set idealState for participantLeader:" + _resourceName + ", idealState:"
-          + idealState);
+      LOG.info(
+          "Set idealState for participantLeader:" + _resourceName + ", idealState:" + idealState);
     } finally {
       if (zkClient != null && !zkClient.isClosed()) {
         zkClient.close();
       }
     }
-
   }
 
   /**
@@ -175,7 +173,7 @@ public class HelixCustomCodeRunner {
    */
   public void stop() {
     LOG.info("Removing stateModelFactory for " + _resourceName);
-    _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY, _stateModelFty,
-        _resourceName);
+    _manager.getStateMachineEngine()
+        .removeStateModelFactory(LEADER_STANDBY, _stateModelFty, _resourceName);
   }
 }

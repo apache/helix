@@ -21,13 +21,15 @@ package org.apache.helix.manager.zk.client;
 
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkDataListener;
-import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.zookeeper.ZkConnection;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestHelixZkClient extends ZkUnitTestBase {
   private final String TEST_NODE = "/test_helix_zkclient";
@@ -37,8 +39,9 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     final String TEST_ROOT = "/testZkConnectionManager/IDEALSTATES";
     final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
-    ZkConnectionManager zkConnectionManager = new ZkConnectionManager(new ZkConnection(ZK_ADDR),
-        HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, null);
+    ZkConnectionManager zkConnectionManager =
+        new ZkConnectionManager(new ZkConnection(ZK_ADDR), HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            null);
     Assert.assertTrue(zkConnectionManager.waitUntilConnected(1, TimeUnit.SECONDS));
 
     // This client can write/read from ZK
@@ -53,7 +56,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       zkConnectionManager.close();
       Assert.fail("Dedicated ZkClient cannot be closed while sharing!");
-    } catch (HelixException hex) {
+    } catch (ZkClientException hex) {
       // expected
     }
 
@@ -70,7 +73,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       new SharedZkClient(zkConnectionManager, new HelixZkClient.ZkClientConfig(), null);
       Assert.fail("Sharing a closed dedicated ZkClient shall fail.");
-    } catch (HelixException hex) {
+    } catch (ZkClientException hex) {
       // expected
     }
 
@@ -102,9 +105,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(sharedZkClientA.getSessionId(), sharedZkClientB.getSessionId());
     long sessionId = sharedZkClientA.getSessionId();
 
-    final int[] notificationCountA = {
-        0, 0
-    };
+    final int[] notificationCountA = {0, 0};
     sharedZkClientA.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
       @Override
       public void handleDataChange(String s, Object o) {
@@ -116,9 +117,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
         notificationCountA[1]++;
       }
     });
-    final int[] notificationCountB = {
-        0, 0
-    };
+    final int[] notificationCountB = {0, 0};
     sharedZkClientB.subscribeDataChanges(TEST_PATH, new IZkDataListener() {
       @Override
       public void handleDataChange(String s, Object o) {
@@ -143,7 +142,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     try {
       sharedZkClientA.createEphemeral(TEST_PATH, true);
       Assert.fail("Create Ephemeral nodes using shared client should fail.");
-    } catch (HelixException he) {
+    } catch (UnsupportedOperationException e) {
       // expected.
     }
 

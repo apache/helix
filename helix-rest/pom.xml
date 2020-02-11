@@ -36,6 +36,8 @@ under the License.
       org.apache.commons.cli*,
       org.restlet*,
       org.slf4j*;version="[1.6,2)",
+      org.apache.zookeeper*;version="[3.4,4)",
+      org.apache.commons.io*;version="[1.4,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.rest*;version="${project.version};-noimport:=true</osgi.export>

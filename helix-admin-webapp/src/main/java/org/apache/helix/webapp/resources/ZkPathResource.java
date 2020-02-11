@@ -23,8 +23,8 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.zookeeper.data.Stat;
 import org.restlet.data.MediaType;

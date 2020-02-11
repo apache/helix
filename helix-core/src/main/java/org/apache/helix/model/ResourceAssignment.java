@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Represents the assignments of replicas for an entire resource, keyed on partitions of the

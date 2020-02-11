@@ -37,9 +37,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.exception.ZkException;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -53,16 +50,11 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
-import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
-import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.client.SharedZkClientFactory;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -85,6 +77,12 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -491,22 +489,20 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // Record a MaintenanceSignal history
     if (!accessor.getBaseDataAccessor()
-        .update(keyBuilder.controllerLeaderHistory().getPath(), new DataUpdater<ZNRecord>() {
-          @Override
-          public ZNRecord update(ZNRecord oldRecord) {
-            try {
-              if (oldRecord == null) {
-                oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
+        .update(keyBuilder.controllerLeaderHistory().getPath(),
+            (DataUpdater<ZNRecord>) oldRecord -> {
+              try {
+                if (oldRecord == null) {
+                  oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
+                }
+                return new ControllerHistory(oldRecord)
+                    .updateMaintenanceHistory(enabled, reason, currentTime, internalReason,
+                        customFields, triggeringEntity);
+              } catch (IOException e) {
+                logger.error("Failed to update maintenance history! Exception: {}", e);
+                return oldRecord;
               }
-              return new ControllerHistory(oldRecord)
-                  .updateMaintenanceHistory(enabled, reason, currentTime, internalReason,
-                      customFields, triggeringEntity);
-            } catch (IOException e) {
-              logger.error("Failed to update maintenance history! Exception: {}", e);
-              return oldRecord;
-            }
-          }
-        }, AccessOption.PERSISTENT)) {
+            }, AccessOption.PERSISTENT)) {
       logger.error("Failed to write maintenance history to ZK!");
     }
   }

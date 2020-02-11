@@ -24,13 +24,14 @@ import java.security.SecureRandom;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.taskexecution.Dag.Node;
+import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
+
 
 /**
  * Demo for execution of task Dag using primitives provided by Helix. This demo sets up a Dag of

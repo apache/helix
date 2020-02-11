@@ -1,7 +1,7 @@
 package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**

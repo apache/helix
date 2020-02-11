@@ -19,7 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;

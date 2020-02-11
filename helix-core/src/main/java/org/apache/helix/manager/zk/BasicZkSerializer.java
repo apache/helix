@@ -19,25 +19,17 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+
 
 /**
- * Basic path based serializer which ignores the path and delegates
- * serialization into a regular {@link ZkSerializer}
+ * Use BasicZkSerializer in zookeeper-api module instead.
  */
-public class BasicZkSerializer implements PathBasedZkSerializer {
-  private final ZkSerializer _delegate;
-
-  public BasicZkSerializer(ZkSerializer delegate) {
-    _delegate = delegate;
-  }
-
-  public byte[] serialize(Object data, String path) {
-    return _delegate.serialize(data);
-  }
-
-  @Override
-  public Object deserialize(byte[] bytes, String path) {
-    return _delegate.deserialize(bytes);
+@Deprecated
+public class BasicZkSerializer
+    extends org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer {
+  public BasicZkSerializer(
+      ZkSerializer delegate) {
+    super(delegate);
   }
 }

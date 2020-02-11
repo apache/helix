@@ -19,7 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Maintains a history of alerts that have been fired, as well as actions taken, if any.

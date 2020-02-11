@@ -32,9 +32,10 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 import org.apache.helix.model.util.StateModelDefinitionValidator;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 /**
  * Describe the state model

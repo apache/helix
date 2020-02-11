@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
+
 /**
  * Interface to provide additional information about a live instance at creation time
  */

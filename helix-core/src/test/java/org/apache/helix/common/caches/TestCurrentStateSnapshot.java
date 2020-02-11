@@ -7,7 +7,7 @@ import java.util.Set;
 
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;

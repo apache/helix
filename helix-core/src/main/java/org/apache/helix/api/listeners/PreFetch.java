@@ -22,7 +22,10 @@ package org.apache.helix.api.listeners;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-
+/**
+ * This annotation has been deprecated. Use PreFetch in zookeeper-api module instead.
+ */
+@Deprecated
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PreFetch {
   boolean enabled() default true;

@@ -24,7 +24,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.Client;
 import org.restlet.Request;

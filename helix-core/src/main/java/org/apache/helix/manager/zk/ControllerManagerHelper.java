@@ -21,13 +21,13 @@ package org.apache.helix.manager.zk;
 
 import java.util.List;
 
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MultiTypeMessageHandlerFactory;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.slf4j.Logger;

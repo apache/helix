@@ -20,7 +20,7 @@ package org.apache.helix.model;
  */
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;

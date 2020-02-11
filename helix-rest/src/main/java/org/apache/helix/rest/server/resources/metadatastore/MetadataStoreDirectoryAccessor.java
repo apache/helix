@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import javax.annotation.PostConstruct;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
@@ -53,7 +54,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private HelixRestNamespace _namespace;
 
   // Double-checked locking for thread-safe object.
-  private static volatile MetadataStoreDirectory _metadataStoreDirectory;
+  private MetadataStoreDirectory _metadataStoreDirectory;
+
+  @PostConstruct
+  private void postConstruct() {
+    getHelixNamespace();
+    buildMetadataStoreDirectory();
+  }
 
   /**
    * Gets all metadata store realms in a namespace with the endpoint.
@@ -63,11 +70,12 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @GET
   @Path("/metadata-store-realms")
   public Response getAllMetadataStoreRealms() {
-    Map<String, Collection<String>> responseMap = new HashMap<>(1);
+    Map<String, Collection<String>> responseMap;
     try {
       Collection<String> realms =
-          getMetadataStoreDirectory().getAllMetadataStoreRealms(getHelixNamespace().getName());
+          _metadataStoreDirectory.getAllMetadataStoreRealms(_namespace.getName());
 
+      responseMap = new HashMap<>(1);
       responseMap.put(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
@@ -94,14 +102,14 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       // to get all sharding keys in a namespace.
       if (realm == null) {
         shardingKeys =
-            getMetadataStoreDirectory().getAllShardingKeys(getHelixNamespace().getName());
+            _metadataStoreDirectory.getAllShardingKeys(_namespace.getName());
         // To avoid allocating unnecessary resource, limit the map's capacity only for
         // SHARDING_KEYS.
         responseMap = new HashMap<>(1);
       } else {
         // For endpoint: "/sharding-keys?realm={realmName}"
-        shardingKeys = getMetadataStoreDirectory()
-            .getAllShardingKeysInRealm(getHelixNamespace().getName(), realm);
+        shardingKeys = _metadataStoreDirectory
+            .getAllShardingKeysInRealm(_namespace.getName(), realm);
         // To avoid allocating unnecessary resource, limit the map's capacity only for
         // SHARDING_KEYS and SINGLE_METADATA_STORE_REALM.
         responseMap = new HashMap<>(2);
@@ -116,50 +124,37 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return JSONRepresentation(responseMap);
   }
 
-  private MetadataStoreDirectory getMetadataStoreDirectory() {
-    if (_metadataStoreDirectory == null) {
-      synchronized (this) {
-        if (_metadataStoreDirectory == null) {
-          Map<String, String> routingZkAddressMap = ImmutableMap
-              .of(getHelixNamespace().getName(), getHelixNamespace().getMetadataStoreAddress());
-          try {
-            _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddressMap);
-          } catch (InvalidRoutingDataException ex) {
-            // In this case, the InvalidRoutingDataException should not happen because routing
-            // ZK address is always valid here.
-            LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
-                routingZkAddressMap, ex);
-          }
+  private void getHelixNamespace() {
+    // A default servlet does not have context property key METADATA, so the namespace
+    // is retrieved from property ALL_NAMESPACES.
+    if (HelixRestUtils.isDefaultServlet(_servletRequest.getServletPath())) {
+      // It is safe to ignore uncheck warnings for this cast.
+      @SuppressWarnings("unchecked")
+      List<HelixRestNamespace> namespaces = (List<HelixRestNamespace>) _application.getProperties()
+          .get(ContextPropertyKeys.ALL_NAMESPACES.name());
+      for (HelixRestNamespace ns : namespaces) {
+        if (HelixRestNamespace.DEFAULT_NAMESPACE_NAME.equals(ns.getName())) {
+          _namespace = ns;
+          break;
         }
       }
+    } else {
+      // Get namespace from property METADATA for a common servlet.
+      _namespace = (HelixRestNamespace) _application.getProperties()
+          .get(ContextPropertyKeys.METADATA.name());
     }
-
-    return _metadataStoreDirectory;
   }
 
-  private HelixRestNamespace getHelixNamespace() {
-    if (_namespace == null) {
-      // A default servlet does not have context property key METADATA, so the namespace
-      // is retrieved from property ALL_NAMESPACES.
-      if (HelixRestUtils.isDefaultServlet(_servletRequest.getServletPath())) {
-        // It is safe to ignore uncheck warnings for this cast.
-        @SuppressWarnings("unchecked")
-        List<HelixRestNamespace> namespaces =
-            (List<HelixRestNamespace>) _application.getProperties()
-                .get(ContextPropertyKeys.ALL_NAMESPACES.name());
-        for (HelixRestNamespace ns : namespaces) {
-          if (HelixRestNamespace.DEFAULT_NAMESPACE_NAME.equals(ns.getName())) {
-            _namespace = ns;
-            break;
-          }
-        }
-      } else {
-        // Get namespace from property METADATA for a common servlet.
-        _namespace = (HelixRestNamespace) _application.getProperties()
-            .get(ContextPropertyKeys.METADATA.name());
-      }
+  private void buildMetadataStoreDirectory() {
+    Map<String, String> routingZkAddressMap =
+        ImmutableMap.of(_namespace.getName(), _namespace.getMetadataStoreAddress());
+    try {
+      _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddressMap);
+    } catch (InvalidRoutingDataException ex) {
+      // In this case, the InvalidRoutingDataException should not happen because routing
+      // ZK address is always valid here.
+      LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
+          routingZkAddressMap, ex);
     }
-
-    return _namespace;
   }
 }

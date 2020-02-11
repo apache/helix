@@ -1056,17 +1056,15 @@ public class TaskUtil {
         if (entry != null) {
           WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
           WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
-          if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
-            if (cfg == null) {
-              toBeDeletedWorkflows.add(entry);
-            }
+          if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {
+            toBeDeletedWorkflows.add(entry);
           }
         }
       }
     } catch (Exception e) {
-      LOG.warn(String.format(
-          "Exception occurred while creating a list of all existing contexts with missing config!! Reason: %s"),
-          e.getMessage());
+      LOG.warn(
+          "Exception occurred while creating a list of all existing contexts with missing config!",
+          e);
     }
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();

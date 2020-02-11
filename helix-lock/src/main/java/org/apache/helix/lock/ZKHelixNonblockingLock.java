@@ -20,6 +20,7 @@
 package org.apache.helix.lock;
 
 import java.util.Date;
+import java.util.concurrent.locks.Lock;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
@@ -29,8 +30,9 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.log4j.Logger;
 
-import static org.apache.helix.lock.ZKHelixNonblockingLockInfo.DEFAULT_OWNER_TEXT;
-import static org.apache.helix.lock.ZKHelixNonblockingLockInfo.DEFAULT_TIMEOUT_LONG;
+import static org.apache.helix.lock.LockInfo.DEFAULT_OWNER_TEXT;
+import static org.apache.helix.lock.LockInfo.DEFAULT_TIMEOUT_LONG;
+import static org.apache.helix.lock.LockInfo.defaultLockInfo;
 
 
 /**
@@ -40,7 +42,6 @@ public class ZKHelixNonblockingLock implements HelixLock {
 
   private static final Logger LOG = Logger.getLogger(ZKHelixNonblockingLock.class);
 
-  private static final String LOCK_ROOT = "/LOCK";
   private final String _lockPath;
   private final String _userId;
   private final long _timeout;
@@ -49,16 +50,15 @@ public class ZKHelixNonblockingLock implements HelixLock {
 
   /**
    * Initialize the lock with user provided information, e.g.,cluster, scope, etc.
-   * @param clusterName the cluster under which the lock will live
    * @param scope the scope to lock
    * @param zkAddress the zk address the cluster connects to
    * @param timeout the timeout period of the lcok
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  public ZKHelixNonblockingLock(String clusterName, HelixLockScope scope, String zkAddress,
-      Long timeout, String lockMsg, String userId) {
-    this("/" + clusterName.toUpperCase() + LOCK_ROOT + scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
+  public ZKHelixNonblockingLock(HelixLockScope scope, String zkAddress, Long timeout,
+      String lockMsg, String userId) {
+    this(scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
   }
 
   /**
@@ -82,10 +82,6 @@ public class ZKHelixNonblockingLock implements HelixLock {
   public boolean acquireLock() {
 
     // Set lock information fields
-    ZNRecord lockInfo = new ZNRecord(_userId);
-    lockInfo.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name(), _userId);
-    lockInfo.setSimpleField(ZKHelixNonblockingLockInfo.InfoKey.MESSAGE.name(), _lockMsg);
-
     long deadline;
     // Prevent value overflow
     if (_timeout > Long.MAX_VALUE - System.currentTimeMillis()) {
@@ -93,7 +89,8 @@ public class ZKHelixNonblockingLock implements HelixLock {
     } else {
       deadline = System.currentTimeMillis() + _timeout;
     }
-    lockInfo.setLongField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(), deadline);
+    LockInfo lockInfo = new LockInfo(_userId);
+    lockInfo.setLockInfoFields(_userId, _lockMsg, deadline);
 
     LockUpdater updater = new LockUpdater(lockInfo);
     return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
@@ -101,70 +98,64 @@ public class ZKHelixNonblockingLock implements HelixLock {
 
   @Override
   public boolean releaseLock() {
-    ZNRecord newLockInfo = new ZKHelixNonblockingLockInfo<>().toZNRecord();
-    LockUpdater updater = new LockUpdater(newLockInfo);
+    // Initialize the lock updater with a default lock info represents the state of a unlocked lock
+    LockUpdater updater = new LockUpdater(LockInfo.defaultLockInfo);
     return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
   }
 
   @Override
-  public ZKHelixNonblockingLockInfo getLockInfo() {
+  public LockInfo getLockInfo() {
     ZNRecord curLockInfo = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
-    return new ZKHelixNonblockingLockInfo(curLockInfo);
+    return new LockInfo(curLockInfo);
   }
 
   @Override
   public boolean isOwner() {
-    ZNRecord curLockInfo = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
-    return userIdMatches(curLockInfo) && !hasTimedOut(curLockInfo);
+    LockInfo lockInfo = getLockInfo();
+    return userIdMatches(lockInfo) && !hasTimedOut(lockInfo);
   }
 
   /**
    * Check if a lock has timed out
-   * @param record the current lock information in ZNRecord format
    * @return return true if the lock has timed out, otherwise return false.
    */
-  private boolean hasTimedOut(ZNRecord record) {
-    if (record == null) {
-      return false;
-    }
-    long timeout = record
-        .getLongField(ZKHelixNonblockingLockInfo.InfoKey.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
-    return System.currentTimeMillis() >= timeout;
+  private boolean hasTimedOut(LockInfo lockInfo) {
+    return System.currentTimeMillis() >= lockInfo.getTimeout();
+  }
+
+  /**
+   * Check if a lock has timed out with lock information stored in a ZNRecord
+   * @return return true if the lock has timed out, otherwise return false.
+   */
+  private boolean hasTimedOut(ZNRecord znRecord) {
+    return System.currentTimeMillis() >= LockInfo.getTimeout(znRecord);
   }
 
   /**
    * Check if the current user Id matches with the owner Id in a lock info
-   * @param record the lock information in ZNRecord format
    * @return return true if the two ids match, otherwise return false.
    */
-  private boolean userIdMatches(ZNRecord record) {
-    if (record == null) {
-      return false;
-    }
-    String ownerId = record.getSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name());
-    return ownerId.equals(_userId);
+  private boolean userIdMatches(LockInfo lockInfo) {
+    return lockInfo.getOwner().equals(_userId);
   }
 
   /**
-   * Check if the lock node has a owner id field in the lock information
-   * @param record Lock information in format of ZNRecord
-   * @return true if the lock has a owner id field that the ownership can be or not be timed out, otherwise false
+   * Check if a user id in the ZNRecord matches current user's id
+   * @param znRecord ZNRecord contains lock information
+   * @return true if the ids match, false if not or ZNRecord does not contain user id information
    */
-  private boolean hasOwnerField(ZNRecord record) {
-    if (record == null) {
-      return false;
-    }
-    String ownerId = record.getSimpleField(ZKHelixNonblockingLockInfo.InfoKey.OWNER.name());
-    return ownerId != null && !ownerId.equals(DEFAULT_OWNER_TEXT);
+  private boolean userIdMatches(ZNRecord znRecord) {
+    return LockInfo.getOwner(znRecord).equals(_userId);
   }
 
   /**
    * Check if the lock node has a current owner
-   * @param record Lock information in format of ZNRecord
+   * @param znRecord Lock information in format of ZNRecord
    * @return true if the lock has a current owner that the ownership has not be timed out, otherwise false
    */
-  private boolean hasNonExpiredOwner(ZNRecord record) {
-    return hasOwnerField(record) && !hasTimedOut(record);
+  private boolean hasNonExpiredOwner(ZNRecord znRecord) {
+    String owner = LockInfo.getOwner(znRecord);
+    return !owner.equals(DEFAULT_OWNER_TEXT) && !hasTimedOut(znRecord);
   }
 
   /**
@@ -175,10 +166,10 @@ public class ZKHelixNonblockingLock implements HelixLock {
 
     /**
      * Initialize a structure for lock user to update a lock node value
-     * @param record the lock node value will be updated in ZNRecord format
+     * @param lockInfo the lock node value will be used to update the lock
      */
-    public LockUpdater(ZNRecord record) {
-      _record = record;
+    public LockUpdater(LockInfo lockInfo) {
+      _record = lockInfo.getRecord();
     }
 
     @Override

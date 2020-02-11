@@ -34,20 +34,23 @@ public class HelixLockScope {
    */
   public enum LockScopeProperty {
 
-    CLUSTER(1, 0),
+    CLUSTER(1),
 
-    PARTICIPANT(2, 1),
+    PARTICIPANT(2),
 
-    RESOURCE(3, 2),
+    RESOURCE(3),
 
-    PARTITION(4, 3);
+    PARTITION(4);
 
+    //the number of arguments required to generate a full path for the specific scope
     final int _zkPathArgNum;
-    final int _argumentPos;
 
-    private LockScopeProperty(int zkPathArgNum, int argumentPos) {
+    /**
+     * Initialize a LockScopeProperty
+     * @param zkPathArgNum the number of arguments required to generate a full path for the specific scope
+\     */
+    private LockScopeProperty(int zkPathArgNum) {
       _zkPathArgNum = zkPathArgNum;
-      _argumentPos = argumentPos;
     }
 
     /**
@@ -63,7 +66,7 @@ public class HelixLockScope {
      * @return the number of position of value for this property in the list of keys input
      */
     public int getArgumentPos() {
-      return _argumentPos;
+      return _zkPathArgNum - 1;
     }
   }
 
@@ -73,13 +76,13 @@ public class HelixLockScope {
   private static final StringTemplate template = new StringTemplate();
 
   static {
-    template.addEntry(LockScopeProperty.CLUSTER, 1, "/{clusterName}");
+    template.addEntry(LockScopeProperty.CLUSTER, 1, "/{clusterName}/LOCK");
     template.addEntry(HelixLockScope.LockScopeProperty.PARTICIPANT, 2,
-        "/{clusterName}/{participantName}");
+        "/{clusterName}/LOCK/{participantName}");
     template.addEntry(HelixLockScope.LockScopeProperty.RESOURCE, 3,
-        "/{clusterName}/{participantName}/{resourceName}");
+        "/{clusterName}/LOCK/{participantName}/{resourceName}");
     template.addEntry(HelixLockScope.LockScopeProperty.PARTITION, 4,
-        "/{clusterName}/{participantName}/{resourceName}/{partitionName}");
+        "/{clusterName}/LOCK/{participantName}/{resourceName}/{partitionName}");
   }
 
   private final HelixLockScope.LockScopeProperty _type;

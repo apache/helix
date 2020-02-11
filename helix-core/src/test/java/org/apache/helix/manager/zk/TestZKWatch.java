@@ -59,8 +59,8 @@ public class TestZKWatch extends ZkUnitTestBase {
 
       @Override
       public void handleDataDeleted(String path) throws Exception {
-        deleteCondition.countDown();
         _zkClient.unsubscribeDataChanges(path, this);
+        deleteCondition.countDown();
       }
     };
     _zkClient.subscribeDataChanges(existPath, dataListener);
@@ -91,8 +91,8 @@ public class TestZKWatch extends ZkUnitTestBase {
     IZkChildListener childListener = new IZkChildListener() {
       @Override
       public void handleChildChange(String parentPath, List<String> childrenPaths) throws Exception {
-        deleteCondition.countDown();
         _zkClient.unsubscribeChildChanges(parentPath, this);
+        deleteCondition.countDown();
       }
     };
     _zkClient.subscribeChildChanges(parentPath, childListener);

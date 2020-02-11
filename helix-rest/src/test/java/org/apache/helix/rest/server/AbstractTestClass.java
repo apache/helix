@@ -269,18 +269,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _gZkClient = null;
     }
 
-    if (_zkServer != null) {
-      TestHelper.stopZkServer(_zkServer);
-      _zkServer = null;
-    }
-
     if (_gZkClientTestNS != null) {
       _gZkClientTestNS.close();
       _gZkClientTestNS = null;
-    }
-    if (_zkServerTestNS != null) {
-      TestHelper.stopZkServer(_zkServerTestNS);
-      _zkServerTestNS = null;
     }
 
     if (_helixRestServer != null) {

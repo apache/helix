@@ -119,14 +119,20 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public Map<String, String> getAllMappingUnderPath(String namespace, String path) {
-    // TODO: get it from routingData
-    throw new UnsupportedOperationException();
+    if (!_routingDataMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to get all mapping under path: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataMap.get(namespace).getAllMappingUnderPath(path);
   }
 
   @Override
   public String getMetadataStoreRealm(String namespace, String shardingKey) {
-    // TODO: get it from routingData
-    throw new UnsupportedOperationException();
+    if (!_routingDataMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to get all mapping under path: Namespace " + namespace + " is not found!");
+    }
+    return _routingDataMap.get(namespace).getMetadataStoreRealm(shardingKey);
   }
 
   @Override

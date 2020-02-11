@@ -35,8 +35,7 @@ public interface MetadataStoreRoutingDataReader {
    * @return a mapping from "metadata store realm addresses" to lists of "metadata store sharding
    *         keys", where the sharding keys in a value list all route to the realm address in the
    *         key
-   * @throws InvalidRoutingDataException - when the routing data is malformed in any way that
-   *           disallows a meaningful mapping to be returned
+   * @throws InvalidRoutingDataException - when the routing data is missing
    */
   Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException;
 

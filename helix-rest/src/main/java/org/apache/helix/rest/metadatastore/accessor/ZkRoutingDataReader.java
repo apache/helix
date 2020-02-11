@@ -85,23 +85,14 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
           "Routing data directory ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
               + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    if (children == null || children.isEmpty()) {
-      throw new InvalidRoutingDataException(
-          "There are no metadata store realms defined. Routing ZooKeeper address: " + _zkAddress);
-    }
     for (String child : children) {
       ZNRecord record =
           _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child);
       List<String> shardingKeys =
           record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      if (shardingKeys == null || shardingKeys.isEmpty()) {
-        throw new InvalidRoutingDataException(
-            "Realm address ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child
-                + " does not have a value for key "
-                + MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY
-                + ". Routing ZooKeeper address: " + _zkAddress);
+      if (shardingKeys != null && !shardingKeys.isEmpty()) {
+        routingData.put(child, shardingKeys);
       }
-      routingData.put(child, shardingKeys);
     }
     return routingData;
   }

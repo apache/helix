@@ -104,11 +104,10 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     _baseAccessor.create(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, new ZNRecord("test"),
         AccessOption.PERSISTENT);
     try {
-      _zkRoutingDataReader.getRoutingData();
-      Assert.fail("Expecting InvalidRoutingDataException");
+      Map<String, List<String>> routingData = _zkRoutingDataReader.getRoutingData();
+      Assert.assertEquals(routingData.size(), 0);
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "There are no metadata store realms defined. Routing ZooKeeper address: " + ZK_ADDR));
+      Assert.fail("Not expecting InvalidRoutingDataException");
     }
   }
 
@@ -120,14 +119,10 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     _baseAccessor.create(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/testRealmAddress1",
         testZnRecord1, AccessOption.PERSISTENT);
     try {
-      _zkRoutingDataReader.getRoutingData();
-      Assert.fail("Expecting InvalidRoutingDataException");
+      Map<String, List<String>> routingData = _zkRoutingDataReader.getRoutingData();
+      Assert.assertEquals(routingData.size(), 0);
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "Realm address ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
-              + "/testRealmAddress1 does not have a value for key "
-              + MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY
-              + ". Routing ZooKeeper address: " + ZK_ADDR));
+      Assert.fail("Not expecting InvalidRoutingDataException");
     }
   }
 }

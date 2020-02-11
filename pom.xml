@@ -304,7 +304,7 @@ under the License.
     </repository>
     <repository>
       <id>restlet.org</id>
-      <url>http://maven.restlet.org</url>
+      <url>https://maven.restlet.org</url>
       <releases>
         <enabled>true</enabled>
       </releases>

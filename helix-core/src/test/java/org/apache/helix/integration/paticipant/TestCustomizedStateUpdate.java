@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestCustomizedStateUpdate.class);
   private final String CUSTOMIZE_STATE_NAME = "testState1";
@@ -121,6 +120,15 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertEquals(partitionMap2.keySet().size(), 2);
     Assert.assertEquals(partitionMap2.get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(partitionMap2.get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
+
+    // test delete
+    mockProvider.deletePerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
+    customizedState = mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME);
+    Assert.assertNotNull(customizedState);
+    Assert.assertEquals(customizedState.getId(), RESOURCE_NAME);
+    mapView = customizedState.getRecord().getMapFields();
+    Assert.assertEquals(mapView.keySet().size(), 1);
+    Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME2);
 
     manager.disconnect();
   }

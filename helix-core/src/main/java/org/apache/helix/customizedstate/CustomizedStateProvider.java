@@ -21,6 +21,7 @@ package org.apache.helix.customizedstate;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -57,11 +58,11 @@ public class CustomizedStateProvider {
     mapFields.put(partitionName, customizedState);
     record.setMapFields(mapFields);
     if (!accessor.updateProperty(propertyKey, new CustomizedState(record))) {
-        throw new HelixException(String.format(
-            "Failed to persist customized state %s to zk for instance %s, resource %s",
-            customizedStateName, _instanceName, record.getId()));
-      }
+      throw new HelixException(
+          String.format("Failed to persist customized state %s to zk for instance %s, resource %s",
+              customizedStateName, _instanceName, record.getId()));
     }
+  }
 
   /**
    * Get the customized state for a specified resource
@@ -84,5 +85,21 @@ public class CustomizedStateProvider {
         .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
         .getRecord().getMapFields();
     return mapView.get(partitionName);
+  }
+
+  public void deletePerPartitionCustomizedState(String customizedStateName, String resourceName,
+      String partitionName) {
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey propertyKey =
+        keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
+    CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
+    accessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord current) {
+        current.getMapFields().remove(partitionName);
+        return current;
+      }},
+      existingState);
   }
 }

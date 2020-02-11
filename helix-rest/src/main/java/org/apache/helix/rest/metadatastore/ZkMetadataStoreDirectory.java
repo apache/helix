@@ -120,7 +120,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   @Override
   public Map<String, String> getAllMappingUnderPath(String namespace, String path) {
     if (!_routingDataMap.containsKey(namespace)) {
-      throw new IllegalArgumentException(
+      throw new NoSuchElementException(
           "Failed to get all mapping under path: Namespace " + namespace + " is not found!");
     }
     return _routingDataMap.get(namespace).getAllMappingUnderPath(path);
@@ -129,8 +129,8 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   @Override
   public String getMetadataStoreRealm(String namespace, String shardingKey) {
     if (!_routingDataMap.containsKey(namespace)) {
-      throw new IllegalArgumentException(
-          "Failed to get all mapping under path: Namespace " + namespace + " is not found!");
+      throw new NoSuchElementException(
+          "Failed to get metadata store realm: Namespace " + namespace + " is not found!");
     }
     return _routingDataMap.get(namespace).getMetadataStoreRealm(shardingKey);
   }

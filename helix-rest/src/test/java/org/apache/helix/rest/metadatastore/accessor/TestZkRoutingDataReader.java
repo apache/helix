@@ -120,7 +120,8 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
         testZnRecord1, AccessOption.PERSISTENT);
     try {
       Map<String, List<String>> routingData = _zkRoutingDataReader.getRoutingData();
-      Assert.assertEquals(routingData.size(), 0);
+      Assert.assertEquals(routingData.size(), 1);
+      Assert.assertTrue(routingData.get("testRealmAddress1").isEmpty());
     } catch (InvalidRoutingDataException e) {
       Assert.fail("Not expecting InvalidRoutingDataException");
     }

@@ -20,7 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer;

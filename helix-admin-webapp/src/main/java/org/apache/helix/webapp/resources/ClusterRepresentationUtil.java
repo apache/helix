@@ -38,7 +38,7 @@ import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.ZkClient;
+import org.apache.helix.zookeeper.api.impl.client.ZkClient;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;

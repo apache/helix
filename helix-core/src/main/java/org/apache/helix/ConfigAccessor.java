@@ -39,8 +39,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.HelixZkClient;
-import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

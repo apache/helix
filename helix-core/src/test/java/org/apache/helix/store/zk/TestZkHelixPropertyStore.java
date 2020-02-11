@@ -35,7 +35,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;

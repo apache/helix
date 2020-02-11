@@ -22,7 +22,7 @@ package org.apache.helix.filestore;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.zookeeper.api.ZkClient;
+import org.apache.helix.zookeeper.api.impl.client.ZkClient;
 import org.apache.helix.participant.StateMachineEngine;
 
 public class FileStore {

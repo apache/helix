@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.api.factory;
+package org.apache.helix.zookeeper.api.impl.factory;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,8 +22,9 @@ package org.apache.helix.zookeeper.api.factory;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.helix.zookeeper.api.HelixZkClient;
-import org.apache.helix.zookeeper.api.ZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.impl.client.SharedZkClient;
+import org.apache.helix.zookeeper.api.impl.client.ZkClient;
 import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.serialize.BasicZkSerializer;
@@ -35,10 +36,12 @@ import org.slf4j.LoggerFactory;
 
 
 /**
+ * NOTE: DO NOT USE THIS CLASS DIRECTLY. Use ZkClientFactories instead.
+ *
  * A ZkConnection manager that maintain connection status and allows additional watchers to be registered.
  * It will forward events to those watchers.
  *
- * TODO Separate connection management logic from the raw RealmAwareZkClient class.
+ * TODO Separate connection management logic from the raw ZkClient class.
  * So this manager is a peer to the HelixZkClient. Connection Manager for maintaining the connection and
  * HelixZkClient to handle user request.
  * After this is done, Dedicated HelixZkClient hires one manager for it's connection.
@@ -72,7 +75,7 @@ public class ZkConnectionManager extends ZkClient {
    * @param watcher
    * @return true if the watcher is newly added. false if it is already in record.
    */
-  protected synchronized boolean registerWatcher(Watcher watcher) {
+  public synchronized boolean registerWatcher(Watcher watcher) {
     if (isClosed()) {
       throw new ZkClientException("Cannot add watcher to a closed client.");
     }
@@ -85,7 +88,7 @@ public class ZkConnectionManager extends ZkClient {
    * @param watcher
    * @return number of the remaining event watchers
    */
-  protected synchronized int unregisterWatcher(Watcher watcher) {
+  public synchronized int unregisterWatcher(Watcher watcher) {
     _sharedWatchers.remove(watcher);
     return _sharedWatchers.size();
   }

@@ -28,8 +28,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.zookeeper.api.ZkClient;
-import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.impl.client.ZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.api.zkclient.IZkDataListener;
 import org.testng.Assert;

@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.api.factory;
+package org.apache.helix.zookeeper.api.impl.factory;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,7 +19,7 @@ package org.apache.helix.zookeeper.api.factory;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;

@@ -30,7 +30,7 @@ import org.apache.zookeeper.Watcher;
  * Deprecated - use ZkConnectionManager in zookeeper-api instead.
  */
 @Deprecated
-class ZkConnectionManager extends org.apache.helix.zookeeper.api.factory.ZkConnectionManager {
+class ZkConnectionManager extends org.apache.helix.zookeeper.api.impl.factory.ZkConnectionManager {
   /**
    * Construct and init a ZkConnection Manager.
    *  @param zkConnection

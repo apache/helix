@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.api.factory;
+package org.apache.helix.zookeeper.api.impl.client;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,8 +21,8 @@ package org.apache.helix.zookeeper.api.factory;
 
 import java.util.List;
 
-import org.apache.helix.zookeeper.api.HelixZkClient;
-import org.apache.helix.zookeeper.api.ZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.impl.factory.ZkConnectionManager;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
 import org.apache.zookeeper.CreateMode;
@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 
 
 /**
+ * NOTE: DO NOT USE THIS CLASS DIRECTLY. USE SharedZkClientFactory instead.
+ *
  * HelixZkClient that uses shared ZkConnection.
  * A SharedZkClient won't manipulate the shared ZkConnection directly.
  */
@@ -45,7 +47,7 @@ public class SharedZkClient extends ZkClient implements HelixZkClient {
   private final OnCloseCallback _onCloseCallback;
   private final ZkConnectionManager _connectionManager;
 
-  protected interface OnCloseCallback {
+  public interface OnCloseCallback {
     /**
      * Triggered after the RealmAwareZkClient is closed.
      */
@@ -59,7 +61,7 @@ public class SharedZkClient extends ZkClient implements HelixZkClient {
    * @param clientConfig          ZkClientConfig details to create the shared RealmAwareZkClient.
    * @param callback              Clean up logic when the shared RealmAwareZkClient is closed.
    */
-  protected SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
+  public SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
       OnCloseCallback callback) {
     super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
         clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),

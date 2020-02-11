@@ -46,7 +46,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
-import org.apache.helix.zookeeper.api.HelixZkClient;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecordBucketizer;
 import org.apache.helix.zookeeper.api.zkclient.DataUpdater;

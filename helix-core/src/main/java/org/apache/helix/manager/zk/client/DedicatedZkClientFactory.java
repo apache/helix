@@ -19,14 +19,11 @@ package org.apache.helix.manager.zk.client;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.api.ZkClient;
-
-
 /**
  * Deprecated; please use DedicatedZkClientFactory in zookeeper-api instead.
  *
  * Singleton factory that build dedicated clients using the raw ZkClient.
  */
 @Deprecated
-public class DedicatedZkClientFactory extends org.apache.helix.zookeeper.api.factory.DedicatedZkClientFactory {
+public class DedicatedZkClientFactory extends org.apache.helix.zookeeper.api.impl.factory.DedicatedZkClientFactory {
 }

@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.api;
+package org.apache.helix.zookeeper.api.impl.client;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.api;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.exception.ZkClientException;
 import org.apache.helix.zookeeper.api.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.api.zkclient.ZkConnection;
@@ -53,7 +54,7 @@ import org.slf4j.LoggerFactory;
  *               |
  *         Native RealmAwareZkClient
  *
- * TODO Completely replace usage of the raw RealmAwareZkClient within helix-core. Instead, using HelixZkClient. --JJ
+ * TODO Completely replace usage of the raw ZkClient within helix-core. Instead, using HelixZkClient. --JJ
  */
 
 public class ZkClient extends org.apache.helix.zookeeper.api.zkclient.ZkClient implements HelixZkClient {

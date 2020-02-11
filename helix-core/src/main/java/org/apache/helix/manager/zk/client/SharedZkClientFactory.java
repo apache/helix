@@ -25,5 +25,5 @@ package org.apache.helix.manager.zk.client;
  * Singleton factory that build shared ZkClient which use a shared ZkConnection.
  */
 @Deprecated
-public class SharedZkClientFactory extends org.apache.helix.zookeeper.api.factory.SharedZkClientFactory {
+public class SharedZkClientFactory extends org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory {
 }

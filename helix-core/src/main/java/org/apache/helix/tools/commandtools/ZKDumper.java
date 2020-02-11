@@ -37,8 +37,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.helix.manager.zk.ByteArraySerializer;
-import org.apache.helix.zookeeper.api.HelixZkClient;
-import org.apache.helix.zookeeper.api.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.api.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.api.zkclient.serialize.ZkSerializer;
 
 

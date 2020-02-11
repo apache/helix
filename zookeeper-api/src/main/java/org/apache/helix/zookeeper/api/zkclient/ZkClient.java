@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * Abstracts the interaction with zookeeper and allows permanent (not just one time) watches on
  * nodes in ZooKeeper.
- * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.api.ZkClient} instead.
+ * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.api.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);

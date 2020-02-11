@@ -23,7 +23,7 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.zookeeper.api.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.ZkClient;
+import org.apache.helix.zookeeper.api.impl.client.ZkClient;
 import org.apache.helix.zookeeper.api.zkclient.ZkServer;
 import org.apache.helix.zookeeper.api.zkclient.exception.ZkNoNodeException;
 import org.testng.Assert;

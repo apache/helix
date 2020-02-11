@@ -42,9 +42,9 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update callback.
+ * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update
+ * callback.
  */
 public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, RoutingDataListener {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetadataStoreDirectory.class);
@@ -156,34 +156,42 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   /**
    * Callback for updating the cached routing data.
-   * Note: this method should not synchronize on the class or the map. We do not want namespaces blocking each other.
+   * Note: this method should not synchronize on the class or the map. We do not want namespaces
+   * blocking each other.
    * Threadsafe map is used for _realmToShardingKeysMap.
-   * The global consistency of the in-memory routing data is not a requirement (eventual consistency is enough).
+   * The global consistency of the in-memory routing data is not a requirement (eventual consistency
+   * is enough).
    * @param namespace
    */
   @Override
   public void refreshRoutingData(String namespace) {
-    // Safe to ignore the callback if routingDataMap is null.
+    // Safe to ignore the callback if any of the mapping is null.
     // If routingDataMap is null, then it will be populated by the constructor anyway
     // If routingDataMap is not null, then it's safe for the callback function to update it
+    if (_routingZkAddressMap == null || _routingDataMap == null
+        || _realmToShardingKeysMap == null) {
+      LOG.error("Construction is not completed! ");
+      return;
+    }
 
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
-      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: " + namespace);
+      LOG.error("Failed to refresh internally-cached routing data! Namespace not found: {}",
+          namespace);
+      return;
     }
 
     try {
-      _realmToShardingKeysMap.put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
+      Map<String, List<String>> rawRoutingData =
+          _routingDataReaderMap.get(namespace).getRoutingData();
+      _realmToShardingKeysMap.put(namespace, rawRoutingData);
+
+      MetadataStoreRoutingData routingData = new TrieRoutingData(rawRoutingData);
+      _routingDataMap.put(namespace, routingData);
     } catch (InvalidRoutingDataException e) {
-      LOG.error("Failed to get routing data for namespace: " + namespace + "!");
+      LOG.error("Failed to refresh cached routing data for namespace {}", namespace, e);
     }
 
-    if (_routingDataMap != null) {
-      MetadataStoreRoutingData newRoutingData =
-          new TrieRoutingData(new TrieRoutingData.TrieNode(null, null, false, null));
-      // TODO call constructRoutingData() here.
-      _routingDataMap.put(namespace, newRoutingData);
-    }
   }
 
   @Override

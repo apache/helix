@@ -1040,6 +1040,8 @@ public class TaskUtil {
   /**
    * The function that loops through the all existing workflow contexts and removes IdealState and
    * workflow context of the workflow whose workflow config does not exist.
+   * Try-catch has been used to avoid concurrent modification exception while doing deep copy. Since
+   * Map.keySet() can produce concurrent modification exception.
    * @param dataProvider
    * @param manager
    */
@@ -1047,24 +1049,25 @@ public class TaskUtil {
       final HelixManager manager) {
     // Garbage collections for conditions where workflow context exists but config is missing.
 
-    // toBeDeletedWorkflows is a set that contains the name of the workflows that their contexts
-    // should be deleted.
-    Set<String> toBeDeletedWorkflows = new HashSet<>();
+    Set<String> existingWorkflowContexts;
     try {
-      Set<String> existingWorkflowContexts = new HashSet<>(dataProvider.getContexts().keySet());
-      for (String entry : existingWorkflowContexts) {
-        if (entry != null) {
-          WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
-          WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
-          if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {
-            toBeDeletedWorkflows.add(entry);
-          }
-        }
-      }
+      existingWorkflowContexts = new HashSet<>(dataProvider.getContexts().keySet());
     } catch (Exception e) {
       LOG.warn(
           "Exception occurred while creating a list of all existing contexts with missing config!",
           e);
+      return;
+    }
+
+    // toBeDeletedWorkflows is a set that contains the name of the workflows that their contexts
+    // should be deleted.
+    Set<String> toBeDeletedWorkflows = new HashSet<>();
+    for (String entry : existingWorkflowContexts) {
+      WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
+      WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
+      if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {
+        toBeDeletedWorkflows.add(entry);
+      }
     }
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();

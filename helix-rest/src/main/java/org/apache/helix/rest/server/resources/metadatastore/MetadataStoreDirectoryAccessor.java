@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources.zookeeper;
+package org.apache.helix.rest.server.resources.metadatastore;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -35,7 +35,7 @@ import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HelixRestUtils;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
-import org.apache.helix.rest.metadatastore.constant.MetadataStoreDirectoryConstants;
+import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.slf4j.Logger;
@@ -51,7 +51,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);
 
   private HelixRestNamespace _namespace;
-  private MetadataStoreDirectory _metadataStoreDirectory;
+
+  // Double-checked locking for thread-safe object.
+  private static volatile MetadataStoreDirectory _metadataStoreDirectory;
 
   /**
    * Gets all metadata store realms in a namespace with the endpoint.
@@ -65,8 +67,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     try {
       Collection<String> realms =
           getMetadataStoreDirectory().getAllMetadataStoreRealms(getHelixNamespace().getName());
-      responseMap.put(
-          MetadataStoreDirectoryConstants.METADATA_STORE_REALMS_NAME, realms);
+
+      responseMap.put(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
@@ -103,13 +105,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         // To avoid allocating unnecessary resource, limit the map's capacity only for
         // SHARDING_KEYS_NAME and "metadataStoreRealm".
         responseMap = new HashMap<>(2);
-        responseMap.put("metadataStoreRealm", realm);
+        responseMap.put(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, realm);
       }
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
 
-    responseMap.put(MetadataStoreDirectoryConstants.SHARDING_KEYS_NAME, shardingKeys);
+    responseMap.put(MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
 
     return JSONRepresentation(responseMap);
   }
@@ -125,7 +127,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
           } catch (InvalidRoutingDataException ex) {
             // In this case, the InvalidRoutingDataException should not happen because routing
             // ZK address is always valid here.
-            LOG.warn("Unable to create metadata store directory for routing address: {}",
+            LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
                 routingZkAddressMap, ex);
           }
         }

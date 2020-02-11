@@ -32,7 +32,6 @@ import javax.ws.rs.core.Response;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.rest.metadatastore.constant.MetadataStoreDirectoryConstants;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
@@ -98,10 +97,10 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
         OBJECT_MAPPER.readValue(responseBody, Map.class);
 
     Assert.assertTrue(
-        queriedRealmsMap.containsKey(MetadataStoreDirectoryConstants.METADATA_STORE_REALMS_NAME));
+        queriedRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
 
-    Set<String> queriedRealmsSet = new HashSet<>(
-        queriedRealmsMap.get(MetadataStoreDirectoryConstants.METADATA_STORE_REALMS_NAME));
+    Set<String> queriedRealmsSet =
+        new HashSet<>(queriedRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
     Set<String> expectedRealms = ImmutableSet.of(TEST_REALM_1, TEST_REALM_2);
 
     Assert.assertEquals(queriedRealmsSet, expectedRealms);
@@ -119,10 +118,10 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
         OBJECT_MAPPER.readValue(responseBody, Map.class);
 
     Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreDirectoryConstants.SHARDING_KEYS_NAME));
+        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
-    Set<String> queriedShardingKeys = new HashSet<>(
-        queriedShardingKeysMap.get(MetadataStoreDirectoryConstants.SHARDING_KEYS_NAME));
+    Set<String> queriedShardingKeys =
+        new HashSet<>(queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS));
     Set<String> expectedShardingKeys = new HashSet<>();
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_1);
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_2);
@@ -148,14 +147,21 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).get(this);
     // It is safe to cast the object and suppress warnings.
     @SuppressWarnings("unchecked")
-    Map<String, Collection<String>> queriedShardingKeysMap =
-        OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
+    // Check realm name in json response.
+    Assert.assertTrue(queriedShardingKeysMap
+        .containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
+        TEST_REALM_1);
     Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreDirectoryConstants.SHARDING_KEYS_NAME));
+        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
-    Set<String> queriedShardingKeys = new HashSet<>(
-        queriedShardingKeysMap.get(MetadataStoreDirectoryConstants.SHARDING_KEYS_NAME));
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
+        .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
     Set<String> expectedShardingKeys = new HashSet<>(TEST_SHARDING_KEYS_1);
 
     Assert.assertEquals(queriedShardingKeys, expectedShardingKeys);

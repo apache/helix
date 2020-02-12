@@ -1040,8 +1040,6 @@ public class TaskUtil {
   /**
    * The function that loops through the all existing workflow contexts and removes IdealState and
    * workflow context of the workflow whose workflow config does not exist.
-   * Try-catch has been used to avoid concurrent modification exception while doing deep copy. Since
-   * Map.keySet() can produce concurrent modification exception.
    * @param dataProvider
    * @param manager
    */
@@ -1049,12 +1047,18 @@ public class TaskUtil {
       final HelixManager manager) {
     // Garbage collections for conditions where workflow context exists but config is missing.
 
-    Set<String> existingWorkflowContexts;
+    Set<String> existingContexts;
+    /*
+     * Here try-catch is used to avoid concurrent modification exception while doing deep copy.
+     * Map.keySet() can produce concurrent modification exception.
+     * Reason: If the map is modified while an iteration over the set is in progress, concurrent
+     * modification exception will be thrown.
+     */
     try {
-      existingWorkflowContexts = new HashSet<>(dataProvider.getContexts().keySet());
+      existingContexts = new HashSet<>(dataProvider.getContexts().keySet());
     } catch (Exception e) {
       LOG.warn(
-          "Exception occurred while creating a list of all existing contexts with missing config!",
+          "Exception occurred while creating a list of all workflow/job context names!",
           e);
       return;
     }
@@ -1062,7 +1066,7 @@ public class TaskUtil {
     // toBeDeletedWorkflows is a set that contains the name of the workflows that their contexts
     // should be deleted.
     Set<String> toBeDeletedWorkflows = new HashSet<>();
-    for (String entry : existingWorkflowContexts) {
+    for (String entry : existingContexts) {
       WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
       WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
       if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {

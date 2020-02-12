@@ -472,45 +472,20 @@ public class ClusterModelProvider {
       }
       Map<String, Integer> stateCountMap =
           def.getStateCountMap(activeFaultZoneCount, is.getReplicaCount(assignableNodes.size()));
-      mergeIdealStateWithResourceConfig(resourceConfig, is);
+      ResourceConfig mergedResourceConfig =
+          ResourceConfig.mergeIdealStateWithResourceConfig(resourceConfig, is);
       Set<AssignableReplica> replicas = new HashSet<>();
       for (String partition : is.getPartitionSet()) {
         for (Map.Entry<String, Integer> entry : stateCountMap.entrySet()) {
           String state = entry.getKey();
           for (int i = 0; i < entry.getValue(); i++) {
-            replicas.add(new AssignableReplica(clusterConfig, resourceConfig, partition, state,
-                def.getStatePriorityMap().get(state)));
+            replicas.add(new AssignableReplica(clusterConfig, mergedResourceConfig, partition, state,
+                    def.getStatePriorityMap().get(state)));
           }
         }
       }
       return new HashMap.SimpleEntry<>(resourceName, replicas);
     }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-  }
-
-  /**
-   * For backward compatibility, propagate the critical simple fields from the IdealState to
-   * the Resource Config.
-   * Eventually, Resource Config should be the only metadata node that contains the required information.
-   */
-  private static void mergeIdealStateWithResourceConfig(ResourceConfig resourceConfig,
-      final IdealState idealState) {
-    // Note that the config fields get updated in this method shall be fully compatible with ones in the IdealState.
-    // 1. The fields shall have exactly the same meaning.
-    // 2. The value shall be exactly compatible, no additional calculation involved.
-    // 3. Resource Config items have a high priority.
-    // This is to ensure the resource config is not polluted after the merge.
-    if (null == resourceConfig.getRecord()
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name())) {
-      resourceConfig.getRecord()
-          .setSimpleField(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name(),
-              idealState.getInstanceGroupTag());
-    }
-    if (null == resourceConfig.getRecord()
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name())) {
-      resourceConfig.getRecord()
-          .setIntField(ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
-              idealState.getMaxPartitionsPerInstance());
-    }
   }
 
   /**

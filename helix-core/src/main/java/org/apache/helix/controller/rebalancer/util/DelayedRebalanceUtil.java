@@ -25,10 +25,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,13 +211,18 @@ public class DelayedRebalanceUtil {
 
   /**
    * Get the minimum active replica count threshold that allows delayed rebalance.
+   * Prioritize of the input params:
+   * 1. resourceConfig
+   * 2. replicaCount
+   * The lower priority minimum active replica count will only be applied if the higher priority
+   * items are missing.
    *
-   * @param idealState      the resource Ideal State
-   * @param replicaCount the expected active replica count.
+   * @param resourceConfig the resource config
+   * @param replicaCount   the expected active replica count.
    * @return the expected minimum active replica count that is required
    */
-  public static int getMinActiveReplica(IdealState idealState, int replicaCount) {
-    int minActiveReplicas = idealState.getMinActiveReplicas();
+  public static int getMinActiveReplica(ResourceConfig resourceConfig, int replicaCount) {
+    int minActiveReplicas = resourceConfig == null ? -1 : resourceConfig.getMinActiveReplica();
     if (minActiveReplicas < 0) {
       minActiveReplicas = replicaCount;
     }

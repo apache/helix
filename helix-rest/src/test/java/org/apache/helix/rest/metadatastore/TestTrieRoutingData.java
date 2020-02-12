@@ -67,19 +67,6 @@ public class TestTrieRoutingData {
   }
 
   @Test
-  public void testConstructionEmptyShardingKeys() {
-    Map<String, List<String>> routingData = new HashMap<>();
-    routingData.put("realmAddress1", Collections.emptyList());
-    try {
-      new TrieRoutingData(routingData);
-      Assert.fail("Expecting InvalidRoutingDataException");
-    } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Realm address does not have associating sharding keys: realmAddress1"));
-    }
-  }
-
-  @Test
   public void testConstructionShardingKeyNoLeadingSlash() {
     Map<String, List<String>> routingData = new HashMap<>();
     routingData.put("realmAddress1", Arrays.asList("/g", "/h/i", "/h/j"));

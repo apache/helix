@@ -162,15 +162,11 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
    * @throws InvalidRoutingDataException - when there is an empty sharding key (edge case that
    *           always renders the routing data invalid); when there is a sharding key which already
    *           contains a sharding key (invalid); when there is a sharding key that is a part of
-   *           another sharding key (invalid)
+   *           another sharding key (invalid); when a sharding key doesn't have a leading delimiter
    */
   private void constructTrie(Map<String, List<String>> routingData)
       throws InvalidRoutingDataException {
     for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
-      if (entry.getValue().isEmpty()) {
-        throw new InvalidRoutingDataException(
-            "Realm address does not have associating sharding keys: " + entry.getKey());
-      }
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
         if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {

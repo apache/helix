@@ -72,36 +72,27 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   /**
    * Returns (realm, list of ZK path sharding keys) mappings.
    * @return Map <realm, list of ZK path sharding keys>
-   * @throws InvalidRoutingDataException
+   * @throws InvalidRoutingDataException - when the node on
+   *           MetadataStoreRoutingConstants.ROUTING_DATA_PATH is missing
    */
-  public Map<String, List<String>> getRoutingData()
-      throws InvalidRoutingDataException {
+  public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
     Map<String, List<String>> routingData = new HashMap<>();
-    List<String> children;
+    List<String> allRealmAddresses;
     try {
-      children = _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+      allRealmAddresses = _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
     } catch (ZkNoNodeException e) {
       throw new InvalidRoutingDataException(
           "Routing data directory ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
               + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    if (children == null || children.isEmpty()) {
-      throw new InvalidRoutingDataException(
-          "There are no metadata store realms defined. Routing ZooKeeper address: " + _zkAddress);
-    }
-    for (String child : children) {
+    for (String realmAddress : allRealmAddresses) {
       ZNRecord record =
-          _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child);
+          _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
       List<String> shardingKeys =
           record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      if (shardingKeys == null || shardingKeys.isEmpty()) {
-        throw new InvalidRoutingDataException(
-            "Realm address ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child
-                + " does not have a value for key "
-                + MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY
-                + ". Routing ZooKeeper address: " + _zkAddress);
+      if (shardingKeys != null) {
+        routingData.put(realmAddress, shardingKeys);
       }
-      routingData.put(child, shardingKeys);
     }
     return routingData;
   }

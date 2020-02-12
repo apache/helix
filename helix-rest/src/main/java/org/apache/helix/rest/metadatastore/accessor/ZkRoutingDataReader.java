@@ -23,17 +23,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
-import org.apache.helix.manager.zk.client.HelixZkClient;
-import org.apache.helix.manager.zk.zookeeper.IZkStateListener;
 import org.apache.helix.rest.metadatastore.RoutingDataListener;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.Watcher;
 
 
@@ -71,7 +71,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   /**
    * Returns (realm, list of ZK path sharding keys) mappings.
-   * @return
+   * @return Map <realm, list of ZK path sharding keys>
    * @throws InvalidRoutingDataException
    */
   public Map<String, List<String>> getRoutingData()

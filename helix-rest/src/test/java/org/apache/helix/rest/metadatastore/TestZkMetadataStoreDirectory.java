@@ -21,6 +21,7 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -152,6 +153,40 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetAllShardingKeysInRealm")
+  public void testGetAllMappingUnderPath() {
+    Map<String, String> mappingFromRoot = new HashMap<>();
+    TEST_SHARDING_KEYS_1.forEach(shardingKey -> {
+      mappingFromRoot.put(shardingKey, TEST_REALM_1);
+    });
+    TEST_SHARDING_KEYS_2.forEach(shardingKey -> {
+      mappingFromRoot.put(shardingKey, TEST_REALM_2);
+    });
+
+    Map<String, String> mappingFromLeaf = new HashMap<>(1);
+    mappingFromLeaf.put("/sharding/key/1/a", TEST_REALM_1);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      Assert.assertEquals(_metadataStoreDirectory.getAllMappingUnderPath(namespace, "/"),
+          mappingFromRoot);
+      Assert.assertEquals(
+          _metadataStoreDirectory.getAllMappingUnderPath(namespace, "/sharding/key/1/a"),
+          mappingFromLeaf);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetAllMappingUnderPath")
+  public void testGetMetadataStoreRealm() {
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      Assert.assertEquals(
+          _metadataStoreDirectory.getMetadataStoreRealm(namespace, "/sharding/key/1/a/x/y/z"),
+          TEST_REALM_1);
+      Assert.assertEquals(
+          _metadataStoreDirectory.getMetadataStoreRealm(namespace, "/sharding/key/1/d/x/y/z"),
+          TEST_REALM_2);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetMetadataStoreRealm")
   public void testDataChangeCallback()
       throws Exception {
     // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_1

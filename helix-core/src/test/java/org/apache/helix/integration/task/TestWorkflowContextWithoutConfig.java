@@ -170,7 +170,7 @@ public class TestWorkflowContextWithoutConfig extends TaskTestBase {
     Assert.assertTrue(contextDeleted);
   }
 
-  Workflow.Builder createSimpleWorkflowBuilder(String workflowName) {
+  private Workflow.Builder createSimpleWorkflowBuilder(String workflowName) {
     final long expiryTime = 5000L;
     Workflow.Builder builder = new Workflow.Builder(workflowName);
 

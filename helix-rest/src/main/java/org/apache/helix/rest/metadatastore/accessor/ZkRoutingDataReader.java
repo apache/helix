@@ -36,8 +36,8 @@ import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.Watcher;
 
-
-public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkDataListener, IZkChildListener, IZkStateListener {
+public class ZkRoutingDataReader
+    implements MetadataStoreRoutingDataReader, IZkDataListener, IZkChildListener, IZkStateListener {
   private final String _namespace;
   private final String _zkAddress;
   private final HelixZkClient _zkClient;
@@ -53,18 +53,17 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
       throw new IllegalArgumentException("Zk address cannot be null or empty!");
     }
     _zkAddress = zkAddress;
-    _zkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    _zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
+        new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
       // Subscribe child changes
       _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
       // Subscribe data changes
       for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        _zkClient
-            .subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-                this);
+        _zkClient.subscribeDataChanges(
+            MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child, this);
       }
     }
   }
@@ -72,10 +71,10 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   /**
    * Returns (realm, list of ZK path sharding keys) mappings.
    * @return Map <realm, list of ZK path sharding keys>
-   * @throws InvalidRoutingDataException
+   * @throws InvalidRoutingDataException - when the node on
+   *           MetadataStoreRoutingConstants.ROUTING_DATA_PATH is missing
    */
-  public Map<String, List<String>> getRoutingData()
-      throws InvalidRoutingDataException {
+  public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
     Map<String, List<String>> routingData = new HashMap<>();
     List<String> allRealmAddresses;
     try {

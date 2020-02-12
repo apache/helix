@@ -79,6 +79,8 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       // Populate realmToShardingKeys with ZkRoutingDataReader
       _realmToShardingKeysMap.put(routingEntry.getKey(),
           _routingDataReaderMap.get(routingEntry.getKey()).getRoutingData());
+      _routingDataMap.put(routingEntry.getKey(),
+          new TrieRoutingData(_realmToShardingKeysMap.get(routingEntry.getKey())));
     }
   }
 

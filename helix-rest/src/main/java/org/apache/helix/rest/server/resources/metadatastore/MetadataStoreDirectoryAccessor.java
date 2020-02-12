@@ -90,7 +90,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}")
   public Response addMetadataStoreRealm(@PathParam("realm") String realm) {
     try {
-      LOG.error("updating {} {}", _namespace, realm);
       _metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm);
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());

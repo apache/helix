@@ -23,20 +23,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
-import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
-  private static final Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
 
   private final String _namespace;
   private final HelixZkClient _zkClient;
@@ -244,7 +243,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm,
           new ZNRecord(realm));
     } catch (Exception e) {
-      LOG.error("Failed to create ZkRealm: {}, Namespace: ", realm, _namespace);
+      LOG.error("Failed to create ZkRealm: {}, Namespace: {}", realm, _namespace, e);
       return false;
     }
 

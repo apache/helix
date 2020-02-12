@@ -25,10 +25,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
@@ -41,13 +42,15 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
   private MetadataStoreRoutingDataReader _zkRoutingDataReader;
 
   @BeforeClass
-  public void beforeClass() {
+  public void beforeClass() throws Exception {
+    deleteRoutingDataPath();
     _zkRoutingDataReader = new ZkRoutingDataReader(DUMMY_NAMESPACE, ZK_ADDR, null);
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     _zkRoutingDataReader.close();
+    deleteRoutingDataPath();
   }
 
   @AfterMethod
@@ -125,5 +128,19 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     } catch (InvalidRoutingDataException e) {
       Assert.fail("Not expecting InvalidRoutingDataException");
     }
+  }
+
+  private void deleteRoutingDataPath() throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+
+      if (ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+          .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+        return false;
+      }
+
+      return true;
+    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 }

@@ -42,12 +42,16 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
 
   @BeforeClass
   public void beforeClass() {
+    ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
     _zkRoutingDataReader = new ZkRoutingDataReader(DUMMY_NAMESPACE, ZK_ADDR, null);
   }
 
   @AfterClass
   public void afterClass() {
     _zkRoutingDataReader.close();
+    ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
   }
 
   @AfterMethod

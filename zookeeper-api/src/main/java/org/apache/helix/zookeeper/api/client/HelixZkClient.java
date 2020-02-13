@@ -91,7 +91,7 @@ public interface HelixZkClient extends RealmAwareZkClient {
    * Configuration for creating a new HelixZkClient with serializer and monitor.
    */
   @Deprecated
-  class ZkClientConfig extends RealmAwareZkClientConfig {
+  class ZkClientConfig {
     // For client to init the connection
     private long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
 

@@ -41,8 +41,10 @@ import org.apache.zookeeper.data.Stat;
 
 
 /**
- * Realm-aware ZkClient interface.
- * NOTE: "Realm-aware" does not necessarily mean that the RealmAwareZkClient instance will
+ * The Realm-aware ZkClient interface.
+ * NOTE: "Realm-aware" does not necessarily mean that the RealmAwareZkClient instance will be connecting to multiple ZK realms.
+ * On single-realm mode, RealmAwareZkClient will reject requests going out to other ZK realms than the one set at initialization.
+ * On multi-realm mode, RealmAwareZkClient will connect to multiple ZK realms but will reject EPHEMERAL AccessMode operations.
  */
 public interface RealmAwareZkClient {
 

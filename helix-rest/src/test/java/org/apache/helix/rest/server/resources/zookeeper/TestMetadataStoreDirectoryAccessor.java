@@ -307,7 +307,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   private void deleteRoutingDataPath() throws Exception {
-    TestHelper.verify(() -> {
+    Assert.assertTrue(TestHelper.verify(() -> {
       _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
           .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
 
@@ -319,6 +319,6 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
       }
 
       return true;
-    }, TestHelper.WAIT_DURATION);
+    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 }

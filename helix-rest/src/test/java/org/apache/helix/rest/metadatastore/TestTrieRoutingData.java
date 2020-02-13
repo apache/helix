@@ -25,9 +25,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestTrieRoutingData {
   private TrieRoutingData _trie;
@@ -239,7 +241,7 @@ public class TestTrieRoutingData {
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
       Assert.assertTrue(
-          e.getMessage().contains("The provided path is missing from the trie. Path: /x/y/z"));
+          e.getMessage().contains("No sharding key found within the provided path. Path: /x/y/z"));
     }
   }
 
@@ -249,7 +251,44 @@ public class TestTrieRoutingData {
       _trie.getMetadataStoreRealm("/b/c");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
-      Assert.assertTrue(e.getMessage().contains("No leaf node found along the path. Path: /b/c"));
+      Assert.assertTrue(
+          e.getMessage().contains("No sharding key found within the provided path. Path: /b/c"));
     }
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidNoSlash() {
+    try {
+      _trie.isShardingKeyInsertionValid("x/y/z");
+      Assert.fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains(
+          "Provided shardingKey is empty or does not have a leading \"/\" character: x/y/z"));
+    }
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidSlashOnly() {
+    Assert.assertFalse(_trie.isShardingKeyInsertionValid("/"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidNormal() {
+    Assert.assertTrue(_trie.isShardingKeyInsertionValid("/x/y/z"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidParentKey() {
+    Assert.assertFalse(_trie.isShardingKeyInsertionValid("/b/c"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidSameKey() {
+    Assert.assertFalse(_trie.isShardingKeyInsertionValid("/h/i"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testIsShardingKeyInsertionValidChildKey() {
+    Assert.assertFalse(_trie.isShardingKeyInsertionValid("/h/i/k"));
   }
 }

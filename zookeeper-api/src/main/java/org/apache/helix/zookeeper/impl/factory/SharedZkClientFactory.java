@@ -50,6 +50,13 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
     return null;
   }
 
+  @Override
+  public RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    // TODO: Implement the logic
+    return null;
+  }
+
   private static class SingletonHelper {
     private static final SharedZkClientFactory INSTANCE = new SharedZkClientFactory();
   }

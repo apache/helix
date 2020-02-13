@@ -41,6 +41,13 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
     return null;
   }
 
+  @Override
+  public RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    // TODO: Implement the logic
+    return null;
+  }
+
   private static class SingletonHelper {
     private static final DedicatedZkClientFactory INSTANCE = new DedicatedZkClientFactory();
   }

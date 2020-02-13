@@ -19,5 +19,13 @@ package org.apache.helix.zookeeper.api.factory;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+
+
+/**
+ * Creates an instance of RealmAwareZkClient.
+ */
 public interface RealmAwareZkClientFactory {
+  RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig);
 }

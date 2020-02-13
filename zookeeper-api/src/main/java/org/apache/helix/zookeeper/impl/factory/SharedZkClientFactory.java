@@ -22,6 +22,7 @@ package org.apache.helix.zookeeper.impl.factory;
 import java.util.HashMap;
 
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
 import org.slf4j.Logger;
@@ -38,6 +39,15 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       _connectionManagerPool = new HashMap<>();
 
   protected SharedZkClientFactory() {
+  }
+
+  @Override
+  public RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
+    // TODO: Implement the logic
+    // Return an instance of SharedZkClient
+    return null;
   }
 
   private static class SingletonHelper {

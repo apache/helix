@@ -40,7 +40,22 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 
+/**
+ * Realm-aware ZkClient interface.
+ * NOTE: "Realm-aware" does not necessarily mean that the RealmAwareZkClient instance will
+ */
 public interface RealmAwareZkClient {
+
+  /**
+   * Specifies which mode to run this RealmAwareZkClient on.
+   *
+   * SINGLE_REALM: CRUD, change subscription, and EPHEMERAL CreateMode are supported.
+   * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
+   */
+  enum MODE {
+    SINGLE_REALM, MULTI_REALM
+  }
+
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
@@ -250,8 +265,7 @@ public interface RealmAwareZkClient {
    * This is for backward compatibility and to avoid breaking the original implementation of
    * {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
    */
-  class I0ItecIZkStateListenerHelixImpl
-      implements org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener {
+  class I0ItecIZkStateListenerHelixImpl implements org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener {
     private IZkStateListener _listener;
 
     I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
@@ -259,12 +273,14 @@ public interface RealmAwareZkClient {
     }
 
     @Override
-    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
+    public void handleStateChanged(Watcher.Event.KeeperState keeperState)
+        throws Exception {
       _listener.handleStateChanged(keeperState);
     }
 
     @Override
-    public void handleNewSession() throws Exception {
+    public void handleNewSession()
+        throws Exception {
       /*
        * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
        * so null is passed into handleNewSession(sessionId).
@@ -273,7 +289,8 @@ public interface RealmAwareZkClient {
     }
 
     @Override
-    public void handleSessionEstablishmentError(Throwable error) throws Exception {
+    public void handleSessionEstablishmentError(Throwable error)
+        throws Exception {
       _listener.handleSessionEstablishmentError(error);
     }
 
@@ -289,8 +306,8 @@ public interface RealmAwareZkClient {
         return false;
       }
 
-      HelixZkClient.I0ItecIZkStateListenerHelixImpl
-          defaultListener = (HelixZkClient.I0ItecIZkStateListenerHelixImpl) obj;
+      HelixZkClient.I0ItecIZkStateListenerHelixImpl defaultListener =
+          (HelixZkClient.I0ItecIZkStateListenerHelixImpl) obj;
 
       return _listener.equals(defaultListener._listener);
     }
@@ -306,64 +323,34 @@ public interface RealmAwareZkClient {
   }
 
   /**
-   * Configuration for creating a new ZkConnection.
+   * ZkConnection-related configs for creating an instance of RealmAwareZkClient.
    */
-  class ZkConnectionConfig {
-    // Connection configs
-    private final String _zkServers;
-    private int _sessionTimeout = HelixZkClient.DEFAULT_SESSION_TIMEOUT;
+  class RealmAwareZkConnectionConfig {
+    /**
+     * mode: Which mode the RealmAwareZkClientConfig should be created in
+     */
+    private final MODE _mode;
+    /**
+     * zkRealmShardingKey: used to deduce which ZK realm this RealmAwareZkClientConfig should connect to.
+     * NOTE: this field is not used if MODE is MULTI_REALM!
+     */
+    private final String _zkRealmShardingKey;
 
-    public ZkConnectionConfig(String zkServers) {
-      _zkServers = zkServers;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof HelixZkClient.ZkConnectionConfig)) {
-        return false;
-      }
-      HelixZkClient.ZkConnectionConfig configObj = (HelixZkClient.ZkConnectionConfig) obj;
-      return (_zkServers == null && configObj._zkServers == null ||
-          _zkServers != null && _zkServers.equals(configObj._zkServers)) &&
-          _sessionTimeout == configObj._sessionTimeout;
-    }
-
-    @Override
-    public int hashCode() {
-      return _sessionTimeout * 31 + _zkServers.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return (_zkServers + "_" + _sessionTimeout).replaceAll("[\\W]", "_");
-    }
-
-    public HelixZkClient.ZkConnectionConfig setSessionTimeout(Integer sessionTimeout) {
-      this._sessionTimeout = sessionTimeout;
-      return this;
-    }
-
-    public String getZkServers() {
-      return _zkServers;
-    }
-
-    public int getSessionTimeout() {
-      return _sessionTimeout;
+    public RealmAwareZkConnectionConfig(MODE mode, String zkRealmShardingKey) {
+      _mode = mode;
+      _zkRealmShardingKey = zkRealmShardingKey;
     }
   }
 
   /**
-   * Configuration for creating a new RealmAwareZkClient with serializer and monitor.
+   * ZkClient-related configs for creating an instance of RealmAwareZkClient.
    */
-  class ZkClientConfig {
+  class RealmAwareZkClientConfig {
     // For client to init the connection
-    private long _connectInitTimeout = HelixZkClient.DEFAULT_CONNECTION_TIMEOUT;
+    private long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
     // Data access configs
-    private long _operationRetryTimeout = HelixZkClient.DEFAULT_OPERATION_TIMEOUT;
+    private long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
 
     // Others
     private PathBasedZkSerializer _zkSerializer;
@@ -374,12 +361,12 @@ public interface RealmAwareZkClient {
     private String _monitorInstanceName = null;
     private boolean _monitorRootPathOnly = true;
 
-    public HelixZkClient.ZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
+    public RealmAwareZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
       return this;
     }
 
-    public HelixZkClient.ZkClientConfig setZkSerializer(ZkSerializer zkSerializer) {
+    public RealmAwareZkClientConfig setZkSerializer(ZkSerializer zkSerializer) {
       this._zkSerializer = new BasicZkSerializer(zkSerializer);
       return this;
     }
@@ -389,7 +376,7 @@ public interface RealmAwareZkClient {
      *
      * @param monitorType
      */
-    public HelixZkClient.ZkClientConfig setMonitorType(String monitorType) {
+    public RealmAwareZkClientConfig setMonitorType(String monitorType) {
       this._monitorType = monitorType;
       return this;
     }
@@ -399,7 +386,7 @@ public interface RealmAwareZkClient {
      *
      * @param monitorKey
      */
-    public HelixZkClient.ZkClientConfig setMonitorKey(String monitorKey) {
+    public RealmAwareZkClientConfig setMonitorKey(String monitorKey) {
       this._monitorKey = monitorKey;
       return this;
     }
@@ -409,22 +396,22 @@ public interface RealmAwareZkClient {
      *
      * @param instanceName
      */
-    public HelixZkClient.ZkClientConfig setMonitorInstanceName(String instanceName) {
+    public RealmAwareZkClientConfig setMonitorInstanceName(String instanceName) {
       this._monitorInstanceName = instanceName;
       return this;
     }
 
-    public HelixZkClient.ZkClientConfig setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
+    public RealmAwareZkClientConfig setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
       this._monitorRootPathOnly = monitorRootPathOnly;
       return this;
     }
 
-    public HelixZkClient.ZkClientConfig setOperationRetryTimeout(Long operationRetryTimeout) {
+    public RealmAwareZkClientConfig setOperationRetryTimeout(Long operationRetryTimeout) {
       this._operationRetryTimeout = operationRetryTimeout;
       return this;
     }
 
-    public HelixZkClient.ZkClientConfig setConnectInitTimeout(long _connectInitTimeout) {
+    public RealmAwareZkClientConfig setConnectInitTimeout(long _connectInitTimeout) {
       this._connectInitTimeout = _connectInitTimeout;
       return this;
     }

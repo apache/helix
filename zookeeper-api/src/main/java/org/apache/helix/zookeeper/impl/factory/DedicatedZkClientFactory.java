@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.impl.factory;
  */
 
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 
 
@@ -29,6 +30,15 @@ import org.apache.helix.zookeeper.impl.client.ZkClient;
 public class DedicatedZkClientFactory extends HelixZkClientFactory {
 
   protected DedicatedZkClientFactory() {
+  }
+
+  @Override
+  public RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
+    // TODO: Implement the logic
+    // Return an instance of DedicatedZkClient
+    return null;
   }
 
   private static class SingletonHelper {

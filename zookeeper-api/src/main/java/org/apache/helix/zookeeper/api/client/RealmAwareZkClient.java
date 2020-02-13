@@ -22,6 +22,7 @@ package org.apache.helix.zookeeper.api.client;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -334,13 +335,58 @@ public interface RealmAwareZkClient {
     private final MODE _mode;
     /**
      * zkRealmShardingKey: used to deduce which ZK realm this RealmAwareZkClientConfig should connect to.
-     * NOTE: this field is not used if MODE is MULTI_REALM!
+     * NOTE: this field will be ignored if MODE is MULTI_REALM!
      */
     private final String _zkRealmShardingKey;
+    private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     public RealmAwareZkConnectionConfig(MODE mode, String zkRealmShardingKey) {
+      if (mode == null) {
+        throw new ZkClientException("Mode cannot be null!");
+      }
       _mode = mode;
       _zkRealmShardingKey = zkRealmShardingKey;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof RealmAwareZkConnectionConfig)) {
+        return false;
+      }
+      RealmAwareZkConnectionConfig configObj = (RealmAwareZkConnectionConfig) obj;
+      return (_zkRealmShardingKey == null && configObj._zkRealmShardingKey == null
+          || _zkRealmShardingKey != null && _zkRealmShardingKey
+          .equals(configObj._zkRealmShardingKey)) && _sessionTimeout == configObj._sessionTimeout;
+    }
+
+    @Override
+    public int hashCode() {
+      return _sessionTimeout * 31 + _zkRealmShardingKey.hashCode() + _mode.name().hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return (_mode + "_" + _zkRealmShardingKey + "_" + _sessionTimeout).replaceAll("[\\W]", "_");
+    }
+
+    public RealmAwareZkConnectionConfig setSessionTimeout(int sessionTimeout) {
+      this._sessionTimeout = sessionTimeout;
+      return this;
+    }
+
+    public RealmAwareZkClient.MODE getMode() {
+      return _mode;
+    }
+
+    public String getZkRealmShardingKey() {
+      return _zkRealmShardingKey;
+    }
+
+    public int getSessionTimeout() {
+      return _sessionTimeout;
     }
   }
 

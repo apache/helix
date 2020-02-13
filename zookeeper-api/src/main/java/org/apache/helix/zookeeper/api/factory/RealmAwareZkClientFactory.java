@@ -26,6 +26,20 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
  * Creates an instance of RealmAwareZkClient.
  */
 public interface RealmAwareZkClientFactory {
+  /**
+   * Build a RealmAwareZkClient using specified connection config and client config.
+   * @param connectionConfig
+   * @param clientConfig
+   * @return HelixZkClient
+   */
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig);
+
+  /**
+   * Builds a RealmAwareZkClient using specified connection config and default client config.
+   * @param connectionConfig
+   * @return RealmAwareZkClient
+   */
+  RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig);
 }

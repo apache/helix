@@ -33,10 +33,11 @@ import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.helix.TestHelper;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -45,8 +46,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import static org.apache.helix.rest.common.HelixRestNamespace.DEFAULT_NAMESPACE_NAME;
 
 
 public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
@@ -70,16 +69,15 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass() throws InvalidRoutingDataException {
+  public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
-    _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
-        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
+    deleteRoutingDataPath();
 
     // Populate routingZkAddrMap according namespaces in helix rest server.
     // <Namespace, ZkAddr> mapping
-    Map<String, String> routingZkAddrMap =
-        ImmutableMap.of(DEFAULT_NAMESPACE_NAME, ZK_ADDR, TEST_NAMESPACE, _zkAddrTestNS);
+    Map<String, String> routingZkAddrMap = ImmutableMap
+        .of(HelixRestNamespace.DEFAULT_NAMESPACE_NAME, ZK_ADDR, TEST_NAMESPACE, _zkAddrTestNS);
 
     // Write dummy mappings in ZK
     // Create a node that represents a realm address and add 3 sharding keys to it
@@ -158,7 +156,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Set<String> updateRealmsSet = new HashSet<>(updatedRealms);
     expectedRealmsSet.add(TEST_REALM_3);
 
-    // TODO: enable asserts once MSD write operations are ready.
+    // TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
 //    Assert.assertEquals(updateRealmsSet, previousRealms);
   }
 
@@ -303,9 +301,24 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     _metadataStoreDirectory.close();
-    _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
-        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
+    deleteRoutingDataPath();
+  }
+
+  private void deleteRoutingDataPath() throws Exception {
+    TestHelper.verify(() -> {
+      _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
+          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
+
+      for (String zk : _zkList) {
+        if (ZK_SERVER_MAP.get(zk).getZkClient()
+            .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          return false;
+        }
+      }
+
+      return true;
+    }, TestHelper.WAIT_DURATION);
   }
 }

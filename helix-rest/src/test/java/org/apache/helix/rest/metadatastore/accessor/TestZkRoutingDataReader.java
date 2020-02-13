@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
@@ -41,17 +42,15 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
   private MetadataStoreRoutingDataReader _zkRoutingDataReader;
 
   @BeforeClass
-  public void beforeClass() {
-    ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
-        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+  public void beforeClass() throws Exception {
+    deleteRoutingDataPath();
     _zkRoutingDataReader = new ZkRoutingDataReader(DUMMY_NAMESPACE, ZK_ADDR, null);
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     _zkRoutingDataReader.close();
-    ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
-        .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+    deleteRoutingDataPath();
   }
 
   @AfterMethod
@@ -133,5 +132,19 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
               + MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY
               + ". Routing ZooKeeper address: " + ZK_ADDR));
     }
+  }
+
+  private void deleteRoutingDataPath() throws Exception {
+    TestHelper.verify(() -> {
+      ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+
+      if (ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
+          .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+        return false;
+      }
+
+      return true;
+    }, TestHelper.WAIT_DURATION);
   }
 }

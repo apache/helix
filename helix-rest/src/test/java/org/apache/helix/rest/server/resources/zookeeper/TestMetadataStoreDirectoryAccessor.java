@@ -114,6 +114,9 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 
   @Test
   public void testGetAllMetadataStoreRealms() throws IOException {
+    get(NON_EXISTING_NAMESPACE_URI_PREFIX + "metadata-store-realms", null,
+        Response.Status.NOT_FOUND.getStatusCode(), false);
+
     String responseBody = get(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms", null,
         Response.Status.OK.getStatusCode(), true);
     // It is safe to cast the object and suppress warnings.
@@ -147,7 +150,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 
     // Successful request.
     put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3, null,
-        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
 
     Collection<String> updatedRealms =
         _metadataStoreDirectory.getAllMetadataStoreRealms(TEST_NAMESPACE);
@@ -188,6 +192,9 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
    */
   @Test
   public void testGetShardingKeysInNamespace() throws IOException {
+    get(NON_EXISTING_NAMESPACE_URI_PREFIX + "sharding-keys", null,
+        Response.Status.NOT_FOUND.getStatusCode(), true);
+
     String responseBody =
         get(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys", null, Response.Status.OK.getStatusCode(),
             true);
@@ -263,7 +270,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     // Successful request.
     put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/"
             + TEST_SHARDING_KEY, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode());
+        Response.Status.CREATED.getStatusCode());
 
     Set<String> updatedShardingKeysSet = new HashSet<>(
         _metadataStoreDirectory.getAllShardingKeysInRealm(TEST_NAMESPACE, TEST_REALM_1));

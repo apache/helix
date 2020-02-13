@@ -95,7 +95,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       return notFound(ex.getMessage());
     }
 
-    return OK();
+    return created();
   }
 
   @DELETE
@@ -158,7 +158,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       return notFound(ex.getMessage());
     }
 
-    return OK();
+    return created();
   }
 
   @DELETE

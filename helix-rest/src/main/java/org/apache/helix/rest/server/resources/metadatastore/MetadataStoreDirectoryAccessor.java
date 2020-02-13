@@ -25,8 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import javax.annotation.PostConstruct;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
@@ -51,15 +54,15 @@ import org.slf4j.LoggerFactory;
 public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);
 
-  private HelixRestNamespace _namespace;
-
-  // Double-checked locking for thread-safe object.
+  private String _namespace;
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @PostConstruct
   private void postConstruct() {
-    getHelixNamespace();
-    buildMetadataStoreDirectory();
+    HelixRestNamespace helixRestNamespace = getHelixNamespace();
+    _namespace = helixRestNamespace.getName();
+
+    buildMetadataStoreDirectory(_namespace, helixRestNamespace.getMetadataStoreAddress());
   }
 
   /**
@@ -72,8 +75,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   public Response getAllMetadataStoreRealms() {
     Map<String, Collection<String>> responseMap;
     try {
-      Collection<String> realms =
-          _metadataStoreDirectory.getAllMetadataStoreRealms(_namespace.getName());
+      Collection<String> realms = _metadataStoreDirectory.getAllMetadataStoreRealms(_namespace);
 
       responseMap = new HashMap<>(1);
       responseMap.put(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
@@ -82,6 +84,30 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     }
 
     return JSONRepresentation(responseMap);
+  }
+
+  @PUT
+  @Path("/metadata-store-realms/{realm}")
+  public Response addMetadataStoreRealm(@PathParam("realm") String realm) {
+    try {
+      _metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm);
+    } catch (IllegalArgumentException ex) {
+      return notFound(ex.getMessage());
+    }
+
+    return created();
+  }
+
+  @DELETE
+  @Path("/metadata-store-realms/{realm}")
+  public Response deleteMetadataStoreRealm(@PathParam("realm") String realm) {
+    try {
+      _metadataStoreDirectory.deleteMetadataStoreRealm(_namespace, realm);
+    } catch (IllegalArgumentException ex) {
+      return notFound(ex.getMessage());
+    }
+
+    return OK();
   }
 
   /**
@@ -101,15 +127,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       // If realm is not set in query param, the endpoint is: "/sharding-keys"
       // to get all sharding keys in a namespace.
       if (realm == null) {
-        shardingKeys =
-            _metadataStoreDirectory.getAllShardingKeys(_namespace.getName());
+        shardingKeys = _metadataStoreDirectory.getAllShardingKeys(_namespace);
         // To avoid allocating unnecessary resource, limit the map's capacity only for
         // SHARDING_KEYS.
         responseMap = new HashMap<>(1);
       } else {
         // For endpoint: "/sharding-keys?realm={realmName}"
-        shardingKeys = _metadataStoreDirectory
-            .getAllShardingKeysInRealm(_namespace.getName(), realm);
+        shardingKeys = _metadataStoreDirectory.getAllShardingKeysInRealm(_namespace, realm);
         // To avoid allocating unnecessary resource, limit the map's capacity only for
         // SHARDING_KEYS and SINGLE_METADATA_STORE_REALM.
         responseMap = new HashMap<>(2);
@@ -124,7 +148,34 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return JSONRepresentation(responseMap);
   }
 
-  private void getHelixNamespace() {
+  @PUT
+  @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
+  public Response addShardingKey(@PathParam("realm") String realm,
+      @PathParam("sharding-key") String shardingKey) {
+    try {
+      _metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey);
+    } catch (IllegalArgumentException ex) {
+      return notFound(ex.getMessage());
+    }
+
+    return created();
+  }
+
+  @DELETE
+  @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
+  public Response deleteShardingKey(@PathParam("realm") String realm,
+      @PathParam("sharding-key") String shardingKey) {
+    try {
+      _metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey);
+    } catch (IllegalArgumentException ex) {
+      return notFound(ex.getMessage());
+    }
+
+    return OK();
+  }
+
+  private HelixRestNamespace getHelixNamespace() {
+    HelixRestNamespace helixRestNamespace = null;
     // A default servlet does not have context property key METADATA, so the namespace
     // is retrieved from property ALL_NAMESPACES.
     if (HelixRestUtils.isDefaultServlet(_servletRequest.getServletPath())) {
@@ -134,20 +185,21 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
           .get(ContextPropertyKeys.ALL_NAMESPACES.name());
       for (HelixRestNamespace ns : namespaces) {
         if (HelixRestNamespace.DEFAULT_NAMESPACE_NAME.equals(ns.getName())) {
-          _namespace = ns;
+          helixRestNamespace = ns;
           break;
         }
       }
     } else {
       // Get namespace from property METADATA for a common servlet.
-      _namespace = (HelixRestNamespace) _application.getProperties()
+      helixRestNamespace = (HelixRestNamespace) _application.getProperties()
           .get(ContextPropertyKeys.METADATA.name());
     }
+
+    return helixRestNamespace;
   }
 
-  private void buildMetadataStoreDirectory() {
-    Map<String, String> routingZkAddressMap =
-        ImmutableMap.of(_namespace.getName(), _namespace.getMetadataStoreAddress());
+  private void buildMetadataStoreDirectory(String namespace, String address) {
+    Map<String, String> routingZkAddressMap = ImmutableMap.of(namespace, address);
     try {
       _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddressMap);
     } catch (InvalidRoutingDataException ex) {

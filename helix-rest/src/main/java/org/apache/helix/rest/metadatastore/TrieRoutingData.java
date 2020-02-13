@@ -26,9 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-
 
 /**
  * This is a class that uses a data structure similar to trie to represent metadata store routing
@@ -57,12 +55,11 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: "
-              + path);
+      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
+          + DELIMITER + "\" character: " + path);
     }
 
-    TrieNode curNode = findNearestNodeToPath(path);
+    TrieNode curNode = getLongestPrefixNodeAlongPath(path);
     if (!curNode.getPath().equals(path)) {
       return Collections.emptyMap();
     }
@@ -86,12 +83,11 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   public String getMetadataStoreRealm(String path)
       throws IllegalArgumentException, NoSuchElementException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: "
-              + path);
+      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
+          + DELIMITER + "\" character: " + path);
     }
 
-    TrieNode node = findNearestNodeToPath(path);
+    TrieNode node = getLongestPrefixNodeAlongPath(path);
     if (!node.isShardingKey()) {
       throw new NoSuchElementException(
           "No sharding key found within the provided path. Path: " + path);
@@ -99,13 +95,6 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return node.getRealmAddress();
   }
 
-  /**
-   * Check if the provided sharding key can be inserted to the existing trie. The insertion is
-   * invalid if: 1. the sharding key is a parent key to an existing sharding key; 2. the sharding
-   * key has a parent key that is an existing sharding key; 3. the sharding key already exists
-   * @param shardingKey - the sharding key to be inserted
-   * @return true if the sharding key could be inserted, false otherwise
-   */
   public boolean isShardingKeyInsertionValid(String shardingKey) {
     if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
       throw new IllegalArgumentException(
@@ -113,18 +102,28 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
               + "\" character: " + shardingKey);
     }
 
-    TrieNode node = findNearestNodeToPath(shardingKey);
+    TrieNode node = getLongestPrefixNodeAlongPath(shardingKey);
     return !node.isShardingKey() && !node.getPath().equals(shardingKey);
   }
 
   /**
-   * Given a path, find a trie node that is the nearest to the given path. For example, given
-   * "/a/b/c", the TrieNode that represents "/a/b/c" is the nearest node to path. If "/a/b/c"
-   * doesn't exist, then "/a/b" is the nearest node, then "/a", and lastly "/"
+   * Given a path, find a trie node that represents the longest prefix of the path. For example,
+   * given "/a/b/c", the method starts at "/", and attempts to reach "/a", then attempts to reach
+   * "/a/b", then ends on "/a/b/c"; if any of the node doesn't exist, the traversal terminates and
+   * the last existing node is returned.
+   * Note:
+   * 1. When the returned TrieNode is a sharding key, it is the only sharding key along the
+   * provided path (the path points to this sharding key);
+   * 2. When the returned TrieNode is not a sharding key but it represents the provided path, the
+   * provided path is a prefix(parent) to a sharding key;
+   * 3. When the returned TrieNode is not a sharding key and it does not represent the provided
+   * path (meaning the traversal ended before the last node of the path is reached), the provided
+   * path is not associated with any sharding key and can be added as a sharding key without
+   * creating ambiguity cases among sharding keys.
    * @param path - the path where the search is conducted
-   * @return a TrieNode that is the "nearest" according to the definition here
+   * @return a TrieNode that represents the longest prefix of the path
    */
-  private TrieNode findNearestNodeToPath(String path) {
+  private TrieNode getLongestPrefixNodeAlongPath(String path) {
     if (path.equals(DELIMITER)) {
       return _rootNode;
     }
@@ -175,9 +174,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
         if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
-          throw new InvalidRoutingDataException(
-              "Sharding key does not have a leading \"" + DELIMITER + "\" character: "
-                  + shardingKey);
+          throw new InvalidRoutingDataException("Sharding key does not have a leading \""
+              + DELIMITER + "\" character: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
@@ -201,14 +199,12 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
           // If the node is already a leaf node, the current sharding key is invalid; if the node
           // doesn't exist, construct a node and continue
           if (nextNode != null && nextNode.isShardingKey()) {
-            throw new InvalidRoutingDataException(
-                shardingKey + " cannot be a sharding key because " + shardingKey
-                    .substring(0, nextDelimiterIndex)
-                    + " is its parent key and is also a sharding key.");
+            throw new InvalidRoutingDataException(shardingKey + " cannot be a sharding key because "
+                + shardingKey.substring(0, nextDelimiterIndex)
+                + " is its parent key and is also a sharding key.");
           } else if (nextNode == null) {
-            nextNode =
-                new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex), false,
-                    "");
+            nextNode = new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex),
+                false, "");
             curNode.addChild(keySection, nextNode);
           }
           prevDelimiterIndex = nextDelimiterIndex;
@@ -243,8 +239,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     private final boolean _isShardingKey;
     /**
      * This field contains the complete path/prefix leading to the current node. For example, the
-     * name of root node is "/", then the name of its child node is "/a", and the name of the
-     * child's child node is "/a/b".
+     * name of root node is "/", then the name of its child node
+     * is "/a", and the name of the child's child node is "/a/b".
      */
     private final String _path;
     /**

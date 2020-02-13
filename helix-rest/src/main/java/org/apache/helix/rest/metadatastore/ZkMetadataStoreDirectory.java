@@ -157,9 +157,14 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean addShardingKey(String namespace, String realm, String shardingKey) {
-    if (!_routingDataWriterMap.containsKey(namespace)) {
+    if (!_routingDataWriterMap.containsKey(namespace) || !_routingDataMap.containsKey(namespace)) {
       throw new IllegalArgumentException(
           "Failed to add sharding key: Namespace " + namespace + " is not found!");
+    }
+    if (!_routingDataMap.get(namespace).isShardingKeyInsertionValid(shardingKey)) {
+      throw new IllegalArgumentException(
+          "Failed to add sharding key: Adding sharding key " + shardingKey
+              + " makes routing data invalid!");
     }
     return _routingDataWriterMap.get(namespace).addShardingKey(realm, shardingKey);
   }
@@ -210,7 +215,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     } catch (InvalidRoutingDataException e) {
       LOG.error("Failed to refresh cached routing data for namespace {}", namespace, e);
     }
-
   }
 
   @Override

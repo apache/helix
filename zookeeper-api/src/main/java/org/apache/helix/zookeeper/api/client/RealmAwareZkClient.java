@@ -54,7 +54,10 @@ public interface RealmAwareZkClient {
    * SINGLE_REALM: CRUD, change subscription, and EPHEMERAL CreateMode are supported.
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
-  enum MODE {SINGLE_REALM, MULTI_REALM}
+  enum MODE {
+    SINGLE_REALM,
+    MULTI_REALM
+  }
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
@@ -75,7 +78,7 @@ public interface RealmAwareZkClient {
    * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
    */
   default void subscribeStateChanges(final IZkStateListener listener) {
-    subscribeStateChanges(new HelixZkClient.I0ItecIZkStateListenerHelixImpl(listener));
+    subscribeStateChanges(new I0ItecIZkStateListenerImpl(listener));
   }
 
   /*
@@ -84,7 +87,7 @@ public interface RealmAwareZkClient {
    * TODO: remove below default implementation when getting rid of I0Itec in the new zk client.
    */
   default void unsubscribeStateChanges(IZkStateListener listener) {
-    unsubscribeStateChanges(new HelixZkClient.I0ItecIZkStateListenerHelixImpl(listener));
+    unsubscribeStateChanges(new I0ItecIZkStateListenerImpl(listener));
   }
 
   /**
@@ -265,10 +268,10 @@ public interface RealmAwareZkClient {
    * This is for backward compatibility and to avoid breaking the original implementation of
    * {@link org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener}.
    */
-  class I0ItecIZkStateListenerHelixImpl implements org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener {
+  class I0ItecIZkStateListenerImpl implements org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener {
     private IZkStateListener _listener;
 
-    I0ItecIZkStateListenerHelixImpl(IZkStateListener listener) {
+    I0ItecIZkStateListenerImpl(IZkStateListener listener) {
       _listener = listener;
     }
 
@@ -296,15 +299,14 @@ public interface RealmAwareZkClient {
       if (obj == this) {
         return true;
       }
-      if (!(obj instanceof HelixZkClient.I0ItecIZkStateListenerHelixImpl)) {
+      if (!(obj instanceof I0ItecIZkStateListenerImpl)) {
         return false;
       }
       if (_listener == null) {
         return false;
       }
 
-      HelixZkClient.I0ItecIZkStateListenerHelixImpl defaultListener =
-          (HelixZkClient.I0ItecIZkStateListenerHelixImpl) obj;
+      I0ItecIZkStateListenerImpl defaultListener = (I0ItecIZkStateListenerImpl) obj;
 
       return _listener.equals(defaultListener._listener);
     }

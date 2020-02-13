@@ -89,6 +89,9 @@ public interface HelixZkClient extends RealmAwareZkClient {
    * Deprecated - please use RealmAwareZkClient and RealmAwareZkClientConfig instead.
    *
    * Configuration for creating a new HelixZkClient with serializer and monitor.
+   *
+   * TODO: If possible, try to merge with RealmAwareZkClient's RealmAwareZkClientConfig to reduce duplicate logic/code (without breaking backward-compatibility).
+   * Simply making this a subclass of RealmAwareZkClientConfig will break backward-compatiblity.
    */
   @Deprecated
   class ZkClientConfig {

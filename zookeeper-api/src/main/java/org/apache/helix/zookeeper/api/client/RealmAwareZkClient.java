@@ -22,7 +22,6 @@ package org.apache.helix.zookeeper.api.client;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -55,9 +54,7 @@ public interface RealmAwareZkClient {
    * SINGLE_REALM: CRUD, change subscription, and EPHEMERAL CreateMode are supported.
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
-  enum MODE {
-    SINGLE_REALM, MULTI_REALM
-  }
+  enum MODE {SINGLE_REALM, MULTI_REALM}
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
@@ -276,14 +273,12 @@ public interface RealmAwareZkClient {
     }
 
     @Override
-    public void handleStateChanged(Watcher.Event.KeeperState keeperState)
-        throws Exception {
+    public void handleStateChanged(Watcher.Event.KeeperState keeperState) throws Exception {
       _listener.handleStateChanged(keeperState);
     }
 
     @Override
-    public void handleNewSession()
-        throws Exception {
+    public void handleNewSession() throws Exception {
       /*
        * org.apache.helix.manager.zk.zookeeper.IZkStateListener does not have handleNewSession(),
        * so null is passed into handleNewSession(sessionId).
@@ -292,8 +287,7 @@ public interface RealmAwareZkClient {
     }
 
     @Override
-    public void handleSessionEstablishmentError(Throwable error)
-        throws Exception {
+    public void handleSessionEstablishmentError(Throwable error) throws Exception {
       _listener.handleSessionEstablishmentError(error);
     }
 
@@ -329,10 +323,7 @@ public interface RealmAwareZkClient {
    * ZkConnection-related configs for creating an instance of RealmAwareZkClient.
    */
   class RealmAwareZkConnectionConfig {
-    /**
-     * mode: Which mode the RealmAwareZkClientConfig should be created in
-     */
-    private final MODE _mode;
+
     /**
      * zkRealmShardingKey: used to deduce which ZK realm this RealmAwareZkClientConfig should connect to.
      * NOTE: this field will be ignored if MODE is MULTI_REALM!
@@ -340,11 +331,7 @@ public interface RealmAwareZkClient {
     private final String _zkRealmShardingKey;
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
-    public RealmAwareZkConnectionConfig(MODE mode, String zkRealmShardingKey) {
-      if (mode == null) {
-        throw new ZkClientException("Mode cannot be null!");
-      }
-      _mode = mode;
+    public RealmAwareZkConnectionConfig(String zkRealmShardingKey) {
       _zkRealmShardingKey = zkRealmShardingKey;
     }
 
@@ -364,21 +351,17 @@ public interface RealmAwareZkClient {
 
     @Override
     public int hashCode() {
-      return _sessionTimeout * 31 + _zkRealmShardingKey.hashCode() + _mode.name().hashCode();
+      return _sessionTimeout * 31 + _zkRealmShardingKey.hashCode();
     }
 
     @Override
     public String toString() {
-      return (_mode + "_" + _zkRealmShardingKey + "_" + _sessionTimeout).replaceAll("[\\W]", "_");
+      return (_zkRealmShardingKey + "_" + _sessionTimeout).replaceAll("[\\W]", "_");
     }
 
     public RealmAwareZkConnectionConfig setSessionTimeout(int sessionTimeout) {
       this._sessionTimeout = sessionTimeout;
       return this;
-    }
-
-    public RealmAwareZkClient.MODE getMode() {
-      return _mode;
     }
 
     public String getZkRealmShardingKey() {

@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.impl.factory;
  */
 
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
@@ -28,7 +29,7 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 /**
  * Abstract class of the ZkClient factory.
  */
-abstract class HelixZkClientFactory {
+abstract class HelixZkClientFactory implements RealmAwareZkClientFactory {
 
   /**
    * Build a ZkClient using specified connection config and client config

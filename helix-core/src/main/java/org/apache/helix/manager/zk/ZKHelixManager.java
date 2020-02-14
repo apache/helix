@@ -1144,11 +1144,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void handleNewSession(String sessionId) throws Exception {
     /*
-     * TODO: after removing I0ItecIZkStateListenerHelixImpl, null session should be checked and
+     * TODO: after removing I0ItecIZkStateListenerImpl, null session should be checked and
      *  discarded.
      * Null session is still a special case here, which is treated as non-session aware operation.
      * This special case could still potentially cause race condition, so null session should NOT
-     * be acceptable, once I0ItecIZkStateListenerHelixImpl is removed. Currently this special case
+     * be acceptable, once I0ItecIZkStateListenerImpl is removed. Currently this special case
      * is kept for backward compatibility.
      */
 

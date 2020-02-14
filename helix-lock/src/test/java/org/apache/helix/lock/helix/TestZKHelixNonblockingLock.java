@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.helix.lock;
+package org.apache.helix.lock.helix;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.lock.LockInfo;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -61,7 +62,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     pathKeys.add("partition_name");
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.PARTITION, pathKeys);
-    _lockPath = _participantScope.getZkPath();
+    _lockPath = _participantScope.getPath();
     _lock = new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE,
         _lockMessage, _userId);
   }

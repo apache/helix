@@ -19,8 +19,11 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
+import java.util.HashMap;
+
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.client.DedicatedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 
 
@@ -36,16 +39,16 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    // TODO: Implement the logic
-    // Return an instance of DedicatedZkClient
-    return null;
+    // TODO: put a real routing data in as a parameter instead of new HashMap<>();
+    return new DedicatedZkClient(connectionConfig, clientConfig, new HashMap<>());
   }
 
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    // TODO: Implement the logic
-    return null;
+    // TODO: put a real routing data in as a parameter instead of new HashMap<>();
+    return new DedicatedZkClient(connectionConfig,
+        new RealmAwareZkClient.RealmAwareZkClientConfig(), new HashMap<>());
   }
 
   private static class SingletonHelper {

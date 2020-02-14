@@ -636,7 +636,7 @@ public class ZkClient implements Watcher {
    * @throws IllegalArgumentException if called from anything else except the ZooKeeper event thread
    * @throws ZkException if any zookeeper exception occurs
    */
-  private String create(final String path, final Object dataObject, final List<ACL> acl,
+   public String create(final String path, final Object dataObject, final List<ACL> acl,
       final CreateMode mode, final String expectedSessionId)
       throws IllegalArgumentException, ZkException {
     if (path == null) {
@@ -1188,7 +1188,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private boolean hasListeners(String path) {
+  public boolean hasListeners(String path) {
     Set<IZkDataListenerEntry> dataListeners = _dataListener.get(path);
     if (dataListeners != null && dataListeners.size() > 0) {
       return true;

@@ -17,22 +17,20 @@
  * under the License.
  */
 
-package org.apache.helix.lock;
+package org.apache.helix.lock.helix;
 
 import java.util.Date;
-import java.util.concurrent.locks.Lock;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.lock.HelixLock;
+import org.apache.helix.lock.LockInfo;
+import org.apache.helix.lock.LockScope;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.log4j.Logger;
-
-import static org.apache.helix.lock.LockInfo.DEFAULT_OWNER_TEXT;
-import static org.apache.helix.lock.LockInfo.DEFAULT_TIMEOUT_LONG;
-import static org.apache.helix.lock.LockInfo.defaultLockInfo;
 
 
 /**
@@ -56,9 +54,9 @@ public class ZKHelixNonblockingLock implements HelixLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  public ZKHelixNonblockingLock(HelixLockScope scope, String zkAddress, Long timeout,
-      String lockMsg, String userId) {
-    this(scope.getZkPath(), zkAddress, timeout, lockMsg, userId);
+  public ZKHelixNonblockingLock(LockScope scope, String zkAddress, Long timeout, String lockMsg,
+      String userId) {
+    this(scope.getPath(), zkAddress, timeout, lockMsg, userId);
   }
 
   /**
@@ -154,8 +152,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
    * @return true if the lock has a current owner that the ownership has not be timed out, otherwise false
    */
   private boolean hasNonExpiredOwner(ZNRecord znRecord) {
-    String owner = LockInfo.getOwner(znRecord);
-    return !owner.equals(DEFAULT_OWNER_TEXT) && !hasTimedOut(znRecord);
+    return LockInfo.ownerIdSet(znRecord) && !hasTimedOut(znRecord);
   }
 
   /**

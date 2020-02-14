@@ -17,17 +17,18 @@
  * under the License.
  */
 
-package org.apache.helix.lock;
+package org.apache.helix.lock.helix;
 
 import java.util.List;
 
+import org.apache.helix.lock.LockScope;
 import org.apache.helix.util.StringTemplate;
 
 
 /**
  *  Defines the various scopes of Helix locks, and how they are represented on Zookeeper
  */
-public class HelixLockScope {
+public class HelixLockScope implements LockScope {
 
   /**
    * Define various properties of Helix lock, and associate them with the number of arguments required for getting znode path
@@ -43,30 +44,30 @@ public class HelixLockScope {
     PARTITION(4);
 
     //the number of arguments required to generate a full path for the specific scope
-    final int _zkPathArgNum;
+    final int _pathArgNum;
 
     /**
      * Initialize a LockScopeProperty
-     * @param zkPathArgNum the number of arguments required to generate a full path for the specific scope
-\     */
-    private LockScopeProperty(int zkPathArgNum) {
-      _zkPathArgNum = zkPathArgNum;
+     * @param pathArgNum the number of arguments required to generate a full path for the specific scope
+    \     */
+    private LockScopeProperty(int pathArgNum) {
+      _pathArgNum = pathArgNum;
     }
 
     /**
      * Get the number of template arguments required to generate a full path
      * @return number of template arguments in the path
      */
-    public int getZkPathArgNum() {
-      return _zkPathArgNum;
+    public int getPathArgNum() {
+      return _pathArgNum;
     }
 
     /**
      * Get the position of this argument from the input that used to generate the scope
      * @return the number of position of value for this property in the list of keys input
      */
-    public int getArgumentPos() {
-      return _zkPathArgNum - 1;
+    public int getArgPos() {
+      return _pathArgNum - 1;
     }
   }
 
@@ -98,33 +99,33 @@ public class HelixLockScope {
    * @param type the scope
    * @param zkPathKeys keys identifying a ZNode location
    */
-  public HelixLockScope(HelixLockScope.LockScopeProperty type, List<String> zkPathKeys) {
+  private HelixLockScope(HelixLockScope.LockScopeProperty type, List<String> zkPathKeys) {
 
-    if (zkPathKeys.size() != type.getZkPathArgNum()) {
+    if (zkPathKeys.size() != type.getPathArgNum()) {
       throw new IllegalArgumentException(
-          type + " requires " + type.getZkPathArgNum() + " arguments to get znode, but was: "
+          type + " requires " + type.getPathArgNum() + " arguments to get znode, but was: "
               + zkPathKeys);
     }
 
     _type = type;
 
     //Initialize the name fields for various scope
-    _clusterName = zkPathKeys.get(LockScopeProperty.CLUSTER.getArgumentPos());
+    _clusterName = zkPathKeys.get(LockScopeProperty.CLUSTER.getArgPos());
 
-    if (type.getZkPathArgNum() >= LockScopeProperty.PARTICIPANT.getZkPathArgNum()) {
-      _participantName = zkPathKeys.get(LockScopeProperty.PARTICIPANT.getArgumentPos());
+    if (type.getPathArgNum() >= LockScopeProperty.PARTICIPANT.getPathArgNum()) {
+      _participantName = zkPathKeys.get(LockScopeProperty.PARTICIPANT.getArgPos());
     } else {
       _participantName = null;
     }
 
-    if (type.getZkPathArgNum() >= LockScopeProperty.RESOURCE.getZkPathArgNum()) {
-      _resourceName = zkPathKeys.get(LockScopeProperty.RESOURCE.getArgumentPos());
+    if (type.getPathArgNum() >= LockScopeProperty.RESOURCE.getPathArgNum()) {
+      _resourceName = zkPathKeys.get(LockScopeProperty.RESOURCE.getArgPos());
     } else {
       _resourceName = null;
     }
 
-    if (type.getZkPathArgNum() >= LockScopeProperty.PARTITION.getZkPathArgNum()) {
-      _partitionName = zkPathKeys.get(LockScopeProperty.PARTITION.getArgumentPos());
+    if (type.getPathArgNum() >= LockScopeProperty.PARTITION.getPathArgNum()) {
+      _partitionName = zkPathKeys.get(LockScopeProperty.PARTITION.getArgPos());
     } else {
       _partitionName = null;
     }
@@ -172,11 +173,11 @@ public class HelixLockScope {
     return _partitionName;
   }
 
+  @Override
   /**
    * Get the path to the corresponding ZNode
    * @return a Zookeeper path
-   */
-  public String getZkPath() {
+   */ public String getPath() {
     return _zkPath;
   }
 }

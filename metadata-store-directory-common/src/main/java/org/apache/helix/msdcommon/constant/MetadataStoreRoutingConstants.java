@@ -28,14 +28,21 @@ public class MetadataStoreRoutingConstants {
   // Leader election ZNode for ZkRoutingDataWriter
   public static final String LEADER_ELECTION_ZNODE = "/_ZK_ROUTING_DATA_WRITER_LEADER";
 
+  // Field name in JSON REST response of getting all metadata store namespaces.
+  public static final String METADATA_STORE_NAMESPACES = "namespaces";
+
   // Field name in JSON REST response of getting metadata store realms in one namespace.
   public static final String METADATA_STORE_REALMS = "metadataStoreRealms";
 
   // Field name in JSON REST response of getting sharding keys in one realm.
-  public static final String SINGLE_METADATA_STORE_REALM = "metadataStoreRealm";
+  public static final String SINGLE_METADATA_STORE_REALM = "realm";
 
   // Field name in JSON REST response of getting sharding keys.
   public static final String SHARDING_KEYS = "shardingKeys";
 
+  // Field name in JSON REST response related to one single sharding key.
+  public static final String SINGLE_SHARDING_KEY = "shardingKey";
 
+  // Field name in JSON REST response of getting sharding keys with prefix.
+  public static final String SHARDING_KEY_PREFIX = "prefix";
 }

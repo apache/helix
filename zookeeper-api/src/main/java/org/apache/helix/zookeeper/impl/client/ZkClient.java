@@ -90,7 +90,15 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
       PathBasedZkSerializer zkSerializer,
       String monitorType, String monitorKey, String monitorInstanceName,
       boolean monitorRootPathOnly) {
-    super(zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
+    super(null, zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
+        monitorKey, monitorInstanceName, monitorRootPathOnly);
+  }
+
+  public ZkClient(String realmKey, IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer,
+      String monitorType, String monitorKey, String monitorInstanceName,
+      boolean monitorRootPathOnly) {
+    super(realmKey, zkConnection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
         monitorKey, monitorInstanceName, monitorRootPathOnly);
   }
 

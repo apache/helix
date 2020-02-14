@@ -95,6 +95,8 @@ public class ZkClient implements Watcher {
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
 
+  private String _realmKey;
+
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
     final boolean _prefetchData;
@@ -170,13 +172,21 @@ public class ZkClient implements Watcher {
       }
     }
   }
-
   protected ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
+      PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
+      String monitorInstanceName, boolean monitorRootPathOnly) {
+    this(null, zkConnection, connectionTimeout, operationRetryTimeout,
+        zkSerializer, monitorType, monitorKey,
+        monitorInstanceName, monitorRootPathOnly);
+  }
+
+  protected ZkClient(String realmKey, IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       String monitorInstanceName, boolean monitorRootPathOnly) {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
+    _realmKey = realmKey;
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -201,6 +211,7 @@ public class ZkClient implements Watcher {
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+    checkRealmKey(path);
     synchronized (_childListener) {
       Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners == null) {
@@ -213,6 +224,7 @@ public class ZkClient implements Watcher {
   }
 
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
+    checkRealmKey(path);
     synchronized (_childListener) {
       final Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners != null) {
@@ -228,6 +240,7 @@ public class ZkClient implements Watcher {
    * @param listener Instance of {@link IZkDataListener}
    */
   public void subscribeDataChanges(String path, IZkDataListener listener) {
+    checkRealmKey(path);
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
       listenerEntries = _dataListener.get(path);
@@ -275,6 +288,7 @@ public class ZkClient implements Watcher {
   }
 
   public void unsubscribeDataChanges(String path, IZkDataListener dataListener) {
+    checkRealmKey(path);
     synchronized (_dataListener) {
       final Set<IZkDataListenerEntry> listeners = _dataListener.get(path);
       if (listeners != null) {
@@ -401,6 +415,7 @@ public class ZkClient implements Watcher {
    */
   public void createPersistent(String path, boolean createParents, List<ACL> acl)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
+    checkRealmKey(path);
     try {
       create(path, null, acl, CreateMode.PERSISTENT);
     } catch (ZkNodeExistsException e) {
@@ -639,6 +654,7 @@ public class ZkClient implements Watcher {
   private String create(final String path, final Object dataObject, final List<ACL> acl,
       final CreateMode mode, final String expectedSessionId)
       throws IllegalArgumentException, ZkException {
+    checkRealmKey(path);
     if (path == null) {
       throw new NullPointerException("Path must not be null.");
     }
@@ -972,6 +988,7 @@ public class ZkClient implements Watcher {
   }
 
   protected List<String> getChildren(final String path, final boolean watch) {
+    checkRealmKey(path);
     long startT = System.currentTimeMillis();
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
@@ -1014,6 +1031,7 @@ public class ZkClient implements Watcher {
   }
 
   protected boolean exists(final String path, final boolean watch) {
+    checkRealmKey(path);
     long startT = System.currentTimeMillis();
     try {
       boolean exists = retryUntilConnected(new Callable<Boolean>() {
@@ -1043,6 +1061,7 @@ public class ZkClient implements Watcher {
   }
 
   private Stat getStat(final String path, final boolean watch) {
+    checkRealmKey(path);
     long startT = System.currentTimeMillis();
     try {
       Stat stat = retryUntilConnected(
@@ -1223,6 +1242,7 @@ public class ZkClient implements Watcher {
    * @throws ZkClientException
    */
   public void deleteRecursively(String path) throws ZkClientException {
+    checkRealmKey(path);
     List<String> children;
     try {
       children = getChildren(path, false);
@@ -1592,6 +1612,7 @@ public class ZkClient implements Watcher {
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T readData(String path, boolean returnNullIfPathNotExists) {
+    checkRealmKey(path);
     T data = null;
     try {
       data = (T) readData(path, null);
@@ -1610,6 +1631,7 @@ public class ZkClient implements Watcher {
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T readData(final String path, final Stat stat, final boolean watch) {
+    checkRealmKey(path);
     long startT = System.currentTimeMillis();
     byte[] data = null;
     try {
@@ -1690,6 +1712,7 @@ public class ZkClient implements Watcher {
   }
 
   public Stat writeDataReturnStat(final String path, Object datat, final int expectedVersion) {
+    checkRealmKey(path);
     long startT = System.currentTimeMillis();
     try {
       final byte[] data = serialize(datat, path);
@@ -1719,6 +1742,7 @@ public class ZkClient implements Watcher {
 
   public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    checkRealmKey(path);
     final long startT = System.currentTimeMillis();
     final byte[] data = (datat == null ? null : serialize(datat, path));
     retryUntilConnected(new Callable<Object>() {
@@ -1737,6 +1761,7 @@ public class ZkClient implements Watcher {
   // Async Data Accessors
   public void asyncSetData(final String path, Object datat, final int version,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
+    checkRealmKey(path);
     final long startT = System.currentTimeMillis();
     final byte[] data = serialize(datat, path);
     retryUntilConnected(new Callable<Object>() {
@@ -1751,6 +1776,7 @@ public class ZkClient implements Watcher {
   }
 
   public void asyncGetData(final String path, final ZkAsyncCallbacks.GetDataCallbackHandler cb) {
+    checkRealmKey(path);
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override
@@ -1763,6 +1789,7 @@ public class ZkClient implements Watcher {
   }
 
   public void asyncExists(final String path, final ZkAsyncCallbacks.ExistsCallbackHandler cb) {
+    checkRealmKey(path);
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override
@@ -1775,6 +1802,7 @@ public class ZkClient implements Watcher {
   }
 
   public void asyncDelete(final String path, final ZkAsyncCallbacks.DeleteCallbackHandler cb) {
+    checkRealmKey(path);
     final long startT = System.currentTimeMillis();
     retryUntilConnected(new Callable<Object>() {
       @Override
@@ -1812,6 +1840,7 @@ public class ZkClient implements Watcher {
    *         exist.
    */
   public List<String> watchForChilds(final String path) {
+    checkRealmKey(path);
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
@@ -2168,5 +2197,13 @@ public class ZkClient implements Watcher {
    */
   private static String toHexSessionId(long sessionId) {
     return Long.toHexString(sessionId);
+  }
+
+  private void checkRealmKey(String path) {
+    if (_realmKey != null) {
+      if (!path.startsWith(_realmKey)) {
+        throw new RuntimeException("invalid path for realmAware client");
+      }
+    }
   }
 }

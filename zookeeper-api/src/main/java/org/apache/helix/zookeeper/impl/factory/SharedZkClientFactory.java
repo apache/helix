@@ -25,6 +25,7 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,24 +39,49 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   private final HashMap<HelixZkClient.ZkConnectionConfig, ZkConnectionManager>
       _connectionManagerPool = new HashMap<>();
 
+  private final HashMap<RealmAwareZkClient.RealmAwareZkConnectionConfig, ZkConnectionManager>
+      _realmConnManagerPool = new HashMap<>();
+
   protected SharedZkClientFactory() {
   }
 
+  /**
+   * Build a Shared RealmAwareZkClient that uses sharing ZkConnection that is created based on the specified connection config.
+   *
+   * @param connectionConfig The connection configuration that is used to search for a shared connection. Or create new connection if necessary.
+   * @param clientConfig
+   * @return Shared ZkClient
+   */
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    // TODO: Implement the logic
-    // Return an instance of SharedZkClient
-    return null;
+    synchronized (_realmConnManagerPool) {
+      String realmKey = connectionConfig.getZkRealmShardingKey();
+      final ZkConnectionManager realmConnectionManager =
+          getOrCreateZkConnectionManager(connectionConfig, clientConfig.getConnectInitTimeout());
+      if (realmConnectionManager == null) {
+        throw new ZkClientException("Failed to create a realm connection manager in the pool to share.");
+      }
+      LOG.info("Sharing ZkConnection {} to a new SharedZkClient.", connectionConfig.toString());
+      return new SharedZkClient(realmKey, realmConnectionManager, clientConfig,
+          new SharedZkClient.OnCloseCallback() {
+        @Override
+        public void onClose() {
+          cleanupConnectionManager(realmConnectionManager);
+        }
+      });
+    }
   }
 
+  /* rely on default implementation in the RealAwareZkClientFactory interface
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
     // TODO: Implement the logic
     return null;
   }
+  */
 
   private static class SingletonHelper {
     private static final SharedZkClientFactory INSTANCE = new SharedZkClientFactory();
@@ -100,6 +126,22 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
           new ZkConnectionManager(createZkConnection(connectionConfig), connectInitTimeout,
               connectionConfig.toString());
       _connectionManagerPool.put(connectionConfig, connectionManager);
+    }
+    return connectionManager;
+  }
+
+  private ZkConnectionManager getOrCreateZkConnectionManager(
+     RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig, long connectInitTimeout) {
+    ZkConnectionManager connectionManager = _realmConnManagerPool.get(connectionConfig);
+    if (connectionManager == null || connectionManager.isClosed()) {
+      // TODO: call MSDS to query zkserver Address based on connection string;
+      // if the query fails, log and return null. The build method would throw appropriate exception.
+      String zkServers = null;
+      HelixZkClient.ZkConnectionConfig zkConnectionConfig = new HelixZkClient.ZkConnectionConfig(zkServers);
+      zkConnectionConfig.setSessionTimeout(connectionConfig.getSessionTimeout());
+      connectionManager =
+          new ZkConnectionManager(createZkConnection(zkConnectionConfig), connectInitTimeout,
+              zkConnectionConfig.toString());
     }
     return connectionManager;
   }

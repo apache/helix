@@ -40,6 +40,8 @@ public interface RealmAwareZkClientFactory {
    * @param connectionConfig
    * @return RealmAwareZkClient
    */
-  RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig);
+  default RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig());
+  };
 }

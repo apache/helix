@@ -55,7 +55,7 @@ public class SharedZkClient extends ZkClient implements HelixZkClient {
   }
 
   /**
-   * Construct a shared RealmAwareZkClient that uses a shared ZkConnection.
+   * Construct a shared ZkClient that uses a shared ZkConnection.
    *
    * @param connectionManager     The manager of the shared ZkConnection.
    * @param clientConfig          ZkClientConfig details to create the shared RealmAwareZkClient.
@@ -64,6 +64,25 @@ public class SharedZkClient extends ZkClient implements HelixZkClient {
   public SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
       OnCloseCallback callback) {
     super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
+        clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
+        clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
+    _connectionManager = connectionManager;
+    // Register to the base dedicated RealmAwareZkClient
+    _connectionManager.registerWatcher(this);
+    _onCloseCallback = callback;
+  }
+
+  /**
+   * Construct a shared RealmAwareZkClient that uses a shared ZkConnection.
+   *
+   * @param connectionManager     The manager of the shared ZkConnection.
+   * @param clientConfig          ZkClientConfig details to create the shared RealmAwareZkClient.
+   * @param callback              Clean up logic when the shared RealmAwareZkClient is closed.
+   */
+  public SharedZkClient(String realmKey, ZkConnectionManager connectionManager, RealmAwareZkClientConfig clientConfig,
+      OnCloseCallback callback) {
+    // todo: assert realmKey != null?
+    super(realmKey,connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
         clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
         clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
     _connectionManager = connectionManager;

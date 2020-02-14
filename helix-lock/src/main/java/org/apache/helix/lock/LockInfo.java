@@ -138,7 +138,7 @@ public class LockInfo extends HelixProperty {
    * Get the value for OWNER attribute of the lock from a ZNRecord
    * @return the owner id of the lock, empty string if there is no owner id set
    */
-  static String getOwner(ZNRecord znRecord) {
+  public static String getOwner(ZNRecord znRecord) {
     if (znRecord == null) {
       return DEFAULT_OWNER_TEXT;
     }
@@ -150,7 +150,7 @@ public class LockInfo extends HelixProperty {
    * Get the value for MESSAGE attribute of the lock from a ZNRecord
    * @return the message of the lock, empty string if there is no message set
    */
-  static String getMessage(ZNRecord znRecord) {
+  public static String getMessage(ZNRecord znRecord) {
     if (znRecord == null) {
       return DEFAULT_MESSAGE_TEXT;
     }
@@ -162,10 +162,19 @@ public class LockInfo extends HelixProperty {
    * Get the value for TIMEOUT attribute of the lock from a ZNRecord
    * @return the expiring time of the lock, -1 if there is no timeout set
    */
-  static long getTimeout(ZNRecord znRecord) {
+  public static long getTimeout(ZNRecord znRecord) {
     if (znRecord == null) {
       return DEFAULT_TIMEOUT_LONG;
     }
     return znRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
+  }
+
+  /**
+   * Check if the lock has a owner id set
+   * @return true if an owner id is set, false if not
+   */
+  public static boolean ownerIdSet(ZNRecord znRecord) {
+    String ownerId = getOwner(znRecord);
+    return !ownerId.equals(DEFAULT_OWNER_TEXT);
   }
 }

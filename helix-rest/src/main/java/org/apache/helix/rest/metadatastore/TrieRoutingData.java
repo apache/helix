@@ -110,7 +110,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
    * Given a path, find a trie node that represents the longest prefix of the path. For example,
    * given "/a/b/c", the method starts at "/", and attempts to reach "/a", then attempts to reach
    * "/a/b", then ends on "/a/b/c"; if any of the node doesn't exist, the traversal terminates and
-   * the last existing node is returned.
+   * the last seen existing node is returned.
    * Note:
    * 1. When the returned TrieNode is a sharding key, it is the only sharding key along the
    * provided path (the path points to this sharding key);

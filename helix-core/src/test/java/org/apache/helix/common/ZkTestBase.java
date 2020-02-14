@@ -149,8 +149,9 @@ public class ZkTestBase {
         } catch (Exception e) {
           Assert.fail("Failed to parse the number of ZKs from config!");
         }
+      } else {
+        Assert.fail("multiZk config is set but numZk config is missing!");
       }
-      Assert.fail("multiZk config is set but numZk config is missing!");
     }
 
     // Start "numZkFromConfigInt" ZooKeepers

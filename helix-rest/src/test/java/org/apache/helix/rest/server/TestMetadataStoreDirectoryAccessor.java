@@ -337,9 +337,9 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     // Check sharding key prefix in json response.
     Assert.assertTrue(
         queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX));
-    Assert
-        .assertEquals(queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
-            shardingKeyPrefix);
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
+        shardingKeyPrefix);
     Assert.assertTrue(
         queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
@@ -399,9 +399,9 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertTrue(
         queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX));
 
-    Assert
-        .assertEquals(queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
-            shardingKeyPrefix);
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
+        shardingKeyPrefix);
 
     Assert.assertTrue(queriedShardingKeysMap
         .containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));

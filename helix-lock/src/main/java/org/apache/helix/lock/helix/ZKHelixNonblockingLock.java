@@ -70,6 +70,9 @@ public class ZKHelixNonblockingLock implements HelixLock {
   private ZKHelixNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg,
       String userId) {
     _lockPath = lockPath;
+    if (timeout < 0) {
+      throw new IllegalArgumentException("The expiration time cannot be negative.");
+    }
     _timeout = timeout;
     _lockMsg = lockMsg;
     _userId = userId;
@@ -87,10 +90,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
     } else {
       deadline = System.currentTimeMillis() + _timeout;
     }
-    LockInfo lockInfo = new LockInfo(_userId);
-    lockInfo.setLockInfoFields(_userId, _lockMsg, deadline);
-
-    LockUpdater updater = new LockUpdater(lockInfo);
+    LockUpdater updater = new LockUpdater(new LockInfo(_userId, _lockMsg, deadline));
     return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
   }
 
@@ -102,57 +102,15 @@ public class ZKHelixNonblockingLock implements HelixLock {
   }
 
   @Override
-  public LockInfo getLockInfo() {
+  public LockInfo getCurrentLockInfo() {
     ZNRecord curLockInfo = _baseDataAccessor.get(_lockPath, null, AccessOption.PERSISTENT);
     return new LockInfo(curLockInfo);
   }
 
   @Override
-  public boolean isOwner() {
-    LockInfo lockInfo = getLockInfo();
-    return userIdMatches(lockInfo) && !hasTimedOut(lockInfo);
-  }
-
-  /**
-   * Check if a lock has timed out
-   * @return return true if the lock has timed out, otherwise return false.
-   */
-  private boolean hasTimedOut(LockInfo lockInfo) {
-    return System.currentTimeMillis() >= lockInfo.getTimeout();
-  }
-
-  /**
-   * Check if a lock has timed out with lock information stored in a ZNRecord
-   * @return return true if the lock has timed out, otherwise return false.
-   */
-  private boolean hasTimedOut(ZNRecord znRecord) {
-    return System.currentTimeMillis() >= LockInfo.getTimeout(znRecord);
-  }
-
-  /**
-   * Check if the current user Id matches with the owner Id in a lock info
-   * @return return true if the two ids match, otherwise return false.
-   */
-  private boolean userIdMatches(LockInfo lockInfo) {
-    return lockInfo.getOwner().equals(_userId);
-  }
-
-  /**
-   * Check if a user id in the ZNRecord matches current user's id
-   * @param znRecord ZNRecord contains lock information
-   * @return true if the ids match, false if not or ZNRecord does not contain user id information
-   */
-  private boolean userIdMatches(ZNRecord znRecord) {
-    return LockInfo.getOwner(znRecord).equals(_userId);
-  }
-
-  /**
-   * Check if the lock node has a current owner
-   * @param znRecord Lock information in format of ZNRecord
-   * @return true if the lock has a current owner that the ownership has not be timed out, otherwise false
-   */
-  private boolean hasNonExpiredOwner(ZNRecord znRecord) {
-    return LockInfo.ownerIdSet(znRecord) && !hasTimedOut(znRecord);
+  public boolean isCurrentOwner() {
+    LockInfo lockInfo = getCurrentLockInfo();
+    return lockInfo.getOwner().equals(_userId) && lockInfo.hasNotExpired();
   }
 
   /**
@@ -172,8 +130,9 @@ public class ZKHelixNonblockingLock implements HelixLock {
     @Override
     public ZNRecord update(ZNRecord current) {
       // If no one owns the lock, allow the update
-      // If the lock owner id matches user id, allow the update
-      if (!hasNonExpiredOwner(current) || userIdMatches(current)) {
+      // If the user is the current lock owner, allow the update
+      LockInfo curLockInfo = new LockInfo(current);
+      if (!curLockInfo.hasNotExpired() || isCurrentOwner()) {
         return _record;
       }
       // For users who are not the lock owner and try to do an update on a lock that is held by someone else, exception thrown is to be caught by data accessor, and return false for the update

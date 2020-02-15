@@ -19,7 +19,14 @@
 
 package org.apache.helix.lock;
 
+/**
+ * A predefined class to generate the lock path based on user input
+ */
 public interface LockScope {
 
+  /**
+   * Get the lock path
+   * @return the path of the lock
+   */
   String getPath();
 }

@@ -38,15 +38,15 @@ public interface HelixLock {
   boolean releaseLock();
 
   /**
-   * Retrieve the lock information, e.g. lock timeout, lock message, etc.
+   * Retrieve the information of the current lock on the resource this lock object specifies, e.g. lock timeout, lock message, etc.
    * @return lock metadata information
    */
-  LockInfo getLockInfo();
+  LockInfo getCurrentLockInfo();
 
   /**
-   * If the user is current lock owner
+   * If the user is current lock owner of the resource
    * @return true if the user is the lock owner,
    * false if the user is not the lock owner or the lock doesn't have a owner
    */
-  boolean isOwner();
+  boolean isCurrentOwner();
 }

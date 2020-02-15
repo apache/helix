@@ -34,7 +34,8 @@ public class LockInfo extends HelixProperty {
   public static final long DEFAULT_TIMEOUT_LONG = -1L;
 
   // default lock info represents the status of a unlocked lock
-  public static final LockInfo defaultLockInfo = new LockInfo("");
+  public static final LockInfo defaultLockInfo =
+      new LockInfo(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
 
   /**
    * The keys to lock information
@@ -44,11 +45,11 @@ public class LockInfo extends HelixProperty {
   }
 
   /**
-   * Initialize a LockInfo with a ZNRecord id, set all info fields to default data
+   * Initialize a default LockInfo instance
    */
-  public LockInfo(String id) {
-    super(id);
-    resetLockInfo();
+  private LockInfo() {
+    super("LOCK");
+    setLockInfoFields(null, null, DEFAULT_TIMEOUT_LONG);
   }
 
   /**
@@ -56,8 +57,13 @@ public class LockInfo extends HelixProperty {
    * @param znRecord The ZNRecord contains lock node data that used to initialize the LockInfo
    */
   public LockInfo(ZNRecord znRecord) {
-    super(znRecord);
-    setNullLockInfoFieldsToDefault();
+    this();
+    if (znRecord != null) {
+      String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
+      String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
+      long timeout = znRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
+      setLockInfoFields(ownerId, message, timeout);
+    }
   }
 
   /**
@@ -67,16 +73,8 @@ public class LockInfo extends HelixProperty {
    * @param timeout value of TIMEOUT attribute
    */
   public LockInfo(String ownerId, String message, long timeout) {
-    this(ownerId);
+    this();
     setLockInfoFields(ownerId, message, timeout);
-  }
-
-  /**
-   * Build a LOCKINFO instance that represents an unlocked lock states
-   * @return the unlocked lock node LockInfo instance
-   */
-  public static LockInfo buildUnlockedLockInfo() {
-    return new LockInfo("");
   }
 
   /**
@@ -85,27 +83,12 @@ public class LockInfo extends HelixProperty {
    * @param message value of MESSAGE attribute
    * @param timeout value of TIMEOUT attribute
    */
-  public void setLockInfoFields(String ownerId, String message, Long timeout) {
+  private void setLockInfoFields(String ownerId, String message, long timeout) {
     _record.setSimpleField(LockInfoAttribute.OWNER.name(),
         ownerId == null ? DEFAULT_OWNER_TEXT : ownerId);
     _record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
         message == null ? DEFAULT_MESSAGE_TEXT : message);
-    _record.setLongField(LockInfoAttribute.TIMEOUT.name(),
-        timeout == null ? DEFAULT_TIMEOUT_LONG : timeout);
-  }
-
-  /**
-   * Set all null values to default values in LockInfo, keep non-null values
-   */
-  private void setNullLockInfoFieldsToDefault() {
-    setLockInfoFields(getOwner(), getMessage(), getTimeout());
-  }
-
-  /**
-   * Reset the lock info to unlocked lock state
-   */
-  public void resetLockInfo() {
-    setLockInfoFields(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
+    _record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
   }
 
   /**
@@ -135,46 +118,10 @@ public class LockInfo extends HelixProperty {
   }
 
   /**
-   * Get the value for OWNER attribute of the lock from a ZNRecord
-   * @return the owner id of the lock, empty string if there is no owner id set
+   * Check if a lock has timed out
+   * @return return true if the lock has timed out, otherwise return false.
    */
-  public static String getOwner(ZNRecord znRecord) {
-    if (znRecord == null) {
-      return DEFAULT_OWNER_TEXT;
-    }
-    String owner = znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
-    return owner == null ? DEFAULT_OWNER_TEXT : owner;
-  }
-
-  /**
-   * Get the value for MESSAGE attribute of the lock from a ZNRecord
-   * @return the message of the lock, empty string if there is no message set
-   */
-  public static String getMessage(ZNRecord znRecord) {
-    if (znRecord == null) {
-      return DEFAULT_MESSAGE_TEXT;
-    }
-    String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
-    return message == null ? DEFAULT_MESSAGE_TEXT : message;
-  }
-
-  /**
-   * Get the value for TIMEOUT attribute of the lock from a ZNRecord
-   * @return the expiring time of the lock, -1 if there is no timeout set
-   */
-  public static long getTimeout(ZNRecord znRecord) {
-    if (znRecord == null) {
-      return DEFAULT_TIMEOUT_LONG;
-    }
-    return znRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
-  }
-
-  /**
-   * Check if the lock has a owner id set
-   * @return true if an owner id is set, false if not
-   */
-  public static boolean ownerIdSet(ZNRecord znRecord) {
-    String ownerId = getOwner(znRecord);
-    return !ownerId.equals(DEFAULT_OWNER_TEXT);
+  public boolean hasNotExpired() {
+    return System.currentTimeMillis() < getTimeout();
   }
 }

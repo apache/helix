@@ -161,6 +161,9 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       throw new IllegalArgumentException(
           "Failed to add sharding key: Namespace " + namespace + " is not found!");
     }
+    if (_routingDataMap.get(namespace).containsKeyRealmPair(shardingKey, realm)) {
+      return true;
+    }
     if (!_routingDataMap.get(namespace).isShardingKeyInsertionValid(shardingKey)) {
       throw new IllegalArgumentException(
           "Failed to add sharding key: Adding sharding key " + shardingKey

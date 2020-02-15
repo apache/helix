@@ -56,4 +56,12 @@ public interface MetadataStoreRoutingData {
    * @return true if the sharding key could be inserted, false otherwise
    */
   boolean isShardingKeyInsertionValid(String shardingKey);
+
+  /**
+   * Check if the provided sharding key and realm address pair exists in the routing data.
+   * @param shardingKey - the sharding key checked
+   * @param realmAddress - the realm address corresponding to the key
+   * @return true if the sharding key and realm address pair exist in the routing data
+   */
+  boolean containsKeyRealmPair(String shardingKey, String realmAddress);
 }

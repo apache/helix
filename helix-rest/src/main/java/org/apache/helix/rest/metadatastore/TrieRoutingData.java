@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.util.ZkValidationUtil;
+
 
 /**
  * This is a class that uses a data structure similar to trie to represent metadata store routing
@@ -54,9 +56,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   }
 
   public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
-    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
-          + DELIMITER + "\" character: " + path);
+    if (!ZkValidationUtil.isPathValid(path)) {
+      throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
     }
 
     TrieNode curNode = getLongestPrefixNodeAlongPath(path);
@@ -82,9 +83,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public String getMetadataStoreRealm(String path)
       throws IllegalArgumentException, NoSuchElementException {
-    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException("Provided path is empty or does not have a leading \""
-          + DELIMITER + "\" character: " + path);
+    if (!ZkValidationUtil.isPathValid(path)) {
+      throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
     }
 
     TrieNode node = getLongestPrefixNodeAlongPath(path);
@@ -96,17 +96,26 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   }
 
   public boolean isShardingKeyInsertionValid(String shardingKey) {
-    if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
+    if (!ZkValidationUtil.isPathValid(shardingKey)) {
       throw new IllegalArgumentException(
-          "Provided shardingKey is empty or does not have a leading \"" + DELIMITER
-              + "\" character: " + shardingKey);
+          "Provided shardingKey is not a valid Zookeeper path: " + shardingKey);
     }
 
     TrieNode node = getLongestPrefixNodeAlongPath(shardingKey);
     return !node.isShardingKey() && !node.getPath().equals(shardingKey);
   }
 
-  /**
+  public boolean containsKeyRealmPair(String shardingKey, String realmAddress) {
+    if (!ZkValidationUtil.isPathValid(shardingKey)) {
+      throw new IllegalArgumentException(
+          "Provided shardingKey is not a valid Zookeeper path: " + shardingKey);
+    }
+
+    TrieNode node = getLongestPrefixNodeAlongPath(shardingKey);
+    return node.getPath().equals(shardingKey) && node.getRealmAddress().equals(realmAddress);
+  }
+
+  /*
    * Given a path, find a trie node that represents the longest prefix of the path. For example,
    * given "/a/b/c", the method starts at "/", and attempts to reach "/a", then attempts to reach
    * "/a/b", then ends on "/a/b/c"; if any of the node doesn't exist, the traversal terminates and
@@ -140,7 +149,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return curNode;
   }
 
-  /**
+  /*
    * Checks for the edge case when the only sharding key in provided routing data is the delimiter
    * or an empty string. When this is the case, the trie is valid and contains only one node, which
    * is the root node, and the root node is a leaf node with a realm address associated with it.
@@ -158,7 +167,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return false;
   }
 
-  /**
+  /*
    * Constructs a trie based on the provided routing data. It loops through all sharding keys and
    * constructs the trie in a top down manner.
    * @param routingData- a mapping from "sharding keys" to "realm addresses" to be parsed into a
@@ -173,9 +182,9 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
-        if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
-          throw new InvalidRoutingDataException("Sharding key does not have a leading \""
-              + DELIMITER + "\" character: " + shardingKey);
+        if (!ZkValidationUtil.isPathValid(shardingKey)) {
+          throw new InvalidRoutingDataException("Sharding key is not a valid Zookeeper path: " +
+              shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
@@ -228,22 +237,22 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   }
 
   private static class TrieNode {
-    /**
+    /*
      * This field is a mapping between trie key and children nodes. For example, node "a" has
      * children "ab" and "ac", therefore the keys are "b" and "c" respectively.
      */
     private Map<String, TrieNode> _children;
-    /**
+    /*
      * This field states whether the path represented by the node is a sharding key
      */
     private final boolean _isShardingKey;
-    /**
+    /*
      * This field contains the complete path/prefix leading to the current node. For example, the
      * name of root node is "/", then the name of its child node
      * is "/a", and the name of the child's child node is "/a/b".
      */
     private final String _path;
-    /**
+    /*
      * This field represents the data contained in a node(which represents a path), and is only
      * available to the terminal nodes.
      */

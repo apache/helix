@@ -78,8 +78,8 @@ public class TestTrieRoutingData {
       new TrieRoutingData(routingData);
       Assert.fail("Expecting InvalidRoutingDataException");
     } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(
-          e.getMessage().contains("Sharding key does not have a leading \"/\" character: b/c/d"));
+      Assert
+          .assertTrue(e.getMessage().contains("Sharding key is not a valid Zookeeper path: b/c/d"));
     }
   }
 
@@ -153,8 +153,7 @@ public class TestTrieRoutingData {
       _trie.getAllMappingUnderPath("");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Provided path is empty or does not have a leading \"/\" character: "));
+      Assert.assertTrue(e.getMessage().contains("Provided path is not a valid Zookeeper path: "));
     }
   }
 
@@ -164,8 +163,8 @@ public class TestTrieRoutingData {
       _trie.getAllMappingUnderPath("test");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Provided path is empty or does not have a leading \"/\" character: test"));
+      Assert
+          .assertTrue(e.getMessage().contains("Provided path is not a valid Zookeeper path: test"));
     }
   }
 
@@ -209,8 +208,7 @@ public class TestTrieRoutingData {
       Assert.assertEquals(_trie.getMetadataStoreRealm(""), "realmAddress2");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("Provided path is empty or does not have a leading \"/\" character: "));
+      Assert.assertTrue(e.getMessage().contains("Provided path is not a valid Zookeeper path: "));
     }
   }
 
@@ -220,8 +218,8 @@ public class TestTrieRoutingData {
       Assert.assertEquals(_trie.getMetadataStoreRealm("b/c/d/x/y/z"), "realmAddress2");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "Provided path is empty or does not have a leading \"/\" character: b/c/d/x/y/z"));
+      Assert.assertTrue(
+          e.getMessage().contains("Provided path is not a valid Zookeeper path: b/c/d/x/y/z"));
     }
   }
 
@@ -262,8 +260,8 @@ public class TestTrieRoutingData {
       _trie.isShardingKeyInsertionValid("x/y/z");
       Assert.fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "Provided shardingKey is empty or does not have a leading \"/\" character: x/y/z"));
+      Assert.assertTrue(
+          e.getMessage().contains("Provided shardingKey is not a valid Zookeeper path: x/y/z"));
     }
   }
 
@@ -290,5 +288,20 @@ public class TestTrieRoutingData {
   @Test(dependsOnMethods = "testConstructionNormal")
   public void testIsShardingKeyInsertionValidChildKey() {
     Assert.assertFalse(_trie.isShardingKeyInsertionValid("/h/i/k"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testContainsKeyRealmPair() {
+    Assert.assertTrue(_trie.containsKeyRealmPair("/h/i", "realmAddress1"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testContainsKeyRealmPairNoKey() {
+    Assert.assertFalse(_trie.containsKeyRealmPair("/h/i/k", "realmAddress1"));
+  }
+
+  @Test(dependsOnMethods = "testConstructionNormal")
+  public void testContainsKeyRealmPairNoRealm() {
+    Assert.assertFalse(_trie.containsKeyRealmPair("/h/i", "realmAddress0"));
   }
 }

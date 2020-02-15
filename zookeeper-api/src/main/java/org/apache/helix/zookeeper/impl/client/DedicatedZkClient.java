@@ -42,6 +42,12 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 
+/**
+ * NOTE: DO NOT USE THIS CLASS DIRECTLY. Use DedicatedZkClientFactory to create instances of DedicatedZkClient.
+ *
+ * An implementation of the RealmAwareZkClient interface.
+ * Supports CRUD, data change subscriptiona, and ephemeral mode operations.
+ */
 public class DedicatedZkClient implements RealmAwareZkClient {
   private final ZkClient _rawZkClient;
   private final Map<String, String> _routingDataCache;

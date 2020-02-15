@@ -57,14 +57,12 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     List<String> pathKeys = new ArrayList<>();
     pathKeys.add(_clusterName);
-    pathKeys.add("participant_name");
-    pathKeys.add("resource_name");
-    pathKeys.add("partition_name");
+    pathKeys.add(_clusterName);
 
-    _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.PARTITION, pathKeys);
+    _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
     _lockPath = _participantScope.getPath();
-    _lock = new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE,
-        _lockMessage, _userId);
+    _lock = new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+        _userId);
   }
 
   @BeforeMethod
@@ -81,17 +79,16 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertTrue(_gZkClient.exists(_lockPath));
 
     // Get lock information
-    LockInfo lockInfo = _lock.getLockInfo();
+    LockInfo lockInfo = _lock.getCurrentLockInfo();
     Assert.assertEquals(lockInfo.getOwner(), _userId);
-    Assert.assertEquals(lockInfo.getMessage(),
-        _lockMessage);
+    Assert.assertEquals(lockInfo.getMessage(), _lockMessage);
 
     // Check if the user is lock owner
-    Assert.assertTrue(_lock.isOwner());
+    Assert.assertTrue(_lock.isCurrentOwner());
 
     // Release lock
     _lock.releaseLock();
-    Assert.assertFalse(_lock.isOwner());
+    Assert.assertFalse(_lock.isCurrentOwner());
   }
 
   @Test
@@ -101,16 +98,16 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
     fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), fakeUserID);
-    fakeRecord.setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
-        String.valueOf(Long.MAX_VALUE));
+    fakeRecord
+        .setSimpleField(LockInfo.LockInfoAttribute.TIMEOUT.name(), String.valueOf(Long.MAX_VALUE));
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
     // Check if the user is lock owner
-    Assert.assertFalse(_lock.isOwner());
+    Assert.assertFalse(_lock.isCurrentOwner());
 
     // Acquire lock
     Assert.assertFalse(_lock.acquireLock());
-    Assert.assertFalse(_lock.isOwner());
+    Assert.assertFalse(_lock.isCurrentOwner());
 
     // Release lock
     Assert.assertFalse(_lock.releaseLock());
@@ -129,11 +126,11 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     // Acquire lock
     Assert.assertTrue(_lock.acquireLock());
-    Assert.assertTrue(_lock.isOwner());
+    Assert.assertTrue(_lock.isCurrentOwner());
 
     // Release lock
     Assert.assertTrue(_lock.releaseLock());
-    Assert.assertFalse(_lock.isOwner());
+    Assert.assertFalse(_lock.isCurrentOwner());
   }
 
   @Test
@@ -141,8 +138,8 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     List<Callable<Boolean>> threads = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
       ZKHelixNonblockingLock lock =
-          new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE,
-              _lockMessage, UUID.randomUUID().toString());
+          new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+              UUID.randomUUID().toString());
       threads.add(new TestSimultaneousAcquireLock(lock));
     }
     Map<String, Boolean> resultMap = TestHelper.startThreadsConcurrently(threads, 1000);

@@ -19,19 +19,18 @@ package org.apache.helix.manager.zk.client;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory.InnerSharedZkClient;
+import org.apache.helix.zookeeper.impl.factory.ZkConnectionManager;
+
+
 /**
  * Deprecated; use SharedZkClient in zookeeper-api instead.
  */
 @Deprecated
-class SharedZkClient extends org.apache.helix.zookeeper.impl.client.SharedZkClient {
-  /**
-   * Construct a shared RealmAwareZkClient that uses a shared ZkConnection.
-   *  @param connectionManager     The manager of the shared ZkConnection.
-   * @param clientConfig          ZkClientConfig details to create the shared RealmAwareZkClient.
-   * @param callback              Clean up logic when the shared RealmAwareZkClient is closed.
-   */
-  protected SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
-      org.apache.helix.zookeeper.impl.client.SharedZkClient.OnCloseCallback callback) {
+class SharedZkClient extends InnerSharedZkClient {
+  SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
+      SharedZkClientFactory.OnCloseCallback callback) {
     super(connectionManager, clientConfig, callback);
   }
 }

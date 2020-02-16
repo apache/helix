@@ -40,15 +40,19 @@ import org.apache.zookeeper.OpResult;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * NOTE: DO NOT USE THIS CLASS DIRECTLY. Use DedicatedZkClientFactory to create instances of DedicatedZkClient.
  *
  * An implementation of the RealmAwareZkClient interface.
- * Supports CRUD, data change subscriptiona, and ephemeral mode operations.
+ * Supports CRUD, data change subscription, and ephemeral mode operations.
  */
 public class DedicatedZkClient implements RealmAwareZkClient {
+  private static Logger LOG = LoggerFactory.getLogger(DedicatedZkClient.class);
+
   private final ZkClient _rawZkClient;
   private final Map<String, String> _routingDataCache;
   private final String _zkRealmShardingKey;
@@ -339,7 +343,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public <T> T readData(String path, Stat stat) {
-    return readData(path, stat, _rawZkClient.hasListeners(path));
+    if (!checkIfPathBelongsToZkRealm(path)) {
+      throw new IllegalArgumentException(
+          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
+              + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
+    return _rawZkClient.readData(path, stat);
   }
 
   @Override
@@ -514,11 +523,21 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public byte[] serialize(Object data, String path) {
+    if (!checkIfPathBelongsToZkRealm(path)) {
+      throw new IllegalArgumentException(
+          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
+              + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
     return _rawZkClient.serialize(data, path);
   }
 
   @Override
   public <T> T deserialize(byte[] data, String path) {
+    if (!checkIfPathBelongsToZkRealm(path)) {
+      throw new IllegalArgumentException(
+          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
+              + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
     return _rawZkClient.deserialize(data, path);
   }
 

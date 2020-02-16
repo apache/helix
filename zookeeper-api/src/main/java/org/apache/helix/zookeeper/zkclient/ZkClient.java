@@ -1188,7 +1188,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  public boolean hasListeners(String path) {
+  private boolean hasListeners(String path) {
     Set<IZkDataListenerEntry> dataListeners = _dataListener.get(path);
     if (dataListeners != null && dataListeners.size() > 0) {
       return true;

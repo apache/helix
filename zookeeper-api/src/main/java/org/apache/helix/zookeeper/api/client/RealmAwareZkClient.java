@@ -380,19 +380,19 @@ public interface RealmAwareZkClient {
    */
   class RealmAwareZkClientConfig {
     // For client to init the connection
-    private long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    protected long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
     // Data access configs
-    private long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
+    protected long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
 
     // Others
-    private PathBasedZkSerializer _zkSerializer;
+    protected PathBasedZkSerializer _zkSerializer;
 
     // Monitoring
-    private String _monitorType;
-    private String _monitorKey;
-    private String _monitorInstanceName = null;
-    private boolean _monitorRootPathOnly = true;
+    protected String _monitorType;
+    protected String _monitorKey;
+    protected String _monitorInstanceName = null;
+    protected boolean _monitorRootPathOnly = true;
 
     public RealmAwareZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;

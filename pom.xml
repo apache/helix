@@ -252,6 +252,7 @@ under the License.
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>helix-rest</module>
+    <module>metadata-store-directory</module>
     <module>helix-agent</module>
     <!--<module>helix-front</module>-->
     <module>recipes</module>

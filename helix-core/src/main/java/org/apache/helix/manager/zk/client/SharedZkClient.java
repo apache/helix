@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk.client;
  */
 
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory.InnerSharedZkClient;
 import org.apache.helix.zookeeper.impl.factory.ZkConnectionManager;
 
 
@@ -28,7 +27,7 @@ import org.apache.helix.zookeeper.impl.factory.ZkConnectionManager;
  * Deprecated; use SharedZkClient in zookeeper-api instead.
  */
 @Deprecated
-class SharedZkClient extends InnerSharedZkClient {
+class SharedZkClient extends SharedZkClientFactory.InnerSharedZkClient {
   SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
       SharedZkClientFactory.OnCloseCallback callback) {
     super(connectionManager, clientConfig, callback);

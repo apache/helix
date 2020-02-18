@@ -19,14 +19,13 @@
 
 package org.apache.helix.lock;
 
-import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
 
 /**
  * Structure represents a lock node information, implemented using ZNRecord
  */
-public class LockInfo extends HelixProperty {
+public class LockInfo {
 
   // Default values for each attribute if there are no current values set by user
   public static final String DEFAULT_OWNER_TEXT = "";
@@ -36,6 +35,8 @@ public class LockInfo extends HelixProperty {
   // default lock info represents the status of a unlocked lock
   public static final LockInfo defaultLockInfo =
       new LockInfo(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
+
+  private ZNRecord record;
 
   /**
    * The keys to lock information
@@ -48,8 +49,8 @@ public class LockInfo extends HelixProperty {
    * Initialize a default LockInfo instance
    */
   private LockInfo() {
-    super("LOCK");
-    setLockInfoFields(null, null, DEFAULT_TIMEOUT_LONG);
+    record = new ZNRecord("LOCK");
+    setLockInfoFields(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
   }
 
   /**
@@ -84,11 +85,11 @@ public class LockInfo extends HelixProperty {
    * @param timeout value of TIMEOUT attribute
    */
   private void setLockInfoFields(String ownerId, String message, long timeout) {
-    _record.setSimpleField(LockInfoAttribute.OWNER.name(),
+    record.setSimpleField(LockInfoAttribute.OWNER.name(),
         ownerId == null ? DEFAULT_OWNER_TEXT : ownerId);
-    _record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
+    record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
         message == null ? DEFAULT_MESSAGE_TEXT : message);
-    _record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
+    record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
   }
 
   /**
@@ -96,7 +97,7 @@ public class LockInfo extends HelixProperty {
    * @return the owner id of the lock, empty string if there is no owner id set
    */
   public String getOwner() {
-    String owner = _record.getSimpleField(LockInfoAttribute.OWNER.name());
+    String owner = record.getSimpleField(LockInfoAttribute.OWNER.name());
     return owner == null ? DEFAULT_OWNER_TEXT : owner;
   }
 
@@ -105,7 +106,7 @@ public class LockInfo extends HelixProperty {
    * @return the message of the lock, empty string if there is no message set
    */
   public String getMessage() {
-    String message = _record.getSimpleField(LockInfoAttribute.MESSAGE.name());
+    String message = record.getSimpleField(LockInfoAttribute.MESSAGE.name());
     return message == null ? DEFAULT_MESSAGE_TEXT : message;
   }
 
@@ -114,14 +115,10 @@ public class LockInfo extends HelixProperty {
    * @return the expiring time of the lock, -1 if there is no timeout set
    */
   public Long getTimeout() {
-    return _record.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
+    return record.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
   }
 
-  /**
-   * Check if a lock has timed out
-   * @return return true if the lock has timed out, otherwise return false.
-   */
-  public boolean hasNotExpired() {
-    return System.currentTimeMillis() < getTimeout();
+  public ZNRecord getRecord() {
+    return record;
   }
 }

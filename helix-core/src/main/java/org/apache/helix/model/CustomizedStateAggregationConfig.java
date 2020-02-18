@@ -34,7 +34,7 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
    * CustomizedStateAggregationConfig.
    */
   public enum CustomizedStateAggregationProperty {
-    AGGREGATION_ENABLED_STATES,
+    AGGREGATION_ENABLED_TYPES,
   }
 
   /**
@@ -58,39 +58,39 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
    * Users should use CustomizedStateAggregationConfig.Builder to create
    * CustomizedStateAggregationConfig.
    * @param cluster
-   * @param aggregationEnabledStates
+   * @param aggregationEnabledTypes
    */
-  public CustomizedStateAggregationConfig(String cluster, List<String> aggregationEnabledStates) {
+  public CustomizedStateAggregationConfig(String cluster, List<String> aggregationEnabledTypes) {
     super(cluster);
-    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_STATES.name(),
-        aggregationEnabledStates);
+    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(),
+        aggregationEnabledTypes);
 
   }
 
   /**
    * Set the AGGREGATION_ENABLED_STATES field.
-   * @param aggregationEnabledStates
+   * @param aggregationEnabledTypes
    */
-  public void setAggregationEnabledStates(List<String> aggregationEnabledStates) {
-    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_STATES.name(),
-        aggregationEnabledStates);
+  public void setAggregationEnabledTypes(List<String> aggregationEnabledTypes) {
+    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(),
+        aggregationEnabledTypes);
   }
 
   /**
    * Get the AGGREGATION_ENABLED_STATES field.
    * @return AGGREGATION_ENABLED_STATES field.
    */
-  public List<String> getAggregationEnabledStates() {
+  public List<String> getAggregationEnabledTypes() {
     return _record
-        .getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_STATES.name());
+        .getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
   }
 
   public static class Builder {
     private String _clusterName = null;
-    private List<String> _aggregationEnabledStates;
+    private List<String> _aggregationEnabledTypes;
 
     public CustomizedStateAggregationConfig build() {
-      return new CustomizedStateAggregationConfig(_clusterName, _aggregationEnabledStates);
+      return new CustomizedStateAggregationConfig(_clusterName, _aggregationEnabledTypes);
     }
 
     /**
@@ -112,7 +112,7 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
      * @param customizedStateAggregationConfig
      */
     public Builder(CustomizedStateAggregationConfig customizedStateAggregationConfig) {
-      _aggregationEnabledStates = customizedStateAggregationConfig.getAggregationEnabledStates();
+      _aggregationEnabledTypes = customizedStateAggregationConfig.getAggregationEnabledTypes();
     }
 
     public Builder setClusterName(String v) {
@@ -120,16 +120,16 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
       return this;
     }
 
-    public Builder setAggregationEnabledStates(List<String> v) {
-      _aggregationEnabledStates = v;
+    public Builder setAggregationEnabledTypes(List<String> v) {
+      _aggregationEnabledTypes = v;
       return this;
     }
 
-    public Builder addAggregationEnabledState(String v) {
-      if (_aggregationEnabledStates == null) {
-        _aggregationEnabledStates = new ArrayList<String>();
+    public Builder addAggregationEnabledType(String v) {
+      if (_aggregationEnabledTypes == null) {
+        _aggregationEnabledTypes = new ArrayList<String>();
       }
-      _aggregationEnabledStates.add(v);
+      _aggregationEnabledTypes.add(v);
       return this;
     }
 
@@ -137,8 +137,8 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
       return _clusterName;
     }
 
-    public List<String> getAggregationEnabledStates() {
-      return _aggregationEnabledStates;
+    public List<String> getAggregationEnabledTypes() {
+      return _aggregationEnabledTypes;
     }
   }
 }

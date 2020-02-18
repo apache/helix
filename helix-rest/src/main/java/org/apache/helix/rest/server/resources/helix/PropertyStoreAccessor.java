@@ -31,6 +31,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
+import org.apache.helix.zookeeper.util.ZkValidationUtil;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
   public Response getPropertyByPath(@PathParam("clusterId") String clusterId,
       @PathParam("path") String path) {
     path = "/" + path;
-    if (!ZooKeeperAccessor.isPathValid(path)) {
+    if (!ZkValidationUtil.isPathValid(path)) {
       LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       return badRequest(
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");

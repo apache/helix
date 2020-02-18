@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
 import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.util.ZkValidationUtil;
 
@@ -183,8 +184,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
         if (!ZkValidationUtil.isPathValid(shardingKey)) {
-          throw new InvalidRoutingDataException("Sharding key is not a valid Zookeeper path: " +
-              shardingKey);
+          throw new InvalidRoutingDataException(
+              "Sharding key is not a valid Zookeeper path: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
@@ -208,12 +209,14 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
           // If the node is already a leaf node, the current sharding key is invalid; if the node
           // doesn't exist, construct a node and continue
           if (nextNode != null && nextNode.isShardingKey()) {
-            throw new InvalidRoutingDataException(shardingKey + " cannot be a sharding key because "
-                + shardingKey.substring(0, nextDelimiterIndex)
-                + " is its parent key and is also a sharding key.");
+            throw new InvalidRoutingDataException(
+                shardingKey + " cannot be a sharding key because " + shardingKey
+                    .substring(0, nextDelimiterIndex)
+                    + " is its parent key and is also a sharding key.");
           } else if (nextNode == null) {
-            nextNode = new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex),
-                false, "");
+            nextNode =
+                new TrieNode(new HashMap<>(), shardingKey.substring(0, nextDelimiterIndex), false,
+                    "");
             curNode.addChild(keySection, nextNode);
           }
           prevDelimiterIndex = nextDelimiterIndex;

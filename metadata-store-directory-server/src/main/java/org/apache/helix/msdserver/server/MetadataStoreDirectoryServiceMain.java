@@ -42,6 +42,10 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 
+/**
+ * TODO: create a new module for JAX-RS server to reduce duplication
+ * See https://github.com/apache/helix/issues/777
+ */
 public class MetadataStoreDirectoryServiceMain {
   private static Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryServer.class);
   private static final String HELP = "help";

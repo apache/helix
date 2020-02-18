@@ -49,6 +49,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * TODO: create a new module for JAX-RS server to reduce duplication
+ * See https://github.com/apache/helix/issues/777
+ */
 public class MetadataStoreDirectoryServer {
   private static Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryServer.class);
   // TODO: consider moving the following static context to ServerContext or any other place

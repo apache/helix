@@ -20,10 +20,10 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
@@ -54,26 +54,32 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   private static Logger LOG = LoggerFactory.getLogger(DedicatedZkClient.class);
 
   private final ZkClient _rawZkClient;
-  private final Map<String, String> _routingDataCache;
+  private final MetadataStoreRoutingData _metadataStoreRoutingData;
   private final String _zkRealmShardingKey;
+  private final String _zkRealmAddress;
 
   public DedicatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      Map<String, String> routingDataCache) {
+      MetadataStoreRoutingData metadataStoreRoutingData) {
 
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
 
-    // TODO: Replace this Map with a real RoutingDataCache
-    if (routingDataCache == null) {
-      throw new IllegalArgumentException("RoutingDataCache cannot be null!");
+    if (metadataStoreRoutingData == null) {
+      throw new IllegalArgumentException("MetadataStoreRoutingData cannot be null!");
     }
-    _routingDataCache = routingDataCache;
+    _metadataStoreRoutingData = metadataStoreRoutingData;
 
     // Get the ZkRealm address based on the ZK path sharding key
-    String zkRealmAddress = _routingDataCache.get(_zkRealmShardingKey);
+    String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
+    if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {
+      throw new IllegalArgumentException(
+          "ZK realm address for the given ZK realm sharding key is invalid! ZK realm address: "
+              + zkRealmAddress + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
+    _zkRealmAddress = zkRealmAddress;
 
     // Create a ZK connection
     IZkConnection zkConnection =
@@ -575,9 +581,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     return _rawZkClient.create(path, dataObject, acl, mode, expectedSessionId);
   }
 
+  /**
+   * Checks whether the given path belongs to the realm this DedicatedZkClient is designated to at initialization.
+   * @param path
+   * @return
+   */
   private boolean checkIfPathBelongsToZkRealm(String path) {
-    // TODO: Check if the path's sharding key equals the sharding key
-    // TODO: Implement this with TrieRoutingData
-    return true;
+    return _zkRealmAddress.equals(_metadataStoreRoutingData.getMetadataStoreRealm(path));
   }
 }

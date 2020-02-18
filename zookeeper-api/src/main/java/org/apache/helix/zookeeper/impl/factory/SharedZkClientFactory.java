@@ -44,7 +44,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
     // TODO: Implement the logic
     // Return an instance of SharedZkClient
     return null;
@@ -52,7 +53,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
 
   @Override
   public RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
     // TODO: Implement the logic
     return null;
   }

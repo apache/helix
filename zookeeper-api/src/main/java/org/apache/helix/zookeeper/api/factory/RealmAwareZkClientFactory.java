@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.api.factory;
  */
 
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
 
 
 /**
@@ -30,16 +31,19 @@ public interface RealmAwareZkClientFactory {
    * Build a RealmAwareZkClient using specified connection config and client config.
    * @param connectionConfig
    * @param clientConfig
+   * @param metadataStoreRoutingData
    * @return HelixZkClient
    */
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig);
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData);
 
   /**
    * Builds a RealmAwareZkClient using specified connection config and default client config.
    * @param connectionConfig
+   * @param metadataStoreRoutingData
    * @return RealmAwareZkClient
    */
-  RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig);
+  RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData);
 }

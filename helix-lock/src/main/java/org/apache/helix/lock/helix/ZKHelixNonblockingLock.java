@@ -110,7 +110,8 @@ public class ZKHelixNonblockingLock implements HelixLock {
   @Override
   public boolean isCurrentOwner() {
     LockInfo lockInfo = getCurrentLockInfo();
-    return lockInfo.getOwner().equals(_userId) && lockInfo.hasNotExpired();
+    return lockInfo.getOwner().equals(_userId) && (System.currentTimeMillis() < lockInfo
+        .getTimeout());
   }
 
   /**
@@ -132,12 +133,12 @@ public class ZKHelixNonblockingLock implements HelixLock {
       // If no one owns the lock, allow the update
       // If the user is the current lock owner, allow the update
       LockInfo curLockInfo = new LockInfo(current);
-      if (!curLockInfo.hasNotExpired() || isCurrentOwner()) {
+      if (!(System.currentTimeMillis() < curLockInfo.getTimeout()) || isCurrentOwner()) {
         return _record;
       }
       // For users who are not the lock owner and try to do an update on a lock that is held by someone else, exception thrown is to be caught by data accessor, and return false for the update
       LOG.error(
-          "User " + _userId + "tried to update the lock at " + new Date(System.currentTimeMillis())
+          "User " + _userId + " tried to update the lock at " + new Date(System.currentTimeMillis())
               + ". Lock path: " + _lockPath);
       throw new HelixException("User is not authorized to perform this operation.");
     }

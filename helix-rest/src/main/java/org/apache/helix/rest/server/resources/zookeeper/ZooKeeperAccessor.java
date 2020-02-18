@@ -35,6 +35,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.apache.helix.zookeeper.util.ZkValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,7 @@ public class ZooKeeperAccessor extends AbstractResource {
     path = "/" + path;
 
     // Check that the path supplied is valid
-    if (!isPathValid(path)) {
+    if (!ZkValidationUtil.isPathValid(path)) {
       String errMsg = "The given path is not a valid ZooKeeper path: " + path;
       LOG.info(errMsg);
       return badRequest(errMsg);
@@ -169,21 +170,5 @@ public class ZooKeeperAccessor extends AbstractResource {
 
   private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {
     return Enums.getIfPresent(ZooKeeperCommand.class, command).orNull();
-  }
-
-  /**
-   * Validates whether a given path string is a valid ZK path.
-   *
-   * Valid matches:
-   * /
-   * /abc
-   * /abc/abc/abc/abc
-   * Invalid matches:
-   * null or empty string
-   * /abc/
-   * /abc/abc/abc/abc/
-   **/
-  public static boolean isPathValid(String path) {
-    return path.matches("^/|(/[\\w-]+)+$");
   }
 }

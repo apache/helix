@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -209,7 +210,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public String create(String path, Object data, CreateMode mode) {
-    return create(path, data, mode);
+    return create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode);
   }
 
   @Override
@@ -587,6 +588,10 @@ public class DedicatedZkClient implements RealmAwareZkClient {
    * @return
    */
   private boolean checkIfPathBelongsToZkRealm(String path) {
-    return _zkRealmAddress.equals(_metadataStoreRoutingData.getMetadataStoreRealm(path));
+    try {
+      return _zkRealmAddress.equals(_metadataStoreRoutingData.getMetadataStoreRealm(path));
+    } catch (NoSuchElementException e) {
+      return false;
+    }
   }
 }

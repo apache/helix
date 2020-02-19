@@ -168,7 +168,7 @@ under the License.
     <resources>
       <resource>
         <directory>${basedir}/src/main/resources</directory>
-        <filtering>false</filtering>
+        <filtering>true</filtering>
       </resource>
       <resource>
         <directory>${basedir}</directory>

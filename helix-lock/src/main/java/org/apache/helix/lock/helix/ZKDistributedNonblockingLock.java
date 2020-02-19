@@ -26,7 +26,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.lock.HelixLock;
+import org.apache.helix.lock.DistributedLock;
 import org.apache.helix.lock.LockInfo;
 import org.apache.helix.lock.LockScope;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -36,9 +36,9 @@ import org.apache.log4j.Logger;
 /**
  * Helix nonblocking lock implementation based on Zookeeper
  */
-public class ZKHelixNonblockingLock implements HelixLock {
+public class ZKDistributedNonblockingLock implements DistributedLock {
 
-  private static final Logger LOG = Logger.getLogger(ZKHelixNonblockingLock.class);
+  private static final Logger LOG = Logger.getLogger(ZKDistributedNonblockingLock.class);
 
   private final String _lockPath;
   private final String _userId;
@@ -54,7 +54,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  public ZKHelixNonblockingLock(LockScope scope, String zkAddress, Long timeout, String lockMsg,
+  public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long timeout, String lockMsg,
       String userId) {
     this(scope.getPath(), zkAddress, timeout, lockMsg, userId);
   }
@@ -67,7 +67,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  private ZKHelixNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg,
+  private ZKDistributedNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg,
       String userId) {
     _lockPath = lockPath;
     if (timeout < 0) {
@@ -94,6 +94,7 @@ public class ZKHelixNonblockingLock implements HelixLock {
     return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
   }
 
+  //TODO: update release lock logic so it would not leave empty znodes after the lock is released
   @Override
   public boolean releaseLock() {
     // Initialize the lock updater with a default lock info represents the state of a unlocked lock

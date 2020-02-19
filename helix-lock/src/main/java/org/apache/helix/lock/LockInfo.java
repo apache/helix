@@ -36,20 +36,23 @@ public class LockInfo {
   public static final LockInfo defaultLockInfo =
       new LockInfo(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
 
-  private ZNRecord record;
+  private static final String ZNODE_ID = "LOCK";
+  private ZNRecord _record;
 
   /**
    * The keys to lock information
    */
   public enum LockInfoAttribute {
-    OWNER, MESSAGE, TIMEOUT
+    OWNER,
+    MESSAGE,
+    TIMEOUT
   }
 
   /**
    * Initialize a default LockInfo instance
    */
   private LockInfo() {
-    record = new ZNRecord("LOCK");
+    _record = new ZNRecord(ZNODE_ID);
     setLockInfoFields(DEFAULT_OWNER_TEXT, DEFAULT_MESSAGE_TEXT, DEFAULT_TIMEOUT_LONG);
   }
 
@@ -85,11 +88,11 @@ public class LockInfo {
    * @param timeout value of TIMEOUT attribute
    */
   private void setLockInfoFields(String ownerId, String message, long timeout) {
-    record.setSimpleField(LockInfoAttribute.OWNER.name(),
+    _record.setSimpleField(LockInfoAttribute.OWNER.name(),
         ownerId == null ? DEFAULT_OWNER_TEXT : ownerId);
-    record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
+    _record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
         message == null ? DEFAULT_MESSAGE_TEXT : message);
-    record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
+    _record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
   }
 
   /**
@@ -97,7 +100,7 @@ public class LockInfo {
    * @return the owner id of the lock, empty string if there is no owner id set
    */
   public String getOwner() {
-    String owner = record.getSimpleField(LockInfoAttribute.OWNER.name());
+    String owner = _record.getSimpleField(LockInfoAttribute.OWNER.name());
     return owner == null ? DEFAULT_OWNER_TEXT : owner;
   }
 
@@ -106,7 +109,7 @@ public class LockInfo {
    * @return the message of the lock, empty string if there is no message set
    */
   public String getMessage() {
-    String message = record.getSimpleField(LockInfoAttribute.MESSAGE.name());
+    String message = _record.getSimpleField(LockInfoAttribute.MESSAGE.name());
     return message == null ? DEFAULT_MESSAGE_TEXT : message;
   }
 
@@ -115,10 +118,14 @@ public class LockInfo {
    * @return the expiring time of the lock, -1 if there is no timeout set
    */
   public Long getTimeout() {
-    return record.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
+    return _record.getLongField(LockInfoAttribute.TIMEOUT.name(), DEFAULT_TIMEOUT_LONG);
   }
 
+  /**
+   * Get the underlying ZNRecord in a LockInfo
+   * @return lock information contained in a ZNRecord
+   */
   public ZNRecord getRecord() {
-    return record;
+    return _record;
   }
 }

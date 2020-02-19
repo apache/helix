@@ -33,6 +33,7 @@ under the License.
   <properties>
     <osgi.import>
       org.apache.helix*,
+      org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.lockmanager*;version="${project.version};-noimport:=true</osgi.export>

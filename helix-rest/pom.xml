@@ -34,14 +34,21 @@ under the License.
       org.apache.helix*,
       org.codehaus.jackson*,
       org.apache.commons.cli*,
+      org.restlet*,
       org.slf4j*;version="[1.6,2)",
       org.apache.zookeeper*;version="[3.4,4)",
+      org.apache.commons.io*;version="[1.4,2)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.rest*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>metadata-store-directory-server</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
@@ -60,6 +67,12 @@ under the License.
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>helix-core</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -144,12 +157,6 @@ under the License.
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.helix</groupId>
-      <artifactId>helix-core</artifactId>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>

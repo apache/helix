@@ -44,34 +44,7 @@ public class AbstractResource {
   private static Logger _logger = LoggerFactory.getLogger(AbstractResource.class.getName());
 
   public enum Properties {
-    id, disabled, history, count, error
-  }
-
-  public enum Command {
-    activate,
-    addInstanceTag,
-    expand,
-    enable,
-    disable,
-    enableMaintenanceMode,
-    disableMaintenanceMode,
-    enablePartitions,
-    disablePartitions,
-    update,
-    delete,
-    stoppable,
-    rebalance,
-    reset,
-    resetPartitions,
-    removeInstanceTag,
-    addResource,
-    addWagedResource,
-    getResource,
-    validateWeight,
-    enableWagedRebalance,
-    enableWagedRebalanceForAllResources,
-    getInstance,
-    getAllInstances
+    id, error
   }
 
   @Context
@@ -154,16 +127,5 @@ public class AbstractResource {
     sw.append('\n');
 
     return sw.toString();
-  }
-
-  protected Command getCommand(String commandStr) throws IllegalArgumentException {
-    if (commandStr == null) {
-      throw new IllegalArgumentException("Command string is null!");
-    }
-    try {
-      return Command.valueOf(commandStr);
-    } catch (IllegalArgumentException ex) {
-      throw new IllegalArgumentException("Unknown command: " + commandStr);
-    }
   }
 }

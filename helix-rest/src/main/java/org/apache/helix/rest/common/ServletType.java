@@ -19,6 +19,7 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
+import org.apache.helix.msdserver.server.resources.metadatastore.MetadataStoreDirectoryAccessor;
 import org.apache.helix.rest.server.resources.helix.AbstractHelixResource;
 import org.apache.helix.rest.server.resources.metadata.NamespacesAccessor;
 import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
@@ -33,6 +34,7 @@ public enum ServletType {
           AbstractHelixResource.class.getPackage().getName(),
           NamespacesAccessor.class.getPackage().getName(),
           ZooKeeperAccessor.class.getPackage().getName(),
+          MetadataStoreDirectoryAccessor.class.getPackage().getName()
       }),
 
   /**
@@ -42,6 +44,7 @@ public enum ServletType {
       new String[] {
           AbstractHelixResource.class.getPackage().getName(),
           ZooKeeperAccessor.class.getPackage().getName(),
+          MetadataStoreDirectoryAccessor.class.getPackage().getName()
       });
 
   private final String _servletPathSpecTemplate;

@@ -135,7 +135,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   }
 
   /**
-   * Gets all sharding keys mapped at paths:
+   * Gets all sharding keys for following requests:
    * - "HTTP GET /sharding-keys" which returns all sharding keys in a namespace.
    * - "HTTP GET /sharding-keys?realm={realm}" which returns sharding keys in the realm.
    * - "HTTP GET /sharding-keys?prefix={prefix}" which returns sharding keys that have the prefix.
@@ -158,7 +158,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    * }
    *
    * - "HTTP GET /sharding-keys?realm={realm}&prefix={prefix}" which returns sharding keys in the
-   * realm and that have the prefix.
+   * realm and that have the given path as the prefix substring.
    *
    * @param realm Query param in endpoint path: metadata store realm.
    * @param prefix Query param in endpoint path: prefix substring of sharding key.

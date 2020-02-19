@@ -121,9 +121,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}")
   public Response addMetadataStoreRealm(@PathParam("realm") String realm) {
     try {
-      _metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm);
+      if (!_metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
-      return notFound(ex.getMessage());
+      return badRequest(ex.getMessage());
+    } catch (IllegalStateException ex) {
+      return serverError();
     }
 
     return created();
@@ -133,9 +137,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}")
   public Response deleteMetadataStoreRealm(@PathParam("realm") String realm) {
     try {
-      _metadataStoreDirectory.deleteMetadataStoreRealm(_namespace, realm);
+      if (!_metadataStoreDirectory.deleteMetadataStoreRealm(_namespace, realm)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
-      return notFound(ex.getMessage());
+      return badRequest(ex.getMessage());
+    } catch (IllegalStateException ex) {
+      return serverError();
     }
 
     return OK();
@@ -250,9 +258,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   public Response addShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
     try {
-      _metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey);
+      if (!_metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
-      return notFound(ex.getMessage());
+      return badRequest(ex.getMessage());
+    } catch (IllegalStateException ex) {
+      return serverError();
     }
 
     return created();
@@ -263,9 +275,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   public Response deleteShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
     try {
-      _metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey);
+      if (!_metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
-      return notFound(ex.getMessage());
+      return badRequest(ex.getMessage());
+    } catch (IllegalStateException ex) {
+      return serverError();
     }
 
     return OK();

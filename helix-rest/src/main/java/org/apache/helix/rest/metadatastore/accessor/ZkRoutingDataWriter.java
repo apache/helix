@@ -19,6 +19,7 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,13 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +48,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final String _namespace;
   private final HelixZkClient _zkClient;
   private final ZkDistributedLeaderElection _leaderElection;
+  private final CloseableHttpClient _forwardHttpClient;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
     if (namespace == null || namespace.isEmpty()) {
@@ -62,10 +71,12 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     }
 
     // Get the hostname (REST endpoint) from System property
-    // TODO: Fill in when Helix REST implementations are ready
-    ZNRecord myServerInfo = new ZNRecord("dummy hostname");
+    ZNRecord myServerInfo = new ZNRecord(
+        System.getProperty(MetadataStoreRoutingConstants.HOSTNAME_SYSTEM_PROPERTY_KEY));
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
+
+    _forwardHttpClient = HttpClients.createDefault();
   }
 
   @Override
@@ -77,7 +88,23 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return createZkRealm(realm);
     }
 
-    // TODO: Forward the request to leader
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url =
+        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    HttpPut putRequest = new HttpPut(url);
+    try {
+      HttpResponse response = _forwardHttpClient.execute(putRequest);
+      if (response.getStatusLine().getStatusCode() != 201) {
+        HttpEntity respEntity = response.getEntity();
+        LOG.error("the forwarded request to leader has failed for addMetadataStoreRealm: {}",
+            respEntity != null ? EntityUtils.toString(respEntity) : "");
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error("the forwarded request to leader raised an exception for addMetadataStoreRealm", e);
+      return false;
+    }
+
     return true;
   }
 
@@ -90,7 +117,24 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
     }
 
-    // TODO: Forward the request to leader
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url =
+        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    HttpDelete deleteRequest = new HttpDelete(url);
+    try {
+      HttpResponse response = _forwardHttpClient.execute(deleteRequest);
+      if (response.getStatusLine().getStatusCode() != 200) {
+        HttpEntity respEntity = response.getEntity();
+        LOG.error("the forwarded request to leader has failed for deleteMetadataStoreRealm: {}",
+            respEntity != null ? EntityUtils.toString(respEntity) : "");
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error("the forwarded request to leader raised an exception for deleteMetadataStoreRealm",
+          e);
+      return false;
+    }
+
     return true;
   }
 
@@ -136,7 +180,23 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    // TODO: Forward the request to leader
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url =
+        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm
+            + "/sharding-keys/" + shardingKey;
+    HttpPut putRequest = new HttpPut(url);
+    try {
+      HttpResponse response = _forwardHttpClient.execute(putRequest);
+      if (response.getStatusLine().getStatusCode() != 201) {
+        HttpEntity respEntity = response.getEntity();
+        LOG.error("the forwarded request to leader has failed for addShardingKey: {}",
+            respEntity != null ? EntityUtils.toString(respEntity) : "");
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error("the forwarded request to leader raised an exception for addShardingKey", e);
+      return false;
+    }
     return true;
   }
 
@@ -169,7 +229,24 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    // TODO: Forward the request to leader
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url =
+        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm
+            + "/sharding-keys/" + shardingKey;
+    HttpDelete deleteRequest = new HttpDelete(url);
+    try {
+      HttpResponse response = _forwardHttpClient.execute(deleteRequest);
+      if (response.getStatusLine().getStatusCode() != 200) {
+        HttpEntity respEntity = response.getEntity();
+        LOG.error("the forwarded request to leader has failed for deleteShardingKey: {}",
+            respEntity != null ? EntityUtils.toString(respEntity) : "");
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error("the forwarded request to leader raised an exception for deleteShardingKey", e);
+      return false;
+    }
+
     return true;
   }
 
@@ -225,6 +302,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   @Override
   public synchronized void close() {
     _zkClient.close();
+    try {
+      _forwardHttpClient.close();
+    } catch (IOException e) {
+      LOG.error("HttpClient fails to close. ", e);
+    }
   }
 
   /**

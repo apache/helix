@@ -71,4 +71,7 @@ public class MetadataStoreRoutingConstants {
 
   // MSDS resource get all routing data endpoint string
   public static final String MSDS_GET_ALL_ROUTING_DATA_ENDPOINT = "/routing-data";
+
+  // The key for system properties that contains the hostname of an instance
+  public static final String HOSTNAME_SYSTEM_PROPERTY_KEY = "instance_hostname";
 }

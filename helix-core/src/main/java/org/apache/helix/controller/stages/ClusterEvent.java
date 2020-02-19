@@ -55,6 +55,19 @@ public class ClusterEvent {
     _eventId = eventId;
   }
 
+  /**
+   * A private copy constructor that allows the override of {@link #_eventId}
+   * @param clusterEvent The other cluster event object
+   * @param eventId The event Id to be overriden
+   */
+  private ClusterEvent(ClusterEvent clusterEvent, String eventId) {
+    _clusterName = clusterEvent._clusterName;
+    _eventType = clusterEvent._eventType;
+    _eventAttributeMap = new HashMap<>(clusterEvent._eventAttributeMap);
+    _creationTime = clusterEvent._creationTime;
+    _eventId = eventId;
+  }
+
   public void addAttribute(String attrName, Object attrValue) {
     if (logger.isTraceEnabled()) {
       logger.trace("Adding attribute:" + attrName);
@@ -114,11 +127,6 @@ public class ClusterEvent {
   }
 
   public ClusterEvent clone(String eventId) {
-    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType, eventId);
-    newEvent.setCreationTime(_creationTime);
-    for (String attributeName : _eventAttributeMap.keySet()) {
-      newEvent.addAttribute(attributeName, _eventAttributeMap.get(attributeName));
-    }
-    return newEvent;
+    return new ClusterEvent(this, eventId);
   }
 }

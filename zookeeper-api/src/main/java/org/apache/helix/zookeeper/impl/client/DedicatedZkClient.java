@@ -58,6 +58,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   private final String _zkRealmShardingKey;
   private final String _zkRealmAddress;
 
+  // TODO: Remove MetadataStoreRoutingData from constructor
   public DedicatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
       MetadataStoreRoutingData metadataStoreRoutingData) {
@@ -72,6 +73,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     }
     _metadataStoreRoutingData = metadataStoreRoutingData;
 
+    // TODO: Get it from static map/singleton (HttpRoutingDataReader)
     // Get the ZkRealm address based on the ZK path sharding key
     String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
     if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {
@@ -184,7 +186,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void createEphemeral(String path, List<ACL> acl, String sessionId) {
-    create(path, null, acl, CreateMode.EPHEMERAL, sessionId);
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.createEphemeral(path, acl, sessionId);
   }
 
   @Override
@@ -194,7 +197,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public String create(String path, Object datat, List<ACL> acl, CreateMode mode) {
-    return create(path, datat, acl, mode, null);
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.create(path, datat, acl, mode);
   }
 
   @Override
@@ -204,7 +208,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void createEphemeral(String path, Object data, String sessionId) {
-    create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, sessionId);
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.createEphemeral(path, data, sessionId);
   }
 
   @Override
@@ -214,7 +219,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void createEphemeral(String path, Object data, List<ACL> acl, String sessionId) {
-    create(path, data, acl, CreateMode.EPHEMERAL, sessionId);
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.createEphemeral(path, data, acl, sessionId);
   }
 
   @Override
@@ -229,14 +235,15 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public String createEphemeralSequential(String path, Object data, String sessionId) {
-    return create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL,
-        sessionId);
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.createEphemeralSequential(path, data, sessionId);
   }
 
   @Override
   public String createEphemeralSequential(String path, Object data, List<ACL> acl,
       String sessionId) {
-    return create(path, data, acl, CreateMode.EPHEMERAL_SEQUENTIAL, sessionId);
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.createEphemeralSequential(path, data, acl, sessionId);
   }
 
   @Override
@@ -456,21 +463,6 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public PathBasedZkSerializer getZkSerializer() {
     return _rawZkClient.getZkSerializer();
-  }
-
-  /**
-   * The most comprehensive create() method that checks the path to see if the create request should be authorized to go through.
-   * @param path
-   * @param dataObject
-   * @param acl
-   * @param mode
-   * @param expectedSessionId
-   * @return
-   */
-  private String create(final String path, final Object dataObject, final List<ACL> acl,
-      final CreateMode mode, final String expectedSessionId) {
-    checkIfPathContainsShardingKey(path);
-    return _rawZkClient.create(path, dataObject, acl, mode, expectedSessionId);
   }
 
   /**

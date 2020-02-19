@@ -20,7 +20,6 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -95,41 +94,25 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.subscribeChildChanges(path, listener);
   }
 
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener listener) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.unsubscribeChildChanges(path, listener);
   }
 
   @Override
   public void subscribeDataChanges(String path, IZkDataListener listener) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.subscribeDataChanges(path, listener);
   }
 
   @Override
   public void unsubscribeDataChanges(String path, IZkDataListener listener) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.unsubscribeDataChanges(path, listener);
   }
 
@@ -160,11 +143,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public void createPersistent(String path, boolean createParents, List<ACL> acl) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.createPersistent(path, createParents, acl);
   }
 
@@ -262,71 +241,43 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public List<String> getChildren(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.getChildren(path);
   }
 
   @Override
   public int countChildren(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return countChildren(path);
   }
 
   @Override
   public boolean exists(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.exists(path);
   }
 
   @Override
   public Stat getStat(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.getStat(path);
   }
 
   @Override
   public boolean waitUntilExists(String path, TimeUnit timeUnit, long time) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.waitUntilExists(path, timeUnit, time);
   }
 
   @Override
   public void deleteRecursively(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.deleteRecursively(path);
   }
 
   @Override
   public boolean delete(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.delete(path);
   }
 
@@ -350,21 +301,13 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public <T> T readData(String path, Stat stat) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.readData(path, stat);
   }
 
   @Override
   public <T> T readData(String path, Stat stat, boolean watch) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.readData(path, stat, watch);
   }
 
@@ -388,11 +331,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public <T> void updateDataSerialized(String path, DataUpdater<T> updater) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.updateDataSerialized(path, updater);
   }
 
@@ -403,11 +342,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public Stat writeDataReturnStat(String path, Object datat, int expectedVersion) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.writeDataReturnStat(path, datat, expectedVersion);
   }
 
@@ -419,82 +354,50 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public void asyncCreate(String path, Object datat, CreateMode mode,
       ZkAsyncCallbacks.CreateCallbackHandler cb) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.asyncCreate(path, datat, mode, cb);
   }
 
   @Override
   public void asyncSetData(String path, Object datat, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.asyncSetData(path, datat, version, cb);
   }
 
   @Override
   public void asyncGetData(String path, ZkAsyncCallbacks.GetDataCallbackHandler cb) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.asyncGetData(path, cb);
   }
 
   @Override
   public void asyncExists(String path, ZkAsyncCallbacks.ExistsCallbackHandler cb) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.asyncExists(path, cb);
   }
 
   @Override
   public void asyncDelete(String path, ZkAsyncCallbacks.DeleteCallbackHandler cb) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.asyncDelete(path, cb);
   }
 
   @Override
   public void watchForData(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     _rawZkClient.watchForData(path);
   }
 
   @Override
   public List<String> watchForChilds(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.watchForChilds(path);
   }
 
   @Override
   public long getCreationTime(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.getCreationTime(path);
   }
 
@@ -530,21 +433,13 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public byte[] serialize(Object data, String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.serialize(data, path);
   }
 
   @Override
   public <T> T deserialize(byte[] data, String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.deserialize(data, path);
   }
 
@@ -574,24 +469,20 @@ public class DedicatedZkClient implements RealmAwareZkClient {
    */
   private String create(final String path, final Object dataObject, final List<ACL> acl,
       final CreateMode mode, final String expectedSessionId) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
-      throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
-    }
+    checkIfPathContainsShardingKey(path);
     return _rawZkClient.create(path, dataObject, acl, mode, expectedSessionId);
   }
 
   /**
-   * Checks whether the given path belongs to the realm this DedicatedZkClient is designated to at initialization.
+   * Checks whether the given path belongs matches the ZK path sharding key this DedicatedZkClient is designated to at initialization.
    * @param path
    * @return
    */
-  private boolean checkIfPathBelongsToZkRealm(String path) {
-    try {
-      return _zkRealmAddress.equals(_metadataStoreRoutingData.getMetadataStoreRealm(path));
-    } catch (NoSuchElementException e) {
-      return false;
+  private void checkIfPathContainsShardingKey(String path) {
+    if (!path.startsWith(_zkRealmShardingKey)) {
+      throw new IllegalArgumentException(
+          "Given path: " + path + " does not match the sharding key: " + _zkRealmShardingKey
+              + " for this DedicatedZkClient!");
     }
   }
 }

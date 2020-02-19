@@ -22,7 +22,7 @@ package org.apache.helix.lock;
 /**
  * Generic interface for Helix distributed lock
  */
-public interface HelixLock {
+public interface DistributedLock {
   /**
    * Blocking call to acquire a lock
    * @return true if the lock was successfully acquired,

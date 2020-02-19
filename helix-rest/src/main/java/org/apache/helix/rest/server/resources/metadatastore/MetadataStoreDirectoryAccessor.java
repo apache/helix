@@ -269,8 +269,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
 
   private Response getAllShardingKeys() {
     Collection<String> shardingKeys = _metadataStoreDirectory.getAllShardingKeys(_namespace);
-    Map<String, Collection<String>> responseMap =
-        ImmutableMap.of(MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
 
     return JSONRepresentation(responseMap);
   }

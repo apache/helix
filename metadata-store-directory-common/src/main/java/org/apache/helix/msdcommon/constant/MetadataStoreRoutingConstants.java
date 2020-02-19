@@ -31,6 +31,9 @@ public class MetadataStoreRoutingConstants {
   /** Field name in JSON REST response of getting all metadata store namespaces. */
   public static final String METADATA_STORE_NAMESPACES = "namespaces";
 
+  /** Field name in JSON REST response of getting all sharding keys in a single namespace. */
+  public static final String SINGLE_METADATA_STORE_NAMESPACE = "namespace";
+
   /** Field name in JSON REST response of getting metadata store realms in one namespace. */
   public static final String METADATA_STORE_REALMS = "metadataStoreRealms";
 

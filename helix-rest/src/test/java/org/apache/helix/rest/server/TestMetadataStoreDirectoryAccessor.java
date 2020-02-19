@@ -128,8 +128,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Map<String, Collection<String>> queriedNamespacesMap =
         OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    Assert.assertTrue(
-        queriedNamespacesMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES));
+    Assert.assertEquals(queriedNamespacesMap.keySet(),
+        ImmutableSet.of(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES));
 
     Set<String> queriedNamespacesSet = new HashSet<>(
         queriedNamespacesMap.get(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES));
@@ -153,8 +153,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Map<String, Collection<String>> queriedRealmsMap =
         OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    Assert.assertTrue(
-        queriedRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
+    Assert.assertEquals(queriedRealmsMap.keySet(),
+        ImmutableSet.of(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
 
     Set<String> queriedRealmsSet =
         new HashSet<>(queriedRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
@@ -261,14 +261,19 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
             true);
     // It is safe to cast the object and suppress warnings.
     @SuppressWarnings("unchecked")
-    Map<String, Collection<String>> queriedShardingKeysMap =
-        OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
 
-    Set<String> queriedShardingKeys =
-        new HashSet<>(queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS));
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE),
+        TEST_NAMESPACE);
+
+    @SuppressWarnings("unchecked")
+    Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
+        .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
     Set<String> expectedShardingKeys = new HashSet<>();
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_1);
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_2);
@@ -334,14 +339,15 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 
     queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
     // Check sharding key prefix in json response.
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX));
     Assert.assertEquals(
         queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
         shardingKeyPrefix);
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
     Collection<Map<String, String>> queriedShardingKeys =
         (Collection<Map<String, String>>) queriedShardingKeysMap
@@ -395,23 +401,20 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 
     queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    // Check sharding key prefix in json response.
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX));
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
 
+    // Check sharding key prefix in json response.
     Assert.assertEquals(
         queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
         shardingKeyPrefix);
 
-    Assert.assertTrue(queriedShardingKeysMap
-        .containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
-
     Assert.assertEquals(
         queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
         TEST_REALM_1);
-
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
     Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
         .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
@@ -479,14 +482,15 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     @SuppressWarnings("unchecked")
     Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
+    // Check fields in JSON response.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
     // Check realm name in json response.
-    Assert.assertTrue(queriedShardingKeysMap
-        .containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
     Assert.assertEquals(
         queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
         TEST_REALM_1);
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
     // It is safe to cast the object and suppress warnings.
     @SuppressWarnings("unchecked")

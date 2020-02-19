@@ -42,7 +42,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   private final String _clusterName = TestHelper.getTestClassName();
   private final String _lockMessage = "Test";
   private String _lockPath;
-  private ZKHelixNonblockingLock _lock;
+  private ZKDistributedNonblockingLock _lock;
   private String _userId;
   private HelixLockScope _participantScope;
 
@@ -61,7 +61,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
     _lockPath = _participantScope.getPath();
-    _lock = new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+    _lock = new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
         _userId);
   }
 
@@ -137,8 +137,8 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   public void testSimultaneousAcquire() {
     List<Callable<Boolean>> threads = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      ZKHelixNonblockingLock lock =
-          new ZKHelixNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+      ZKDistributedNonblockingLock lock =
+          new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
               UUID.randomUUID().toString());
       threads.add(new TestSimultaneousAcquireLock(lock));
     }
@@ -148,9 +148,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   }
 
   private static class TestSimultaneousAcquireLock implements Callable<Boolean> {
-    final ZKHelixNonblockingLock _lock;
+    final ZKDistributedNonblockingLock _lock;
 
-    TestSimultaneousAcquireLock(ZKHelixNonblockingLock lock) {
+    TestSimultaneousAcquireLock(ZKDistributedNonblockingLock lock) {
       _lock = lock;
     }
 

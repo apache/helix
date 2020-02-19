@@ -34,6 +34,7 @@ public interface RealmAwareZkClientFactory {
    * @param metadataStoreRoutingData
    * @return HelixZkClient
    */
+  // TODO: remove MetadataStoreRoutingData
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
       MetadataStoreRoutingData metadataStoreRoutingData);
@@ -44,6 +45,7 @@ public interface RealmAwareZkClientFactory {
    * @param metadataStoreRoutingData
    * @return RealmAwareZkClient
    */
+  // TODO: remove MetadataStoreRoutingData
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       MetadataStoreRoutingData metadataStoreRoutingData);
 }

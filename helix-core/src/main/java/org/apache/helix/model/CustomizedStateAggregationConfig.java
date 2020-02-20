@@ -28,6 +28,10 @@ import org.apache.helix.ZNRecord;
  * CustomizedStateAggregation configurations
  */
 public class CustomizedStateAggregationConfig extends HelixProperty {
+
+  public static final String CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW =
+      "CustomizedStateAggregationConfig";
+
   /**
    * Indicate which customized states will be aggregated.
    * NOTE: Do NOT use this field name directly, use its corresponding getter/setter in the
@@ -39,10 +43,9 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
 
   /**
    * Instantiate the CustomizedStateAggregationConfig
-   * @param cluster
    */
-  public CustomizedStateAggregationConfig(String cluster) {
-    super(cluster);
+  public CustomizedStateAggregationConfig() {
+    super(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
   }
 
   /**
@@ -50,21 +53,10 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
    * @param record a ZNRecord corresponding to a CustomizedStateAggregationConfig
    */
   public CustomizedStateAggregationConfig(ZNRecord record) {
-    super(record);
-  }
-
-  /**
-   * Instantiate the config using each field individually.
-   * Users should use CustomizedStateAggregationConfig.Builder to create
-   * CustomizedStateAggregationConfig.
-   * @param cluster
-   * @param aggregationEnabledTypes
-   */
-  public CustomizedStateAggregationConfig(String cluster, List<String> aggregationEnabledTypes) {
-    super(cluster);
-    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(),
-        aggregationEnabledTypes);
-
+    super(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
+    _record.setSimpleFields(record.getSimpleFields());
+    _record.setListFields(record.getListFields());
+    _record.setMapFields(record.getMapFields());
   }
 
   /**
@@ -86,25 +78,26 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
   }
 
   public static class Builder {
-    private String _clusterName = null;
-    private List<String> _aggregationEnabledTypes;
+    private ZNRecord _record;
+
 
     public CustomizedStateAggregationConfig build() {
-      return new CustomizedStateAggregationConfig(_clusterName, _aggregationEnabledTypes);
+      return new CustomizedStateAggregationConfig(_record);
     }
 
     /**
      * Default constructor
      */
     public Builder() {
+      _record = new ZNRecord(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
     }
 
     /**
-     * Constructor with Cluster Name as input
-     * @param clusterName
+     * Instantiate with a pre-populated record
+     * @param record a ZNRecord corresponding to a Customized State Aggregation configuration
      */
-    public Builder(String clusterName) {
-      _clusterName = clusterName;
+    public Builder(ZNRecord record) {
+      _record = record;
     }
 
     /**
@@ -112,33 +105,28 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
      * @param customizedStateAggregationConfig
      */
     public Builder(CustomizedStateAggregationConfig customizedStateAggregationConfig) {
-      _aggregationEnabledTypes = customizedStateAggregationConfig.getAggregationEnabledTypes();
+      _record = customizedStateAggregationConfig.getRecord();
     }
 
-    public Builder setClusterName(String v) {
-      _clusterName = v;
+    public Builder setAggregationEnabledTypes(List<String> aggregationEnabledTypes) {
+      _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
       return this;
     }
 
-    public Builder setAggregationEnabledTypes(List<String> v) {
-      _aggregationEnabledTypes = v;
-      return this;
-    }
-
-    public Builder addAggregationEnabledType(String v) {
-      if (_aggregationEnabledTypes == null) {
-        _aggregationEnabledTypes = new ArrayList<String>();
+    public Builder addAggregationEnabledType(String type) {
+      if (_record.getListField(
+          CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name()) == null) {
+        _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), new ArrayList<String>());
       }
-      _aggregationEnabledTypes.add(v);
+      List<String> aggregationEnabledTypes = _record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
+      aggregationEnabledTypes.add(type);
+      _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
       return this;
-    }
-
-    public String getClusterName() {
-      return _clusterName;
     }
 
     public List<String> getAggregationEnabledTypes() {
-      return _aggregationEnabledTypes;
+      return _record
+          .getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
     }
   }
 }

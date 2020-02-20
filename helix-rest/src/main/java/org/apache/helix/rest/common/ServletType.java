@@ -19,9 +19,9 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
-import org.apache.helix.msdserver.server.resources.metadatastore.MetadataStoreDirectoryAccessor;
 import org.apache.helix.rest.server.resources.helix.AbstractHelixResource;
 import org.apache.helix.rest.server.resources.metadata.NamespacesAccessor;
+import org.apache.helix.rest.server.resources.metadatastore.MetadataStoreDirectoryAccessor;
 import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
 
 

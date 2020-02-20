@@ -27,6 +27,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -242,6 +243,16 @@ public class PropertyKey {
     public PropertyKey cloudConfig() {
       return new PropertyKey(CONFIGS, ConfigScopeProperty.CLOUD, CloudConfig.class,
           _clusterName, ConfigScopeProperty.CLOUD.name(), _clusterName);
+    }
+
+    /**
+     * Get a property key associated with this customized state aggregation configuration
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStateAggregationConfig() {
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION,
+          CustomizedStateAggregationConfig.class, _clusterName,
+          ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION.name(), _clusterName);
     }
 
     /**

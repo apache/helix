@@ -41,15 +41,6 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
     return new DedicatedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
   }
 
-  @Override
-  public RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
-    // TODO: put a real routing data in as a parameter instead of new HashMap<>();
-    return new DedicatedZkClient(connectionConfig,
-        new RealmAwareZkClient.RealmAwareZkClientConfig(), metadataStoreRoutingData);
-  }
-
   private static class SingletonHelper {
     private static final DedicatedZkClientFactory INSTANCE = new DedicatedZkClientFactory();
   }

@@ -21,7 +21,9 @@ package org.apache.helix.rest.metadatastore.accessor;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+
 
 /**
  * An interface for a DAO that fetches routing data from a source and return a key-value mapping
@@ -38,7 +40,8 @@ public interface MetadataStoreRoutingDataReader {
    * @throws InvalidRoutingDataException - when the routing data is malformed in any way that
    *           disallows a meaningful mapping to be returned
    */
-  Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException;
+  Map<String, List<String>> getRoutingData()
+      throws InvalidRoutingDataException;
 
   /**
    * Closes any stateful resources such as connections or threads.

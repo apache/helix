@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.msdcommon.datamodel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
-import org.apache.helix.zookeeper.util.ZkValidationUtil;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.msdcommon.util.ZkValidationUtil;
 
 
 /**
@@ -42,7 +42,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   private final TrieNode _rootNode;
 
-  public TrieRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException {
+  public TrieRoutingData(Map<String, List<String>> routingData)
+      throws InvalidRoutingDataException {
     if (routingData == null || routingData.isEmpty()) {
       throw new InvalidRoutingDataException("routingData cannot be null or empty");
     }
@@ -56,7 +57,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     }
   }
 
-  public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
+  public Map<String, String> getAllMappingUnderPath(String path)
+      throws IllegalArgumentException {
     if (!ZkValidationUtil.isPathValid(path)) {
       throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
     }

@@ -27,11 +27,10 @@ import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.rest.server.resources.zookeeper.ZooKeeperAccessor;
-import org.apache.helix.zookeeper.util.ZkValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

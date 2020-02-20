@@ -129,6 +129,8 @@ public class HelixConfigScopeBuilder {
     case CLOUD:
       scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
       break;
+    case CUSTOMIZED_STATE_AGGREGATION:
+      scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
     default:
       break;
     }

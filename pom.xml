@@ -247,6 +247,7 @@ under the License.
   </developers>
   <modules>
     <module>metrics-common</module>
+    <module>metadata-store-directory-common</module>
     <module>zookeeper-api</module>
     <module>helix-common</module>
     <module>helix-core</module>

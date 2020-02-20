@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.msdcommon.datamodel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

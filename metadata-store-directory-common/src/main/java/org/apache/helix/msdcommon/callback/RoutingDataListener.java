@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore;
+package org.apache.helix.msdcommon.callback;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

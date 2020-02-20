@@ -35,7 +35,7 @@ public class MetadataStoreRoutingConstants {
   public static final String SINGLE_METADATA_STORE_NAMESPACE = "namespace";
 
   /** Field name in JSON REST response of getting metadata store realms in one namespace. */
-  public static final String METADATA_STORE_REALMS = "metadataStoreRealms";
+  public static final String METADATA_STORE_REALMS = "realms";
 
   /** Field name in JSON REST response of getting sharding keys in one realm. */
   public static final String SINGLE_METADATA_STORE_REALM = "realm";

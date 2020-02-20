@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -64,6 +65,11 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     _namespace = helixRestNamespace.getName();
 
     buildMetadataStoreDirectory(_namespace, helixRestNamespace.getMetadataStoreAddress());
+  }
+
+  @PreDestroy
+  private void preDestroy() {
+    _metadataStoreDirectory.close();
   }
 
   /**

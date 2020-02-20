@@ -125,7 +125,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         return serverError();
       }
     } catch (IllegalArgumentException ex) {
-      return badRequest(ex.getMessage());
+      return notFound(ex.getMessage());
     } catch (IllegalStateException ex) {
       return serverError();
     }
@@ -141,7 +141,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         return serverError();
       }
     } catch (IllegalArgumentException ex) {
-      return badRequest(ex.getMessage());
+      return notFound(ex.getMessage());
     } catch (IllegalStateException ex) {
       return serverError();
     }
@@ -262,7 +262,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         return serverError();
       }
     } catch (IllegalArgumentException ex) {
-      return badRequest(ex.getMessage());
+      return notFound(ex.getMessage());
     } catch (IllegalStateException ex) {
       return serverError();
     }
@@ -279,7 +279,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
         return serverError();
       }
     } catch (IllegalArgumentException ex) {
-      return badRequest(ex.getMessage());
+      return notFound(ex.getMessage());
     } catch (IllegalStateException ex) {
       return serverError();
     }

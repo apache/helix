@@ -110,6 +110,13 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddrMap);
   }
 
+  @AfterClass
+  public void afterClass()
+      throws Exception {
+    _metadataStoreDirectory.close();
+    deleteRoutingDataPath();
+  }
+
   @Test
   public void testGetAllMetadataStoreRealms()
       throws IOException {
@@ -133,7 +140,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertEquals(queriedRealmsSet, expectedRealms);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetAllMetadataStoreRealms")
   public void testAddMetadataStoreRealm() {
     Collection<String> previousRealms =
         _metadataStoreDirectory.getAllMetadataStoreRealms(TEST_NAMESPACE);
@@ -189,7 +196,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   /*
    * Tests REST endpoints: "/sharding-keys"
    */
-  @Test
+  @Test(dependsOnMethods = "testDeleteMetadataStoreRealm")
   public void testGetShardingKeysInNamespace()
       throws IOException {
     get(NON_EXISTING_NAMESPACE_URI_PREFIX + "sharding-keys", null,
@@ -218,7 +225,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   /*
    * Tests REST endpoint: "/sharding-keys?realm={realmName}"
    */
-  @Test
+  @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
   public void testGetShardingKeysInRealm()
       throws IOException {
     // Test NOT_FOUND response for a non existed realm.
@@ -255,7 +262,7 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertEquals(queriedShardingKeys, expectedShardingKeys);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetShardingKeysInRealm")
   public void testAddShardingKey() {
     Set<String> expectedShardingKeysSet = new HashSet<>(
         _metadataStoreDirectory.getAllShardingKeysInRealm(TEST_NAMESPACE, TEST_REALM_1));
@@ -301,13 +308,6 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
 
 //    Assert.assertEquals(updatedShardingKeysSet, expectedShardingKeysSet);
-  }
-
-  @AfterClass
-  public void afterClass()
-      throws Exception {
-    _metadataStoreDirectory.close();
-    deleteRoutingDataPath();
   }
 
   private void deleteRoutingDataPath()

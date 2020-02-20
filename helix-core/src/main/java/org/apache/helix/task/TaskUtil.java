@@ -1043,22 +1043,39 @@ public class TaskUtil {
    * @param dataProvider
    * @param manager
    */
-  public static void workflowGarbageCollection(WorkflowControllerDataProvider dataProvider,
+  public static void workflowGarbageCollection(final WorkflowControllerDataProvider dataProvider,
       final HelixManager manager) {
     // Garbage collections for conditions where workflow context exists but config is missing.
-    Map<String, ZNRecord> contexts = dataProvider.getContexts();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
+    Set<String> existingContexts;
+    /*
+     * Here try-catch is used to avoid concurrent modification exception while doing deep copy.
+     * Map.keySet() can produce concurrent modification exception.
+     * Reason: If the map is modified while an iteration over the set is in progress, concurrent
+     * modification exception will be thrown.
+     */
+    try {
+      existingContexts = new HashSet<>(dataProvider.getContexts().keySet());
+    } catch (Exception e) {
+      LOG.warn(
+          "Exception occurred while creating a list of all workflow/job context names!",
+          e);
+      return;
+    }
+
+    // toBeDeletedWorkflows is a set that contains the name of the workflows that their contexts
+    // should be deleted.
     Set<String> toBeDeletedWorkflows = new HashSet<>();
-    for (Map.Entry<String, ZNRecord> entry : contexts.entrySet()) {
-      if (entry.getValue() != null
-          && entry.getValue().getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
-        if (dataProvider.getWorkflowConfig(entry.getKey()) == null) {
-          toBeDeletedWorkflows.add(entry.getKey());
-        }
+    for (String entry : existingContexts) {
+      WorkflowConfig cfg = dataProvider.getWorkflowConfig(entry);
+      WorkflowContext ctx = dataProvider.getWorkflowContext(entry);
+      if (ctx != null && ctx.getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {
+        toBeDeletedWorkflows.add(entry);
       }
     }
+
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
     for (String workflowName : toBeDeletedWorkflows) {
       LOG.warn(String.format(

@@ -42,6 +42,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
 
   @BeforeClass
   public void beforeClass() {
+    _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
     _zkRoutingDataWriter = new ZkRoutingDataWriter(DUMMY_NAMESPACE, ZK_ADDR);
   }
 

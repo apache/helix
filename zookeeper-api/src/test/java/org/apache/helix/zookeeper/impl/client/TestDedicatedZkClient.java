@@ -31,12 +31,13 @@ import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.impl.factory.TrieRoutingData;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
 public class TestDedicatedZkClient extends ZkTestBase {
-  private static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY_";
+  private static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY";
   private static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "_" + 0 + "/a/b/c";
   private static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
@@ -59,6 +60,13 @@ public class TestDedicatedZkClient extends ZkTestBase {
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation of routing information
     _metadataStoreRoutingData = new TrieRoutingData(RAW_ROUTING_DATA);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    if (_realmAwareZkClient != null && !_realmAwareZkClient.isClosed()) {
+      _realmAwareZkClient.close();
+    }
   }
 
   /**
@@ -114,7 +122,6 @@ public class TestDedicatedZkClient extends ZkTestBase {
     // Test writing and reading against the invalid path
     try {
       _realmAwareZkClient.createPersistent(TEST_INVALID_PATH, true);
-      _realmAwareZkClient.writeData(TEST_INVALID_PATH, znRecord);
       Assert.fail("Create() should not succeed on an invalid path!");
     } catch (IllegalArgumentException e) {
       // Okay - expected

@@ -51,7 +51,7 @@ public class ZkTestBase {
   private static final String NUM_ZK_PROPERTY_KEY = "numZk";
 
   protected static final String ZK_PREFIX = "localhost:";
-  protected static final int ZK_START_PORT = 2183;
+  protected static final int ZK_START_PORT = 2127;
 
   /*
    * Multiple ZK references

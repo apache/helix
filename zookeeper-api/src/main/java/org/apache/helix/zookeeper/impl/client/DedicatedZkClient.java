@@ -31,7 +31,6 @@ import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
@@ -255,7 +254,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public int countChildren(String path) {
     checkIfPathContainsShardingKey(path);
-    return countChildren(path);
+    return _rawZkClient.countChildren(path);
   }
 
   @Override
@@ -295,15 +294,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public <T> T readData(String path, boolean returnNullIfPathNotExists) {
-    T data = null;
-    try {
-      return readData(path, null);
-    } catch (ZkNoNodeException e) {
-      if (!returnNullIfPathNotExists) {
-        throw e;
-      }
-    }
-    return data;
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.readData(path, returnNullIfPathNotExists);
   }
 
   @Override
@@ -320,15 +312,8 @@ public class DedicatedZkClient implements RealmAwareZkClient {
 
   @Override
   public <T> T readDataAndStat(String path, Stat stat, boolean returnNullIfPathNotExists) {
-    T data = null;
-    try {
-      data = readData(path, stat);
-    } catch (ZkNoNodeException e) {
-      if (!returnNullIfPathNotExists) {
-        throw e;
-      }
-    }
-    return data;
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.readDataAndStat(path, stat, returnNullIfPathNotExists);
   }
 
   @Override

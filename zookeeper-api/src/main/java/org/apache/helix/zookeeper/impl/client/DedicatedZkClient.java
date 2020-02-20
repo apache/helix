@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -456,10 +457,17 @@ public class DedicatedZkClient implements RealmAwareZkClient {
    * @return
    */
   private void checkIfPathContainsShardingKey(String path) {
-    if (!path.startsWith(_zkRealmShardingKey)) {
+    // TODO: replace with the singleton MetadataStoreRoutingData
+    try {
+      String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+      if (!_zkRealmAddress.equals(zkRealmForPath)) {
+        throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
+            + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
+            + _zkRealmShardingKey + " for this DedicatedZkClient!");
+      }
+    } catch (NoSuchElementException e) {
       throw new IllegalArgumentException(
-          "Given path: " + path + " does not match the sharding key: " + _zkRealmShardingKey
-              + " for this DedicatedZkClient!");
+          "Given path: " + path + " does not have a valid sharding key!");
     }
   }
 }

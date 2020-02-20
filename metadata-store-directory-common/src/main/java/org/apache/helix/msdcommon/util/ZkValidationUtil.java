@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.util;
+package org.apache.helix.msdcommon.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

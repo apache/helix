@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.msdcommon.util.ZkValidationUtil;
 
 
 /**
@@ -58,16 +59,12 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public Map<String, String> getAllMappingUnderPath(String path)
       throws IllegalArgumentException {
-    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: "
-              + path);
+    if (!ZkValidationUtil.isPathValid(path)) {
+      throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
     }
 
-    TrieNode curNode;
-    try {
-      curNode = findTrieNode(path, false);
-    } catch (NoSuchElementException e) {
+    TrieNode curNode = getLongestPrefixNodeAlongPath(path);
+    if (!curNode.getPath().equals(path)) {
       return Collections.emptyMap();
     }
 
@@ -89,60 +86,73 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   public String getMetadataStoreRealm(String path)
       throws IllegalArgumentException, NoSuchElementException {
-    if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
-      throw new IllegalArgumentException(
-          "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: "
-              + path);
+    if (!ZkValidationUtil.isPathValid(path)) {
+      throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
     }
 
-    TrieNode leafNode = findTrieNode(path, true);
-    return leafNode.getRealmAddress();
+    TrieNode node = getLongestPrefixNodeAlongPath(path);
+    if (!node.isShardingKey()) {
+      throw new NoSuchElementException(
+          "No sharding key found within the provided path. Path: " + path);
+    }
+    return node.getRealmAddress();
   }
 
-  /**
-   * If findLeafAlongPath is false, then starting from the root node, find the trie node that the
-   * given path is pointing to and return it; raise NoSuchElementException if the path does
-   * not point to any node. If findLeafAlongPath is true, then starting from the root node, find the
-   * leaf node along the provided path; raise NoSuchElementException if the path does not
-   * point to any node or if there is no leaf node along the path.
+  public boolean isShardingKeyInsertionValid(String shardingKey) {
+    if (!ZkValidationUtil.isPathValid(shardingKey)) {
+      throw new IllegalArgumentException(
+          "Provided shardingKey is not a valid Zookeeper path: " + shardingKey);
+    }
+
+    TrieNode node = getLongestPrefixNodeAlongPath(shardingKey);
+    return !node.isShardingKey() && !node.getPath().equals(shardingKey);
+  }
+
+  public boolean containsKeyRealmPair(String shardingKey, String realmAddress) {
+    if (!ZkValidationUtil.isPathValid(shardingKey)) {
+      throw new IllegalArgumentException(
+          "Provided shardingKey is not a valid Zookeeper path: " + shardingKey);
+    }
+
+    TrieNode node = getLongestPrefixNodeAlongPath(shardingKey);
+    return node.getPath().equals(shardingKey) && node.getRealmAddress().equals(realmAddress);
+  }
+
+  /*
+   * Given a path, find a trie node that represents the longest prefix of the path. For example,
+   * given "/a/b/c", the method starts at "/", and attempts to reach "/a", then attempts to reach
+   * "/a/b", then ends on "/a/b/c"; if any of the node doesn't exist, the traversal terminates and
+   * the last seen existing node is returned.
+   * Note:
+   * 1. When the returned TrieNode is a sharding key, it is the only sharding key along the
+   * provided path (the path points to this sharding key);
+   * 2. When the returned TrieNode is not a sharding key but it represents the provided path, the
+   * provided path is a prefix(parent) to a sharding key;
+   * 3. When the returned TrieNode is not a sharding key and it does not represent the provided
+   * path (meaning the traversal ended before the last node of the path is reached), the provided
+   * path is not associated with any sharding key and can be added as a sharding key without
+   * creating ambiguity cases among sharding keys.
    * @param path - the path where the search is conducted
-   * @param findLeafAlongPath - whether the search is for a leaf node on the path
-   * @return the node pointed by the path or a leaf node along the path
-   * @throws NoSuchElementException - when the path points to nothing or when no leaf node is
-   *           found
+   * @return a TrieNode that represents the longest prefix of the path
    */
-  private TrieNode findTrieNode(String path, boolean findLeafAlongPath)
-      throws NoSuchElementException {
+  private TrieNode getLongestPrefixNodeAlongPath(String path) {
     if (path.equals(DELIMITER)) {
-      if (findLeafAlongPath && !_rootNode.isShardingKey()) {
-        throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
-      }
       return _rootNode;
     }
 
     TrieNode curNode = _rootNode;
-    if (findLeafAlongPath && curNode.isShardingKey()) {
-      return curNode;
-    }
-    Map<String, TrieNode> curChildren = curNode.getChildren();
+    TrieNode nextNode;
     for (String pathSection : path.substring(1).split(DELIMITER, 0)) {
-      curNode = curChildren.get(pathSection);
-      if (curNode == null) {
-        throw new NoSuchElementException(
-            "The provided path is missing from the trie. Path: " + path);
-      }
-      if (findLeafAlongPath && curNode.isShardingKey()) {
+      nextNode = curNode.getChildren().get(pathSection);
+      if (nextNode == null) {
         return curNode;
       }
-      curChildren = curNode.getChildren();
-    }
-    if (findLeafAlongPath) {
-      throw new NoSuchElementException("No leaf node found along the path. Path: " + path);
+      curNode = nextNode;
     }
     return curNode;
   }
 
-  /**
+  /*
    * Checks for the edge case when the only sharding key in provided routing data is the delimiter
    * or an empty string. When this is the case, the trie is valid and contains only one node, which
    * is the root node, and the root node is a leaf node with a realm address associated with it.
@@ -160,7 +170,7 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return false;
   }
 
-  /**
+  /*
    * Constructs a trie based on the provided routing data. It loops through all sharding keys and
    * constructs the trie in a top down manner.
    * @param routingData- a mapping from "sharding keys" to "realm addresses" to be parsed into a
@@ -175,10 +185,9 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
       for (String shardingKey : entry.getValue()) {
         // Missing leading delimiter is invalid
-        if (shardingKey.isEmpty() || !shardingKey.substring(0, 1).equals(DELIMITER)) {
+        if (!ZkValidationUtil.isPathValid(shardingKey)) {
           throw new InvalidRoutingDataException(
-              "Sharding key does not have a leading \"" + DELIMITER + "\" character: "
-                  + shardingKey);
+              "Sharding key is not a valid Zookeeper path: " + shardingKey);
         }
 
         // Root can only be a sharding key if it's the only sharding key. Since this method is
@@ -233,22 +242,22 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   }
 
   private static class TrieNode {
-    /**
+    /*
      * This field is a mapping between trie key and children nodes. For example, node "a" has
      * children "ab" and "ac", therefore the keys are "b" and "c" respectively.
      */
     private Map<String, TrieNode> _children;
-    /**
+    /*
      * This field states whether the path represented by the node is a sharding key
      */
     private final boolean _isShardingKey;
-    /**
+    /*
      * This field contains the complete path/prefix leading to the current node. For example, the
      * name of root node is "/", then the name of its child node
      * is "/a", and the name of the child's child node is "/a/b".
      */
     private final String _path;
-    /**
+    /*
      * This field represents the data contained in a node(which represents a path), and is only
      * available to the terminal nodes.
      */

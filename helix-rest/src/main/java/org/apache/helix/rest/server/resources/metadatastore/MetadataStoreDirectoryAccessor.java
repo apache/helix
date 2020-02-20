@@ -80,7 +80,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       responseMap = new HashMap<>(1);
       responseMap.put(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
     } catch (NoSuchElementException ex) {
-      return OK(ex.getMessage());
+      return notFound(ex.getMessage());
     }
 
     return JSONRepresentation(responseMap);

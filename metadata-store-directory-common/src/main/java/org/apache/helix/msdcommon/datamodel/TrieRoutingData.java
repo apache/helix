@@ -41,7 +41,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
 
   private final TrieNode _rootNode;
 
-  public TrieRoutingData(Map<String, List<String>> routingData) throws InvalidRoutingDataException {
+  public TrieRoutingData(Map<String, List<String>> routingData)
+      throws InvalidRoutingDataException {
     if (routingData == null || routingData.isEmpty()) {
       throw new InvalidRoutingDataException("routingData cannot be null or empty");
     }
@@ -55,7 +56,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     }
   }
 
-  public Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException {
+  public Map<String, String> getAllMappingUnderPath(String path)
+      throws IllegalArgumentException {
     if (path.isEmpty() || !path.substring(0, 1).equals(DELIMITER)) {
       throw new IllegalArgumentException(
           "Provided path is empty or does not have a leading \"" + DELIMITER + "\" character: "

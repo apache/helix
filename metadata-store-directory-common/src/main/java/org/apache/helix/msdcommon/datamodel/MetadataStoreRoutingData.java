@@ -35,7 +35,8 @@ public interface MetadataStoreRoutingData {
    *         path if the path is valid; empty mapping otherwise
    * @throws IllegalArgumentException - when the path is invalid
    */
-  Map<String, String> getAllMappingUnderPath(String path) throws IllegalArgumentException;
+  Map<String, String> getAllMappingUnderPath(String path)
+      throws IllegalArgumentException;
 
   /**
    * Given a path, return the realm address corresponding to the sharding key contained in the
@@ -45,5 +46,6 @@ public interface MetadataStoreRoutingData {
    * @throws IllegalArgumentException - when the path is invalid
    * @throws NoSuchElementException - when the path doesn't contain a sharding key
    */
-  String getMetadataStoreRealm(String path) throws IllegalArgumentException, NoSuchElementException;
+  String getMetadataStoreRealm(String path)
+      throws IllegalArgumentException, NoSuchElementException;
 }

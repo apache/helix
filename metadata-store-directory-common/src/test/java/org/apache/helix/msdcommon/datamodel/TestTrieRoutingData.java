@@ -1,4 +1,4 @@
-package org.apache.helix.msdcommon;
+package org.apache.helix.msdcommon.datamodel;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

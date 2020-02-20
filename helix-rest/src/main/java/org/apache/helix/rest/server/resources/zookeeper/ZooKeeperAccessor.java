@@ -35,7 +35,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.apache.helix.zookeeper.util.ZkValidationUtil;
+import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

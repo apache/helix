@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.exceptions;
+package org.apache.helix.msdcommon.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,12 +19,20 @@ package org.apache.helix.rest.metadatastore.exceptions;
  * under the License.
  */
 
-/**
- * This exception is thrown by MetadataStoreRoutingDataAccessor when the routing data it's trying to
- * access is malformed and is there invalid.
- */
-public class InvalidRoutingDataException extends Exception {
-  public InvalidRoutingDataException(String info) {
-    super(info);
+public class ZkValidationUtil {
+  /**
+   * Validates whether a given path string is a valid ZK path.
+   *
+   * Valid matches:
+   * /
+   * /abc
+   * /abc/abc/abc/abc
+   * Invalid matches:
+   * null or empty string
+   * /abc/
+   * /abc/abc/abc/abc/
+   **/
+  public static boolean isPathValid(String path) {
+    return path.matches("^/|(/[\\w-]+)+$");
   }
 }

@@ -50,8 +50,7 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   }
 
   /**
-   * Build a Dedicated ZkClient based on connection config and client config
-   *
+   * Build a Dedicated ZkClient based on connection config and client config.
    * @param connectionConfig
    * @param clientConfig
    * @return

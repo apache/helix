@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.impl.client;
+package org.apache.helix.zookeeper.impl;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

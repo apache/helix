@@ -19,143 +19,17 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
-import org.apache.helix.zookeeper.impl.factory.TrieRoutingData;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 
-public class TestDedicatedZkClient extends ZkTestBase {
-  private static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY";
-  private static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "_" + 0 + "/a/b/c";
-  private static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
-
-  // <Realm, List of sharding keys> Mapping
-  private static final Map<String, List<String>> RAW_ROUTING_DATA = new HashMap<>();
-
-  private RealmAwareZkClient _realmAwareZkClient;
-  private MetadataStoreRoutingData _metadataStoreRoutingData;
+public class TestDedicatedZkClient extends RealmAwareZkClientTestBase {
 
   @BeforeClass
   public void beforeClass()
       throws Exception {
-    // Populate RAW_ROUTING_DATA
-    for (int i = 0; i < _numZk; i++) {
-      List<String> shardingKeyList = new ArrayList<>();
-      shardingKeyList.add(ZK_SHARDING_KEY_PREFIX + "_" + i);
-      String realmName = ZK_PREFIX + (ZK_START_PORT + i);
-      RAW_ROUTING_DATA.put(realmName, shardingKeyList);
-    }
-
-    // Feed the raw routing data into TrieRoutingData to construct an in-memory representation of routing information
-    _metadataStoreRoutingData = new TrieRoutingData(RAW_ROUTING_DATA);
-  }
-
-  @AfterClass
-  public void afterClass() {
-    if (_realmAwareZkClient != null && !_realmAwareZkClient.isClosed()) {
-      _realmAwareZkClient.close();
-    }
-  }
-
-  /**
-   * 1. Create a DedicatedZkClient with a non-existing sharding key (for which there is no valid ZK realm)
-   * -> This should fail with an exception
-   * 2. Create a DedicatedZkClient with a valid sharding key
-   * -> This should pass
-   */
-  @Test
-  public void testDedicatedZkClientCreation() {
-    // Create a DedicatedZkClient
-    String invalidShardingKey = "InvalidShardingKey";
-    RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
-        new RealmAwareZkClient.RealmAwareZkClientConfig();
-
-    // Create a connection config with the invalid sharding key
-    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig(invalidShardingKey);
-
-    try {
-      _realmAwareZkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(connectionConfig, clientConfig, _metadataStoreRoutingData);
-      Assert.fail("Should not succeed with an invalid sharding key!");
-    } catch (IllegalArgumentException e) {
-      // Expected
-    }
-
-    // Use a valid sharding key this time around
-    String validShardingKey = ZK_SHARDING_KEY_PREFIX + "_" + 0; // Use TEST_SHARDING_KEY_0
-    connectionConfig = new RealmAwareZkClient.RealmAwareZkConnectionConfig(validShardingKey);
-    _realmAwareZkClient = DedicatedZkClientFactory.getInstance()
-        .buildZkClient(connectionConfig, clientConfig, _metadataStoreRoutingData);
-  }
-
-  /**
-   * Test the persistent create() call against a valid path and an invalid path.
-   * Valid path is one that belongs to the realm designated by the sharding key.
-   * Invalid path is one that does not belong to the realm designated by the sharding key.
-   */
-  @Test(dependsOnMethods = "testDedicatedZkClientCreation")
-  public void testDedicatedZkClientCreatePersistent() {
-    _realmAwareZkClient.setZkSerializer(new ZNRecordSerializer());
-
-    // Create a dummy ZNRecord
-    ZNRecord znRecord = new ZNRecord("DummyRecord");
-    znRecord.setSimpleField("Dummy", "Value");
-
-    // Test writing and reading against the validPath
-    _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
-    _realmAwareZkClient.writeData(TEST_VALID_PATH, znRecord);
-    Assert.assertEquals(_realmAwareZkClient.readData(TEST_VALID_PATH), znRecord);
-
-    // Test writing and reading against the invalid path
-    try {
-      _realmAwareZkClient.createPersistent(TEST_INVALID_PATH, true);
-      Assert.fail("Create() should not succeed on an invalid path!");
-    } catch (IllegalArgumentException e) {
-      // Okay - expected
-    }
-  }
-
-  /**
-   * Test that exists() works on valid path and fails on invalid path.
-   */
-  @Test(dependsOnMethods = "testDedicatedZkClientCreatePersistent")
-  public void testExists() {
-    Assert.assertTrue(_realmAwareZkClient.exists(TEST_VALID_PATH));
-
-    try {
-      _realmAwareZkClient.exists(TEST_INVALID_PATH);
-      Assert.fail("Exists() should not succeed on an invalid path!");
-    } catch (IllegalArgumentException e) {
-      // Okay - expected
-    }
-  }
-
-  /**
-   * Test that delete() works on valid path and fails on invalid path.
-   */
-  @Test(dependsOnMethods = "testExists")
-  public void testDelete() {
-    try {
-      _realmAwareZkClient.delete(TEST_INVALID_PATH);
-      Assert.fail("Exists() should not succeed on an invalid path!");
-    } catch (IllegalArgumentException e) {
-      // Okay - expected
-    }
-
-    Assert.assertTrue(_realmAwareZkClient.delete(TEST_VALID_PATH));
-    Assert.assertFalse(_realmAwareZkClient.exists(TEST_VALID_PATH));
+    super.beforeClass();
+    // Set the factory to DedicatedZkClientFactory
+    _realmAwareZkClientFactory = DedicatedZkClientFactory.getInstance();
   }
 }

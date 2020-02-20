@@ -29,11 +29,14 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.helix.msdcommon.callback.RoutingDataListener;
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataWriter;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.util;
+package org.apache.helix.msdcommon.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,12 @@ package org.apache.helix.zookeeper.util;
  * under the License.
  */
 
-public class ZkValidationUtil {
-  /**
-   * Validates whether a given path string is a valid ZK path.
-   *
-   * Valid matches:
-   * /
-   * /abc
-   * /abc/abc/abc/abc
-   * Invalid matches:
-   * null or empty string
-   * /abc/
-   * /abc/abc/abc/abc/
-   **/
-  public static boolean isPathValid(String path) {
-    return path.matches("^/|(/[\\w-]+)+$");
+/**
+ * This exception is thrown by MetadataStoreRoutingDataAccessor when the routing data it's trying to
+ * access is malformed and is there invalid.
+ */
+public class InvalidRoutingDataException extends Exception {
+  public InvalidRoutingDataException(String info) {
+    super(info);
   }
 }

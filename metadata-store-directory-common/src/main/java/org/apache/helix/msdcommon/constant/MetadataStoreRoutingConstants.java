@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.constant;
+package org.apache.helix.msdcommon.constant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

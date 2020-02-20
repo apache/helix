@@ -30,8 +30,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;

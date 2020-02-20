@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.rest.metadatastore.RoutingDataListener;
-import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.metadatastore.exceptions.InvalidRoutingDataException;
+import org.apache.helix.msdcommon.callback.RoutingDataListener;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -75,7 +75,8 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
    * @throws InvalidRoutingDataException - when the node on
    *           MetadataStoreRoutingConstants.ROUTING_DATA_PATH is missing
    */
-  public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
+  public Map<String, List<String>> getRoutingData()
+      throws InvalidRoutingDataException {
     Map<String, List<String>> routingData = new HashMap<>();
     List<String> allRealmAddresses;
     try {

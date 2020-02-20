@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources.zookeeper;
+package org.apache.helix.rest.server;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,11 +34,10 @@ import javax.ws.rs.core.Response;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
-import org.apache.helix.rest.metadatastore.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -69,7 +68,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass() throws Exception {
+  public void beforeClass()
+      throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
     deleteRoutingDataPath();
@@ -111,7 +111,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetAllMetadataStoreRealms() throws IOException {
+  public void testGetAllMetadataStoreRealms()
+      throws IOException {
     get(NON_EXISTING_NAMESPACE_URI_PREFIX + "metadata-store-realms", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
 
@@ -189,7 +190,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
    * Tests REST endpoints: "/sharding-keys"
    */
   @Test
-  public void testGetShardingKeysInNamespace() throws IOException {
+  public void testGetShardingKeysInNamespace()
+      throws IOException {
     get(NON_EXISTING_NAMESPACE_URI_PREFIX + "sharding-keys", null,
         Response.Status.NOT_FOUND.getStatusCode(), true);
 
@@ -217,7 +219,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
    * Tests REST endpoint: "/sharding-keys?realm={realmName}"
    */
   @Test
-  public void testGetShardingKeysInRealm() throws IOException {
+  public void testGetShardingKeysInRealm()
+      throws IOException {
     // Test NOT_FOUND response for a non existed realm.
     new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=nonExistedRealm")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
@@ -301,12 +304,14 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   @AfterClass
-  public void afterClass() throws Exception {
+  public void afterClass()
+      throws Exception {
     _metadataStoreDirectory.close();
     deleteRoutingDataPath();
   }
 
-  private void deleteRoutingDataPath() throws Exception {
+  private void deleteRoutingDataPath()
+      throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
           .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));

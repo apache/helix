@@ -26,6 +26,7 @@ import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -104,6 +105,31 @@ public interface HelixAdmin {
    * @param grandCluster
    */
   void addClusterToGrandCluster(String clusterName, String grandCluster);
+
+  /** Add a CustomizedStateAggregationConfig to a cluster
+   * @param clusterName
+   * @param customizedStateAggregationConfig
+   */
+  void addCustomizedStateAggregationConfig(String clusterName,
+      CustomizedStateAggregationConfig customizedStateAggregationConfig);
+
+  /**
+   * Remove CustomizedStateAggregationConfig from specific cluster
+   * @param clusterName
+   */
+  void removeCustomizedStateAggregationConfig(String clusterName);
+
+  /**
+   * Add a type to CustomizedStateAggregationConfig of specific cluster
+   * @param clusterName
+   */
+  void addTypeToCustomizedStateAggregationConfig(String clusterName, String type);
+
+  /**
+   * Remove a type from CustomizedStateAggregationConfig of specific cluster
+   * @param clusterName
+   */
+  void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type);
 
   /**
    * Add a resource to a cluster, using the default ideal state mode AUTO

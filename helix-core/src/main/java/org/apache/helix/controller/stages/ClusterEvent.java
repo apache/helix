@@ -58,7 +58,7 @@ public class ClusterEvent {
   /**
    * A private copy constructor that allows the override of {@link #_eventId}
    * @param clusterEvent The other cluster event object
-   * @param eventId The event Id to be overriden
+   * @param eventId The event id to be overridden
    */
   private ClusterEvent(ClusterEvent clusterEvent, String eventId) {
     _clusterName = clusterEvent._clusterName;

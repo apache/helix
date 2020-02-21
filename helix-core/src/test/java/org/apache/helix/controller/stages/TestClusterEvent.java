@@ -19,16 +19,30 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-@Test
+
 public class TestClusterEvent {
+
   @Test
-  public void testSimplePutandGet() {
+  public void testSimplePutAndGet() {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     AssertJUnit.assertEquals(event.getEventType(), ClusterEventType.Unknown);
     event.addAttribute("attr1", "value");
     AssertJUnit.assertEquals(event.getAttribute("attr1"), "value");
+  }
+
+  @Test
+  public void testClone() {
+    String clusterName = "TestCluster";
+    ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.Unknown, "testId");
+    event.addAttribute("key", "value");
+
+    ClusterEvent clonedEvent = event.clone("cloneId");
+    Assert.assertEquals(clonedEvent.getClusterName(), clusterName);
+    Assert.assertEquals(clonedEvent.getEventId(), "cloneId");
+    Assert.assertEquals(clonedEvent.getAttribute("key"), "value");
   }
 }

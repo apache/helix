@@ -240,5 +240,13 @@ public class TestFederatedZkClient extends ZkTestBase {
     _realmAwareZkClient.close();
 
     Assert.assertTrue(_realmAwareZkClient.isClosed());
+
+    // Client is closed, so operation should not be executed.
+    try {
+      _realmAwareZkClient.createPersistent(TEST_VALID_PATH);
+      Assert.fail("createPersistent() should not be executed because RealmAwareZkClient is closed.");
+    } catch (IllegalStateException ex) {
+      Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
+    }
   }
 }

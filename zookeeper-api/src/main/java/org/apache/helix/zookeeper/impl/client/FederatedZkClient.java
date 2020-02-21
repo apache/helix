@@ -69,6 +69,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
   // ZK realm -> ZkClient
   private final Map<String, ZkClient> _zkRealmToZkClientMap;
 
+  private volatile boolean _isClosed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
 
   // TODO: support capacity of ZkClient number in one FederatedZkClient and do garbage collection.
@@ -81,6 +82,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
       throw new IllegalArgumentException("Client config cannot be null!");
     }
 
+    _isClosed = false;
     _clientConfig = clientConfig;
     _pathBasedZkSerializer = clientConfig.getZkSerializer();
     _metadataStoreRoutingData = metadataStoreRoutingData;
@@ -405,12 +407,13 @@ public class FederatedZkClient implements RealmAwareZkClient {
     synchronized (_zkRealmToZkClientMap) {
       _zkRealmToZkClientMap.values().forEach(ZkClient::close);
       _zkRealmToZkClientMap.clear();
+      _isClosed = true;
     }
   }
 
   @Override
   public boolean isClosed() {
-    return _zkRealmToZkClientMap.isEmpty();
+    return _isClosed;
   }
 
   @Override
@@ -453,6 +456,11 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   private ZkClient getZkClient(String path) {
+    // If FederatedZkClient is closed, should not return ZkClient.
+    if (isClosed()) {
+      throw new IllegalStateException(FEDERATED_ZK_CLIENT + " is closed!");
+    }
+
     String zkRealm = getZkRealm(path);
     if (!_zkRealmToZkClientMap.containsKey(zkRealm)) {
       // Synchronized to avoid creating duplicate ZkClient for the same ZkRealm.

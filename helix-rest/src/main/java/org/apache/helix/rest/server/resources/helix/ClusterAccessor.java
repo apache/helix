@@ -49,6 +49,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
@@ -266,6 +267,129 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
     return JSONRepresentation(config.getRecord());
   }
+
+
+  @PUT
+  @Path("{clusterId}/customizedstateaggregationconfig")
+  public Response addCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
+      String content) {
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound("Cluster is not properly setup!");
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+
+    try {
+      CustomizedStateAggregationConfig customizedStateAggregationConfig =
+          new CustomizedStateAggregationConfig.Builder(record).build();
+      admin.addCustomizedStateAggregationConfig(clusterId, customizedStateAggregationConfig);
+    } catch (HelixException ex) {
+      _logger.error("Error in adding a CustomizedStateAggregationConfig to cluster: " + clusterId,
+          ex);
+      return badRequest(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error("Cannot add CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  @DELETE
+  @Path("{clusterId}/customizedstateaggregationconfig")
+  public Response removeCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound("Cluster is not properly setup!");
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      admin.removeCustomizedStateAggregationConfig(clusterId);
+    } catch (HelixException ex) {
+      _logger.error("Error in removing CustomizedStateAggregationConfig to cluster: " + clusterId,
+          ex);
+      return badRequest(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error("Cannot remove CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  @GET
+  @Path("{clusterId}/customizedstateaggregationconfig")
+  public Response getCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound();
+    }
+
+    ConfigAccessor configAccessor = getConfigAccessor();
+    CustomizedStateAggregationConfig customizedStateAggregationConfig =
+        configAccessor.getCustomizedStateAggregationConfig(clusterId);
+
+    if (customizedStateAggregationConfig != null) {
+      return JSONRepresentation(customizedStateAggregationConfig.getRecord());
+    }
+
+    return notFound();
+  }
+
+  @POST
+  @Path("{clusterId}/customizedstateaggregationconfig")
+  public Response updateCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String commandStr, @QueryParam("type") String type) {
+
+    HelixZkClient zkClient = getHelixZkClient();
+    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
+      return notFound();
+    }
+
+    // Here to update cloud config
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.update; // Default behavior
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+
+    try {
+      switch (command) {
+      case delete: {
+        admin.removeTypeFromCustomizedStateAggregationConfig(clusterId, type);
+      }
+      break;
+      case update: {
+        admin.addTypeToCustomizedStateAggregationConfig(clusterId, type);
+      }
+      break;
+      default:
+        return badRequest("Unsupported command " + commandStr);
+      }
+    } catch (Exception ex) {
+      _logger.error("Failed to " + command + " CustomizedStateAggregationConfig for cluster " + clusterId + " new type: "
+          + type + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
 
   @GET
   @Path("{clusterId}/topology")

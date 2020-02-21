@@ -515,7 +515,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
     CustomizedStateAggregationConfig.Builder builder =
         new CustomizedStateAggregationConfig.Builder();
@@ -525,7 +525,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
 
     // Read CustomizedStateAggregationConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CustomizedStateAggregationConfig configFromZk =
         _configAccessor.getCustomizedStateAggregationConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
@@ -538,7 +538,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
     CustomizedStateAggregationConfig.Builder builder =
         new CustomizedStateAggregationConfig.Builder();
@@ -548,7 +548,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
 
     // Read CustomizedStateAggregationConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CustomizedStateAggregationConfig configFromZk =
         _configAccessor.getCustomizedStateAggregationConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
@@ -567,7 +567,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
     CustomizedStateAggregationConfig.Builder builder =
         new CustomizedStateAggregationConfig.Builder();
@@ -577,7 +577,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
 
     // Read CustomizedStateAggregationConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CustomizedStateAggregationConfig configFromZk =
         _configAccessor.getCustomizedStateAggregationConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();

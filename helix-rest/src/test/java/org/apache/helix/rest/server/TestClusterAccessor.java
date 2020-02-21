@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
 import com.sun.research.ws.wadl.HTTPMethods;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
@@ -43,6 +44,7 @@ import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -560,6 +562,152 @@ public class TestClusterAccessor extends AbstractTestClass {
     }
     _gSetupTool.deleteCluster(ACTIVATE_NORM_CLUSTER);
     _gSetupTool.deleteCluster(ACTIVATE_SUPER_CLUSTER);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testActivateSuperCluster")
+  public void testAddCustomizedConfigNonExistedCluster() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String urlBase = "clusters/TestCluster/customizedstateaggregationconfig/";
+    ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
+    List<String> testList = new ArrayList<String>();
+    testList.add("mockType1");
+    record.setListField(
+        CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES
+            .name(),
+        testList);
+
+    // Expecting not found response since the cluster is not setup yet.
+    put(urlBase, null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.NOT_FOUND.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testAddCustomizedConfigNonExistedCluster")
+  public void testAddCustomizedConfig() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    _gSetupTool.addCluster("TestClusterCustomized", true);
+    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
+    List<String> testList = new ArrayList<String>();
+    testList.add("mockType1");
+    testList.add("mockType2");
+    record.setListField(
+        CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES
+            .name(),
+        testList);
+
+    put(urlBase, null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CustomizedStateAggregationConfig customizedConfigFromZk = _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    List<String> listTypesFromZk = customizedConfigFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
+    Assert.assertEquals(listTypesFromZk.get(1), "mockType2");
+
+    // Now test the getCustomizedStateAggregationConfig method.
+    String body = get(urlBase, null, Response.Status.OK.getStatusCode(), true);
+
+    ZNRecord recordFromRest = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    CustomizedStateAggregationConfig customizedConfigRest = new CustomizedStateAggregationConfig.Builder(recordFromRest).build();
+    CustomizedStateAggregationConfig customizedConfigZk = _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+
+    // Check that the CustomizedStateAggregationConfig from Zk and REST get method are equal
+    Assert.assertEquals(customizedConfigRest, customizedConfigZk);
+
+    // Check the fields individually
+    List<String> listUrlFromRest = customizedConfigRest.getAggregationEnabledTypes();
+    Assert.assertEquals(listUrlFromRest.get(0), "mockType1");
+    Assert.assertEquals(listUrlFromRest.get(1), "mockType2");
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testAddCustomizedConfig")
+  public void testDeleteCustomizedConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    _gSetupTool.addCluster("TestClusterCustomized", true);
+    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
+    List<String> testList = new ArrayList<String>();
+    testList.add("mockType1");
+    record.setListField(
+        CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES
+            .name(),
+        testList);
+
+    put(urlBase, null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Read CustomizedStateAggregationConfig from Zookeeper and make sure it exists
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CustomizedStateAggregationConfig customizedConfigFromZk = _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    Assert.assertNotNull(customizedConfigFromZk);
+
+    delete(urlBase, Response.Status.OK.getStatusCode());
+
+    customizedConfigFromZk = _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    Assert.assertNull(customizedConfigFromZk);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+
+  @Test(dependsOnMethods = "testDeleteCustomizedConfig")
+  public void testUpdateCustomizedConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    _gSetupTool.addCluster("TestClusterCustomized", true);
+    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
+    List<String> testList = new ArrayList<String>();
+    testList.add("mockType1");
+    record.setListField(
+        CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES
+            .name(),
+        testList);
+
+    put(urlBase, null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Read CustomizedStateAggregationConfig from Zookeeper and make sure it exists
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CustomizedStateAggregationConfig customizedConfigFromZk = _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    Assert.assertNotNull(customizedConfigFromZk);
+
+    // Add new type to CustomizedStateAggregationConfig
+    Map<String, String> map1 = new HashMap<>();
+    map1.put("command", AbstractResource.Command.update.name());
+    map1.put("type", "mockType2");
+
+    post(urlBase, map1, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    customizedConfigFromZk =
+        _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    List<String> listTypesFromZk = customizedConfigFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
+    Assert.assertEquals(listTypesFromZk.get(1), "mockType2");
+
+    // Remove a type to CustomizedStateAggregationConfig
+    Map<String, String> map2 = new HashMap<>();
+    map2.put("command", Command.delete.name());
+    map2.put("type", "mockType1");
+
+    post(urlBase, map2, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    customizedConfigFromZk =
+        _configAccessor.getCustomizedStateAggregationConfig("TestClusterCustomized");
+    listTypesFromZk = customizedConfigFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
+    Assert.assertFalse(listTypesFromZk.contains("mockType1"));
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

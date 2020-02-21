@@ -560,4 +560,44 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     configFromZk = _configAccessor.getCustomizedStateAggregationConfig(clusterName);
     Assert.assertNull(configFromZk);
   }
+
+  @Test
+  public void testUpdateCustomizedStateAggregationConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    CustomizedStateAggregationConfig.Builder builder =
+        new CustomizedStateAggregationConfig.Builder();
+    builder.addAggregationEnabledType("mockType1");
+    CustomizedStateAggregationConfig customizedStateAggregationConfig = builder.build();
+
+    admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
+
+    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    CustomizedStateAggregationConfig configFromZk =
+        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
+
+    admin.addTypeToCustomizedStateAggregationConfig(clusterName, "mockType2");
+    admin.addTypeToCustomizedStateAggregationConfig(clusterName, "mockType3");
+    configFromZk =
+        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    listTypesFromZk = configFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
+    Assert.assertEquals(listTypesFromZk.get(1), "mockType2");
+    Assert.assertEquals(listTypesFromZk.get(2), "mockType3");
+
+    admin.removeTypeFromCustomizedStateAggregationConfig(clusterName, "mockType1");
+    configFromZk =
+        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    listTypesFromZk = configFromZk.getAggregationEnabledTypes();
+    Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
+    Assert.assertEquals(listTypesFromZk.get(1), "mockType3");
+  }
+
 }

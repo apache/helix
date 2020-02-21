@@ -153,6 +153,16 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override
+  public void addTypeToCustomizedStateAggregationConfig(String clusterName, String type) {
+
+  }
+
+  @Override
+  public void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type) {
+
+  }
+
   @Override public void addResource(String clusterName, String resourceName, int numPartitions,
       String stateModelRef) {
 

@@ -119,6 +119,18 @@ public interface HelixAdmin {
   void removeCustomizedStateAggregationConfig(String clusterName);
 
   /**
+   * Add a type to CustomizedStateAggregationConfig of specific cluster
+   * @param clusterName
+   */
+  void addTypeToCustomizedStateAggregationConfig(String clusterName, String type);
+
+  /**
+   * Remove a type from CustomizedStateAggregationConfig of specific cluster
+   * @param clusterName
+   */
+  void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type);
+
+  /**
    * Add a resource to a cluster, using the default ideal state mode AUTO
    * @param clusterName
    * @param resourceName

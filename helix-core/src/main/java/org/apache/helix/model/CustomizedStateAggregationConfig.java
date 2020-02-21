@@ -21,6 +21,7 @@ package org.apache.helix.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
@@ -121,6 +122,17 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
       List<String> aggregationEnabledTypes = _record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
       aggregationEnabledTypes.add(type);
       _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
+      return this;
+    }
+
+    public Builder removeAggregationEnabledType(String type) {
+      if (!_record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name())
+          .contains(type)) {
+        throw new HelixException(
+            "Type " + type + " is missing from the CustomizedStateAggregationConfig");
+      }
+      _record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name())
+          .remove(type);
       return this;
     }
 

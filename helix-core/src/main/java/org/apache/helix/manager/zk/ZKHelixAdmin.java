@@ -1140,6 +1140,53 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void addTypeToCustomizedStateAggregationConfig(String clusterName, String type) {
+    logger.info("Add type {} to CustomizedStateAggregationConfig of cluster {}", type, clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    CustomizedStateAggregationConfig.Builder builder =
+        new CustomizedStateAggregationConfig.Builder();
+
+    builder.addAggregationEnabledType(type);
+    CustomizedStateAggregationConfig customizedStateAggregationConfigFromBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.updateProperty(keyBuilder.customizedStateAggregationConfig(),
+        customizedStateAggregationConfigFromBuilder);
+  }
+
+
+  @Override
+  public void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type) {
+    logger.info("Remove type {} to CustomizedStateAggregationConfig of cluster {}", type,
+        clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CustomizedStateAggregationConfig.Builder builder = new CustomizedStateAggregationConfig.Builder(
+        _configAccessor.getCustomizedStateAggregationConfig(clusterName));
+
+    if (!builder.getAggregationEnabledTypes().contains(type)) {
+      throw new HelixException("Type " + type
+          + " is missing from the CustomizedStateAggregationConfig of cluster " + clusterName);
+    }
+
+    builder.removeAggregationEnabledType(type);
+    CustomizedStateAggregationConfig customizedStateAggregationConfigFromBuilder = builder.build();
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(),
+        customizedStateAggregationConfigFromBuilder);
+  }
+
+  @Override
   public List<String> getConfigKeys(HelixConfigScope scope) {
     return _configAccessor.getKeys(scope);
   }

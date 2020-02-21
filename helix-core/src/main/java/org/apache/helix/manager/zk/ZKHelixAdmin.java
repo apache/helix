@@ -61,6 +61,7 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -1106,6 +1107,87 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public Map<String, String> getConfig(HelixConfigScope scope, List<String> keys) {
     return _configAccessor.get(scope, keys);
+  }
+
+  @Override
+  public void addCustomizedStateAggregationConfig(String clusterName,
+      CustomizedStateAggregationConfig customizedStateAggregationConfig) {
+    logger.info(
+        "Add CustomizedStateAggregationConfig to cluster {}, CustomizedStateAggregationConfig is {}",
+        clusterName, customizedStateAggregationConfig.toString());
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CustomizedStateAggregationConfig.Builder builder =
+        new CustomizedStateAggregationConfig.Builder(customizedStateAggregationConfig);
+    CustomizedStateAggregationConfig customizedStateAggregationConfigFromBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(),
+        customizedStateAggregationConfigFromBuilder);
+  }
+
+  @Override
+  public void removeCustomizedStateAggregationConfig(String clusterName) {
+    logger.info(
+        "Remove CustomizedStateAggregationConfig from cluster {}.", clusterName);
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.removeProperty(keyBuilder.customizedStateAggregationConfig());
+
+  }
+
+  @Override
+  public void addTypeToCustomizedStateAggregationConfig(String clusterName, String type) {
+    logger.info("Add type {} to CustomizedStateAggregationConfig of cluster {}", type, clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    CustomizedStateAggregationConfig.Builder builder =
+        new CustomizedStateAggregationConfig.Builder();
+
+    builder.addAggregationEnabledType(type);
+    CustomizedStateAggregationConfig customizedStateAggregationConfigFromBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.updateProperty(keyBuilder.customizedStateAggregationConfig(),
+        customizedStateAggregationConfigFromBuilder);
+  }
+
+
+  @Override
+  public void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type) {
+    logger.info("Remove type {} to CustomizedStateAggregationConfig of cluster {}", type,
+        clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CustomizedStateAggregationConfig.Builder builder = new CustomizedStateAggregationConfig.Builder(
+        _configAccessor.getCustomizedStateAggregationConfig(clusterName));
+
+    if (!builder.getAggregationEnabledTypes().contains(type)) {
+      throw new HelixException("Type " + type
+          + " is missing from the CustomizedStateAggregationConfig of cluster " + clusterName);
+    }
+
+    builder.removeAggregationEnabledType(type);
+    CustomizedStateAggregationConfig customizedStateAggregationConfigFromBuilder = builder.build();
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(),
+        customizedStateAggregationConfigFromBuilder);
   }
 
   @Override

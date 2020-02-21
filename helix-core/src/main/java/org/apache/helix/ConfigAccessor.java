@@ -580,7 +580,7 @@ public class ConfigAccessor {
       return null;
     }
 
-    return new CustomizedStateAggregationConfig(record);
+    return new CustomizedStateAggregationConfig.Builder(record).build();
   }
 
   /**

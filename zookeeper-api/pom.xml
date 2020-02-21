@@ -44,6 +44,11 @@ under the License.
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>metadata-store-directory-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
       <version>3.4.13</version>
@@ -77,6 +82,12 @@ under the License.
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.6</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

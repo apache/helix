@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -54,34 +55,42 @@ public class SharedZkClient implements RealmAwareZkClient {
   private static Logger LOG = LoggerFactory.getLogger(SharedZkClient.class);
 
   private final HelixZkClient _innerSharedZkClient;
-  private final Map<String, String> _routingDataCache; // TODO: replace with RoutingDataCache
   private final String _zkRealmShardingKey;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      Map<String, String> routingDataCache) {
+      MetadataStoreRoutingData metadataStoreRoutingData) {
 
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
 
-    // TODO: Replace this Map with a real RoutingDataCache
-    if (routingDataCache == null) {
-      throw new IllegalArgumentException("RoutingDataCache cannot be null!");
-    }
-    _routingDataCache = routingDataCache;
-
+    // TODO: use _zkRealmShardingKey to generate zkRealmAddress. This can done the same way of pull 765 once @hunter check it in.
     // Get the ZkRealm address based on the ZK path sharding key
-    String zkRealmAddress = _routingDataCache.get(_zkRealmShardingKey);
+    String zkRealmAddress = null;
+    zkRealmAddress = metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
 
     // Create an InnerSharedZkClient to actually serve ZK requests
     // TODO: Rename HelixZkClient in the future or remove it entirely - this will be a backward-compatibility breaking change because HelixZkClient is being used by Helix users.
+
+    // Note, here delegate _innerSharedZkClient would share the same connectionManager. Once the close() API of
+    // SharedZkClient is invoked, we can just call the close() API of delegate _innerSharedZkClient. This would follow
+    // exactly the pattern of innerSharedZkClient closing logic, which would close the connectionManager when the last
+    // sharedInnerZkClient is closed.
     HelixZkClient.ZkConnectionConfig zkConnectionConfig =
         new HelixZkClient.ZkConnectionConfig(zkRealmAddress)
             .setSessionTimeout(connectionConfig.getSessionTimeout());
+    HelixZkClient.ZkClientConfig zkClientConfig = new HelixZkClient.ZkClientConfig();
+    zkClientConfig.setZkSerializer(clientConfig.getZkSerializer())
+        .setConnectInitTimeout(clientConfig.getConnectInitTimeout())
+        .setOperationRetryTimeout(clientConfig.getOperationRetryTimeout())
+        .setMonitorInstanceName(clientConfig.getMonitorInstanceName())
+        .setMonitorKey(clientConfig.getMonitorKey())
+        .setMonitorType(clientConfig.getMonitorType())
+        .setMonitorRootPathOnly(clientConfig.isMonitorRootPathOnly());
     _innerSharedZkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(zkConnectionConfig, (HelixZkClient.ZkClientConfig) clientConfig);
+        .buildZkClient(zkConnectionConfig, zkClientConfig);
   }
 
   @Override

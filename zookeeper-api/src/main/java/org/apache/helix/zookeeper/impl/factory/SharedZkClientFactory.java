@@ -59,9 +59,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
       MetadataStoreRoutingData metadataStoreRoutingData) {
-    // TODO: Implement the logic
-    // Return an instance of SharedZkClient
-    return null;
+    // Note, the logic sharing connectionManager logic is inside SharedZkClient, similar to innerSharedZkClient.
+    return new SharedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
   }
 
   @Override
@@ -96,9 +95,14 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       if (zkConnectionManager == null) {
         throw new ZkClientException("Failed to create a connection manager in the pool to share.");
       }
-      LOG.info("Sharing ZkConnection {} to a new SharedZkClient.", connectionConfig.toString());
+      LOG.info("Sharing ZkConnection {} to a new InnerSharedZkClient.", connectionConfig.toString());
       return new InnerSharedZkClient(zkConnectionManager, clientConfig,
-          () -> cleanupConnectionManager(zkConnectionManager));
+          new OnCloseCallback() {
+            @Override
+            public void onClose() {
+              cleanupConnectionManager(zkConnectionManager);
+            }
+          });
     }
   }
 
@@ -146,6 +150,10 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   /**
    * NOTE: do NOT use this class directly. Please use SharedZkClientFactory to create an instance of SharedZkClient.
    * InnerSharedZkClient is a ZkClient used by SharedZkClient to power ZK operations against a single ZK realm.
+   *
+   * NOTE2: current InnerSharedZkClient replace the original SharedZKClient. We intend to keep the behavior of original
+   * SharedZkClient intact. (Think of rename the original SharedZkClient as InnerSharedZkClient. This would maintain
+   * backward compatibility.
    */
   public static class InnerSharedZkClient extends ZkClient implements HelixZkClient {
 

@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.api.client;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -91,6 +92,17 @@ public interface HelixZkClient extends RealmAwareZkClient {
    */
   @Deprecated
   class ZkClientConfig extends RealmAwareZkClientConfig {
+    /*
+    public ZkClientConfig(RealmAwareZkClientConfig rConfig) {
+      this._zkSerializer = rConfig.getZkSerializer();
+      this._connectInitTimeout = rConfig.getConnectInitTimeout();
+      this._operationRetryTimeout = rConfig.getOperationRetryTimeout();
+      this._monitorInstanceName = rConfig.getMonitorInstanceName();
+      this._monitorKey = rConfig.getMonitorKey();
+      this._monitorType = rConfig.getMonitorType();
+      this._monitorRootPathOnly = rConfig.isMonitorRootPathOnly();
+    }
+    */
 
     @Override
     public ZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {

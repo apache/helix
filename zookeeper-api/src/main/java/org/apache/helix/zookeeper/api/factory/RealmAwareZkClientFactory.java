@@ -45,11 +45,17 @@ public interface RealmAwareZkClientFactory {
    * @param metadataStoreRoutingData
    * @return RealmAwareZkClient
    */
+
   // TODO: remove MetadataStoreRoutingData
   default RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       MetadataStoreRoutingData metadataStoreRoutingData) {
     return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig(),
         metadataStoreRoutingData);
+    /*
+  default RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig());
+  */
   }
 }

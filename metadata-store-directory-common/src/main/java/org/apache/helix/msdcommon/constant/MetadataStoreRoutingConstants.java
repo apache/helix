@@ -62,4 +62,7 @@ public class MetadataStoreRoutingConstants {
    * }
    */
   public static final String SHARDING_KEY_PATH_PREFIX = "prefix";
+
+  // System Property Metadata Store Directory Server endpoint key
+  public static final String MSDS_SERVER_ENDPOINT_KEY = "metadataStoreDirectoryServerEndpoint";
 }

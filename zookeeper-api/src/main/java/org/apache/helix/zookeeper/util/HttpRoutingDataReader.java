@@ -36,6 +36,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class HttpRoutingDataReader {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static volatile Map<String, List<String>> _rawRoutingData;
 
   /**
    * This class is a Singleton.
@@ -47,35 +48,48 @@ public class HttpRoutingDataReader {
    * Fetches routing data from the data source via HTTP.
    * @return a mapping from "metadata store realm addresses" to lists of "metadata store sharding keys", where the sharding keys in a value list all route to the realm address in the key disallows a meaningful mapping to be returned
    */
-  public static Map<String, List<String>> getRoutingData(String msdsEndpoint) {
+  public static Map<String, List<String>> getRoutingData() {
+    String msdsEndpoint = System.getProperty(MetadataStoreRoutingConstants)
 
-    Map<String, List<String>> rawRoutingData = new HashMap<>();
+    if (_rawRoutingData == null) {
+      synchronized (HttpRoutingDataReader.class) {
+        if (_rawRoutingData == null) {
 
-    HttpGet requestAllRealmNames =
-        new HttpGet(msdsEndpoint); //TODO: construct an endpoint once REST endpoint is finalized
-    try (CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse response = httpClient.execute(requestAllRealmNames)) {
-
-      HttpEntity entity = response.getEntity();
-      // return it as a String
-      if (entity != null) {
-        String result = EntityUtils.toString(entity);
-        List<String> realmNames = OBJECT_MAPPER.readValue(result, List.class);
-        for (String realmName : realmNames) {
-          HttpGet requestAllShardingKeys =
-              new HttpGet(msdsEndpoint); // TODO: construct the right endpoint for sharding keys
-          CloseableHttpResponse shardingKeyResponse = httpClient.execute(requestAllShardingKeys);
-          String shardingKeyString = EntityUtils.toString(shardingKeyResponse.getEntity());
-          List<String> shardingKeys = OBJECT_MAPPER.readValue(shardingKeyString, List.class);
-          rawRoutingData.put(realmName, shardingKeys);
         }
       }
-    } catch (ClientProtocolException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
     }
 
-    return rawRoutingData;
+
+
+
+
+//    Map<String, List<String>> rawRoutingData = new HashMap<>();
+//
+//    HttpGet requestAllRealmNames =
+//        new HttpGet(msdsEndpoint); //TODO: construct an endpoint once REST endpoint is finalized
+//    try (CloseableHttpClient httpClient = HttpClients.createDefault();
+//        CloseableHttpResponse response = httpClient.execute(requestAllRealmNames)) {
+//
+//      HttpEntity entity = response.getEntity();
+//      // return it as a String
+//      if (entity != null) {
+//        String result = EntityUtils.toString(entity);
+//        List<String> realmNames = OBJECT_MAPPER.readValue(result, List.class);
+//        for (String realmName : realmNames) {
+//          HttpGet requestAllShardingKeys =
+//              new HttpGet(msdsEndpoint); // TODO: construct the right endpoint for sharding keys
+//          CloseableHttpResponse shardingKeyResponse = httpClient.execute(requestAllShardingKeys);
+//          String shardingKeyString = EntityUtils.toString(shardingKeyResponse.getEntity());
+//          List<String> shardingKeys = OBJECT_MAPPER.readValue(shardingKeyString, List.class);
+//          _rawRoutingData.put(realmName, shardingKeys);
+//        }
+//      }
+//    } catch (ClientProtocolException e) {
+//      e.printStackTrace();
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//    }
+
+    return _rawRoutingData;
   }
 }

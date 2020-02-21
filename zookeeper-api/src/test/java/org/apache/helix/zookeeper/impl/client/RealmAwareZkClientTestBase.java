@@ -24,13 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
-import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
-import org.apache.helix.zookeeper.impl.factory.TrieRoutingData;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -51,8 +51,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   private MetadataStoreRoutingData _metadataStoreRoutingData;
 
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws Exception {
     // Populate RAW_ROUTING_DATA
     for (int i = 0; i < _numZk; i++) {
       List<String> shardingKeyList = new ArrayList<>();

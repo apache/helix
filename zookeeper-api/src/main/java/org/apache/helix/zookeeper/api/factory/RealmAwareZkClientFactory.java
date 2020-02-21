@@ -19,8 +19,8 @@ package org.apache.helix.zookeeper.api.factory;
  * under the License.
  */
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.impl.factory.MetadataStoreRoutingData;
 
 
 /**

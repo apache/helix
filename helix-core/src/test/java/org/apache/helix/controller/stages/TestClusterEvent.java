@@ -19,9 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.testng.Assert;
@@ -47,20 +45,21 @@ public class TestClusterEvent {
       event.addAttribute(String.valueOf(i), i);
     }
     final CountDownLatch wait = new CountDownLatch(1);
-    List<Thread> threads = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      threads.add(new Thread(() -> {
-        String threadName = Thread.currentThread().getName();
-        try {
-          wait.await();
-        } catch (InterruptedException e) {
-          //ignore the exception
-        }
-        // update the original event's attribute map
-        event.addAttribute(threadName, threadName);
-      }));
-    }
-    threads.forEach(Thread::start);
+    Thread thread = new Thread(() -> {
+      String threadName = Thread.currentThread().getName();
+      try {
+        wait.await();
+      } catch (InterruptedException e) {
+        //ignore the exception
+      }
+      // update the original event's attribute map
+      for (int i = 0; i < 100; i++) {
+        event.addAttribute(threadName + i, threadName);
+      }
+    });
+
+    thread.start();
+
     try {
       wait.countDown();
       ClusterEvent clonedEvent = event.clone("cloneId");
@@ -68,10 +67,8 @@ public class TestClusterEvent {
       Assert.assertEquals(clonedEvent.getEventId(), "cloneId");
     } catch (ConcurrentModificationException e) {
       Assert.fail("Didn't expect any ConcurrentModificationException to occur", e);
-    }
-
-    for (Thread t : threads) {
-      t.join();
+    } finally {
+      thread.join();
     }
   }
 }

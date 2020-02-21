@@ -62,12 +62,14 @@ public class TestCustomizedStateAggregationConfig extends ZkUnitTestBase {
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     // Create dummy CustomizedStateAggregationConfig object
-    CustomizedStateAggregationConfig customizedStateAggregationConfig =
-        new CustomizedStateAggregationConfig(clusterName);
+    CustomizedStateAggregationConfig.Builder customizedStateAggregationConfigBuilder =
+        new CustomizedStateAggregationConfig.Builder();
     List<String> aggregationEnabledTypes = new ArrayList<String>();
-    aggregationEnabledTypes.add("mockState1");
-    aggregationEnabledTypes.add("mockState2");
-    customizedStateAggregationConfig.setAggregationEnabledTypes(aggregationEnabledTypes);
+    aggregationEnabledTypes.add("mockType1");
+    aggregationEnabledTypes.add("mockType2");
+    customizedStateAggregationConfigBuilder.setAggregationEnabledTypes(aggregationEnabledTypes);
+    CustomizedStateAggregationConfig customizedStateAggregationConfig =
+        customizedStateAggregationConfigBuilder.build();
 
     // Write the CustomizedStateAggregationConfig to Zookeeper
     ZKHelixDataAccessor accessor =
@@ -92,12 +94,11 @@ public class TestCustomizedStateAggregationConfig extends ZkUnitTestBase {
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
     CustomizedStateAggregationConfig.Builder builder =
-        new CustomizedStateAggregationConfig.Builder(clusterName);
+        new CustomizedStateAggregationConfig.Builder();
     builder.addAggregationEnabledType("mockType1");
     builder.addAggregationEnabledType("mockType2");
 
     // Check builder getter methods
-    Assert.assertEquals(builder.getClusterName(), clusterName);
     List<String> aggregationEnabledTypes = builder.getAggregationEnabledTypes();
     Assert.assertEquals(aggregationEnabledTypes.size(), 2);
     Assert.assertEquals(aggregationEnabledTypes.get(0), "mockType1");

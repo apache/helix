@@ -21,6 +21,7 @@ package org.apache.helix.zookeeper.impl.factory;
 
 import java.util.HashMap;
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -44,7 +45,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
     // TODO: Implement the logic
     // Return an instance of SharedZkClient
     return null;
@@ -52,7 +54,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
 
   @Override
   public RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
     // TODO: Implement the logic
     return null;
   }

@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.api.factory;
  * under the License.
  */
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 
 
@@ -30,16 +31,25 @@ public interface RealmAwareZkClientFactory {
    * Build a RealmAwareZkClient using specified connection config and client config.
    * @param connectionConfig
    * @param clientConfig
+   * @param metadataStoreRoutingData
    * @return HelixZkClient
    */
+  // TODO: remove MetadataStoreRoutingData
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig);
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData);
 
   /**
    * Builds a RealmAwareZkClient using specified connection config and default client config.
    * @param connectionConfig
+   * @param metadataStoreRoutingData
    * @return RealmAwareZkClient
    */
-  RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig);
+  // TODO: remove MetadataStoreRoutingData
+  default RealmAwareZkClient buildZkClient(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
+    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig(),
+        metadataStoreRoutingData);
+  }
 }

@@ -19,8 +19,10 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.client.DedicatedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 
 
@@ -35,17 +37,9 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    // TODO: Implement the logic
-    // Return an instance of DedicatedZkClient
-    return null;
-  }
-
-  @Override
-  public RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    // TODO: Implement the logic
-    return null;
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
+    return new DedicatedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
   }
 
   private static class SingletonHelper {
@@ -57,8 +51,7 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   }
 
   /**
-   * Build a Dedicated ZkClient based on connection config and client config
-   *
+   * Build a Dedicated ZkClient based on connection config and client config.
    * @param connectionConfig
    * @param clientConfig
    * @return

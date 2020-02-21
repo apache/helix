@@ -70,6 +70,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
 
   @PreDestroy
   private void preDestroy() {
+    System.out.println("Destroy invoked");
     _metadataStoreDirectory.close();
   }
 

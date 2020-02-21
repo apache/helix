@@ -20,7 +20,7 @@ package org.apache.helix.rest.metadatastore.accessor;
  */
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -167,8 +167,13 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
             _namespace, realm, shardingKey, e);
         return false;
       }
-      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
-          Collections.singletonList(shardingKey));
+      List<String> shardingKeys =
+          znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
+      if (shardingKeys == null || shardingKeys.isEmpty()) {
+        shardingKeys = new ArrayList<>();
+      }
+      shardingKeys.add(shardingKey);
+      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeys);
       try {
         _zkClient.writeData(realmPath, znRecord);
       } catch (Exception e) {

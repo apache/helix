@@ -19,6 +19,7 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,9 +92,8 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
           _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
       List<String> shardingKeys =
           record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      if (shardingKeys != null) {
-        routingData.put(realmAddress, shardingKeys);
-      }
+      routingData
+          .put(realmAddress, shardingKeys != null ? shardingKeys : Collections.emptyList());
     }
     return routingData;
   }

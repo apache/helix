@@ -19,6 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -35,14 +39,31 @@ public class TestClusterEvent {
   }
 
   @Test
-  public void testClone() {
+  public void testThreadSafeClone() throws InterruptedException {
     String clusterName = "TestCluster";
     ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.Unknown, "testId");
-    event.addAttribute("key", "value");
+    for (int i = 0; i < 100; i++) {
+      event.addAttribute(String.valueOf(i), i);
+    }
+    List<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      threads.add(new Thread(() -> {
+        String threadName = Thread.currentThread().getName();
+        event.addAttribute(threadName, threadName);
+      }));
+    }
+    threads.forEach(Thread::start);
+    ClusterEvent clonedEvent;
+    try {
+      clonedEvent = event.clone("cloneId");
+      Assert.assertEquals(clonedEvent.getClusterName(), clusterName);
+      Assert.assertEquals(clonedEvent.getEventId(), "cloneId");
+    } catch (ConcurrentModificationException e) {
+      Assert.fail("Didn't expect any exception to occur", e);
+    }
 
-    ClusterEvent clonedEvent = event.clone("cloneId");
-    Assert.assertEquals(clonedEvent.getClusterName(), clusterName);
-    Assert.assertEquals(clonedEvent.getEventId(), "cloneId");
-    Assert.assertEquals(clonedEvent.getAttribute("key"), "value");
+    for (Thread t : threads) {
+      t.join();
+    }
   }
 }

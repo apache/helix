@@ -19,9 +19,9 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class ClusterEvent {
   @Deprecated
   public ClusterEvent(ClusterEventType eventType) {
     _eventType = eventType;
-    _eventAttributeMap = new HashMap<>();
+    _eventAttributeMap = new ConcurrentHashMap<>();
     _creationTime = System.currentTimeMillis();
     _eventId = UUID.randomUUID().toString();
   }
@@ -50,21 +50,8 @@ public class ClusterEvent {
     _clusterName = clusterName;
     _eventType = eventType;
 
-    _eventAttributeMap = new HashMap<>();
+    _eventAttributeMap = new ConcurrentHashMap<>();
     _creationTime = System.currentTimeMillis();
-    _eventId = eventId;
-  }
-
-  /**
-   * A private copy constructor that allows the override of {@link #_eventId}
-   * @param clusterEvent The other cluster event object
-   * @param eventId The event id to be overridden
-   */
-  private ClusterEvent(ClusterEvent clusterEvent, String eventId) {
-    _clusterName = clusterEvent._clusterName;
-    _eventType = clusterEvent._eventType;
-    _eventAttributeMap = new HashMap<>(clusterEvent._eventAttributeMap);
-    _creationTime = clusterEvent._creationTime;
     _eventId = eventId;
   }
 
@@ -127,6 +114,11 @@ public class ClusterEvent {
   }
 
   public ClusterEvent clone(String eventId) {
-    return new ClusterEvent(this, eventId);
+    ClusterEvent newEvent = new ClusterEvent(_clusterName, _eventType, eventId);
+    newEvent.setCreationTime(_creationTime);
+    for (String attributeName : _eventAttributeMap.keySet()) {
+      newEvent.addAttribute(attributeName, _eventAttributeMap.get(attributeName));
+    }
+    return newEvent;
   }
 }

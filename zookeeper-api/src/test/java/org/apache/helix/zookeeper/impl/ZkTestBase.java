@@ -57,12 +57,11 @@ public class ZkTestBase {
    * Multiple ZK references
    */
   // The following maps hold ZK connect string as keys
-  protected Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected final Map<String, ZkServer> _zkServerMap = new HashMap<>();
   protected int _numZk = 1; // Initial value
 
   @BeforeSuite
-  public void beforeSuite()
-      throws IOException {
+  public void beforeSuite() throws IOException {
     // Due to ZOOKEEPER-2693 fix, we need to specify whitelist for execute zk commends
     System.setProperty("zookeeper.4lw.commands.whitelist", "*");
 
@@ -80,8 +79,7 @@ public class ZkTestBase {
   }
 
   @AfterSuite
-  public void afterSuite()
-      throws IOException {
+  public void afterSuite() throws IOException {
     // Clean up all JMX objects
     for (ObjectName mbean : MBEAN_SERVER.queryNames(null, null)) {
       try {
@@ -124,7 +122,7 @@ public class ZkTestBase {
    * @param zkAddress
    * @return
    */
-  private ZkServer startZkServer(final String zkAddress) {
+  protected ZkServer startZkServer(final String zkAddress) {
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";
@@ -142,6 +140,7 @@ public class ZkTestBase {
 
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
+    System.out.println("Starting ZK server at " + zkAddress);
     zkServer.start();
     return zkServer;
   }

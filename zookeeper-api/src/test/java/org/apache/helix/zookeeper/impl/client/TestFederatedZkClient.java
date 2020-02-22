@@ -34,6 +34,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.Watcher;
@@ -46,22 +47,37 @@ import org.testng.annotations.Test;
 
 public class TestFederatedZkClient extends ZkTestBase {
   private static final String TEST_SHARDING_KEY_PREFIX = "/test_sharding_key_";
-  private static final String TEST_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "0/a/b/c";
+  private static final String TEST_REALM_ONE_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "1/a/b/c";
+  private static final String TEST_REALM_TWO_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "2/x/y/z";
   private static final String TEST_INVALID_PATH = TEST_SHARDING_KEY_PREFIX + "invalid/a/b/c";
   private static final String UNSUPPORTED_OPERATION_MESSAGE =
       "Session-aware operation is not supported by FederatedZkClient.";
 
   private RealmAwareZkClient _realmAwareZkClient;
+  // Need to start an extra ZK server for multi-realm test, if only one ZK server is running.
+  private String _extraZkRealm;
+  private ZkServer _extraZkServer;
 
   @BeforeClass
   public void beforeClass() throws InvalidRoutingDataException {
+    System.out.println("Starting " + TestFederatedZkClient.class.getSimpleName());
+
     // Populate rawRoutingData
     // <Realm, List of sharding keys> Mapping
     Map<String, List<String>> rawRoutingData = new HashMap<>();
     for (int i = 0; i < _numZk; i++) {
-      List<String> shardingKeyList = Collections.singletonList(TEST_SHARDING_KEY_PREFIX + i);
+      List<String> shardingKeyList = Collections.singletonList(TEST_SHARDING_KEY_PREFIX + (i + 1));
       String realmName = ZK_PREFIX + (ZK_START_PORT + i);
       rawRoutingData.put(realmName, shardingKeyList);
+    }
+
+    if (rawRoutingData.size() < 2) {
+      System.out.println("There is only one ZK realm. Starting one more ZK to test multi-realm.");
+      _extraZkRealm = ZK_PREFIX + (ZK_START_PORT + 1);
+      _extraZkServer = startZkServer(_extraZkRealm);
+      // RealmTwo's sharding key: /test_sharding_key_2
+      List<String> shardingKeyList = Collections.singletonList(TEST_SHARDING_KEY_PREFIX + "2");
+      rawRoutingData.put(_extraZkRealm, shardingKeyList);
     }
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
@@ -74,6 +90,13 @@ public class TestFederatedZkClient extends ZkTestBase {
   public void afterClass() {
     // Close it as it is created in before class.
     _realmAwareZkClient.close();
+
+    // Close the extra zk server.
+    if (_extraZkServer != null) {
+      _extraZkServer.shutdown();
+    }
+
+    System.out.println("Ending " + TestFederatedZkClient.class.getSimpleName());
   }
 
   /*
@@ -83,55 +106,50 @@ public class TestFederatedZkClient extends ZkTestBase {
   public void testUnsupportedOperations() {
     // Test creating ephemeral.
     try {
-      _realmAwareZkClient.create(TEST_VALID_PATH, "Hello", CreateMode.EPHEMERAL);
+      _realmAwareZkClient.create(TEST_REALM_ONE_VALID_PATH, "Hello", CreateMode.EPHEMERAL);
       Assert.fail("Ephemeral node should not be created.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     // Test creating ephemeral sequential.
     try {
-      _realmAwareZkClient.create(TEST_VALID_PATH, "Hello", CreateMode.EPHEMERAL_SEQUENTIAL);
+      _realmAwareZkClient
+          .create(TEST_REALM_ONE_VALID_PATH, "Hello", CreateMode.EPHEMERAL_SEQUENTIAL);
       Assert.fail("Ephemeral node should not be created.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     List<Op> ops = Arrays.asList(
-        Op.create(TEST_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
-        Op.delete(TEST_VALID_PATH, -1));
+        Op.create(TEST_REALM_ONE_VALID_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            CreateMode.PERSISTENT), Op.delete(TEST_REALM_ONE_VALID_PATH, -1));
     try {
       _realmAwareZkClient.multi(ops);
       Assert.fail("multi() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     try {
       _realmAwareZkClient.getSessionId();
       Assert.fail("getSessionId() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     try {
       _realmAwareZkClient.getServers();
       Assert.fail("getServers() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     try {
       _realmAwareZkClient.waitUntilConnected(5L, TimeUnit.SECONDS);
       Assert.fail("getServers() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     // Test state change subscription.
@@ -156,16 +174,14 @@ public class TestFederatedZkClient extends ZkTestBase {
       _realmAwareZkClient.subscribeStateChanges(listener);
       Assert.fail("getServers() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
 
     try {
       _realmAwareZkClient.unsubscribeStateChanges(listener);
       Assert.fail("getServers() should not be supported.");
     } catch (UnsupportedOperationException ex) {
-      Assert.assertTrue(ex.getMessage()
-          .startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }
   }
 
@@ -183,9 +199,9 @@ public class TestFederatedZkClient extends ZkTestBase {
     znRecord.setSimpleField("Dummy", "Value");
 
     // Test writing and reading against the validPath
-    _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
-    _realmAwareZkClient.writeData(TEST_VALID_PATH, znRecord);
-    Assert.assertEquals(_realmAwareZkClient.readData(TEST_VALID_PATH), znRecord);
+    _realmAwareZkClient.createPersistent(TEST_REALM_ONE_VALID_PATH, true);
+    _realmAwareZkClient.writeData(TEST_REALM_ONE_VALID_PATH, znRecord);
+    Assert.assertEquals(_realmAwareZkClient.readData(TEST_REALM_ONE_VALID_PATH), znRecord);
 
     // Test writing and reading against the invalid path
     try {
@@ -202,7 +218,7 @@ public class TestFederatedZkClient extends ZkTestBase {
    */
   @Test(dependsOnMethods = "testCreatePersistent")
   public void testExists() {
-    Assert.assertTrue(_realmAwareZkClient.exists(TEST_VALID_PATH));
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_REALM_ONE_VALID_PATH));
 
     try {
       _realmAwareZkClient.exists(TEST_INVALID_PATH);
@@ -226,14 +242,55 @@ public class TestFederatedZkClient extends ZkTestBase {
           .assertEquals(ex.getMessage(), "Cannot find ZK realm for the path: " + TEST_INVALID_PATH);
     }
 
-    Assert.assertTrue(_realmAwareZkClient.delete(TEST_VALID_PATH));
-    Assert.assertFalse(_realmAwareZkClient.exists(TEST_VALID_PATH));
+    Assert.assertTrue(_realmAwareZkClient.delete(TEST_REALM_ONE_VALID_PATH));
+    Assert.assertFalse(_realmAwareZkClient.exists(TEST_REALM_ONE_VALID_PATH));
+  }
+
+  /*
+   * Tests that multi-realm feature.
+   */
+  @Test(dependsOnMethods = "testDelete")
+  public void testMultiRealmCRUD() {
+    ZNRecord realmOneZnRecord = new ZNRecord("realmOne");
+    realmOneZnRecord.setSimpleField("realmOne", "Value");
+
+    ZNRecord realmTwoZnRecord = new ZNRecord("realmTwo");
+    realmTwoZnRecord.setSimpleField("realmTwo", "Value");
+
+    // Writing on realmOne.
+    _realmAwareZkClient.createPersistent(TEST_REALM_ONE_VALID_PATH, true);
+    _realmAwareZkClient.writeData(TEST_REALM_ONE_VALID_PATH, realmOneZnRecord);
+
+    // RealmOne path is created but realmTwo path is not.
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_REALM_ONE_VALID_PATH));
+    Assert.assertFalse(_realmAwareZkClient.exists(TEST_REALM_TWO_VALID_PATH));
+
+    // Writing on realmTwo.
+    _realmAwareZkClient.createPersistent(TEST_REALM_TWO_VALID_PATH, true);
+    _realmAwareZkClient.writeData(TEST_REALM_TWO_VALID_PATH, realmTwoZnRecord);
+
+    // RealmTwo path is created.
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_REALM_TWO_VALID_PATH));
+
+    // Reading on both realms.
+    Assert.assertEquals(_realmAwareZkClient.readData(TEST_REALM_ONE_VALID_PATH), realmOneZnRecord);
+    Assert.assertEquals(_realmAwareZkClient.readData(TEST_REALM_TWO_VALID_PATH), realmTwoZnRecord);
+
+    Assert.assertTrue(_realmAwareZkClient.delete(TEST_REALM_ONE_VALID_PATH));
+    Assert.assertFalse(_realmAwareZkClient.exists(TEST_REALM_ONE_VALID_PATH));
+
+    // Deleting on realmOne does not delete on realmTwo.
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_REALM_TWO_VALID_PATH));
+
+    // Deleting on realmTwo.
+    Assert.assertTrue(_realmAwareZkClient.delete(TEST_REALM_TWO_VALID_PATH));
+    Assert.assertFalse(_realmAwareZkClient.exists(TEST_REALM_TWO_VALID_PATH));
   }
 
   /*
    * Tests that close() works.
    */
-  @Test(dependsOnMethods = "testDelete")
+  @Test(dependsOnMethods = "testMultiRealmCRUD")
   public void testClose() {
     Assert.assertFalse(_realmAwareZkClient.isClosed());
 
@@ -243,8 +300,9 @@ public class TestFederatedZkClient extends ZkTestBase {
 
     // Client is closed, so operation should not be executed.
     try {
-      _realmAwareZkClient.createPersistent(TEST_VALID_PATH);
-      Assert.fail("createPersistent() should not be executed because RealmAwareZkClient is closed.");
+      _realmAwareZkClient.createPersistent(TEST_REALM_ONE_VALID_PATH);
+      Assert
+          .fail("createPersistent() should not be executed because RealmAwareZkClient is closed.");
     } catch (IllegalStateException ex) {
       Assert.assertEquals(ex.getMessage(), "FederatedZkClient is closed!");
     }

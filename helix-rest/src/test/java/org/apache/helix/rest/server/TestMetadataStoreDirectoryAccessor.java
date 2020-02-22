@@ -47,6 +47,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
+// TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
 public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   /*
    * The following are constants to be used for testing.
@@ -216,7 +217,6 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Set<String> updateRealmsSet = new HashSet<>(updatedRealms);
     expectedRealmsSet.add(TEST_REALM_3);
 
-    // TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
 //    Assert.assertEquals(updateRealmsSet, previousRealms);
   }
 
@@ -282,32 +282,17 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   /*
-   * Tests REST endpoints: "GET /sharding-keys?realm={realm}"
-   * and "GET /metadata-store-realms/{realm}/sharding-keys"
+   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys"
    */
   @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
   public void testGetShardingKeysInRealm() throws IOException {
     // Test NOT_FOUND response for a non existed realm.
-    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=nonExistedRealm")
-        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
-
     new JerseyUriRequestBuilder(
         TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/nonExistedRealm/sharding-keys")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
 
-    // Query param realm is set to empty, so NOT_FOUND response is returned.
-    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=")
-        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
-
-    // Success response for "GET /sharding-keys?realm={realm}"
-    String responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=" + TEST_REALM_1)
-        .isBodyReturnExpected(true).get(this);
-
-    verifyRealmShardingKeys(responseBody);
-
     // Success response for "GET /metadata-store-realms/{realm}/sharding-keys"
-    responseBody = new JerseyUriRequestBuilder(
+    String responseBody = new JerseyUriRequestBuilder(
         TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys")
         .isBodyReturnExpected(true).get(this);
 
@@ -367,15 +352,15 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   /*
-   * Tests REST endpoint: "GET /sharding-keys?realm={realm}&prefix={prefix}"
+   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}"
    */
   @SuppressWarnings("unchecked")
   @Test(dependsOnMethods = "testGetShardingKeysUnderPath")
   public void testGetRealmShardingKeysUnderPath() throws IOException {
     // Test non existed prefix and empty sharding keys in response.
     String responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=/non/Existed/Prefix&realm="
-            + TEST_REALM_1).isBodyReturnExpected(true).get(this);
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
+            + "/sharding-keys?prefix=/non/Existed/Prefix").isBodyReturnExpected(true).get(this);
 
     Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
     Collection<Map<String, String>> emptyKeysList =
@@ -384,8 +369,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertTrue(emptyKeysList.isEmpty());
 
     // Test non existed realm and empty sharding keys in response.
-    responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=/sharding/key&realm=nonExistedRealm")
+    responseBody = new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX
+        + "/metadata-store-realms/nonExistedRealm/sharding-keys?prefix=/sharding/key")
         .isBodyReturnExpected(true).get(this);
 
     queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
@@ -396,8 +381,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     // Valid query params and non empty sharding keys.
     String shardingKeyPrefix = "/sharding/key/1";
     responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=" + shardingKeyPrefix + "&realm="
-            + TEST_REALM_1).isBodyReturnExpected(true).get(this);
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
+            + "/sharding-keys?prefix=" + shardingKeyPrefix).isBodyReturnExpected(true).get(this);
 
     queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 

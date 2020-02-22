@@ -143,7 +143,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   /**
    * Gets all sharding keys for following requests:
    * - "HTTP GET /sharding-keys" which returns all sharding keys in a namespace.
-   * - "HTTP GET /sharding-keys?realm={realm}" which returns sharding keys in the realm.
    * - "HTTP GET /sharding-keys?prefix={prefix}" which returns sharding keys that have the prefix.
    * -- JSON response example for this path:
    * {
@@ -163,31 +162,19 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    *  }]
    * }
    *
-   * - "HTTP GET /sharding-keys?realm={realm}&prefix={prefix}" which returns sharding keys in the
-   * realm and that have the given path as the prefix substring.
-   *
-   * @param realm Query param in endpoint path: metadata store realm.
    * @param prefix Query param in endpoint path: prefix substring of sharding key.
    * @return Json representation for the sharding keys.
    */
   @GET
   @Path("/sharding-keys")
-  public Response getShardingKeys(@QueryParam("realm") String realm,
-      @QueryParam("prefix") String prefix) {
+  public Response getShardingKeys(@QueryParam("prefix") String prefix) {
     try {
-      if (realm == null && prefix == null) {
+      if (prefix == null) {
         // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
         return getAllShardingKeys();
-      } else if (prefix == null) {
-        // For endpoint: "/sharding-keys?realm={realm}"
-        return getAllShardingKeysInRealm(realm);
-      } else if (realm == null) {
-        // For endpoint: "/sharding-keys?prefix={prefix}"
-        return getAllShardingKeysUnderPath(prefix);
-      } else {
-        // For endpoint: "/sharding-keys?realm={realm}&prefix={prefix}"
-        return getRealmShardingKeysUnderPath(realm, prefix);
       }
+      // For endpoint: "/sharding-keys?prefix={prefix}"
+      return getAllShardingKeysUnderPath(prefix);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
@@ -195,17 +182,26 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
 
   /**
    * Gets all path-based sharding keys for a queried realm at endpoint:
-   * "GET /metadata-store-realms/{realm}/sharding-keys". This endpoint is equivalent to
-   * the endpoint: "GET /sharding-keys?realm={realm}".
+   * "GET /metadata-store-realms/{realm}/sharding-keys"
+   * <p>
+   * "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}" is also supported,
+   * which is helpful when you want to check what sharding keys have the prefix substring.
    *
    * @param realm Queried metadata store realm to get sharding keys.
+   * @param prefix Query param in endpoint path: prefix substring of sharding key.
    * @return All path-based sharding keys in the queried realm.
    */
   @GET
   @Path("/metadata-store-realms/{realm}/sharding-keys")
-  public Response getRealmShardingKeys(@PathParam("realm") String realm) {
+  public Response getRealmShardingKeys(@PathParam("realm") String realm,
+      @QueryParam("prefix") String prefix) {
     try {
-      return getAllShardingKeysInRealm(realm);
+      if (prefix == null) {
+        return getAllShardingKeysInRealm(realm);
+      }
+
+      // For "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}"
+      return getRealmShardingKeysUnderPath(realm, prefix);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }

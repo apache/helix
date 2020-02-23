@@ -202,7 +202,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   public Response getRoutingData() {
     Map<String, List<String>> rawRoutingData;
     try {
-      rawRoutingData = _metadataStoreDirectory.getRoutingData(_namespace);
+      rawRoutingData = _metadataStoreDirectory.getNamespaceRoutingData(_namespace);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }

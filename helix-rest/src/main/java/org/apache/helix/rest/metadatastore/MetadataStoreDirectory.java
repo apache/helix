@@ -58,7 +58,7 @@ public interface MetadataStoreDirectory extends AutoCloseable {
    * @param namespace namespace in metadata store directory.
    * @return Routing data map: realm -> List of sharding keys
    */
-  Map<String, List<String>> getRoutingData(String namespace);
+  Map<String, List<String>> getNamespaceRoutingData(String namespace);
 
   /**
    * Returns all path-based sharding keys in the given namespace and the realm.

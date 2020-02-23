@@ -20,11 +20,12 @@ package org.apache.helix.rest.server.resources.metadatastore;
  */
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -41,6 +42,7 @@ import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HelixRestUtils;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
+import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,25 +67,53 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     buildMetadataStoreDirectory(_namespace, helixRestNamespace.getMetadataStoreAddress());
   }
 
+  @PreDestroy
+  private void preDestroy() {
+    _metadataStoreDirectory.close();
+  }
+
   /**
-   * Gets all metadata store realms in a namespace with the endpoint.
+   * Gets all existing namespaces in the routing metadata store at endpoint:
+   * "GET /metadata-store-namespaces"
+   *
+   * @return Json response of all namespaces.
+   */
+  @GET
+  @Path("/metadata-store-namespaces")
+  public Response getAllNamespaces() {
+    Collection<String> namespaces = _metadataStoreDirectory.getAllNamespaces();
+    Map<String, Collection<String>> responseMap =
+        ImmutableMap.of(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES, namespaces);
+
+    return JSONRepresentation(responseMap);
+  }
+
+  /**
+   * Gets all metadata store realms in a namespace at path: "GET /metadata-store-realms",
+   * or gets a metadata store realm with the sharding key at path:
+   * "GET /metadata-store-realms?sharding-key={sharding-key}"
    *
    * @return Json representation of all realms.
    */
   @GET
   @Path("/metadata-store-realms")
-  public Response getAllMetadataStoreRealms() {
-    Map<String, Collection<String>> responseMap;
+  public Response getAllMetadataStoreRealms(@QueryParam("sharding-key") String shardingKey) {
     try {
-      Collection<String> realms = _metadataStoreDirectory.getAllMetadataStoreRealms(_namespace);
+      if (shardingKey == null) {
+        // Get all realms: "GET /metadata-store-realms"
+        Collection<String> realms = _metadataStoreDirectory.getAllMetadataStoreRealms(_namespace);
+        Map<String, Collection<String>> responseMap =
+            ImmutableMap.of(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
+        return JSONRepresentation(responseMap);
+      }
 
-      responseMap = new HashMap<>(1);
-      responseMap.put(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, realms);
+      // Get a single realm filtered by sharding key:
+      // "GET /metadata-store-realms?sharding-key={sharding-key}"
+      String realm = _metadataStoreDirectory.getMetadataStoreRealm(_namespace, shardingKey);
+      return JSONRepresentation(new MetadataStoreShardingKey(shardingKey, realm));
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
-
-    return JSONRepresentation(responseMap);
   }
 
   @PUT
@@ -111,41 +141,70 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   }
 
   /**
-   * Gets sharding keys mapped at path "HTTP GET /sharding-keys" which returns all sharding keys in
-   * a namespace, or path "HTTP GET /sharding-keys?realm={realmName}" which returns sharding keys in
-   * a realm.
+   * Gets all sharding keys for following requests:
+   * - "HTTP GET /sharding-keys" which returns all sharding keys in a namespace.
+   * - "HTTP GET /sharding-keys?prefix={prefix}" which returns sharding keys that have the prefix.
+   * -- JSON response example for this path:
+   * {
+   * 	"prefix": "/sharding/key",
+   * 	"shardingKeys": [{
+   * 		"realm": "testRealm2",
+   * 		"shardingKey": "/sharding/key/1/f"
+   *    }, {
+   * 		"realm": "testRealm2",
+   * 		"shardingKey": "/sharding/key/1/e"
+   *  }, {
+   * 		"realm": "testRealm1",
+   * 		"shardingKey": "/sharding/key/1/b"
+   *  }, {
+   * 		"realm": "testRealm1",
+   * 		"shardingKey": "/sharding/key/1/a"
+   *  }]
+   * }
    *
-   * @param realm Query param in endpoint path
-   * @return Json representation of a map: shardingKeys -> collection of sharding keys.
+   * @param prefix Query param in endpoint path: prefix substring of sharding key.
+   * @return Json representation for the sharding keys.
    */
   @GET
   @Path("/sharding-keys")
-  public Response getShardingKeys(@QueryParam("realm") String realm) {
-    Map<String, Object> responseMap;
-    Collection<String> shardingKeys;
+  public Response getShardingKeys(@QueryParam("prefix") String prefix) {
     try {
-      // If realm is not set in query param, the endpoint is: "/sharding-keys"
-      // to get all sharding keys in a namespace.
-      if (realm == null) {
-        shardingKeys = _metadataStoreDirectory.getAllShardingKeys(_namespace);
-        // To avoid allocating unnecessary resource, limit the map's capacity only for
-        // SHARDING_KEYS.
-        responseMap = new HashMap<>(1);
-      } else {
-        // For endpoint: "/sharding-keys?realm={realmName}"
-        shardingKeys = _metadataStoreDirectory.getAllShardingKeysInRealm(_namespace, realm);
-        // To avoid allocating unnecessary resource, limit the map's capacity only for
-        // SHARDING_KEYS and SINGLE_METADATA_STORE_REALM.
-        responseMap = new HashMap<>(2);
-        responseMap.put(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, realm);
+      if (prefix == null) {
+        // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
+        return getAllShardingKeys();
       }
+      // For endpoint: "/sharding-keys?prefix={prefix}"
+      return getAllShardingKeysUnderPath(prefix);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
+  }
 
-    responseMap.put(MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
+  /**
+   * Gets all path-based sharding keys for a queried realm at endpoint:
+   * "GET /metadata-store-realms/{realm}/sharding-keys"
+   * <p>
+   * "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}" is also supported,
+   * which is helpful when you want to check what sharding keys have the prefix substring.
+   *
+   * @param realm Queried metadata store realm to get sharding keys.
+   * @param prefix Query param in endpoint path: prefix substring of sharding key.
+   * @return All path-based sharding keys in the queried realm.
+   */
+  @GET
+  @Path("/metadata-store-realms/{realm}/sharding-keys")
+  public Response getRealmShardingKeys(@PathParam("realm") String realm,
+      @QueryParam("prefix") String prefix) {
+    try {
+      if (prefix == null) {
+        return getAllShardingKeysInRealm(realm);
+      }
 
-    return JSONRepresentation(responseMap);
+      // For "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}"
+      return getRealmShardingKeysUnderPath(realm, prefix);
+    } catch (NoSuchElementException ex) {
+      return notFound(ex.getMessage());
+    }
   }
 
   @PUT
@@ -208,5 +267,52 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
           routingZkAddressMap, ex);
     }
+  }
+
+  private Response getAllShardingKeys() {
+    Collection<String> shardingKeys = _metadataStoreDirectory.getAllShardingKeys(_namespace);
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
+
+    return JSONRepresentation(responseMap);
+  }
+
+  private Response getAllShardingKeysInRealm(String realm) {
+    Collection<String> shardingKeys =
+        _metadataStoreDirectory.getAllShardingKeysInRealm(_namespace, realm);
+
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, realm,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
+
+    return JSONRepresentation(responseMap);
+  }
+
+  private Response getAllShardingKeysUnderPath(String prefix) {
+    List<MetadataStoreShardingKey> shardingKeyList =
+        _metadataStoreDirectory.getAllMappingUnderPath(_namespace, prefix).entrySet().stream()
+            .map(entry -> new MetadataStoreShardingKey(entry.getKey(), entry.getValue()))
+            .collect(Collectors.toList());
+
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX, prefix,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeyList);
+
+    return JSONRepresentation(responseMap);
+  }
+
+  private Response getRealmShardingKeysUnderPath(String realm, String prefix) {
+    List<String> shardingKeyList =
+        _metadataStoreDirectory.getAllMappingUnderPath(_namespace, prefix).entrySet().stream()
+            .filter(entry -> entry.getValue().equals(realm)).map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX, prefix,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, realm,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeyList);
+
+    return JSONRepresentation(responseMap);
   }
 }

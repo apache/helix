@@ -47,6 +47,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
+// TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
 public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   /*
    * The following are constants to be used for testing.
@@ -61,15 +62,14 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   private static final List<String> TEST_SHARDING_KEYS_2 =
       Arrays.asList("/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f");
   private static final String TEST_REALM_3 = "testRealm3";
-  private static final String TEST_SHARDING_KEY = "/sharding/key/1/x";
+  private static final String TEST_SHARDING_KEY = "/sharding/key/3/x";
 
   // List of all ZK addresses, each of which corresponds to a namespace/routing ZK
   private List<String> _zkList;
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
     deleteRoutingDataPath();
@@ -111,15 +111,39 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   @AfterClass
-  public void afterClass()
-      throws Exception {
+  public void afterClass() throws Exception {
     _metadataStoreDirectory.close();
     deleteRoutingDataPath();
   }
 
+  /*
+   * Tests REST endpoint: "GET /namespaces/{namespace}/metadata-store-namespaces"
+   */
   @Test
-  public void testGetAllMetadataStoreRealms()
-      throws IOException {
+  public void testGetAllNamespaces() throws IOException {
+    String responseBody = get(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-namespaces", null,
+        Response.Status.OK.getStatusCode(), true);
+
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Map<String, Collection<String>> queriedNamespacesMap =
+        OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    Assert.assertEquals(queriedNamespacesMap.keySet(),
+        ImmutableSet.of(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES));
+
+    Set<String> queriedNamespacesSet = new HashSet<>(
+        queriedNamespacesMap.get(MetadataStoreRoutingConstants.METADATA_STORE_NAMESPACES));
+    Set<String> expectedNamespaces = ImmutableSet.of(TEST_NAMESPACE);
+
+    Assert.assertEquals(queriedNamespacesSet, expectedNamespaces);
+  }
+
+  /*
+   * Tests REST endpoint: "GET /metadata-store-realms"
+   */
+  @Test(dependsOnMethods = "testGetAllNamespaces")
+  public void testGetAllMetadataStoreRealms() throws IOException {
     get(NON_EXISTING_NAMESPACE_URI_PREFIX + "metadata-store-realms", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);
 
@@ -130,8 +154,8 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Map<String, Collection<String>> queriedRealmsMap =
         OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    Assert.assertTrue(
-        queriedRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
+    Assert.assertEquals(queriedRealmsMap.keySet(),
+        ImmutableSet.of(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
 
     Set<String> queriedRealmsSet =
         new HashSet<>(queriedRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
@@ -140,7 +164,36 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertEquals(queriedRealmsSet, expectedRealms);
   }
 
+  /*
+   * Tests REST endpoint: "GET /metadata-store-realms?sharding-key={sharding-key}"
+   */
   @Test(dependsOnMethods = "testGetAllMetadataStoreRealms")
+  public void testGetMetadataStoreRealmWithShardingKey() throws IOException {
+    String shardingKey = TEST_SHARDING_KEYS_1.get(0);
+
+    new JerseyUriRequestBuilder(
+        NON_EXISTING_NAMESPACE_URI_PREFIX + "metadata-store-realms?sharding-key=" + shardingKey)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
+
+    String responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms?sharding-key=" + shardingKey)
+        .isBodyReturnExpected(true).get(this);
+
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Map<String, String> queriedRealmMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    Map<String, String> expectedRealm = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_1,
+            MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, shardingKey);
+
+    Assert.assertEquals(queriedRealmMap, expectedRealm);
+  }
+
+  /*
+   * Tests REST endpoint: "PUT /metadata-store-realms/{realm}"
+   */
+  @Test(dependsOnMethods = "testGetMetadataStoreRealmWithShardingKey")
   public void testAddMetadataStoreRealm() {
     Collection<String> previousRealms =
         _metadataStoreDirectory.getAllMetadataStoreRealms(TEST_NAMESPACE);
@@ -164,10 +217,12 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Set<String> updateRealmsSet = new HashSet<>(updatedRealms);
     expectedRealmsSet.add(TEST_REALM_3);
 
-    // TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
 //    Assert.assertEquals(updateRealmsSet, previousRealms);
   }
 
+  /*
+   * Tests REST endpoint: "DELETE /metadata-store-realms/{realm}"
+   */
   @Test(dependsOnMethods = "testAddMetadataStoreRealm")
   public void testDeleteMetadataStoreRealm() {
     Collection<String> previousRealms =
@@ -194,11 +249,10 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   /*
-   * Tests REST endpoints: "/sharding-keys"
+   * Tests REST endpoint: "GET /sharding-keys"
    */
   @Test(dependsOnMethods = "testDeleteMetadataStoreRealm")
-  public void testGetShardingKeysInNamespace()
-      throws IOException {
+  public void testGetShardingKeysInNamespace() throws IOException {
     get(NON_EXISTING_NAMESPACE_URI_PREFIX + "sharding-keys", null,
         Response.Status.NOT_FOUND.getStatusCode(), true);
 
@@ -207,14 +261,19 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
             true);
     // It is safe to cast the object and suppress warnings.
     @SuppressWarnings("unchecked")
-    Map<String, Collection<String>> queriedShardingKeysMap =
-        OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
 
-    Set<String> queriedShardingKeys =
-        new HashSet<>(queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS));
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE),
+        TEST_NAMESPACE);
+
+    @SuppressWarnings("unchecked")
+    Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
+        .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
     Set<String> expectedShardingKeys = new HashSet<>();
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_1);
     expectedShardingKeys.addAll(TEST_SHARDING_KEYS_2);
@@ -223,38 +282,125 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   /*
-   * Tests REST endpoint: "/sharding-keys?realm={realmName}"
+   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys"
    */
   @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
-  public void testGetShardingKeysInRealm()
-      throws IOException {
+  public void testGetShardingKeysInRealm() throws IOException {
     // Test NOT_FOUND response for a non existed realm.
-    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=nonExistedRealm")
+    new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/nonExistedRealm/sharding-keys")
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
 
-    // Query param realm is set to empty, so NOT_FOUND response is returned.
-    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=")
-        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
-
-    // Success response.
+    // Success response for "GET /metadata-store-realms/{realm}/sharding-keys"
     String responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?realm=" + TEST_REALM_1)
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys")
         .isBodyReturnExpected(true).get(this);
-    // It is safe to cast the object and suppress warnings.
-    @SuppressWarnings("unchecked")
-    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
 
-    // Check realm name in json response.
-    Assert.assertTrue(queriedShardingKeysMap
-        .containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
+    verifyRealmShardingKeys(responseBody);
+  }
+
+  /*
+   * Tests REST endpoint: "GET /sharding-keys?prefix={prefix}"
+   */
+  @SuppressWarnings("unchecked")
+  @Test(dependsOnMethods = "testGetShardingKeysInRealm")
+  public void testGetShardingKeysUnderPath() throws IOException {
+    // Test non existed prefix and empty sharding keys in response.
+    String responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=/non/Existed/Prefix")
+        .isBodyReturnExpected(true).get(this);
+
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Collection<Map<String, String>> emptyKeysList =
+        (Collection<Map<String, String>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Assert.assertTrue(emptyKeysList.isEmpty());
+
+    // Success response with non empty sharding keys.
+    String shardingKeyPrefix = "/sharding/key";
+    responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=" + shardingKeyPrefix)
+        .isBodyReturnExpected(true).get(this);
+
+    queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
+    // Check sharding key prefix in json response.
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
+        shardingKeyPrefix);
+
+    Collection<Map<String, String>> queriedShardingKeys =
+        (Collection<Map<String, String>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Set<Map<String, String>> queriedShardingKeysSet = new HashSet<>(queriedShardingKeys);
+    Set<Map<String, String>> expectedShardingKeysSet = new HashSet<>();
+
+    TEST_SHARDING_KEYS_1.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_1)));
+
+    TEST_SHARDING_KEYS_2.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_2)));
+
+    Assert.assertEquals(queriedShardingKeysSet, expectedShardingKeysSet);
+  }
+
+  /*
+   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}"
+   */
+  @SuppressWarnings("unchecked")
+  @Test(dependsOnMethods = "testGetShardingKeysUnderPath")
+  public void testGetRealmShardingKeysUnderPath() throws IOException {
+    // Test non existed prefix and empty sharding keys in response.
+    String responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
+            + "/sharding-keys?prefix=/non/Existed/Prefix").isBodyReturnExpected(true).get(this);
+
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Collection<Map<String, String>> emptyKeysList =
+        (Collection<Map<String, String>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Assert.assertTrue(emptyKeysList.isEmpty());
+
+    // Test non existed realm and empty sharding keys in response.
+    responseBody = new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX
+        + "/metadata-store-realms/nonExistedRealm/sharding-keys?prefix=/sharding/key")
+        .isBodyReturnExpected(true).get(this);
+
+    queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+    emptyKeysList = (Collection<Map<String, String>>) queriedShardingKeysMap
+        .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Assert.assertTrue(emptyKeysList.isEmpty());
+
+    // Valid query params and non empty sharding keys.
+    String shardingKeyPrefix = "/sharding/key/1";
+    responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
+            + "/sharding-keys?prefix=" + shardingKeyPrefix).isBodyReturnExpected(true).get(this);
+
+    queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
+    // Check sharding key prefix in json response.
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
+        shardingKeyPrefix);
+
     Assert.assertEquals(
         queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
         TEST_REALM_1);
-    Assert.assertTrue(
-        queriedShardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
 
-    // It is safe to cast the object and suppress warnings.
-    @SuppressWarnings("unchecked")
     Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
         .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
     Set<String> expectedShardingKeys = new HashSet<>(TEST_SHARDING_KEYS_1);
@@ -262,7 +408,10 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Assert.assertEquals(queriedShardingKeys, expectedShardingKeys);
   }
 
-  @Test(dependsOnMethods = "testGetShardingKeysInRealm")
+  /*
+   * Tests REST endpoint: "PUT /metadata-store-realms/{realm}/sharding-keys/{sharding-key}"
+   */
+  @Test(dependsOnMethods = "testGetRealmShardingKeysUnderPath")
   public void testAddShardingKey() {
     Set<String> expectedShardingKeysSet = new HashSet<>(
         _metadataStoreDirectory.getAllShardingKeysInRealm(TEST_NAMESPACE, TEST_REALM_1));
@@ -287,6 +436,9 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 //    Assert.assertEquals(updatedShardingKeysSet, expectedShardingKeysSet);
   }
 
+  /*
+   * Tests REST endpoint: "PUT /metadata-store-realms/{realm}/sharding-keys/{sharding-key}"
+   */
   @Test(dependsOnMethods = "testAddShardingKey")
   public void testDeleteShardingKey() {
     Set<String> expectedShardingKeysSet = new HashSet<>(
@@ -310,8 +462,31 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 //    Assert.assertEquals(updatedShardingKeysSet, expectedShardingKeysSet);
   }
 
-  private void deleteRoutingDataPath()
-      throws Exception {
+  private void verifyRealmShardingKeys(String responseBody) throws IOException {
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    // Check fields in JSON response.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
+    // Check realm name in json response.
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
+        TEST_REALM_1);
+
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Set<String> queriedShardingKeys = new HashSet<>((Collection<String>) queriedShardingKeysMap
+        .get(MetadataStoreRoutingConstants.SHARDING_KEYS));
+    Set<String> expectedShardingKeys = new HashSet<>(TEST_SHARDING_KEYS_1);
+
+    Assert.assertEquals(queriedShardingKeys, expectedShardingKeys);
+  }
+
+  private void deleteRoutingDataPath() throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
           .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));

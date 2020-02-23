@@ -270,12 +270,11 @@ public class ClusterAccessor extends AbstractHelixResource {
 
 
   @PUT
-  @Path("{clusterId}/customizedstateaggregationconfig")
+  @Path("{clusterId}/customized-state-aggregation-config")
   public Response addCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
       String content) {
-    HelixZkClient zkClient = getHelixZkClient();
-    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
-      return notFound("Cluster is not properly setup!");
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
     HelixAdmin admin = getHelixAdmin();
@@ -291,10 +290,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       CustomizedStateAggregationConfig customizedStateAggregationConfig =
           new CustomizedStateAggregationConfig.Builder(record).build();
       admin.addCustomizedStateAggregationConfig(clusterId, customizedStateAggregationConfig);
-    } catch (HelixException ex) {
-      _logger.error("Error in adding a CustomizedStateAggregationConfig to cluster: " + clusterId,
-          ex);
-      return badRequest(ex.getMessage());
     } catch (Exception ex) {
       _logger.error("Cannot add CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
       return serverError(ex);
@@ -304,20 +299,16 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @DELETE
-  @Path("{clusterId}/customizedstateaggregationconfig")
+  @Path("{clusterId}/customized-state-aggregation-config")
   public Response removeCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
     HelixZkClient zkClient = getHelixZkClient();
-    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
-      return notFound("Cluster is not properly setup!");
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
     HelixAdmin admin = getHelixAdmin();
     try {
       admin.removeCustomizedStateAggregationConfig(clusterId);
-    } catch (HelixException ex) {
-      _logger.error("Error in removing CustomizedStateAggregationConfig to cluster: " + clusterId,
-          ex);
-      return badRequest(ex.getMessage());
     } catch (Exception ex) {
       _logger.error("Cannot remove CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
       return serverError(ex);
@@ -327,11 +318,11 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{clusterId}/customizedstateaggregationconfig")
+  @Path("{clusterId}/customized-state-aggregation-config")
   public Response getCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
     HelixZkClient zkClient = getHelixZkClient();
-    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
-      return notFound();
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
     ConfigAccessor configAccessor = getConfigAccessor();
@@ -346,16 +337,13 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @POST
-  @Path("{clusterId}/customizedstateaggregationconfig")
+  @Path("{clusterId}/customized-state-aggregation-config")
   public Response updateCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("type") String type) {
-
-    HelixZkClient zkClient = getHelixZkClient();
-    if (!ZKUtil.isClusterSetup(clusterId, zkClient)) {
-      return notFound();
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
-    // Here to update cloud config
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
       command = Command.update; // Default behavior
@@ -371,14 +359,12 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     try {
       switch (command) {
-      case delete: {
+      case delete:
         admin.removeTypeFromCustomizedStateAggregationConfig(clusterId, type);
-      }
-      break;
-      case update: {
+        break;
+      case update:
         admin.addTypeToCustomizedStateAggregationConfig(clusterId, type);
-      }
-      break;
+        break;
       default:
         return badRequest("Unsupported command " + commandStr);
       }

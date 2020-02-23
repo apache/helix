@@ -568,7 +568,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testActivateSuperCluster")
   public void testAddCustomizedConfigNonExistedCluster() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String urlBase = "clusters/TestCluster/customizedstateaggregationconfig/";
+    String urlBase = "clusters/TestCluster/customized-state-aggregation-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");
@@ -588,7 +588,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testAddCustomizedConfig() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-aggregation-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");
@@ -631,7 +631,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testDeleteCustomizedConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-aggregation-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");
@@ -662,7 +662,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testUpdateCustomizedConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateaggregationconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-aggregation-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateAggregationConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");

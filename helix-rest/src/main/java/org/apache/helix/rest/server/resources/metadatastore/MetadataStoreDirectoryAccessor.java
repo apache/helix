@@ -200,11 +200,22 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @GET
   @Path("/routing-data")
   public Response getRoutingData() {
+    Map<String, List<String>> rawRoutingData;
     try {
-      return getAllShardingKeysByRealm();
+      rawRoutingData = _metadataStoreDirectory.getRoutingData(_namespace);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
+
+    List<MetadataStoreShardingKeysByRealm> shardingKeysByRealm = rawRoutingData.entrySet().stream()
+        .map(entry -> new MetadataStoreShardingKeysByRealm(entry.getKey(), entry.getValue()))
+        .collect(Collectors.toList());
+
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+            MetadataStoreRoutingConstants.ROUTING_DATA, shardingKeysByRealm);
+
+    return JSONRepresentation(responseMap);
   }
 
   /**
@@ -301,19 +312,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     Map<String, Object> responseMap = ImmutableMap
         .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
             MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeys);
-
-    return JSONRepresentation(responseMap);
-  }
-
-  private Response getAllShardingKeysByRealm() {
-    List<MetadataStoreShardingKeysByRealm> shardingKeysByRealm =
-        _metadataStoreDirectory.getRoutingData(_namespace).entrySet().stream()
-            .map(entry -> new MetadataStoreShardingKeysByRealm(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-
-    Map<String, Object> responseMap = ImmutableMap
-        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
-            MetadataStoreRoutingConstants.ROUTING_DATA, shardingKeysByRealm);
 
     return JSONRepresentation(responseMap);
   }

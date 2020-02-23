@@ -109,6 +109,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     _msdsServer.stopServer();
     _msdsServer =
         new MockMetadataStoreDirectoryServer(_host, _port, _namespace, _testRawRoutingData);
+    _msdsServer.startServer();
 
     // HttpRoutingDataReader should still return old data because it's static
     // Make sure the results don't contain the new realm

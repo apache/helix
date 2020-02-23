@@ -19,7 +19,7 @@ package org.apache.helix.rest.metadatastore.datamodel;
  * under the License.
  */
 
-import java.util.List;
+import java.util.Collection;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,11 +29,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({"realm", "shardingKeys"})
 public class MetadataStoreShardingKeysByRealm {
   private String realm;
-  private List<String> shardingKeys;
+  private Collection<String> shardingKeys;
 
   @JsonCreator
   public MetadataStoreShardingKeysByRealm(@JsonProperty String realm,
-      @JsonProperty List<String> shardingKeys) {
+      @JsonProperty Collection<String> shardingKeys) {
     this.realm = realm;
     this.shardingKeys = shardingKeys;
   }
@@ -44,7 +44,7 @@ public class MetadataStoreShardingKeysByRealm {
   }
 
   @JsonProperty
-  public List<String> getShardingKeys() {
+  public Collection<String> getShardingKeys() {
     return shardingKeys;
   }
 

@@ -145,6 +145,20 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   /**
    * Gets all sharding keys for following requests:
    * - "HTTP GET /sharding-keys" which returns all sharding keys in a namespace.
+   *
+   * - "HTTP GET /sharding-keys?groupByRealm=true" to get sharding keys by realm.
+   * -- Response example:
+   * {
+   *   "namespace" : "test-namespace",
+   *   "shardingKeysByRealm" : [ {
+   *     "realm" : "testRealm2",
+   *     "shardingKeys" : [ "/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f" ]
+   *   }, {
+   *     "realm" : "testRealm1",
+   *     "shardingKeys" : [ "/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c" ]
+   *   } ]
+   * }
+   *
    * - "HTTP GET /sharding-keys?prefix={prefix}" which returns sharding keys that have the prefix.
    * -- JSON response example for this path:
    * {
@@ -172,15 +186,19 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   public Response getShardingKeys(@QueryParam("prefix") String prefix,
       @DefaultValue("false") @QueryParam("groupByRealm") boolean groupByRealm) {
     try {
-      if (prefix == null && !groupByRealm) {
-        // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
-        return getAllShardingKeys();
-      } else if (prefix == null) {
+      if (prefix != null) {
+        // For endpoint: "/sharding-keys?prefix={prefix}"
+        // Ignore groupByRealm because response already has realm info for each sharding key.
+        return getAllShardingKeysUnderPath(prefix);
+      }
+
+      if (groupByRealm) {
         // For request: "/sharding-keys?groupByRealm=true" to get sharding keys by realm.
         return getAllShardingKeysByRealm();
       }
-      // For endpoint: "/sharding-keys?prefix={prefix}"
-      return getAllShardingKeysUnderPath(prefix);
+
+      // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
+      return getAllShardingKeys();
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }

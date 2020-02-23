@@ -58,7 +58,7 @@ public class ZkTestBase {
    */
   // The following maps hold ZK connect string as keys
   protected final Map<String, ZkServer> _zkServerMap = new HashMap<>();
-  protected int _numZk = 1; // Initial value
+  protected static int _numZk = 1; // Initial value
 
   @BeforeSuite
   public void beforeSuite() throws IOException {

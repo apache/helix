@@ -500,6 +500,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private void throwUnsupportedOperationException() {
     throw new UnsupportedOperationException(
         "Session-aware operation is not supported by " + FEDERATED_ZK_CLIENT
-            + ". Instead, please use " + DEDICATED_ZK_CLIENT_FACTORY + " for this operation");
+            + ". Instead, please use " + DEDICATED_ZK_CLIENT_FACTORY
+            + " to create a dedicated RealmAwareZkClient for this operation");
   }
 }

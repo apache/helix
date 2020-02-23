@@ -282,9 +282,60 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   /*
-   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys"
+   * Tests REST endpoint: "GET /sharding-keys?groupByRealm=true"
    */
   @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
+  public void testGetShardingKeysGroupByRealm() throws IOException {
+    /*
+     * responseBody:
+     * {
+     *   "namespace" : "test-namespace",
+     *   "shardingKeysByRealm" : [ {
+     *     "realm" : "testRealm2",
+     *     "shardingKeys" : [ "/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f" ]
+     *   }, {
+     *     "realm" : "testRealm1",
+     *     "shardingKeys" : [ "/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c" ]
+     *   } ]
+     * }
+     */
+    String responseBody =
+        new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?groupByRealm=true")
+            .isBodyReturnExpected(true).get(this);
+
+    // It is safe to cast the object and suppress warnings.
+    @SuppressWarnings("unchecked")
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE,
+            MetadataStoreRoutingConstants.SHARDING_KEYS_BY_REALM));
+
+    // Check namespace in json response.
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE),
+        TEST_NAMESPACE);
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> queriedShardingKeys =
+        (List<Map<String, Object>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS_BY_REALM);
+
+    Set<Map<String, Object>> queriedShardingKeysSet = new HashSet<>(queriedShardingKeys);
+    Set<Map<String, Object>> expectedShardingKeysSet = ImmutableSet.of(ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_1,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, TEST_SHARDING_KEYS_1), ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_2,
+            MetadataStoreRoutingConstants.SHARDING_KEYS, TEST_SHARDING_KEYS_2));
+
+    Assert.assertEquals(queriedShardingKeysSet, expectedShardingKeysSet);
+  }
+
+  /*
+   * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys"
+   */
+  @Test(dependsOnMethods = "testGetShardingKeysGroupByRealm")
   public void testGetShardingKeysInRealm() throws IOException {
     // Test NOT_FOUND response for a non existed realm.
     new JerseyUriRequestBuilder(

@@ -20,6 +20,7 @@ package org.apache.helix.rest.metadatastore;
  */
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -50,6 +51,14 @@ public interface MetadataStoreDirectory extends AutoCloseable {
    * @return
    */
   Collection<String> getAllShardingKeys(String namespace);
+
+  /**
+   * Returns all path-based sharding keys by realm in the given namespace.
+   *
+   * @param namespace namespace in metadata store directory.
+   * @return Map: realm -> List of sharding keys
+   */
+  Map<String, List<String>> getShardingKeysByRealm(String namespace);
 
   /**
    * Returns all path-based sharding keys in the given namespace and the realm.

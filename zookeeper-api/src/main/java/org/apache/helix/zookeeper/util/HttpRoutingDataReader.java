@@ -22,6 +22,7 @@ package org.apache.helix.zookeeper.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,48 +67,17 @@ public class HttpRoutingDataReader {
             throw new IllegalStateException(
                 "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System Properties!");
           }
-
-          CloseableHttpClient httpClient = HttpClients.createDefault();
           // TODO: Currently we are making multiple HTTP calls to retrieve all routing data
           // TODO: We should cut it down to one HTTP call to retrieve all raw routing data
           // TODO: See https://github.com/apache/helix/issues/798
           // Get all realms
           // For each realm, get all sharding keys
           // Put <realm, sharding keys> in rawRoutingData
-          HttpGet requestAllRealmNames = new HttpGet(
-              msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT);
-          CloseableHttpResponse response = httpClient.execute(requestAllRealmNames);
-          HttpEntity entity = response.getEntity();
-          if (entity != null) {
-            String resultStr = EntityUtils.toString(entity);
-            @SuppressWarnings("unchecked")
-            Map<String, Collection<String>> resultMap =
-                OBJECT_MAPPER.readValue(resultStr, Map.class);
-            Collection<String> realmNames =
-                resultMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
-            if (realmNames != null && !realmNames.isEmpty()) {
-              for (String realmName : realmNames) {
-                HttpGet requestAllShardingKeysForRealm = new HttpGet(
-                    msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT + "/"
-                        + realmName
-                        + MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT);
-                CloseableHttpResponse shardingKeyResponse =
-                    httpClient.execute(requestAllShardingKeysForRealm);
-                HttpEntity shardingKeyEntity = shardingKeyResponse.getEntity();
-                if (shardingKeyEntity != null) {
-                  String shardingKeyResultStr = EntityUtils.toString(shardingKeyEntity);
-                  @SuppressWarnings("unchecked")
-                  Map<String, Object> shardingKeyMap =
-                      OBJECT_MAPPER.readValue(shardingKeyResultStr, Map.class);
-                  @SuppressWarnings("unchecked")
-                  Collection<String> shardingKeys = (Collection<String>) shardingKeyMap
-                      .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
-                  if (shardingKeys != null && !shardingKeys.isEmpty()) {
-                    rawRoutingData.put(realmName, new ArrayList<>(shardingKeys));
-                  }
-                }
-              }
-            }
+          CloseableHttpClient httpClient = HttpClients.createDefault();
+          Collection<String> realmNames = getAllRealmNames(httpClient, msdsEndpoint);
+          for (String realmName : realmNames) {
+            rawRoutingData.put(realmName,
+                new ArrayList<>(getShardingKeysForRealm(httpClient, msdsEndpoint, realmName)));
           }
           // Update the reference
           _rawRoutingData = rawRoutingData;
@@ -137,4 +107,41 @@ public class HttpRoutingDataReader {
     }
     return _metadataStoreRoutingData;
   }
+
+  private static Collection<String> getAllRealmNames(CloseableHttpClient httpClient,
+      String msdsEndpoint)
+      throws IOException {
+    HttpGet requestAllRealmNames =
+        new HttpGet(msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT);
+    CloseableHttpResponse response = httpClient.execute(requestAllRealmNames);
+    HttpEntity entity = response.getEntity();
+    if (entity != null) {
+      String resultStr = EntityUtils.toString(entity);
+      @SuppressWarnings("unchecked")
+      Map<String, Collection<String>> resultMap = OBJECT_MAPPER.readValue(resultStr, Map.class);
+      return resultMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
+    }
+    return Collections.emptyList();
+  }
+
+  private static Collection<String> getShardingKeysForRealm(CloseableHttpClient httpClient,
+      String msdsEndpoint, String realmName)
+      throws IOException {
+    HttpGet requestAllShardingKeysForRealm = new HttpGet(
+        msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT + "/" + realmName
+            + MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT);
+    CloseableHttpResponse shardingKeyResponse = httpClient.execute(requestAllShardingKeysForRealm);
+    HttpEntity shardingKeyEntity = shardingKeyResponse.getEntity();
+    if (shardingKeyEntity != null) {
+      String shardingKeyResultStr = EntityUtils.toString(shardingKeyEntity);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> shardingKeyMap = OBJECT_MAPPER.readValue(shardingKeyResultStr, Map.class);
+      @SuppressWarnings("unchecked")
+      Collection<String> shardingKeys =
+          (Collection<String>) shardingKeyMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+      return shardingKeys;
+    }
+    return Collections.emptyList();
+  }
 }
+

@@ -53,7 +53,9 @@ public class HttpRoutingDataReader {
 
   /**
    * Fetches routing data from the data source via HTTP.
-   * @return a mapping from "metadata store realm addresses" to lists of "metadata store sharding keys", where the sharding keys in a value list all route to the realm address in the key disallows a meaningful mapping to be returned
+   * @return a mapping from "metadata store realm addresses" to lists of
+   * "metadata store sharding keys", where the sharding keys in a value list all route to
+   * the realm address in the key disallows a meaningful mapping to be returned
    */
   public static Map<String, List<String>> getRawRoutingData()
       throws IOException {

@@ -43,6 +43,7 @@ import org.apache.helix.rest.common.HelixRestUtils;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
+import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKeysByRealm;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,6 +179,43 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
+  }
+
+  /**
+   * Gets routing data in current namespace.
+   *
+   * - "HTTP GET /routing-data"
+   * -- Response example:
+   * {
+   *   "namespace" : "my-namespace",
+   *   "routingData" : [ {
+   *     "realm" : "realm-1",
+   *     "shardingKeys" : [ "/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f" ]
+   *   }, {
+   *     "realm" : "realm-2",
+   *     "shardingKeys" : [ "/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c" ]
+   *   } ]
+   * }
+   */
+  @GET
+  @Path("/routing-data")
+  public Response getRoutingData() {
+    Map<String, List<String>> rawRoutingData;
+    try {
+      rawRoutingData = _metadataStoreDirectory.getNamespaceRoutingData(_namespace);
+    } catch (NoSuchElementException ex) {
+      return notFound(ex.getMessage());
+    }
+
+    List<MetadataStoreShardingKeysByRealm> shardingKeysByRealm = rawRoutingData.entrySet().stream()
+        .map(entry -> new MetadataStoreShardingKeysByRealm(entry.getKey(), entry.getValue()))
+        .collect(Collectors.toList());
+
+    Map<String, Object> responseMap = ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+            MetadataStoreRoutingConstants.ROUTING_DATA, shardingKeysByRealm);
+
+    return JSONRepresentation(responseMap);
   }
 
   /**

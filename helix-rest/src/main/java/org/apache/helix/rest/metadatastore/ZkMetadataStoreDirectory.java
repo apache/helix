@@ -112,13 +112,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   }
 
   @Override
-  public Map<String, List<String>> getShardingKeysByRealm(String namespace) {
-    Map<String, List<String>> shardingKeysByRealmMap = _realmToShardingKeysMap.get(namespace);
-    if (shardingKeysByRealmMap == null) {
+  public Map<String, List<String>> getRoutingData(String namespace) {
+    Map<String, List<String>> routingData = _realmToShardingKeysMap.get(namespace);
+    if (routingData == null) {
       throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
     }
 
-    return shardingKeysByRealmMap;
+    return routingData;
   }
 
   @Override

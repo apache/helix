@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -145,20 +144,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   /**
    * Gets all sharding keys for following requests:
    * - "HTTP GET /sharding-keys" which returns all sharding keys in a namespace.
-   *
-   * - "HTTP GET /sharding-keys?groupByRealm=true" to get sharding keys by realm.
-   * -- Response example:
-   * {
-   *   "namespace" : "test-namespace",
-   *   "shardingKeysByRealm" : [ {
-   *     "realm" : "testRealm2",
-   *     "shardingKeys" : [ "/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f" ]
-   *   }, {
-   *     "realm" : "testRealm1",
-   *     "shardingKeys" : [ "/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c" ]
-   *   } ]
-   * }
-   *
    * - "HTTP GET /sharding-keys?prefix={prefix}" which returns sharding keys that have the prefix.
    * -- JSON response example for this path:
    * {
@@ -183,22 +168,40 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    */
   @GET
   @Path("/sharding-keys")
-  public Response getShardingKeys(@QueryParam("prefix") String prefix,
-      @DefaultValue("false") @QueryParam("groupByRealm") boolean groupByRealm) {
+  public Response getShardingKeys(@QueryParam("prefix") String prefix) {
     try {
-      if (prefix != null) {
-        // For endpoint: "/sharding-keys?prefix={prefix}"
-        // Ignore groupByRealm because response already has realm info for each sharding key.
-        return getAllShardingKeysUnderPath(prefix);
+      if (prefix == null) {
+        // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
+        return getAllShardingKeys();
       }
+      // For endpoint: "/sharding-keys?prefix={prefix}"
+      return getAllShardingKeysUnderPath(prefix);
+    } catch (NoSuchElementException ex) {
+      return notFound(ex.getMessage());
+    }
+  }
 
-      if (groupByRealm) {
-        // For request: "/sharding-keys?groupByRealm=true" to get sharding keys by realm.
-        return getAllShardingKeysByRealm();
-      }
-
-      // For endpoint: "/sharding-keys" to get all sharding keys in a namespace.
-      return getAllShardingKeys();
+  /**
+   * Gets routing data in current namespace.
+   *
+   * - "HTTP GET /routing-data"
+   * -- Response example:
+   * {
+   *   "namespace" : "my-namespace",
+   *   "routingData" : [ {
+   *     "realm" : "realm-1",
+   *     "shardingKeys" : [ "/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f" ]
+   *   }, {
+   *     "realm" : "realm-2",
+   *     "shardingKeys" : [ "/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c" ]
+   *   } ]
+   * }
+   */
+  @GET
+  @Path("/routing-data")
+  public Response getRoutingData() {
+    try {
+      return getAllShardingKeysByRealm();
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
     }
@@ -304,13 +307,13 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
 
   private Response getAllShardingKeysByRealm() {
     List<MetadataStoreShardingKeysByRealm> shardingKeysByRealm =
-        _metadataStoreDirectory.getShardingKeysByRealm(_namespace).entrySet().stream()
+        _metadataStoreDirectory.getRoutingData(_namespace).entrySet().stream()
             .map(entry -> new MetadataStoreShardingKeysByRealm(entry.getKey(), entry.getValue()))
             .collect(Collectors.toList());
 
     Map<String, Object> responseMap = ImmutableMap
         .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
-            MetadataStoreRoutingConstants.SHARDING_KEYS_BY_REALM, shardingKeysByRealm);
+            MetadataStoreRoutingConstants.ROUTING_DATA, shardingKeysByRealm);
 
     return JSONRepresentation(responseMap);
   }

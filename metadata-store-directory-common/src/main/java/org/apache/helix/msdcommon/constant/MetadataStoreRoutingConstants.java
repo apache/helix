@@ -43,8 +43,8 @@ public class MetadataStoreRoutingConstants {
   /** Field name in JSON REST response of getting sharding keys. */
   public static final String SHARDING_KEYS = "shardingKeys";
 
-  /** Field name in JSON REST response of getting sharding keys. */
-  public static final String SHARDING_KEYS_BY_REALM = "shardingKeysByRealm";
+  /** Field name in JSON REST response of getting routing data. */
+  public static final String ROUTING_DATA = "routingData";
 
   /** Field name in JSON REST response related to one single sharding key. */
   public static final String SINGLE_SHARDING_KEY = "shardingKey";

@@ -53,12 +53,12 @@ public interface MetadataStoreDirectory extends AutoCloseable {
   Collection<String> getAllShardingKeys(String namespace);
 
   /**
-   * Returns all path-based sharding keys by realm in the given namespace.
+   * Returns routing data in the given namespace.
    *
    * @param namespace namespace in metadata store directory.
-   * @return Map: realm -> List of sharding keys
+   * @return Routing data map: realm -> List of sharding keys
    */
-  Map<String, List<String>> getShardingKeysByRealm(String namespace);
+  Map<String, List<String>> getRoutingData(String namespace);
 
   /**
    * Returns all path-based sharding keys in the given namespace and the realm.

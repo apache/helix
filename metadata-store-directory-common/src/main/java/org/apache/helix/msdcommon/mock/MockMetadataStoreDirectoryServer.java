@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.mock;
+package org.apache.helix.msdcommon.mock;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,13 +22,16 @@ package org.apache.helix.rest.metadatastore.mock;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +44,15 @@ public class MockMetadataStoreDirectoryServer {
   private static final Logger LOG = LoggerFactory.getLogger(MockMetadataStoreDirectoryServer.class);
 
   protected static final String REST_PREFIX = "/admin/v2/namespaces/";
-  protected static final String ZK_REALM_ENDPOINT = "/METADATA_STORE_ROUTING_DATA/";
+  protected static final String ZK_REALM_ENDPOINT =
+      MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT;
   protected static final int NOT_IMPLEMENTED = 501;
   protected static final int OK = 200;
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   protected final String _hostname;
   protected final int _mockServerPort;
-  protected final Map<String, List<String>> _routingDataMap;
+  protected final Map<String, Collection<String>> _routingDataMap;
   protected final String _namespace;
   protected HttpServer _server;
   protected final ThreadPoolExecutor _executor =
@@ -68,7 +72,7 @@ public class MockMetadataStoreDirectoryServer {
    * @param routingData <ZK realm, List of ZK path sharding keys>
    */
   public MockMetadataStoreDirectoryServer(String hostname, int port, String namespace,
-      Map<String, List<String>> routingData) {
+      Map<String, Collection<String>> routingData) {
     if (hostname == null || hostname.isEmpty()) {
       throw new IllegalArgumentException("hostname cannot be null or empty!");
     }
@@ -108,20 +112,31 @@ public class MockMetadataStoreDirectoryServer {
    * Dynamically generates HTTP server contexts based on the routing data given.
    */
   private void generateContexts() {
+    _server.createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT, createHttpHandler(
+        ImmutableMap
+            .of(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, _routingDataMap.keySet())));
+
     _routingDataMap.forEach((zkRealm, shardingKeyList) -> _server
-        .createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT + zkRealm, httpExchange -> {
-          OutputStream outputStream = httpExchange.getResponseBody();
-          String htmlResponse;
-          if (SupportedHttpVerbs.GET.name().equals(httpExchange.getRequestMethod())) {
-            htmlResponse = OBJECT_MAPPER.writeValueAsString(shardingKeyList);
-            httpExchange.sendResponseHeaders(OK, htmlResponse.length());
-          } else {
-            htmlResponse = httpExchange.getRequestMethod() + " is not supported!\n";
-            httpExchange.sendResponseHeaders(NOT_IMPLEMENTED, htmlResponse.length());
-          }
-          outputStream.write(htmlResponse.getBytes());
-          outputStream.flush();
-          outputStream.close();
-        }));
+        .createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT + "/" + zkRealm,
+            createHttpHandler(ImmutableMap
+                .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, zkRealm,
+                    MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeyList))));
+  }
+
+  private HttpHandler createHttpHandler(Map<String, Object> keyValuePairs) {
+    return httpExchange -> {
+      OutputStream outputStream = httpExchange.getResponseBody();
+      String htmlResponse;
+      if (SupportedHttpVerbs.GET.name().equals(httpExchange.getRequestMethod())) {
+        htmlResponse = OBJECT_MAPPER.writeValueAsString(keyValuePairs);
+        httpExchange.sendResponseHeaders(OK, htmlResponse.length());
+      } else {
+        htmlResponse = httpExchange.getRequestMethod() + " is not supported!\n";
+        httpExchange.sendResponseHeaders(NOT_IMPLEMENTED, htmlResponse.length());
+      }
+      outputStream.write(htmlResponse.getBytes());
+      outputStream.flush();
+      outputStream.close();
+    };
   }
 }

@@ -1,4 +1,4 @@
-package org.apache.helix.rest.metadatastore.mock;
+package org.apache.helix.msdcommon.mock;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,11 +20,12 @@ package org.apache.helix.rest.metadatastore.mock;
  */
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -39,7 +40,7 @@ public class TestMockMetadataStoreDirectoryServer {
   public void testMockMetadataStoreDirectoryServer()
       throws IOException {
     // Create fake routing data
-    Map<String, List<String>> routingData = new HashMap<>();
+    Map<String, Collection<String>> routingData = new HashMap<>();
     routingData.put("zk-0", ImmutableList.of("sharding-key-0", "sharding-key-1", "sharding-key-2"));
     routingData.put("zk-1", ImmutableList.of("sharding-key-3", "sharding-key-4", "sharding-key-5"));
     routingData.put("zk-2", ImmutableList.of("sharding-key-6", "sharding-key-7", "sharding-key-8"));
@@ -54,15 +55,39 @@ public class TestMockMetadataStoreDirectoryServer {
     server.startServer();
     CloseableHttpClient httpClient = HttpClients.createDefault();
 
-    // Send a GET request
-    String testZkRealm = "zk-0";
+    // Send a GET request for all realms
     HttpGet getRequest = new HttpGet(
         endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + testZkRealm);
+            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT);
     try {
       CloseableHttpResponse getResponse = httpClient.execute(getRequest);
-      List<String> shardingKeyList = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
-          .readValue(getResponse.getEntity().getContent(), List.class);
+      Map<String, Collection<String>> allRealmsMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      Assert.assertTrue(
+          allRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
+      Collection<String> allRealms =
+          allRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
+      Assert.assertEquals(allRealms, routingData.keySet());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    // Send a GET request for testZkRealm
+    String testZkRealm = "zk-0";
+    getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+        + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
+    try {
+      CloseableHttpResponse getResponse = httpClient.execute(getRequest);
+      Map<String, Object> shardingKeysMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      Assert.assertTrue(
+          shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
+      Assert.assertTrue(shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
+      String zkRealm =
+          (String) shardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM);
+      Collection<String> shardingKeyList =
+          (Collection) shardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+      Assert.assertEquals(zkRealm, testZkRealm);
       Assert.assertEquals(shardingKeyList, routingData.get(testZkRealm));
     } catch (IOException e) {
       e.printStackTrace();
@@ -71,7 +96,7 @@ public class TestMockMetadataStoreDirectoryServer {
     // Try sending a POST request (not supported)
     HttpPost postRequest = new HttpPost(
         endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + testZkRealm);
+            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
     try {
       CloseableHttpResponse postResponse = httpClient.execute(postRequest);
     } catch (IOException e) {
@@ -80,5 +105,6 @@ public class TestMockMetadataStoreDirectoryServer {
 
     // Shutdown
     server.stopServer();
+    httpClient.close();
   }
 }

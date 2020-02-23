@@ -42,9 +42,9 @@ import org.testng.annotations.Test;
 public class TestHttpRoutingDataReader extends ZkTestBase {
   private MockMetadataStoreDirectoryServer _msdsServer;
   private Map<String, Collection<String>> _testRawRoutingData;
-  private String _host = "localhost";
-  private int _port = 1991;
-  private String _namespace = "TestHttpRoutingDataReader";
+  private final String _host = "localhost";
+  private final int _port = 1991;
+  private final String _namespace = "TestHttpRoutingDataReader";
 
   @BeforeClass
   public void beforeClass()
@@ -90,6 +90,8 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
         .groupingBy(Map.Entry::getValue,
             Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
     _testRawRoutingData.forEach((realm, keys) -> {
+      // Two way containsAll because AssertEquals on two set collections is buggy in that
+      // it will fail if the ordering of elements is not equal (we just want to compare contents)
       Assert.assertTrue(groupedMappings.get(realm).containsAll(keys));
       Assert.assertTrue(keys.containsAll(groupedMappings.get(realm)));
     });

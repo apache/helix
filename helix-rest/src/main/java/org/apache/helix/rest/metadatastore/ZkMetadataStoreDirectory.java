@@ -21,7 +21,6 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,34 +56,57 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   // <namespace, <realm, <list of sharding keys>> mappings
   private final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
 
-  /**
-   * Creates a ZkMetadataStoreDirectory based on the given routing ZK addresses.
-   * @param routingZkAddressMap (namespace, routing ZK connect string)
-   * @throws InvalidRoutingDataException
-   */
-  public ZkMetadataStoreDirectory(Map<String, String> routingZkAddressMap)
-      throws InvalidRoutingDataException {
-    if (routingZkAddressMap == null || routingZkAddressMap.isEmpty()) {
-      throw new InvalidRoutingDataException("Routing ZK Addresses given are invalid!");
+  private static volatile ZkMetadataStoreDirectory _zkMetadataStoreDirectoryInstance;
+
+  public static ZkMetadataStoreDirectory getInstance() {
+    if (_zkMetadataStoreDirectoryInstance == null) {
+      synchronized (ZkMetadataStoreDirectory.class) {
+        if (_zkMetadataStoreDirectoryInstance == null) {
+          _zkMetadataStoreDirectoryInstance = new ZkMetadataStoreDirectory();
+        }
+      }
     }
-    _routingDataReaderMap = new HashMap<>();
-    _routingDataWriterMap = new HashMap<>();
-    _routingZkAddressMap = routingZkAddressMap;
+
+    return _zkMetadataStoreDirectoryInstance;
+  }
+
+  public static ZkMetadataStoreDirectory getInstance(String namespace, String zkAddress)
+      throws InvalidRoutingDataException {
+    if (_zkMetadataStoreDirectoryInstance == null) {
+      synchronized (ZkMetadataStoreDirectory.class) {
+        if (_zkMetadataStoreDirectoryInstance == null) {
+          _zkMetadataStoreDirectoryInstance = new ZkMetadataStoreDirectory();
+        }
+      }
+    }
+    _zkMetadataStoreDirectoryInstance.init(namespace, zkAddress);
+
+    return _zkMetadataStoreDirectoryInstance;
+  }
+
+  private ZkMetadataStoreDirectory() {
+    _routingDataReaderMap = new ConcurrentHashMap<>();
+    _routingDataWriterMap = new ConcurrentHashMap<>();
+    _routingZkAddressMap = new ConcurrentHashMap<>();
     _realmToShardingKeysMap = new ConcurrentHashMap<>();
     _routingDataMap = new ConcurrentHashMap<>();
+  }
 
-    // Create RoutingDataReaders and RoutingDataWriters
-    for (Map.Entry<String, String> routingEntry : _routingZkAddressMap.entrySet()) {
-      _routingDataReaderMap.put(routingEntry.getKey(),
-          new ZkRoutingDataReader(routingEntry.getKey(), routingEntry.getValue(), this));
-      _routingDataWriterMap.put(routingEntry.getKey(),
-          new ZkRoutingDataWriter(routingEntry.getKey(), routingEntry.getValue()));
+  private void init(String namespace, String zkAddress) throws InvalidRoutingDataException {
+    if (!_routingZkAddressMap.containsKey(namespace)) {
+      synchronized (_routingZkAddressMap) {
+        if (!_routingZkAddressMap.containsKey(namespace)) {
+          _routingZkAddressMap.put(namespace, zkAddress);
+          _routingDataReaderMap.put(namespace, new ZkRoutingDataReader(namespace, zkAddress, this));
+          _routingDataWriterMap.put(namespace, new ZkRoutingDataWriter(namespace, zkAddress));
 
-      // Populate realmToShardingKeys with ZkRoutingDataReader
-      _realmToShardingKeysMap.put(routingEntry.getKey(),
-          _routingDataReaderMap.get(routingEntry.getKey()).getRoutingData());
-      _routingDataMap.put(routingEntry.getKey(),
-          new TrieRoutingData(_realmToShardingKeysMap.get(routingEntry.getKey())));
+          // Populate realmToShardingKeys with ZkRoutingDataReader
+          _realmToShardingKeysMap
+              .put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
+          _routingDataMap
+              .put(namespace, new TrieRoutingData(_realmToShardingKeysMap.get(namespace)));
+        }
+      }
     }
   }
 
@@ -153,6 +175,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
+    System.out.println("actual method called");
     if (!_routingDataWriterMap.containsKey(namespace)) {
       throw new IllegalArgumentException(
           "Failed to add metadata store realm: Namespace " + namespace + " is not found!");

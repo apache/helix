@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -34,7 +33,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -66,12 +64,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     _namespace = helixRestNamespace.getName();
 
     buildMetadataStoreDirectory(_namespace, helixRestNamespace.getMetadataStoreAddress());
-  }
-
-  @PreDestroy
-  private void preDestroy() {
-    System.out.println("Destroy invoked");
-    _metadataStoreDirectory.close();
   }
 
   /**
@@ -127,8 +119,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serverError();
     }
 
     return created();
@@ -143,8 +133,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serverError();
     }
 
     return OK();
@@ -264,8 +252,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serverError();
     }
 
     return created();
@@ -281,8 +267,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
-    } catch (IllegalStateException ex) {
-      return serverError();
     }
 
     return OK();
@@ -313,14 +297,11 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   }
 
   private void buildMetadataStoreDirectory(String namespace, String address) {
-    Map<String, String> routingZkAddressMap = ImmutableMap.of(namespace, address);
     try {
-      _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddressMap);
+      _metadataStoreDirectory = ZkMetadataStoreDirectory.getInstance(namespace, address);
     } catch (InvalidRoutingDataException ex) {
-      // In this case, the InvalidRoutingDataException should not happen because routing
-      // ZK address is always valid here.
-      LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
-          routingZkAddressMap, ex);
+      LOG.warn("Unable to create metadata store directory for namespace: {}, ZK address: {}",
+          namespace, address, ex);
     }
   }
 

@@ -31,14 +31,12 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.rest.common.HelixRestNamespace;
-import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
-import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
+import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -67,18 +65,13 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
 
   // List of all ZK addresses, each of which corresponds to a namespace/routing ZK
   private List<String> _zkList;
-  private Map<String, String> _routingZkAddrMap;
+  private MetadataStoreRoutingDataReader _routingDataReader;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
     deleteRoutingDataPath();
-
-    // Populate routingZkAddrMap according namespaces in helix rest server.
-    // <Namespace, ZkAddr> mapping
-    _routingZkAddrMap = ImmutableMap
-        .of(HelixRestNamespace.DEFAULT_NAMESPACE_NAME, ZK_ADDR, TEST_NAMESPACE, _zkAddrTestNS);
 
     // Write dummy mappings in ZK
     // Create a node that represents a realm address and add 3 sharding keys to it
@@ -106,10 +99,16 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
           .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
               znRecord);
     });
+
+    _routingDataReader = new ZkRoutingDataReader(TEST_NAMESPACE, _zkAddrTestNS, null);
+
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
+        getBaseUri().toString());
   }
 
   @AfterClass
   public void afterClass() throws Exception {
+    System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     deleteRoutingDataPath();
   }
 
@@ -523,18 +522,10 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
   }
 
   private Set<String> getAllMetadataStoreRealmsHelper() throws InvalidRoutingDataException {
-    MetadataStoreDirectory metadataStoreDirectory = new ZkMetadataStoreDirectory(_routingZkAddrMap);
-    Collection<String> updatedRealms =
-        metadataStoreDirectory.getAllMetadataStoreRealms(TEST_NAMESPACE);
-    metadataStoreDirectory.close();
-    return new HashSet<>(updatedRealms);
+    return new HashSet<>(_routingDataReader.getRoutingData().keySet());
   }
 
   private Set<String> getShardingKeysInRealmHelper() throws InvalidRoutingDataException {
-    MetadataStoreDirectory metadataStoreDirectory = new ZkMetadataStoreDirectory(_routingZkAddrMap);
-    Collection<String> updatedShardingKeys =
-        metadataStoreDirectory.getAllShardingKeysInRealm(TEST_NAMESPACE, TEST_REALM_1);
-    metadataStoreDirectory.close();
-    return new HashSet<>(updatedShardingKeys);
+    return new HashSet<>(_routingDataReader.getRoutingData().get(TEST_REALM_1));
   }
 }

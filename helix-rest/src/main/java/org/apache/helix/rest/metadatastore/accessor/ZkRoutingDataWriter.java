@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -33,10 +35,12 @@ import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +53,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final HelixZkClient _zkClient;
   private final ZkDistributedLeaderElection _leaderElection;
   private final CloseableHttpClient _forwardHttpClient;
+  private final String _myHostName;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
     if (namespace == null || namespace.isEmpty()) {
@@ -71,12 +76,21 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     }
 
     // Get the hostname (REST endpoint) from System property
-    ZNRecord myServerInfo = new ZNRecord(
-        System.getProperty(MetadataStoreRoutingConstants.HOSTNAME_SYSTEM_PROPERTY_KEY));
+    _myHostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    if (_myHostName == null) {
+      throw new IllegalStateException(
+          "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
+              + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
+    }
+    ZNRecord myServerInfo = new ZNRecord(_myHostName);
+
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
 
-    _forwardHttpClient = HttpClients.createDefault();
+    int timeout = 60; // seconds
+    RequestConfig config = RequestConfig.custom().setConnectTimeout(timeout * 1000)
+        .setConnectionRequestTimeout(timeout * 1000).setSocketTimeout(timeout * 1000).build();
+    _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
   }
 
   @Override
@@ -88,24 +102,9 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return createZkRealm(realm);
     }
 
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url =
-        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
-    HttpPut putRequest = new HttpPut(url);
-    try {
-      HttpResponse response = _forwardHttpClient.execute(putRequest);
-      if (response.getStatusLine().getStatusCode() != 201) {
-        HttpEntity respEntity = response.getEntity();
-        LOG.error("the forwarded request to leader has failed for addMetadataStoreRealm: {}",
-            respEntity != null ? EntityUtils.toString(respEntity) : "");
-        return false;
-      }
-    } catch (IOException e) {
-      LOG.error("the forwarded request to leader raised an exception for addMetadataStoreRealm", e);
-      return false;
-    }
-
-    return true;
+    String url_suffix = "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    return forwardRequestToLeader(url_suffix, "put", "addMetadataStoreRealm",
+        Response.Status.CREATED.getStatusCode());
   }
 
   @Override
@@ -117,25 +116,9 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
     }
 
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url =
-        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
-    HttpDelete deleteRequest = new HttpDelete(url);
-    try {
-      HttpResponse response = _forwardHttpClient.execute(deleteRequest);
-      if (response.getStatusLine().getStatusCode() != 200) {
-        HttpEntity respEntity = response.getEntity();
-        LOG.error("the forwarded request to leader has failed for deleteMetadataStoreRealm: {}",
-            respEntity != null ? EntityUtils.toString(respEntity) : "");
-        return false;
-      }
-    } catch (IOException e) {
-      LOG.error("the forwarded request to leader raised an exception for deleteMetadataStoreRealm",
-          e);
-      return false;
-    }
-
-    return true;
+    String url_suffix = "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    return forwardRequestToLeader(url_suffix, "delete", "deleteMetadataStoreRealm",
+        Response.Status.OK.getStatusCode());
   }
 
   @Override
@@ -157,7 +140,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         }
       }
 
-      // Add the sharding key to an empty ZNRecord
       ZNRecord znRecord;
       try {
         znRecord = _zkClient.readData(realmPath);
@@ -185,24 +167,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url =
-        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm
-            + "/sharding-keys/" + shardingKey;
-    HttpPut putRequest = new HttpPut(url);
-    try {
-      HttpResponse response = _forwardHttpClient.execute(putRequest);
-      if (response.getStatusLine().getStatusCode() != 201) {
-        HttpEntity respEntity = response.getEntity();
-        LOG.error("the forwarded request to leader has failed for addShardingKey: {}",
-            respEntity != null ? EntityUtils.toString(respEntity) : "");
-        return false;
-      }
-    } catch (IOException e) {
-      LOG.error("the forwarded request to leader raised an exception for addShardingKey", e);
-      return false;
-    }
-    return true;
+    String url_suffix =
+        "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
+            + shardingKey;
+    return forwardRequestToLeader(url_suffix, "put", "addShardingKey",
+        Response.Status.CREATED.getStatusCode());
   }
 
   @Override
@@ -234,25 +203,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url =
-        leaderHostName + "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm
-            + "/sharding-keys/" + shardingKey;
-    HttpDelete deleteRequest = new HttpDelete(url);
-    try {
-      HttpResponse response = _forwardHttpClient.execute(deleteRequest);
-      if (response.getStatusLine().getStatusCode() != 200) {
-        HttpEntity respEntity = response.getEntity();
-        LOG.error("the forwarded request to leader has failed for deleteShardingKey: {}",
-            respEntity != null ? EntityUtils.toString(respEntity) : "");
-        return false;
-      }
-    } catch (IOException e) {
-      LOG.error("the forwarded request to leader raised an exception for deleteShardingKey", e);
-      return false;
-    }
-
-    return true;
+    String url_suffix =
+        "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
+            + shardingKey;
+    return forwardRequestToLeader(url_suffix, "delete", "deleteShardingKey",
+        Response.Status.OK.getStatusCode());
   }
 
   @Override
@@ -310,7 +265,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     try {
       _forwardHttpClient.close();
     } catch (IOException e) {
-      LOG.error("HttpClient fails to close. ", e);
+      LOG.error("HttpClient failed to close. ", e);
     }
   }
 
@@ -331,6 +286,51 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
           new ZNRecord(realm));
     } catch (Exception e) {
       LOG.error("Failed to create ZkRealm: {}, Namespace: {}", realm, _namespace, e);
+      return false;
+    }
+
+    return true;
+  }
+
+  private boolean forwardRequestToLeader(String url_suffix, String request_method, String endPoint,
+      int expectedResponseCode) throws IllegalArgumentException {
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url = leaderHostName + url_suffix;
+    HttpUriRequest request;
+    switch (request_method) {
+      case "put":
+        request = new HttpPut(url);
+        break;
+      case "delete":
+        request = new HttpDelete(url);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported request_method: " + request_method);
+    }
+
+    return sendRequestToLeader(request, expectedResponseCode, endPoint, leaderHostName);
+  }
+
+  // Set to be protected for testing purposes
+  protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
+      String endPoint, String leaderHostName) {
+    try {
+      HttpResponse response = _forwardHttpClient.execute(request);
+      if (response.getStatusLine().getStatusCode() != expectedResponseCode) {
+        HttpEntity respEntity = response.getEntity();
+        String errorLog =
+            "The forwarded request to leader has failed for " + endPoint + ". Current hostname: "
+                + _myHostName + " Leader hostname: " + leaderHostName;
+        if (respEntity != null) {
+          errorLog += " Response: " + EntityUtils.toString(respEntity);
+        }
+        LOG.error(errorLog);
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error(
+          "The forwarded request to leader raised an exception for {}. Current hostname: {} Leader hostname: {}",
+          endPoint, _myHostName, leaderHostName, e);
       return false;
     }
 

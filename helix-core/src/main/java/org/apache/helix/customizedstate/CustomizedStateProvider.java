@@ -38,19 +38,31 @@ public class CustomizedStateProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
   private final HelixManager _helixManager;
   private final HelixDataAccessor _helixDataAccessor;
-  String _instanceName;
+  private String _instanceName;
 
   public CustomizedStateProvider(HelixManager helixManager, String instanceName) {
     _helixManager = helixManager;
     _instanceName = instanceName;
-    _helixDataAccessor  = _helixManager.getHelixDataAccessor();
+    _helixDataAccessor = _helixManager.getHelixDataAccessor();
   }
 
   /**
-   * Update the customized state based on the resource name and partition name
+   * Update a specific customized state based on the resource name and partition name. The
+   * customized state is input as a single string
    */
   public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
-      String partitionName, Map<String, String> customizedState) {
+      String partitionName, String customizedState) {
+    Map<String, String> customizedStateMap = new HashMap<>();
+    customizedStateMap.put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), customizedState);
+    updateCustomizedState(customizedStateName, resourceName, partitionName, customizedStateMap);
+  }
+
+  /**
+   * Update a specific customized state based on the resource name and partition name. . The
+   * customized state is input as a map
+   */
+  public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
+      String partitionName, Map<String, String> customizedStateMap) {
     PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
@@ -60,13 +72,13 @@ public class CustomizedStateProvider {
     if (existingState != null
         && existingState.getRecord().getMapFields().containsKey(partitionName)) {
       Map<String, String> existingMap = new HashMap<>();
-      for (String key : customizedState.keySet()) {
-        existingMap.put(key, customizedState.get(key));
+      for (String key : customizedStateMap.keySet()) {
+        existingMap.put(key, customizedStateMap.get(key));
       }
 
       mapFields.put(partitionName, existingMap);
     } else {
-      mapFields.put(partitionName, customizedState);
+      mapFields.put(partitionName, customizedStateMap);
     }
     record.setMapFields(mapFields);
     if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {

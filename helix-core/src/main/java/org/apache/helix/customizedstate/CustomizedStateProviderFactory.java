@@ -49,9 +49,8 @@ public class CustomizedStateProviderFactory {
   public CustomizedStateProvider buildCustomizedStateProvider(String instanceName) {
     if (_helixManager == null) {
       throw new HelixException("Helix Manager has not been set yet.");
-    } else {
-      return buildCustomizedStateProvider(_helixManager, instanceName);
     }
+    return buildCustomizedStateProvider(_helixManager, instanceName);
   }
 
   /**
@@ -66,12 +65,11 @@ public class CustomizedStateProviderFactory {
     synchronized (_customizedStateProviderMap) {
       if (_customizedStateProviderMap.get(instanceName) != null) {
         return _customizedStateProviderMap.get(instanceName);
-      } else {
-        CustomizedStateProvider customizedStateProvider =
-            new CustomizedStateProvider(helixManager, instanceName);
-        _customizedStateProviderMap.put(instanceName, customizedStateProvider);
-        return customizedStateProvider;
       }
+      CustomizedStateProvider customizedStateProvider =
+          new CustomizedStateProvider(helixManager, instanceName);
+      _customizedStateProviderMap.put(instanceName, customizedStateProvider);
+      return customizedStateProvider;
     }
   }
 

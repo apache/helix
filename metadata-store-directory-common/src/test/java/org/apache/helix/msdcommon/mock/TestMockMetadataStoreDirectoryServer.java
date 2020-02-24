@@ -22,7 +22,9 @@ package org.apache.helix.msdcommon.mock;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
@@ -55,10 +57,33 @@ public class TestMockMetadataStoreDirectoryServer {
     server.startServer();
     CloseableHttpClient httpClient = HttpClients.createDefault();
 
-    // Send a GET request for all realms
+    // Send a GET request for all routing data
     HttpGet getRequest = new HttpGet(
-        endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT);
+        endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace + "/"
+            + MetadataStoreRoutingConstants.ROUTING_DATA);
+    try {
+      CloseableHttpResponse getResponse = httpClient.execute(getRequest);
+      Map<String, Object> resultMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      List<Map<String, Object>> routingDataList =
+          (List<Map<String, Object>>) resultMap.get(MetadataStoreRoutingConstants.ROUTING_DATA);
+      Collection<String> allRealms = routingDataList.stream().map(mapEntry -> (String) mapEntry
+          .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM))
+          .collect(Collectors.toSet());
+      Assert.assertEquals(allRealms, routingData.keySet());
+      Map<String, List<String>> retrievedRoutingData = routingDataList.stream().collect(Collectors
+          .toMap(mapEntry -> (String) mapEntry
+                  .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
+              mapEntry -> (List<String>) mapEntry
+                  .get(MetadataStoreRoutingConstants.SHARDING_KEYS)));
+      Assert.assertEquals(retrievedRoutingData, routingData);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    // Send a GET request for all realms
+    getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+        + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT);
     try {
       CloseableHttpResponse getResponse = httpClient.execute(getRequest);
       Map<String, Collection<String>> allRealmsMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER

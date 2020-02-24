@@ -68,7 +68,4 @@ public class MetadataStoreRoutingConstants {
 
   // MSDS resource getAllRealms endpoint string
   public static final String MSDS_GET_ALL_REALMS_ENDPOINT = "/metadata-store-realms";
-
-  // MSDS resource getShardingKeys endpoint string
-  public static final String MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT = "/sharding-keys";
 }

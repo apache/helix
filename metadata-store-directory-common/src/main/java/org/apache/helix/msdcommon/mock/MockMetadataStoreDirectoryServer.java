@@ -23,9 +23,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -112,10 +115,24 @@ public class MockMetadataStoreDirectoryServer {
    * Dynamically generates HTTP server contexts based on the routing data given.
    */
   private void generateContexts() {
+    // Get all routing data endpoint
+    // Get the result to be in the MetadataStoreShardingKeysByRealm format
+    List<Map<String, Object>> result = _routingDataMap.entrySet().stream().map(entry -> ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, entry.getKey(),
+            MetadataStoreRoutingConstants.SHARDING_KEYS, entry.getValue()))
+        .collect(Collectors.toList());
+    _server
+        .createContext(REST_PREFIX + _namespace + "/" + MetadataStoreRoutingConstants.ROUTING_DATA,
+            createHttpHandler(ImmutableMap
+                .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+                    MetadataStoreRoutingConstants.ROUTING_DATA, result)));
+
+    // Get all realms endpoint
     _server.createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT, createHttpHandler(
         ImmutableMap
             .of(MetadataStoreRoutingConstants.METADATA_STORE_REALMS, _routingDataMap.keySet())));
 
+    // Get all sharding keys for a realm endpoint
     _routingDataMap.forEach((zkRealm, shardingKeyList) -> _server
         .createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT + "/" + zkRealm,
             createHttpHandler(ImmutableMap

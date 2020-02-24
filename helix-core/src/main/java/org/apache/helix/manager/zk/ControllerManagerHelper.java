@@ -81,6 +81,8 @@ public class ControllerManagerHelper {
       _manager.addControllerListener(controller);
       _manager.addInstanceConfigChangeListener(controller);
       _manager.addResourceConfigChangeListener(controller);
+      _manager.addCustomizedStateAggregationConfigChangeListener(controller);
+
       _manager.addClusterfigChangeListener(controller);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);

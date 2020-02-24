@@ -743,6 +743,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(path);
     path = PropertyPathBuilder.resourceConfig(clusterName);
     _zkClient.createPersistent(path);
+    path = PropertyPathBuilder.customizedStateAggregationConfig(clusterName);
+    _zkClient.createPersistent(path);
     // PROPERTY STORE
     path = PropertyPathBuilder.propertyStore(clusterName);
     _zkClient.createPersistent(path);
@@ -752,6 +754,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(PropertyPathBuilder.instance(clusterName));
     // External view
     _zkClient.createPersistent(PropertyPathBuilder.externalView(clusterName));
+    // Customized view
+    _zkClient.createPersistent(PropertyPathBuilder.customizedView(clusterName));
     // State model definition
     _zkClient.createPersistent(PropertyPathBuilder.stateModelDef(clusterName));
 

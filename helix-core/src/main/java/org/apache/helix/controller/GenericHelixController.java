@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.Sets;
+import java.util.stream.Collectors;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -47,6 +48,8 @@ import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -67,6 +70,8 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CompatibilityCheckStage;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.CustomizedStateComputationStage;
+import org.apache.helix.controller.stages.CustomizedViewComputeStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MaintenanceRecoveryStage;
@@ -87,6 +92,8 @@ import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -115,7 +122,9 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * 5. send messages
  */
 public class GenericHelixController implements IdealStateChangeListener,
-    LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
+                                               LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
+                                               CustomizedStateChangeListener,
+                                               CustomizedStateAggregationConfigChangeListener,
     ControllerChangeListener, InstanceConfigChangeListener, ResourceConfigChangeListener,
     ClusterConfigChangeListener {
   private static final Logger logger =
@@ -403,6 +412,7 @@ public class GenericHelixController implements IdealStateChangeListener,
       dataPreprocess.addStage(new ResourceComputationStage());
       dataPreprocess.addStage(new ResourceValidationStage());
       dataPreprocess.addStage(new CurrentStateComputationStage());
+      dataPreprocess.addStage(new CustomizedStateComputationStage());
       dataPreprocess.addStage(new TopStateHandoffReportStage());
 
       // rebalance pipeline
@@ -423,6 +433,10 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline externalViewPipeline = new Pipeline(pipelineName);
       externalViewPipeline.addStage(new ExternalViewComputeStage());
 
+      // customized state view generation
+      Pipeline customizedViewPipeline = new Pipeline(pipelineName);
+      customizedViewPipeline.addStage(new CustomizedViewComputeStage());
+
       // backward compatibility check
       Pipeline liveInstancePipeline = new Pipeline(pipelineName);
       liveInstancePipeline.addStage(new CompatibilityCheckStage());
@@ -431,16 +445,31 @@ public class GenericHelixController implements IdealStateChangeListener,
       Pipeline autoExitMaintenancePipeline = new Pipeline(pipelineName);
       autoExitMaintenancePipeline.addStage(new MaintenanceRecoveryStage());
 
-      registry.register(ClusterEventType.IdealStateChange, dataRefresh, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
-      registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh, autoExitMaintenancePipeline, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.LiveInstanceChange, dataRefresh, autoExitMaintenancePipeline, liveInstancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
-      registry.register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess, rebalancePipeline);
-      registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, externalViewPipeline, rebalancePipeline);
-      registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh, autoExitMaintenancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
-      registry.register(ClusterEventType.OnDemandRebalance, dataRefresh, autoExitMaintenancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.IdealStateChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess,
+          externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.ClusterConfigChange, dataRefresh,
+          autoExitMaintenancePipeline, dataPreprocess, rebalancePipeline);
+      registry.register(ClusterEventType.LiveInstanceChange, dataRefresh,
+          autoExitMaintenancePipeline, liveInstancePipeline, dataPreprocess, externalViewPipeline, customizedViewPipeline,
+          rebalancePipeline);
+      registry.register(ClusterEventType.MessageChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
+      registry.register(ClusterEventType.Resume, dataRefresh, dataPreprocess, externalViewPipeline,
+          rebalancePipeline);
+      registry.register(ClusterEventType.PeriodicalRebalance, dataRefresh,
+          autoExitMaintenancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.OnDemandRebalance, dataRefresh,
+          autoExitMaintenancePipeline, dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.CustomizedStateChange, dataRefresh, dataPreprocess,
+          customizedViewPipeline);
+      registry.register(ClusterEventType.CustomizeStateAggregationConfigChange, dataRefresh,
+          dataPreprocess, customizedViewPipeline);
       return registry;
     }
   }
@@ -777,6 +806,17 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   @Override
   @PreFetch(enabled = false)
+  public void onCustomizedStateChange(String instanceName, List<CustomizedState> statesInfo,
+      NotificationContext changeContext) {
+    logger.info("START: GenericClusterController.onCustomizedStateChange()");
+    notifyCaches(changeContext, ChangeType.CUSTOMIZED_STATE);
+    pushToEventQueues(ClusterEventType.CustomizedStateChange, changeContext, Collections
+        .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    logger.info("END: GenericClusterController.onCustomizedStateChange()");
+  }
+
+  @Override
+  @PreFetch(enabled = false)
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onMessage() for cluster " + _clusterName);
@@ -897,6 +937,48 @@ public class GenericHelixController implements IdealStateChangeListener,
         Collections.<String, Object>emptyMap());
     logger
         .info("END: GenericClusterController.onResourceConfigChange() for cluster " + _clusterName);
+  }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onCustomizedStateAggregationConfigChange(
+      CustomizedStateAggregationConfig customizedStateAggregationConfig,
+      NotificationContext context) {
+    HelixManager helixManager = context.getManager();
+    // add customized state listeners for existing instances
+    List<String> customizedStates = new ArrayList<>();
+
+    if (helixManager.getConfigAccessor()
+        .getCustomizedStateAggregationConfig(_clusterName) != null) {
+      customizedStates = helixManager.getConfigAccessor()
+          .getCustomizedStateAggregationConfig(_clusterName).getAggregationEnabledTypes();
+    }
+
+    Map<String, LiveInstance> liveInstanceMap = helixManager.getHelixDataAccessor()
+        .getChildValuesMap(helixManager.getHelixDataAccessor().keyBuilder().liveInstances());
+    List<String> liveInstances = liveInstanceMap.values().stream()
+        .map(liveInstance -> liveInstance.getInstanceName()).collect(Collectors.toList());
+
+    for (String customizedState : customizedStates) {
+      for (String instance : liveInstances) {
+        try {
+          helixManager.addCustomizedStateChangeListener(this, instance, customizedState);
+          logger.info(instance + " added customized state listener for " + customizedState
+              + ", listener: " + this);
+        } catch (Exception e) {
+          logger.error("Fail to add customized state listener for instance: " + instance, e);
+        }
+      }
+    }
+    logger.info(
+        "START: GenericClusterController.onCustomizedStateAggregationConfigChange() for cluster "
+            + _clusterName);
+    notifyCaches(context, ChangeType.CUSTOMIZED_STATE_AGGREGATION_CONFIG);
+    pushToEventQueues(ClusterEventType.CustomizeStateAggregationConfigChange, context,
+        Collections.<String, Object> emptyMap());
+    logger.info(
+        "END: GenericClusterController.onCustomizedStateAggregationConfigChange() for cluster "
+            + _clusterName);
   }
 
   @Override
@@ -1068,6 +1150,25 @@ public class GenericHelixController implements IdealStateChangeListener,
                 + ", listener: " + this);
           } catch (Exception e) {
             logger.error("Fail to add message listener for instance: " + instance, e);
+          }
+        }
+      }
+
+      for (String instance : curInstances.keySet()) {
+        if (lastInstances == null || !lastInstances.containsKey(instance)) {
+          try {
+            // add customized state listeners for new instances
+            List<String> customizedStates = new ArrayList<>();
+            if (manager.getConfigAccessor().getCustomizedStateAggregationConfig(_clusterName) != null) {
+              customizedStates = manager.getConfigAccessor().getCustomizedStateAggregationConfig(_clusterName).getAggregationEnabledTypes();
+            }
+            for (String customizedState: customizedStates) {
+              manager.addCustomizedStateChangeListener(this, instance, customizedState);
+              logger.info(
+                  manager.getInstanceName() + " added customized state listener for " + instance + ", listener: " + this);
+            }
+          } catch (Exception e) {
+            logger.error("Fail to add customized state listener for instance: " + instance, e);
           }
         }
       }

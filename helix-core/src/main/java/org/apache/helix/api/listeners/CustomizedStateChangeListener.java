@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.controller.stages;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,23 +19,23 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  CustomizedStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  CustomizeStateAggregationConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  TargetExternalViewChange,
-  Resume,
-  PeriodicalRebalance,
-  OnDemandRebalance,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+import java.util.List;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.CustomizedState;
+
+
+/**
+ * Interface to implement to respond to changes in the current state
+ */
+public interface CustomizedStateChangeListener {
+
+  /**
+   * Invoked when customized state changes
+   * @param instanceName name of the instance whose state changed
+   * @param statesInfo a list of the customized states
+   * @param changeContext the change event and state
+   */
+  void onCustomizedStateChange(String instanceName, List<CustomizedState> statesInfo,
+      NotificationContext changeContext);
+
 }

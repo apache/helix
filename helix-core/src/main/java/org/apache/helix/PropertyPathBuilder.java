@@ -96,6 +96,9 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 3, "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}/{customizedStateName}");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,
         "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
@@ -268,6 +271,18 @@ public class PropertyPathBuilder {
     return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
   }
 
+  public static String customizedView(String clusterName) {
+    return String.format("/%s/CUSTOMIZEDVIEW", clusterName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName) {
+    return String.format("/%s/EXTERNALVIEW/%s", clusterName, customizedStateName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName, String resourceName) {
+    return String.format("/%s/EXTERNALVIEW/%s/%s", clusterName, customizedStateName, resourceName);
+  }
+
   public static String targetExternalView(String clusterName) {
     return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
   }
@@ -371,6 +386,10 @@ public class PropertyPathBuilder {
 
   public static String resourceConfig(String clusterName) {
     return String.format("/%s/CONFIGS/RESOURCE", clusterName);
+  }
+
+  public static String customizedStateAggregationConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/CUSTOMIZED_STATE_AGGREGATION", clusterName);
   }
 
   public static String controller(String clusterName) {

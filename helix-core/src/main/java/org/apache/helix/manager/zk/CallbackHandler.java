@@ -49,6 +49,8 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -61,6 +63,8 @@ import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -72,18 +76,8 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.HelixConstants.ChangeType.CLUSTER_CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.CONTROLLER;
-import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
-import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.INSTANCE_CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
-import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
+import static org.apache.helix.HelixConstants.ChangeType.*;
+
 
 @PreFetch(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
@@ -271,6 +265,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     case RESOURCE_CONFIG:
       listenerClass = ResourceConfigChangeListener.class;
       break;
+    case CUSTOMIZED_STATE_AGGREGATION_CONFIG:
+      listenerClass = CustomizedStateAggregationConfigChangeListener.class;
+      break;
     case CONFIG:
       listenerClass = ConfigChangeListener.class;
       break;
@@ -279,7 +276,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       break;
     case CURRENT_STATE:
       listenerClass = CurrentStateChangeListener.class;
-      ;
+      break;
+    case CUSTOMIZED_STATE:
+      listenerClass = CustomizedStateChangeListener.class;
       break;
     case MESSAGE:
     case MESSAGES_CONTROLLER:
@@ -391,6 +390,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         List<ResourceConfig> configs = preFetch(_propertyKey);
         listener.onResourceConfigChange(configs, changeContext);
 
+      } else if (_changeType == CUSTOMIZED_STATE_AGGREGATION_CONFIG) {
+        CustomizedStateAggregationConfigChangeListener listener = (CustomizedStateAggregationConfigChangeListener) _listener;
+        CustomizedStateAggregationConfig config = null;
+        if (_preFetchEnabled) {
+          config = _accessor.getProperty(_propertyKey);
+        }
+        listener.onCustomizedStateAggregationConfigChange(config, changeContext);
+
       } else if (_changeType == CLUSTER_CONFIG) {
         ClusterConfigChangeListener listener = (ClusterConfigChangeListener) _listener;
         ClusterConfig config = null;
@@ -416,6 +423,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         List<CurrentState> currentStates = preFetch(_propertyKey);
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
+
+      } else if (_changeType == CUSTOMIZED_STATE) {
+        CustomizedStateChangeListener customizedStateChangeListener =
+            (CustomizedStateChangeListener) _listener;
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+        List<CustomizedState> customizedStates = preFetch(_propertyKey);
+        customizedStateChangeListener.onCustomizedStateChange(instanceName, customizedStates, changeContext);
 
       } else if (_changeType == MESSAGE) {
         MessageListener messageListener = (MessageListener) _listener;
@@ -521,6 +535,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         try {
           switch (_changeType) {
           case CURRENT_STATE:
+          case CUSTOMIZED_STATE:
           case IDEAL_STATE:
           case EXTERNAL_VIEW:
           case TARGET_EXTERNAL_VIEW: {

@@ -30,10 +30,12 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
+import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
@@ -52,6 +54,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Resource control specific property caches
   private final PropertyCache<ExternalView> _externalViewCache;
   private final PropertyCache<ExternalView> _targetExternalViewCache;
+  private final Map<String, CustomizedViewCache> _customizedViewCacheMap;
 
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
@@ -106,6 +109,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     _idealMappingCache = new HashMap<>();
     _missingTopStateMap = new HashMap<>();
     _lastTopStateLocationMap = new HashMap<>();
+    _customizedViewCacheMap = new HashMap<>();
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
@@ -125,6 +129,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // Refresh resource controller specific property caches
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
+    refreshCustomizedViewMap(accessor);
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: ResourceControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
         getClusterName(), startTime, System.currentTimeMillis() - startTime, getPipelineName()));
@@ -148,10 +153,27 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   private void refreshTargetExternalViews(final HelixDataAccessor accessor) {
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW).getAndSet(false)) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
       if (getClusterConfig() != null && getClusterConfig().isTargetExternalViewEnabled()) {
         // Only refresh with data accessor for the first time
         _targetExternalViewCache.refresh(accessor);
+      }
+    }
+  }
+
+  public void refreshCustomizedViewMap(final HelixDataAccessor accessor) {
+    // As we are not listening on customized view change, customized view will be
+    // refreshed once during the cache's first refresh() call, or when full refresh is required
+    List<String> stateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
+      for (String stateType: stateTypes) {
+        _customizedViewCacheMap.get(stateType).refresh(accessor);
+      }
+    }
+    for (String stateType : _customizedViewCacheMap.keySet()) {
+      if (!stateTypes.contains(stateType)) {
+        logger.info("Remove customizedView for state: " + stateType);
+        _customizedViewCacheMap.remove(stateType);
       }
     }
   }
@@ -183,6 +205,14 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
+   * Get local cached customized view map
+   * @return
+   */
+  public Map<String, CustomizedViewCache> getCustomizedViewCacheMap() {
+    return _customizedViewCacheMap;
+  }
+
+  /**
    * Remove dead external views from map
    * @param resourceNames
    */
@@ -190,6 +220,17 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void removeExternalViews(List<String> resourceNames) {
     for (String resourceName : resourceNames) {
       _externalViewCache.deletePropertyByName(resourceName);
+    }
+  }
+
+  /**
+   * Remove dead customized views for certain state types from map
+   * @param stateTypeNames
+   */
+
+  public void removeCustomizedViewTypes(List<String> stateTypeNames) {
+    for (String stateType : stateTypeNames) {
+      _customizedViewCacheMap.remove(stateType);
     }
   }
 

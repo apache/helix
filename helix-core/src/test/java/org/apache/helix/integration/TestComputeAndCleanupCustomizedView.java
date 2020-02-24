@@ -9,7 +9,7 @@ package org.apache.helix.integration;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,8 +19,11 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 
+import java.util.List;
+import java.util.Map;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -31,20 +34,29 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedView;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static java.lang.Thread.*;
+
+
 /**
- * Test clean external-view - if current-state is remove externally, controller should remove the
- * orphan external-view
+ * Test compute and clean customized view - if customized state is remove externally, controller should remove the
+ * orphan customized view
  */
-public class TestCleanupExternalView extends ZkUnitTestBase {
+public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
+
+  private final String RESOURCE_NAME = "TestDB0";
+  private final String PARTITION_NAME = "TestDB0_0";
+  private final String CUSTOMIZED_STATE_NAME = "customizedState1";
+  private final String INSTANCE_NAME1 = "localhost_12918";
+  private final String INSTANCE_NAME2 = "localhost_12919";
+
   @Test
   public void test() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -74,51 +86,76 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    // disable controller
-    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
-    admin.enableCluster(clusterName, false);
-    // wait all pending zk-events being processed, otherwise remove current-state will cause
-    // controller send O->S message
-    ZkTestHelper.tryWaitZkEventsCleaned(controller.getZkClient());
-    // System.out.println("paused controller");
-
-    // drop resource
-    admin.dropResource(clusterName, "TestDB0");
-
-    // delete current-state manually, controller shall remove external-view when cluster is enabled
-    // again
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // System.out.println("remove current-state");
-    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
-    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getEphemeralOwner(),
-        "TestDB0"));
-    liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12919"));
-    accessor.removeProperty(
-        keyBuilder.currentState("localhost_12919", liveInstance.getEphemeralOwner(), "TestDB0"));
+    CustomizedStateAggregationConfig config = new CustomizedStateAggregationConfig();
+    List<String> aggregationEnabledTypes = new ArrayList<>();
+    aggregationEnabledTypes.add(CUSTOMIZED_STATE_NAME);
+    config.setAggregationEnabledTypes(aggregationEnabledTypes);
 
-    // re-enable controller shall remove orphan external-view
+    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(), config);
+
+    CustomizedState customizedState = new CustomizedState(RESOURCE_NAME);
+    customizedState.setState(PARTITION_NAME, "STARTED");
+    accessor.setProperty(
+        keyBuilder.customizedState(INSTANCE_NAME1, CUSTOMIZED_STATE_NAME, RESOURCE_NAME),
+        customizedState);
+
+    CustomizedView customizedView = null;
+    int i = 0;
+    while (true)  {
+      sleep(10000);
+      try {
+        customizedView = accessor.getProperty(keyBuilder.customizedView(CUSTOMIZED_STATE_NAME, RESOURCE_NAME));
+        Map<String, String> stateMap = customizedView.getRecord().getMapField(PARTITION_NAME);
+        if (stateMap.get(INSTANCE_NAME1).equals("STARTED")) {
+          System.out.println("succeed");
+          break;
+        }
+      } catch (Exception e) {
+          i ++;
+          if (i >= 10) {
+            Assert.fail("The customized view is not correct");
+          }
+      }
+    }
+
+    // disable controller
+    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.enableCluster(clusterName, false);
+    ZkTestHelper.tryWaitZkEventsCleaned(controller.getZkClient());
+
+    // drop resource
+    admin.dropResource(clusterName, RESOURCE_NAME);
+
+    // delete customized state manually, controller shall remove customized view when cluster is enabled again
+
+    accessor.removeProperty(
+        keyBuilder.customizedState(INSTANCE_NAME1, CUSTOMIZED_STATE_NAME, RESOURCE_NAME));
+    accessor.removeProperty(
+        keyBuilder.currentState(INSTANCE_NAME2, CUSTOMIZED_STATE_NAME, RESOURCE_NAME));
+
+    // re-enable controller shall remove orphan external view
     // System.out.println("re-enabling controller");
     admin.enableCluster(clusterName, true);
 
-    ExternalView externalView = null;
-    for (int i = 0; i < 10; i++) {
-      Thread.sleep(100);
-      externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
-      // System.out.println("externalView: " + externalView);
-      if (externalView == null) {
+    customizedView = null;
+    for (i = 0; i < 10; i++) {
+      sleep(100);
+      customizedView = accessor.getProperty(keyBuilder.customizedView(CUSTOMIZED_STATE_NAME));
+      if (customizedView == null) {
         break;
       }
     }
 
-    Assert.assertNull(externalView, "external-view for TestDB0 should be removed, but was: "
-        + externalView);
+    Assert.assertNull(customizedView,
+        "customized view for TestDB0 should be removed, but was: " + customizedView);
 
     // clean up
     controller.syncStop();
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
       participants[i].syncStop();
     }
     TestHelper.dropCluster(clusterName, _gZkClient);

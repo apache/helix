@@ -310,7 +310,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       admin.removeCustomizedStateAggregationConfig(clusterId);
     } catch (Exception ex) {
-      _logger.error("Cannot remove CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
+      _logger.error("Cannot remove CustomizedStateAggregationConfig from cluster: " + clusterId, ex);
       return serverError(ex);
     }
 
@@ -346,7 +346,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
-      command = Command.update; // Default behavior
+      command = Command.Add; // Default behavior
     } else {
       try {
         command = getCommand(commandStr);
@@ -362,7 +362,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       case delete:
         admin.removeTypeFromCustomizedStateAggregationConfig(clusterId, type);
         break;
-      case update:
+      case Add:
         admin.addTypeToCustomizedStateAggregationConfig(clusterId, type);
         break;
       default:

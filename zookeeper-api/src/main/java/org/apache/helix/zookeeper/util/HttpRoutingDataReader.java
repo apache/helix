@@ -110,8 +110,8 @@ public class HttpRoutingDataReader {
   private static Map<String, List<String>> getAllRoutingData(CloseableHttpClient httpClient,
       String msdsEndpoint)
       throws IOException {
-    HttpGet requestAllData =
-        new HttpGet(msdsEndpoint + "/" + MetadataStoreRoutingConstants.ROUTING_DATA);
+    HttpGet requestAllData = new HttpGet(
+        msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
     CloseableHttpResponse response = httpClient.execute(requestAllData);
     HttpEntity entity = response.getEntity();
     if (entity != null) {

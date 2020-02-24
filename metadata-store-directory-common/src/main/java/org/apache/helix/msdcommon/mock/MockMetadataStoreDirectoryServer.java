@@ -121,11 +121,11 @@ public class MockMetadataStoreDirectoryServer {
         .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, entry.getKey(),
             MetadataStoreRoutingConstants.SHARDING_KEYS, entry.getValue()))
         .collect(Collectors.toList());
-    _server
-        .createContext(REST_PREFIX + _namespace + "/" + MetadataStoreRoutingConstants.ROUTING_DATA,
-            createHttpHandler(ImmutableMap
-                .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
-                    MetadataStoreRoutingConstants.ROUTING_DATA, result)));
+    _server.createContext(
+        REST_PREFIX + _namespace + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT,
+        createHttpHandler(ImmutableMap
+            .of(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_NAMESPACE, _namespace,
+                MetadataStoreRoutingConstants.ROUTING_DATA, result)));
 
     // Get all realms endpoint
     _server.createContext(REST_PREFIX + _namespace + ZK_REALM_ENDPOINT, createHttpHandler(

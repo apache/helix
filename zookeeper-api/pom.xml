@@ -64,12 +64,6 @@ under the License.
       <artifactId>httpclient</artifactId>
       <version>4.5.11</version>
     </dependency>
-    <!-- jcabi-aspects is used for @RetryOnFailure -->
-    <dependency>
-      <groupId>com.jcabi</groupId>
-      <artifactId>jcabi-aspects</artifactId>
-      <version>0.22.6</version>
-    </dependency>
     <dependency>
       <groupId>org.codehaus.jackson</groupId>
       <artifactId>jackson-mapper-asl</artifactId>
@@ -128,31 +122,6 @@ under the License.
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <!-- For @RetryOnFailure -->
-      <plugin>
-        <groupId>com.jcabi</groupId>
-        <artifactId>jcabi-maven-plugin</artifactId>
-        <version>0.14.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>ajc</goal>
-            </goals>
-          </execution>
-        </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjtools</artifactId>
-            <version>1.9.1</version>
-          </dependency>
-          <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <version>1.9.1</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>

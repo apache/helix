@@ -22,6 +22,7 @@ package org.apache.helix.zookeeper.util;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,8 +76,8 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   @Test
   public void testGetRawRoutingData() throws IOException {
     Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
-    _testRawRoutingData
-        .forEach((realm, keys) -> Assert.assertEquals(rawRoutingData.get(realm), keys));
+    _testRawRoutingData.forEach((realm, keys) -> Assert
+        .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
   @Test(dependsOnMethods = "testGetRawRoutingData")
@@ -113,6 +114,12 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     // Make sure the results don't contain the new realm
     Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
     Assert.assertFalse(rawRoutingData.containsKey(newRealm));
+
+    // Remove newRealm and check for equality
+    _testRawRoutingData.remove(newRealm);
+    Assert.assertEquals(rawRoutingData.keySet(), _testRawRoutingData.keySet());
+    _testRawRoutingData.forEach((realm, keys) -> Assert
+        .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
 
     MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");

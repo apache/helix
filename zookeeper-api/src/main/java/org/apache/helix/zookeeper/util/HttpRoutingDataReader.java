@@ -32,7 +32,6 @@ import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultBackoffStrategy;
@@ -70,9 +69,9 @@ public class HttpRoutingDataReader {
     if (_rawRoutingData == null) {
       synchronized (HttpRoutingDataReader.class) {
         if (_rawRoutingData == null) {
-          CloseableHttpResponse routingDataResponse = getAllRoutingData();
+          String routingDataJson = getAllRoutingData();
           // Update the reference if reading routingData over HTTP is successful
-          _rawRoutingData = parseRoutingData(routingDataResponse);
+          _rawRoutingData = parseRoutingData(routingDataJson);
         }
       }
     }
@@ -102,7 +101,7 @@ public class HttpRoutingDataReader {
    * @return
    * @throws IOException
    */
-  private static CloseableHttpResponse getAllRoutingData() throws IOException {
+  private static String getAllRoutingData() throws IOException {
     // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point of failure if it's backed by a single IP address/host
     // Retry count is 3 by default.
     HttpGet requestAllData = new HttpGet(
@@ -116,22 +115,25 @@ public class HttpRoutingDataReader {
     try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
         .setConnectionBackoffStrategy(new DefaultBackoffStrategy())
         .setRetryHandler(new DefaultHttpRequestRetryHandler()).build()) {
-      return httpClient.execute(requestAllData);
+      // Return the JSON because try-resources clause closes the CloseableHttpResponse
+      HttpEntity entity = httpClient.execute(requestAllData).getEntity();
+      if (entity == null) {
+        throw new IOException("Response's entity is null!");
+      }
+      return EntityUtils.toString(entity, "UTF-8");
     }
   }
 
   /**
    * Returns the raw routing data in a Map< ZkRealm, List of shardingKeys > format.
-   * @param routingDataResponse
+   * @param routingDataJson
    * @return
    */
-  private static Map<String, List<String>> parseRoutingData(
-      CloseableHttpResponse routingDataResponse) throws IOException {
-    HttpEntity entity = routingDataResponse.getEntity();
-    if (entity != null) {
-      String resultStr = EntityUtils.toString(entity, "UTF-8");
+  private static Map<String, List<String>> parseRoutingData(String routingDataJson)
+      throws IOException {
+    if (routingDataJson != null) {
       @SuppressWarnings("unchecked")
-      Map<String, Object> resultMap = new ObjectMapper().readValue(resultStr, Map.class);
+      Map<String, Object> resultMap = new ObjectMapper().readValue(routingDataJson, Map.class);
       @SuppressWarnings("unchecked")
       List<Map<String, Object>> routingDataList =
           (List<Map<String, Object>>) resultMap.get(MetadataStoreRoutingConstants.ROUTING_DATA);

@@ -19,10 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.Map;
-
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class ClusterEvent {
   @Deprecated
   public ClusterEvent(ClusterEventType eventType) {
     _eventType = eventType;
-    _eventAttributeMap = new HashMap<>();
+    _eventAttributeMap = new ConcurrentHashMap<>();
     _creationTime = System.currentTimeMillis();
     _eventId = UUID.randomUUID().toString();
   }
@@ -50,7 +50,7 @@ public class ClusterEvent {
     _clusterName = clusterName;
     _eventType = eventType;
 
-    _eventAttributeMap = new HashMap<>();
+    _eventAttributeMap = new ConcurrentHashMap<>();
     _creationTime = System.currentTimeMillis();
     _eventId = eventId;
   }

@@ -88,10 +88,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
         .groupingBy(Map.Entry::getValue,
             Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
     _testRawRoutingData.forEach((realm, keys) -> {
-      // Two way containsAll because AssertEquals on two set collections is buggy in that
-      // it will fail if the ordering of elements is not equal (we just want to compare contents)
-      Assert.assertTrue(groupedMappings.get(realm).containsAll(keys));
-      Assert.assertTrue(keys.containsAll(groupedMappings.get(realm)));
+      Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys));
     });
   }
 

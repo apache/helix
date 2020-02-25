@@ -52,10 +52,5 @@ public interface RealmAwareZkClientFactory {
       MetadataStoreRoutingData metadataStoreRoutingData) {
     return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig(),
         metadataStoreRoutingData);
-    /*
-  default RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
-    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig());
-  */
   }
 }

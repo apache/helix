@@ -20,6 +20,7 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
@@ -55,6 +56,8 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   private final HelixZkClient _innerSharedZkClient;
   private final String _zkRealmShardingKey;
+  private final  MetadataStoreRoutingData _metadataStoreRoutingData;
+  private final String _zkRealmAddress;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
@@ -65,10 +68,20 @@ public class SharedZkClient implements RealmAwareZkClient {
     }
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
 
+    if (metadataStoreRoutingData == null) {
+      throw new IllegalArgumentException("MetadataStoreRoutingData cannot be null!");
+    }
+    _metadataStoreRoutingData = metadataStoreRoutingData;
+
     // TODO: use _zkRealmShardingKey to generate zkRealmAddress. This can done the same way of pull 765 once @hunter check it in.
     // Get the ZkRealm address based on the ZK path sharding key
-    String zkRealmAddress = null;
-    zkRealmAddress = metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
+    String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
+    if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {
+      throw new IllegalArgumentException(
+          "ZK realm address for the given ZK realm sharding key is invalid! ZK realm address: "
+              + zkRealmAddress + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
+    _zkRealmAddress = zkRealmAddress;
 
     // Create an InnerSharedZkClient to actually serve ZK requests
     // TODO: Rename HelixZkClient in the future or remove it entirely - this will be a backward-compatibility breaking change because HelixZkClient is being used by Helix users.
@@ -93,10 +106,17 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   private void checkPathAndThrow(String path) {
-    if (!checkIfPathBelongsToZkRealm(path)) {
+    // TODO: replace with the singleton MetadataStoreRoutingData
+    try {
+      String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+      if (!_zkRealmAddress.equals(zkRealmForPath)) {
+        throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
+            + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
+            + _zkRealmShardingKey + " for this DedicatedZkClient!");
+      }
+    } catch (NoSuchElementException e) {
       throw new IllegalArgumentException(
-          "The given path does not map to the ZK realm for this DedicatedZkClient! Path: " + path
-              + " ZK realm sharding key: " + _zkRealmShardingKey);
+          "Given path: " + path + " does not have a valid sharding key!");
     }
   }
 

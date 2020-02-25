@@ -15,7 +15,7 @@ public class TestSharedZkClient extends RealmAwareZkClientTestBase {
   public void beforeClass()
       throws Exception {
     super.beforeClass();
-    // Set the factory to DedicatedZkClientFactory
+    // Set the factory to SharedZkClientFactory
     _realmAwareZkClientFactory = SharedZkClientFactory.getInstance();
   }
 

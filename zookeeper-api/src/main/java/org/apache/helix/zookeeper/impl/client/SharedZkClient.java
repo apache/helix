@@ -105,42 +105,27 @@ public class SharedZkClient implements RealmAwareZkClient {
         .buildZkClient(zkConnectionConfig, zkClientConfig);
   }
 
-  private void checkPathAndThrow(String path) {
-    // TODO: replace with the singleton MetadataStoreRoutingData
-    try {
-      String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
-      if (!_zkRealmAddress.equals(zkRealmForPath)) {
-        throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
-            + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
-            + _zkRealmShardingKey + " for this DedicatedZkClient!");
-      }
-    } catch (NoSuchElementException e) {
-      throw new IllegalArgumentException(
-          "Given path: " + path + " does not have a valid sharding key!");
-    }
-  }
-
   @Override
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.subscribeChildChanges(path, listener);
   }
 
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener listener) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.unsubscribeChildChanges(path, listener);
   }
 
   @Override
   public void subscribeDataChanges(String path, IZkDataListener listener) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.subscribeDataChanges(path, listener);
   }
 
   @Override
   public void unsubscribeDataChanges(String path, IZkDataListener listener) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.unsubscribeDataChanges(path, listener);
   }
 
@@ -161,77 +146,77 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   @Override
   public void createPersistent(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.createPersistent(path);
   }
 
   @Override
   public void createPersistent(String path, boolean createParents) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.createPersistent(path, createParents);
   }
 
   @Override
   public void createPersistent(String path, boolean createParents, List<ACL> acl) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.createPersistent(path, createParents, acl);
   }
 
   @Override
   public void createPersistent(String path, Object data) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.createPersistent(path, data);
   }
 
   @Override
   public void createPersistent(String path, Object data, List<ACL> acl) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.createPersistent(path, data, acl);
   }
 
   @Override
   public String createPersistentSequential(String path, Object data) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.createPersistentSequential(path, data);
   }
 
   @Override
   public String createPersistentSequential(String path, Object data, List<ACL> acl) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.createPersistentSequential(path, data, acl);
   }
 
   @Override
   public void createEphemeral(String path) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, List<ACL> acl) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, List<ACL> acl, String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public String create(String path, Object data, CreateMode mode) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     // delegate to _innerSharedZkClient is fine as _innerSharedZkClient would not allow creating ephemeral node.
     // this still keeps the same behavior.
     return _innerSharedZkClient.create(path, data, mode);
@@ -239,56 +224,56 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   @Override
   public String create(String path, Object datat, List<ACL> acl, CreateMode mode) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.create(path, datat, acl, mode);
   }
 
   @Override
   public void createEphemeral(String path, Object data) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, Object data, String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, Object data, List<ACL> acl) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public void createEphemeral(String path, Object data, List<ACL> acl, String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public String createEphemeralSequential(String path, Object data) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public String createEphemeralSequential(String path, Object data, List<ACL> acl) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public String createEphemeralSequential(String path, Object data, String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
@@ -296,159 +281,159 @@ public class SharedZkClient implements RealmAwareZkClient {
   public String createEphemeralSequential(String path, Object data, List<ACL> acl,
       String sessionId) {
     throw new UnsupportedOperationException(
-        "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
             + " is not supported.");
   }
 
   @Override
   public List<String> getChildren(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.getChildren(path);
   }
 
   @Override
   public int countChildren(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.countChildren(path);
   }
 
   @Override
   public boolean exists(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.exists(path);
   }
 
   @Override
   public Stat getStat(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.getStat(path);
   }
 
   @Override
   public boolean waitUntilExists(String path, TimeUnit timeUnit, long time) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.waitUntilExists(path, timeUnit, time);
   }
 
   @Override
   public void deleteRecursively(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.deleteRecursively(path);
   }
 
   @Override
   public boolean delete(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.delete(path);
   }
 
   @Override
   public <T> T readData(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.readData(path);
   }
 
   @Override
   public <T> T readData(String path, boolean returnNullIfPathNotExists) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.readData(path, returnNullIfPathNotExists);
   }
 
   @Override
   public <T> T readData(String path, Stat stat) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.readData(path, stat);
   }
 
   @Override
   public <T> T readData(String path, Stat stat, boolean watch) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.readData(path, stat, watch);
   }
 
   @Override
   public <T> T readDataAndStat(String path, Stat stat, boolean returnNullIfPathNotExists) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.readDataAndStat(path, stat, returnNullIfPathNotExists);
   }
 
   @Override
   public void writeData(String path, Object object) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.writeData(path, object);
   }
 
   @Override
   public <T> void updateDataSerialized(String path, DataUpdater<T> updater) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.updateDataSerialized(path, updater);
   }
 
   @Override
   public void writeData(String path, Object datat, int expectedVersion) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
   }
 
   @Override
   public Stat writeDataReturnStat(String path, Object datat, int expectedVersion) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
   }
 
   @Override
   public Stat writeDataGetStat(String path, Object datat, int expectedVersion) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
   }
 
   @Override
   public void asyncCreate(String path, Object datat, CreateMode mode,
       ZkAsyncCallbacks.CreateCallbackHandler cb) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.asyncCreate(path, datat, mode, cb);
   }
 
   @Override
   public void asyncSetData(String path, Object datat, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.asyncSetData(path, datat, version, cb);
   }
 
   @Override
   public void asyncGetData(String path, ZkAsyncCallbacks.GetDataCallbackHandler cb) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.asyncGetData(path, cb);
   }
 
   @Override
   public void asyncExists(String path, ZkAsyncCallbacks.ExistsCallbackHandler cb) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.asyncExists(path, cb);
   }
 
   @Override
   public void asyncDelete(String path, ZkAsyncCallbacks.DeleteCallbackHandler cb) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.asyncDelete(path, cb);
   }
 
   @Override
   public void watchForData(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     _innerSharedZkClient.watchForData(path);
   }
 
   @Override
   public List<String> watchForChilds(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.watchForChilds(path);
   }
 
   @Override
   public long getCreationTime(String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.getCreationTime(path);
   }
 
@@ -484,13 +469,13 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   @Override
   public byte[] serialize(Object data, String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.serialize(data, path);
   }
 
   @Override
   public <T> T deserialize(byte[] data, String path) {
-    checkPathAndThrow(path);
+    checkIfPathContainsShardingKey(path);
     return _innerSharedZkClient.deserialize(data, path);
   }
 
@@ -509,9 +494,18 @@ public class SharedZkClient implements RealmAwareZkClient {
     return _innerSharedZkClient.getZkSerializer();
   }
 
-  private boolean checkIfPathBelongsToZkRealm(String path) {
-    // TODO: Check if the path's sharding key equals the sharding key
-    // TODO: Implement this with TrieRoutingData
-    return true;
+  private void checkIfPathContainsShardingKey(String path) {
+    // TODO: replace with the singleton MetadataStoreRoutingData
+    try {
+      String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+      if (!_zkRealmAddress.equals(zkRealmForPath)) {
+        throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
+            + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
+            + _zkRealmShardingKey + " for this DedicatedZkClient!");
+      }
+    } catch (NoSuchElementException e) {
+      throw new IllegalArgumentException(
+          "Given path: " + path + " does not have a valid sharding key!");
+    }
   }
 }

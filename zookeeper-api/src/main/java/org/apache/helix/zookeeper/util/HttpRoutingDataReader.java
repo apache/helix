@@ -31,6 +31,7 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -43,6 +44,7 @@ import org.apache.http.util.EntityUtils;
 public class HttpRoutingDataReader {
   private static final String MSDS_ENDPOINT =
       System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
+  private static final int HTTP_TIMEOUT_IN_MS = 5000;
 
   /** Double-checked locking requires that the following fields be volatile */
   private static volatile Map<String, List<String>> _rawRoutingData;
@@ -60,8 +62,7 @@ public class HttpRoutingDataReader {
    * "metadata store sharding keys", where the sharding keys in a value list all route to
    * the realm address in the key disallows a meaningful mapping to be returned
    */
-  public static Map<String, List<String>> getRawRoutingData()
-      throws IOException {
+  public static Map<String, List<String>> getRawRoutingData() throws IOException {
     if (MSDS_ENDPOINT == null || MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System Properties!");
@@ -101,12 +102,17 @@ public class HttpRoutingDataReader {
    * @return
    * @throws IOException
    */
-  private static CloseableHttpResponse getAllRoutingData()
-      throws IOException {
+  private static CloseableHttpResponse getAllRoutingData() throws IOException {
     // Retry count is 3 by default
     HttpGet requestAllData = new HttpGet(
         MSDS_ENDPOINT + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
-    try (CloseableHttpClient httpClient = HttpClients.custom()
+
+    // Define timeout configs
+    RequestConfig config = RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT_IN_MS)
+        .setConnectionRequestTimeout(HTTP_TIMEOUT_IN_MS).setSocketTimeout(HTTP_TIMEOUT_IN_MS)
+        .build();
+
+    try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
         .setConnectionBackoffStrategy(new DefaultBackoffStrategy())
         .setRetryHandler(new DefaultHttpRequestRetryHandler()).build()) {
       return httpClient.execute(requestAllData);
@@ -119,11 +125,10 @@ public class HttpRoutingDataReader {
    * @return
    */
   private static Map<String, List<String>> parseRoutingData(
-      CloseableHttpResponse routingDataResponse)
-      throws IOException {
+      CloseableHttpResponse routingDataResponse) throws IOException {
     HttpEntity entity = routingDataResponse.getEntity();
     if (entity != null) {
-      String resultStr = EntityUtils.toString(entity);
+      String resultStr = EntityUtils.toString(entity, "UTF-8");
       @SuppressWarnings("unchecked")
       Map<String, Object> resultMap = new ObjectMapper().readValue(resultStr, Map.class);
       @SuppressWarnings("unchecked")

@@ -39,8 +39,7 @@ import org.testng.Assert;
 
 public class TestMockMetadataStoreDirectoryServer {
   @Test
-  public void testMockMetadataStoreDirectoryServer()
-      throws IOException {
+  public void testMockMetadataStoreDirectoryServer() throws IOException {
     // Create fake routing data
     Map<String, Collection<String>> routingData = new HashMap<>();
     routingData.put("zk-0", ImmutableList.of("sharding-key-0", "sharding-key-1", "sharding-key-2"));
@@ -52,67 +51,69 @@ public class TestMockMetadataStoreDirectoryServer {
     int port = 11000;
     String endpoint = "http://" + host + ":" + port;
     String namespace = "MY-HELIX-NAMESPACE";
+
     MockMetadataStoreDirectoryServer server =
         new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
-    server.startServer();
-    CloseableHttpClient httpClient = HttpClients.createDefault();
+    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+      server.startServer();
 
-    // Send a GET request for all routing data
-    HttpGet getRequest = new HttpGet(
-        endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-            + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+      // Send a GET request for all routing data
+      HttpGet getRequest = new HttpGet(
+          endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+              + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
 
-    CloseableHttpResponse getResponse = httpClient.execute(getRequest);
-    Map<String, Object> resultMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
-        .readValue(getResponse.getEntity().getContent(), Map.class);
-    List<Map<String, Object>> routingDataList =
-        (List<Map<String, Object>>) resultMap.get(MetadataStoreRoutingConstants.ROUTING_DATA);
-    Collection<String> allRealms = routingDataList.stream().map(mapEntry -> (String) mapEntry
-        .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM))
-        .collect(Collectors.toSet());
-    Assert.assertEquals(allRealms, routingData.keySet());
-    Map<String, List<String>> retrievedRoutingData = routingDataList.stream().collect(Collectors
-        .toMap(mapEntry -> (String) mapEntry
-                .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
-            mapEntry -> (List<String>) mapEntry.get(MetadataStoreRoutingConstants.SHARDING_KEYS)));
-    Assert.assertEquals(retrievedRoutingData, routingData);
+      CloseableHttpResponse getResponse = httpClient.execute(getRequest);
+      Map<String, Object> resultMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      List<Map<String, Object>> routingDataList =
+          (List<Map<String, Object>>) resultMap.get(MetadataStoreRoutingConstants.ROUTING_DATA);
+      Collection<String> allRealms = routingDataList.stream().map(mapEntry -> (String) mapEntry
+          .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM))
+          .collect(Collectors.toSet());
+      Assert.assertEquals(allRealms, routingData.keySet());
+      Map<String, List<String>> retrievedRoutingData = routingDataList.stream().collect(Collectors
+          .toMap(mapEntry -> (String) mapEntry
+                  .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
+              mapEntry -> (List<String>) mapEntry
+                  .get(MetadataStoreRoutingConstants.SHARDING_KEYS)));
+      Assert.assertEquals(retrievedRoutingData, routingData);
 
-    // Send a GET request for all realms
-    getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-        + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT);
-    getResponse = httpClient.execute(getRequest);
-    Map<String, Collection<String>> allRealmsMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
-        .readValue(getResponse.getEntity().getContent(), Map.class);
-    Assert
-        .assertTrue(allRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
-    allRealms = allRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
-    Assert.assertEquals(allRealms, routingData.keySet());
+      // Send a GET request for all realms
+      getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+          + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT);
+      getResponse = httpClient.execute(getRequest);
+      Map<String, Collection<String>> allRealmsMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      Assert.assertTrue(
+          allRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
+      allRealms = allRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
+      Assert.assertEquals(allRealms, routingData.keySet());
 
-    // Send a GET request for testZkRealm
-    String testZkRealm = "zk-0";
-    getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-        + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
-    getResponse = httpClient.execute(getRequest);
-    Map<String, Object> shardingKeysMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
-        .readValue(getResponse.getEntity().getContent(), Map.class);
-    Assert.assertTrue(
-        shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
-    Assert.assertTrue(shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
-    String zkRealm =
-        (String) shardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM);
-    Collection<String> shardingKeyList =
-        (Collection) shardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS);
-    Assert.assertEquals(zkRealm, testZkRealm);
-    Assert.assertEquals(shardingKeyList, routingData.get(testZkRealm));
+      // Send a GET request for testZkRealm
+      String testZkRealm = "zk-0";
+      getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+          + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
+      getResponse = httpClient.execute(getRequest);
+      Map<String, Object> shardingKeysMap = MockMetadataStoreDirectoryServer.OBJECT_MAPPER
+          .readValue(getResponse.getEntity().getContent(), Map.class);
+      Assert.assertTrue(
+          shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM));
+      Assert.assertTrue(shardingKeysMap.containsKey(MetadataStoreRoutingConstants.SHARDING_KEYS));
+      String zkRealm =
+          (String) shardingKeysMap.get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM);
+      Collection<String> shardingKeyList =
+          (Collection) shardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+      Assert.assertEquals(zkRealm, testZkRealm);
+      Assert.assertEquals(shardingKeyList, routingData.get(testZkRealm));
 
-    // Try sending a POST request (not supported)
-    HttpPost postRequest = new HttpPost(
-        endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
-            + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
-    CloseableHttpResponse postResponse = httpClient.execute(postRequest);
-
-    // Shutdown
-    server.stopServer();
-    httpClient.close();
+      // Try sending a POST request (not supported)
+      HttpPost postRequest = new HttpPost(
+          endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
+              + MockMetadataStoreDirectoryServer.ZK_REALM_ENDPOINT + "/" + testZkRealm);
+      CloseableHttpResponse postResponse = httpClient.execute(postRequest);
+    } finally {
+      // Shutdown
+      server.stopServer();
+    }
   }
 }

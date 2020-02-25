@@ -282,7 +282,6 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a vaild ZNRecord!");
     }
 
@@ -291,7 +290,8 @@ public class ClusterAccessor extends AbstractHelixResource {
           new CustomizedStateAggregationConfig.Builder(record).build();
       admin.addCustomizedStateAggregationConfig(clusterId, customizedStateAggregationConfig);
     } catch (Exception ex) {
-      _logger.error("Cannot add CustomizedStateAggregationConfig to cluster: " + clusterId, ex);
+      _logger.error("Cannot add CustomizedStateAggregationConfig to cluster: {} Exception: {}",
+          clusterId, ex);
       return serverError(ex);
     }
 
@@ -301,7 +301,6 @@ public class ClusterAccessor extends AbstractHelixResource {
   @DELETE
   @Path("{clusterId}/customized-state-aggregation-config")
   public Response removeCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
-    HelixZkClient zkClient = getHelixZkClient();
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
     }
@@ -310,7 +309,9 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       admin.removeCustomizedStateAggregationConfig(clusterId);
     } catch (Exception ex) {
-      _logger.error("Cannot remove CustomizedStateAggregationConfig from cluster: " + clusterId, ex);
+      _logger.error(
+          "Cannot remove CustomizedStateAggregationConfig from cluster: {}, Exception: {}",
+          clusterId, ex);
       return serverError(ex);
     }
 
@@ -320,7 +321,6 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/customized-state-aggregation-config")
   public Response getCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
-    HelixZkClient zkClient = getHelixZkClient();
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
     }
@@ -346,7 +346,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
-      command = Command.Add; // Default behavior
+      command = Command.add; // Default behavior
     } else {
       try {
         command = getCommand(commandStr);
@@ -362,15 +362,14 @@ public class ClusterAccessor extends AbstractHelixResource {
       case delete:
         admin.removeTypeFromCustomizedStateAggregationConfig(clusterId, type);
         break;
-      case Add:
+      case add:
         admin.addTypeToCustomizedStateAggregationConfig(clusterId, type);
         break;
       default:
         return badRequest("Unsupported command " + commandStr);
       }
     } catch (Exception ex) {
-      _logger.error("Failed to " + command + " CustomizedStateAggregationConfig for cluster " + clusterId + " new type: "
-          + type + ", Exception: " + ex);
+      _logger.error("Failed to {} CustomizedStateAggregationConfig for cluster {} new type: {}, Exception: {}", command, clusterId, type, ex);
       return serverError(ex);
     }
     return OK();

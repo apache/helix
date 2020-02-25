@@ -682,7 +682,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Add new type to CustomizedStateAggregationConfig
     Map<String, String> map1 = new HashMap<>();
-    map1.put("command", Command.Add.name());
+    map1.put("command", Command.add.name());
     map1.put("type", "mockType2");
 
     post(urlBase, map1, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),

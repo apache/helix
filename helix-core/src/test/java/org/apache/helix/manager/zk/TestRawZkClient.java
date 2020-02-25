@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,6 +42,9 @@ import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
@@ -744,5 +748,66 @@ public class TestRawZkClient extends ZkUnitTestBase {
     zkClient.close();
     // Recover zk server for later tests.
     _zkServer.start();
+  }
+
+  @Test
+  public void testAsyncWriteOperations() {
+    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    String originSizeLimit =
+        System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES, "2000");
+    try {
+      zkClient.setZkSerializer(new ZNRecordSerializer());
+
+      ZNRecord oversizeZNRecord = new ZNRecord("Oversize");
+      StringBuilder sb = new StringBuilder(1204);
+      Random ran = new Random();
+      for (int i = 0; i < 1024; i++) {
+        sb.append(ran.nextInt(26) + 'a');
+      }
+      String buf = sb.toString();
+      for (int i = 0; i < 1024; i++) {
+        oversizeZNRecord.setSimpleField(Integer.toString(i), buf);
+      }
+
+      // ensure /tmp exists for the test
+      if (!zkClient.exists("/tmp")) {
+        zkClient.create("/tmp", null, CreateMode.PERSISTENT);
+      }
+
+      org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.CreateCallbackHandler
+          createCallback = new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.CreateCallbackHandler();
+      zkClient.asyncCreate("/tmp/async", null, CreateMode.PERSISTENT, createCallback);
+      createCallback.waitForSuccess();
+      Assert.assertEquals(createCallback.getRc(), 0);
+
+      // try to create oversize node, should fail
+      zkClient.asyncCreate("/tmp/asyncOversize", oversizeZNRecord, CreateMode.PERSISTENT,
+          createCallback);
+      createCallback.waitForSuccess();
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.MarshallingError);
+
+      ZNRecord normalZNRecord = new ZNRecord("normal");
+      normalZNRecord.setSimpleField("key", buf);
+
+      org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.SetDataCallbackHandler
+          setDataCallbackHandler = new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.SetDataCallbackHandler();
+      zkClient.asyncSetData("/tmp/async", normalZNRecord, -1, setDataCallbackHandler);
+      setDataCallbackHandler.waitForSuccess();
+      Assert.assertEquals(setDataCallbackHandler.getRc(), 0);
+
+      zkClient.asyncSetData("/tmp/async", oversizeZNRecord, -1, setDataCallbackHandler);
+      setDataCallbackHandler.waitForSuccess();
+      Assert.assertEquals(setDataCallbackHandler.getRc(), KeeperException.Code.MarshallingError);
+    } finally {
+      if (originSizeLimit == null) {
+        System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+      } else {
+        System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+            originSizeLimit);
+      }
+      zkClient.delete("/tmp/async");
+      zkClient.delete("/tmp/asyncOversize");
+    }
   }
 }

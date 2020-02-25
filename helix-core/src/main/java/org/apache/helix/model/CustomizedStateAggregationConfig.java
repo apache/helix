@@ -21,9 +21,11 @@ package org.apache.helix.model;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 /**
  * CustomizedStateAggregation configurations

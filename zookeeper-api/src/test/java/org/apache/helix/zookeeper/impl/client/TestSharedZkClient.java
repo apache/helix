@@ -43,5 +43,4 @@ public class TestSharedZkClient extends RealmAwareZkClientTestBase {
       // this is expected.
     }
   }
-
 }

@@ -54,9 +54,8 @@ public class TestMockMetadataStoreDirectoryServer {
 
     MockMetadataStoreDirectoryServer server =
         new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
+    server.startServer();
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      server.startServer();
-
       // Send a GET request for all routing data
       HttpGet getRequest = new HttpGet(
           endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace

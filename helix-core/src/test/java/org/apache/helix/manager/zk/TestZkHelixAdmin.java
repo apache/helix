@@ -600,6 +600,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       // OK since resourceConfig is empty
     }
 
+<<<<<<< HEAD
     // Set PARTITION_CAPACITY_MAP
     Map<String, String> capacityDataMap =
         ImmutableMap.of("WCU", "1", "RCU", "2", "STORAGE", "3");

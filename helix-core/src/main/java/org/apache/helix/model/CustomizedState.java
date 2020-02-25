@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomizedState extends HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedState.class);
-  private static long NON_EXIST = -1L;
 
   /**
    * Lookup keys for the customized state
@@ -96,12 +95,15 @@ public class CustomizedState extends HelixProperty {
   }
 
   public long getStartTime(String partitionName) {
-    return _record.getLongField(CustomizedStateProperty.START_TIME.name(), NON_EXIST);
+    String startTime = getProperty(partitionName, CustomizedStateProperty.START_TIME);
+    return startTime == null ? -1L : Long.parseLong(startTime);
   }
 
   public long getEndTime(String partitionName) {
-    return _record.getLongField(CustomizedStateProperty.END_TIME.name(), NON_EXIST);
+    String endTime = getProperty(partitionName, CustomizedStateProperty.END_TIME);
+    return endTime == null ? -1L : Long.parseLong(endTime);
   }
+
 
   public String getPreviousState(String partitionName) {
     return getProperty(partitionName, CustomizedStateProperty.PREVIOUS_STATE);

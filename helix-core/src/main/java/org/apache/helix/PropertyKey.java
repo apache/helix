@@ -28,6 +28,7 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
 import static org.apache.helix.PropertyType.ERRORS;
 import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
@@ -478,6 +480,30 @@ public class PropertyKey {
         return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName, bucketName);
       }
+    }
+
+    /**
+     * Get a property key associated with {@link CustomizedState} of an instance and customized state
+     * @param instanceName
+     * @param customizedStateName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStates(String instanceName, String customizedStateName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName,
+          customizedStateName);
+    }
+
+    /**
+     * Get a property key associated with {@link CustomizedState} of an instance, customized state, and resource
+     * @param instanceName
+     * @param customizedStateName
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedState(String instanceName, String customizedStateName,
+        String resourceName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName,
+          customizedStateName, resourceName);
     }
 
     /**

@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
@@ -37,6 +38,17 @@ import org.slf4j.LoggerFactory;
 
 public class ZNRecordSerializer implements ZkSerializer {
   private static Logger logger = LoggerFactory.getLogger(ZNRecordSerializer.class);
+
+  // Reads from system property and represents whether auto compression is enabled or not.
+  // If and only if this property is set to "true", auto compression is enabled.
+  private final boolean autoCompressionEnabled =
+      Boolean.getBoolean(ZkSystemPropertyKeys.ZK_SERIALIZER_AUTO_COMPRESSION_ENABLED);
+
+  // Reads from system property and represents the data size threshold in bytes for
+  // auto compression.
+  private final int autoCompressionThreshold = Integer
+      .getInteger(ZkSystemPropertyKeys.ZK_SERIALIZER_AUTO_COMPRESSION_THRESHOLD_BYTES,
+          ZNRecord.SIZE_LIMIT);
 
   private static int getListFieldBound(ZNRecord record) {
     int max = Integer.MAX_VALUE;
@@ -86,7 +98,8 @@ public class ZNRecordSerializer implements ZkSerializer {
       mapper.writeValue(baos, data);
       serializedBytes = baos.toByteArray();
       // apply compression if needed
-      if (record.getBooleanField("enableCompression", false) || serializedBytes.length > ZNRecord.SIZE_LIMIT) {
+      if (record.getBooleanField("enableCompression", false) || (autoCompressionEnabled
+          && serializedBytes.length > autoCompressionThreshold)) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
       }
     } catch (Exception e) {

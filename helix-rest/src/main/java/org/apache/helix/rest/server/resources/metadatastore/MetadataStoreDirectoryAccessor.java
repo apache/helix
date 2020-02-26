@@ -33,6 +33,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
@@ -56,7 +57,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);
 
   private String _namespace;
-  private MetadataStoreDirectory _metadataStoreDirectory;
+  protected MetadataStoreDirectory _metadataStoreDirectory;
 
   @PostConstruct
   private void postConstruct() {
@@ -246,6 +247,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response addShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
+    if (shardingKey.charAt(0) != '/') {
+      shardingKey = "/" + shardingKey;
+    }
     try {
       if (!_metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey)) {
         return serverError();
@@ -261,6 +265,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response deleteShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
+    if (shardingKey.charAt(0) != '/') {
+      shardingKey = "/" + shardingKey;
+    }
     try {
       if (!_metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey)) {
         return serverError();
@@ -296,7 +303,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return helixRestNamespace;
   }
 
-  private void buildMetadataStoreDirectory(String namespace, String address) {
+  protected void buildMetadataStoreDirectory(String namespace, String address) {
     try {
       _metadataStoreDirectory = ZkMetadataStoreDirectory.getInstance(namespace, address);
     } catch (InvalidRoutingDataException ex) {

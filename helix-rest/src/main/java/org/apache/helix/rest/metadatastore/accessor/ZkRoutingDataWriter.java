@@ -56,6 +56,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final String _myHostName;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
+    System.out.println("writer created namespace=" + namespace + " zkAddress=" + zkAddress);
     if (namespace == null || namespace.isEmpty()) {
       throw new IllegalArgumentException("namespace cannot be null or empty!");
     }
@@ -102,7 +103,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return createZkRealm(realm);
     }
 
-    String url_suffix = "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    String url_suffix = "namespaces/" + _namespace + "/metadata-store-realms/" + realm;
     return forwardRequestToLeader(url_suffix, "put", "addMetadataStoreRealm",
         Response.Status.CREATED.getStatusCode());
   }
@@ -113,10 +114,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+      return deleteZkRealm(realm);
     }
 
-    String url_suffix = "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm;
+    String url_suffix = "namespaces/" + _namespace + "/metadata-store-realms/" + realm;
     return forwardRequestToLeader(url_suffix, "delete", "deleteMetadataStoreRealm",
         Response.Status.OK.getStatusCode());
   }
@@ -127,48 +128,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      // If the realm does not exist already, then create the realm
-      String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm;
-      if (!_zkClient.exists(realmPath)) {
-        // Create the realm
-        if (!createZkRealm(realm)) {
-          // Failed to create the realm - log and return false
-          LOG.error(
-              "Failed to add sharding key because ZkRealm creation failed! Namespace: {}, Realm: {}, Sharding key: {}",
-              _namespace, realm, shardingKey);
-          return false;
-        }
-      }
-
-      ZNRecord znRecord;
-      try {
-        znRecord = _zkClient.readData(realmPath);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to read the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      List<String> shardingKeys =
-          znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      if (shardingKeys == null || shardingKeys.isEmpty()) {
-        shardingKeys = new ArrayList<>();
-      }
-      shardingKeys.add(shardingKey);
-      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeys);
-      try {
-        _zkClient.writeData(realmPath, znRecord);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to write the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      return true;
+      return createZkShardingKey(realm, shardingKey);
     }
 
     String url_suffix =
-        "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
+        "namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
             + shardingKey;
     return forwardRequestToLeader(url_suffix, "put", "addShardingKey",
         Response.Status.CREATED.getStatusCode());
@@ -180,31 +144,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      ZNRecord znRecord =
-          _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, true);
-      if (znRecord == null || !znRecord
-          .getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
-          .contains(shardingKey)) {
-        // This realm does not exist or shardingKey doesn't exist. Return true!
-        return true;
-      }
-      znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
-          .remove(shardingKey);
-      // Overwrite this ZNRecord with the sharding key removed
-      try {
-        _zkClient
-            .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to write the data back in deleteShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      return true;
+      return deleteZkShardingKey(realm, shardingKey);
     }
 
     String url_suffix =
-        "/admin/v2/namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
+        "namespaces/" + _namespace + "/metadata-store-realms/" + realm + "/sharding-keys/"
             + shardingKey;
     return forwardRequestToLeader(url_suffix, "delete", "deleteShardingKey",
         Response.Status.OK.getStatusCode());
@@ -274,7 +218,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
    * @param realm
    * @return
    */
-  private boolean createZkRealm(String realm) {
+  protected boolean createZkRealm(String realm) {
     if (_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
       LOG.warn("createZkRealm() called for realm: {}, but this realm already exists! Namespace: {}",
           realm, _namespace);
@@ -292,10 +236,80 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     return true;
   }
 
+  protected boolean deleteZkRealm(String realm) {
+    return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+  }
+
+  protected boolean createZkShardingKey(String realm, String shardingKey) {
+    // If the realm does not exist already, then create the realm
+    String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm;
+    if (!_zkClient.exists(realmPath)) {
+      // Create the realm
+      if (!createZkRealm(realm)) {
+        // Failed to create the realm - log and return false
+        LOG.error(
+            "Failed to add sharding key because ZkRealm creation failed! Namespace: {}, Realm: {}, Sharding key: {}",
+            _namespace, realm, shardingKey);
+        return false;
+      }
+    }
+
+    ZNRecord znRecord;
+    try {
+      znRecord = _zkClient.readData(realmPath);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to read the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    List<String> shardingKeys =
+        znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
+    if (shardingKeys == null || shardingKeys.isEmpty()) {
+      shardingKeys = new ArrayList<>();
+    }
+    shardingKeys.add(shardingKey);
+    znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeys);
+    try {
+      _zkClient.writeData(realmPath, znRecord);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to write the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    return true;
+  }
+
+  protected boolean deleteZkShardingKey(String realm, String shardingKey) {
+    ZNRecord znRecord =
+        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, true);
+    if (znRecord == null || !znRecord
+        .getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .contains(shardingKey)) {
+      // This realm does not exist or shardingKey doesn't exist. Return true!
+      return true;
+    }
+    znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .remove(shardingKey);
+    // Overwrite this ZNRecord with the sharding key removed
+    try {
+      _zkClient
+          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to write the data back in deleteShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    return true;
+  }
+
   private boolean forwardRequestToLeader(String url_suffix, String request_method, String endPoint,
       int expectedResponseCode) throws IllegalArgumentException {
     String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
     String url = leaderHostName + url_suffix;
+    System.out.println(url);
     HttpUriRequest request;
     switch (request_method) {
       case "put":

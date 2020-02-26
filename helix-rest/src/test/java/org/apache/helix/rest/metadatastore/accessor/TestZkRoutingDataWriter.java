@@ -133,8 +133,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     mockWriter.addMetadataStoreRealm(DUMMY_REALM);
     Assert.assertEquals(mockWriter.calledRequest.getMethod(), "PUT");
     Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "/admin/v2/namespaces/" + DUMMY_NAMESPACE
-            + "/metadata-store-realms/" + DUMMY_REALM);
+        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
+            + DUMMY_REALM);
     mockWriter.close();
   }
 
@@ -144,8 +144,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     mockWriter.deleteMetadataStoreRealm(DUMMY_REALM);
     Assert.assertEquals(mockWriter.calledRequest.getMethod(), "DELETE");
     Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "/admin/v2/namespaces/" + DUMMY_NAMESPACE
-            + "/metadata-store-realms/" + DUMMY_REALM);
+        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
+            + DUMMY_REALM);
     mockWriter.close();
   }
 
@@ -155,8 +155,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     mockWriter.addShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
     Assert.assertEquals(mockWriter.calledRequest.getMethod(), "PUT");
     Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "/admin/v2/namespaces/" + DUMMY_NAMESPACE
-            + "/metadata-store-realms/" + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
+        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
+            + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
     mockWriter.close();
   }
 
@@ -166,8 +166,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     mockWriter.deleteShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
     Assert.assertEquals(mockWriter.calledRequest.getMethod(), "DELETE");
     Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "/admin/v2/namespaces/" + DUMMY_NAMESPACE
-            + "/metadata-store-realms/" + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
+        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
+            + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
     mockWriter.close();
   }
 }

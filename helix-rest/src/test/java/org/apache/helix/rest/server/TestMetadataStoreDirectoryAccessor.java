@@ -20,8 +20,6 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -31,87 +29,16 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
-import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
-import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-// TODO: enable asserts and add verify for refreshed MSD once write operations are ready.
-public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
-  /*
-   * The following are constants to be used for testing.
-   */
-  private static final String TEST_NAMESPACE_URI_PREFIX = "/namespaces/" + TEST_NAMESPACE;
-  private static final String NON_EXISTING_NAMESPACE_URI_PREFIX =
-      "/namespaces/not-existed-namespace/metadata-store-realms/";
-  private static final String TEST_REALM_1 = "testRealm1";
-  private static final List<String> TEST_SHARDING_KEYS_1 =
-      Arrays.asList("/sharding/key/1/a", "/sharding/key/1/b", "/sharding/key/1/c");
-  private static final String TEST_REALM_2 = "testRealm2";
-  private static final List<String> TEST_SHARDING_KEYS_2 =
-      Arrays.asList("/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f");
-  private static final String TEST_REALM_3 = "testRealm3";
-  private static final String TEST_SHARDING_KEY = "/sharding/key/3/x";
-
-  // List of all ZK addresses, each of which corresponds to a namespace/routing ZK
-  private List<String> _zkList;
-  private MetadataStoreRoutingDataReader _routingDataReader;
-
-  @BeforeClass
-  public void beforeClass() throws Exception {
-    _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
-
-    deleteRoutingDataPath();
-
-    // Write dummy mappings in ZK
-    // Create a node that represents a realm address and add 3 sharding keys to it
-    ZNRecord znRecord = new ZNRecord("RoutingInfo");
-
-    _zkList.forEach(zk -> {
-      ZK_SERVER_MAP.get(zk).getZkClient().setZkSerializer(new ZNRecordSerializer());
-      // Write first realm and sharding keys pair
-      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
-          TEST_SHARDING_KEYS_1);
-      ZK_SERVER_MAP.get(zk).getZkClient()
-          .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
-              true);
-      ZK_SERVER_MAP.get(zk).getZkClient()
-          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_1,
-              znRecord);
-
-      // Create another realm and sharding keys pair
-      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
-          TEST_SHARDING_KEYS_2);
-      ZK_SERVER_MAP.get(zk).getZkClient()
-          .createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
-              true);
-      ZK_SERVER_MAP.get(zk).getZkClient()
-          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_2,
-              znRecord);
-    });
-
-    _routingDataReader = new ZkRoutingDataReader(TEST_NAMESPACE, _zkAddrTestNS, null);
-
-    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().toString());
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
-    deleteRoutingDataPath();
-  }
-
+public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAccessorTestBase {
   /*
    * Tests REST endpoint: "GET /namespaces/{namespace}/metadata-store-namespaces"
    */
@@ -503,29 +430,5 @@ public class TestMetadataStoreDirectoryAccessor extends AbstractTestClass {
     Set<String> expectedShardingKeys = new HashSet<>(TEST_SHARDING_KEYS_1);
 
     Assert.assertEquals(queriedShardingKeys, expectedShardingKeys);
-  }
-
-  private void deleteRoutingDataPath() throws Exception {
-    Assert.assertTrue(TestHelper.verify(() -> {
-      _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
-          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
-
-      for (String zk : _zkList) {
-        if (ZK_SERVER_MAP.get(zk).getZkClient()
-            .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-          return false;
-        }
-      }
-
-      return true;
-    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
-  }
-
-  private Set<String> getAllMetadataStoreRealmsHelper() throws InvalidRoutingDataException {
-    return new HashSet<>(_routingDataReader.getRoutingData().keySet());
-  }
-
-  private Set<String> getShardingKeysInRealmHelper() throws InvalidRoutingDataException {
-    return new HashSet<>(_routingDataReader.getRoutingData().get(TEST_REALM_1));
   }
 }

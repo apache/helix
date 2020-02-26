@@ -257,7 +257,7 @@ public class TestTrieRoutingData {
   @Test(dependsOnMethods = "testConstructionNormal")
   public void testGetShardingKeyInPath() {
     try {
-      Assert.assertEquals(_trie.getMetadataStoreRealm("/b/c/d/x/y/z"), "realmAddress2");
+      Assert.assertEquals(_trie.getShardingKeyInPath("/b/c/d/x/y/z"), "/b/c/d");
     } catch (NoSuchElementException e) {
       Assert.fail("Not expecting NoSuchElementException");
     }
@@ -266,7 +266,7 @@ public class TestTrieRoutingData {
   @Test(dependsOnMethods = "testConstructionNormal")
   public void testGetShardingKeyInPathWrongPath() {
     try {
-      _trie.getMetadataStoreRealm("/x/y/z");
+      _trie.getShardingKeyInPath("/x/y/z");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
       Assert.assertTrue(
@@ -277,7 +277,7 @@ public class TestTrieRoutingData {
   @Test(dependsOnMethods = "testConstructionNormal")
   public void testGetShardingKeyInPathNoLeaf() {
     try {
-      _trie.getMetadataStoreRealm("/b/c");
+      _trie.getShardingKeyInPath("/b/c");
       Assert.fail("Expecting NoSuchElementException");
     } catch (NoSuchElementException e) {
       Assert.assertTrue(

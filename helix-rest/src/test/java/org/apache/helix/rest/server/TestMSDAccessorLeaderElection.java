@@ -47,16 +47,17 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE;
 
-
-public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAccessorTestBase {
-  private final String MOCK_URL_PREFIX = "/mock";
+public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccessorTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestMSDAccessorLeaderElection.class);
+  private static final String MOCK_URL_PREFIX = "/mock";
 
   private HelixRestServer _mockHelixRestServer;
   private String _mockBaseUri;
@@ -68,22 +69,20 @@ public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAcc
   public void beforeClass() throws Exception {
     super.beforeClass();
     _leaderBaseUri = getBaseUri().toString();
+    int newPort = getBaseUri().getPort() + 1;
 
     // Start a second server for testing Distributed Leader Election for writes
-    _mockBaseUri =
-        getBaseUri().getScheme() + "://" + getBaseUri().getHost() + ":" + (getBaseUri().getPort()
-            + 1);
+    _mockBaseUri = getBaseUri().getScheme() + "://" + getBaseUri().getHost() + ":" + newPort;
     try {
       List<HelixRestNamespace> namespaces = new ArrayList<>();
       // Add test namespace
       namespaces.add(new HelixRestNamespace(TEST_NAMESPACE,
           HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, _zkAddrTestNS, false));
-      _mockHelixRestServer =
-          new MockHelixRestServer(namespaces, getBaseUri().getPort() + 1, getBaseUri().getPath(),
-              Collections.singletonList(_auditLogger));
+      _mockHelixRestServer = new MockHelixRestServer(namespaces, newPort, getBaseUri().getPath(),
+          Collections.singletonList(_auditLogger));
       _mockHelixRestServer.start();
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOG.error("MockHelixRestServer starting encounter an exception.", e);
     }
 
     // Calling the original endpoint to create an instance of MetadataStoreDirectory in case
@@ -118,7 +117,8 @@ public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAcc
     Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
     Assert.assertFalse(expectedRealmsSet.contains(TEST_REALM_3),
         "Metadata store directory should not have realm: " + TEST_REALM_3);
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, "put",
+    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3,
+        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
     expectedRealmsSet.add(TEST_REALM_3);
     Assert.assertEquals(getAllMetadataStoreRealmsHelper(), expectedRealmsSet);
@@ -129,7 +129,8 @@ public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAcc
   public void testDeleteMetadataStoreRealmRequestForwarding()
       throws InvalidRoutingDataException, IOException {
     Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, "delete",
+    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3,
+        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE,
         Response.Status.OK.getStatusCode());
     expectedRealmsSet.remove(TEST_REALM_3);
     Assert.assertEquals(getAllMetadataStoreRealmsHelper(), expectedRealmsSet);
@@ -143,7 +144,8 @@ public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAcc
     Assert.assertFalse(expectedShardingKeysSet.contains(TEST_SHARDING_KEY),
         "Realm does not have sharding key: " + TEST_SHARDING_KEY);
     sendRequestAndValidate(
-        "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY, "put",
+        "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
+        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
     expectedShardingKeysSet.add(TEST_SHARDING_KEY);
     Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
@@ -155,38 +157,41 @@ public class TestMSDADistributedLeaderElection extends MetadataStoreDirectoryAcc
       throws InvalidRoutingDataException, IOException {
     Set<String> expectedShardingKeysSet = getShardingKeysInRealmHelper();
     sendRequestAndValidate(
-        "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY, "delete",
+        "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
+        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE,
         Response.Status.OK.getStatusCode());
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
     Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
-  private void sendRequestAndValidate(String url_suffix, String request_method,
+  private void sendRequestAndValidate(String urlSuffix,
+      MetadataStoreRoutingConstants.HttpRequestForwardingVerbs requestMethod,
       int expectedResponseCode) throws IllegalArgumentException, IOException {
-    String url = _mockBaseUri + TEST_NAMESPACE_URI_PREFIX + MOCK_URL_PREFIX + url_suffix;
+    String url = _mockBaseUri + TEST_NAMESPACE_URI_PREFIX + MOCK_URL_PREFIX + urlSuffix;
     HttpUriRequest request;
-    switch (request_method) {
-      case "put":
+    switch (requestMethod) {
+      case PUT:
         request = new HttpPut(url);
         break;
-      case "delete":
+      case DELETE:
         request = new HttpDelete(url);
         break;
       default:
-        throw new IllegalArgumentException("Unsupported request_method: " + request_method);
+        throw new IllegalArgumentException("Unsupported requestMethod: " + requestMethod);
     }
     HttpResponse response = _httpClient.execute(request);
     Assert.assertEquals(response.getStatusLine().getStatusCode(), expectedResponseCode);
 
     // Validate leader election behavior
-    List<String> leaderSelectionNodes = _zkClient.getChildren(LEADER_ELECTION_ZNODE);
+    List<String> leaderSelectionNodes =
+        _zkClient.getChildren(MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE);
     leaderSelectionNodes.sort(Comparator.comparing(String::toString));
     Assert.assertEquals(leaderSelectionNodes.size(), 2);
-    ZNRecord firstEphemeralNode =
-        _zkClient.readData(LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(0));
-    ZNRecord secondEphemeralNode =
-        _zkClient.readData(LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(1));
+    ZNRecord firstEphemeralNode = _zkClient.readData(
+        MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(0));
+    ZNRecord secondEphemeralNode = _zkClient.readData(
+        MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(1));
     Assert.assertEquals(firstEphemeralNode.getId(), _leaderBaseUri);
     Assert.assertEquals(secondEphemeralNode.getId(), _mockBaseUri);
 

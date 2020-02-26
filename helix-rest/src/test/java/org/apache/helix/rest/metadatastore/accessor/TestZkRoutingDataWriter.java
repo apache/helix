@@ -19,6 +19,7 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -131,10 +132,12 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void testAddMetadataStoreRealmNonLeader() {
     MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
     mockWriter.addMetadataStoreRealm(DUMMY_REALM);
-    Assert.assertEquals(mockWriter.calledRequest.getMethod(), "PUT");
-    Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
-            + DUMMY_REALM);
+    Assert.assertEquals("PUT", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
+    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
+        mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -142,10 +145,12 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void testDeleteMetadataStoreRealmNonLeader() {
     MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
     mockWriter.deleteMetadataStoreRealm(DUMMY_REALM);
-    Assert.assertEquals(mockWriter.calledRequest.getMethod(), "DELETE");
-    Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
-            + DUMMY_REALM);
+    Assert.assertEquals("DELETE", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
+    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
+        mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -153,10 +158,13 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void testAddShardingKeyNonLeader() {
     MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
     mockWriter.addShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
-    Assert.assertEquals(mockWriter.calledRequest.getMethod(), "PUT");
-    Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
-            + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
+    Assert.assertEquals("PUT", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
+    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
+        mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -164,10 +172,13 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void testDeleteShardingKeyNonLeader() {
     MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
     mockWriter.deleteShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
-    Assert.assertEquals(mockWriter.calledRequest.getMethod(), "DELETE");
-    Assert.assertEquals(mockWriter.calledRequest.getURI().toString(),
-        getBaseUri().toString() + "namespaces/" + DUMMY_NAMESPACE + "/metadata-store-realms/"
-            + DUMMY_REALM + "/sharding-keys/" + DUMMY_SHARDING_KEY);
+    Assert.assertEquals("DELETE", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
+    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
+        mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 }

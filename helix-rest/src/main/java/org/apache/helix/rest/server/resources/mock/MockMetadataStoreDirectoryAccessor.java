@@ -30,6 +30,8 @@ import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataWrit
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
 import org.apache.helix.rest.server.resources.metadatastore.MetadataStoreDirectoryAccessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -37,6 +39,10 @@ import org.apache.helix.rest.server.resources.metadatastore.MetadataStoreDirecto
  */
 @Path("/mock")
 public class MockMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAccessor {
+  //TODO: use this class as a template for https://github.com/apache/helix/issues/816
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(MockMetadataStoreDirectoryAccessor.class);
   // A flag that will be modified if the underlying MockZkRoutingDataWriter makes an operation
   // against ZooKeeper
   public static boolean operatedOnZk = false;
@@ -52,13 +58,13 @@ public class MockMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
       _metadataStoreDirectory = new MockZkMetadataStoreDirectory(namespace, address);
       _mockMSDInstance = _metadataStoreDirectory;
     } catch (InvalidRoutingDataException e) {
-      e.printStackTrace();
+      LOG.error("buildMetadataStoreDirectory encountered an exception.", e);
     }
   }
 
   /**
    * Used to artificially create another instance of ZkMetadataStoreDirectory.
-   * ZkMetadataStoreDirectory being a singleton makes it impossible to test it,
+   * ZkMetadataStoreDirectory being a singleton makes it difficult to test it,
    * therefore this is the only way to create another instance.
    */
   class MockZkMetadataStoreDirectory extends ZkMetadataStoreDirectory {

@@ -20,6 +20,11 @@ package org.apache.helix.msdcommon.constant;
  */
 
 public class MetadataStoreRoutingConstants {
+  public enum HttpRequestForwardingVerbs {
+    PUT,
+    DELETE
+  }
+
   public static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
 
   // For ZK only
@@ -66,11 +71,17 @@ public class MetadataStoreRoutingConstants {
   // System Property Metadata Store Directory Server endpoint key
   public static final String MSDS_SERVER_ENDPOINT_KEY = "metadataStoreDirectoryServerEndpoint";
 
+  // Prefix to MSDS resource endpoints
+  public static final String MSDS_NAMESPACES_URL_PREFIX = "/namespaces";
+
   // MSDS resource getAllRealms endpoint string
   public static final String MSDS_GET_ALL_REALMS_ENDPOINT = "/metadata-store-realms";
 
   // MSDS resource get all routing data endpoint string
   public static final String MSDS_GET_ALL_ROUTING_DATA_ENDPOINT = "/routing-data";
+
+  // MSDS resource get all sharding keys endpoint string
+  public static final String MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT = "/sharding-keys";
 
   // The key for system properties that contains the hostname of of the
   // MetadataStoreDirectoryService server instance
@@ -78,5 +89,5 @@ public class MetadataStoreRoutingConstants {
 
   // Time out for http requests that are forwarded to leader instances by ZkRoutingWriter;
   // measured in seconds
-  public static final int FORWARD_HTTP_REQUEST_TIMEOUT = 60;
+  public static final int HTTP_REQUEST_FORWARDING_TIMEOUT = 60;
 }

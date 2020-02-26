@@ -74,15 +74,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   public static ZkMetadataStoreDirectory getInstance(String namespace, String zkAddress)
       throws InvalidRoutingDataException {
-    if (_zkMetadataStoreDirectoryInstance == null) {
-      synchronized (ZkMetadataStoreDirectory.class) {
-        if (_zkMetadataStoreDirectoryInstance == null) {
-          _zkMetadataStoreDirectoryInstance = new ZkMetadataStoreDirectory();
-        }
-      }
-    }
-    _zkMetadataStoreDirectoryInstance.init(namespace, zkAddress);
-
+    getInstance().init(namespace, zkAddress);
     return _zkMetadataStoreDirectoryInstance;
   }
 

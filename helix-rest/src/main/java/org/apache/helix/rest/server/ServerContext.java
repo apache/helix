@@ -66,7 +66,7 @@ public class ServerContext {
     // cannot be started correctly.
     _helixDataAccessorPool = new HashMap<>();
     _taskDriverPool = new HashMap<>();
-    // Initiate the singleton ZkMetadataStoreDirectory instance to allow it to be closed later
+    // Initialize the singleton ZkMetadataStoreDirectory instance to allow it to be closed later
     _zkMetadataStoreDirectory = ZkMetadataStoreDirectory.getInstance();
   }
 

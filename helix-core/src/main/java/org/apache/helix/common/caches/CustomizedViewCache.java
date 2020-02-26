@@ -47,19 +47,19 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
   protected Map<String, CustomizedView> _customizedViewCache;
   protected String _clusterName;
   private PropertyType _propertyType;
-  private String _type;
+  private String _aggregationType;
 
-  public CustomizedViewCache(String clusterName, String type) {
-    this(clusterName, PropertyType.CUSTOMIZEDVIEW, type);
+  public CustomizedViewCache(String clusterName, String aggregationType) {
+    this(clusterName, PropertyType.CUSTOMIZEDVIEW, aggregationType);
   }
 
-  protected CustomizedViewCache(String clusterName, PropertyType propertyType, String type) {
+  protected CustomizedViewCache(String clusterName, PropertyType propertyType, String aggregationType) {
     super(createDefaultControlContextProvider(clusterName));
     _clusterName = clusterName;
     _customizedViewMap = Collections.emptyMap();
     _customizedViewCache = Collections.emptyMap();
     _propertyType = propertyType;
-    _type = type;
+    _aggregationType = aggregationType;
   }
 
 
@@ -105,14 +105,14 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
     _customizedViewMap = new HashMap<>(newCustomizedViewMap);
 
     long endTime = System.currentTimeMillis();
-    LOG.info("Refresh " + _customizedViewMap.size() + " CustomizedViews of type " + _type
+    LOG.info("Refresh " + _customizedViewMap.size() + " CustomizedViews of type " + _aggregationType
         + " for cluster " + _clusterName + ", took " + (endTime - startTime) + " ms");
   }
 
   private PropertyKey customizedViewsKey(PropertyKey.Builder keyBuilder) {
     PropertyKey customizedViewPropertyKey;
     if (_propertyType.equals(PropertyType.CUSTOMIZEDVIEW)){
-      customizedViewPropertyKey = keyBuilder.customizedView(_type);
+      customizedViewPropertyKey = keyBuilder.customizedView(_aggregationType);
     } else {
       throw new HelixException(
           "Failed to refresh CustomizedViewCache, Wrong property type " + _propertyType + "!");
@@ -123,7 +123,7 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
   private PropertyKey customizedViewKey(PropertyKey.Builder keyBuilder, String resource) {
     PropertyKey customizedViewPropertyKey;
     if (_propertyType.equals(PropertyType.CUSTOMIZEDVIEW)) {
-      customizedViewPropertyKey = keyBuilder.customizedView(_type, resource);
+      customizedViewPropertyKey = keyBuilder.customizedView(_aggregationType, resource);
     } else {
       throw new HelixException(
           "Failed to refresh CustomizedViewCache, Wrong property type " + _propertyType + "!");

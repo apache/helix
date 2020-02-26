@@ -222,7 +222,7 @@ public interface HelixManager {
    * @see CustomizedViewChangeListener#onCustomizedViewChange(List, NotificationContext)
    * @param listener
    */
-  void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type) throws Exception;
+  void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String aggregationType) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)

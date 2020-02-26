@@ -25,7 +25,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.CustomizedView;
 
 /**
- * Interface to implement to be notified of changes to the customized view
+ * Interface to implement to respond to changes in the CustomizedView
  */
 public interface CustomizedViewChangeListener {
 

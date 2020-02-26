@@ -565,9 +565,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
-  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type)
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String aggregationType)
       throws Exception {
-    addListener(listener, new Builder(_clusterName).customizedView(type),
+    addListener(listener, new Builder(_clusterName).customizedView(aggregationType),
         ChangeType.CUSTOMIZED_VIEW, new EventType[] {
             EventType.NodeChildrenChanged
         });

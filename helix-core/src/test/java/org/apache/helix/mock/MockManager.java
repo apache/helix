@@ -142,7 +142,7 @@ public class MockManager implements HelixManager {
   }
 
   @Override
-  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type) {
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String aggregationType) {
     // TODO Auto-generated method stub
 
   }

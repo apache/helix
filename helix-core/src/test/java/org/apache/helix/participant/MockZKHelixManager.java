@@ -167,7 +167,7 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
-  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String type) throws Exception {
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String aggregationType) throws Exception {
     // TODO Auto-generated method stub
 
   }

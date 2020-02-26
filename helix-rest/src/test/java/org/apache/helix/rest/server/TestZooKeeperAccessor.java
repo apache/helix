@@ -64,8 +64,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testExists()
-      throws IOException {
+  public void testExists() throws IOException {
     String path = "/path";
     Assert.assertFalse(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
     Map<String, Boolean> result;
@@ -92,8 +91,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetData()
-      throws IOException {
+  public void testGetData() throws IOException {
     String path = "/path";
     String content = "testGetData";
 
@@ -130,8 +128,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetChildren()
-      throws IOException {
+  public void testGetChildren() throws IOException {
     String path = "/path";
     String childrenKey = "/children";
     int numChildren = 20;
@@ -153,6 +150,35 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     result.get(getChildrenKey).forEach(child -> {
       Assert.assertTrue(child.contains("children"));
     });
+
+    // Clean up
+    _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+  }
+
+  /*
+   * Tests a path has leading slash in the URI: "/zookeeper//path".
+   */
+  @Test
+  public void testPathHasLeadingSlash() throws IOException {
+    String content = "testGetData";
+    String path = "/path";
+
+    Assert.assertFalse(_testBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
+
+    // Now write data and test
+    _testBaseDataAccessor.create(path, content.getBytes(), AccessOption.PERSISTENT);
+
+    // Test getStringData
+    String getStringDataKey = "getStringData";
+
+    // Simulate URI concatenation in code: endpoint + "/" + path
+    // URI would have 2 slashes: "/zookeeper//path"
+    String uri = "/zookeeper" + "/" + path + "?command=" + getStringDataKey;
+    String data = new JerseyUriRequestBuilder(uri).isBodyReturnExpected(true).get(this);
+    @SuppressWarnings("unchecked")
+    Map<String, String> stringResult = OBJECT_MAPPER.readValue(data, Map.class);
+    Assert.assertTrue(stringResult.containsKey(getStringDataKey));
+    Assert.assertEquals(stringResult.get(getStringDataKey), content);
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);

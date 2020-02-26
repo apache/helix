@@ -62,14 +62,20 @@ public class ZooKeeperAccessor extends AbstractResource {
     if (cmd == null) {
       return badRequest("Invalid ZooKeeper command: " + commandStr);
     }
+    if (path == null) {
+      return badRequest("Path is missing in the request!");
+    }
 
     // Lazily initialize ZkBaseDataAccessor
     ServerContext _serverContext =
         (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
     _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
 
-    // Need to prepend a "/" since JAX-RS regex removes it
-    path = "/" + path;
+    if (path.isEmpty() || path.charAt(0) != '/') {
+      // Need to prepend a "/" since JAX-RS regex removes it in the case:
+      // path "a/b/c" is extracted from request "/zookeeper/a/b/c"
+      path = "/" + path;
+    }
 
     // Check that the path supplied is valid
     if (!isPathValid(path)) {

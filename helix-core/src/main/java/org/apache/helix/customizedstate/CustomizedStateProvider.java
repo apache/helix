@@ -58,7 +58,7 @@ public class CustomizedStateProvider {
   }
 
   /**
-   * Update a specific customized state based on the resource name and partition name. . The
+   * Update a specific customized state based on the resource name and partition name. The
    * customized state is input as a map
    */
   public synchronized void updateCustomizedState(String customizedStateName, String resourceName,

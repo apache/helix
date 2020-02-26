@@ -24,10 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -37,18 +37,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class ZNRecordSerializer implements ZkSerializer {
-  private static Logger logger = LoggerFactory.getLogger(ZNRecordSerializer.class);
-
-  // Reads from system property and represents whether auto compression is enabled or not.
-  // If and only if this property is set to "true", auto compression is enabled.
-  private final boolean autoCompressionEnabled =
-      Boolean.getBoolean(ZkSystemPropertyKeys.ZK_SERIALIZER_AUTO_COMPRESSION_ENABLED);
-
-  // Reads from system property and represents the data size threshold in bytes for
-  // auto compression.
-  private final int autoCompressionThreshold = Integer
-      .getInteger(ZkSystemPropertyKeys.ZK_SERIALIZER_AUTO_COMPRESSION_THRESHOLD_BYTES,
-          ZNRecord.SIZE_LIMIT);
+  private static Logger LOG = LoggerFactory.getLogger(ZNRecordSerializer.class);
 
   private static int getListFieldBound(ZNRecord record) {
     int max = Integer.MAX_VALUE;
@@ -57,7 +46,7 @@ public class ZNRecordSerializer implements ZkSerializer {
       try {
         max = Integer.parseInt(maxStr);
       } catch (Exception e) {
-        logger.error("IllegalNumberFormat for list field bound: " + maxStr);
+        LOG.error("IllegalNumberFormat for list field bound: " + maxStr);
       }
     }
     return max;
@@ -67,8 +56,8 @@ public class ZNRecordSerializer implements ZkSerializer {
   public byte[] serialize(Object data) {
     if (!(data instanceof ZNRecord)) {
       // null is NOT an instance of any class
-      logger.error("Input object must be of type ZNRecord but it is " + data
-          + ". Will not write to zk");
+      LOG.error(
+          "Input object must be of type ZNRecord but it is " + data + ". Will not write to zk");
       throw new ZkClientException("Input object is not of type ZNRecord (was " + data + ")");
     }
 
@@ -93,25 +82,38 @@ public class ZNRecordSerializer implements ZkSerializer {
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte[] serializedBytes;
+    byte[] serializedBytes = new byte[0];
     try {
       mapper.writeValue(baos, data);
       serializedBytes = baos.toByteArray();
+
       // apply compression if needed
-      if (record.getBooleanField("enableCompression", false) || (autoCompressionEnabled
-          && serializedBytes.length > autoCompressionThreshold)) {
+      if (ZNRecordUtil.shouldCompress(record, serializedBytes.length)) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
       }
     } catch (Exception e) {
-      logger.error("Exception during data serialization. Will not write to zk. Data (first 1k): "
-          + new String(baos.toByteArray()).substring(0, 1024), e);
+      if (serializedBytes.length == 0 || GZipCompressionUtil.isCompressed(serializedBytes)) {
+        serializedBytes = baos.toByteArray();
+      }
+      int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      LOG.error("Exception during data serialization. Will not write to zk."
+              + " The first {} bytes of data: {}", firstBytesLength,
+          new String(serializedBytes, 0, firstBytesLength), e);
       throw new ZkClientException(e);
     }
-    if (serializedBytes.length > ZNRecord.SIZE_LIMIT) {
-      logger.error("Data size larger than 1M, ZNRecord.id: " + record.getId()
-          + ". Will not write to zk. Data (first 1k): "
-          + new String(serializedBytes).substring(0, 1024));
-      throw new ZkClientException("Data size larger than 1M, ZNRecord.id: " + record.getId());
+
+    int compressThreshold = record.getCompressThreshold();
+    if (serializedBytes.length > compressThreshold) {
+      if (GZipCompressionUtil.isCompressed(serializedBytes)) {
+        serializedBytes = baos.toByteArray();
+      }
+      int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      LOG.error("Data size is greater than {} bytes, ZNRecord.id: {}."
+              + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
+          compressThreshold, record.getId(), firstBytesLength,
+          new String(serializedBytes, 0, firstBytesLength));
+      throw new ZkClientException("Data size is greater than " + compressThreshold
+          + " bytes, ZNRecord.id: " + record.getId());
     }
     return serializedBytes;
   }
@@ -136,11 +138,10 @@ public class ZNRecordSerializer implements ZkSerializer {
         byte[] uncompressedBytes = GZipCompressionUtil.uncompress(bais);
         bais = new ByteArrayInputStream(uncompressedBytes);
       }
-      ZNRecord zn = mapper.readValue(bais, ZNRecord.class);
 
-      return zn;
+      return mapper.readValue(bais, ZNRecord.class);
     } catch (Exception e) {
-      logger.error("Exception during deserialization of bytes: " + new String(bytes), e);
+      LOG.error("Exception during deserialization of bytes: {}", new String(bytes), e);
       return null;
     }
   }

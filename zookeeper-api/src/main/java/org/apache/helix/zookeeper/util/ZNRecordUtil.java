@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.constant;
+package org.apache.helix.zookeeper.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,21 +19,27 @@ package org.apache.helix.zookeeper.constant;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
+
 /**
- * This class contains various ZK system property keys.
+ * This utility class contains various methods for manipulating ZNRecord.
  */
-public class ZkSystemPropertyKeys {
+public class ZNRecordUtil {
 
   /**
-   * This is property that defines the threshold in bytes for auto compression in ZKRecord's
-   * two serializers:
-   * 1. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer}
-   * 2. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordStreamingSerializer}.
-   * <p>
-   * Given auto compression is enabled, if the size of data exceeds this configured threshold,
-   * the data will be automatically compressed when being written to Zookeeper. Default value is
-   * 1024000 (1 MB).
+   * Checks whether or not a serialized ZNRecord bytes should be compressed before being written to
+   * Zookeeper.
+   *
+   * @param record raw ZNRecord before being serialized
+   * @param serializedLength length of the serialized bytes array
+   * @return
    */
-  public static final String ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES =
-      "znrecord.serializer.compress.threshold.bytes";
+  public static boolean shouldCompress(ZNRecord record, int serializedLength) {
+    if (record.getBooleanField(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD, false)) {
+      return true;
+    }
+
+    return serializedLength > record.getCompressThreshold();
+  }
 }

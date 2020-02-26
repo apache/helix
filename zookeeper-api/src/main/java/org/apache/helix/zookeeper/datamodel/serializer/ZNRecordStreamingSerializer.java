@@ -31,6 +31,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.JsonFactory;
@@ -79,7 +80,7 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       }
     }
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte[] serializedBytes = null;
+    byte[] serializedBytes = new byte[0];
     try {
       JsonFactory f = new JsonFactory();
       JsonGenerator g = f.createJsonGenerator(baos);
@@ -154,19 +155,27 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       g.close();
       serializedBytes = baos.toByteArray();
       // apply compression if needed
-      if (record.getBooleanField("enableCompression", false) || serializedBytes.length > ZNRecord.SIZE_LIMIT) {
+      if (ZNRecordUtil.shouldCompress(record, serializedBytes.length)) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
       }
     } catch (Exception e) {
-      LOG.error("Exception during data serialization. Will not write to zk. Data (first 1k): "
-          + new String(baos.toByteArray()).substring(0, 1024), e);
+      if (serializedBytes.length == 0 || GZipCompressionUtil.isCompressed(serializedBytes)) {
+        serializedBytes = baos.toByteArray();
+      }
+      int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      LOG.error("Exception during data serialization. Will not write to zk."
+              + " The first {} bytes of data: {}", firstBytesLength,
+          new String(serializedBytes, 0, firstBytesLength), e);
       throw new ZkClientException(e);
     }
     // check size
-    if (serializedBytes.length > ZNRecord.SIZE_LIMIT) {
-      LOG.error("Data size larger than 1M, ZNRecord.id: " + record.getId()
-          + ". Will not write to zk. Data (first 1k): "
-          + new String(serializedBytes).substring(0, 1024));
+    int compressThreshold = record.getCompressThreshold();
+    if (serializedBytes.length > compressThreshold) {
+      int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      LOG.error("Data size is greater than {} bytes, ZNRecord.id: {}."
+              + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
+          compressThreshold, record.getId(), firstBytesLength,
+          new String(serializedBytes, 0, firstBytesLength));
       throw new ZkClientException("Data size larger than 1M, ZNRecord.id: " + record.getId());
     }
 

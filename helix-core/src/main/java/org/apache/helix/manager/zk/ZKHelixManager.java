@@ -56,6 +56,8 @@ import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -470,6 +472,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
+  public void addCustomizedStateAggregationConfigChangeListener(
+      CustomizedStateAggregationConfigChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedStateAggregationConfig(),
+        ChangeType.CUSTOMIZED_STATE_AGGREGATION_CONFIG, new EventType[] {
+            EventType.NodeDataChanged
+        });
+  }
+
+  @Override
   public void addClusterfigChangeListener(ClusterConfigChangeListener listener) throws Exception{
     addListener(listener, new Builder(_clusterName).clusterConfig(), ChangeType.CLUSTER_CONFIG,
         new EventType[] { EventType.NodeDataChanged
@@ -555,6 +566,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       String instanceName, String sessionId) throws Exception {
     addListener(listener, new Builder(_clusterName).currentStates(instanceName, sessionId),
         ChangeType.CURRENT_STATE, new EventType[] { EventType.NodeChildrenChanged
+        });
+  }
+
+  @Override
+  public void addCustomizedStateChangeListener(CustomizedStateChangeListener listener,
+      String instanceName, String customizedStateName) throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedStates(instanceName, customizedStateName),
+        ChangeType.CUSTOMIZED_STATE, new EventType[] { EventType.NodeChildrenChanged
         });
   }
 

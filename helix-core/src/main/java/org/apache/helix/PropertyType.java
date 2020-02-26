@@ -49,7 +49,6 @@ public enum PropertyType {
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),
 
-  // INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),
   CURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),

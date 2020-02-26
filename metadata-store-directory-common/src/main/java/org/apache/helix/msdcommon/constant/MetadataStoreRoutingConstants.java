@@ -75,4 +75,8 @@ public class MetadataStoreRoutingConstants {
   // The key for system properties that contains the hostname of of the
   // MetadataStoreDirectoryService server instance
   public static final String MSDS_SERVER_HOSTNAME_KEY = "msds_hostname";
+
+  // Time out for http requests that are forwarded to leader instances by ZkRoutingWriter;
+  // measured in seconds
+  public static final int FORWARD_HTTP_REQUEST_TIMEOUT = 60;
 }

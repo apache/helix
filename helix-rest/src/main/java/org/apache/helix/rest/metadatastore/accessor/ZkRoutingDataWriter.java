@@ -45,6 +45,8 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants.FORWARD_HTTP_REQUEST_TIMEOUT;
+
 
 public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
@@ -56,7 +58,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private final String _myHostName;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
-    System.out.println("writer created namespace=" + namespace + " zkAddress=" + zkAddress);
     if (namespace == null || namespace.isEmpty()) {
       throw new IllegalArgumentException("namespace cannot be null or empty!");
     }
@@ -78,7 +79,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     // Get the hostname (REST endpoint) from System property
     _myHostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
-    if (_myHostName == null) {
+    if (_myHostName == null || _myHostName.isEmpty()) {
       throw new IllegalStateException(
           "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
               + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
@@ -88,9 +89,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
 
-    int timeout = 60; // seconds
-    RequestConfig config = RequestConfig.custom().setConnectTimeout(timeout * 1000)
-        .setConnectionRequestTimeout(timeout * 1000).setSocketTimeout(timeout * 1000).build();
+    RequestConfig config =
+        RequestConfig.custom().setConnectTimeout(FORWARD_HTTP_REQUEST_TIMEOUT * 1000)
+            .setConnectionRequestTimeout(FORWARD_HTTP_REQUEST_TIMEOUT * 1000)
+            .setSocketTimeout(FORWARD_HTTP_REQUEST_TIMEOUT * 1000).build();
     _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
   }
 
@@ -294,8 +296,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         .remove(shardingKey);
     // Overwrite this ZNRecord with the sharding key removed
     try {
-      _zkClient
-          .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
+      _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
     } catch (Exception e) {
       LOG.error(
           "Failed to write the data back in deleteShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
@@ -309,7 +310,6 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       int expectedResponseCode) throws IllegalArgumentException {
     String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
     String url = leaderHostName + url_suffix;
-    System.out.println(url);
     HttpUriRequest request;
     switch (request_method) {
       case "put":

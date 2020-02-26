@@ -98,6 +98,20 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
     return node.getRealmAddress();
   }
 
+  public String getShardingKeyInPath(String path)
+      throws IllegalArgumentException, NoSuchElementException {
+    if (!ZkValidationUtil.isPathValid(path)) {
+      throw new IllegalArgumentException("Provided path is not a valid Zookeeper path: " + path);
+    }
+
+    TrieNode node = getLongestPrefixNodeAlongPath(path);
+    if (!node.isShardingKey()) {
+      throw new NoSuchElementException(
+          "No sharding key found within the provided path. Path: " + path);
+    }
+    return node.getPath();
+  }
+
   public boolean isShardingKeyInsertionValid(String shardingKey) {
     if (!ZkValidationUtil.isPathValid(shardingKey)) {
       throw new IllegalArgumentException(

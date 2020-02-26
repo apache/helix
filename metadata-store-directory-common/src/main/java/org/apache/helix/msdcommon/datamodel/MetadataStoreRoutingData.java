@@ -22,6 +22,7 @@ package org.apache.helix.msdcommon.datamodel;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+
 public interface MetadataStoreRoutingData {
   /**
    * Given a path, return all the "metadata store sharding key-metadata store realm address" pairs
@@ -45,6 +46,16 @@ public interface MetadataStoreRoutingData {
    * @throws NoSuchElementException - when the path doesn't contain a sharding key
    */
   String getMetadataStoreRealm(String path) throws IllegalArgumentException, NoSuchElementException;
+
+  /**
+   * Given a path, return the sharding key contained in the path. If the path doesn't contain a
+   * sharding key, throw NoSuchElementException.
+   * @param path - the path that may contain a sharding key
+   * @return the sharding key contained in the path
+   * @throws IllegalArgumentException - when the path is invalid
+   * @throws NoSuchElementException - when the path doesn't contain a sharding key
+   */
+  String getShardingKeyInPath(String path) throws IllegalArgumentException, NoSuchElementException;
 
   /**
    * Check if the provided sharding key can be inserted to the routing data. The insertion is

@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
@@ -52,6 +54,7 @@ import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
+
 
 /**
  * Utility mapping properties to their Zookeeper locations
@@ -112,6 +115,12 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.CURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 2,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}/{resourceName}");
     addEntry(PropertyType.STATUSUPDATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES, 3,
@@ -312,6 +321,20 @@ public class PropertyPathBuilder {
         sessionId, resourceName);
   }
 
+  public static String instanceCustomizedState(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES", clusterName, instanceName);
+  }
+
+  public static String instanceCustomizedState(String clusterName, String instanceName,
+      String customizedStateName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s", clusterName, instanceName, customizedStateName);
+  }
+
+  public static String instanceCustomizedState(String clusterName, String instanceName,
+      String customizedStateName, String resourceName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s/%s", clusterName, instanceName,
+        customizedStateName, resourceName);
+  }
   public static String instanceError(String clusterName, String instanceName) {
     return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
   }

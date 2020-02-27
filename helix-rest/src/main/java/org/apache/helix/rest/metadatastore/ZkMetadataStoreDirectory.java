@@ -68,7 +68,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
         }
       }
     }
-
     return _zkMetadataStoreDirectoryInstance;
   }
 

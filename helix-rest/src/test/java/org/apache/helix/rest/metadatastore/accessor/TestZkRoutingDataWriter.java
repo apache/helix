@@ -19,6 +19,7 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.junit.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -40,15 +42,35 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   private static final String DUMMY_SHARDING_KEY = "SHARDING_KEY";
   private MetadataStoreRoutingDataWriter _zkRoutingDataWriter;
 
+  // MockWriter is used for testing request forwarding features in non-leader situations
+  class MockWriter extends ZkRoutingDataWriter {
+    HttpUriRequest calledRequest;
+
+    MockWriter(String namespace, String zkAddress) {
+      super(namespace, zkAddress);
+    }
+
+    // This method does not call super() because the http call should not be actually made
+    @Override
+    protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
+        String leaderHostName) {
+      calledRequest = request;
+      return false;
+    }
+  }
+
   @BeforeClass
   public void beforeClass() {
     _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
+        getBaseUri().toString());
     _zkRoutingDataWriter = new ZkRoutingDataWriter(DUMMY_NAMESPACE, ZK_ADDR);
   }
 
   @AfterClass
   public void afterClass() {
     _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+    System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     _zkRoutingDataWriter.close();
   }
 
@@ -104,5 +126,67 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
         znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).size(), 1);
     Assert.assertTrue(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
         .contains(DUMMY_SHARDING_KEY));
+  }
+
+  @Test(dependsOnMethods = "testSetRoutingData")
+  public void testAddMetadataStoreRealmNonLeader() {
+    MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
+    mockWriter.addMetadataStoreRealm(DUMMY_REALM);
+    Assert.assertEquals("PUT", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
+    mockWriter.close();
+  }
+
+  @Test(dependsOnMethods = "testAddMetadataStoreRealmNonLeader")
+  public void testDeleteMetadataStoreRealmNonLeader() {
+    MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
+    mockWriter.deleteMetadataStoreRealm(DUMMY_REALM);
+    Assert.assertEquals("DELETE", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
+    mockWriter.close();
+  }
+
+  @Test(dependsOnMethods = "testDeleteMetadataStoreRealmNonLeader")
+  public void testAddShardingKeyNonLeader() {
+    MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
+    mockWriter.addShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
+    Assert.assertEquals("PUT", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
+    mockWriter.close();
+  }
+
+  @Test(dependsOnMethods = "testAddShardingKeyNonLeader")
+  public void testDeleteShardingKeyNonLeader() {
+    MockWriter mockWriter = new MockWriter(DUMMY_NAMESPACE, ZK_ADDR);
+    mockWriter.deleteShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
+    Assert.assertEquals("DELETE", mockWriter.calledRequest.getMethod());
+    List<String> expectedUrlParams = Arrays
+        .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
+    mockWriter.close();
   }
 }

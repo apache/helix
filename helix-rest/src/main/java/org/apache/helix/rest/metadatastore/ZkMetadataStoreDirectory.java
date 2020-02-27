@@ -21,7 +21,6 @@ package org.apache.helix.rest.metadatastore;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.msdcommon.callback.RoutingDataListener;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
@@ -42,49 +42,68 @@ import org.slf4j.LoggerFactory;
 
 
 /**
+ * NOTE: This is a singleton class. DO NOT EXTEND!
  * ZK-based MetadataStoreDirectory that listens on the routing data in routing ZKs with a update
  * callback.
  */
 public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, RoutingDataListener {
   private static final Logger LOG = LoggerFactory.getLogger(ZkMetadataStoreDirectory.class);
 
-  // TODO: enable the line below when implementation is complete
   // The following maps' keys represent the namespace
-  private final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
-  private final Map<String, MetadataStoreRoutingDataWriter> _routingDataWriterMap;
-  private final Map<String, MetadataStoreRoutingData> _routingDataMap;
-  private final Map<String, String> _routingZkAddressMap;
+  // NOTE: made protected for testing reasons. DO NOT MODIFY!
+  protected final Map<String, MetadataStoreRoutingDataReader> _routingDataReaderMap;
+  protected final Map<String, MetadataStoreRoutingDataWriter> _routingDataWriterMap;
+  protected final Map<String, MetadataStoreRoutingData> _routingDataMap;
+  protected final Map<String, String> _routingZkAddressMap;
   // <namespace, <realm, <list of sharding keys>> mappings
-  private final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
+  protected final Map<String, Map<String, List<String>>> _realmToShardingKeysMap;
+
+  private static volatile ZkMetadataStoreDirectory _zkMetadataStoreDirectoryInstance;
+
+  public static ZkMetadataStoreDirectory getInstance() {
+    if (_zkMetadataStoreDirectoryInstance == null) {
+      synchronized (ZkMetadataStoreDirectory.class) {
+        if (_zkMetadataStoreDirectoryInstance == null) {
+          _zkMetadataStoreDirectoryInstance = new ZkMetadataStoreDirectory();
+        }
+      }
+    }
+    return _zkMetadataStoreDirectoryInstance;
+  }
+
+  public static ZkMetadataStoreDirectory getInstance(String namespace, String zkAddress)
+      throws InvalidRoutingDataException {
+    getInstance().init(namespace, zkAddress);
+    return _zkMetadataStoreDirectoryInstance;
+  }
 
   /**
-   * Creates a ZkMetadataStoreDirectory based on the given routing ZK addresses.
-   * @param routingZkAddressMap (namespace, routing ZK connect string)
-   * @throws InvalidRoutingDataException
+   * Note: this is a singleton class. The constructor is made protected for testing. DO NOT EXTEND!
    */
-  public ZkMetadataStoreDirectory(Map<String, String> routingZkAddressMap)
-      throws InvalidRoutingDataException {
-    if (routingZkAddressMap == null || routingZkAddressMap.isEmpty()) {
-      throw new InvalidRoutingDataException("Routing ZK Addresses given are invalid!");
-    }
-    _routingDataReaderMap = new HashMap<>();
-    _routingDataWriterMap = new HashMap<>();
-    _routingZkAddressMap = routingZkAddressMap;
+  @VisibleForTesting
+  protected ZkMetadataStoreDirectory() {
+    _routingDataReaderMap = new ConcurrentHashMap<>();
+    _routingDataWriterMap = new ConcurrentHashMap<>();
+    _routingZkAddressMap = new ConcurrentHashMap<>();
     _realmToShardingKeysMap = new ConcurrentHashMap<>();
     _routingDataMap = new ConcurrentHashMap<>();
+  }
 
-    // Create RoutingDataReaders and RoutingDataWriters
-    for (Map.Entry<String, String> routingEntry : _routingZkAddressMap.entrySet()) {
-      _routingDataReaderMap.put(routingEntry.getKey(),
-          new ZkRoutingDataReader(routingEntry.getKey(), routingEntry.getValue(), this));
-      _routingDataWriterMap.put(routingEntry.getKey(),
-          new ZkRoutingDataWriter(routingEntry.getKey(), routingEntry.getValue()));
+  private void init(String namespace, String zkAddress) throws InvalidRoutingDataException {
+    if (!_routingZkAddressMap.containsKey(namespace)) {
+      synchronized (_routingZkAddressMap) {
+        if (!_routingZkAddressMap.containsKey(namespace)) {
+          _routingZkAddressMap.put(namespace, zkAddress);
+          _routingDataReaderMap.put(namespace, new ZkRoutingDataReader(namespace, zkAddress, this));
+          _routingDataWriterMap.put(namespace, new ZkRoutingDataWriter(namespace, zkAddress));
 
-      // Populate realmToShardingKeys with ZkRoutingDataReader
-      _realmToShardingKeysMap.put(routingEntry.getKey(),
-          _routingDataReaderMap.get(routingEntry.getKey()).getRoutingData());
-      _routingDataMap.put(routingEntry.getKey(),
-          new TrieRoutingData(_realmToShardingKeysMap.get(routingEntry.getKey())));
+          // Populate realmToShardingKeys with ZkRoutingDataReader
+          _realmToShardingKeysMap
+              .put(namespace, _routingDataReaderMap.get(namespace).getRoutingData());
+          _routingDataMap
+              .put(namespace, new TrieRoutingData(_realmToShardingKeysMap.get(namespace)));
+        }
+      }
     }
   }
 
@@ -238,5 +257,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
   public synchronized void close() {
     _routingDataReaderMap.values().forEach(MetadataStoreRoutingDataReader::close);
     _routingDataWriterMap.values().forEach(MetadataStoreRoutingDataWriter::close);
+    _routingDataReaderMap.clear();
+    _routingDataWriterMap.clear();
+    _routingZkAddressMap.clear();
+    _realmToShardingKeysMap.clear();
+    _routingDataMap.clear();
+    _zkMetadataStoreDirectoryInstance = null;
   }
 }

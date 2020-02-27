@@ -20,12 +20,18 @@ package org.apache.helix.zookeeper.impl.factory;
  */
 
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.zkclient.IZkConnection;
+import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +45,12 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   private final HashMap<HelixZkClient.ZkConnectionConfig, ZkConnectionManager>
       _connectionManagerPool = new HashMap<>();
 
+  /*
+   * Since we cannot really disconnect the ZkConnection, we need a dummy ZkConnection placeholder.
+   * This is to ensure connection field is never null even the shared RealmAwareZkClient instance is closed so as to avoid NPE.
+   */
+  private final static ZkConnection IDLE_CONNECTION = new ZkConnection("Dummy_ZkServers");
+
   protected SharedZkClientFactory() {
   }
 
@@ -47,9 +59,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
       MetadataStoreRoutingData metadataStoreRoutingData) {
-    // TODO: Implement the logic
-    // Return an instance of SharedZkClient
-    return null;
+    // Note, the logic sharing connectionManager logic is inside SharedZkClient, similar to innerSharedZkClient.
+    return new SharedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
   }
 
   @Override
@@ -84,14 +95,14 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       if (zkConnectionManager == null) {
         throw new ZkClientException("Failed to create a connection manager in the pool to share.");
       }
-      LOG.info("Sharing ZkConnection {} to a new SharedZkClient.", connectionConfig.toString());
-      return new SharedZkClient(zkConnectionManager, clientConfig,
-          new SharedZkClient.OnCloseCallback() {
-            @Override
-            public void onClose() {
-              cleanupConnectionManager(zkConnectionManager);
-            }
-          });
+      LOG.info("Sharing ZkConnection {} to a new InnerSharedZkClient.",
+          connectionConfig.toString());
+      return new InnerSharedZkClient(zkConnectionManager, clientConfig, new OnCloseCallback() {
+        @Override
+        public void onClose() {
+          cleanupConnectionManager(zkConnectionManager);
+        }
+      });
     }
   }
 
@@ -127,5 +138,79 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       }
     }
     return count;
+  }
+
+  public interface OnCloseCallback {
+    /**
+     * Triggered after the SharedZkClient is closed.
+     */
+    void onClose();
+  }
+
+  /**
+   * NOTE: do NOT use this class directly. Please use SharedZkClientFactory to create an instance of SharedZkClient.
+   * InnerSharedZkClient is a ZkClient used by SharedZkClient to power ZK operations against a single ZK realm.
+   *
+   * NOTE2: current InnerSharedZkClient replace the original SharedZKClient. We intend to keep the behavior of original
+   * SharedZkClient intact. (Think of rename the original SharedZkClient as InnerSharedZkClient. This would maintain
+   * backward compatibility.
+   */
+  public static class InnerSharedZkClient extends ZkClient implements HelixZkClient {
+
+    private final OnCloseCallback _onCloseCallback;
+    private final ZkConnectionManager _connectionManager;
+
+    public InnerSharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
+        OnCloseCallback callback) {
+      super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
+          clientConfig.getZkSerializer(), clientConfig.getMonitorType(),
+          clientConfig.getMonitorKey(), clientConfig.getMonitorInstanceName(),
+          clientConfig.isMonitorRootPathOnly());
+      _connectionManager = connectionManager;
+      // Register to the base dedicated RealmAwareZkClient
+      _connectionManager.registerWatcher(this);
+      _onCloseCallback = callback;
+    }
+
+    @Override
+    public void close() {
+      super.close();
+      if (isClosed()) {
+        // Note that if register is not done while constructing, these private fields may not be init yet.
+        if (_connectionManager != null) {
+          _connectionManager.unregisterWatcher(this);
+        }
+        if (_onCloseCallback != null) {
+          _onCloseCallback.onClose();
+        }
+      }
+    }
+
+    @Override
+    public IZkConnection getConnection() {
+      if (isClosed()) {
+        return IDLE_CONNECTION;
+      }
+      return super.getConnection();
+    }
+
+    /**
+     * Since ZkConnection session is shared in this HelixZkClient, do not create ephemeral node using a SharedZKClient.
+     */
+    @Override
+    public String create(final String path, Object datat, final List<ACL> acl,
+        final CreateMode mode) {
+      if (mode.isEphemeral()) {
+        throw new UnsupportedOperationException(
+            "Create ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+                + " is not supported.");
+      }
+      return super.create(path, datat, acl, mode);
+    }
+
+    @Override
+    protected boolean isManagingZkConnection() {
+      return false;
+    }
   }
 }

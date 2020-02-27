@@ -66,9 +66,19 @@ public class MetadataStoreRoutingConstants {
   // System Property Metadata Store Directory Server endpoint key
   public static final String MSDS_SERVER_ENDPOINT_KEY = "metadataStoreDirectoryServerEndpoint";
 
+  // Prefix to MSDS resource endpoints
+  public static final String MSDS_NAMESPACES_URL_PREFIX = "/namespaces";
+
   // MSDS resource getAllRealms endpoint string
   public static final String MSDS_GET_ALL_REALMS_ENDPOINT = "/metadata-store-realms";
 
   // MSDS resource get all routing data endpoint string
   public static final String MSDS_GET_ALL_ROUTING_DATA_ENDPOINT = "/routing-data";
+
+  // MSDS resource get all sharding keys endpoint string
+  public static final String MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT = "/sharding-keys";
+
+  // The key for system properties that contains the hostname of of the
+  // MetadataStoreDirectoryService server instance
+  public static final String MSDS_SERVER_HOSTNAME_KEY = "msds_hostname";
 }

@@ -62,8 +62,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass()
-      throws InvalidRoutingDataException {
+  public void beforeClass() throws InvalidRoutingDataException {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
     // Populate routingZkAddrMap
@@ -101,8 +100,14 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
               znRecord);
     });
 
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
+        getBaseUri().toString());
+
     // Create metadataStoreDirectory
-    _metadataStoreDirectory = new ZkMetadataStoreDirectory(_routingZkAddrMap);
+    for (Map.Entry<String, String> entry : _routingZkAddrMap.entrySet()) {
+      _metadataStoreDirectory =
+          ZkMetadataStoreDirectory.getInstance(entry.getKey(), entry.getValue());
+    }
   }
 
   @AfterClass
@@ -110,11 +115,13 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     _metadataStoreDirectory.close();
     _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
         .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
+    System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
   }
 
   @Test
   public void testGetAllNamespaces() {
-    Assert.assertEquals(_metadataStoreDirectory.getAllNamespaces(), _routingZkAddrMap.keySet());
+    Assert.assertTrue(
+        _metadataStoreDirectory.getAllNamespaces().containsAll(_routingZkAddrMap.keySet()));
   }
 
   @Test(dependsOnMethods = "testGetAllNamespaces")
@@ -187,8 +194,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetMetadataStoreRealm")
-  public void testDataChangeCallback()
-      throws Exception {
+  public void testDataChangeCallback() throws Exception {
     // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_1
     String newKey = "/a/b/c/d/e";
     _zkList.forEach(zk -> {
@@ -216,8 +222,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testDataChangeCallback")
-  public void testChildChangeCallback()
-      throws Exception {
+  public void testChildChangeCallback() throws Exception {
     // For all namespaces (Routing ZKs), add a realm with a sharding key list
     _zkList.forEach(zk -> {
       ZK_SERVER_MAP.get(zk).getZkClient()

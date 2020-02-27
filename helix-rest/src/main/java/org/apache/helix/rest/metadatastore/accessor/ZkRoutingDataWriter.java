@@ -28,6 +28,7 @@ import java.util.Map;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -48,6 +49,8 @@ import org.slf4j.LoggerFactory;
 
 
 public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
+  // Time out for http requests that are forwarded to leader instances measured in milliseconds
+  private static final int HTTP_REQUEST_FORWARDING_TIMEOUT = 60 * 1000;
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
 
   private final String _namespace;
@@ -77,23 +80,25 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     }
 
     // Get the hostname (REST endpoint) from System property
-    _myHostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
-    if (_myHostName == null || _myHostName.isEmpty()) {
+    String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    if (hostName == null || hostName.isEmpty()) {
       throw new IllegalStateException(
           "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
               + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
     }
+    // remove trailing slash
+    if (hostName.charAt(hostName.length() - 1) == '/') {
+      hostName = hostName.substring(0, hostName.length() - 1);
+    }
+    _myHostName = hostName;
     ZNRecord myServerInfo = new ZNRecord(_myHostName);
 
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
 
-    RequestConfig config = RequestConfig.custom()
-        .setConnectTimeout(MetadataStoreRoutingConstants.HTTP_REQUEST_FORWARDING_TIMEOUT * 1000)
-        .setConnectionRequestTimeout(
-            MetadataStoreRoutingConstants.HTTP_REQUEST_FORWARDING_TIMEOUT * 1000)
-        .setSocketTimeout(MetadataStoreRoutingConstants.HTTP_REQUEST_FORWARDING_TIMEOUT * 1000)
-        .build();
+    RequestConfig config = RequestConfig.custom().setConnectTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT)
+        .setConnectionRequestTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT)
+        .setSocketTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT).build();
     _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
   }
 
@@ -108,8 +113,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
-    return forwardRequestToLeader(urlSuffix,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT, "addMetadataStoreRealm",
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
   }
 
@@ -124,8 +128,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
-    return forwardRequestToLeader(urlSuffix,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE, "deleteMetadataStoreRealm",
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
         Response.Status.OK.getStatusCode());
   }
 
@@ -141,8 +144,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
-    return forwardRequestToLeader(urlSuffix,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT, "addShardingKey",
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
   }
 
@@ -158,8 +160,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
-    return forwardRequestToLeader(urlSuffix,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE, "deleteShardingKey",
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
         Response.Status.OK.getStatusCode());
   }
 
@@ -315,14 +316,17 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
   private String constructUrlSuffix(String... urlParams) {
     List<String> allUrlParameters = new ArrayList<>(
-        Arrays.asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, _namespace));
-    allUrlParameters.addAll(Arrays.asList(urlParams));
-    // HttpUriRequest will convert all double slashes to single slashes
-    return String.join("/", allUrlParameters);
+        Arrays.asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
+    for (String urlParam : urlParams) {
+      if (urlParam.charAt(0) != '/') {
+        urlParam = "/" + urlParam;
+      }
+      allUrlParameters.add(urlParam);
+    }
+    return String.join("", allUrlParameters);
   }
 
-  private boolean forwardRequestToLeader(String urlSuffix,
-      MetadataStoreRoutingConstants.HttpRequestForwardingVerbs request_method, String endPoint,
+  private boolean forwardRequestToLeader(String urlSuffix, HttpConstants.RestVerbs request_method,
       int expectedResponseCode) throws IllegalArgumentException {
     String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
     String url = leaderHostName + urlSuffix;
@@ -338,20 +342,19 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalArgumentException("Unsupported request_method: " + request_method);
     }
 
-    return sendRequestToLeader(request, expectedResponseCode, endPoint, leaderHostName);
+    return sendRequestToLeader(request, expectedResponseCode, leaderHostName);
   }
 
   // Set to be protected for testing purposes
   protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
-      String endPoint, String leaderHostName) {
+      String leaderHostName) {
     try {
       HttpResponse response = _forwardHttpClient.execute(request);
       if (response.getStatusLine().getStatusCode() != expectedResponseCode) {
         HttpEntity respEntity = response.getEntity();
-        String errorLog =
-            "The forwarded request to leader has failed for " + endPoint + ". Error code: "
-                + response.getStatusLine().getStatusCode() + " Current hostname: " + _myHostName
-                + " Leader hostname: " + leaderHostName;
+        String errorLog = "The forwarded request to leader has failed. Uri: " + request.getURI()
+            + ". Error code: " + response.getStatusLine().getStatusCode() + " Current hostname: "
+            + _myHostName + " Leader hostname: " + leaderHostName;
         if (respEntity != null) {
           errorLog += " Response: " + EntityUtils.toString(respEntity);
         }
@@ -360,8 +363,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       }
     } catch (IOException e) {
       LOG.error(
-          "The forwarded request to leader raised an exception for {}. Current hostname: {} Leader hostname: {}",
-          endPoint, _myHostName, leaderHostName, e);
+          "The forwarded request to leader raised an exception. Uri: {} Current hostname: {} Leader hostname: {}",
+          request.getURI(), _myHostName, leaderHostName, e);
       return false;
     }
     return true;

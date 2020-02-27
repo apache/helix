@@ -119,7 +119,7 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
    */
   @Test(dependsOnMethods = "testGetMetadataStoreRealmWithShardingKey")
   public void testAddMetadataStoreRealm() throws InvalidRoutingDataException {
-    Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
+    Set<String> expectedRealmsSet = getAllRealms();
     Assert.assertFalse(expectedRealmsSet.contains(TEST_REALM_3),
         "Metadata store directory should not have realm: " + TEST_REALM_3);
 
@@ -134,7 +134,7 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
         Response.Status.CREATED.getStatusCode());
 
     expectedRealmsSet.add(TEST_REALM_3);
-    Assert.assertEquals(getAllMetadataStoreRealmsHelper(), expectedRealmsSet);
+    Assert.assertEquals(getAllRealms(), expectedRealmsSet);
   }
 
   /*
@@ -142,7 +142,7 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
    */
   @Test(dependsOnMethods = "testAddMetadataStoreRealm")
   public void testDeleteMetadataStoreRealm() throws InvalidRoutingDataException {
-    Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
+    Set<String> expectedRealmsSet = getAllRealms();
     // Test a request that has not found response.
     delete(NON_EXISTING_NAMESPACE_URI_PREFIX + TEST_REALM_3,
         Response.Status.NOT_FOUND.getStatusCode());
@@ -151,7 +151,7 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
     delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3,
         Response.Status.OK.getStatusCode());
 
-    Set<String> updateRealmsSet = getAllMetadataStoreRealmsHelper();
+    Set<String> updateRealmsSet = getAllRealms();
     expectedRealmsSet.remove(TEST_REALM_3);
     Assert.assertEquals(updateRealmsSet, expectedRealmsSet);
   }
@@ -371,22 +371,22 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
    */
   @Test(dependsOnMethods = "testGetRealmShardingKeysUnderPath")
   public void testAddShardingKey() throws InvalidRoutingDataException {
-    Set<String> expectedShardingKeysSet = getShardingKeysInRealmHelper();
+    Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
     Assert.assertFalse(expectedShardingKeysSet.contains(TEST_SHARDING_KEY),
         "Realm does not have sharding key: " + TEST_SHARDING_KEY);
 
     // Request that gets not found response.
-    put(NON_EXISTING_NAMESPACE_URI_PREFIX + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
+    put(NON_EXISTING_NAMESPACE_URI_PREFIX + TEST_REALM_1 + "/sharding-keys" + TEST_SHARDING_KEY,
         null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.NOT_FOUND.getStatusCode());
 
     // Successful request.
-    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/"
+    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
             + TEST_SHARDING_KEY, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
 
     expectedShardingKeysSet.add(TEST_SHARDING_KEY);
-    Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
+    Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
   }
 
   /*
@@ -394,18 +394,18 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
    */
   @Test(dependsOnMethods = "testAddShardingKey")
   public void testDeleteShardingKey() throws InvalidRoutingDataException {
-    Set<String> expectedShardingKeysSet = getShardingKeysInRealmHelper();
+    Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
 
     // Request that gets not found response.
-    delete(NON_EXISTING_NAMESPACE_URI_PREFIX + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
+    delete(NON_EXISTING_NAMESPACE_URI_PREFIX + TEST_REALM_1 + "/sharding-keys" + TEST_SHARDING_KEY,
         Response.Status.NOT_FOUND.getStatusCode());
 
     // Successful request.
-    delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/"
+    delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
         + TEST_SHARDING_KEY, Response.Status.OK.getStatusCode());
 
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
-    Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
+    Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
   }
 
   private void verifyRealmShardingKeys(String responseBody) throws IOException {

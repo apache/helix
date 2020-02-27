@@ -247,7 +247,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response addShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
-    shardingKey = addLeadingSlashIfMissing(shardingKey);
+    shardingKey = "/" + shardingKey;
     try {
       if (!_metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey)) {
         return serverError();
@@ -263,7 +263,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response deleteShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
-    shardingKey = addLeadingSlashIfMissing(shardingKey);
+    shardingKey = "/" + shardingKey;
     try {
       if (!_metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey)) {
         return serverError();
@@ -353,18 +353,5 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
             MetadataStoreRoutingConstants.SHARDING_KEYS, shardingKeyList);
 
     return JSONRepresentation(responseMap);
-  }
-
-  /*
-   * When adding a sharding key "/a/b/c" using addShardingKey endpoint, the most correct url
-   * structure is "/sharding-keys//a/b/c", however, it's tempting to remove the double slash. This
-   * method ensures that "/sharding-keys/a/b/c" also works for adding "/a/b/c", making the endpoint
-   * more forgiving.
-   */
-  private String addLeadingSlashIfMissing(String shardingKey) {
-    if (shardingKey.charAt(0) != '/') {
-      return "/" + shardingKey;
-    }
-    return shardingKey;
   }
 }

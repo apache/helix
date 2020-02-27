@@ -53,7 +53,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     // This method does not call super() because the http call should not be actually made
     @Override
     protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
-        String endPoint, String leaderHostName) {
+        String leaderHostName) {
       calledRequest = request;
       return false;
     }
@@ -136,8 +136,10 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     List<String> expectedUrlParams = Arrays
         .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
-    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
-        mockWriter.calledRequest.getURI().toString());
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -149,8 +151,10 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     List<String> expectedUrlParams = Arrays
         .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM);
-    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
-        mockWriter.calledRequest.getURI().toString());
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -163,8 +167,10 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
         .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
-    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
-        mockWriter.calledRequest.getURI().toString());
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 
@@ -177,8 +183,10 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
         .asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, DUMMY_NAMESPACE,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, DUMMY_REALM,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, DUMMY_SHARDING_KEY);
-    Assert.assertEquals(getBaseUri().toString() + String.join("/", expectedUrlParams),
-        mockWriter.calledRequest.getURI().toString());
+    String expectedUrl =
+        getBaseUri().toString() + String.join("/", expectedUrlParams).replaceAll("//", "/")
+            .substring(1);
+    Assert.assertEquals(expectedUrl, mockWriter.calledRequest.getURI().toString());
     mockWriter.close();
   }
 }

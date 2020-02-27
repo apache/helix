@@ -118,11 +118,14 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
     }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 
-  protected Set<String> getAllMetadataStoreRealmsHelper() throws InvalidRoutingDataException {
+  // Uses routingDataReader to get the latest realms in test-namespace; returns a modifiable copy
+  // because it'll be modified in test cases
+  protected Set<String> getAllRealms() throws InvalidRoutingDataException {
     return new HashSet<>(_routingDataReader.getRoutingData().keySet());
   }
 
-  protected Set<String> getShardingKeysInRealmHelper() throws InvalidRoutingDataException {
+  // Uses routingDataReader to get the latest sharding keys in test-namespace, testRealm1
+  protected Set<String> getAllShardingKeysInTestRealm1() throws InvalidRoutingDataException {
     return new HashSet<>(_routingDataReader.getRoutingData().get(TEST_REALM_1));
   }
 }

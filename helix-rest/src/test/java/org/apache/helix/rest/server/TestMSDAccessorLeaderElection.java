@@ -32,6 +32,7 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.common.ServletType;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.CORSFilter;
@@ -69,6 +70,7 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
   public void beforeClass() throws Exception {
     super.beforeClass();
     _leaderBaseUri = getBaseUri().toString();
+    _leaderBaseUri = _leaderBaseUri.substring(0, _leaderBaseUri.length() - 1);
     int newPort = getBaseUri().getPort() + 1;
 
     // Start a second server for testing Distributed Leader Election for writes
@@ -114,59 +116,54 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
   @Test
   public void testAddMetadataStoreRealmRequestForwarding()
       throws InvalidRoutingDataException, IOException {
-    Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
+    Set<String> expectedRealmsSet = getAllRealms();
     Assert.assertFalse(expectedRealmsSet.contains(TEST_REALM_3),
         "Metadata store directory should not have realm: " + TEST_REALM_3);
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT,
+    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
     expectedRealmsSet.add(TEST_REALM_3);
-    Assert.assertEquals(getAllMetadataStoreRealmsHelper(), expectedRealmsSet);
+    Assert.assertEquals(getAllRealms(), expectedRealmsSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
   @Test(dependsOnMethods = "testAddMetadataStoreRealmRequestForwarding")
   public void testDeleteMetadataStoreRealmRequestForwarding()
       throws InvalidRoutingDataException, IOException {
-    Set<String> expectedRealmsSet = getAllMetadataStoreRealmsHelper();
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE,
+    Set<String> expectedRealmsSet = getAllRealms();
+    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.DELETE,
         Response.Status.OK.getStatusCode());
     expectedRealmsSet.remove(TEST_REALM_3);
-    Assert.assertEquals(getAllMetadataStoreRealmsHelper(), expectedRealmsSet);
+    Assert.assertEquals(getAllRealms(), expectedRealmsSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
   @Test(dependsOnMethods = "testDeleteMetadataStoreRealmRequestForwarding")
   public void testAddShardingKeyRequestForwarding()
       throws InvalidRoutingDataException, IOException {
-    Set<String> expectedShardingKeysSet = getShardingKeysInRealmHelper();
+    Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
     Assert.assertFalse(expectedShardingKeysSet.contains(TEST_SHARDING_KEY),
         "Realm does not have sharding key: " + TEST_SHARDING_KEY);
     sendRequestAndValidate(
         "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.PUT,
-        Response.Status.CREATED.getStatusCode());
+        HttpConstants.RestVerbs.PUT, Response.Status.CREATED.getStatusCode());
     expectedShardingKeysSet.add(TEST_SHARDING_KEY);
-    Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
+    Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
   @Test(dependsOnMethods = "testAddShardingKeyRequestForwarding")
   public void testDeleteShardingKeyRequestForwarding()
       throws InvalidRoutingDataException, IOException {
-    Set<String> expectedShardingKeysSet = getShardingKeysInRealmHelper();
+    Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
     sendRequestAndValidate(
         "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
-        MetadataStoreRoutingConstants.HttpRequestForwardingVerbs.DELETE,
-        Response.Status.OK.getStatusCode());
+        HttpConstants.RestVerbs.DELETE, Response.Status.OK.getStatusCode());
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
-    Assert.assertEquals(getShardingKeysInRealmHelper(), expectedShardingKeysSet);
+    Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
-  private void sendRequestAndValidate(String urlSuffix,
-      MetadataStoreRoutingConstants.HttpRequestForwardingVerbs requestMethod,
+  private void sendRequestAndValidate(String urlSuffix, HttpConstants.RestVerbs requestMethod,
       int expectedResponseCode) throws IllegalArgumentException, IOException {
     String url = _mockBaseUri + TEST_NAMESPACE_URI_PREFIX + MOCK_URL_PREFIX + urlSuffix;
     HttpUriRequest request;

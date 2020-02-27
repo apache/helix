@@ -55,6 +55,11 @@ import org.slf4j.LoggerFactory;
  * It acts as a single ZK client but will automatically route read/write/change subscription
  * requests to the corresponding ZkClient with the help of metadata store directory service.
  * It could connect to multiple ZK addresses and maintain a {@link ZkClient} for each ZK address.
+ * <p>
+ * Note: while the ordering of handling data/child changes listeners in one single ZK realm is
+ * guaranteed, listeners from different ZK realms are NOT guaranteed in order, which means listeners
+ * from different ZK realms could be handled concurrently. So the concurrency of listeners should be
+ * aware of when implementing listeners for different ZK realms.
  */
 public class FederatedZkClient implements RealmAwareZkClient {
   private static final Logger LOG = LoggerFactory.getLogger(FederatedZkClient.class);
@@ -457,21 +462,29 @@ public class FederatedZkClient implements RealmAwareZkClient {
 
   private ZkClient getZkClient(String path) {
     // If FederatedZkClient is closed, should not return ZkClient.
-    if (isClosed()) {
-      throw new IllegalStateException(FEDERATED_ZK_CLIENT + " is closed!");
-    }
+    checkClosedState();
 
     String zkRealm = getZkRealm(path);
-    if (!_zkRealmToZkClientMap.containsKey(zkRealm)) {
+
+    // Use this zkClient reference to protect the returning zkClient from being null because of
+    // race condition.
+    ZkClient zkClient = _zkRealmToZkClientMap.get(zkRealm);
+
+    if (zkClient == null) {
       // Synchronized to avoid creating duplicate ZkClient for the same ZkRealm.
       synchronized (_zkRealmToZkClientMap) {
+        // Check closed state again to avoid race condition and creating a new ZkClient
+        // after FederatedZkClient is already closed.
+        checkClosedState();
+
         if (!_zkRealmToZkClientMap.containsKey(zkRealm)) {
-          _zkRealmToZkClientMap.put(zkRealm, createZkClient(zkRealm));
+          zkClient = createZkClient(zkRealm);
+          _zkRealmToZkClientMap.put(zkRealm, zkClient);
         }
       }
     }
 
-    return _zkRealmToZkClientMap.get(zkRealm);
+    return zkClient;
   }
 
   private String getZkRealm(String path) {
@@ -497,10 +510,16 @@ public class FederatedZkClient implements RealmAwareZkClient {
         _clientConfig.getMonitorInstanceName(), _clientConfig.isMonitorRootPathOnly());
   }
 
+  private void checkClosedState() {
+    if (isClosed()) {
+      throw new IllegalStateException(FEDERATED_ZK_CLIENT + " is closed!");
+    }
+  }
+
   private void throwUnsupportedOperationException() {
     throw new UnsupportedOperationException(
         "Session-aware operation is not supported by " + FEDERATED_ZK_CLIENT
             + ". Instead, please use " + DEDICATED_ZK_CLIENT_FACTORY
-            + " to create a dedicated RealmAwareZkClient for this operation");
+            + " to create a dedicated RealmAwareZkClient for this operation.");
   }
 }

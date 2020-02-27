@@ -58,6 +58,25 @@ else
   echo "metrics-common/$ivy_file not exist"
 fi
 
+
+echo "bump up metadata-store-directory-common/pom.xml"
+sed -i "s/${version}/${new_version}/g" metadata-store-directory-common/pom.xml
+grep -C 1 "$new_version" metadata-store-directory-common/pom.xml
+# git diff metadata-store-directory-common/pom.xml
+
+ivy_file="metadata-store-directory-common-"$version".ivy"
+new_ivy_file="metadata-store-directory-common-"$new_version".ivy"
+# echo "$ivy_file"
+if [ -f metadata-store-directory-common/$ivy_file ]; then
+  echo "bump up metadata-store-directory-common/$ivy_file"
+  git mv "metadata-store-directory-common/$ivy_file" "metadata-store-directory-common/$new_ivy_file"
+  sed -i "s/${version}/${new_version}/g" "metadata-store-directory-common/$new_ivy_file"
+  grep -C 1 "$new_version" "metadata-store-directory-common/$new_ivy_file"
+else
+  echo "metadata-store-directory-common/$ivy_file not exist"
+fi
+
+
 echo "bump up zookeeper-api/pom.xml"
 sed -i "s/${version}/${new_version}/g" zookeeper-api/pom.xml
 grep -C 1 "$new_version" zookeeper-api/pom.xml

@@ -20,13 +20,27 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.impl.factory.ZkConnectionManager;
-import org.apache.helix.zookeeper.zkclient.IZkConnection;
-import org.apache.helix.zookeeper.zkclient.ZkConnection;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,79 +51,460 @@ import org.slf4j.LoggerFactory;
  * HelixZkClient that uses shared ZkConnection.
  * A SharedZkClient won't manipulate the shared ZkConnection directly.
  */
-public class SharedZkClient extends ZkClient implements HelixZkClient {
+public class SharedZkClient implements RealmAwareZkClient {
   private static Logger LOG = LoggerFactory.getLogger(SharedZkClient.class);
-  /*
-   * Since we cannot really disconnect the ZkConnection, we need a dummy ZkConnection placeholder.
-   * This is to ensure connection field is never null even the shared RealmAwareZkClient instance is closed so as to avoid NPE.
-   */
-  private final static ZkConnection IDLE_CONNECTION = new ZkConnection("Dummy_ZkServers");
-  private final OnCloseCallback _onCloseCallback;
-  private final ZkConnectionManager _connectionManager;
 
-  public interface OnCloseCallback {
-    /**
-     * Triggered after the RealmAwareZkClient is closed.
-     */
-    void onClose();
+  private final HelixZkClient _innerSharedZkClient;
+  private final String _zkRealmShardingKey;
+  private final MetadataStoreRoutingData _metadataStoreRoutingData;
+  private final String _zkRealmAddress;
+
+  public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
+      MetadataStoreRoutingData metadataStoreRoutingData) {
+
+    if (connectionConfig == null) {
+      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+    }
+    _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
+
+    if (metadataStoreRoutingData == null) {
+      throw new IllegalArgumentException("MetadataStoreRoutingData cannot be null!");
+    }
+    _metadataStoreRoutingData = metadataStoreRoutingData;
+
+    // TODO: use _zkRealmShardingKey to generate zkRealmAddress. This can done the same way of pull 765 once @hunter check it in.
+    // Get the ZkRealm address based on the ZK path sharding key
+    String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
+    if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {
+      throw new IllegalArgumentException(
+          "ZK realm address for the given ZK realm sharding key is invalid! ZK realm address: "
+              + zkRealmAddress + " ZK realm sharding key: " + _zkRealmShardingKey);
+    }
+    _zkRealmAddress = zkRealmAddress;
+
+    // Create an InnerSharedZkClient to actually serve ZK requests
+    // TODO: Rename HelixZkClient in the future or remove it entirely - this will be a backward-compatibility breaking change because HelixZkClient is being used by Helix users.
+
+    // Note, here delegate _innerSharedZkClient would share the same connectionManager. Once the close() API of
+    // SharedZkClient is invoked, we can just call the close() API of delegate _innerSharedZkClient. This would follow
+    // exactly the pattern of innerSharedZkClient closing logic, which would close the connectionManager when the last
+    // sharedInnerZkClient is closed.
+    HelixZkClient.ZkConnectionConfig zkConnectionConfig =
+        new HelixZkClient.ZkConnectionConfig(zkRealmAddress)
+            .setSessionTimeout(connectionConfig.getSessionTimeout());
+    HelixZkClient.ZkClientConfig zkClientConfig = new HelixZkClient.ZkClientConfig();
+    zkClientConfig.setZkSerializer(clientConfig.getZkSerializer())
+        .setConnectInitTimeout(clientConfig.getConnectInitTimeout())
+        .setOperationRetryTimeout(clientConfig.getOperationRetryTimeout())
+        .setMonitorInstanceName(clientConfig.getMonitorInstanceName())
+        .setMonitorKey(clientConfig.getMonitorKey()).setMonitorType(clientConfig.getMonitorType())
+        .setMonitorRootPathOnly(clientConfig.isMonitorRootPathOnly());
+    _innerSharedZkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, zkClientConfig);
   }
 
-  /**
-   * Construct a shared RealmAwareZkClient that uses a shared ZkConnection.
-   *
-   * @param connectionManager     The manager of the shared ZkConnection.
-   * @param clientConfig          ZkClientConfig details to create the shared RealmAwareZkClient.
-   * @param callback              Clean up logic when the shared RealmAwareZkClient is closed.
-   */
-  public SharedZkClient(ZkConnectionManager connectionManager, ZkClientConfig clientConfig,
-      OnCloseCallback callback) {
-    super(connectionManager.getConnection(), 0, clientConfig.getOperationRetryTimeout(),
-        clientConfig.getZkSerializer(), clientConfig.getMonitorType(), clientConfig.getMonitorKey(),
-        clientConfig.getMonitorInstanceName(), clientConfig.isMonitorRootPathOnly());
-    _connectionManager = connectionManager;
-    // Register to the base dedicated RealmAwareZkClient
-    _connectionManager.registerWatcher(this);
-    _onCloseCallback = callback;
+  @Override
+  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.subscribeChildChanges(path, listener);
+  }
+
+  @Override
+  public void unsubscribeChildChanges(String path, IZkChildListener listener) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.unsubscribeChildChanges(path, listener);
+  }
+
+  @Override
+  public void subscribeDataChanges(String path, IZkDataListener listener) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.subscribeDataChanges(path, listener);
+  }
+
+  @Override
+  public void unsubscribeDataChanges(String path, IZkDataListener listener) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.unsubscribeDataChanges(path, listener);
+  }
+
+  @Override
+  public void subscribeStateChanges(IZkStateListener listener) {
+    _innerSharedZkClient.subscribeStateChanges(listener);
+  }
+
+  @Override
+  public void unsubscribeStateChanges(IZkStateListener listener) {
+    _innerSharedZkClient.unsubscribeStateChanges(listener);
+  }
+
+  @Override
+  public void unsubscribeAll() {
+    _innerSharedZkClient.unsubscribeAll();
+  }
+
+  @Override
+  public void createPersistent(String path) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistent(path);
+  }
+
+  @Override
+  public void createPersistent(String path, boolean createParents) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistent(path, createParents);
+  }
+
+  @Override
+  public void createPersistent(String path, boolean createParents, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistent(path, createParents, acl);
+  }
+
+  @Override
+  public void createPersistent(String path, Object data) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistent(path, data);
+  }
+
+  @Override
+  public void createPersistent(String path, Object data, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.createPersistent(path, data, acl);
+  }
+
+  @Override
+  public String createPersistentSequential(String path, Object data) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.createPersistentSequential(path, data);
+  }
+
+  @Override
+  public String createPersistentSequential(String path, Object data, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.createPersistentSequential(path, data, acl);
+  }
+
+  @Override
+  public void createEphemeral(String path) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, List<ACL> acl) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, List<ACL> acl, String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public String create(String path, Object data, CreateMode mode) {
+    checkIfPathContainsShardingKey(path);
+    // delegate to _innerSharedZkClient is fine as _innerSharedZkClient would not allow creating ephemeral node.
+    // this still keeps the same behavior.
+    return _innerSharedZkClient.create(path, data, mode);
+  }
+
+  @Override
+  public String create(String path, Object datat, List<ACL> acl, CreateMode mode) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.create(path, datat, acl, mode);
+  }
+
+  @Override
+  public void createEphemeral(String path, Object data) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, Object data, String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, Object data, List<ACL> acl) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public void createEphemeral(String path, Object data, List<ACL> acl, String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public String createEphemeralSequential(String path, Object data) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public String createEphemeralSequential(String path, Object data, List<ACL> acl) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public String createEphemeralSequential(String path, Object data, String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public String createEphemeralSequential(String path, Object data, List<ACL> acl,
+      String sessionId) {
+    throw new UnsupportedOperationException(
+        "Creating ephemeral nodes using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
+  public List<String> getChildren(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.getChildren(path);
+  }
+
+  @Override
+  public int countChildren(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.countChildren(path);
+  }
+
+  @Override
+  public boolean exists(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.exists(path);
+  }
+
+  @Override
+  public Stat getStat(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.getStat(path);
+  }
+
+  @Override
+  public boolean waitUntilExists(String path, TimeUnit timeUnit, long time) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.waitUntilExists(path, timeUnit, time);
+  }
+
+  @Override
+  public void deleteRecursively(String path) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.deleteRecursively(path);
+  }
+
+  @Override
+  public boolean delete(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.delete(path);
+  }
+
+  @Override
+  public <T> T readData(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.readData(path);
+  }
+
+  @Override
+  public <T> T readData(String path, boolean returnNullIfPathNotExists) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.readData(path, returnNullIfPathNotExists);
+  }
+
+  @Override
+  public <T> T readData(String path, Stat stat) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.readData(path, stat);
+  }
+
+  @Override
+  public <T> T readData(String path, Stat stat, boolean watch) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.readData(path, stat, watch);
+  }
+
+  @Override
+  public <T> T readDataAndStat(String path, Stat stat, boolean returnNullIfPathNotExists) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.readDataAndStat(path, stat, returnNullIfPathNotExists);
+  }
+
+  @Override
+  public void writeData(String path, Object object) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.writeData(path, object);
+  }
+
+  @Override
+  public <T> void updateDataSerialized(String path, DataUpdater<T> updater) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.updateDataSerialized(path, updater);
+  }
+
+  @Override
+  public void writeData(String path, Object datat, int expectedVersion) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
+  }
+
+  @Override
+  public Stat writeDataReturnStat(String path, Object datat, int expectedVersion) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
+  }
+
+  @Override
+  public Stat writeDataGetStat(String path, Object datat, int expectedVersion) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.writeDataReturnStat(path, datat, expectedVersion);
+  }
+
+  @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode,
+      ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.asyncCreate(path, datat, mode, cb);
+  }
+
+  @Override
+  public void asyncSetData(String path, Object datat, int version,
+      ZkAsyncCallbacks.SetDataCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.asyncSetData(path, datat, version, cb);
+  }
+
+  @Override
+  public void asyncGetData(String path, ZkAsyncCallbacks.GetDataCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.asyncGetData(path, cb);
+  }
+
+  @Override
+  public void asyncExists(String path, ZkAsyncCallbacks.ExistsCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.asyncExists(path, cb);
+  }
+
+  @Override
+  public void asyncDelete(String path, ZkAsyncCallbacks.DeleteCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.asyncDelete(path, cb);
+  }
+
+  @Override
+  public void watchForData(String path) {
+    checkIfPathContainsShardingKey(path);
+    _innerSharedZkClient.watchForData(path);
+  }
+
+  @Override
+  public List<String> watchForChilds(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.watchForChilds(path);
+  }
+
+  @Override
+  public long getCreationTime(String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.getCreationTime(path);
+  }
+
+  @Override
+  public List<OpResult> multi(Iterable<Op> ops) {
+    return _innerSharedZkClient.multi(ops);
+  }
+
+  @Override
+  public boolean waitUntilConnected(long time, TimeUnit timeUnit) {
+    return _innerSharedZkClient.waitUntilConnected(time, timeUnit);
+  }
+
+  @Override
+  public String getServers() {
+    return _innerSharedZkClient.getServers();
+  }
+
+  @Override
+  public long getSessionId() {
+    return _innerSharedZkClient.getSessionId();
   }
 
   @Override
   public void close() {
-    super.close();
-    if (isClosed()) {
-      // Note that if register is not done while constructing, these private fields may not be init yet.
-      if (_connectionManager != null) {
-        _connectionManager.unregisterWatcher(this);
+    _innerSharedZkClient.close();
+  }
+
+  @Override
+  public boolean isClosed() {
+    return _innerSharedZkClient.isClosed();
+  }
+
+  @Override
+  public byte[] serialize(Object data, String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.serialize(data, path);
+  }
+
+  @Override
+  public <T> T deserialize(byte[] data, String path) {
+    checkIfPathContainsShardingKey(path);
+    return _innerSharedZkClient.deserialize(data, path);
+  }
+
+  @Override
+  public void setZkSerializer(ZkSerializer zkSerializer) {
+    _innerSharedZkClient.setZkSerializer(zkSerializer);
+  }
+
+  @Override
+  public void setZkSerializer(PathBasedZkSerializer zkSerializer) {
+    _innerSharedZkClient.setZkSerializer(zkSerializer);
+  }
+
+  @Override
+  public PathBasedZkSerializer getZkSerializer() {
+    return _innerSharedZkClient.getZkSerializer();
+  }
+
+  private void checkIfPathContainsShardingKey(String path) {
+    // TODO: replace with the singleton MetadataStoreRoutingData
+    try {
+      String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+      if (!_zkRealmAddress.equals(zkRealmForPath)) {
+        throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
+            + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
+            + _zkRealmShardingKey + " for this DedicatedZkClient!");
       }
-      if (_onCloseCallback != null) {
-        _onCloseCallback.onClose();
-      }
+    } catch (NoSuchElementException e) {
+      throw new IllegalArgumentException(
+          "Given path: " + path + " does not have a valid sharding key!");
     }
-  }
-
-  @Override
-  public IZkConnection getConnection() {
-    if (isClosed()) {
-      return IDLE_CONNECTION;
-    }
-    return super.getConnection();
-  }
-
-  /**
-   * Since ZkConnection session is shared in this RealmAwareZkClient, do not create ephemeral node using a SharedZKClient.
-   */
-  @Override
-  public String create(final String path, Object datat, final List<ACL> acl,
-      final CreateMode mode) {
-    if (mode.isEphemeral()) {
-      throw new UnsupportedOperationException(
-          "Create ephemeral nodes using a " + SharedZkClient.class.getSimpleName()
-              + " is not supported.");
-    }
-    return super.create(path, datat, acl, mode);
-  }
-
-  @Override
-  protected boolean isManagingZkConnection() {
-    return false;
   }
 }

@@ -19,17 +19,13 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
+import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
@@ -40,12 +36,9 @@ import org.testng.annotations.Test;
 
 
 public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
-  protected static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY";
-  protected static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "_" + 0 + "/a/b/c";
-  protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
-
-  // <Realm, List of sharding keys> Mapping
-  private static final Map<String, Collection<String>> RAW_ROUTING_DATA = new HashMap<>();
+  private static final String ZK_SHARDING_KEY_PREFIX = "/sharding-key-0";
+  private static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "/a/b/c";
+  private static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   // The following RealmAwareZkClientFactory is to be defined in subclasses
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
@@ -59,17 +52,9 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    // Populate RAW_ROUTING_DATA
-    for (int i = 0; i < _numZk; i++) {
-      List<String> shardingKeyList = new ArrayList<>();
-      shardingKeyList.add(ZK_SHARDING_KEY_PREFIX + "_" + i);
-      String realmName = ZK_PREFIX + (ZK_START_PORT + i);
-      RAW_ROUTING_DATA.put(realmName, shardingKeyList);
-    }
-
     // Create a mock MSDS so that HttpRoudingDataReader could fetch the routing data
     _msdsServer = new MockMetadataStoreDirectoryServer(MSDS_HOSTNAME, MSDS_PORT, MSDS_NAMESPACE,
-        RAW_ROUTING_DATA);
+        TestConstants.FAKE_ROUTING_DATA);
     _msdsServer.startServer();
 
     // Register the MSDS endpoint as a System variable
@@ -135,6 +120,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
     String validShardingKey = ZK_SHARDING_KEY_PREFIX + "_" + 0; // Use TEST_SHARDING_KEY_0
     builder.setZkRealmShardingKey(validShardingKey);
     connectionConfig = builder.build();
+
     try {
       _realmAwareZkClient =
           _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);

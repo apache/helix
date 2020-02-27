@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.helix.PropertyType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
@@ -38,42 +39,63 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A class to consume ExternalViews of a cluster and provide {resource, partition, state} to
- * {instances} map function.
+ * A class to consume ExternalViews or CustomizedViews of a cluster and provide
+ * {resource, partition, state} to {instances} map function.
  */
 class RoutingTable {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTable.class);
 
   // mapping a resourceName to the ResourceInfo
   private final Map<String, ResourceInfo> _resourceInfoMap;
+
   // mapping a resource group name to a resourceGroupInfo
   private final Map<String, ResourceGroupInfo> _resourceGroupInfoMap;
 
   private final Collection<LiveInstance> _liveInstances;
-  private final Collection<InstanceConfig> _instanceConfigs;
+  protected final Collection<InstanceConfig> _instanceConfigs;
   private final Collection<ExternalView> _externalViews;
 
+  private final PropertyType _propertyType;
+
+  @Deprecated
   public RoutingTable() {
     this(Collections.<ExternalView> emptyList(), Collections.<InstanceConfig> emptyList(),
         Collections.<LiveInstance> emptyList());
+  }
+
+  /**
+   * Initialize empty RoutingTable and set _propertyType fields.
+   * @param propertyType
+   */
+  protected RoutingTable(PropertyType propertyType) {
+    this(Collections.<ExternalView> emptyList(), Collections.<InstanceConfig> emptyList(),
+        Collections.<LiveInstance> emptyList(), propertyType);
   }
 
   public RoutingTable(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
     // TODO Aggregate currentState to an ExternalView in the RoutingTable, so there is no need to
     // refresh according to the currentStateMap. - jjwang
-    this(Collections.<ExternalView> emptyList(), instanceConfigs, liveInstances);
+    this(Collections.<ExternalView> emptyList(),
+        instanceConfigs, liveInstances, PropertyType.CURRENTSTATES);
     refresh(currentStateMap);
   }
 
   public RoutingTable(Collection<ExternalView> externalViews,
       Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+    this(externalViews, instanceConfigs, liveInstances,
+        PropertyType.EXTERNALVIEW);
+  }
+
+  protected RoutingTable(Collection<ExternalView> externalViews, Collection<InstanceConfig> instanceConfigs,
+      Collection<LiveInstance> liveInstances, PropertyType propertytype) {
+    _propertyType = propertytype;
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
     _liveInstances = new HashSet<>(liveInstances);
     _instanceConfigs = new HashSet<>(instanceConfigs);
     _externalViews = new HashSet<>(externalViews);
-    refresh(externalViews);
+    refresh(_externalViews);
   }
 
   private void refresh(Collection<ExternalView> externalViewList) {
@@ -145,7 +167,7 @@ class RoutingTable {
     }
   }
 
-  private void addEntry(String resourceName, String partitionName, String state,
+  protected void addEntry(String resourceName, String partitionName, String state,
       InstanceConfig config) {
     if (!_resourceInfoMap.containsKey(resourceName)) {
       _resourceInfoMap.put(resourceName, new ResourceInfo());
@@ -350,6 +372,23 @@ class RoutingTable {
   protected Collection<ExternalView> getExternalViews() {
     return Collections.unmodifiableCollection(_externalViews);
   }
+
+  /**
+   * Returns PropertyTYpe
+   * @return the PropertyTYpe of this RoutingTable
+   */
+  protected PropertyType getPropertyType() {
+    return _propertyType;
+  }
+
+  /**
+   * Returns CustomizedStateType
+   * @return the CustomizedStateType of this RoutingTable (Used for CustomizedView)
+   */
+  protected String getCustomizedStateType() {
+    return RoutingTableProvider.DEFAULT_TYPE;
+  }
+
 
   /**
    * Class to store instances, partitions and their states for each resource.

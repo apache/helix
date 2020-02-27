@@ -22,6 +22,7 @@ package org.apache.helix.spectator;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import com.google.common.collect.ImmutableMap;
 import javax.management.JMException;
 
 import org.apache.helix.HelixConstants;
@@ -44,6 +46,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -55,6 +58,7 @@ import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -64,15 +68,15 @@ import org.slf4j.LoggerFactory;
 
 public class RoutingTableProvider
     implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
-    LiveInstanceChangeListener, CurrentStateChangeListener {
+    LiveInstanceChangeListener, CurrentStateChangeListener, CustomizedViewChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
   private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000L; // 5 minutes
-  private final AtomicReference<RoutingTable> _routingTableRef;
+  private final Map<String, AtomicReference<RoutingTable>> _routingTableRefMap;
   private final HelixManager _helixManager;
   private final RouterUpdater _routerUpdater;
-  private final PropertyType _sourceDataType;
+  private final Map<PropertyType, List<String>> _sourceDataTypeMap;
   private final Map<RoutingTableChangeListener, ListenerContext> _routingTableChangeListenerMap;
-  private final RoutingTableProviderMonitor _monitor;
+  private final Map<PropertyType, RoutingTableProviderMonitor> _monitorMap;
 
   // For periodic refresh
   private long _lastRefreshTimestamp;
@@ -83,17 +87,27 @@ public class RoutingTableProvider
   private ExecutorService _reportExecutor;
   private Future _reportingTask = null;
 
+  protected static final  String DEFAULT_PROPERTY = "HELIX_DEFAULT_PROPERTY";
+  protected static final  String DEFAULT_TYPE = "HELIX_DEFAULT";
+
+
   public RoutingTableProvider() {
     this(null);
   }
 
   public RoutingTableProvider(HelixManager helixManager) throws HelixException {
-    this(helixManager, PropertyType.EXTERNALVIEW, true, DEFAULT_PERIODIC_REFRESH_INTERVAL);
+    this(helixManager, ImmutableMap.of(PropertyType.EXTERNALVIEW, Collections.emptyList()), true,
+        DEFAULT_PERIODIC_REFRESH_INTERVAL);
   }
 
   public RoutingTableProvider(HelixManager helixManager, PropertyType sourceDataType)
       throws HelixException {
-    this(helixManager, sourceDataType, true, DEFAULT_PERIODIC_REFRESH_INTERVAL);
+    this(helixManager, ImmutableMap.of(sourceDataType, Collections.emptyList()), true,
+        DEFAULT_PERIODIC_REFRESH_INTERVAL);
+  }
+
+  public RoutingTableProvider(HelixManager helixManager, Map<PropertyType, List<String>> sourceDataTypeMap) {
+    this(helixManager, sourceDataTypeMap, true, DEFAULT_PERIODIC_REFRESH_INTERVAL);
   }
 
   /**
@@ -106,61 +120,113 @@ public class RoutingTableProvider
    */
   public RoutingTableProvider(HelixManager helixManager, PropertyType sourceDataType,
       boolean isPeriodicRefreshEnabled, long periodRefreshInterval) throws HelixException {
-    _routingTableRef = new AtomicReference<>(new RoutingTable());
+    this(helixManager, ImmutableMap.of(sourceDataType, Collections.emptyList()),
+        isPeriodicRefreshEnabled, periodRefreshInterval);
+  }
+
+  /**
+   * Initialize an instance of RoutingTableProvider
+   * @param helixManager
+   * @param sourceDataTypeMap
+   * @param isPeriodicRefreshEnabled true if periodic refresh is enabled, false otherwise
+   * @param periodRefreshInterval only effective if isPeriodRefreshEnabled is true
+   * @throws HelixException
+   */
+  public RoutingTableProvider(HelixManager helixManager,
+      Map<PropertyType, List<String>> sourceDataTypeMap, boolean isPeriodicRefreshEnabled,
+      long periodRefreshInterval) throws HelixException {
+
+    validateSourceDataTypeMap(sourceDataTypeMap);
+
+    _routingTableRefMap = new HashMap<>();
     _helixManager = helixManager;
-    _sourceDataType = sourceDataType;
+    _sourceDataTypeMap = sourceDataTypeMap;
     _routingTableChangeListenerMap = new ConcurrentHashMap<>();
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
+    _routerUpdater = new RouterUpdater(clusterName, sourceDataTypeMap);
+    _routerUpdater.start();
+    _monitorMap = new HashMap<>();
 
-    _monitor = new RoutingTableProviderMonitor(_sourceDataType, clusterName);
-    try {
-      _monitor.register();
-    } catch (JMException e) {
-      logger.error("Failed to register RoutingTableProvider monitor MBean.", e);
+    for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+      _monitorMap.put(propertyType, new RoutingTableProviderMonitor(propertyType, clusterName));
+      try {
+        _monitorMap.get(propertyType).register();
+      } catch (JMException e) {
+        logger.error("Failed to register RoutingTableProvider monitor MBean.", e);
+      }
     }
     _reportExecutor = Executors.newSingleThreadExecutor();
 
-    _routerUpdater = new RouterUpdater(clusterName, _sourceDataType);
-    _routerUpdater.start();
+    for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+      if (_sourceDataTypeMap.get(propertyType).size() == 0) {
+        // Empty CustomizedStateType
+        String customizedStateType = DEFAULT_TYPE;
+        String key = propertyType.name() + "_" + customizedStateType;
+        if (_routingTableRefMap.get(key) == null) {
+          _routingTableRefMap.put(key, new AtomicReference<>(new RoutingTable(propertyType)));
+        }
+      } else {
+        for (String customizedStateType : _sourceDataTypeMap.get(propertyType)) {
+          String key = propertyType.name() + "_" + customizedStateType;
+          if (_routingTableRefMap.get(key) == null) {
+            _routingTableRefMap.put(key, new AtomicReference<>(
+                new CustomizedViewRoutingTable(propertyType, customizedStateType)));
+          }
+        }
+      }
+    }
 
     if (_helixManager != null) {
-      switch (_sourceDataType) {
-      case EXTERNALVIEW:
-        try {
-          _helixManager.addExternalViewChangeListener(this);
-        } catch (Exception e) {
-          shutdown();
-          logger.error("Failed to attach ExternalView Listener to HelixManager!");
-          throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
+      for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+        switch (propertyType) {
+        case EXTERNALVIEW:
+          try {
+            _helixManager.addExternalViewChangeListener(this);
+          } catch (Exception e) {
+            shutdown();
+            logger.error("Failed to attach ExternalView Listener to HelixManager!");
+            throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
+          }
+          break;
+        case CUSTOMIZEDVIEW:
+          List<String> customizedStateTypes = _sourceDataTypeMap.get(propertyType);
+          for (String customizedStateType : customizedStateTypes) {
+            try {
+              _helixManager.addCustomizedViewChangeListener(this, customizedStateType);
+            } catch (Exception e) {
+              shutdown();
+              logger.error("Failed to attach CustomizedView Listener to HelixManager for type {}!",
+                  customizedStateType);
+              throw new HelixException(String.format(
+                  "Failed to attach CustomizedView Listener to HelixManager for type %s!",
+                  customizedStateType), e);
+            }
+          }
+          break;
+        case TARGETEXTERNALVIEW:
+          // Check whether target external has been enabled or not
+          if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
+              _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
+            shutdown();
+            throw new HelixException("Target External View is not enabled!");
+          }
+
+          try {
+            _helixManager.addTargetExternalViewChangeListener(this);
+          } catch (Exception e) {
+            shutdown();
+            logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
+            throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!",
+                e);
+          }
+          break;
+        case CURRENTSTATES:
+          // CurrentState change listeners will be added later in LiveInstanceChange call.
+          break;
+        default:
+          throw new HelixException(String.format("Unsupported source data type: %s", propertyType));
         }
-        break;
-
-      case TARGETEXTERNALVIEW:
-        // Check whether target external has been enabled or not
-        if (!_helixManager.getHelixDataAccessor().getBaseDataAccessor().exists(
-            _helixManager.getHelixDataAccessor().keyBuilder().targetExternalViews().getPath(), 0)) {
-          shutdown();
-          throw new HelixException("Target External View is not enabled!");
-        }
-
-        try {
-          _helixManager.addTargetExternalViewChangeListener(this);
-        } catch (Exception e) {
-          shutdown();
-          logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
-          throw new HelixException("Failed to attach TargetExternalView Listener to HelixManager!",
-              e);
-        }
-        break;
-
-      case CURRENTSTATES:
-        // CurrentState change listeners will be added later in LiveInstanceChange call.
-        break;
-
-      default:
-        throw new HelixException(String.format("Unsupported source data type: %s", sourceDataType));
       }
-
       try {
         _helixManager.addInstanceConfigChangeListener(this);
         _helixManager.addLiveInstanceChangeListener(this);
@@ -200,6 +266,28 @@ public class RoutingTableProvider
   }
 
   /**
+   * Check and validate the input of the sourceDataTypeMap parameter
+   * @param sourceDataTypeMap
+   */
+  private void validateSourceDataTypeMap(Map<PropertyType, List<String>> sourceDataTypeMap) {
+    for (PropertyType propertyType : sourceDataTypeMap.keySet()) {
+      if (propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
+          && sourceDataTypeMap.get(propertyType).size() == 0) {
+        logger.error("CustomizedView has been used without any aggregation type!");
+        throw new HelixException("CustomizedView has been used without any aggregation type!");
+      }
+      if (!propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
+          && sourceDataTypeMap.get(propertyType).size() != 0) {
+        logger.error("Type has been used in addition to the propertyType {} !",
+            propertyType.name());
+        throw new HelixException(
+            String.format("Type %s has been used in addition to the propertyType %s !",
+                sourceDataTypeMap.get(propertyType), propertyType.name()));
+      }
+    }
+  }
+
+  /**
    * Shutdown current RoutingTableProvider. Once it is shutdown, it should never be reused.
    */
   public void shutdown() {
@@ -209,24 +297,36 @@ public class RoutingTableProvider
     }
     _routerUpdater.shutdown();
 
-    _monitor.unregister();
+
+    for (PropertyType propertyType : _monitorMap.keySet()) {
+      _monitorMap.get(propertyType).unregister();
+    }
 
     if (_helixManager != null) {
       PropertyKey.Builder keyBuilder = _helixManager.getHelixDataAccessor().keyBuilder();
-      switch (_sourceDataType) {
-      case EXTERNALVIEW:
-        _helixManager.removeListener(keyBuilder.externalViews(), this);
-        break;
-      case TARGETEXTERNALVIEW:
-        _helixManager.removeListener(keyBuilder.targetExternalViews(), this);
-        break;
-      case CURRENTSTATES:
-        NotificationContext context = new NotificationContext(_helixManager);
-        context.setType(NotificationContext.Type.FINALIZE);
-        updateCurrentStatesListeners(Collections.<LiveInstance> emptyList(), context);
-        break;
-      default:
-        break;
+      for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+        switch (propertyType) {
+        case EXTERNALVIEW:
+          _helixManager.removeListener(keyBuilder.externalViews(), this);
+          break;
+        case CUSTOMIZEDVIEW:
+          List<String> customizedStateTypes = _sourceDataTypeMap.get(propertyType);
+          // Remove listener on each individual customizedStateType
+          for (String customizedStateType : customizedStateTypes) {
+            _helixManager.removeListener(keyBuilder.customizedView(customizedStateType), this);
+          }
+          break;
+        case TARGETEXTERNALVIEW:
+          _helixManager.removeListener(keyBuilder.targetExternalViews(), this);
+          break;
+        case CURRENTSTATES:
+          NotificationContext context = new NotificationContext(_helixManager);
+          context.setType(NotificationContext.Type.FINALIZE);
+          updateCurrentStatesListeners(Collections.<LiveInstance> emptyList(), context);
+          break;
+        default:
+          break;
+        }
       }
     }
   }
@@ -237,7 +337,48 @@ public class RoutingTableProvider
    * @return snapshot of current routing table.
    */
   public RoutingTableSnapshot getRoutingTableSnapshot() {
-    return new RoutingTableSnapshot(_routingTableRef.get());
+      String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+      return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+  }
+
+  /**
+   * Get an snapshot of current RoutingTable information for specific PropertyType.
+   * The snapshot is immutable, it reflects the routing table information at the time this method is
+   * called.
+   * @return snapshot of current routing table.
+   */
+  public RoutingTableSnapshot getRoutingTableSnapshot (PropertyType propertyType) {
+    String key = getRoutingTableKey(propertyType.name(), DEFAULT_TYPE);
+    return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+  }
+
+  /**
+   * Get an snapshot of all of the available RoutingTable information. The snapshot is immutable, it
+   * reflects the routing table information at the time this method is called.
+   * @return snapshot associated with specific propertyType and type.
+   */
+  public RoutingTableSnapshot getRoutingTableSnapshot(PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+  }
+
+  /**
+   * Get an snapshot of all of the available RoutingTable information. The snapshot is immutable, it
+   * reflects the routing table information at the time this method is called.
+   * @return all of the available snapshots of current routing table.
+   */
+  public Map<String, Map<String, RoutingTableSnapshot>> getRoutingTableSnapshots() {
+    Map<String, Map<String, RoutingTableSnapshot>> snapshots = new HashMap<>();
+    for (String key : _routingTableRefMap.keySet()) {
+      RoutingTable routingTable = _routingTableRefMap.get(key).get();
+      String propertyTypeName = routingTable.getPropertyType().name();
+      String customizedStateType = routingTable.getCustomizedStateType();
+      if (!snapshots.containsKey(propertyTypeName)) {
+        snapshots.put(propertyTypeName, new HashMap<>());
+      }
+      snapshots.get(propertyTypeName).put(customizedStateType, new RoutingTableSnapshot(routingTable));
+    }
+    return snapshots;
   }
 
   /**
@@ -279,6 +420,11 @@ public class RoutingTableProvider
     return getInstancesForResource(resourceName, partitionName, state);
   }
 
+  public List<InstanceConfig> getInstances(String resourceName, String partitionName, String state,
+      PropertyType propertyType, String type) {
+    return getInstancesForResource(resourceName, partitionName, state, propertyType, type);
+  }
+
   /**
    * returns the instances for {resource,partition} pair that are in a specific
    * {state}
@@ -290,7 +436,16 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
       String state) {
-    return _routingTableRef.get().getInstancesForResource(resourceName, partitionName, state);
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, partitionName,
+        state);
+  }
+
+  public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
+      String state, PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, partitionName,
+        state);
   }
 
   /**
@@ -305,8 +460,16 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName,
-        state);
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
+        partitionName, state);
+  }
+
+  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
+      String partitionName, String state, PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
+        partitionName, state);
   }
 
   /**
@@ -322,8 +485,17 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state, List<String> resourceTags) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, partitionName,
-        state, resourceTags);
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
+        partitionName, state, resourceTags);
+  }
+
+  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
+      String partitionName, String state, List<String> resourceTags, PropertyType propertyType,
+      String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
+        partitionName, state, resourceTags);
   }
 
   /**
@@ -338,6 +510,11 @@ public class RoutingTableProvider
     return getInstancesForResource(resourceName, state);
   }
 
+  public Set<InstanceConfig> getInstances(String resourceName, String state,
+      PropertyType propertyType, String type) {
+    return getInstancesForResource(resourceName, state, propertyType, type);
+  }
+
   /**
    * returns all instances for {resource} that are in a specific {state}.
    * @param resourceName
@@ -345,7 +522,14 @@ public class RoutingTableProvider
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResource(String resourceName, String state) {
-    return _routingTableRef.get().getInstancesForResource(resourceName, state);
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, state);
+  }
+
+  public Set<InstanceConfig> getInstancesForResource(String resourceName, String state,
+      PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, state);
   }
 
   /**
@@ -355,7 +539,14 @@ public class RoutingTableProvider
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state);
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state);
+  }
+
+  public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
+      PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state);
   }
 
   /**
@@ -367,7 +558,15 @@ public class RoutingTableProvider
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
       List<String> resourceTags) {
-    return _routingTableRef.get().getInstancesForResourceGroup(resourceGroupName, state,
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state,
+        resourceTags);
+  }
+
+  public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
+      List<String> resourceTags, PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state,
         resourceTags);
   }
 
@@ -376,7 +575,17 @@ public class RoutingTableProvider
    * @return
    */
   public Collection<LiveInstance> getLiveInstances() {
-    return _routingTableRef.get().getLiveInstances();
+    // Since line instances will be the same across all _routingTableRefMap, here one of the keys
+    // will be used without considering PropertyType
+    String key = null;
+    Iterator<String> iter = _routingTableRefMap.keySet().iterator();
+    if (iter.hasNext()) {
+      key = iter.next();
+    }
+    if (key == null) {
+      throw new HelixException("There is no key available in this RoutingTableProvider.");
+    }
+    return _routingTableRefMap.get(key).get().getLiveInstances();
   }
 
   /**
@@ -384,14 +593,57 @@ public class RoutingTableProvider
    * @return
    */
   public Collection<InstanceConfig> getInstanceConfigs() {
-    return _routingTableRef.get().getInstanceConfigs();
+    // Since line instances will be the same across all _routingTableRefMap, here one of the keys
+    // will be used without considering PropertyType
+    String key = null;
+    Iterator<String> iter = _routingTableRefMap.keySet().iterator();
+    if (iter.hasNext()) {
+      key = iter.next();
+    }
+    if (key == null) {
+      throw new HelixException("There is no key available in this RoutingTableProvider.");
+    }
+    return _routingTableRefMap.get(key).get().getInstanceConfigs();
   }
 
   /**
-   * Return names of all resources (shown in ExternalView) in this cluster.
+   * Return names of all resources (shown in ExternalView or CustomizedView) in this cluster.
    */
   public Collection<String> getResources() {
-    return _routingTableRef.get().getResources();
+    String key = getRoutingTableKey(DEFAULT_PROPERTY, DEFAULT_TYPE);
+    return _routingTableRefMap.get(key).get().getResources();
+  }
+
+  public Collection<String> getResources(PropertyType propertyType, String type) {
+    String key = getRoutingTableKey(propertyType.name(), type);
+    return _routingTableRefMap.get(key).get().getResources();
+  }
+
+
+  private String getRoutingTableKey(String propertyTypeName, String customizedStateType) {
+    if (propertyTypeName.equals(DEFAULT_PROPERTY) && customizedStateType.equals(DEFAULT_TYPE)) {
+      // Check whether there exist only one snapshot (_routingTableRefMap)
+      if (_routingTableRefMap.keySet().size() == 1) {
+        return _routingTableRefMap.keySet().iterator().next();
+      } else {
+        throw new HelixException("There is none or more than one RoutingTableSnapshot");
+      }
+    }
+
+    if (!propertyTypeName.equals(DEFAULT_PROPERTY) && customizedStateType.equals(DEFAULT_TYPE)) {
+      if (propertyTypeName.equals(PropertyType.CUSTOMIZEDVIEW.name())) {
+        throw new HelixException("Specific type needs to be used for CUSTOMIZEDVIEW PropertyType");
+      }
+    }
+
+    String key = propertyTypeName + "_" + customizedStateType;
+    if (!_routingTableRefMap.containsKey(key)) {
+      throw new HelixException(
+          String.format("Currently there is no snapshot available for PropertyType %s and type %s",
+              propertyTypeName, customizedStateType));
+    }
+    return key;
+
   }
 
   @Override
@@ -399,27 +651,28 @@ public class RoutingTableProvider
   public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext) {
     HelixConstants.ChangeType changeType = changeContext.getChangeType();
-    if (changeType != null && !changeType.getPropertyType().equals(_sourceDataType)) {
+    if (changeType != null && !_sourceDataTypeMap.containsKey(changeType.getPropertyType())) {
       logger.warn(
-          "onExternalViewChange called with mismatched change types. Source data type {}, changed data type: {}",
-          _sourceDataType, changeType);
+          "onExternalViewChange called with mismatched change types. Source data types does not contain changed data type: {}",
+          changeType);
       return;
     }
     // Refresh with full list of external view.
     if (externalViewList != null && externalViewList.size() > 0) {
       // keep this here for back-compatibility, application can call onExternalViewChange directly
       // with externalview list supplied.
-      refresh(externalViewList, changeContext);
+      String keyReference = PropertyType.EXTERNALVIEW.name() + "_" + DEFAULT_TYPE;
+      refresh(externalViewList, Collections.emptyList(), changeContext, keyReference);
     } else {
       ClusterEventType eventType;
-      if (_sourceDataType.equals(PropertyType.EXTERNALVIEW)) {
+      if (_sourceDataTypeMap.containsKey(PropertyType.EXTERNALVIEW)) {
         eventType = ClusterEventType.ExternalViewChange;
-      } else if (_sourceDataType.equals(PropertyType.TARGETEXTERNALVIEW)) {
+      } else if (_sourceDataTypeMap.containsKey(PropertyType.TARGETEXTERNALVIEW)) {
         eventType = ClusterEventType.TargetExternalViewChange;
       } else {
         logger.warn(
-            "onExternalViewChange called with mismatched change types. Source data type {}, change type: {}",
-            _sourceDataType, changeType);
+            "onExternalViewChange called with mismatched change types. Source data types does not contain changed data type: {}",
+            changeType);
         return;
       }
       _routerUpdater.queueEvent(changeContext, eventType, changeType);
@@ -444,11 +697,10 @@ public class RoutingTableProvider
   @PreFetch(enabled = true)
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
       NotificationContext changeContext) {
-    if (_sourceDataType.equals(PropertyType.CURRENTSTATES)) {
+    if (_sourceDataTypeMap.containsKey(PropertyType.CURRENTSTATES)) {
       // Go though the live instance list and update CurrentState listeners
       updateCurrentStatesListeners(liveInstances, changeContext);
     }
-
     _routerUpdater.queueEvent(changeContext, ClusterEventType.LiveInstanceChange,
         HelixConstants.ChangeType.LIVE_INSTANCE);
   }
@@ -457,13 +709,23 @@ public class RoutingTableProvider
   @PreFetch(enabled = false)
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,
       NotificationContext changeContext) {
-    if (_sourceDataType.equals(PropertyType.CURRENTSTATES)) {
+    if (_sourceDataTypeMap.containsKey(PropertyType.CURRENTSTATES)) {
       _routerUpdater.queueEvent(changeContext, ClusterEventType.CurrentStateChange,
           HelixConstants.ChangeType.CURRENT_STATE);
     } else {
       logger.warn(
           "RoutingTableProvider does not use CurrentStates as source, ignore CurrentState changes!");
     }
+    _routerUpdater.queueEvent(changeContext, ClusterEventType.CurrentStateChange,
+        HelixConstants.ChangeType.CURRENT_STATE);
+  }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onCustomizedViewChange(List<CustomizedView> customizedViewList,
+      NotificationContext changeContext) {
+    _routerUpdater.queueEvent(changeContext, ClusterEventType.CustomizedViewChange,
+        HelixConstants.ChangeType.CUSTOMIZED_VIEW);
   }
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions = new AtomicReference<>();
@@ -529,43 +791,65 @@ public class RoutingTableProvider
 
   private void reset() {
     logger.info("Resetting the routing table.");
-    RoutingTable newRoutingTable = new RoutingTable();
-    _routingTableRef.set(newRoutingTable);
+    for (String key: _routingTableRefMap.keySet()) {
+      PropertyType propertyType = _routingTableRefMap.get(key).get().getPropertyType();
+      if (propertyType == PropertyType.CUSTOMIZEDVIEW) {
+        String type = _routingTableRefMap.get(key).get().getCustomizedStateType();
+        RoutingTable newRoutingTable = new CustomizedViewRoutingTable(propertyType, type);
+        _routingTableRefMap.get(key).set(newRoutingTable);
+      } else {
+        RoutingTable newRoutingTable = new RoutingTable(propertyType);
+        _routingTableRefMap.get(key).set(newRoutingTable);
+      }
+    }
   }
 
-  protected void refresh(List<ExternalView> externalViewList, NotificationContext changeContext) {
+  protected void refresh(List<ExternalView> externalViewList,
+      List<CustomizedView> customizedViewList, NotificationContext changeContext,
+      String referenceKey) {
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
     List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
-    refresh(externalViewList, configList, liveInstances);
+    refresh(externalViewList, customizedViewList, configList, liveInstances, referenceKey);
   }
 
   protected void refresh(Collection<ExternalView> externalViews,
-      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+      Collection<CustomizedView> customizedViews, Collection<InstanceConfig> instanceConfigs,
+      Collection<LiveInstance> liveInstances, String referenceKey) {
     long startTime = System.currentTimeMillis();
-    RoutingTable newRoutingTable = new RoutingTable(externalViews, instanceConfigs, liveInstances);
-    resetRoutingTableAndNotify(startTime, newRoutingTable);
+    PropertyType propertyType = _routingTableRefMap.get(referenceKey).get().getPropertyType();
+    if (propertyType == PropertyType.CUSTOMIZEDVIEW) {
+      String customizedStateType = _routingTableRefMap.get(referenceKey).get().getCustomizedStateType();
+      RoutingTable newRoutingTable = new CustomizedViewRoutingTable(customizedViews,
+          instanceConfigs, liveInstances, propertyType, customizedStateType);
+      resetRoutingTableAndNotify(startTime, newRoutingTable, referenceKey);
+    } else {
+      RoutingTable newRoutingTable = new RoutingTable(externalViews, instanceConfigs,
+          liveInstances, propertyType);
+      resetRoutingTableAndNotify(startTime, newRoutingTable, referenceKey);
+    }
   }
 
   protected void refresh(Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
-      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances) {
+      Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances,
+      String referenceKey) {
     long startTime = System.currentTimeMillis();
     RoutingTable newRoutingTable =
         new RoutingTable(currentStateMap, instanceConfigs, liveInstances);
-    resetRoutingTableAndNotify(startTime, newRoutingTable);
+    resetRoutingTableAndNotify(startTime, newRoutingTable, referenceKey);
   }
 
-  private void resetRoutingTableAndNotify(long startTime, RoutingTable newRoutingTable) {
-    _routingTableRef.set(newRoutingTable);
+  private void resetRoutingTableAndNotify(long startTime, RoutingTable newRoutingTable, String referenceKey) {
+    _routingTableRefMap.get(referenceKey).set(newRoutingTable);
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
     logger.info("Refreshed the RoutingTable for cluster {}, took {} ms.", clusterName,
         (System.currentTimeMillis() - startTime));
 
     // TODO: move the callback user code logic to separate thread upon routing table statePropagation latency
     // integration test result. If the latency is more than 2 secs, we need to change this part.
-    notifyRoutingTableChange(clusterName);
+    notifyRoutingTableChange(clusterName, referenceKey);
 
     // Update timestamp for last refresh
     if (_isPeriodicRefreshEnabled) {
@@ -573,13 +857,16 @@ public class RoutingTableProvider
     }
   }
 
-  private void notifyRoutingTableChange(String clusterName) {
-    // This call back is called in the main event queue of RoutingTableProvider. We add log to record time spent
+  private void notifyRoutingTableChange(String clusterName, String referenceKey) {
+    // This call back is called in the main event queue of RoutingTableProvider. We add log to
+    // record time spent
     // here. Potentially, we should call this callback in a separate thread if this is a bottleneck.
     long startTime = System.currentTimeMillis();
-    for (Map.Entry<RoutingTableChangeListener, ListenerContext> entry : _routingTableChangeListenerMap.entrySet()) {
-      entry.getKey()
-          .onRoutingTableChange(new RoutingTableSnapshot(_routingTableRef.get()), entry.getValue().getContext());
+    for (Map.Entry<RoutingTableChangeListener, ListenerContext> entry : _routingTableChangeListenerMap
+        .entrySet()) {
+      entry.getKey().onRoutingTableChange(
+          new RoutingTableSnapshot(_routingTableRefMap.get(referenceKey).get()),
+          entry.getValue().getContext());
     }
     logger.info("RoutingTableProvider user callback time for cluster {}, took {} ms.", clusterName,
         (System.currentTimeMillis() - startTime));
@@ -587,10 +874,12 @@ public class RoutingTableProvider
 
   private class RouterUpdater extends ClusterEventProcessor {
     private final RoutingDataCache _dataCache;
+    private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 
-    public RouterUpdater(String clusterName, PropertyType sourceDataType) {
+    public RouterUpdater(String clusterName, Map<PropertyType, List<String>> sourceDataTypeMap) {
       super(clusterName, "Helix-RouterUpdater-event_process");
-      _dataCache = new RoutingDataCache(clusterName, sourceDataType);
+      _sourceDataTypeMap = sourceDataTypeMap;
+      _dataCache = new RoutingDataCache(clusterName, _sourceDataTypeMap);
     }
 
     @Override
@@ -618,36 +907,47 @@ public class RoutingTableProvider
           throw new HelixException("HelixManager is null for router update event.");
         }
         if (!manager.isConnected()) {
-          logger.error(
-              String.format("HelixManager is not connected for router update event: %s", event));
+          logger.error(String.format("HelixManager is not connected for router update event: %s", event));
           throw new HelixException("HelixManager is not connected for router update event.");
         }
 
         long startTime = System.currentTimeMillis();
 
         _dataCache.refresh(manager.getHelixDataAccessor());
-        switch (_sourceDataType) {
-        case EXTERNALVIEW:
-          refresh(_dataCache.getExternalViews().values(),
-              _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
-          break;
-        case TARGETEXTERNALVIEW:
-          refresh(_dataCache.getTargetExternalViews().values(),
-              _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values());
-          break;
-        case CURRENTSTATES:
-          refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
-              _dataCache.getLiveInstances().values());
+        for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+          switch (propertyType) {
+            case EXTERNALVIEW: {
+              String keyReference = propertyType.name() + "_" + DEFAULT_TYPE;
+              refresh(_dataCache.getExternalViews().values(), Collections.emptyList(),
+                  _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(), keyReference);
+            }
+              break;
+            case TARGETEXTERNALVIEW: {
+              String keyReference = propertyType.name() + "_" + DEFAULT_TYPE;
+              refresh(_dataCache.getTargetExternalViews().values(), Collections.emptyList(),
+                  _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(), keyReference);
+            }
+              break;
+            case CUSTOMIZEDVIEW:
+              for (String customizedStateType : _sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
+                String keyReference = propertyType.name() + "_" + customizedStateType;
+                refresh(Collections.emptyList(), _dataCache.getCustomizedView(customizedStateType).values(),
+                    _dataCache.getInstanceConfigMap().values(), _dataCache.getLiveInstances().values(), keyReference);
+              }
+              break;
+            case CURRENTSTATES: {
+              String keyReference = propertyType.name() + "_" + DEFAULT_TYPE;
+              refresh(_dataCache.getCurrentStatesMap(), _dataCache.getInstanceConfigMap().values(),
+                  _dataCache.getLiveInstances().values(), keyReference);
+              recordPropagationLatency(System.currentTimeMillis(), _dataCache.getCurrentStateSnapshot());
+            }
+              break;
+            default:
+              logger.warn("Unsupported source data type: {}, stop refreshing the routing table!", propertyType);
+          }
 
-          recordPropagationLatency(System.currentTimeMillis(),
-              _dataCache.getCurrentStateSnapshot());
-          break;
-        default:
-          logger.warn("Unsupported source data type: {}, stop refreshing the routing table!",
-              _sourceDataType);
+          _monitorMap.get(propertyType).increaseDataRefreshCounters(startTime);
         }
-
-        _monitor.increaseDataRefreshCounters(startTime);
       }
     }
 
@@ -673,10 +973,12 @@ public class RoutingTableProvider
               for (String partition : partitionStateEndTimes.keySet()) {
                 long endTime = partitionStateEndTimes.get(partition);
                 if (currentTime >= endTime) {
-                  _monitor.recordStatePropagationLatency(currentTime - endTime);
-                  logger.debug(
-                      "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
-                      key.toString(), partition, endTime, currentTime - endTime);
+                  for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+                    _monitorMap.get(propertyType).recordStatePropagationLatency(currentTime - endTime);
+                    logger.debug(
+                        "CurrentState updated in the routing table. Node Key {}, Partition {}, end time {}, Propagation latency {}",
+                        key.toString(), partition, endTime, currentTime - endTime);
+                  }
                 } else {
                   // Verbose log in case currentTime < endTime. This could be the case that Router
                   // clock is slower than the participant clock.
@@ -692,6 +994,7 @@ public class RoutingTableProvider
       }
     }
 
+
     public void queueEvent(NotificationContext context, ClusterEventType eventType,
         HelixConstants.ChangeType changeType) {
       ClusterEvent event = new ClusterEvent(_clusterName, eventType);
@@ -700,12 +1003,13 @@ public class RoutingTableProvider
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
       queueEvent(event);
-
-      _monitor.increaseCallbackCounters(_eventQueue.size());
+      for (PropertyType propertyType : _monitorMap.keySet()) {
+        _monitorMap.get(propertyType).increaseCallbackCounters(_eventQueue.size());
+      }
     }
   }
 
-  private class ListenerContext {
+  protected class ListenerContext {
     private Object _context;
 
     public ListenerContext(Object context) {

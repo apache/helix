@@ -38,16 +38,16 @@ import org.testng.annotations.Test;
 
 
 public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
-  private static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY";
-  private static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "_" + 0 + "/a/b/c";
-  private static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
+  protected static final String ZK_SHARDING_KEY_PREFIX = "/TEST_SHARDING_KEY";
+  protected static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "_" + 0 + "/a/b/c";
+  protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   // <Realm, List of sharding keys> Mapping
   private static final Map<String, List<String>> RAW_ROUTING_DATA = new HashMap<>();
 
   // The following RealmAwareZkClientFactory is to be defined in subclasses
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
-  private RealmAwareZkClient _realmAwareZkClient;
+  protected RealmAwareZkClient _realmAwareZkClient;
   private MetadataStoreRoutingData _metadataStoreRoutingData;
 
   @BeforeClass

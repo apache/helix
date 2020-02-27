@@ -480,6 +480,8 @@ public class FederatedZkClient implements RealmAwareZkClient {
         if (!_zkRealmToZkClientMap.containsKey(zkRealm)) {
           zkClient = createZkClient(zkRealm);
           _zkRealmToZkClientMap.put(zkRealm, zkClient);
+        } else {
+          zkClient = _zkRealmToZkClientMap.get(zkRealm);
         }
       }
     }

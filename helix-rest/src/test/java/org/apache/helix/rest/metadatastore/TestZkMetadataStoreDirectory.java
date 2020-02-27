@@ -253,7 +253,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     // Since there was a child change callback, make sure data change works on the new child (realm) as well by adding a key
     // This tests removing all subscriptions and subscribing with new children list
     // For all namespaces (Routing ZKs), add an extra sharding key to TEST_REALM_3
-    String newKey = "/a/b/c/d/e";
+    String newKey = "/x/y/z";
     _zkList.forEach(zk -> {
       ZNRecord znRecord = ZK_SERVER_MAP.get(zk).getZkClient()
           .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + TEST_REALM_3);

@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.util;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
@@ -40,6 +41,19 @@ public class ZNRecordUtil {
       return true;
     }
 
-    return serializedLength > record.getCompressThreshold();
+    return serializedLength > getCompressThreshold();
+  }
+
+  /**
+   * Returns compression threshold in bytes. The threshold is a smaller number determined by the
+   * configured threshold and {@link ZNRecord#SIZE_LIMIT}.
+   */
+  public static int getCompressThreshold() {
+    Integer threshold =
+        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+    if (threshold == null || threshold <= 0 || threshold > ZNRecord.SIZE_LIMIT) {
+      return ZNRecord.SIZE_LIMIT;
+    }
+    return threshold;
   }
 }

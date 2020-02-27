@@ -163,20 +163,23 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
         serializedBytes = baos.toByteArray();
       }
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      // TODO: remove logging first N bytes of data to reduce log size.
       LOG.error("Exception during data serialization. Will not write to zk."
               + " The first {} bytes of data: {}", firstBytesLength,
           new String(serializedBytes, 0, firstBytesLength), e);
       throw new ZkClientException(e);
     }
     // check size
-    int compressThreshold = record.getCompressThreshold();
+    int compressThreshold = ZNRecordUtil.getCompressThreshold();
     if (serializedBytes.length > compressThreshold) {
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
-      LOG.error("Data size is greater than {} bytes, ZNRecord.id: {}."
+      // TODO: remove logging first N bytes of data to reduce log size.
+      LOG.error("Data size: {} is greater than {} bytes, ZNRecord.id: {}."
               + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
-          compressThreshold, record.getId(), firstBytesLength,
+          serializedBytes.length, compressThreshold, record.getId(), firstBytesLength,
           new String(serializedBytes, 0, firstBytesLength));
-      throw new ZkClientException("Data size larger than 1M, ZNRecord.id: " + record.getId());
+      throw new ZkClientException("Data size: " + serializedBytes.length + " is greater than "
+          + compressThreshold + " bytes, ZNRecord.id: " + record.getId());
     }
 
     return serializedBytes;

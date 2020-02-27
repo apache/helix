@@ -56,8 +56,8 @@ public class ZNRecordSerializer implements ZkSerializer {
   public byte[] serialize(Object data) {
     if (!(data instanceof ZNRecord)) {
       // null is NOT an instance of any class
-      LOG.error(
-          "Input object must be of type ZNRecord but it is " + data + ". Will not write to zk");
+      LOG.error("Input object must be of type ZNRecord but it is " + data
+          + ". Will not write to zk");
       throw new ZkClientException("Input object is not of type ZNRecord (was " + data + ")");
     }
 
@@ -86,7 +86,6 @@ public class ZNRecordSerializer implements ZkSerializer {
     try {
       mapper.writeValue(baos, data);
       serializedBytes = baos.toByteArray();
-
       // apply compression if needed
       if (ZNRecordUtil.shouldCompress(record, serializedBytes.length)) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
@@ -96,24 +95,26 @@ public class ZNRecordSerializer implements ZkSerializer {
         serializedBytes = baos.toByteArray();
       }
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
+      // TODO: remove logging first N bytes of data to reduce log size.
       LOG.error("Exception during data serialization. Will not write to zk."
               + " The first {} bytes of data: {}", firstBytesLength,
           new String(serializedBytes, 0, firstBytesLength), e);
       throw new ZkClientException(e);
     }
 
-    int compressThreshold = record.getCompressThreshold();
+    int compressThreshold = ZNRecordUtil.getCompressThreshold();
     if (serializedBytes.length > compressThreshold) {
       if (GZipCompressionUtil.isCompressed(serializedBytes)) {
         serializedBytes = baos.toByteArray();
       }
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
-      LOG.error("Data size is greater than {} bytes, ZNRecord.id: {}."
+      // TODO: remove logging first N bytes of data to reduce log size.
+      LOG.error("Data size: {} is greater than {} bytes, ZNRecord.id: {}."
               + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
-          compressThreshold, record.getId(), firstBytesLength,
+          serializedBytes.length, compressThreshold, record.getId(), firstBytesLength,
           new String(serializedBytes, 0, firstBytesLength));
-      throw new ZkClientException("Data size is greater than " + compressThreshold
-          + " bytes, ZNRecord.id: " + record.getId());
+      throw new ZkClientException("Data size: " + serializedBytes.length + " is greater than "
+          + compressThreshold + " bytes, ZNRecord.id: " + record.getId());
     }
     return serializedBytes;
   }

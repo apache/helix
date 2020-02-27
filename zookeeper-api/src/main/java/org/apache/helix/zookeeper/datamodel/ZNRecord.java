@@ -50,15 +50,9 @@ public class ZNRecord {
   @JsonIgnore(true)
   public static final String LIST_FIELD_BOUND = "listField.bound";
 
+  /** A field name in ZNRecord's boolean fields to enable compression in ZNRecord serializers. */
   @JsonIgnore
   public static final String ENABLE_COMPRESSION_BOOLEAN_FIELD = "enableCompression";
-
-  /**
-   * Default value for system property
-   * {@link ZkSystemPropertyKeys#ZNRECORD_SERIALIZER_COMPRESS}
-   */
-  @JsonIgnore
-  public static final String ZNRECORD_SERIALIZER_COMPRESS_DEFAULT_VALUE = "true";
 
   @JsonIgnore(true)
   public static final int SIZE_LIMIT = 1000 * 1024; // leave a margin out of 1M
@@ -630,22 +624,6 @@ public class ZNRecord {
         }
       }
     }
-  }
-
-  /**
-   * Returns compression threshold in bytes. The threshold is a smaller number determined by the
-   * configured threshold and {@link ZNRecord#SIZE_LIMIT}.
-   *
-   * @return compress threshold in bytes
-   */
-  @JsonIgnore
-  public int getCompressThreshold() {
-    Integer threshold =
-        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
-    if (threshold == null || threshold < 0 || threshold > ZNRecord.SIZE_LIMIT) {
-      return ZNRecord.SIZE_LIMIT;
-    }
-    return threshold;
   }
 
   /**

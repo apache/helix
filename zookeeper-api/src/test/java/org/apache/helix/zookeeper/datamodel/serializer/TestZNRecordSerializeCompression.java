@@ -45,7 +45,7 @@ public class TestZNRecordSerializeCompression {
    * --> serialized data is compressed.
    */
   @Test
-  public void testZNRecordSerializerCompression() {
+  public void testZNRecordSerializerCompressThreshold() {
     // Backup properties for later resetting.
     final String compressionThresholdProperty =
         System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
@@ -79,6 +79,8 @@ public class TestZNRecordSerializeCompression {
     if (compressionThresholdProperty != null) {
       System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
           compressionThresholdProperty);
+    } else {
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
     }
   }
 
@@ -104,7 +106,7 @@ public class TestZNRecordSerializeCompression {
     } catch (ZkClientException ex) {
       Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
       Assert.assertTrue(
-          ex.getMessage().startsWith("Data size is greater than " + compressionThreshold + " bytes"));
+          ex.getMessage().contains(" is greater than " + compressionThreshold + " bytes"));
       // No need to verify following asserts as bytes data is not returned.
       return;
     }

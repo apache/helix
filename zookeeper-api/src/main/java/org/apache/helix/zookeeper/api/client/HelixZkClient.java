@@ -19,9 +19,9 @@ package org.apache.helix.zookeeper.api.client;
  * under the License.
  */
 
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
-import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
@@ -42,7 +42,7 @@ public interface HelixZkClient extends RealmAwareZkClient {
   class ZkConnectionConfig {
     // Connection configs
     private final String _zkServers;
-    private int _sessionTimeout = HelixZkClient.DEFAULT_SESSION_TIMEOUT;
+    private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     public ZkConnectionConfig(String zkServers) {
       _zkServers = zkServers;
@@ -53,10 +53,10 @@ public interface HelixZkClient extends RealmAwareZkClient {
       if (obj == this) {
         return true;
       }
-      if (!(obj instanceof HelixZkClient.ZkConnectionConfig)) {
+      if (!(obj instanceof ZkConnectionConfig)) {
         return false;
       }
-      HelixZkClient.ZkConnectionConfig configObj = (HelixZkClient.ZkConnectionConfig) obj;
+      ZkConnectionConfig configObj = (ZkConnectionConfig) obj;
       return (_zkServers == null && configObj._zkServers == null || _zkServers != null && _zkServers
           .equals(configObj._zkServers)) && _sessionTimeout == configObj._sessionTimeout;
     }
@@ -71,7 +71,7 @@ public interface HelixZkClient extends RealmAwareZkClient {
       return (_zkServers + "_" + _sessionTimeout).replaceAll("[\\W]", "_");
     }
 
-    public HelixZkClient.ZkConnectionConfig setSessionTimeout(Integer sessionTimeout) {
+    public ZkConnectionConfig setSessionTimeout(Integer sessionTimeout) {
       this._sessionTimeout = sessionTimeout;
       return this;
     }
@@ -89,32 +89,16 @@ public interface HelixZkClient extends RealmAwareZkClient {
    * Deprecated - please use RealmAwareZkClient and RealmAwareZkClientConfig instead.
    *
    * Configuration for creating a new HelixZkClient with serializer and monitor.
-   *
-   * TODO: If possible, try to merge with RealmAwareZkClient's RealmAwareZkClientConfig to reduce duplicate logic/code (without breaking backward-compatibility).
-   * Simply making this a subclass of RealmAwareZkClientConfig will break backward-compatiblity.
    */
   @Deprecated
-  class ZkClientConfig {
-    // For client to init the connection
-    private long _connectInitTimeout = DEFAULT_CONNECTION_TIMEOUT;
-
-    // Data access configs
-    private long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
-
-    // Others
-    private PathBasedZkSerializer _zkSerializer;
-
-    // Monitoring
-    private String _monitorType;
-    private String _monitorKey;
-    private String _monitorInstanceName = null;
-    private boolean _monitorRootPathOnly = true;
-
+  class ZkClientConfig extends RealmAwareZkClientConfig {
+    @Override
     public ZkClientConfig setZkSerializer(PathBasedZkSerializer zkSerializer) {
       this._zkSerializer = zkSerializer;
       return this;
     }
 
+    @Override
     public ZkClientConfig setZkSerializer(ZkSerializer zkSerializer) {
       this._zkSerializer = new BasicZkSerializer(zkSerializer);
       return this;
@@ -125,6 +109,7 @@ public interface HelixZkClient extends RealmAwareZkClient {
      *
      * @param monitorType
      */
+    @Override
     public ZkClientConfig setMonitorType(String monitorType) {
       this._monitorType = monitorType;
       return this;
@@ -135,6 +120,7 @@ public interface HelixZkClient extends RealmAwareZkClient {
      *
      * @param monitorKey
      */
+    @Override
     public ZkClientConfig setMonitorKey(String monitorKey) {
       this._monitorKey = monitorKey;
       return this;
@@ -145,55 +131,28 @@ public interface HelixZkClient extends RealmAwareZkClient {
      *
      * @param instanceName
      */
+    @Override
     public ZkClientConfig setMonitorInstanceName(String instanceName) {
       this._monitorInstanceName = instanceName;
       return this;
     }
 
+    @Override
     public ZkClientConfig setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
       this._monitorRootPathOnly = monitorRootPathOnly;
       return this;
     }
 
+    @Override
     public ZkClientConfig setOperationRetryTimeout(Long operationRetryTimeout) {
       this._operationRetryTimeout = operationRetryTimeout;
       return this;
     }
 
+    @Override
     public ZkClientConfig setConnectInitTimeout(long _connectInitTimeout) {
       this._connectInitTimeout = _connectInitTimeout;
       return this;
-    }
-
-    public PathBasedZkSerializer getZkSerializer() {
-      if (_zkSerializer == null) {
-        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
-      }
-      return _zkSerializer;
-    }
-
-    public long getOperationRetryTimeout() {
-      return _operationRetryTimeout;
-    }
-
-    public String getMonitorType() {
-      return _monitorType;
-    }
-
-    public String getMonitorKey() {
-      return _monitorKey;
-    }
-
-    public String getMonitorInstanceName() {
-      return _monitorInstanceName;
-    }
-
-    public boolean isMonitorRootPathOnly() {
-      return _monitorRootPathOnly;
-    }
-
-    public long getConnectInitTimeout() {
-      return _connectInitTimeout;
     }
   }
 }

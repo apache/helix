@@ -36,7 +36,7 @@ import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.common.ServletType;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.CORSFilter;
-import org.apache.helix.rest.server.resources.mock.MockMetadataStoreDirectoryAccessor;
+import org.apache.helix.rest.server.mock.MockMetadataStoreDirectoryAccessor;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;

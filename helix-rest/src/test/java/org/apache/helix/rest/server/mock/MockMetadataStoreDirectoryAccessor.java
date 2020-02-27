@@ -1,4 +1,4 @@
-package org.apache.helix.rest.server.resources.mock;
+package org.apache.helix.rest.server.mock;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

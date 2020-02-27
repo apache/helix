@@ -61,7 +61,7 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
   }
 
   /**
-   * Set the AGGREGATION_ENABLED_STATES field.
+   * Set the AGGREGATION_ENABLED_TYPES field.
    * @param aggregationEnabledTypes
    */
   public void setAggregationEnabledTypes(List<String> aggregationEnabledTypes) {
@@ -70,8 +70,8 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
   }
 
   /**
-   * Get the AGGREGATION_ENABLED_STATES field.
-   * @return AGGREGATION_ENABLED_STATES field.
+   * Get the AGGREGATION_ENABLED_TYPES field.
+   * @return AGGREGATION_ENABLED_TYPES field.
    */
   public List<String> getAggregationEnabledTypes() {
     return _record

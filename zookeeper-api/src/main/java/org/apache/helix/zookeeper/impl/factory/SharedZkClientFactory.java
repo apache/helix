@@ -95,14 +95,14 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
       if (zkConnectionManager == null) {
         throw new ZkClientException("Failed to create a connection manager in the pool to share.");
       }
-      LOG.info("Sharing ZkConnection {} to a new InnerSharedZkClient.", connectionConfig.toString());
-      return new InnerSharedZkClient(zkConnectionManager, clientConfig,
-          new OnCloseCallback() {
-            @Override
-            public void onClose() {
-              cleanupConnectionManager(zkConnectionManager);
-            }
-          });
+      LOG.info("Sharing ZkConnection {} to a new InnerSharedZkClient.",
+          connectionConfig.toString());
+      return new InnerSharedZkClient(zkConnectionManager, clientConfig, new OnCloseCallback() {
+        @Override
+        public void onClose() {
+          cleanupConnectionManager(zkConnectionManager);
+        }
+      });
     }
   }
 

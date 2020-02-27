@@ -56,7 +56,7 @@ public class SharedZkClient implements RealmAwareZkClient {
 
   private final HelixZkClient _innerSharedZkClient;
   private final String _zkRealmShardingKey;
-  private final  MetadataStoreRoutingData _metadataStoreRoutingData;
+  private final MetadataStoreRoutingData _metadataStoreRoutingData;
   private final String _zkRealmAddress;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
@@ -98,11 +98,10 @@ public class SharedZkClient implements RealmAwareZkClient {
         .setConnectInitTimeout(clientConfig.getConnectInitTimeout())
         .setOperationRetryTimeout(clientConfig.getOperationRetryTimeout())
         .setMonitorInstanceName(clientConfig.getMonitorInstanceName())
-        .setMonitorKey(clientConfig.getMonitorKey())
-        .setMonitorType(clientConfig.getMonitorType())
+        .setMonitorKey(clientConfig.getMonitorKey()).setMonitorType(clientConfig.getMonitorType())
         .setMonitorRootPathOnly(clientConfig.isMonitorRootPathOnly());
-    _innerSharedZkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(zkConnectionConfig, zkClientConfig);
+    _innerSharedZkClient =
+        SharedZkClientFactory.getInstance().buildZkClient(zkConnectionConfig, zkClientConfig);
   }
 
   @Override

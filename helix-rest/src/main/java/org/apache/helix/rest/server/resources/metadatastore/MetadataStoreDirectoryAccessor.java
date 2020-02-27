@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -58,7 +57,7 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);
 
   private String _namespace;
-  private MetadataStoreDirectory _metadataStoreDirectory;
+  protected MetadataStoreDirectory _metadataStoreDirectory;
 
   @PostConstruct
   private void postConstruct() {
@@ -66,11 +65,6 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     _namespace = helixRestNamespace.getName();
 
     buildMetadataStoreDirectory(_namespace, helixRestNamespace.getMetadataStoreAddress());
-  }
-
-  @PreDestroy
-  private void preDestroy() {
-    _metadataStoreDirectory.close();
   }
 
   /**
@@ -121,7 +115,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}")
   public Response addMetadataStoreRealm(@PathParam("realm") String realm) {
     try {
-      _metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm);
+      if (!_metadataStoreDirectory.addMetadataStoreRealm(_namespace, realm)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
     }
@@ -133,7 +129,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}")
   public Response deleteMetadataStoreRealm(@PathParam("realm") String realm) {
     try {
-      _metadataStoreDirectory.deleteMetadataStoreRealm(_namespace, realm);
+      if (!_metadataStoreDirectory.deleteMetadataStoreRealm(_namespace, realm)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
     }
@@ -249,8 +247,11 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response addShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
+    shardingKey = "/" + shardingKey;
     try {
-      _metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey);
+      if (!_metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
     }
@@ -262,8 +263,11 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response deleteShardingKey(@PathParam("realm") String realm,
       @PathParam("sharding-key") String shardingKey) {
+    shardingKey = "/" + shardingKey;
     try {
-      _metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey);
+      if (!_metadataStoreDirectory.deleteShardingKey(_namespace, realm, shardingKey)) {
+        return serverError();
+      }
     } catch (IllegalArgumentException ex) {
       return notFound(ex.getMessage());
     }
@@ -295,15 +299,12 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return helixRestNamespace;
   }
 
-  private void buildMetadataStoreDirectory(String namespace, String address) {
-    Map<String, String> routingZkAddressMap = ImmutableMap.of(namespace, address);
+  protected void buildMetadataStoreDirectory(String namespace, String address) {
     try {
-      _metadataStoreDirectory = new ZkMetadataStoreDirectory(routingZkAddressMap);
+      _metadataStoreDirectory = ZkMetadataStoreDirectory.getInstance(namespace, address);
     } catch (InvalidRoutingDataException ex) {
-      // In this case, the InvalidRoutingDataException should not happen because routing
-      // ZK address is always valid here.
-      LOG.warn("Unable to create metadata store directory for routing ZK address: {}",
-          routingZkAddressMap, ex);
+      LOG.warn("Unable to create metadata store directory for namespace: {}, ZK address: {}",
+          namespace, address, ex);
     }
   }
 

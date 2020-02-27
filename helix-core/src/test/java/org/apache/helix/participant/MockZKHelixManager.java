@@ -39,6 +39,8 @@ import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -124,6 +126,13 @@ public class MockZKHelixManager implements HelixManager {
   }
 
   @Override
+  public void addCustomizedStateAggregationConfigChangeListener(CustomizedStateAggregationConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
   public void addClusterfigChangeListener(ClusterConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
@@ -157,6 +166,13 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception {
+
+  }
+
+  @Override
+  public void addCustomizedStateChangeListener(CustomizedStateChangeListener listener,
+      String instanceName, String sessionId) throws Exception {
+    // TODO Auto-generated method stub
 
   }
 

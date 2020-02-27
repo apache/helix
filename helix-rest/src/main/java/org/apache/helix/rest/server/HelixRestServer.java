@@ -141,7 +141,7 @@ public class HelixRestServer {
     return String.format("%s_%s", type.name(), namespace.getName());
   }
 
-  private ResourceConfig getResourceConfig(HelixRestNamespace namespace, ServletType type) {
+  protected ResourceConfig getResourceConfig(HelixRestNamespace namespace, ServletType type) {
     ResourceConfig cfg = new ResourceConfig();
     cfg.packages(type.getServletPackageArray());
     cfg.setApplicationName(namespace.getName());

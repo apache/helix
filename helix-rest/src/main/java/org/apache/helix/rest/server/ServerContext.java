@@ -27,6 +27,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
+import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -54,6 +55,7 @@ public class ServerContext {
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
+  private ZkMetadataStoreDirectory _zkMetadataStoreDirectory;
 
   public ServerContext(String zkAddr) {
     _zkAddr = zkAddr;
@@ -64,6 +66,8 @@ public class ServerContext {
     // cannot be started correctly.
     _helixDataAccessorPool = new HashMap<>();
     _taskDriverPool = new HashMap<>();
+    // Initialize the singleton ZkMetadataStoreDirectory instance to allow it to be closed later
+    _zkMetadataStoreDirectory = ZkMetadataStoreDirectory.getInstance();
   }
 
   public HelixZkClient getHelixZkClient() {
@@ -157,6 +161,9 @@ public class ServerContext {
   public void close() {
     if (_zkClient != null) {
       _zkClient.close();
+    }
+    if (_zkMetadataStoreDirectory != null) {
+      _zkMetadataStoreDirectory.close();
     }
   }
 }

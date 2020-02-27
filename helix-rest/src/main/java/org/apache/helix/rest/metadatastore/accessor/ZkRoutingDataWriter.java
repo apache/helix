@@ -19,27 +19,45 @@ package org.apache.helix.rest.metadatastore.accessor;
  * under the License.
  */
 
-import java.util.Collections;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
+  // Time out for http requests that are forwarded to leader instances measured in milliseconds
+  private static final int HTTP_REQUEST_FORWARDING_TIMEOUT = 60 * 1000;
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
 
   private final String _namespace;
   private final HelixZkClient _zkClient;
   private final ZkDistributedLeaderElection _leaderElection;
+  private final CloseableHttpClient _forwardHttpClient;
+  private final String _myHostName;
 
   public ZkRoutingDataWriter(String namespace, String zkAddress) {
     if (namespace == null || namespace.isEmpty()) {
@@ -62,10 +80,26 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     }
 
     // Get the hostname (REST endpoint) from System property
-    // TODO: Fill in when Helix REST implementations are ready
-    ZNRecord myServerInfo = new ZNRecord("dummy hostname");
+    String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    if (hostName == null || hostName.isEmpty()) {
+      throw new IllegalStateException(
+          "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
+              + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
+    }
+    // remove trailing slash
+    if (hostName.charAt(hostName.length() - 1) == '/') {
+      hostName = hostName.substring(0, hostName.length() - 1);
+    }
+    _myHostName = hostName;
+    ZNRecord myServerInfo = new ZNRecord(_myHostName);
+
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
+
+    RequestConfig config = RequestConfig.custom().setConnectTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT)
+        .setConnectionRequestTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT)
+        .setSocketTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT).build();
+    _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
   }
 
   @Override
@@ -77,8 +111,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return createZkRealm(realm);
     }
 
-    // TODO: Forward the request to leader
-    return true;
+    String urlSuffix =
+        constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
+        Response.Status.CREATED.getStatusCode());
   }
 
   @Override
@@ -87,11 +123,13 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+      return deleteZkRealm(realm);
     }
 
-    // TODO: Forward the request to leader
-    return true;
+    String urlSuffix =
+        constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
+        Response.Status.OK.getStatusCode());
   }
 
   @Override
@@ -100,44 +138,14 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      // If the realm does not exist already, then create the realm
-      String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm;
-      if (!_zkClient.exists(realmPath)) {
-        // Create the realm
-        if (!createZkRealm(realm)) {
-          // Failed to create the realm - log and return false
-          LOG.error(
-              "Failed to add sharding key because ZkRealm creation failed! Namespace: {}, Realm: {}, Sharding key: {}",
-              _namespace, realm, shardingKey);
-          return false;
-        }
-      }
-
-      // Add the sharding key to an empty ZNRecord
-      ZNRecord znRecord;
-      try {
-        znRecord = _zkClient.readData(realmPath);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to read the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
-          Collections.singletonList(shardingKey));
-      try {
-        _zkClient.writeData(realmPath, znRecord);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to write the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      return true;
+      return createZkShardingKey(realm, shardingKey);
     }
 
-    // TODO: Forward the request to leader
-    return true;
+    String urlSuffix =
+        constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
+        Response.Status.CREATED.getStatusCode());
   }
 
   @Override
@@ -146,31 +154,14 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       if (_zkClient.isClosed()) {
         throw new IllegalStateException("ZkClient is closed!");
       }
-      ZNRecord znRecord =
-          _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, true);
-      if (znRecord == null || !znRecord
-          .getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
-          .contains(shardingKey)) {
-        // This realm does not exist or shardingKey doesn't exist. Return true!
-        return true;
-      }
-      znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
-          .remove(shardingKey);
-      // Overwrite this ZNRecord with the sharding key removed
-      try {
-        _zkClient
-            .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
-      } catch (Exception e) {
-        LOG.error(
-            "Failed to write the data back in deleteShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
-            _namespace, realm, shardingKey, e);
-        return false;
-      }
-      return true;
+      return deleteZkShardingKey(realm, shardingKey);
     }
 
-    // TODO: Forward the request to leader
-    return true;
+    String urlSuffix =
+        constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
+            MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
+    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
+        Response.Status.OK.getStatusCode());
   }
 
   @Override
@@ -225,6 +216,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   @Override
   public synchronized void close() {
     _zkClient.close();
+    try {
+      _forwardHttpClient.close();
+    } catch (IOException e) {
+      LOG.error("HttpClient failed to close. ", e);
+    }
   }
 
   /**
@@ -232,7 +228,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
    * @param realm
    * @return
    */
-  private boolean createZkRealm(String realm) {
+  protected boolean createZkRealm(String realm) {
     if (_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
       LOG.warn("createZkRealm() called for realm: {}, but this realm already exists! Namespace: {}",
           realm, _namespace);
@@ -247,6 +243,130 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return false;
     }
 
+    return true;
+  }
+
+  protected boolean deleteZkRealm(String realm) {
+    return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
+  }
+
+  protected boolean createZkShardingKey(String realm, String shardingKey) {
+    // If the realm does not exist already, then create the realm
+    String realmPath = MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm;
+    if (!_zkClient.exists(realmPath)) {
+      // Create the realm
+      if (!createZkRealm(realm)) {
+        // Failed to create the realm - log and return false
+        LOG.error(
+            "Failed to add sharding key because ZkRealm creation failed! Namespace: {}, Realm: {}, Sharding key: {}",
+            _namespace, realm, shardingKey);
+        return false;
+      }
+    }
+
+    ZNRecord znRecord;
+    try {
+      znRecord = _zkClient.readData(realmPath);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to read the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    List<String> shardingKeys =
+        znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
+    if (shardingKeys == null || shardingKeys.isEmpty()) {
+      shardingKeys = new ArrayList<>();
+    }
+    shardingKeys.add(shardingKey);
+    znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY, shardingKeys);
+    try {
+      _zkClient.writeData(realmPath, znRecord);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to write the realm ZNRecord in addShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    return true;
+  }
+
+  protected boolean deleteZkShardingKey(String realm, String shardingKey) {
+    ZNRecord znRecord =
+        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, true);
+    if (znRecord == null || !znRecord
+        .getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .contains(shardingKey)) {
+      // This realm does not exist or shardingKey doesn't exist. Return true!
+      return true;
+    }
+    znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .remove(shardingKey);
+    // Overwrite this ZNRecord with the sharding key removed
+    try {
+      _zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord);
+    } catch (Exception e) {
+      LOG.error(
+          "Failed to write the data back in deleteShardingKey()! Namespace: {}, Realm: {}, ShardingKey: {}",
+          _namespace, realm, shardingKey, e);
+      return false;
+    }
+    return true;
+  }
+
+  private String constructUrlSuffix(String... urlParams) {
+    List<String> allUrlParameters = new ArrayList<>(
+        Arrays.asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
+    for (String urlParam : urlParams) {
+      if (urlParam.charAt(0) != '/') {
+        urlParam = "/" + urlParam;
+      }
+      allUrlParameters.add(urlParam);
+    }
+    return String.join("", allUrlParameters);
+  }
+
+  private boolean forwardRequestToLeader(String urlSuffix, HttpConstants.RestVerbs request_method,
+      int expectedResponseCode) throws IllegalArgumentException {
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url = leaderHostName + urlSuffix;
+    HttpUriRequest request;
+    switch (request_method) {
+      case PUT:
+        request = new HttpPut(url);
+        break;
+      case DELETE:
+        request = new HttpDelete(url);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported request_method: " + request_method);
+    }
+
+    return sendRequestToLeader(request, expectedResponseCode, leaderHostName);
+  }
+
+  // Set to be protected for testing purposes
+  protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
+      String leaderHostName) {
+    try {
+      HttpResponse response = _forwardHttpClient.execute(request);
+      if (response.getStatusLine().getStatusCode() != expectedResponseCode) {
+        HttpEntity respEntity = response.getEntity();
+        String errorLog = "The forwarded request to leader has failed. Uri: " + request.getURI()
+            + ". Error code: " + response.getStatusLine().getStatusCode() + " Current hostname: "
+            + _myHostName + " Leader hostname: " + leaderHostName;
+        if (respEntity != null) {
+          errorLog += " Response: " + EntityUtils.toString(respEntity);
+        }
+        LOG.error(errorLog);
+        return false;
+      }
+    } catch (IOException e) {
+      LOG.error(
+          "The forwarded request to leader raised an exception. Uri: {} Current hostname: {} Leader hostname: {}",
+          request.getURI(), _myHostName, leaderHostName, e);
+      return false;
+    }
     return true;
   }
 }

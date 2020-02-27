@@ -88,7 +88,7 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
     List<String> children = _zkClient.getChildren(_basePath);
     Collections.sort(children);
     String leaderName = children.get(0);
-    ZNRecord leaderInfo = _zkClient.readData(_basePath + "/" + leaderName, true);
+    _currentLeaderInfo = _zkClient.readData(_basePath + "/" + leaderName, true);
 
     String[] myNameArray = _myEphemeralSequentialPath.split("/");
     String myName = myNameArray[myNameArray.length - 1];
@@ -96,8 +96,7 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
     if (leaderName.equals(myName)) {
       // My turn for leadership
       _isLeader = true;
-      _currentLeaderInfo = leaderInfo;
-      LOG.info("{} acquired leadership! Info: {}", myName, leaderInfo);
+      LOG.info("{} acquired leadership! Info: {}", myName, _currentLeaderInfo);
     } else {
       // Watch the ephemeral ZNode before me for a deletion event
       String beforeMe = children.get(children.indexOf(myName) - 1);

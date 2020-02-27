@@ -26,6 +26,8 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
@@ -39,6 +41,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -158,6 +161,15 @@ public interface HelixManager {
   void addResourceConfigChangeListener(ResourceConfigChangeListener listener) throws Exception;
 
   /**
+   * @see CustomizedStateAggregationConfigChangeListener#onCustomizedStateAggregationConfigChange(CustomizedStateAggregationConfig,
+   *      NotificationContext)
+   * @param listener
+   */
+
+  void addCustomizedStateAggregationConfigChangeListener(
+      CustomizedStateAggregationConfigChangeListener listener) throws Exception;
+
+  /**
    * @see ClusterConfigChangeListener#onClusterConfigChange(ClusterConfig, NotificationContext)
    * @param listener
    */
@@ -213,6 +225,14 @@ public interface HelixManager {
   @Deprecated
   void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception;
+
+  /**
+   * @see CustomizedStateChangeListener#onCustomizedStateChange(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addCustomizedStateChangeListener(CustomizedStateChangeListener listener, String instanceName,
+      String stateName) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)

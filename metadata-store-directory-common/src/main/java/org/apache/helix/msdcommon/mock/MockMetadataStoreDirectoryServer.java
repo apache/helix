@@ -68,7 +68,7 @@ public class MockMetadataStoreDirectoryServer {
   /**
    * Constructs a Mock MSDS.
    * A sample GET might look like the following:
-   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-NAMESPACE/METADATA_STORE_ROUTING_DATA/zk-1
+   *     curl localhost:11000/admin/v2/namespaces/MY-HELIX-NAMESPACE/metadata-store-realms/zk-1
    * @param hostname hostname for the REST server. E.g.) "localhost"
    * @param port port to use. E.g.) 11000
    * @param namespace the Helix REST namespace to mock. E.g.) "MY-HELIX-NAMESPACE"
@@ -94,8 +94,7 @@ public class MockMetadataStoreDirectoryServer {
     _routingDataMap = routingData;
   }
 
-  public void startServer()
-      throws IOException {
+  public void startServer() throws IOException {
     _server = HttpServer.create(new InetSocketAddress(_hostname, _mockServerPort), 0);
     generateContexts();
     _server.setExecutor(_executor);

@@ -57,18 +57,9 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
     // Note, the logic sharing connectionManager logic is inside SharedZkClient, similar to innerSharedZkClient.
-    return new SharedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
-  }
-
-  @Override
-  public RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
-    // TODO: Implement the logic
-    return null;
+    return new SharedZkClient(connectionConfig, clientConfig);
   }
 
   private static class SingletonHelper {

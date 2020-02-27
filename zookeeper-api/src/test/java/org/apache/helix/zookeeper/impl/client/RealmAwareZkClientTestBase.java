@@ -20,12 +20,14 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
-import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
-import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.api.factory.RealmAwareZkClientFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -43,12 +45,17 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   // <Realm, List of sharding keys> Mapping
-  private static final Map<String, List<String>> RAW_ROUTING_DATA = new HashMap<>();
+  private static final Map<String, Collection<String>> RAW_ROUTING_DATA = new HashMap<>();
 
   // The following RealmAwareZkClientFactory is to be defined in subclasses
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
-  protected RealmAwareZkClient _realmAwareZkClient;
-  private MetadataStoreRoutingData _metadataStoreRoutingData;
+  private RealmAwareZkClient _realmAwareZkClient;
+
+  // Create a MockMSDS for testing
+  private MockMetadataStoreDirectoryServer _msdsServer;
+  private static final String MSDS_HOSTNAME = "localhost";
+  private static final int MSDS_PORT = 1111;
+  private static final String MSDS_NAMESPACE = "test";
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -60,14 +67,24 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
       RAW_ROUTING_DATA.put(realmName, shardingKeyList);
     }
 
-    // Feed the raw routing data into TrieRoutingData to construct an in-memory representation of routing information
-    _metadataStoreRoutingData = new TrieRoutingData(RAW_ROUTING_DATA);
+    // Create a mock MSDS so that HttpRoudingDataReader could fetch the routing data
+    _msdsServer = new MockMetadataStoreDirectoryServer(MSDS_HOSTNAME, MSDS_PORT, MSDS_NAMESPACE,
+        RAW_ROUTING_DATA);
+    _msdsServer.startServer();
+
+    // Register the MSDS endpoint as a System variable
+    String msdsEndpoint =
+        "http://" + MSDS_HOSTNAME + ":" + MSDS_PORT + "/admin/v2/namespaces/" + MSDS_NAMESPACE;
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, msdsEndpoint);
   }
 
   @AfterClass
   public void afterClass() {
     if (_realmAwareZkClient != null && !_realmAwareZkClient.isClosed()) {
       _realmAwareZkClient.close();
+    }
+    if (_msdsServer != null) {
+      _msdsServer.stopServer();
     }
   }
 
@@ -80,7 +97,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   @Test
   public void testRealmAwareZkClientCreation() {
     // Create a RealmAwareZkClient
-    String invalidShardingKey = "InvalidShardingKey";
+    String invalidShardingKey = "InvalidShardingKeyNoLeadingSlash";
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig();
 
@@ -91,19 +108,39 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
         builder.setZkRealmShardingKey(invalidShardingKey).build();
 
     try {
-      _realmAwareZkClient = _realmAwareZkClientFactory
-          .buildZkClient(connectionConfig, clientConfig, _metadataStoreRoutingData);
+      _realmAwareZkClient =
+          _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
       Assert.fail("Should not succeed with an invalid sharding key!");
     } catch (IllegalArgumentException e) {
       // Expected
+    } catch (Exception e) {
+      Assert.fail("Should not see any other types of Exceptions: " + e);
+    }
+
+    // Create a connection config with a valid sharding key, but one that does not exist in
+    // the routing data
+    String nonExistentShardingKey = "/NonExistentShardingKey";
+    connectionConfig = builder.setZkRealmShardingKey(nonExistentShardingKey).build();
+    try {
+      _realmAwareZkClient =
+          _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
+      Assert.fail("Should not succeed with an invalid sharding key!");
+    } catch (NoSuchElementException e) {
+      // Expected
+    } catch (Exception e) {
+      Assert.fail("Should not see any other types of Exceptions: " + e);
     }
 
     // Use a valid sharding key this time around
     String validShardingKey = ZK_SHARDING_KEY_PREFIX + "_" + 0; // Use TEST_SHARDING_KEY_0
     builder.setZkRealmShardingKey(validShardingKey);
     connectionConfig = builder.build();
-    _realmAwareZkClient = _realmAwareZkClientFactory
-        .buildZkClient(connectionConfig, clientConfig, _metadataStoreRoutingData);
+    try {
+      _realmAwareZkClient =
+          _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
+    } catch (Exception e) {
+      Assert.fail("All other exceptions not allowed: " + e);
+    }
   }
 
   /**

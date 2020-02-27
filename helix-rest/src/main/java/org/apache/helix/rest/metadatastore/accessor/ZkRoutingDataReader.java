@@ -86,8 +86,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
    * @throws InvalidRoutingDataException - when the node on
    *           MetadataStoreRoutingConstants.ROUTING_DATA_PATH is missing
    */
-  public Map<String, List<String>> getRoutingData()
-      throws InvalidRoutingDataException {
+  public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
     Map<String, List<String>> routingData = new HashMap<>();
     List<String> allRealmAddresses;
     try {
@@ -125,11 +124,13 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleDataDeleted(String s) {
+    // Duplicating handleChildChange because sometimes callbacks go missing
     if (_zkClient.isClosed()) {
       return;
     }
 
     // Renew subscription
+    _zkClient.unsubscribeAll();
     _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
     for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
       _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
@@ -146,6 +147,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
     // Subscribe data changes again because some children might have been deleted or added
     _zkClient.unsubscribeAll();
+    _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
     for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
       _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
           this);

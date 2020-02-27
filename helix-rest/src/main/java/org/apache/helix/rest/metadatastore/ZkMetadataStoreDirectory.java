@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.msdcommon.callback.RoutingDataListener;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -37,6 +38,10 @@ import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataRead
 import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataWriter;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +98,16 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     if (!_routingZkAddressMap.containsKey(namespace)) {
       synchronized (_routingZkAddressMap) {
         if (!_routingZkAddressMap.containsKey(namespace)) {
+          // Ensure that ROUTING_DATA_PATH exists in ZK.
+          HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                  new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+          try {
+            zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
+          } catch (ZkNodeExistsException e) {
+            // The node already exists and it's okay
+          }
+
           _routingZkAddressMap.put(namespace, zkAddress);
           _routingDataReaderMap.put(namespace, new ZkRoutingDataReader(namespace, zkAddress, this));
           _routingDataWriterMap.put(namespace, new ZkRoutingDataWriter(namespace, zkAddress));

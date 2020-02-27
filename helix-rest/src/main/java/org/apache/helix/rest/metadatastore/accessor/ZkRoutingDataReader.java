@@ -35,6 +35,7 @@ import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.Watcher;
 
 
@@ -57,6 +58,15 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+
+    // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
+    // create() semantic will fail if it already exists
+    try {
+      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
+    } catch (ZkNodeExistsException e) {
+      // This is okay
+    }
+
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
       // Subscribe child changes
@@ -90,10 +100,12 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     for (String realmAddress : allRealmAddresses) {
       ZNRecord record =
           _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
-      List<String> shardingKeys =
-          record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      routingData
-          .put(realmAddress, shardingKeys != null ? shardingKeys : Collections.emptyList());
+      if (record != null) {
+        List<String> shardingKeys =
+            record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
+        routingData
+            .put(realmAddress, shardingKeys != null ? shardingKeys : Collections.emptyList());
+      }
     }
     return routingData;
   }

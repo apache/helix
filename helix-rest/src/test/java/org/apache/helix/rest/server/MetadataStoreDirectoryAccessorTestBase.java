@@ -93,7 +93,7 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
     _routingDataReader = new ZkRoutingDataReader(TEST_NAMESPACE, _zkAddrTestNS, null);
 
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().toString());
+        getBaseUri().getHost() + ":" + getBaseUri().getPort());
   }
 
   @AfterClass

@@ -97,7 +97,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
           _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
       Assert.fail("Should not succeed with an invalid sharding key!");
     } catch (IllegalArgumentException e) {
-      // Expected
+      // Expected because invalid sharding key would cause an IllegalArgumentException to be thrown
     } catch (Exception e) {
       Assert.fail("Should not see any other types of Exceptions: " + e);
     }
@@ -111,7 +111,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
           _realmAwareZkClientFactory.buildZkClient(connectionConfig, clientConfig);
       Assert.fail("Should not succeed with a non-existent sharding key!");
     } catch (NoSuchElementException e) {
-      // Expected
+      // Expected non-existent sharding key would cause a NoSuchElementException to be thrown
     } catch (Exception e) {
       Assert.fail("Should not see any other types of Exceptions: " + e);
     }

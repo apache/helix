@@ -173,8 +173,10 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       throw new ZkClientException(e);
     }
     // check size
-    int threshold = ZNRecordUtil.getSerializerThreshold();
+    int threshold = ZNRecordUtil.getSerializerOutputLimit();
     if (serializedBytes.length > threshold) {
+      // serializedBytes may be compressed and its length is different from byte array.
+      // To log the compressed data size, use this length as the compressed data length.
       int length = serializedBytes.length;
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
       // TODO: remove logging first N bytes of data to reduce log size.

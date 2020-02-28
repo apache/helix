@@ -105,8 +105,10 @@ public class ZNRecordSerializer implements ZkSerializer {
       throw new ZkClientException(e);
     }
 
-    int threshold = ZNRecordUtil.getSerializerThreshold();
+    int threshold = ZNRecordUtil.getSerializerOutputLimit();
     if (serializedBytes.length > threshold) {
+      // serializedBytes may be compressed and its length is different from byte array.
+      // To log the compressed data size, use this length as the compressed data length.
       int length = serializedBytes.length;
       if (GZipCompressionUtil.isCompressed(serializedBytes)) {
         serializedBytes = baos.toByteArray();

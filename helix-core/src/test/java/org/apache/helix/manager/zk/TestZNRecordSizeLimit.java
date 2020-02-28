@@ -304,7 +304,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   public void testZNRecordSerializerThreshold() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
@@ -321,7 +321,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     int rawZnRecordSize = 700;
     int thresholdKB = 800;
     int threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
         String.valueOf(threshold));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
@@ -349,7 +349,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the threshold to very small so serialized data size exceeds the threshold.
     thresholdKB = 1;
     threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
         String.valueOf(threshold));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
@@ -373,10 +373,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
     }
   }
 
@@ -390,7 +390,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   public void testZNRecordStreamingSerializerThreshold() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
 
@@ -407,7 +407,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     int rawZnRecordSize = 700;
     int thresholdKB = 800;
     int threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
         String.valueOf(threshold));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
@@ -435,7 +435,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the threshold to very small so serialized data size exceeds the threshold.
     thresholdKB = 1;
     threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
         String.valueOf(threshold));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
@@ -459,10 +459,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
     }
   }
 

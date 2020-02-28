@@ -48,9 +48,9 @@ public class ZNRecordUtil {
    * Returns compression threshold in bytes. The threshold is a smaller number determined by the
    * configured threshold and {@link ZNRecord#SIZE_LIMIT}.
    */
-  public static int getSerializerThreshold() {
+  public static int getSerializerOutputLimit() {
     Integer threshold =
-        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
 
     if (threshold == null || threshold <= 0 || threshold > ZNRecord.SIZE_LIMIT) {
       return ZNRecord.SIZE_LIMIT;

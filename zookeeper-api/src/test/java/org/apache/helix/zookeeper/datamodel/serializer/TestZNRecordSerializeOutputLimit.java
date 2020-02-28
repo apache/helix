@@ -34,64 +34,64 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestZNRecordSerializeThreshold {
+public class TestZNRecordSerializeOutputLimit {
   /*
-   * Tests data serializing when threshold is enabled.
+   * Tests data serializing when limit is enabled.
    * Two cases:
-   * 1. threshold is not set
+   * 1. limit is not set
    * --> default size (1 MB) is used.
-   * 2. threshold is set
-   * --> serialized data is checked by the threshold: pass or throw ZkClientException.
+   * 2. limit is set
+   * --> serialized data is checked by the limit: pass or throw ZkClientException.
    */
   @Test
-  public void testZNRecordSerializerThreshold() {
+  public void testZNRecordSerializerOutputLimit() {
     // Backup properties for later resetting.
-    final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+    final String limitProperty =
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
 
-    // Unset threshold property so default threshold is used.
-    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+    // Unset limit property so default limit is used.
+    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
 
-    Assert.assertNull(System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES));
+    Assert.assertNull(System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES));
 
-    verifyThreshold(false, false);
+    verifyOutputLimit(false, false);
 
-    // 2. Set threshold so serialized data is less than the threshold
-    int threshold = 6000;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
-        String.valueOf(threshold));
+    // 2. Set limit so serialized data is less than the limit
+    int limit = 6000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
+        String.valueOf(limit));
 
     // Verify serialization passes.
-    verifyThreshold(false, false);
+    verifyOutputLimit(false, false);
 
-    // 3. Set threshold both serialized data and compressed data are greater than the threshold.
-    threshold = 1000;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
-        String.valueOf(threshold));
+    // 3. Set limit both serialized data and compressed data are greater than the limit.
+    limit = 1000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
+        String.valueOf(limit));
 
-    // Verify ZkClientException is thrown because compressed data is larger than threshold.
-    verifyThreshold(true, true);
+    // Verify ZkClientException is thrown because compressed data is larger than limit.
+    verifyOutputLimit(true, true);
 
     // Reset: add the properties back to system properties if they were originally available.
-    if (thresholdProperty != null) {
+    if (limitProperty != null) {
       System
-          .setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES, thresholdProperty);
+          .setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES, limitProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
     }
   }
 
-  private void verifyThreshold(boolean greaterThanThreshold, boolean exceptionExpected) {
-    int threshold = Integer
-        .getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES, ZNRecord.SIZE_LIMIT);
+  private void verifyOutputLimit(boolean greaterThanThreshold, boolean exceptionExpected) {
+    int limit = Integer
+        .getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES, ZNRecord.SIZE_LIMIT);
 
     ZNRecord record = createZNRecord(10);
 
-    // Makes sure the length of serialized bytes is greater than threshold to
-    // satisfy the condition: serialized bytes' length exceeds the threshold.
+    // Makes sure the length of serialized bytes is greater than limit to
+    // satisfy the condition: serialized bytes' length exceeds the limit.
     byte[] preCompressedBytes = serialize(record);
 
-    Assert.assertEquals(preCompressedBytes.length > threshold, greaterThanThreshold);
+    Assert.assertEquals(preCompressedBytes.length > limit, greaterThanThreshold);
 
     ZkSerializer zkSerializer = new ZNRecordSerializer();
 
@@ -101,7 +101,7 @@ public class TestZNRecordSerializeThreshold {
       Assert.assertFalse(exceptionExpected);
     } catch (ZkClientException ex) {
       Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
-      Assert.assertTrue(ex.getMessage().contains(" is greater than " + threshold + " bytes"));
+      Assert.assertTrue(ex.getMessage().contains(" is greater than " + limit + " bytes"));
       // No need to verify following asserts as bytes data is not returned.
       return;
     }

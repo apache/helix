@@ -90,7 +90,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     if (hostName.charAt(hostName.length() - 1) == '/') {
       hostName = hostName.substring(0, hostName.length() - 1);
     }
-    _myHostName = HttpConstants.HTTP_PROTOCOL + hostName;
+    _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;
     ZNRecord myServerInfo = new ZNRecord(_myHostName);
 
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,

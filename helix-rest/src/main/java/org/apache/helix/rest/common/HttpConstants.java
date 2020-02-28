@@ -27,5 +27,5 @@ public class HttpConstants {
     DELETE
   }
 
-  public static final String HTTP_PROTOCOL = "http://";
+  public static final String HTTP_PROTOCOL_PREFIX = "http://";
 }

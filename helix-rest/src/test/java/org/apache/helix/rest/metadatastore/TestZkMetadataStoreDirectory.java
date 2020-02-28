@@ -101,7 +101,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     });
 
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().toString());
+        getBaseUri().getHost() + ":" + getBaseUri().getPort());
 
     // Create metadataStoreDirectory
     for (Map.Entry<String, String> entry : _routingZkAddrMap.entrySet()) {

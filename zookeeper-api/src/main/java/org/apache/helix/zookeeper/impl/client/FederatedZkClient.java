@@ -25,6 +25,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.sun.istack.internal.NotNull;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -56,10 +57,11 @@ import org.slf4j.LoggerFactory;
  * requests to the corresponding ZkClient with the help of metadata store directory service.
  * It could connect to multiple ZK addresses and maintain a {@link ZkClient} for each ZK address.
  * <p>
- * Note: while the ordering of handling data/child changes listeners in one single ZK realm is
- * guaranteed, listeners from different ZK realms are NOT guaranteed in order, which means listeners
- * from different ZK realms could be handled concurrently. So the concurrency of listeners should be
- * aware of when implementing listeners for different ZK realms.
+ * Note: each Zk realm has its own event queue to handle listeners. So listeners from different ZK
+ * realms could be handled concurrently because listeners of a ZK realm are handled in its own
+ * queue. The concurrency of listeners should be aware of when implementing listeners for different
+ * ZK realms. The users should use thread-safe data structures if they wish to handle change
+ * callbacks.
  */
 public class FederatedZkClient implements RealmAwareZkClient {
   private static final Logger LOG = LoggerFactory.getLogger(FederatedZkClient.class);
@@ -460,6 +462,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
     return getZkClient(path).create(path, dataObject, acl, mode);
   }
 
+  @NotNull
   private ZkClient getZkClient(String path) {
     // If FederatedZkClient is closed, should not return ZkClient.
     checkClosedState();
@@ -467,14 +470,21 @@ public class FederatedZkClient implements RealmAwareZkClient {
     String zkRealm = getZkRealm(path);
 
     // Use this zkClient reference to protect the returning zkClient from being null because of
-    // race condition.
+    // race condition. Once we get the reference, even _zkRealmToZkClientMap is cleared by closed(),
+    // this zkClient is not null which guarantees the returned value not null.
     ZkClient zkClient = _zkRealmToZkClientMap.get(zkRealm);
 
     if (zkClient == null) {
-      // Synchronized to avoid creating duplicate ZkClient for the same ZkRealm.
+      // 1. Synchronized to avoid creating duplicate ZkClient for the same ZkRealm.
+      // 2. Synchronized with close() to avoid creating new ZkClient when all ZkClients are
+      // being closed and _zkRealmToZkClientMap is being cleared.
       synchronized (_zkRealmToZkClientMap) {
-        // Check closed state again to avoid race condition and creating a new ZkClient
-        // after FederatedZkClient is already closed.
+        // Because of potential race condition: thread B to get ZkClient could be blocked by this
+        // synchronized, while thread A is executing closed() in its synchronized block. So thread B
+        // could still enter this synchronized block once A completes executing closed() and
+        // releases the synchronized lock.
+        // Check closed state again to avoid creating a new ZkClient after FederatedZkClient
+        // is already closed.
         checkClosedState();
 
         if (!_zkRealmToZkClientMap.containsKey(zkRealm)) {

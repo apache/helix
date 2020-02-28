@@ -25,6 +25,7 @@ import java.util.Date;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
@@ -294,16 +295,16 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   }
 
   /*
-   * Tests ZNRecordSerializer auto compression threshold.
+   * Tests ZNRecordSerializer threshold.
    * Two cases:
    * 1. serialized data size is less than threshold and could be written to ZK.
    * 2. serialized data size is greater than threshold, so ZkClientException is thrown.
    */
   @Test(dependsOnMethods = "testZNRecordSizeLimitUseZNRecordStreamingSerializer")
-  public void testZNRecordSerializerCompressThreshold() {
+  public void testZNRecordSerializerThreshold() throws Exception {
     // Backup properties for later resetting.
-    final String compressionThresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+    final String thresholdProperty =
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
@@ -317,11 +318,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // 1. legal-sized data gets written to zk
     // write a znode of size less than threshold
-    int rawZnRecordSize = 900;
+    int rawZnRecordSize = 700;
     int thresholdKB = 800;
-    int compressionThreshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    int threshold = thresholdKB * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -339,17 +340,17 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     int length = serializer.serialize(record).length;
 
-    // Less than compression threshold so it is written to ZK.
-    Assert.assertTrue(length < compressionThreshold);
+    // Less than threshold so it is written to ZK.
+    Assert.assertTrue(length < threshold);
 
     // 2. Large size data is not allowed to write to ZK
-    // Set raw record size to be large enough so its compressed data exceeds the threshold.
-    rawZnRecordSize = 5000;
-    // Set the threshold to very small so compressed data size exceeds the threshold.
+    // Set raw record size to be large enough so its serialized data exceeds the threshold.
+    rawZnRecordSize = 2000;
+    // Set the threshold to very small so serialized data size exceeds the threshold.
     thresholdKB = 1;
-    compressionThreshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    threshold = thresholdKB * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -364,32 +365,32 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       Assert.fail("Data should not written to ZK because data size exceeds threshold!");
     } catch (ZkClientException expected) {
       Assert.assertTrue(
-          expected.getMessage().contains(" is greater than " + compressionThreshold + " bytes"));
+          expected.getMessage().contains(" is greater than " + threshold + " bytes"));
     }
 
     // Delete the nodes.
-    _gZkClient.deleteRecursively("/" + root);
+    deletePath("/" + root);
 
     // Reset: add the properties back to system properties if they were originally available.
-    if (compressionThresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-          compressionThresholdProperty);
+    if (thresholdProperty != null) {
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+          thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
     }
   }
 
   /*
-   * Tests ZNRecordStreamingSerializer auto compression threshold.
+   * Tests ZNRecordStreamingSerializer threshold.
    * Two cases:
    * 1. serialized data size is less than threshold and could be written to ZK.
    * 2. serialized data size is greater than threshold, so ZkClientException is thrown.
    */
-  @Test(dependsOnMethods = "testZNRecordSerializerCompressThreshold")
-  public void testZNRecordStreamingSerializerCompressThreshold() {
+  @Test(dependsOnMethods = "testZNRecordSerializerThreshold")
+  public void testZNRecordStreamingSerializerThreshold() throws Exception {
     // Backup properties for later resetting.
-    final String compressionThresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+    final String thresholdProperty =
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
 
@@ -403,11 +404,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // 1. legal-sized data gets written to zk
     // write a znode of size less than threshold
-    int rawZnRecordSize = 900;
+    int rawZnRecordSize = 700;
     int thresholdKB = 800;
-    int compressionThreshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    int threshold = thresholdKB * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -425,17 +426,17 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     int length = serializer.serialize(record).length;
 
-    // Less than compression threshold so it is written to ZK.
-    Assert.assertTrue(length < compressionThreshold);
+    // Less than threshold so it is written to ZK.
+    Assert.assertTrue(length < threshold);
 
     // 2. Large size data is not allowed to write to ZK
-    // Set raw record size to be large enough so its compressed data exceeds the threshold.
-    rawZnRecordSize = 5000;
-    // Set the threshold to very small so compressed data size exceeds the threshold.
+    // Set raw record size to be large enough so its serialized data exceeds the threshold.
+    rawZnRecordSize = 2000;
+    // Set the threshold to very small so serialized data size exceeds the threshold.
     thresholdKB = 1;
-    compressionThreshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    threshold = thresholdKB * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -450,18 +451,31 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       Assert.fail("Data should not written to ZK because data size exceeds threshold!");
     } catch (ZkClientException expected) {
       Assert.assertTrue(
-          expected.getMessage().contains(" is greater than " + compressionThreshold + " bytes"));
+          expected.getMessage().contains(" is greater than " + threshold + " bytes"));
     }
 
     // Delete the nodes.
-    _gZkClient.deleteRecursively("/" + root);
+    deletePath("/" + root);
 
     // Reset: add the properties back to system properties if they were originally available.
-    if (compressionThresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-          compressionThresholdProperty);
+    if (thresholdProperty != null) {
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+          thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
     }
+  }
+
+  private void deletePath(final String path) throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      do {
+        try {
+          _gZkClient.deleteRecursively(path);
+        } catch (ZkClientException ex) {
+          // ignore
+        }
+      } while (_gZkClient.exists(path));
+      return true;
+    }, TestHelper.WAIT_DURATION));
   }
 }

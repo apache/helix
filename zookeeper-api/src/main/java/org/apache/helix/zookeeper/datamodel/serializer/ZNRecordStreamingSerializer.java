@@ -81,6 +81,8 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
     }
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte[] serializedBytes = new byte[0];
+    boolean isCompressed = false;
+
     try {
       JsonFactory f = new JsonFactory();
       JsonGenerator g = f.createJsonGenerator(baos);
@@ -157,6 +159,7 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       // apply compression if needed
       if (ZNRecordUtil.shouldCompress(record, serializedBytes.length)) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
+        isCompressed = true;
       }
     } catch (Exception e) {
       if (serializedBytes.length == 0 || GZipCompressionUtil.isCompressed(serializedBytes)) {
@@ -170,16 +173,18 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       throw new ZkClientException(e);
     }
     // check size
-    int compressThreshold = ZNRecordUtil.getCompressThreshold();
-    if (serializedBytes.length > compressThreshold) {
+    int threshold = ZNRecordUtil.getSerializerThreshold();
+    if (serializedBytes.length > threshold) {
+      int length = serializedBytes.length;
       int firstBytesLength = Math.min(serializedBytes.length, 1024);
       // TODO: remove logging first N bytes of data to reduce log size.
-      LOG.error("Data size: {} is greater than {} bytes, ZNRecord.id: {}."
+      LOG.error("Data size: {} is greater than {} bytes, is compressed: {}, ZNRecord.id: {}."
               + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
-          serializedBytes.length, compressThreshold, record.getId(), firstBytesLength,
+          length, threshold, isCompressed, record.getId(), firstBytesLength,
           new String(serializedBytes, 0, firstBytesLength));
-      throw new ZkClientException("Data size: " + serializedBytes.length + " is greater than "
-          + compressThreshold + " bytes, ZNRecord.id: " + record.getId());
+      throw new ZkClientException(
+          "Data size: " + length + " is greater than " + threshold
+              + " bytes, is compressed: " + isCompressed + ", ZNRecord.id: " + record.getId());
     }
 
     return serializedBytes;

@@ -41,19 +41,21 @@ public class ZNRecordUtil {
       return true;
     }
 
-    return serializedLength > getCompressThreshold();
+    return serializedLength > ZNRecord.SIZE_LIMIT;
   }
 
   /**
    * Returns compression threshold in bytes. The threshold is a smaller number determined by the
    * configured threshold and {@link ZNRecord#SIZE_LIMIT}.
    */
-  public static int getCompressThreshold() {
+  public static int getSerializerThreshold() {
     Integer threshold =
-        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
+
     if (threshold == null || threshold <= 0 || threshold > ZNRecord.SIZE_LIMIT) {
       return ZNRecord.SIZE_LIMIT;
     }
+
     return threshold;
   }
 }

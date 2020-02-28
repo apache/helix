@@ -27,7 +27,6 @@ import java.util.TreeMap;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -35,67 +34,64 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestZNRecordSerializeCompression {
+public class TestZNRecordSerializeThreshold {
   /*
-   * Tests data serializing when auto compression is enabled.
+   * Tests data serializing when threshold is enabled.
    * Two cases:
-   * 1. compression threshold is not set
+   * 1. threshold is not set
    * --> default size (1 MB) is used.
-   * 2. compression threshold is set
-   * --> serialized data is compressed.
+   * 2. threshold is set
+   * --> serialized data is checked by the threshold: pass or throw ZkClientException.
    */
   @Test
-  public void testZNRecordSerializerCompressThreshold() {
+  public void testZNRecordSerializerThreshold() {
     // Backup properties for later resetting.
-    final String compressionThresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+    final String thresholdProperty =
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
 
-    // Unset compression threshold property so default threshold is used.
-    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+    // Unset threshold property so default threshold is used.
+    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
 
-    Assert.assertNull(
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES));
+    Assert.assertNull(System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES));
 
-    verifyAutoCompression(false, false, false);
+    verifyThreshold(false, false);
 
-    // 2. Set threshold so serialized data is greater than the threshold but compressed data
-    // is smaller than the threshold.
-    int compressionThreshold = 2000;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    // 2. Set threshold so serialized data is less than the threshold
+    int threshold = 6000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
-    // Verify auto compression is done.
-    verifyAutoCompression(true, true, false);
+    // Verify serialization passes.
+    verifyThreshold(false, false);
 
     // 3. Set threshold both serialized data and compressed data are greater than the threshold.
-    compressionThreshold = 10;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-        String.valueOf(compressionThreshold));
+    threshold = 1000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES,
+        String.valueOf(threshold));
 
     // Verify ZkClientException is thrown because compressed data is larger than threshold.
-    verifyAutoCompression(true, true, true);
+    verifyThreshold(true, true);
 
     // Reset: add the properties back to system properties if they were originally available.
-    if (compressionThresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-          compressionThresholdProperty);
+    if (thresholdProperty != null) {
+      System
+          .setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES, thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES);
     }
   }
 
-  private void verifyAutoCompression(boolean greaterThanThreshold, boolean compressionExpected,
-      boolean exceptionExpected) {
-    int compressionThreshold = Integer
-        .getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_COMPRESS_THRESHOLD_BYTES,
-            ZNRecord.SIZE_LIMIT);
+  private void verifyThreshold(boolean greaterThanThreshold, boolean exceptionExpected) {
+    int threshold = Integer
+        .getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_THRESHOLD_BYTES, ZNRecord.SIZE_LIMIT);
 
     ZNRecord record = createZNRecord(10);
 
-    // Makes sure the length of serialized bytes is greater than compression threshold to
+    // Makes sure the length of serialized bytes is greater than threshold to
     // satisfy the condition: serialized bytes' length exceeds the threshold.
     byte[] preCompressedBytes = serialize(record);
-    Assert.assertEquals(preCompressedBytes.length > compressionThreshold, greaterThanThreshold);
+
+    Assert.assertEquals(preCompressedBytes.length > threshold, greaterThanThreshold);
 
     ZkSerializer zkSerializer = new ZNRecordSerializer();
 
@@ -105,18 +101,12 @@ public class TestZNRecordSerializeCompression {
       Assert.assertFalse(exceptionExpected);
     } catch (ZkClientException ex) {
       Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
-      Assert.assertTrue(
-          ex.getMessage().contains(" is greater than " + compressionThreshold + " bytes"));
+      Assert.assertTrue(ex.getMessage().contains(" is greater than " + threshold + " bytes"));
       // No need to verify following asserts as bytes data is not returned.
       return;
     }
 
-    // Per auto compression being enabled(or not), verify whether serialized data
-    // is compressed or not.
-    Assert.assertEquals(GZipCompressionUtil.isCompressed(bytes), compressionExpected);
-    Assert.assertEquals(preCompressedBytes.length != bytes.length, compressionExpected);
-
-    // Verify serialized bytes could be correctly deserialized.
+    // Verify serialized bytes could correctly deserialize.
     Assert.assertEquals(zkSerializer.deserialize(bytes), record);
   }
 

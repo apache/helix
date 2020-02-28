@@ -99,6 +99,14 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
         NON_EXISTING_NAMESPACE_URI_PREFIX + "metadata-store-realms?sharding-key=" + shardingKey)
         .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
 
+    new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms?sharding-key=" + TEST_SHARDING_KEY)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
+
+    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms?sharding-key="
+        + INVALID_TEST_SHARDING_KEY)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
+
     String responseBody = new JerseyUriRequestBuilder(
         TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms?sharding-key=" + shardingKey)
         .isBodyReturnExpected(true).get(this);
@@ -133,6 +141,11 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
 
+    // Second addition also succeeds.
+    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3, null,
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
+
     expectedRealmsSet.add(TEST_REALM_3);
     Assert.assertEquals(getAllRealms(), expectedRealmsSet);
   }
@@ -150,6 +163,11 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
     // Successful request.
     delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3,
         Response.Status.OK.getStatusCode());
+
+    // Second deletion also succeeds.
+    delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3,
+        Response.Status.OK.getStatusCode());
+
 
     Set<String> updateRealmsSet = getAllRealms();
     expectedRealmsSet.remove(TEST_REALM_3);
@@ -190,9 +208,65 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
   }
 
   /*
+   * Tests REST endpoint: "GET /sharding-keys?prefix={prefix}"
+   */
+  @SuppressWarnings("unchecked")
+  @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
+  public void testGetShardingKeysUnderPath() throws IOException {
+    new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=" + INVALID_TEST_SHARDING_KEY)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
+
+    // Test non existed prefix and empty sharding keys in response.
+    String responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=/non/Existed/Prefix")
+        .isBodyReturnExpected(true).get(this);
+
+    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+    Collection<Map<String, String>> emptyKeysList =
+        (Collection<Map<String, String>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Assert.assertTrue(emptyKeysList.isEmpty());
+
+    // Success response with non empty sharding keys.
+    String shardingKeyPrefix = "/sharding/key";
+    responseBody = new JerseyUriRequestBuilder(
+        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=" + shardingKeyPrefix)
+        .isBodyReturnExpected(true).get(this);
+
+    queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
+
+    // Check fields.
+    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
+        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
+            MetadataStoreRoutingConstants.SHARDING_KEYS));
+
+    // Check sharding key prefix in json response.
+    Assert.assertEquals(
+        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
+        shardingKeyPrefix);
+
+    Collection<Map<String, String>> queriedShardingKeys =
+        (Collection<Map<String, String>>) queriedShardingKeysMap
+            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
+    Set<Map<String, String>> queriedShardingKeysSet = new HashSet<>(queriedShardingKeys);
+    Set<Map<String, String>> expectedShardingKeysSet = new HashSet<>();
+
+    TEST_SHARDING_KEYS_1.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_1)));
+
+    TEST_SHARDING_KEYS_2.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
+        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
+            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_2)));
+
+    Assert.assertEquals(queriedShardingKeysSet, expectedShardingKeysSet);
+  }
+
+  /*
    * Tests REST endpoint: "GET /routing-data"
    */
-  @Test(dependsOnMethods = "testGetShardingKeysInNamespace")
+  @Test(dependsOnMethods = "testGetShardingKeysUnderPath")
   public void testGetRoutingData() throws IOException {
     /*
      * responseBody:
@@ -258,63 +332,15 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
   }
 
   /*
-   * Tests REST endpoint: "GET /sharding-keys?prefix={prefix}"
-   */
-  @SuppressWarnings("unchecked")
-  @Test(dependsOnMethods = "testGetShardingKeysInRealm")
-  public void testGetShardingKeysUnderPath() throws IOException {
-    // Test non existed prefix and empty sharding keys in response.
-    String responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=/non/Existed/Prefix")
-        .isBodyReturnExpected(true).get(this);
-
-    Map<String, Object> queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
-    Collection<Map<String, String>> emptyKeysList =
-        (Collection<Map<String, String>>) queriedShardingKeysMap
-            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
-    Assert.assertTrue(emptyKeysList.isEmpty());
-
-    // Success response with non empty sharding keys.
-    String shardingKeyPrefix = "/sharding/key";
-    responseBody = new JerseyUriRequestBuilder(
-        TEST_NAMESPACE_URI_PREFIX + "/sharding-keys?prefix=" + shardingKeyPrefix)
-        .isBodyReturnExpected(true).get(this);
-
-    queriedShardingKeysMap = OBJECT_MAPPER.readValue(responseBody, Map.class);
-
-    // Check fields.
-    Assert.assertEquals(queriedShardingKeysMap.keySet(), ImmutableSet
-        .of(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX,
-            MetadataStoreRoutingConstants.SHARDING_KEYS));
-
-    // Check sharding key prefix in json response.
-    Assert.assertEquals(
-        queriedShardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEY_PATH_PREFIX),
-        shardingKeyPrefix);
-
-    Collection<Map<String, String>> queriedShardingKeys =
-        (Collection<Map<String, String>>) queriedShardingKeysMap
-            .get(MetadataStoreRoutingConstants.SHARDING_KEYS);
-    Set<Map<String, String>> queriedShardingKeysSet = new HashSet<>(queriedShardingKeys);
-    Set<Map<String, String>> expectedShardingKeysSet = new HashSet<>();
-
-    TEST_SHARDING_KEYS_1.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
-        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
-            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_1)));
-
-    TEST_SHARDING_KEYS_2.forEach(key -> expectedShardingKeysSet.add(ImmutableMap
-        .of(MetadataStoreRoutingConstants.SINGLE_SHARDING_KEY, key,
-            MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM, TEST_REALM_2)));
-
-    Assert.assertEquals(queriedShardingKeysSet, expectedShardingKeysSet);
-  }
-
-  /*
    * Tests REST endpoint: "GET /metadata-store-realms/{realm}/sharding-keys?prefix={prefix}"
    */
   @SuppressWarnings("unchecked")
-  @Test(dependsOnMethods = "testGetShardingKeysUnderPath")
+  @Test(dependsOnMethods = "testGetShardingKeysInRealm")
   public void testGetRealmShardingKeysUnderPath() throws IOException {
+    new JerseyUriRequestBuilder(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
+        + "/sharding-keys?prefix=" + INVALID_TEST_SHARDING_KEY)
+        .expectedReturnStatusCode(Response.Status.BAD_REQUEST.getStatusCode()).get(this);
+
     // Test non existed prefix and empty sharding keys in response.
     String responseBody = new JerseyUriRequestBuilder(
         TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1
@@ -380,10 +406,25 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
         null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.NOT_FOUND.getStatusCode());
 
+    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
+            + "//" + INVALID_TEST_SHARDING_KEY, null,
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode());
+
     // Successful request.
     put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
             + TEST_SHARDING_KEY, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
+
+    // Idempotency
+    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
+            + TEST_SHARDING_KEY, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
+
+    // Invalid
+    put(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_2 + "/sharding-keys"
+            + TEST_SHARDING_KEY, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode());
 
     expectedShardingKeysSet.add(TEST_SHARDING_KEY);
     Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
@@ -401,6 +442,10 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
         Response.Status.NOT_FOUND.getStatusCode());
 
     // Successful request.
+    delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
+        + TEST_SHARDING_KEY, Response.Status.OK.getStatusCode());
+
+    // Idempotency
     delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys"
         + TEST_SHARDING_KEY, Response.Status.OK.getStatusCode());
 

@@ -124,7 +124,8 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleDataDeleted(String s) {
-    // Duplicating handleChildChange because sometimes callbacks go missing
+    // When a child node is deleted, this and handleChildChange will both be triggered, but the
+    // behavior is safe
     if (_zkClient.isClosed()) {
       return;
     }
@@ -141,18 +142,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleChildChange(String s, List<String> list) {
-    if (_zkClient.isClosed()) {
-      return;
-    }
-
-    // Subscribe data changes again because some children might have been deleted or added
-    _zkClient.unsubscribeAll();
-    _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
-    for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-      _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-          this);
-    }
-    _routingDataListener.refreshRoutingData(_namespace);
+    handleDataDeleted(s);
   }
 
   @Override

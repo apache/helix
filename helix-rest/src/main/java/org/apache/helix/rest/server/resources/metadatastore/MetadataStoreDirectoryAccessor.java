@@ -108,6 +108,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       return JSONRepresentation(new MetadataStoreShardingKey(shardingKey, realm));
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
     }
   }
 
@@ -176,6 +178,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       return getAllShardingKeysUnderPath(prefix);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
     }
   }
 
@@ -240,6 +244,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       return getRealmShardingKeysUnderPath(realm, prefix);
     } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
     }
   }
 
@@ -252,8 +258,10 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       if (!_metadataStoreDirectory.addShardingKey(_namespace, realm, shardingKey)) {
         return serverError();
       }
-    } catch (IllegalArgumentException ex) {
+    } catch (NoSuchElementException ex) {
       return notFound(ex.getMessage());
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
     }
 
     return created();

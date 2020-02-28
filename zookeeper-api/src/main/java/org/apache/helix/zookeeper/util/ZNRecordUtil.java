@@ -19,14 +19,20 @@ package org.apache.helix.zookeeper.util;
  * under the License.
  */
 
+import java.io.ByteArrayOutputStream;
+
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * This utility class contains various methods for manipulating ZNRecord.
  */
 public class ZNRecordUtil {
+  private static Logger LOG = LoggerFactory.getLogger(ZNRecordUtil.class);
 
   /**
    * Checks whether or not a serialized ZNRecord bytes should be compressed before being written to
@@ -41,21 +47,21 @@ public class ZNRecordUtil {
       return true;
     }
 
-    return serializedLength > ZNRecord.SIZE_LIMIT;
+    return serializedLength > getSerializerWriteSizeLimit();
   }
 
   /**
-   * Returns compression threshold in bytes. The threshold is a smaller number determined by the
-   * configured threshold and {@link ZNRecord#SIZE_LIMIT}.
+   * Returns ZNRecord serializer write size limit in bytes. If size limit is configured to be less
+   * than or equal to 0, the default value will be used instead.
    */
-  public static int getSerializerOutputLimit() {
-    Integer threshold =
-        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+  public static int getSerializerWriteSizeLimit() {
+    Integer writeSizeLimit =
+        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
 
-    if (threshold == null || threshold <= 0 || threshold > ZNRecord.SIZE_LIMIT) {
+    if (writeSizeLimit == null || writeSizeLimit <= 0) {
       return ZNRecord.SIZE_LIMIT;
     }
 
-    return threshold;
+    return writeSizeLimit;
   }
 }

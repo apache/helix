@@ -296,15 +296,15 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
   /*
    * Tests ZNRecordSerializer threshold.
-   * Two cases:
+   * Two cases using ZkClient and ZkDataAccessor:
    * 1. serialized data size is less than threshold and could be written to ZK.
    * 2. serialized data size is greater than threshold, so ZkClientException is thrown.
    */
   @Test(dependsOnMethods = "testZNRecordSizeLimitUseZNRecordStreamingSerializer")
-  public void testZNRecordSerializerThreshold() throws Exception {
+  public void testZNRecordSerializerWriteSizeLimit() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
@@ -317,12 +317,12 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     String bufStr = new String(buf);
 
     // 1. legal-sized data gets written to zk
-    // write a znode of size less than threshold
+    // write a znode of size less than writeSizeLimit
     int rawZnRecordSize = 700;
-    int thresholdKB = 800;
-    int threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(threshold));
+    int writeSizeLimitKb = 800;
+    int writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -340,17 +340,17 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     int length = serializer.serialize(record).length;
 
-    // Less than threshold so it is written to ZK.
-    Assert.assertTrue(length < threshold);
+    // Less than writeSizeLimit so it is written to ZK.
+    Assert.assertTrue(length < writeSizeLimit);
 
     // 2. Large size data is not allowed to write to ZK
-    // Set raw record size to be large enough so its serialized data exceeds the threshold.
+    // Set raw record size to be large enough so its serialized data exceeds the writeSizeLimit.
     rawZnRecordSize = 2000;
-    // Set the threshold to very small so serialized data size exceeds the threshold.
-    thresholdKB = 1;
-    threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(threshold));
+    // Set the writeSizeLimit to very small so serialized data size exceeds the writeSizeLimit.
+    writeSizeLimitKb = 1;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -362,37 +362,104 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     try {
       _gZkClient.writeData(path, largeRecord);
-      Assert.fail("Data should not written to ZK because data size exceeds threshold!");
+      Assert.fail("Data should not be written to ZK because data size exceeds writeSizeLimit!");
     } catch (ZkClientException expected) {
       Assert.assertTrue(
-          expected.getMessage().contains(" is greater than " + threshold + " bytes"));
+          expected.getMessage().contains(" is greater than " + writeSizeLimit + " bytes"));
     }
 
+    // test ZkDataAccessor
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(root, true);
+    InstanceConfig instanceConfig = new InstanceConfig("localhost_12918");
+    admin.addInstance(root, instanceConfig);
+
+    // Set the writeSizeLimit to 10KB so serialized data size does not exceed writeSizeLimit.
+    writeSizeLimitKb = 10;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
+
+    // oversized data should not create any new data on zk
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(root, new ZkBaseDataAccessor<>(ZK_ADDR));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = new IdealState("currentState");
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+
+    for (int i = 0; i < 1024; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    Assert.assertTrue(succeed);
+    HelixProperty property = accessor.getProperty(
+        keyBuilder.stateTransitionStatus("localhost_12918", "session_1", "partition_1"));
+    Assert.assertNull(property);
+
+    // legal sized data gets written to zk
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+
+    for (int i = 0; i < 900; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    Assert.assertTrue(succeed);
+    record = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
+    Assert.assertTrue(serializer.serialize(record).length < writeSizeLimit);
+
+    // Set small write size limit so writing does not succeed.
+    writeSizeLimitKb = 1;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
+
+    // oversized data should not update existing data on zk
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+    for (int i = 900; i < 1024; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+
+    succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    Assert.assertFalse(succeed,
+        "Update property should not succeed because data exceeds znode write limit!");
+
     // Delete the nodes.
-    deletePath("/" + root);
+    deletePath(_gZkClient, "/" + root);
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 
   /*
    * Tests ZNRecordStreamingSerializer threshold.
-   * Two cases:
+   * Two cases using ZkClient and ZkDataAccessor:
    * 1. serialized data size is less than threshold and could be written to ZK.
    * 2. serialized data size is greater than threshold, so ZkClientException is thrown.
    */
-  @Test(dependsOnMethods = "testZNRecordSerializerThreshold")
-  public void testZNRecordStreamingSerializerThreshold() throws Exception {
+  @Test(dependsOnMethods = "testZNRecordSerializerWriteSizeLimit")
+  public void testZNRecordStreamingSerializerWriteSizeLimit() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    HelixZkClient zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+
+    zkClient.setZkSerializer(serializer);
 
     String root = getShortClassName();
 
@@ -403,12 +470,12 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     String bufStr = new String(buf);
 
     // 1. legal-sized data gets written to zk
-    // write a znode of size less than threshold
+    // write a znode of size less than writeSizeLimit
     int rawZnRecordSize = 700;
-    int thresholdKB = 800;
-    int threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(threshold));
+    int writeSizeLimitKb = 800;
+    int writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -416,27 +483,27 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
 
     String path = "/" + root + "/normal";
-    _gZkClient.createPersistent(path, true);
-    _gZkClient.writeData(path, normalSizeRecord);
+    zkClient.createPersistent(path, true);
+    zkClient.writeData(path, normalSizeRecord);
 
-    ZNRecord record = _gZkClient.readData(path);
+    ZNRecord record = zkClient.readData(path);
 
     // Successfully reads the same data.
     Assert.assertEquals(normalSizeRecord, record);
 
     int length = serializer.serialize(record).length;
 
-    // Less than threshold so it is written to ZK.
-    Assert.assertTrue(length < threshold);
+    // Less than writeSizeLimit so it is written to ZK.
+    Assert.assertTrue(length < writeSizeLimit);
 
     // 2. Large size data is not allowed to write to ZK
-    // Set raw record size to be large enough so its serialized data exceeds the threshold.
+    // Set raw record size to be large enough so its serialized data exceeds the writeSizeLimit.
     rawZnRecordSize = 2000;
-    // Set the threshold to very small so serialized data size exceeds the threshold.
-    thresholdKB = 1;
-    threshold = thresholdKB * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(threshold));
+    // Set the writeSizeLimit to very small so serialized data size exceeds the writeSizeLimit.
+    writeSizeLimitKb = 1;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
     for (int i = 0; i < rawZnRecordSize; i++) {
@@ -444,37 +511,100 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
 
     path = "/" + root + "/large";
-    _gZkClient.createPersistent(path, true);
+    zkClient.createPersistent(path, true);
 
     try {
-      _gZkClient.writeData(path, largeRecord);
-      Assert.fail("Data should not written to ZK because data size exceeds threshold!");
+      zkClient.writeData(path, largeRecord);
+      Assert.fail("Data should not written to ZK because data size exceeds writeSizeLimit!");
     } catch (ZkClientException expected) {
       Assert.assertTrue(
-          expected.getMessage().contains(" is greater than " + threshold + " bytes"));
+          expected.getMessage().contains(" is greater than " + writeSizeLimit + " bytes"));
     }
 
+    // test ZkDataAccessor
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(root, true);
+    InstanceConfig instanceConfig = new InstanceConfig("localhost_12918");
+    admin.addInstance(root, instanceConfig);
+
+    // Set the writeSizeLimit to 10KB so serialized data size does not exceed writeSizeLimit.
+    writeSizeLimitKb = 10;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
+
+    // oversize data should not create any new data on zk
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(root, new ZkBaseDataAccessor<>(ZK_ADDR));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = new IdealState("currentState");
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+
+    for (int i = 0; i < 1024; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    Assert.assertTrue(succeed);
+    HelixProperty property = accessor.getProperty(
+        keyBuilder.stateTransitionStatus("localhost_12918", "session_1", "partition_1"));
+    Assert.assertNull(property);
+
+    // legal sized data gets written to zk
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+
+    for (int i = 0; i < 900; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    Assert.assertTrue(succeed);
+    record = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
+    Assert.assertTrue(serializer.serialize(record).length < writeSizeLimit);
+
+    // Set small write size limit so writing does not succeed.
+    writeSizeLimitKb = 1;
+    writeSizeLimit = writeSizeLimitKb * 1024;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
+
+    // oversize data should not update existing data on zk
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(10);
+    for (int i = 900; i < 1024; i++) {
+      idealState.getRecord().setSimpleField(Integer.toString(i), bufStr);
+    }
+
+    succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    Assert.assertFalse(succeed,
+        "Update property should not succeed because data exceeds znode write limit!");
+
     // Delete the nodes.
-    deletePath("/" + root);
+    deletePath(zkClient, "/" + root);
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 
-  private void deletePath(final String path) throws Exception {
+  private void deletePath(final HelixZkClient zkClient, final String path) throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       do {
         try {
-          _gZkClient.deleteRecursively(path);
+          zkClient.deleteRecursively(path);
         } catch (ZkClientException ex) {
           // ignore
         }
-      } while (_gZkClient.exists(path));
+      } while (zkClient.exists(path));
       return true;
     }, TestHelper.WAIT_DURATION));
   }

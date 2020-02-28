@@ -25,15 +25,15 @@ package org.apache.helix.zookeeper.constant;
 public class ZkSystemPropertyKeys {
 
   /**
-   * This is property that defines the maximum output size in bytes for ZKRecord's two serializers
+   * This is property that defines the maximum write size in bytes for ZKRecord's two serializers
    * before serialized data is ready to be written to ZK. This property applies to
    * 1. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer}
    * 2. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordStreamingSerializer}.
    * <p>
    * If the size of serialized data exceeds this configured limit, the data will NOT be written
-   * to Zookeeper. Default value is 1024000 (1 MB). If the configured threshold is greater than
+   * to Zookeeper. Default value is 1 MB. If the configured limit is greater than
    * 1 MB or less than or equal to 0 byte, 1 MB will be used.
    */
-  public static final String ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES =
-      "znrecord.serializer.output.limit.bytes";
+  public static final String ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES =
+      "znrecord.serializer.write.size.limit.bytes";
 }

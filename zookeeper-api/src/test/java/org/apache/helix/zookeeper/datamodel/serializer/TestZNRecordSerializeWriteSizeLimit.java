@@ -27,6 +27,8 @@ import java.util.TreeMap;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -34,58 +36,60 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestZNRecordSerializeOutputLimit {
+public class TestZNRecordSerializeWriteSizeLimit {
   /*
-   * Tests data serializing when limit is enabled.
+   * Tests data serializing when write size limit is set.
    * Two cases:
    * 1. limit is not set
-   * --> default size (1 MB) is used.
+   * --> default size is used.
    * 2. limit is set
    * --> serialized data is checked by the limit: pass or throw ZkClientException.
    */
   @Test
-  public void testZNRecordSerializerOutputLimit() {
+  public void testZNRecordSerializerWriteSizeLimit() {
     // Backup properties for later resetting.
-    final String limitProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+    final String writeSizeLimitProperty =
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
 
-    // Unset limit property so default limit is used.
-    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+    // Unset write size limit property so default limit is used.
+    System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
 
-    Assert.assertNull(System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES));
+    Assert.assertNull(
+        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES));
 
-    verifyOutputLimit(false, false);
+    verifyAutoCompression(500, ZNRecord.SIZE_LIMIT, false, false, false);
 
-    // 2. Set limit so serialized data is less than the limit
-    int limit = 6000;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(limit));
+    // 2. Set size limit so serialized data is greater than the size limit but compressed data
+    // is smaller than the size limit.
+    // Set it to 2000 bytes
+    int writeSizeLimit = 2000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
-    // Verify serialization passes.
-    verifyOutputLimit(false, false);
+    // Verify auto compression is done.
+    verifyAutoCompression(200, writeSizeLimit, true, true, false);
 
-    // 3. Set limit both serialized data and compressed data are greater than the limit.
-    limit = 1000;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES,
-        String.valueOf(limit));
+    // 3. Set size limit to be be less than default value. The default value will be used for write
+    // size limit.
+    writeSizeLimit = 2000;
+    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(writeSizeLimit));
 
-    // Verify ZkClientException is thrown because compressed data is larger than limit.
-    verifyOutputLimit(true, true);
+    // Verify ZkClientException is thrown because compressed data is larger than size limit.
+    verifyAutoCompression(1000, writeSizeLimit, true, true, true);
 
     // Reset: add the properties back to system properties if they were originally available.
-    if (limitProperty != null) {
-      System
-          .setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES, limitProperty);
+    if (writeSizeLimitProperty != null) {
+      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+          writeSizeLimitProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 
-  private void verifyOutputLimit(boolean greaterThanThreshold, boolean exceptionExpected) {
-    int limit = Integer
-        .getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_OUTPUT_LIMIT_BYTES, ZNRecord.SIZE_LIMIT);
-
-    ZNRecord record = createZNRecord(10);
+  private void verifyAutoCompression(int recordSize, int limit, boolean greaterThanThreshold,
+      boolean compressionExpected, boolean exceptionExpected) {
+    ZNRecord record = createZNRecord(recordSize);
 
     // Makes sure the length of serialized bytes is greater than limit to
     // satisfy the condition: serialized bytes' length exceeds the limit.
@@ -98,6 +102,8 @@ public class TestZNRecordSerializeOutputLimit {
     byte[] bytes;
     try {
       bytes = zkSerializer.serialize(record);
+
+      Assert.assertEquals(bytes.length >= limit, exceptionExpected);
       Assert.assertFalse(exceptionExpected);
     } catch (ZkClientException ex) {
       Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
@@ -106,25 +112,24 @@ public class TestZNRecordSerializeOutputLimit {
       return;
     }
 
+    // Verify whether serialized data is compressed or not.
+    Assert.assertEquals(GZipCompressionUtil.isCompressed(bytes), compressionExpected);
+    Assert.assertEquals(preCompressedBytes.length != bytes.length, compressionExpected);
+
     // Verify serialized bytes could correctly deserialize.
     Assert.assertEquals(zkSerializer.deserialize(bytes), record);
   }
 
-  private ZNRecord createZNRecord(final int recordSize) {
-    ZNRecord record = new ZNRecord("record");
-    for (int i = 0; i < recordSize; i++) {
-      String field = "field-" + i;
-      record.setSimpleField(field, field);
-      record.setListField(field, new ArrayList<>(recordSize));
-      for (int j = 0; j < recordSize; j++) {
-        record.getListField(field).add("field-" + j);
-      }
+  private ZNRecord createZNRecord(final int recordSizeKb) {
+    byte[] buf = new byte[1024];
+    for (int i = 0; i < 1024; i++) {
+      buf[i] = 'a';
+    }
+    String bufStr = new String(buf);
 
-      record.setMapField(field, new TreeMap<>());
-      for (int j = 0; j < recordSize; j++) {
-        String mapField = "field-" + j;
-        record.getMapField(field).put(mapField, mapField);
-      }
+    ZNRecord record = new ZNRecord("record");
+    for (int i = 0; i < recordSizeKb; i++) {
+      record.setSimpleField(Integer.toString(i), bufStr);
     }
 
     return record;

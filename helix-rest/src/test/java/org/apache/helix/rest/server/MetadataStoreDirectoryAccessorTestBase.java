@@ -52,6 +52,7 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
       Arrays.asList("/sharding/key/1/d", "/sharding/key/1/e", "/sharding/key/1/f");
   protected static final String TEST_REALM_3 = "testRealm3";
   protected static final String TEST_SHARDING_KEY = "/sharding/key/1/x";
+  protected static final String INVALID_TEST_SHARDING_KEY = "sharding/key/1/x";
 
   // List of all ZK addresses, each of which corresponds to a namespace/routing ZK
   protected List<String> _zkList;
@@ -93,7 +94,7 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
     _routingDataReader = new ZkRoutingDataReader(TEST_NAMESPACE, _zkAddrTestNS, null);
 
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().toString());
+        getBaseUri().getHost() + ":" + getBaseUri().getPort());
   }
 
   @AfterClass

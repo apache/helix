@@ -63,7 +63,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void beforeClass() {
     _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().toString());
+        getBaseUri().getHost() + ":" + getBaseUri().getPort());
     _zkRoutingDataWriter = new ZkRoutingDataWriter(DUMMY_NAMESPACE, ZK_ADDR);
   }
 

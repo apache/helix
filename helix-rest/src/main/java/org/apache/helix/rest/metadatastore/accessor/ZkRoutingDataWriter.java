@@ -90,7 +90,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     if (hostName.charAt(hostName.length() - 1) == '/') {
       hostName = hostName.substring(0, hostName.length() - 1);
     }
-    _myHostName = hostName;
+    _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;
     ZNRecord myServerInfo = new ZNRecord(_myHostName);
 
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
@@ -247,6 +247,12 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   }
 
   protected boolean deleteZkRealm(String realm) {
+    if (!_zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm)) {
+      LOG.warn(
+          "deleteZkRealm() called for realm: {}, but this realm already doesn't exist! Namespace: {}",
+          realm, _namespace);
+      return true;
+    }
     return _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm);
   }
 
@@ -339,7 +345,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         request = new HttpDelete(url);
         break;
       default:
-        throw new IllegalArgumentException("Unsupported request_method: " + request_method);
+        LOG.error("Unsupported request_method: " + request_method.name());
+        return false;
     }
 
     return sendRequestToLeader(request, expectedResponseCode, leaderHostName);

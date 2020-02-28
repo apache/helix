@@ -74,7 +74,7 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
     int newPort = getBaseUri().getPort() + 1;
 
     // Start a second server for testing Distributed Leader Election for writes
-    _mockBaseUri = getBaseUri().getScheme() + "://" + getBaseUri().getHost() + ":" + newPort;
+    _mockBaseUri = HttpConstants.HTTP_PROTOCOL_PREFIX + getBaseUri().getHost() + ":" + newPort;
     try {
       List<HelixRestNamespace> namespaces = new ArrayList<>();
       // Add test namespace
@@ -93,7 +93,8 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
         Response.Status.OK.getStatusCode(), true);
 
     // Set the new uri to be used in leader election
-    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY, _mockBaseUri);
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
+        getBaseUri().getHost() + ":" + newPort);
 
     // Start http client for testing
     _httpClient = HttpClients.createDefault();

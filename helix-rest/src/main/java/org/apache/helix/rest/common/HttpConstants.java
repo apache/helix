@@ -26,4 +26,6 @@ public class HttpConstants {
     PUT,
     DELETE
   }
+
+  public static final String HTTP_PROTOCOL_PREFIX = "http://";
 }

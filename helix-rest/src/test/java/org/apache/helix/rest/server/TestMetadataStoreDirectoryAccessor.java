@@ -168,7 +168,6 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
     delete(TEST_NAMESPACE_URI_PREFIX + "/metadata-store-realms/" + TEST_REALM_3,
         Response.Status.OK.getStatusCode());
 
-
     Set<String> updateRealmsSet = getAllRealms();
     expectedRealmsSet.remove(TEST_REALM_3);
     Assert.assertEquals(updateRealmsSet, expectedRealmsSet);

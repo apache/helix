@@ -96,11 +96,10 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
           "Routing data directory ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
               + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    if (allRealmAddresses != null)
-    {
+    if (allRealmAddresses != null) {
       for (String realmAddress : allRealmAddresses) {
-        ZNRecord record =
-            _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
+        ZNRecord record = _zkClient
+            .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
         if (record != null) {
           List<String> shardingKeys =
               record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);

@@ -35,6 +35,7 @@ import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.Watcher;
 
 
@@ -57,6 +58,15 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+
+    // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
+    // create() semantic will fail if it already exists
+    try {
+      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
+    } catch (ZkNodeExistsException e) {
+      // This is okay
+    }
+
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
       // Subscribe child changes
@@ -76,8 +86,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
    * @throws InvalidRoutingDataException - when the node on
    *           MetadataStoreRoutingConstants.ROUTING_DATA_PATH is missing
    */
-  public Map<String, List<String>> getRoutingData()
-      throws InvalidRoutingDataException {
+  public Map<String, List<String>> getRoutingData() throws InvalidRoutingDataException {
     Map<String, List<String>> routingData = new HashMap<>();
     List<String> allRealmAddresses;
     try {
@@ -87,13 +96,17 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
           "Routing data directory ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
               + " does not exist. Routing ZooKeeper address: " + _zkAddress);
     }
-    for (String realmAddress : allRealmAddresses) {
-      ZNRecord record =
-          _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
-      List<String> shardingKeys =
-          record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
-      routingData
-          .put(realmAddress, shardingKeys != null ? shardingKeys : Collections.emptyList());
+    if (allRealmAddresses != null) {
+      for (String realmAddress : allRealmAddresses) {
+        ZNRecord record = _zkClient
+            .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
+        if (record != null) {
+          List<String> shardingKeys =
+              record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);
+          routingData
+              .put(realmAddress, shardingKeys != null ? shardingKeys : Collections.emptyList());
+        }
+      }
     }
     return routingData;
   }
@@ -113,32 +126,14 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleDataDeleted(String s) {
-    if (_zkClient.isClosed()) {
-      return;
-    }
-
-    // Renew subscription
-    _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
-    for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-      _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-          this);
-    }
-    _routingDataListener.refreshRoutingData(_namespace);
+    // When a child node is deleted, this and handleChildChange will both be triggered, but the
+    // behavior is safe
+    handleResubscription();
   }
 
   @Override
   public synchronized void handleChildChange(String s, List<String> list) {
-    if (_zkClient.isClosed()) {
-      return;
-    }
-
-    // Subscribe data changes again because some children might have been deleted or added
-    _zkClient.unsubscribeAll();
-    for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-      _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-          this);
-    }
-    _routingDataListener.refreshRoutingData(_namespace);
+    handleResubscription();
   }
 
   @Override
@@ -161,6 +156,21 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
   public synchronized void handleSessionEstablishmentError(Throwable error) {
     if (_zkClient.isClosed()) {
       return;
+    }
+    _routingDataListener.refreshRoutingData(_namespace);
+  }
+
+  private void handleResubscription() {
+    if (_zkClient.isClosed()) {
+      return;
+    }
+
+    // Renew subscription
+    _zkClient.unsubscribeAll();
+    _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
+    for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+      _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
+          this);
     }
     _routingDataListener.refreshRoutingData(_namespace);
   }

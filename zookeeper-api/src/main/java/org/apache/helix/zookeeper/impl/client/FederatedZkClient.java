@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -409,13 +410,28 @@ public class FederatedZkClient implements RealmAwareZkClient {
       return;
     }
 
-    LOG.info("Closing {}.", FEDERATED_ZK_CLIENT);
+    _isClosed = true;
 
     synchronized (_zkRealmToZkClientMap) {
-      _zkRealmToZkClientMap.values().forEach(ZkClient::close);
-      _zkRealmToZkClientMap.clear();
-      _isClosed = true;
+      Iterator<Map.Entry<String, ZkClient>> iterator = _zkRealmToZkClientMap.entrySet().iterator();
+
+      while (iterator.hasNext()) {
+        Map.Entry<String, ZkClient> entry = iterator.next();
+        String zkRealm = entry.getKey();
+        ZkClient zkClient = entry.getValue();
+
+        // Catch any exception from ZkClient's close() to avoid that there is leakage of
+        // remaining unclosed ZkClient.
+        try {
+          zkClient.close();
+        } catch (Exception e) {
+          LOG.error("Exception thrown when closing ZkClient for ZkRealm: {}!", zkRealm, e);
+        }
+        iterator.remove();
+      }
     }
+
+    LOG.info("{} is successfully closed.", FEDERATED_ZK_CLIENT);
   }
 
   @Override

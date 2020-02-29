@@ -289,6 +289,8 @@ public class TestFederatedZkClient extends ZkTestBase {
 
   /*
    * Tests that close() works.
+   * TODO: test that all raw zkClients are closed after FederatedZkClient close() is called. This
+   *  could help avoid ZkClient leakage.
    */
   @Test(dependsOnMethods = "testMultiRealmCRUD")
   public void testClose() {

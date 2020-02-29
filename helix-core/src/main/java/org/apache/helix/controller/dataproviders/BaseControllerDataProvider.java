@@ -332,12 +332,13 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     // Refresh derived data
     _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
-    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap(), true,
+        new HashSet<>());
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
     _instanceMessagesCache.updateRelayMessages(_liveInstanceCache.getPropertyMap(),
-        _currentStateCache.getCurrentStatesMap());
+        _currentStateCache.getParticipantStatesMap());
 
     updateIdealRuleMap();
     updateDisabledInstances();
@@ -526,7 +527,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
-    return _currentStateCache.getCurrentState(instanceName, clientSessionId);
+    return _currentStateCache.getParticipantState(instanceName, clientSessionId);
   }
 
   /**

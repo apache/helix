@@ -55,29 +55,6 @@ public class CustomizedStateOutput {
   }
 
   /**
-   * given (stateType, resource, partition, instance), returns customized state
-   * @param stateType
-   * @param resourceName
-   * @param partition
-   * @param instanceName
-   * @return
-   */
-  public String getCustomizedState(String stateType, String resourceName, Partition partition,
-      String instanceName) {
-    Map<String, Map<Partition, Map<String, String>>> map = _customizedStateMap.get(stateType);
-    if (map != null) {
-      Map<Partition, Map<String, String>> resourceMap = map.get(resourceName);
-      if (resourceMap != null) {
-        Map<String, String> instanceStateMap = resourceMap.get(partition);
-        if (instanceStateMap != null) {
-          return instanceStateMap.get(instanceName);
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
    * Given stateType, returns resource customized state map (resource -> parition -> instance ->
    * customizedState)
    * @param stateType
@@ -86,7 +63,7 @@ public class CustomizedStateOutput {
   public Map<String, Map<Partition, Map<String, String>>> getResourceCustomizedStateMap(
       String stateType) {
     if (_customizedStateMap.containsKey(stateType)) {
-      return _customizedStateMap.get(stateType);
+      return Collections.unmodifiableMap(_customizedStateMap.get(stateType));
     }
     return Collections.emptyMap();
   }
@@ -97,13 +74,11 @@ public class CustomizedStateOutput {
    * @param resourceName
    * @return
    */
-  public Map<Partition, Map<String, String>> getCustomizedStateMap(String stateType,
+  public Map<Partition, Map<String, String>> getPartitionCustomizedStateMap(String stateType,
       String resourceName) {
-    if (_customizedStateMap.containsKey(stateType)) {
-      Map<String, Map<Partition, Map<String, String>>> map = _customizedStateMap.get(stateType);
-      if (map.containsKey(resourceName)) {
-        return map.get(resourceName);
-      }
+    if (getResourceCustomizedStateMap(stateType).containsKey(resourceName)) {
+      return Collections
+          .unmodifiableMap(getResourceCustomizedStateMap(stateType).get(resourceName));
     }
     return Collections.emptyMap();
   }
@@ -115,18 +90,34 @@ public class CustomizedStateOutput {
    * @param partition
    * @return
    */
-  public Map<String, String> getCustomizedStateMap(String stateType, String resourceName,
+  public Map<String, String> getInstanceCustomizedStateMap(String stateType, String resourceName,
       Partition partition) {
-    if (_customizedStateMap.containsKey(stateType)) {
-      Map<String, Map<Partition, Map<String, String>>> map = _customizedStateMap.get(stateType);
-      if (map.containsKey(resourceName)) {
-        Map<Partition, Map<String, String>> partitionMap = map.get(resourceName);
-        if (partitionMap != null) {
-          return partitionMap.get(partition);
-        }
-      }
+    if (getResourceCustomizedStateMap(stateType).containsKey(resourceName)
+        && getPartitionCustomizedStateMap(stateType, resourceName).containsKey(partition)) {
+      return Collections
+          .unmodifiableMap(getPartitionCustomizedStateMap(stateType, resourceName).get(partition));
+
     }
     return Collections.emptyMap();
+  }
+
+  /**
+   * given (stateType, resource, partition, instance), returns customized state
+   * @param stateType
+   * @param resourceName
+   * @param partition
+   * @param instanceName
+   * @return
+   */
+  public String getCustomizedState(String stateType, String resourceName, Partition partition,
+      String instanceName) {
+    if (getResourceCustomizedStateMap(stateType).containsKey(resourceName)
+        && getPartitionCustomizedStateMap(stateType, resourceName).containsKey(partition)
+        && getInstanceCustomizedStateMap(stateType, resourceName, partition)
+            .containsKey(instanceName)) {
+      return getInstanceCustomizedStateMap(stateType, resourceName, partition).get(instanceName);
+    }
+    return null;
   }
 
   public Set<String> getAllStateTypes() {

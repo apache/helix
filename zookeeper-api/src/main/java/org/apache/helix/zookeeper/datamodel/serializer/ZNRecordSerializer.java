@@ -82,7 +82,7 @@ public class ZNRecordSerializer implements ZkSerializer {
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte[] serializedBytes = new byte[0];
+    byte[] serializedBytes;
     boolean isCompressed = false;
 
     try {
@@ -94,33 +94,19 @@ public class ZNRecordSerializer implements ZkSerializer {
         isCompressed = true;
       }
     } catch (Exception e) {
-      if (serializedBytes.length == 0 || GZipCompressionUtil.isCompressed(serializedBytes)) {
-        serializedBytes = baos.toByteArray();
-      }
-      int firstBytesLength = Math.min(serializedBytes.length, 1024);
-      // TODO: remove logging first N bytes of data to reduce log size.
-      LOG.error("Exception during data serialization. Will not write to zk."
-              + " The first {} bytes of data: {}", firstBytesLength,
-          new String(serializedBytes, 0, firstBytesLength), e);
+      LOG.error(
+          "Exception during data serialization. ZNRecord ID: {} will not be written to zk.",
+          record.getId(), e);
       throw new ZkClientException(e);
     }
 
     int writeSizeLimit = ZNRecordUtil.getSerializerWriteSizeLimit();
     if (serializedBytes.length > writeSizeLimit) {
-      // serializedBytes may be compressed and its length is different from byte array.
-      // To log the compressed data size, use this length as the compressed data length.
-      int length = serializedBytes.length;
-      if (GZipCompressionUtil.isCompressed(serializedBytes)) {
-        serializedBytes = baos.toByteArray();
-      }
-      int firstBytesLength = Math.min(serializedBytes.length, 1024);
-      // TODO: remove logging first N bytes of data to reduce log size.
       LOG.error("Data size: {} is greater than {} bytes, is compressed: {}, ZNRecord.id: {}."
-              + " Data will not be written to Zookeeper. The first {} bytes of data: {}",
-          length, writeSizeLimit, isCompressed, record.getId(), firstBytesLength,
-          new String(serializedBytes, 0, firstBytesLength));
+              + " Data will not be written to Zookeeper.", serializedBytes.length, writeSizeLimit,
+          isCompressed, record.getId());
       throw new ZkClientException(
-          "Data size: " + length + " is greater than " + writeSizeLimit
+          "Data size: " + serializedBytes.length + " is greater than " + writeSizeLimit
               + " bytes, is compressed: " + isCompressed + ", ZNRecord.id: " + record.getId());
     }
 

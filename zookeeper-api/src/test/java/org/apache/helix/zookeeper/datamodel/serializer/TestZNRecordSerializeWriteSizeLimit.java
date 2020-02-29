@@ -53,8 +53,7 @@ public class TestZNRecordSerializeWriteSizeLimit {
         String.valueOf(writeSizeLimit));
 
     // 2. Set the auto compression enabled property to false so auto compression is disabled.
-    System
-        .setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED, "false");
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED, "false");
 
     // Verify auto compression is disabled.
     Assert.assertFalse(

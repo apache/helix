@@ -150,8 +150,8 @@ public interface HelixZkClient extends RealmAwareZkClient {
     }
 
     @Override
-    public ZkClientConfig setConnectInitTimeout(long _connectInitTimeout) {
-      this._connectInitTimeout = _connectInitTimeout;
+    public ZkClientConfig setConnectInitTimeout(long connectInitTimeout) {
+      this._connectInitTimeout = connectInitTimeout;
       return this;
     }
   }

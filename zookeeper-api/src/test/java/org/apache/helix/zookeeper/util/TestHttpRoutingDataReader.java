@@ -48,7 +48,8 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   private final String _namespace = "TestHttpRoutingDataReader";
 
   @BeforeClass
-  public void beforeClass() throws IOException {
+  public void beforeClass()
+      throws IOException {
     // Create fake routing data
     _testRawRoutingData = new HashMap<>();
     _testRawRoutingData
@@ -74,29 +75,31 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   }
 
   @Test
-  public void testGetRawRoutingData() throws IOException {
+  public void testGetRawRoutingData()
+      throws IOException {
     Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
     _testRawRoutingData.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
   @Test(dependsOnMethods = "testGetRawRoutingData")
-  public void testGetMetadataStoreRoutingData() throws IOException, InvalidRoutingDataException {
+  public void testGetMetadataStoreRoutingData()
+      throws IOException, InvalidRoutingDataException {
     MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
             Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-    _testRawRoutingData.forEach((realm, keys) -> {
-      Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys));
-    });
+    _testRawRoutingData.forEach(
+        (realm, keys) -> Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys)));
   }
 
   /**
    * Test that the static methods in HttpRoutingDataReader returns consistent results even though MSDS's data have been updated.
    */
   @Test(dependsOnMethods = "testGetMetadataStoreRoutingData")
-  public void testStaticMapping() throws IOException, InvalidRoutingDataException {
+  public void testStaticMapping()
+      throws IOException, InvalidRoutingDataException {
     // Modify routing data
     String newRealm = "newRealm";
     _testRawRoutingData.put(newRealm, ImmutableSet.of("/newKey"));

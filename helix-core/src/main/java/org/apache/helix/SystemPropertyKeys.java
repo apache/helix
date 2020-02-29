@@ -22,6 +22,33 @@ public class SystemPropertyKeys {
 
   public static final String ZK_WAIT_CONNECTED_TIMEOUT = "helixmanager.waitForConnectedTimeout";
 
+  /**
+   * Setting this property to true in system properties enables auto compression in ZK serializer.
+   * The data will be automatically compressed by
+   * {@link org.apache.helix.util.GZipCompressionUtil} when being written to Zookeeper
+   * if size of serialized data exceeds the write size limit, which by default is 1 MB or could be
+   * set by {@value ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES}.
+   * <p>
+   * The default value is "true" (enabled).
+   */
+  public static final String ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED =
+      "zk.serializer.znrecord.auto-compress.enabled";
+
+  /**
+   * This is property that defines the maximum write size in bytes for ZKRecord's two serializers
+   * before serialized data is ready to be written to ZK. This property applies to
+   * 1. {@link org.apache.helix.manager.zk.ZNRecordSerializer}
+   * 2. {@link org.apache.helix.manager.zk.ZNRecordStreamingSerializer}.
+   * <p>
+   * If the size of serialized data (no matter whether it is compressed or not) exceeds this
+   * configured limit, the data will NOT be written to Zookeeper.
+   * <p>
+   * Default value is 1 MB. If the configured limit is less than or equal to 0 byte,
+   * the default value will be used.
+   */
+  public static final String ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES =
+      "zk.serializer.znrecord.write.size.limit.bytes";
+
   public static final String PARTICIPANT_HEALTH_REPORT_LATENCY =
       "helixmanager.participantHealthReport.reportLatency";
 

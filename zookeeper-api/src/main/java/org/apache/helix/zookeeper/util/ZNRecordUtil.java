@@ -19,20 +19,14 @@ package org.apache.helix.zookeeper.util;
  * under the License.
  */
 
-import java.io.ByteArrayOutputStream;
-
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
  * This utility class contains various methods for manipulating ZNRecord.
  */
 public class ZNRecordUtil {
-  private static Logger LOG = LoggerFactory.getLogger(ZNRecordUtil.class);
 
   /**
    * Checks whether or not a serialized ZNRecord bytes should be compressed before being written to
@@ -47,7 +41,11 @@ public class ZNRecordUtil {
       return true;
     }
 
-    return serializedLength > getSerializerWriteSizeLimit();
+    boolean autoCompressEnabled = Boolean.parseBoolean(System
+        .getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
+            ZNRecord.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_DEFAULT));
+
+    return autoCompressEnabled && serializedLength > getSerializerWriteSizeLimit();
   }
 
   /**
@@ -56,7 +54,7 @@ public class ZNRecordUtil {
    */
   public static int getSerializerWriteSizeLimit() {
     Integer writeSizeLimit =
-        Integer.getInteger(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
+        Integer.getInteger(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
     if (writeSizeLimit == null || writeSizeLimit <= 0) {
       return ZNRecord.SIZE_LIMIT;

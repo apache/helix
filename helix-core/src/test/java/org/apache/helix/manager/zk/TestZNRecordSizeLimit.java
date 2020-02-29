@@ -304,7 +304,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   public void testZNRecordSerializerWriteSizeLimit() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
 
@@ -321,7 +321,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     int rawZnRecordSize = 700;
     int writeSizeLimitKb = 800;
     int writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
@@ -349,7 +349,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the writeSizeLimit to very small so serialized data size exceeds the writeSizeLimit.
     writeSizeLimitKb = 1;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
@@ -377,7 +377,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the writeSizeLimit to 10KB so serialized data size does not exceed writeSizeLimit.
     writeSizeLimitKb = 10;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     // oversized data should not create any new data on zk
@@ -416,7 +416,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set small write size limit so writing does not succeed.
     writeSizeLimitKb = 1;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     // oversized data should not update existing data on zk
@@ -436,10 +436,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 
@@ -453,7 +453,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   public void testZNRecordStreamingSerializerWriteSizeLimit() throws Exception {
     // Backup properties for later resetting.
     final String thresholdProperty =
-        System.getProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
+        System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
     HelixZkClient zkClient = SharedZkClientFactory.getInstance()
@@ -474,7 +474,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     int rawZnRecordSize = 700;
     int writeSizeLimitKb = 800;
     int writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     final ZNRecord normalSizeRecord = new ZNRecord("normal-size");
@@ -502,7 +502,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the writeSizeLimit to very small so serialized data size exceeds the writeSizeLimit.
     writeSizeLimitKb = 1;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     final ZNRecord largeRecord = new ZNRecord("large-size");
@@ -530,7 +530,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set the writeSizeLimit to 10KB so serialized data size does not exceed writeSizeLimit.
     writeSizeLimitKb = 10;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     // oversize data should not create any new data on zk
@@ -569,7 +569,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     // Set small write size limit so writing does not succeed.
     writeSizeLimitKb = 1;
     writeSizeLimit = writeSizeLimitKb * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
         String.valueOf(writeSizeLimit));
 
     // oversize data should not update existing data on zk
@@ -589,10 +589,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // Reset: add the properties back to system properties if they were originally available.
     if (thresholdProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES,
+      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
           thresholdProperty);
     } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES);
+      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 

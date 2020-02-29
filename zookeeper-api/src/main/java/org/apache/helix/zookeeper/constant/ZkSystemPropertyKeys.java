@@ -25,6 +25,15 @@ package org.apache.helix.zookeeper.constant;
 public class ZkSystemPropertyKeys {
 
   /**
+   * Setting this property to true in system properties enables auto compression in ZK serializer.
+   * The data will be automatically compressed by
+   * {@link org.apache.helix.zookeeper.util.GZipCompressionUtil} when being written to Zookeeper
+   * if size of serialized data exceeds the write size limit. The default value is enabled.
+   */
+  public static final String ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED =
+      "zk.serializer.znrecord.auto-compress.enabled";
+
+  /**
    * This is property that defines the maximum write size in bytes for ZKRecord's two serializers
    * before serialized data is ready to be written to ZK. This property applies to
    * 1. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer}
@@ -34,6 +43,6 @@ public class ZkSystemPropertyKeys {
    * to Zookeeper. Default value is 1 MB. If the configured limit is greater than
    * 1 MB or less than or equal to 0 byte, 1 MB will be used.
    */
-  public static final String ZNRECORD_SERIALIZER_WRITE_SIZE_LIMIT_BYTES =
-      "znrecord.serializer.write.size.limit.bytes";
+  public static final String ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES =
+      "zk.serializer.znrecord.write.size.limit.bytes";
 }

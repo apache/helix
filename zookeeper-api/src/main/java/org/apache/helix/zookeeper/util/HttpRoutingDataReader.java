@@ -21,6 +21,7 @@ package org.apache.helix.zookeeper.util;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,13 +42,17 @@ import org.apache.http.util.EntityUtils;
 
 
 public class HttpRoutingDataReader {
-  private static final String MSDS_ENDPOINT =
+  private static final String SYSTEM_MSDS_ENDPOINT =
       System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
   private static final int HTTP_TIMEOUT_IN_MS = 5000;
 
   /** Double-checked locking requires that the following fields be volatile */
-  private static volatile Map<String, List<String>> _rawRoutingData;
-  private static volatile MetadataStoreRoutingData _metadataStoreRoutingData;
+  // The following map stands for (MSDS endpoint, Raw Routing Data)
+  private static volatile Map<String, Map<String, List<String>>> _rawRoutingDataMap =
+      new HashMap<>();
+  // The following map stands for (MSDS endpoint, MetadataStoreRoutingData)
+  private static volatile Map<String, MetadataStoreRoutingData> _metadataStoreRoutingDataMap =
+      new HashMap<>();
 
   /**
    * This class is a Singleton.
@@ -56,44 +61,78 @@ public class HttpRoutingDataReader {
   }
 
   /**
-   * Fetches routing data from the data source via HTTP.
-   * @return a mapping from "metadata store realm addresses" to lists of
-   * "metadata store sharding keys", where the sharding keys in a value list all route to
-   * the realm address in the key disallows a meaningful mapping to be returned
+   * Fetches routing data from the data source via HTTP by querying the MSDS configured in the JVM config.
+   * @return
+   * @throws IOException
    */
   public static Map<String, List<String>> getRawRoutingData() throws IOException {
-    if (MSDS_ENDPOINT == null || MSDS_ENDPOINT.isEmpty()) {
+    if (SYSTEM_MSDS_ENDPOINT == null || SYSTEM_MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System Properties!");
     }
-    if (_rawRoutingData == null) {
+    return getRawRoutingData(SYSTEM_MSDS_ENDPOINT);
+  }
+
+  /**
+   * Fetches routing data from the data source via HTTP.
+   * @return a mapping from "metadata store realm addresses" to lists of
+   * "metadata store sharding keys", where the sharding keys in a value list all route to
+   * the realm address in the key disallows a meaningful mapping to be returned.
+   * @param msdsEndpoint Metadata Store Directory Store endpoint to query from
+   */
+  public static Map<String, List<String>> getRawRoutingData(String msdsEndpoint)
+      throws IOException {
+    Map<String, List<String>> rawRoutingData = _rawRoutingDataMap.get(msdsEndpoint);
+    if (rawRoutingData == null) {
       synchronized (HttpRoutingDataReader.class) {
-        if (_rawRoutingData == null) {
+        rawRoutingData = _rawRoutingDataMap.get(msdsEndpoint);
+        if (rawRoutingData == null) {
           String routingDataJson = getAllRoutingData();
           // Update the reference if reading routingData over HTTP is successful
-          _rawRoutingData = parseRoutingData(routingDataJson);
+          rawRoutingData = parseRoutingData(routingDataJson);
+          _rawRoutingDataMap.put(msdsEndpoint, rawRoutingData);
         }
       }
     }
-    return _rawRoutingData;
+    return rawRoutingData;
+  }
+
+  /**
+   * Returns the routing data read from MSDS in a MetadataStoreRoutingData format by querying the MSDS configured in the JVM config.
+   * @return MetadataStoreRoutingData
+   * @throws IOException
+   * @throws InvalidRoutingDataException
+   */
+  public static MetadataStoreRoutingData getMetadataStoreRoutingData()
+      throws IOException, InvalidRoutingDataException {
+    if (SYSTEM_MSDS_ENDPOINT == null || SYSTEM_MSDS_ENDPOINT.isEmpty()) {
+      throw new IllegalStateException(
+          "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System Properties!");
+    }
+    return getMetadataStoreRoutingData(SYSTEM_MSDS_ENDPOINT);
   }
 
   /**
    * Returns the routing data read from MSDS in a MetadataStoreRoutingData format.
-   * @return
+   * @param msdsEndpoint Metadata Store Directory Store endpoint to query from
+   * @return MetadataStoreRoutingData
    * @throws IOException if there is an issue connecting to MSDS
    * @throws InvalidRoutingDataException if the raw routing data is not valid
    */
-  public static MetadataStoreRoutingData getMetadataStoreRoutingData()
+  public static MetadataStoreRoutingData getMetadataStoreRoutingData(String msdsEndpoint)
       throws IOException, InvalidRoutingDataException {
-    if (_metadataStoreRoutingData == null) {
+    MetadataStoreRoutingData metadataStoreRoutingData =
+        _metadataStoreRoutingDataMap.get(msdsEndpoint);
+    if (metadataStoreRoutingData == null) {
       synchronized (HttpRoutingDataReader.class) {
-        if (_metadataStoreRoutingData == null) {
-          _metadataStoreRoutingData = new TrieRoutingData(getRawRoutingData());
+        metadataStoreRoutingData = _metadataStoreRoutingDataMap.get(msdsEndpoint);
+        if (metadataStoreRoutingData == null) {
+          metadataStoreRoutingData = new TrieRoutingData(getRawRoutingData(msdsEndpoint));
+          _metadataStoreRoutingDataMap.put(msdsEndpoint, metadataStoreRoutingData);
         }
       }
     }
-    return _metadataStoreRoutingData;
+    return metadataStoreRoutingData;
   }
 
   /**
@@ -105,7 +144,7 @@ public class HttpRoutingDataReader {
     // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point of failure if it's backed by a single IP address/host
     // Retry count is 3 by default.
     HttpGet requestAllData = new HttpGet(
-        MSDS_ENDPOINT + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+        SYSTEM_MSDS_ENDPOINT + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
 
     // Define timeout configs
     RequestConfig config = RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT_IN_MS)

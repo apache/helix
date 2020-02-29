@@ -87,9 +87,8 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
             Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-    _testRawRoutingData.forEach((realm, keys) -> {
-      Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys));
-    });
+    _testRawRoutingData.forEach(
+        (realm, keys) -> Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys)));
   }
 
   /**

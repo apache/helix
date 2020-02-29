@@ -26,7 +26,6 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import com.sun.istack.internal.NotNull;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -478,7 +477,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     return getZkClient(path).create(path, dataObject, acl, mode);
   }
 
-  @NotNull
   private ZkClient getZkClient(String path) {
     // If FederatedZkClient is closed, should not return ZkClient.
     checkClosedState();

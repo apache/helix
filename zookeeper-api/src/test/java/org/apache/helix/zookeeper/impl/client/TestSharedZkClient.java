@@ -30,8 +30,7 @@ import org.testng.annotations.Test;
 
 public class TestSharedZkClient extends RealmAwareZkClientTestBase {
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws Exception {
     super.beforeClass();
     // Set the factory to SharedZkClientFactory
     _realmAwareZkClientFactory = SharedZkClientFactory.getInstance();

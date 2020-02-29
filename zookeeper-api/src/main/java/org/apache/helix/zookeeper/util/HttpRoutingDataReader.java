@@ -65,8 +65,7 @@ public class HttpRoutingDataReader {
    * @return
    * @throws IOException
    */
-  public static Map<String, List<String>> getRawRoutingData()
-      throws IOException {
+  public static Map<String, List<String>> getRawRoutingData() throws IOException {
     if (SYSTEM_MSDS_ENDPOINT == null || SYSTEM_MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System Properties!");
@@ -141,8 +140,7 @@ public class HttpRoutingDataReader {
    * @return
    * @throws IOException
    */
-  private static String getAllRoutingData()
-      throws IOException {
+  private static String getAllRoutingData() throws IOException {
     // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point of failure if it's backed by a single IP address/host
     // Retry count is 3 by default.
     HttpGet requestAllData = new HttpGet(

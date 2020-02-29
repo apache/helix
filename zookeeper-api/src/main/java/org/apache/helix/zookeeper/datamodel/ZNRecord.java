@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.serializer.JacksonPayloadSerializer;
 import org.apache.helix.zookeeper.datamodel.serializer.PayloadSerializer;
 import org.codehaus.jackson.annotate.JsonCreator;
@@ -48,6 +49,17 @@ public class ZNRecord {
 
   @JsonIgnore(true)
   public static final String LIST_FIELD_BOUND = "listField.bound";
+
+  /** A field name in ZNRecord's simple fields to enable compression in ZNRecord serializers. */
+  @JsonIgnore
+  public static final String ENABLE_COMPRESSION_BOOLEAN_FIELD = "enableCompression";
+
+  /**
+   * Default value for system property
+   * {@link ZkSystemPropertyKeys#ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED}
+   */
+  @JsonIgnore
+  public static final String ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_DEFAULT = "true";
 
   @JsonIgnore(true)
   public static final int SIZE_LIMIT = 1000 * 1024; // leave a margin out of 1M

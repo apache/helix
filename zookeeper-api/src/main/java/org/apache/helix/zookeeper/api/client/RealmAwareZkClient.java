@@ -479,5 +479,7 @@ public interface RealmAwareZkClient {
     public long getConnectInitTimeout() {
       return _connectInitTimeout;
     }
+
+    public HelixZkClient.ZkClientConfig getZkClientConfig
   }
 }

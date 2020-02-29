@@ -69,10 +69,14 @@ public class TestZNRecordSerializeWriteSizeLimit {
     if (compressionEnabledProperty != null) {
       System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
           compressionEnabledProperty);
+    } else {
+      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED);
     }
     if (compressionThresholdProperty != null) {
       System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
           compressionThresholdProperty);
+    } else {
+      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
     }
   }
 

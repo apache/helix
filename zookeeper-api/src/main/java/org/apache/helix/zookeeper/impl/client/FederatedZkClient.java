@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -80,11 +83,10 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private PathBasedZkSerializer _pathBasedZkSerializer;
 
   // TODO: support capacity of ZkClient number in one FederatedZkClient and do garbage collection.
-  public FederatedZkClient(RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
-    if (metadataStoreRoutingData == null) {
-      throw new IllegalArgumentException("MetadataStoreRoutingData cannot be null!");
-    }
+  public FederatedZkClient(RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
+      throws IOException, InvalidRoutingDataException {
+    _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
+
     if (clientConfig == null) {
       throw new IllegalArgumentException("Client config cannot be null!");
     }
@@ -92,7 +94,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     _isClosed = false;
     _clientConfig = clientConfig;
     _pathBasedZkSerializer = clientConfig.getZkSerializer();
-    _metadataStoreRoutingData = metadataStoreRoutingData;
     _zkRealmToZkClientMap = new ConcurrentHashMap<>();
   }
 

@@ -19,6 +19,7 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +28,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -59,7 +59,7 @@ public class TestFederatedZkClient extends ZkTestBase {
   private ZkServer _extraZkServer;
 
   @BeforeClass
-  public void beforeClass() throws InvalidRoutingDataException {
+  public void beforeClass() throws InvalidRoutingDataException, IOException {
     System.out.println("Starting " + TestFederatedZkClient.class.getSimpleName());
 
     // Populate rawRoutingData
@@ -82,8 +82,7 @@ public class TestFederatedZkClient extends ZkTestBase {
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
     // of routing information.
-    _realmAwareZkClient = new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkClientConfig(),
-        new TrieRoutingData(rawRoutingData));
+    _realmAwareZkClient = new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkClientConfig());
   }
 
   @AfterClass

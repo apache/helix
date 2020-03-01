@@ -19,10 +19,13 @@ package org.apache.helix.zookeeper.api.client;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -55,7 +58,7 @@ public interface RealmAwareZkClient {
    * SINGLE_REALM: CRUD, change subscription, and EPHEMERAL CreateMode are supported.
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
-  enum MODE {SINGLE_REALM, MULTI_REALM}
+  enum RealmMode {SINGLE_REALM, MULTI_REALM}
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
@@ -325,7 +328,7 @@ public interface RealmAwareZkClient {
   class RealmAwareZkConnectionConfig {
     /**
      * zkRealmShardingKey: used to deduce which ZK realm this RealmAwareZkClientConfig should connect to.
-     * NOTE: this field will be ignored if MODE is MULTI_REALM!
+     * NOTE: this field will be ignored if RealmMode is MULTI_REALM!
      */
     private String _zkRealmShardingKey;
     private String _msdsEndpoint;
@@ -378,18 +381,34 @@ public interface RealmAwareZkClient {
       return _msdsEndpoint;
     }
 
-    public static class Builder {
-      public enum RealmMode {
-        MULTI_REALM, // Default mode that uses FederatedZkClient
-        SINGLE_REALM
+    public HelixZkClient.ZkConnectionConfig createZkConnectionConfig()
+        throws IOException, InvalidRoutingDataException {
+      // Convert to a single-realm HelixZkClient's ZkConnectionConfig
+      if (_zkRealmShardingKey == null || _zkRealmShardingKey.isEmpty()) {
+        throw new ZkClientException(
+            "Cannot create ZkConnectionConfig because ZK realm sharding key is either null or empty!");
       }
 
+      String zkAddress;
+      // Look up the ZK address for the given ZK realm sharding key
+      if (_msdsEndpoint == null || _msdsEndpoint.isEmpty()) {
+        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData()
+            .getMetadataStoreRealm(_zkRealmShardingKey);
+      } else {
+        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData(_msdsEndpoint)
+            .getMetadataStoreRealm(_zkRealmShardingKey);
+      }
+
+      return new HelixZkClient.ZkConnectionConfig(zkAddress).setSessionTimeout(_sessionTimeout);
+    }
+
+    public static class Builder {
       private RealmMode _realmMode;
       private String _zkRealmShardingKey;
       private String _msdsEndpoint;
       private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
-      private Builder() {
+      public Builder() {
       }
 
       public Builder setRealmMode(RealmMode mode) {
@@ -423,7 +442,7 @@ public interface RealmAwareZkClient {
       private void validate() {
         boolean isRealmModeSet = _realmMode != null;
         boolean isShardingKeySet = _zkRealmShardingKey != null && !_zkRealmShardingKey.isEmpty();
-        switch (isRealmModeSet ? _realmMode : Builder.RealmMode.MULTI_REALM) {
+        switch (isRealmModeSet ? _realmMode : RealmMode.MULTI_REALM) {
           case MULTI_REALM:
             if (isShardingKeySet && isRealmModeSet) {
               throw new IllegalArgumentException(
@@ -554,10 +573,9 @@ public interface RealmAwareZkClient {
      * @return
      */
     public HelixZkClient.ZkClientConfig createHelixZkClientConfig() {
-      HelixZkClient.ZkClientConfig helixZkClientConfig = new HelixZkClient.ZkClientConfig();
-      return helixZkClientConfig.setZkSerializer(_zkSerializer).setMonitorType(_monitorType)
-          .setMonitorKey(_monitorKey).setMonitorInstanceName(_monitorInstanceName)
-          .setMonitorRootPathOnly(_monitorRootPathOnly)
+      return new HelixZkClient.ZkClientConfig().setZkSerializer(_zkSerializer)
+          .setMonitorType(_monitorType).setMonitorKey(_monitorKey)
+          .setMonitorInstanceName(_monitorInstanceName).setMonitorRootPathOnly(_monitorRootPathOnly)
           .setOperationRetryTimeout(_operationRetryTimeout)
           .setConnectInitTimeout(_connectInitTimeout);
     }

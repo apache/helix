@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -83,50 +85,24 @@ public class ConfigAccessor {
    * Constructor that creates a realm-aware ConfigAccessor using a builder.
    * @param builder
    */
-  public ConfigAccessor(Builder builder) throws Exception {
-    // TODO: cleanly separate validation logic and creation logic
-    RealmAwareZkClient zkClient;
-    boolean isRealmModeSet = builder._realmMode != null;
-    // Default mode is MULTI_REALM
-    switch (isRealmModeSet ? builder._realmMode : Builder.RealmMode.MULTI_REALM) {
+  private ConfigAccessor(Builder builder) throws IOException, InvalidRoutingDataException {
+    switch (builder._realmMode) {
       case MULTI_REALM:
-        try {
-          // TODO: make sure FederatedZkClient has been created correctly
-          // TODO: pass in MSDS endpoint or pass in _realmAwareZkConnectionConfig
-          String msdsEndpoint = builder._realmAwareZkConnectionConfig.getMsdsEndpoint();
-          zkClient = new FederatedZkClient();
-          break;
-        } catch (Exception e) {
-          if (isRealmModeSet) {
-            // TODO: qualify the exception
-            throw new Exception("Failed to create ConfigAccessor on multi-realm mode!");
-          }
-          // Fall back to single-realm mode since realm mode is not set
-        }
+        // TODO: make sure FederatedZkClient is created correctly
+        // TODO: pass in MSDS endpoint or pass in _realmAwareZkConnectionConfig
+        String msdsEndpoint = builder._realmAwareZkConnectionConfig.getMsdsEndpoint();
+        _zkClient = new FederatedZkClient();
+        break;
       case SINGLE_REALM:
-        // Check if zkAddress is set
-        if (builder._zkAddress == null || builder._zkAddress.isEmpty()) {
-          throw new IllegalStateException(
-              "ConfigAccessor cannot be created on single-realm mode because ZkAddress is null or empty!");
-        }
-
         // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do
         // ephemeral operations
-        boolean isZkClientConfigSet = builder._realmAwareZkClientConfig != null;
-
-        // Resolve which clientConfig to use
-        HelixZkClient.ZkClientConfig clientConfig =
-            isZkClientConfigSet ? builder._realmAwareZkClientConfig.createHelixZkClientConfig()
-                : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
-
-        // Create a SharedZkClient using the clientConfig
-        zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress), clientConfig);
+        _zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(builder._realmAwareZkConnectionConfig.createZkConnectionConfig(),
+                builder._realmAwareZkClientConfig.createHelixZkClientConfig());
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
     }
-    _zkClient = zkClient;
     _usesExternalZkClient = false;
   }
 
@@ -883,17 +859,12 @@ public class ConfigAccessor {
   }
 
   public static class Builder {
-    public enum RealmMode {
-      MULTI_REALM, // Default mode that uses FederatedZkClient
-      SINGLE_REALM
-    }
-
     private String _zkAddress;
-    private RealmMode _realmMode;
+    private RealmAwareZkClient.RealmMode _realmMode;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
     private RealmAwareZkClient.RealmAwareZkClientConfig _realmAwareZkClientConfig;
 
-    private Builder() {
+    public Builder() {
     }
 
     public Builder setZkAddress(String zkAddress) {
@@ -901,7 +872,7 @@ public class ConfigAccessor {
       return this;
     }
 
-    public Builder setRealmMode(RealmMode realmMode) {
+    public Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
       _realmMode = realmMode;
       return this;
     }
@@ -919,7 +890,42 @@ public class ConfigAccessor {
     }
 
     public ConfigAccessor build() throws Exception {
+      validate();
       return new ConfigAccessor(this);
+    }
+
+    /**
+     * Validate the given parameters before creating an instance of ConfigAccessor.
+     */
+    private void validate() {
+      // Resolve RealmMode based on other parameters
+      boolean isRealmModeSet = _realmMode != null;
+      boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
+      if (isRealmModeSet) {
+        if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
+          throw new HelixException(
+              "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
+        }
+        // If realm mode is set to multi-realm, we simply ignore the given ZK address
+      } else {
+        // If zkAddress is set, that implies single-realm mode. Otherwise, multi-realm mode.
+        _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
+            : RealmAwareZkClient.RealmMode.MULTI_REALM;
+      }
+
+      // Resolve RealmAwareZkClientConfig
+      boolean isZkClientConfigSet = _realmAwareZkClientConfig != null;
+      // Resolve which clientConfig to use
+      _realmAwareZkClientConfig =
+          isZkClientConfigSet ? _realmAwareZkClientConfig.createHelixZkClientConfig()
+              : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+
+      // Resolve RealmAwareZkConnectionConfig
+      if (_realmAwareZkConnectionConfig == null) {
+        // If not set, create a default one
+        _realmAwareZkConnectionConfig =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
+      }
     }
   }
 }

@@ -36,13 +36,13 @@ import org.testng.annotations.Test;
 
 
 public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
-  private static final String ZK_SHARDING_KEY_PREFIX = "/sharding-key-0";
-  private static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "/a/b/c";
-  private static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
+  protected static final String ZK_SHARDING_KEY_PREFIX = "/sharding-key-0";
+  protected static final String TEST_VALID_PATH = ZK_SHARDING_KEY_PREFIX + "/a/b/c";
+  protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   // The following RealmAwareZkClientFactory is to be defined in subclasses
   protected RealmAwareZkClientFactory _realmAwareZkClientFactory;
-  private RealmAwareZkClient _realmAwareZkClient;
+  protected RealmAwareZkClient _realmAwareZkClient;
 
   // Create a MockMSDS for testing
   private MockMetadataStoreDirectoryServer _msdsServer;

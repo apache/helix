@@ -19,26 +19,27 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
-import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -55,25 +56,21 @@ public class SharedZkClient implements RealmAwareZkClient {
   private static Logger LOG = LoggerFactory.getLogger(SharedZkClient.class);
 
   private final HelixZkClient _innerSharedZkClient;
-  private final String _zkRealmShardingKey;
   private final MetadataStoreRoutingData _metadataStoreRoutingData;
+  private final String _zkRealmShardingKey;
   private final String _zkRealmAddress;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
+      throws IOException, InvalidRoutingDataException {
+    // Get the routing data from a static Singleton HttpRoutingDataReader
+    _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
 
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
 
-    if (metadataStoreRoutingData == null) {
-      throw new IllegalArgumentException("MetadataStoreRoutingData cannot be null!");
-    }
-    _metadataStoreRoutingData = metadataStoreRoutingData;
-
-    // TODO: use _zkRealmShardingKey to generate zkRealmAddress. This can done the same way of pull 765 once @hunter check it in.
     // Get the ZkRealm address based on the ZK path sharding key
     String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);
     if (zkRealmAddress == null || zkRealmAddress.isEmpty()) {

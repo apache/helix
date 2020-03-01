@@ -33,7 +33,9 @@ public interface RealmAwareZkClientFactory {
    * Build a RealmAwareZkClient using specified connection config and client config.
    * @param connectionConfig
    * @param clientConfig
-   * @return HelixZkClient
+   * @return RealmAwareZkClient
+   * @throws IOException if Metadata Store Directory Service is unresponsive over HTTP
+   * @throws InvalidRoutingDataException if the routing data received is invalid or empty
    */
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
@@ -43,6 +45,8 @@ public interface RealmAwareZkClientFactory {
    * Builds a RealmAwareZkClient using specified connection config and default client config.
    * @param connectionConfig
    * @return RealmAwareZkClient
+   * @throws IOException if Metadata Store Directory Service is unresponsive over HTTP
+   * @throws InvalidRoutingDataException if the routing data received is invalid or empty
    */
   default RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig)

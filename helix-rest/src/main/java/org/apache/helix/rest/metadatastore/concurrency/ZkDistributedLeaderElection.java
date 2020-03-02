@@ -59,7 +59,6 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
       }
       _basePath = basePath;
       _participantInfo = participantInfo;
-      _isLeader = false;
     }
     init();
   }
@@ -68,6 +67,7 @@ public class ZkDistributedLeaderElection implements IZkDataListener, IZkStateLis
    * Create the base path if it doesn't exist and create an ephemeral sequential ZNode.
    */
   private void init() {
+    _isLeader = false;
     try {
       _zkClient.createPersistent(_basePath, true);
     } catch (ZkNodeExistsException e) {

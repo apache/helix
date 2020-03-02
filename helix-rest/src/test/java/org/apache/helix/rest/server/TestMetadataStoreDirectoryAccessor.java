@@ -21,6 +21,7 @@ package org.apache.helix.rest.server;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -450,6 +452,44 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
 
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
     Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
+  }
+
+  @Test(dependsOnMethods = "testDeleteShardingKey")
+//  @Test
+  public void testSetRoutingData() throws InvalidRoutingDataException, IOException {
+    Map<String, List<String>> routingData = new HashMap<>();
+    routingData.put(TEST_REALM_1, TEST_SHARDING_KEYS_2);
+    routingData.put(TEST_REALM_2, TEST_SHARDING_KEYS_1);
+    String routingDataString = new ObjectMapper().writeValueAsString(routingData);
+
+    Map<String, String> badFormatRoutingData = new HashMap<>();
+    badFormatRoutingData.put(TEST_REALM_1, TEST_REALM_2);
+    badFormatRoutingData.put(TEST_REALM_2, TEST_REALM_1);
+    String badFormatRoutingDataString = new ObjectMapper().writeValueAsString(badFormatRoutingData);
+
+    // Request that gets not found response.
+    put("/namespaces/non-existing-namespace"
+            + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT, null,
+        Entity.entity(routingDataString, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.NOT_FOUND.getStatusCode());
+
+    put(TEST_NAMESPACE_URI_PREFIX
+            + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT, null,
+        Entity.entity("?", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode());
+
+    put(TEST_NAMESPACE_URI_PREFIX
+            + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT, null,
+        Entity.entity(badFormatRoutingDataString, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode());
+
+    // Successful request.
+    put(TEST_NAMESPACE_URI_PREFIX
+            + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT, null,
+        Entity.entity(routingDataString, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
+
+    Assert.assertEquals(getRawRoutingData(), routingData);
   }
 
   private void verifyRealmShardingKeys(String responseBody) throws IOException {

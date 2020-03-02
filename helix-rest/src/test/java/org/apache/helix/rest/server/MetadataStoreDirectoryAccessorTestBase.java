@@ -23,16 +23,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.testng.Assert;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -100,23 +100,19 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
   @AfterClass
   public void afterClass() throws Exception {
     System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    _routingDataReader.close();
     deleteRoutingDataPath();
   }
 
-  protected void deleteRoutingDataPath() throws Exception {
-    Assert.assertTrue(TestHelper.verify(() -> {
-      _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
-          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
-
-      for (String zk : _zkList) {
-        if (ZK_SERVER_MAP.get(zk).getZkClient()
-            .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-          return false;
+  protected void deleteRoutingDataPath() {
+    for (String zk : _zkList) {
+      ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+      if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+        for (String zkRealm : zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
         }
       }
-
-      return true;
-    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
+    }
   }
 
   // Uses routingDataReader to get the latest realms in test-namespace; returns a modifiable copy
@@ -128,5 +124,9 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
   // Uses routingDataReader to get the latest sharding keys in test-namespace, testRealm1
   protected Set<String> getAllShardingKeysInTestRealm1() throws InvalidRoutingDataException {
     return new HashSet<>(_routingDataReader.getRoutingData().get(TEST_REALM_1));
+  }
+
+  protected Map<String, List<String>> getRawRoutingData() throws InvalidRoutingDataException {
+    return _routingDataReader.getRoutingData();
   }
 }

@@ -42,20 +42,20 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
   private MetadataStoreRoutingDataReader _zkRoutingDataReader;
 
   @BeforeClass
-  public void beforeClass() throws Exception {
-    deleteRoutingDataPath();
+  public void beforeClass() {
     _zkRoutingDataReader = new ZkRoutingDataReader(DUMMY_NAMESPACE, ZK_ADDR, null);
+    clearRoutingDataPath();
   }
 
   @AfterClass
-  public void afterClass() throws Exception {
+  public void afterClass() {
     _zkRoutingDataReader.close();
-    deleteRoutingDataPath();
+    clearRoutingDataPath();
   }
 
   @AfterMethod
   public void afterMethod() {
-    _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT);
+    clearRoutingDataPath();
   }
 
   @Test
@@ -90,22 +90,8 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     }
   }
 
-  @Test
-  public void testGetRoutingDataMissingMSRD() {
-    try {
-      _zkRoutingDataReader.getRoutingData();
-      Assert.fail("Expecting InvalidRoutingDataException");
-    } catch (InvalidRoutingDataException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "Routing data directory ZNode " + MetadataStoreRoutingConstants.ROUTING_DATA_PATH
-              + " does not exist. Routing ZooKeeper address: " + ZK_ADDR));
-    }
-  }
-
-  @Test
+  @Test(dependsOnMethods = "testGetRoutingData")
   public void testGetRoutingDataMissingMSRDChildren() {
-    _baseAccessor.create(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, new ZNRecord("test"),
-        AccessOption.PERSISTENT);
     try {
       Map<String, List<String>> routingData = _zkRoutingDataReader.getRoutingData();
       Assert.assertEquals(routingData.size(), 0);
@@ -114,7 +100,7 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetRoutingData")
   public void testGetRoutingDataMSRDChildEmptyValue() {
     ZNRecord testZnRecord1 = new ZNRecord("testZnRecord1");
     testZnRecord1.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
@@ -130,17 +116,11 @@ public class TestZkRoutingDataReader extends AbstractTestClass {
     }
   }
 
-  private void deleteRoutingDataPath() throws Exception {
-    Assert.assertTrue(TestHelper.verify(() -> {
-      ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
-          .deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
-
-      if (ZK_SERVER_MAP.get(ZK_ADDR).getZkClient()
-          .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        return false;
-      }
-
-      return true;
-    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
+  private void clearRoutingDataPath() {
+    for (String zkRealm : _baseAccessor
+        .getChildNames(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, AccessOption.PERSISTENT)) {
+      _baseAccessor.remove(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm,
+          AccessOption.PERSISTENT);
+    }
   }
 }

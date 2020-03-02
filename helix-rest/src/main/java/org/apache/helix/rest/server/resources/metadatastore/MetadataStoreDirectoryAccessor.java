@@ -19,18 +19,22 @@ package org.apache.helix.rest.server.resources.metadatastore;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +48,10 @@ import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKeysByRealm;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -218,6 +226,24 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
             MetadataStoreRoutingConstants.ROUTING_DATA, shardingKeysByRealm);
 
     return JSONRepresentation(responseMap);
+  }
+
+  @PUT
+  @Path("/routing-data")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response setRoutingData(String jsonContent) {
+    try {
+      Map<String, List<String>> routingData = new ObjectMapper()
+          .readValue(jsonContent, new TypeReference<HashMap<String, List<String>>>() {
+          });
+      _metadataStoreDirectory.setNamespaceRoutingData(_namespace, routingData);
+    } catch (JsonMappingException | JsonParseException | IllegalArgumentException e) {
+      return badRequest(e.getMessage());
+    } catch (IOException e) {
+      return serverError(e);
+    }
+
+    return created();
   }
 
   /**

@@ -104,7 +104,6 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
   }
 
   // reload participant states that has been changed from zk to local cache.
-
   private void refreshParticipantStatesCacheFromZk(HelixDataAccessor accessor,
       Map<String, LiveInstance> liveInstanceMap, Boolean snapshotEnabled,
       Set<String> restrictedKeys) {
@@ -126,14 +125,10 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
               .add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
         }
       } else {
-        List<String> resourceNames = new ArrayList<>();
         for (String customizedStateType : restrictedKeys) {
-          resourceNames = accessor
-              .getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType));
-          for (String resourceName : resourceNames) {
-            participantStateKeys
-                .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName));
-          }
+          accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
+              .stream().map(resourceName -> participantStateKeys.add(
+                  keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
         }
       }
     }

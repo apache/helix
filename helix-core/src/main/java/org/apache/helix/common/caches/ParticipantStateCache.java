@@ -127,7 +127,7 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
       } else {
         for (String customizedStateType : restrictedKeys) {
           accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
-              .stream().map(resourceName -> participantStateKeys.add(
+              .stream().forEach(resourceName -> participantStateKeys.add(
                   keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
         }
       }

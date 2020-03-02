@@ -455,7 +455,6 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
   }
 
   @Test(dependsOnMethods = "testDeleteShardingKey")
-//  @Test
   public void testSetRoutingData() throws InvalidRoutingDataException, IOException {
     Map<String, List<String>> routingData = new HashMap<>();
     routingData.put(TEST_REALM_1, TEST_SHARDING_KEYS_2);

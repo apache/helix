@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.util.ZNRecordUtil;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -58,7 +58,7 @@ public class ZNRecordSerializer implements ZkSerializer {
       // null is NOT an instance of any class
       LOG.error("Input object must be of type ZNRecord but it is " + data
           + ". Will not write to zk");
-      throw new ZkClientException("Input object is not of type ZNRecord (was " + data + ")");
+      throw new ZkMarshallingError("Input object is not of type ZNRecord (was " + data + ")");
     }
 
     ZNRecord record = (ZNRecord) data;
@@ -97,7 +97,7 @@ public class ZNRecordSerializer implements ZkSerializer {
       LOG.error(
           "Exception during data serialization. ZNRecord ID: {} will not be written to zk.",
           record.getId(), e);
-      throw new ZkClientException(e);
+      throw new ZkMarshallingError(e);
     }
 
     int writeSizeLimit = ZNRecordUtil.getSerializerWriteSizeLimit();
@@ -105,7 +105,7 @@ public class ZNRecordSerializer implements ZkSerializer {
       LOG.error("Data size: {} is greater than {} bytes, is compressed: {}, ZNRecord.id: {}."
               + " Data will not be written to Zookeeper.", serializedBytes.length, writeSizeLimit,
           isCompressed, record.getId());
-      throw new ZkClientException(
+      throw new ZkMarshallingError(
           "Data size: " + serializedBytes.length + " is greater than " + writeSizeLimit
               + " bytes, is compressed: " + isCompressed + ", ZNRecord.id: " + record.getId());
     }

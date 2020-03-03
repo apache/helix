@@ -22,7 +22,6 @@ package org.apache.helix.zookeeper.datamodel.serializer;
 import java.io.IOException;
 
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -39,14 +38,14 @@ public class ZNRecordJacksonSerializer implements ZkSerializer {
   public byte[] serialize(Object record) throws ZkMarshallingError {
     if (!(record instanceof ZNRecord)) {
       // null is NOT an instance of any class
-      throw new ZkClientException("Input object is not of type ZNRecord (was " + record + ")");
+      throw new ZkMarshallingError("Input object is not of type ZNRecord (was " + record + ")");
     }
     ZNRecord znRecord = (ZNRecord) record;
 
     try {
       return OBJECT_MAPPER.writeValueAsBytes(znRecord);
     } catch (IOException e) {
-      throw new ZkClientException(
+      throw new ZkMarshallingError(
           String.format("Exception during serialization. ZNRecord id: %s", znRecord.getId()), e);
     }
   }
@@ -62,7 +61,7 @@ public class ZNRecordJacksonSerializer implements ZkSerializer {
     try {
       record = OBJECT_MAPPER.readValue(bytes, ZNRecord.class);
     } catch (IOException e) {
-      throw new ZkClientException("Exception during deserialization!", e);
+      throw new ZkMarshallingError("Exception during deserialization!", e);
     }
     return record;
   }

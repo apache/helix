@@ -50,7 +50,6 @@ import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKeysBy
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -233,8 +232,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
   @Consumes(MediaType.APPLICATION_JSON)
   public Response setRoutingData(String jsonContent) {
     try {
-      Map<String, List<String>> routingData = new ObjectMapper()
-          .readValue(jsonContent, new TypeReference<HashMap<String, List<String>>>() {
+      Map<String, List<String>> routingData =
+          OBJECT_MAPPER.readValue(jsonContent, new TypeReference<HashMap<String, List<String>>>() {
           });
       _metadataStoreDirectory.setNamespaceRoutingData(_namespace, routingData);
     } catch (JsonMappingException | JsonParseException | IllegalArgumentException e) {

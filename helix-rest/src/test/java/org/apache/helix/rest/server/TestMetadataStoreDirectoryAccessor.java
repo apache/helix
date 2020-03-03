@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -459,12 +458,12 @@ public class TestMetadataStoreDirectoryAccessor extends MetadataStoreDirectoryAc
     Map<String, List<String>> routingData = new HashMap<>();
     routingData.put(TEST_REALM_1, TEST_SHARDING_KEYS_2);
     routingData.put(TEST_REALM_2, TEST_SHARDING_KEYS_1);
-    String routingDataString = new ObjectMapper().writeValueAsString(routingData);
+    String routingDataString = OBJECT_MAPPER.writeValueAsString(routingData);
 
     Map<String, String> badFormatRoutingData = new HashMap<>();
     badFormatRoutingData.put(TEST_REALM_1, TEST_REALM_2);
     badFormatRoutingData.put(TEST_REALM_2, TEST_REALM_1);
-    String badFormatRoutingDataString = new ObjectMapper().writeValueAsString(badFormatRoutingData);
+    String badFormatRoutingDataString = OBJECT_MAPPER.writeValueAsString(badFormatRoutingData);
 
     // Request that gets not found response.
     put("/namespaces/non-existing-namespace"

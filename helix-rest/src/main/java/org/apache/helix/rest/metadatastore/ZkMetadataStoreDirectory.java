@@ -119,7 +119,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           try {
             _routingDataMap.put(namespace, new TrieRoutingData(rawRoutingData));
           } catch (InvalidRoutingDataException e) {
-            // Do not create TrieRoutingData if the routing data is invalid
+            LOG.warn("TrieRoutingData is not created for namespace {}", namespace, e);
           }
         }
       }
@@ -194,7 +194,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     // If namespace is included but not routing data, it means the routing data is invalid
     if (!_routingDataMap.containsKey(namespace)) {
       throw new IllegalStateException("Failed to get all mapping under path: Namespace " + namespace
-          + " contains invalid routing data!");
+          + " contains either empty or invalid routing data!");
     }
     return _routingDataMap.get(namespace).getAllMappingUnderPath(path);
   }
@@ -209,7 +209,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     // If namespace is included but not routing data, it means the routing data is invalid
     if (!_routingDataMap.containsKey(namespace)) {
       throw new IllegalStateException("Failed to get metadata store realm: Namespace " + namespace
-          + " contains invalid routing data!");
+          + " contains either empty or invalid routing data!");
     }
     return _routingDataMap.get(namespace).getMetadataStoreRealm(shardingKey);
   }
@@ -324,7 +324,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     try {
       _routingDataMap.put(namespace, new TrieRoutingData(rawRoutingData));
     } catch (InvalidRoutingDataException e) {
-      // Do not create TrieRoutingData if the routing data is invalid
+      LOG.warn("TrieRoutingData is not created for namespace {}", namespace, e);
     }
   }
 

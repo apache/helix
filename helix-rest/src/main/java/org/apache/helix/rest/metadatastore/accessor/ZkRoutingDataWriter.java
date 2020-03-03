@@ -57,6 +57,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   // Time out for http requests that are forwarded to leader instances measured in milliseconds
   private static final int HTTP_REQUEST_FORWARDING_TIMEOUT = 60 * 1000;
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final String _namespace;
   private final HelixZkClient _zkClient;
@@ -220,7 +221,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     HttpPut httpPut = new HttpPut(url);
     String routingDataJsonString;
     try {
-      routingDataJsonString = new ObjectMapper().writeValueAsString(routingData);
+      routingDataJsonString = OBJECT_MAPPER.writeValueAsString(routingData);
     } catch (JsonGenerationException | JsonMappingException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (IOException e) {
@@ -350,12 +351,12 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   }
 
   private boolean buildAndSendRequestToLeader(String urlSuffix,
-      HttpConstants.RestVerbs request_method, int expectedResponseCode)
+      HttpConstants.RestVerbs requestMethod, int expectedResponseCode)
       throws IllegalArgumentException {
     String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
     String url = leaderHostName + urlSuffix;
     HttpUriRequest request;
-    switch (request_method) {
+    switch (requestMethod) {
       case PUT:
         request = new HttpPut(url);
         break;
@@ -363,7 +364,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         request = new HttpDelete(url);
         break;
       default:
-        LOG.error("Unsupported request_method: " + request_method.name());
+        LOG.error("Unsupported requestMethod: " + requestMethod.name());
         return false;
     }
 

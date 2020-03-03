@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataReader;
@@ -33,6 +34,7 @@ import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -62,7 +64,7 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
   public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
 
-    deleteRoutingDataPath();
+    clearRoutingData();
 
     // Write dummy mappings in ZK
     // Create a node that represents a realm address and add 3 sharding keys to it
@@ -101,18 +103,30 @@ public class MetadataStoreDirectoryAccessorTestBase extends AbstractTestClass {
   public void afterClass() throws Exception {
     System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     _routingDataReader.close();
-    deleteRoutingDataPath();
+    clearRoutingData();
   }
 
-  protected void deleteRoutingDataPath() {
-    for (String zk : _zkList) {
-      ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
-      if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        for (String zkRealm : zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-          zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+  protected void clearRoutingData() throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          for (String zkRealm : zkClient
+              .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+            zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          }
         }
       }
-    }
+
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH) && !zkClient
+            .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH).isEmpty()) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 
   // Uses routingDataReader to get the latest realms in test-namespace; returns a modifiable copy

@@ -63,8 +63,10 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass() throws InvalidRoutingDataException {
+  public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
+
+    clearRoutingData();
 
     // Populate routingZkAddrMap
     _routingZkAddrMap = new LinkedHashMap<>();
@@ -112,14 +114,9 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     _metadataStoreDirectory.close();
-    for (String zk : _zkList) {
-      ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
-      for (String zkRealm : zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
-      }
-    }
+    clearRoutingData();
     System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
   }
 
@@ -317,5 +314,28 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
       }
       return false;
     }, TestHelper.WAIT_DURATION));
+  }
+
+  private void clearRoutingData() throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          for (String zkRealm : zkClient
+              .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+            zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          }
+        }
+      }
+
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH) && !zkClient
+            .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH).isEmpty()) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 }

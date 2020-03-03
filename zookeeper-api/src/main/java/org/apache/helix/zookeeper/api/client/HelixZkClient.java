@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.api.client;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -150,8 +149,8 @@ public interface HelixZkClient extends RealmAwareZkClient {
     }
 
     @Override
-    public ZkClientConfig setConnectInitTimeout(long _connectInitTimeout) {
-      this._connectInitTimeout = _connectInitTimeout;
+    public ZkClientConfig setConnectInitTimeout(long connectInitTimeout) {
+      this._connectInitTimeout = connectInitTimeout;
       return this;
     }
   }

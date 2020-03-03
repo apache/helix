@@ -225,6 +225,9 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     } catch (JsonGenerationException | JsonMappingException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (IOException e) {
+      LOG.error(
+          "setRoutingData failed before forwarding the request to leader: an exception happened while routingData is converted to json. routingData: {}",
+          routingData, e);
       return false;
     }
     httpPut.setEntity(new StringEntity(routingDataJsonString, ContentType.APPLICATION_JSON));
@@ -364,8 +367,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         request = new HttpDelete(url);
         break;
       default:
-        LOG.error("Unsupported requestMethod: " + requestMethod.name());
-        return false;
+        throw new IllegalArgumentException("Unsupported requestMethod: " + requestMethod.name());
     }
 
     return sendRequestToLeader(request, expectedResponseCode, leaderHostName);

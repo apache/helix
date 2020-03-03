@@ -35,67 +35,67 @@ import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+/**
+ * Represent a cache that holds a certain participant side state of for the whole cluster.
+ */
 public abstract class ParticipantStateCache<T> extends AbstractDataCache {
-  private static Logger LOG = LoggerFactory.getLogger(ParticipantStateCache.class.getName());
+  private static Logger LOG = LoggerFactory.getLogger(ParticipantStateCache.class);
   protected Map<String, Map<String, Map<String, T>>> _participantStateMap;
 
   protected Map<PropertyKey, T> _participantStateCache = Maps.newHashMap();
+
   public ParticipantStateCache(ControlContextProvider controlContextProvider) {
     super(controlContextProvider);
     _participantStateMap = Collections.emptyMap();
   }
 
-  public ParticipantStateCache(String clusterName) {
-    this(createDefaultControlContextProvider(clusterName));
-  }
-
-
   /**
-   * This refreshes the participant state cache data by re-fetching the data from zookeeper in an efficient way
-   *
+   * This refreshes the participant state cache data by re-fetching the data from zookeeper in an
+   * efficient way
    * @param accessor
    * @param liveInstanceMap map of all liveInstances in cluster
-   *
    * @return
    */
-  public boolean refresh(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap, Boolean snapshotEnabled, Set<String> restrictedKeys) {
+  public boolean refresh(HelixDataAccessor accessor, Map<String, LiveInstance> liveInstanceMap,
+      Boolean snapshotEnabled, Set<String> restrictedKeys) {
     long startTime = System.currentTimeMillis();
 
     refreshParticipantStatesCacheFromZk(accessor, liveInstanceMap, snapshotEnabled, restrictedKeys);
     Map<String, Map<String, Map<String, T>>> allParticipantStateMap = new HashMap<>();
+    // There should be 4 levels of keys. The first one is the cluster name, the second one is the
+    // instance name, the third one is a customized key (could be session Id or customized state
+    // type), the fourth one is the resourceName
     for (PropertyKey key : _participantStateCache.keySet()) {
       T participantState = _participantStateCache.get(key);
       String[] params = key.getParams();
       if (participantState != null && params.length >= 4) {
-        String keyLevel1 = params[1];
-        String keyLevel2 = params[2];
-        String keyLevel3 = params[3];
-        Map<String, Map<String, T>> stateMapLevel1 =
-            allParticipantStateMap.get(keyLevel1);
-        if (stateMapLevel1 == null) {
-          stateMapLevel1 = Maps.newHashMap();
-          allParticipantStateMap.put(keyLevel1, stateMapLevel1);
+        String instanceName = params[1];
+        String customizedName = params[2];
+        String resourceName = params[3];
+        Map<String, Map<String, T>> instanceMap = allParticipantStateMap.get(instanceName);
+        if (instanceMap == null) {
+          instanceMap = Maps.newHashMap();
+          allParticipantStateMap.put(instanceName, instanceMap);
         }
-        Map<String, T> stateMapLevel2 = stateMapLevel1.get(keyLevel2);
-        if (stateMapLevel2 == null) {
-          stateMapLevel2 = Maps.newHashMap();
-          stateMapLevel1.put(keyLevel2, stateMapLevel2);
+        Map<String, T> customizedMap = instanceMap.get(customizedName);
+        if (customizedMap == null) {
+          customizedMap = Maps.newHashMap();
+          instanceMap.put(customizedName, customizedMap);
         }
-        stateMapLevel2.put(keyLevel3, participantState);
+        customizedMap.put(resourceName, participantState);
+      } else {
+        LogUtil.logError(LOG, genEventInfo(),
+            "Invalid key found in the participant state cache" + key);
       }
     }
 
-    for (String instance : allParticipantStateMap.keySet()) {
-      allParticipantStateMap.put(instance, Collections.unmodifiableMap(allParticipantStateMap.get(instance)));
-    }
     _participantStateMap = Collections.unmodifiableMap(allParticipantStateMap);
 
     long endTime = System.currentTimeMillis();
     LogUtil.logInfo(LOG, genEventInfo(),
-        "END: participantStateCache.refresh() for cluster " + _controlContextProvider.getClusterName()
-            + ", started at : " + startTime + ", took " + (endTime - startTime) + " ms");
+        "END: participantStateCache.refresh() for cluster "
+            + _controlContextProvider.getClusterName() + ", started at : " + startTime + ", took "
+            + (endTime - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, genEventInfo(),
           String.format("Participant State refreshed : %s", _participantStateMap.toString()));
@@ -109,29 +109,9 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
       Set<String> restrictedKeys) {
 
     long start = System.currentTimeMillis();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
     Set<PropertyKey> participantStateKeys = new HashSet<>();
-    for (String instanceName : liveInstanceMap.keySet()) {
-      LiveInstance liveInstance = liveInstanceMap.get(instanceName);
+    PopulateParticipantKeys(accessor, participantStateKeys, liveInstanceMap, restrictedKeys);
 
-      if (restrictedKeys.isEmpty()) {
-        String sessionId = liveInstance.getEphemeralOwner();
-        List<String> currentStateNames =
-            accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-
-        for (String currentStateName : currentStateNames) {
-          participantStateKeys
-              .add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
-        }
-      } else {
-        for (String customizedStateType : restrictedKeys) {
-          accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
-              .stream().forEach(resourceName -> participantStateKeys.add(
-                  keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
-        }
-      }
-    }
     // All new entries from zk not cached locally yet should be read from ZK.
     Set<PropertyKey> reloadKeys = new HashSet<>(participantStateKeys);
     reloadKeys.removeAll(_participantStateCache.keySet());
@@ -152,9 +132,15 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, genEventInfo(), "# of participant state reload: " + reloadKeys.size()
           + ", skipped:" + (participantStateKeys.size() - reloadKeys.size()) + ". took "
-          + (System.currentTimeMillis() - start) + " ms to reload new participant states for cluster: "
+          + (System.currentTimeMillis() - start)
+          + " ms to reload new participant states for cluster: "
           + _controlContextProvider.getClusterName() + "and state: " + this.getClass().getName());
     }
+  }
+
+  public void PopulateParticipantKeys(HelixDataAccessor accessor,
+      Set<PropertyKey> participantStateKeys, Map<String, LiveInstance> liveInstanceMap,
+      Set<String> restrictedKeys) {
   }
 
   protected void refreshSnapshot(Map<PropertyKey, T> newStateCache,
@@ -170,29 +156,28 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
   }
 
   /**
-   * Return all participant states for a certain level1 key.
-   * @param keyLevel1
+   * Return all participant states for a certain instance.
+   * @param instanceName
    * @return
    */
-  public Map<String, Map<String, T>> getParticipantStates(String keyLevel1) {
-    if (!_participantStateMap.containsKey(keyLevel1)) {
+  public Map<String, Map<String, T>> getParticipantStates(String instanceName) {
+    if (!_participantStateMap.containsKey(instanceName)) {
       return Collections.emptyMap();
     }
-    return Collections.unmodifiableMap(_participantStateMap.get(keyLevel1));
+    return Collections.unmodifiableMap(_participantStateMap.get(instanceName));
   }
 
   /**
-   * Provides the participant state map for a certain level1 key and level2 key
-   * @param keyLevel1
-   * @param keyLevel2
+   * Provides the participant state map for a certain instance and a customized key
+   * @param instanceName
+   * @param customizedKey
    * @return
    */
-  public Map<String, T> getParticipantState(String keyLevel1,
-      String keyLevel2) {
-    if (!_participantStateMap.containsKey(keyLevel1)
-        || !_participantStateMap.get(keyLevel1).containsKey(keyLevel2)) {
+  public Map<String, T> getParticipantState(String instanceName, String customizedKey) {
+    if (!_participantStateMap.containsKey(instanceName)
+        || !_participantStateMap.get(instanceName).containsKey(customizedKey)) {
       return Collections.emptyMap();
     }
-    return Collections.unmodifiableMap(_participantStateMap.get(keyLevel1).get(keyLevel2));
+    return Collections.unmodifiableMap(_participantStateMap.get(instanceName).get(customizedKey));
   }
 }

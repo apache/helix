@@ -19,8 +19,13 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
+import java.util.Map;
+import java.util.Set;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,5 +38,18 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
 
   public CustomizedStateCache(ControlContextProvider contextProvider) {
     super(contextProvider);
+  }
+
+  public void PopulateParticipantKeys(HelixDataAccessor accessor,
+      Set<PropertyKey> participantStateKeys, Map<String, LiveInstance> liveInstanceMap,
+      Set<String> restrictedKeys) {
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    for (String instanceName : liveInstanceMap.keySet()) {
+      for (String customizedStateType : restrictedKeys) {
+        accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
+            .stream().forEach(resourceName -> participantStateKeys
+                .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
+      }
+    }
   }
 }

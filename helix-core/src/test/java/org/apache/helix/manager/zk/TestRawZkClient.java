@@ -780,12 +780,14 @@ public class TestRawZkClient extends ZkUnitTestBase {
       zkClient.asyncCreate("/tmp/async", null, CreateMode.PERSISTENT, createCallback);
       createCallback.waitForSuccess();
       Assert.assertEquals(createCallback.getRc(), 0);
+      Assert.assertTrue(zkClient.exists("/tmp/async"));
 
       // try to create oversize node, should fail
       zkClient.asyncCreate("/tmp/asyncOversize", oversizeZNRecord, CreateMode.PERSISTENT,
           createCallback);
       createCallback.waitForSuccess();
       Assert.assertEquals(createCallback.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertFalse(zkClient.exists("/tmp/asyncOversize"));
 
       ZNRecord normalZNRecord = new ZNRecord("normal");
       normalZNRecord.setSimpleField("key", buf);
@@ -799,6 +801,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       zkClient.asyncSetData("/tmp/async", oversizeZNRecord, -1, setDataCallbackHandler);
       setDataCallbackHandler.waitForSuccess();
       Assert.assertEquals(setDataCallbackHandler.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertEquals(zkClient.readData("/tmp/async"), normalZNRecord);
     } finally {
       if (originSizeLimit == null) {
         System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);

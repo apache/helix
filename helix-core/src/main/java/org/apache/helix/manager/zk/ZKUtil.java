@@ -66,10 +66,6 @@ public final class ZKUtil {
     return result;
   }
 
-  public static boolean isClusterSetup(String clusterName, HelixZkClient zkClient) {
-    return isClusterSetup(clusterName, (RealmAwareZkClient) zkClient);
-  }
-
   public static boolean isClusterSetup(String clusterName, RealmAwareZkClient zkClient) {
     if (clusterName == null) {
       logger.info("Fail to check cluster setup : cluster name is null!");
@@ -80,7 +76,7 @@ public final class ZKUtil {
       logger.info("Fail to check cluster setup : zookeeper client is null!");
       return false;
     }
-    ArrayList<String> requiredPaths = new ArrayList<>();
+    List<String> requiredPaths = new ArrayList<>();
     requiredPaths.add(PropertyPathBuilder.idealState(clusterName));
     requiredPaths.add(PropertyPathBuilder.clusterConfig(clusterName));
     requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName));
@@ -99,7 +95,11 @@ public final class ZKUtil {
 
     boolean[] ret = new boolean[requiredPaths.size()];
     for (int i = 0; i < requiredPaths.size(); i++) {
-      ret[i] = zkClient.exists(requiredPaths.get(i));
+      try {
+        ret[i] = zkClient.exists(requiredPaths.get(i));
+      } catch (Exception e) {
+        ret[i] = false;
+      }
     }
     StringBuilder errorMsg = new StringBuilder();
 
@@ -139,15 +139,10 @@ public final class ZKUtil {
     return result;
   }
 
-  public static boolean isInstanceSetup(HelixZkClient zkClient, String clusterName,
-      String instanceName, InstanceType type) {
-    return isInstanceSetup((RealmAwareZkClient) zkClient, clusterName, instanceName, type);
-  }
-
   public static boolean isInstanceSetup(RealmAwareZkClient zkclient, String clusterName,
       String instanceName, InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
-      ArrayList<String> requiredPaths = new ArrayList<>();
+      List<String> requiredPaths = new ArrayList<>();
       requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceMessage(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName));
@@ -192,10 +187,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void createChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
-    createChildren((RealmAwareZkClient) client, parentPath, list);
-  }
-
   public static void createChildren(RealmAwareZkClient client, String parentPath,
       List<ZNRecord> list) {
     client.createPersistent(parentPath, true);
@@ -222,10 +213,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void createChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
-    createChildren((RealmAwareZkClient) client, parentPath, nodeRecord);
-  }
-
   public static void createChildren(RealmAwareZkClient client, String parentPath,
       ZNRecord nodeRecord) {
     client.createPersistent(parentPath, true);
@@ -249,10 +236,6 @@ public final class ZKUtil {
     } finally {
       zkClient.close();
     }
-  }
-
-  public static void dropChildren(HelixZkClient client, String parentPath, List<ZNRecord> list) {
-    dropChildren((RealmAwareZkClient) client, parentPath, list);
   }
 
   public static void dropChildren(RealmAwareZkClient client, String parentPath,
@@ -281,10 +264,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void dropChildren(HelixZkClient client, String parentPath, ZNRecord nodeRecord) {
-    dropChildren((RealmAwareZkClient) client, parentPath, nodeRecord);
-  }
-
   public static void dropChildren(RealmAwareZkClient client, String parentPath,
       ZNRecord nodeRecord) {
     // TODO: check if parentPath exists
@@ -309,10 +288,6 @@ public final class ZKUtil {
       zkClient.close();
     }
     return result;
-  }
-
-  public static List<ZNRecord> getChildren(HelixZkClient client, String path) {
-    return getChildren((RealmAwareZkClient) client, path);
   }
 
   public static List<ZNRecord> getChildren(RealmAwareZkClient client, String path) {
@@ -356,11 +331,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void updateIfExists(HelixZkClient client, String path, final ZNRecord record,
-      boolean mergeOnUpdate) {
-    updateIfExists((RealmAwareZkClient) client, path, record, mergeOnUpdate);
-  }
-
   public static void updateIfExists(RealmAwareZkClient client, String path, final ZNRecord record,
       boolean mergeOnUpdate) {
     if (client.exists(path)) {
@@ -391,11 +361,6 @@ public final class ZKUtil {
     } finally {
       zkClient.close();
     }
-  }
-
-  public static void createOrMerge(HelixZkClient client, String path, final ZNRecord record,
-      final boolean persistent, final boolean mergeOnUpdate) {
-    createOrMerge((RealmAwareZkClient) client, path, record, persistent, mergeOnUpdate);
   }
 
   public static void createOrMerge(RealmAwareZkClient client, String path, final ZNRecord record,
@@ -453,11 +418,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrUpdate(HelixZkClient client, String path, final ZNRecord record,
-      final boolean persistent, final boolean mergeOnUpdate) {
-    createOrUpdate((RealmAwareZkClient) client, path, record, persistent, mergeOnUpdate);
-  }
-
   public static void createOrUpdate(RealmAwareZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
@@ -505,11 +465,6 @@ public final class ZKUtil {
     } finally {
       zkClient.close();
     }
-  }
-
-  public static void asyncCreateOrMerge(HelixZkClient client, String path, final ZNRecord record,
-      final boolean persistent, final boolean mergeOnUpdate) {
-    asyncCreateOrMerge((RealmAwareZkClient) client, path, record, persistent, mergeOnUpdate);
   }
 
   public static void asyncCreateOrMerge(RealmAwareZkClient client, String path,
@@ -565,11 +520,6 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrReplace(HelixZkClient client, String path, final ZNRecord record,
-      final boolean persistent) {
-    createOrReplace((RealmAwareZkClient) client, path, record, persistent);
-  }
-
   public static void createOrReplace(RealmAwareZkClient client, String path, final ZNRecord record,
       final boolean persistent) {
     int retryCount = 0;
@@ -611,11 +561,6 @@ public final class ZKUtil {
     } finally {
       zkClient.close();
     }
-  }
-
-  public static void subtract(HelixZkClient client, final String path,
-      final ZNRecord recordTosubtract) {
-    subtract((RealmAwareZkClient) client, path, recordTosubtract);
   }
 
   public static void subtract(RealmAwareZkClient client, final String path,

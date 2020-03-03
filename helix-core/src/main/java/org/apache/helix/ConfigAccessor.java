@@ -899,16 +899,12 @@ public class ConfigAccessor {
      */
     private void validate() {
       // Resolve RealmMode based on other parameters
-      boolean isRealmModeSet = _realmMode != null;
       boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
-      if (isRealmModeSet) {
-        if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-          throw new HelixException(
-              "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
-        }
-        // If realm mode is set to multi-realm, we simply ignore the given ZK address
-      } else {
-        // If zkAddress is set, that implies single-realm mode. Otherwise, multi-realm mode.
+      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
+        throw new HelixException(
+            "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+      if (_realmMode == null) {
         _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
             : RealmAwareZkClient.RealmMode.MULTI_REALM;
       }

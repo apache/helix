@@ -59,8 +59,7 @@ public interface RealmAwareZkClient {
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
   enum RealmMode {
-    SINGLE_REALM,
-    MULTI_REALM
+    SINGLE_REALM, MULTI_REALM
   }
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
@@ -443,24 +442,14 @@ public interface RealmAwareZkClient {
        * Validate the internal fields of the builder before creating an instance.
        */
       private void validate() {
-        boolean isRealmModeSet = _realmMode != null;
         boolean isShardingKeySet = _zkRealmShardingKey != null && !_zkRealmShardingKey.isEmpty();
-        switch (isRealmModeSet ? _realmMode : RealmMode.MULTI_REALM) {
-          case MULTI_REALM:
-            if (isShardingKeySet && isRealmModeSet) {
-              throw new IllegalArgumentException(
-                  "ZK sharding key cannot be set on multi-realm mode! Sharding key: "
-                      + _zkRealmShardingKey);
-            }
-            break;
-          case SINGLE_REALM:
-            if (!isShardingKeySet) {
-              throw new IllegalArgumentException(
-                  "ZK sharding key must be set on single-realm mode!");
-            }
-            break;
-          default:
-            throw new ZkClientException("RealmAwareZkConnectionConfig: Unknown mode!");
+        if (_realmMode == RealmMode.MULTI_REALM && isShardingKeySet) {
+          throw new IllegalArgumentException(
+              "ZK sharding key cannot be set on multi-realm mode! Sharding key: "
+                  + _zkRealmShardingKey);
+        }
+        if (_realmMode == RealmMode.SINGLE_REALM && !isShardingKeySet) {
+          throw new IllegalArgumentException("ZK sharding key must be set on single-realm mode!");
         }
       }
     }

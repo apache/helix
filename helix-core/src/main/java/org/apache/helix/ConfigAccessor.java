@@ -37,6 +37,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -602,6 +603,45 @@ public class ConfigAccessor {
     }
 
     return new RESTConfig(record);
+  }
+
+  /**
+   * Set RestConfig of a given cluster
+   * @param clusterName the cluster id
+   * @param restConfig the RestConfig to be set to the cluster
+   */
+  public void setRESTConfig(String clusterName, RESTConfig restConfig) {
+    updateRESTConfig(clusterName, restConfig, true);
+  }
+
+  /**
+   * Update RestConfig of a given cluster
+   * @param clusterName the cluster id
+   * @param restConfig the new RestConfig to be set to the cluster
+   */
+  public void updateRESTConfig(String clusterName, RESTConfig restConfig) {
+    updateRESTConfig(clusterName, restConfig, false);
+  }
+
+  private void updateRESTConfig(String clusterName, RESTConfig restConfig, boolean overwrite) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("fail to update REST config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    String zkPath = scope.getZkPath();
+
+    // Create "/{clusterId}/CONFIGS/REST" if it does not exist
+    String parentPath = HelixUtil.getZkParentPath(zkPath);
+    if (!_zkClient.exists(HelixUtil.getZkParentPath(zkPath))) {
+      ZKUtil.createOrMerge(_zkClient, parentPath, new ZNRecord(parentPath), true, true);
+    }
+
+    if (overwrite) {
+      ZKUtil.createOrReplace(_zkClient, zkPath, restConfig.getRecord(), true);
+    } else {
+      ZKUtil.createOrUpdate(_zkClient, zkPath, restConfig.getRecord(), true, true);
+    }
   }
 
   /**

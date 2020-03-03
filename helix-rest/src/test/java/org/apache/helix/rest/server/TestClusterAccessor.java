@@ -36,6 +36,7 @@ import com.sun.research.ws.wadl.HTTPMethods;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -574,6 +575,49 @@ public class TestClusterAccessor extends AbstractTestClass {
           _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
       Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
     }
+  }
+
+  @Test
+  public void testCreateClusterRESTConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    RESTConfig restConfigRest = new RESTConfig(cluster);
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:00");
+    put("clusters/" + cluster + "/restconfig", null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    RESTConfig restConfigZK = _configAccessor.getRESTConfig(cluster);
+    Assert.assertEquals(restConfigZK, restConfigRest,
+        "rest config from response: " + restConfigRest + " vs rest config actually: " + restConfigZK);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testCreateClusterRESTConfig")
+  public void testUpdateClusterRESTConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    RESTConfig restConfigRest = new RESTConfig(cluster);
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:01");
+    post("clusters/" + cluster + "/restconfig", null,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    RESTConfig restConfigZK = _configAccessor.getRESTConfig(cluster);
+    Assert.assertEquals(restConfigZK, restConfigRest,
+        "rest config from response: " + restConfigRest + " vs rest config actually: " + restConfigZK);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateClusterRESTConfig")
+  public void testGetClusterRESTConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    String body = get("clusters/" + cluster + "/restconfig", null, Response.Status.OK.getStatusCode(), true);
+    RESTConfig restConfigRest = new RESTConfig(cluster);
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:01");
+    ZNRecord record = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    ClusterConfig restConfigZk = new ClusterConfig(record);
+    Assert.assertEquals(restConfigZk, restConfigRest,
+        "rest config from response: " + restConfigRest + " vs rest config actually: " + restConfigZk);
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

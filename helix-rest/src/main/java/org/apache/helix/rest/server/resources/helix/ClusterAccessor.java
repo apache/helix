@@ -44,6 +44,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -514,6 +515,89 @@ public class ClusterAccessor extends AbstractHelixResource {
       return badRequest("Failed to remove!");
     }
     return OK();
+  }
+
+  @PUT
+  @Path("{clusterId}/restconfig")
+  public Response createClusterRESTConfig(@PathParam("clusterId") String clusterId,
+      String content) {
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    if (!record.getId().equals(clusterId)) {
+      return badRequest("ID does not match the cluster name in input!");
+    }
+
+    RESTConfig config = new RESTConfig(record);
+    ConfigAccessor configAccessor = getConfigAccessor();
+    try {
+      configAccessor.setRESTConfig(clusterId, config);
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error(
+          "Failed to create rest config, cluster " + clusterId + " new config: " + content
+              + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
+  @POST
+  @Path("{clusterId}/restconfig")
+  public Response updateClusterRESTConfig(@PathParam("clusterId") String clusterId,
+      String content) {
+
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    if (!record.getId().equals(clusterId)) {
+      return badRequest("ID does not match the cluster name in input!");
+    }
+
+    RESTConfig config = new RESTConfig(record);
+    ConfigAccessor configAccessor = getConfigAccessor();
+    try {
+      configAccessor.updateRESTConfig(clusterId, config);
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error(
+          "Failed to update rest config, cluster " + clusterId + " new config: " + content
+              + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
+  @GET
+  @Path("{clusterId}/restconfig")
+  public Response getClusterRESTConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    RESTConfig config = null;
+    try {
+      config = accessor.getRESTConfig(clusterId);
+    } catch (HelixException ex) {
+      _logger.info("Failed to get rest config for cluster " + clusterId
+          + ", cluster not found, Exception: " + ex);
+    } catch (Exception ex) {
+      _logger.error("Failed to get rest config for cluster " + clusterId + " Exception: " + ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    return JSONRepresentation(config.getRecord());
   }
 
   @GET

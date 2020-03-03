@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,12 +38,16 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.util.StringTemplate;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Provides access to the persistent configuration of the cluster, the instances that live on it,
@@ -52,6 +57,7 @@ public class ConfigAccessor {
   private static Logger LOG = LoggerFactory.getLogger(ConfigAccessor.class);
 
   private static final StringTemplate template = new StringTemplate();
+
   static {
     // @formatter:off
     template.addEntry(ConfigScopeProperty.CLUSTER, 1, "/{clusterName}/CONFIGS/CLUSTER");
@@ -70,10 +76,35 @@ public class ConfigAccessor {
     // @formatter:on
   }
 
-  private final HelixZkClient _zkClient;
+  private final RealmAwareZkClient _zkClient;
   // true if ConfigAccessor was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ConfigAccessor should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
+
+  /**
+   * Constructor that creates a realm-aware ConfigAccessor using a builder.
+   * @param builder
+   */
+  private ConfigAccessor(Builder builder) throws IOException, InvalidRoutingDataException {
+    switch (builder._realmMode) {
+      case MULTI_REALM:
+        // TODO: make sure FederatedZkClient is created correctly
+        // TODO: pass in MSDS endpoint or pass in _realmAwareZkConnectionConfig
+        String msdsEndpoint = builder._realmAwareZkConnectionConfig.getMsdsEndpoint();
+        _zkClient = new FederatedZkClient();
+        break;
+      case SINGLE_REALM:
+        // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do
+        // ephemeral operations
+        _zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(builder._realmAwareZkConnectionConfig.createZkConnectionConfig(),
+                builder._realmAwareZkClientConfig.createHelixZkClientConfig());
+        break;
+      default:
+        throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
+    }
+    _usesExternalZkClient = false;
+  }
 
   /**
    * Initialize an accessor with a Zookeeper client
@@ -94,9 +125,9 @@ public class ConfigAccessor {
    * @param zkAddress
    */
   public ConfigAccessor(String zkAddress) {
-    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(zkAddress),
-        new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
     _usesExternalZkClient = false;
   }
 
@@ -157,7 +188,6 @@ public class ConfigAccessor {
       }
     }
     return map;
-
   }
 
   /**
@@ -265,8 +295,8 @@ public class ConfigAccessor {
       String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
       if (!ZKUtil.isInstanceSetup(_zkClient, scope.getClusterName(), instanceName,
           InstanceType.PARTICIPANT)) {
-        throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: "
-            + clusterName);
+        throw new HelixException(
+            "instance: " + instanceName + " is NOT setup in cluster: " + clusterName);
       }
     }
 
@@ -499,7 +529,6 @@ public class ConfigAccessor {
 
         if (splits[1].startsWith("SIMPLEKEYS")) {
           retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
-
         } else if (splits[1].startsWith("MAPKEYS")) {
           retKeys = new ArrayList<String>(record.getMapFields().keySet());
         } else if (splits[1].startsWith("MAPMAPKEYS")) {
@@ -516,7 +545,6 @@ public class ConfigAccessor {
     } catch (Exception e) {
       return Collections.emptyList();
     }
-
   }
 
   /**
@@ -638,8 +666,8 @@ public class ConfigAccessor {
     updateClusterConfig(clusterName, clusterConfig, false);
   }
 
-
-  private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig, boolean overwrite) {
+  private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig,
+      boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to update config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -775,7 +803,6 @@ public class ConfigAccessor {
   public void setInstanceConfig(String clusterName, String instanceName,
       InstanceConfig instanceConfig) {
     updateInstanceConfig(clusterName, instanceName, instanceConfig, true);
-
   }
 
   /**
@@ -828,6 +855,73 @@ public class ConfigAccessor {
   public void close() {
     if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();
+    }
+  }
+
+  public static class Builder {
+    private String _zkAddress;
+    private RealmAwareZkClient.RealmMode _realmMode;
+    private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
+    private RealmAwareZkClient.RealmAwareZkClientConfig _realmAwareZkClientConfig;
+
+    public Builder() {
+    }
+
+    public Builder setZkAddress(String zkAddress) {
+      _zkAddress = zkAddress;
+      return this;
+    }
+
+    public Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
+      _realmMode = realmMode;
+      return this;
+    }
+
+    public Builder setRealmAwareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
+      _realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
+      return this;
+    }
+
+    public Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
+      _realmAwareZkClientConfig = realmAwareZkClientConfig;
+      return this;
+    }
+
+    public ConfigAccessor build() throws Exception {
+      validate();
+      return new ConfigAccessor(this);
+    }
+
+    /**
+     * Validate the given parameters before creating an instance of ConfigAccessor.
+     */
+    private void validate() {
+      // Resolve RealmMode based on other parameters
+      boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
+      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
+        throw new HelixException(
+            "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+      if (_realmMode == null) {
+        _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
+            : RealmAwareZkClient.RealmMode.MULTI_REALM;
+      }
+
+      // Resolve RealmAwareZkClientConfig
+      boolean isZkClientConfigSet = _realmAwareZkClientConfig != null;
+      // Resolve which clientConfig to use
+      _realmAwareZkClientConfig =
+          isZkClientConfigSet ? _realmAwareZkClientConfig.createHelixZkClientConfig()
+              : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+
+      // Resolve RealmAwareZkConnectionConfig
+      if (_realmAwareZkConnectionConfig == null) {
+        // If not set, create a default one
+        _realmAwareZkConnectionConfig =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
+      }
     }
   }
 }

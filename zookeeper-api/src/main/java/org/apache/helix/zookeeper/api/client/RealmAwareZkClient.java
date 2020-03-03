@@ -19,9 +19,13 @@ package org.apache.helix.zookeeper.api.client;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -54,9 +58,8 @@ public interface RealmAwareZkClient {
    * SINGLE_REALM: CRUD, change subscription, and EPHEMERAL CreateMode are supported.
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
-  enum MODE {
-    SINGLE_REALM,
-    MULTI_REALM
+  enum RealmMode {
+    SINGLE_REALM, MULTI_REALM
   }
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
@@ -325,16 +328,18 @@ public interface RealmAwareZkClient {
    * ZkConnection-related configs for creating an instance of RealmAwareZkClient.
    */
   class RealmAwareZkConnectionConfig {
-
     /**
      * zkRealmShardingKey: used to deduce which ZK realm this RealmAwareZkClientConfig should connect to.
-     * NOTE: this field will be ignored if MODE is MULTI_REALM!
+     * NOTE: this field will be ignored if RealmMode is MULTI_REALM!
      */
-    private final String _zkRealmShardingKey;
-    private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+    private String _zkRealmShardingKey;
+    private String _msdsEndpoint;
+    private int _sessionTimeout;
 
-    public RealmAwareZkConnectionConfig(String zkRealmShardingKey) {
-      _zkRealmShardingKey = zkRealmShardingKey;
+    private RealmAwareZkConnectionConfig(Builder builder) {
+      _zkRealmShardingKey = builder._zkRealmShardingKey;
+      _msdsEndpoint = builder._msdsEndpoint;
+      _sessionTimeout = builder._sessionTimeout;
     }
 
     @Override
@@ -372,6 +377,81 @@ public interface RealmAwareZkClient {
 
     public int getSessionTimeout() {
       return _sessionTimeout;
+    }
+
+    public String getMsdsEndpoint() {
+      return _msdsEndpoint;
+    }
+
+    public HelixZkClient.ZkConnectionConfig createZkConnectionConfig()
+        throws IOException, InvalidRoutingDataException {
+      // Convert to a single-realm HelixZkClient's ZkConnectionConfig
+      if (_zkRealmShardingKey == null || _zkRealmShardingKey.isEmpty()) {
+        throw new ZkClientException(
+            "Cannot create ZkConnectionConfig because ZK realm sharding key is either null or empty!");
+      }
+
+      String zkAddress;
+      // Look up the ZK address for the given ZK realm sharding key
+      if (_msdsEndpoint == null || _msdsEndpoint.isEmpty()) {
+        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData()
+            .getMetadataStoreRealm(_zkRealmShardingKey);
+      } else {
+        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData(_msdsEndpoint)
+            .getMetadataStoreRealm(_zkRealmShardingKey);
+      }
+
+      return new HelixZkClient.ZkConnectionConfig(zkAddress).setSessionTimeout(_sessionTimeout);
+    }
+
+    public static class Builder {
+      private RealmMode _realmMode;
+      private String _zkRealmShardingKey;
+      private String _msdsEndpoint;
+      private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+
+      public Builder() {
+      }
+
+      public Builder setRealmMode(RealmMode mode) {
+        _realmMode = mode;
+        return this;
+      }
+
+      public Builder setZkRealmShardingKey(String shardingKey) {
+        _zkRealmShardingKey = shardingKey;
+        return this;
+      }
+
+      public Builder setMsdsEndpoint(String msdsEndpoint) {
+        _msdsEndpoint = msdsEndpoint;
+        return this;
+      }
+
+      public Builder setSessionTimeout(int sessionTimeout) {
+        _sessionTimeout = sessionTimeout;
+        return this;
+      }
+
+      public RealmAwareZkConnectionConfig build() {
+        validate();
+        return new RealmAwareZkConnectionConfig(this);
+      }
+
+      /**
+       * Validate the internal fields of the builder before creating an instance.
+       */
+      private void validate() {
+        boolean isShardingKeySet = _zkRealmShardingKey != null && !_zkRealmShardingKey.isEmpty();
+        if (_realmMode == RealmMode.MULTI_REALM && isShardingKeySet) {
+          throw new IllegalArgumentException(
+              "ZK sharding key cannot be set on multi-realm mode! Sharding key: "
+                  + _zkRealmShardingKey);
+        }
+        if (_realmMode == RealmMode.SINGLE_REALM && !isShardingKeySet) {
+          throw new IllegalArgumentException("ZK sharding key must be set on single-realm mode!");
+        }
+      }
     }
   }
 
@@ -478,6 +558,18 @@ public interface RealmAwareZkClient {
 
     public long getConnectInitTimeout() {
       return _connectInitTimeout;
+    }
+
+    /**
+     * Create HelixZkClient.ZkClientConfig based on RealmAwareZkClientConfig.
+     * @return
+     */
+    public HelixZkClient.ZkClientConfig createHelixZkClientConfig() {
+      return new HelixZkClient.ZkClientConfig().setZkSerializer(_zkSerializer)
+          .setMonitorType(_monitorType).setMonitorKey(_monitorKey)
+          .setMonitorInstanceName(_monitorInstanceName).setMonitorRootPathOnly(_monitorRootPathOnly)
+          .setOperationRetryTimeout(_operationRetryTimeout)
+          .setConnectInitTimeout(_connectInitTimeout);
     }
   }
 }

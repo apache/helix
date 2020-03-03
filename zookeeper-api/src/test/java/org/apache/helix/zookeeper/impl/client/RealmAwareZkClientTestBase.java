@@ -85,8 +85,10 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
         new RealmAwareZkClient.RealmAwareZkClientConfig();
 
     // Create a connection config with the invalid sharding key
+    RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder builder =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
     RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig(invalidShardingKey);
+        builder.setZkRealmShardingKey(invalidShardingKey).build();
 
     try {
       _realmAwareZkClient = _realmAwareZkClientFactory
@@ -98,7 +100,8 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
 
     // Use a valid sharding key this time around
     String validShardingKey = ZK_SHARDING_KEY_PREFIX + "_" + 0; // Use TEST_SHARDING_KEY_0
-    connectionConfig = new RealmAwareZkClient.RealmAwareZkConnectionConfig(validShardingKey);
+    builder.setZkRealmShardingKey(validShardingKey);
+    connectionConfig = builder.build();
     _realmAwareZkClient = _realmAwareZkClientFactory
         .buildZkClient(connectionConfig, clientConfig, _metadataStoreRoutingData);
   }

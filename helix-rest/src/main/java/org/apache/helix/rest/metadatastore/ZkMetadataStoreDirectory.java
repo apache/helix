@@ -161,11 +161,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean setNamespaceRoutingData(String namespace, Map<String, List<String>> routingData) {
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      throw new IllegalArgumentException(
+          "Failed to set routing data: Namespace " + namespace + " is not found!");
+    }
     synchronized (this) {
-      if (!_routingDataWriterMap.containsKey(namespace)) {
-        throw new IllegalArgumentException(
-            "Failed to set routing data: Namespace " + namespace + " is not found!");
-      }
       boolean result = _routingDataWriterMap.get(namespace).setRoutingData(routingData);
       refreshRoutingData(namespace);
       return result;
@@ -216,13 +216,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean addMetadataStoreRealm(String namespace, String realm) {
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
+      // status code in the Accessor level
+      throw new NoSuchElementException(
+          "Failed to add metadata store realm: Namespace " + namespace + " is not found!");
+    }
     synchronized (this) {
-      if (!_routingDataWriterMap.containsKey(namespace)) {
-        // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
-        // status code in the Accessor level
-        throw new NoSuchElementException(
-            "Failed to add metadata store realm: Namespace " + namespace + " is not found!");
-      }
       boolean result = _routingDataWriterMap.get(namespace).addMetadataStoreRealm(realm);
       refreshRoutingData(namespace);
       return result;
@@ -231,13 +231,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean deleteMetadataStoreRealm(String namespace, String realm) {
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
+      // status code in the Accessor level
+      throw new NoSuchElementException(
+          "Failed to delete metadata store realm: Namespace " + namespace + " is not found!");
+    }
     synchronized (this) {
-      if (!_routingDataWriterMap.containsKey(namespace)) {
-        // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
-        // status code in the Accessor level
-        throw new NoSuchElementException(
-            "Failed to delete metadata store realm: Namespace " + namespace + " is not found!");
-      }
       boolean result = _routingDataWriterMap.get(namespace).deleteMetadataStoreRealm(realm);
       refreshRoutingData(namespace);
       return result;
@@ -246,13 +246,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean addShardingKey(String namespace, String realm, String shardingKey) {
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
+      // status code in the Accessor level
+      throw new NoSuchElementException(
+          "Failed to add sharding key: Namespace " + namespace + " is not found!");
+    }
     synchronized (this) {
-      if (!_routingDataWriterMap.containsKey(namespace)) {
-        // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
-        // status code in the Accessor level
-        throw new NoSuchElementException(
-            "Failed to add sharding key: Namespace " + namespace + " is not found!");
-      }
       if (_routingDataMap.containsKey(namespace) && _routingDataMap.get(namespace)
           .containsKeyRealmPair(shardingKey, realm)) {
         return true;
@@ -271,13 +271,13 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
 
   @Override
   public boolean deleteShardingKey(String namespace, String realm, String shardingKey) {
+    if (!_routingDataWriterMap.containsKey(namespace)) {
+      // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
+      // status code in the Accessor level
+      throw new NoSuchElementException(
+          "Failed to delete sharding key: Namespace " + namespace + " is not found!");
+    }
     synchronized (this) {
-      if (!_routingDataWriterMap.containsKey(namespace)) {
-        // throwing NoSuchElementException instead of IllegalArgumentException to differentiate the
-        // status code in the Accessor level
-        throw new NoSuchElementException(
-            "Failed to delete sharding key: Namespace " + namespace + " is not found!");
-      }
       boolean result = _routingDataWriterMap.get(namespace).deleteShardingKey(realm, shardingKey);
       refreshRoutingData(namespace);
       return result;

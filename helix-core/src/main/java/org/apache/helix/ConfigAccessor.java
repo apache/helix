@@ -89,10 +89,8 @@ public class ConfigAccessor {
   private ConfigAccessor(Builder builder) throws IOException, InvalidRoutingDataException {
     switch (builder._realmMode) {
       case MULTI_REALM:
-        // TODO: make sure FederatedZkClient is created correctly
-        // TODO: pass in MSDS endpoint or pass in _realmAwareZkConnectionConfig
-        String msdsEndpoint = builder._realmAwareZkConnectionConfig.getMsdsEndpoint();
-        _zkClient = new FederatedZkClient();
+        _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
+            builder._realmAwareZkClientConfig);
         break;
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do

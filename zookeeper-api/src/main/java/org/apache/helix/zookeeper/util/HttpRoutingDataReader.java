@@ -141,7 +141,8 @@ public class HttpRoutingDataReader {
    * @throws IOException
    */
   private static String getAllRoutingData() throws IOException {
-    // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point of failure if it's backed by a single IP address/host
+    // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point
+    // of failure if it's backed by a single IP address/host
     // Retry count is 3 by default.
     HttpGet requestAllData = new HttpGet(
         SYSTEM_MSDS_ENDPOINT + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);

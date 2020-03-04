@@ -22,6 +22,7 @@ package org.apache.helix.msdcommon.mock;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -65,7 +66,7 @@ public class TestMockMetadataStoreDirectoryServer {
       Collection<String> allRealms = routingDataList.stream().map(mapEntry -> (String) mapEntry
           .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM))
           .collect(Collectors.toSet());
-      Assert.assertEquals(allRealms, TestConstants.FAKE_ROUTING_DATA.keySet());
+      Assert.assertEquals(new HashSet(allRealms), TestConstants.FAKE_ROUTING_DATA.keySet());
       Map<String, List<String>> retrievedRoutingData = routingDataList.stream().collect(Collectors
           .toMap(mapEntry -> (String) mapEntry
                   .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),

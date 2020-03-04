@@ -19,15 +19,17 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.io.IOException;
+
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.testng.annotations.BeforeClass;
 
 
-public class TestDedicatedZkClient extends RealmAwareZkClientTestBase {
+public class TestDedicatedZkClient extends RealmAwareZkClientFactoryTestBase {
 
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws IOException, InvalidRoutingDataException {
     super.beforeClass();
     // Set the factory to DedicatedZkClientFactory
     _realmAwareZkClientFactory = DedicatedZkClientFactory.getInstance();

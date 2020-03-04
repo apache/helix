@@ -21,10 +21,7 @@ package org.apache.helix.zookeeper.impl.client;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
@@ -32,9 +29,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.Watcher;
@@ -45,40 +40,20 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestFederatedZkClient extends ZkTestBase {
-  private static final String TEST_SHARDING_KEY_PREFIX = "/test_sharding_key_";
-  private static final String TEST_REALM_ONE_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "1/a/b/c";
-  private static final String TEST_REALM_TWO_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "2/x/y/z";
+public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
+  private static final String TEST_SHARDING_KEY_PREFIX = ZK_SHARDING_KEY_PREFIX;
+  private static final String TEST_REALM_ONE_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "/1/a/b/c";
+  private static final String TEST_REALM_TWO_VALID_PATH = TEST_SHARDING_KEY_PREFIX + "/2/x/y/z";
   private static final String TEST_INVALID_PATH = TEST_SHARDING_KEY_PREFIX + "invalid/a/b/c";
   private static final String UNSUPPORTED_OPERATION_MESSAGE =
       "Session-aware operation is not supported by FederatedZkClient.";
 
   private RealmAwareZkClient _realmAwareZkClient;
-  // Need to start an extra ZK server for multi-realm test, if only one ZK server is running.
-  private String _extraZkRealm;
-  private ZkServer _extraZkServer;
 
   @BeforeClass
-  public void beforeClass() throws InvalidRoutingDataException, IOException {
+  public void beforeClass() throws IOException, InvalidRoutingDataException {
     System.out.println("Starting " + TestFederatedZkClient.class.getSimpleName());
-
-    // Populate rawRoutingData
-    // <Realm, List of sharding keys> Mapping
-    Map<String, List<String>> rawRoutingData = new HashMap<>();
-    for (int i = 0; i < _numZk; i++) {
-      List<String> shardingKeyList = Collections.singletonList(TEST_SHARDING_KEY_PREFIX + (i + 1));
-      String realmName = ZK_PREFIX + (ZK_START_PORT + i);
-      rawRoutingData.put(realmName, shardingKeyList);
-    }
-
-    if (rawRoutingData.size() < 2) {
-      System.out.println("There is only one ZK realm. Starting one more ZK to test multi-realm.");
-      _extraZkRealm = ZK_PREFIX + (ZK_START_PORT + 1);
-      _extraZkServer = startZkServer(_extraZkRealm);
-      // RealmTwo's sharding key: /test_sharding_key_2
-      List<String> shardingKeyList = Collections.singletonList(TEST_SHARDING_KEY_PREFIX + "2");
-      rawRoutingData.put(_extraZkRealm, shardingKeyList);
-    }
+    super.beforeClass();
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
     // of routing information.
@@ -87,14 +62,9 @@ public class TestFederatedZkClient extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    super.afterClass();
     // Close it as it is created in before class.
     _realmAwareZkClient.close();
-
-    // Close the extra zk server.
-    if (_extraZkServer != null) {
-      _extraZkServer.shutdown();
-    }
-
     System.out.println("Ending " + TestFederatedZkClient.class.getSimpleName());
   }
 
@@ -102,7 +72,7 @@ public class TestFederatedZkClient extends ZkTestBase {
    * Tests that an unsupported operation should throw an UnsupportedOperationException.
    */
   @Test
-  public void testUnsupportedOperations() {
+  public void testUnsupportedOperations() throws IOException, InvalidRoutingDataException {
     // Test creating ephemeral.
     try {
       _realmAwareZkClient.create(TEST_REALM_ONE_VALID_PATH, "Hello", CreateMode.EPHEMERAL);

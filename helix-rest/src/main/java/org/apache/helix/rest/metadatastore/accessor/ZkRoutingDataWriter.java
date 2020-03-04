@@ -41,9 +41,14 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +57,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   // Time out for http requests that are forwarded to leader instances measured in milliseconds
   private static final int HTTP_REQUEST_FORWARDING_TIMEOUT = 60 * 1000;
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final String _namespace;
   private final HelixZkClient _zkClient;
@@ -113,7 +119,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
-    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
+    return buildAndSendRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
   }
 
@@ -128,7 +134,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm);
-    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
+    return buildAndSendRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
         Response.Status.OK.getStatusCode());
   }
 
@@ -144,7 +150,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
-    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
+    return buildAndSendRequestToLeader(urlSuffix, HttpConstants.RestVerbs.PUT,
         Response.Status.CREATED.getStatusCode());
   }
 
@@ -160,7 +166,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String urlSuffix =
         constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT, realm,
             MetadataStoreRoutingConstants.MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT, shardingKey);
-    return forwardRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
+    return buildAndSendRequestToLeader(urlSuffix, HttpConstants.RestVerbs.DELETE,
         Response.Status.OK.getStatusCode());
   }
 
@@ -209,8 +215,23 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    // TODO: Forward the request to leader
-    return true;
+    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
+    String url = leaderHostName + constructUrlSuffix(
+        MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+    HttpPut httpPut = new HttpPut(url);
+    String routingDataJsonString;
+    try {
+      routingDataJsonString = OBJECT_MAPPER.writeValueAsString(routingData);
+    } catch (JsonGenerationException | JsonMappingException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    } catch (IOException e) {
+      LOG.error(
+          "setRoutingData failed before forwarding the request to leader: an exception happened while routingData is converted to json. routingData: {}",
+          routingData, e);
+      return false;
+    }
+    httpPut.setEntity(new StringEntity(routingDataJsonString, ContentType.APPLICATION_JSON));
+    return sendRequestToLeader(httpPut, Response.Status.CREATED.getStatusCode(), leaderHostName);
   }
 
   @Override
@@ -332,12 +353,13 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     return String.join("", allUrlParameters);
   }
 
-  private boolean forwardRequestToLeader(String urlSuffix, HttpConstants.RestVerbs request_method,
-      int expectedResponseCode) throws IllegalArgumentException {
+  private boolean buildAndSendRequestToLeader(String urlSuffix,
+      HttpConstants.RestVerbs requestMethod, int expectedResponseCode)
+      throws IllegalArgumentException {
     String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
     String url = leaderHostName + urlSuffix;
     HttpUriRequest request;
-    switch (request_method) {
+    switch (requestMethod) {
       case PUT:
         request = new HttpPut(url);
         break;
@@ -345,8 +367,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         request = new HttpDelete(url);
         break;
       default:
-        LOG.error("Unsupported request_method: " + request_method.name());
-        return false;
+        throw new IllegalArgumentException("Unsupported requestMethod: " + requestMethod.name());
     }
 
     return sendRequestToLeader(request, expectedResponseCode, leaderHostName);

@@ -24,7 +24,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.core.Response;
 
@@ -45,8 +47,11 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,8 +125,9 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
     Set<String> expectedRealmsSet = getAllRealms();
     Assert.assertFalse(expectedRealmsSet.contains(TEST_REALM_3),
         "Metadata store directory should not have realm: " + TEST_REALM_3);
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.PUT,
-        Response.Status.CREATED.getStatusCode());
+    HttpUriRequest request =
+        buildRequest("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.PUT, "");
+    sendRequestAndValidate(request, Response.Status.CREATED.getStatusCode());
     expectedRealmsSet.add(TEST_REALM_3);
     Assert.assertEquals(getAllRealms(), expectedRealmsSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
@@ -131,8 +137,9 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
   public void testDeleteMetadataStoreRealmRequestForwarding()
       throws InvalidRoutingDataException, IOException {
     Set<String> expectedRealmsSet = getAllRealms();
-    sendRequestAndValidate("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.DELETE,
-        Response.Status.OK.getStatusCode());
+    HttpUriRequest request =
+        buildRequest("/metadata-store-realms/" + TEST_REALM_3, HttpConstants.RestVerbs.DELETE, "");
+    sendRequestAndValidate(request, Response.Status.OK.getStatusCode());
     expectedRealmsSet.remove(TEST_REALM_3);
     Assert.assertEquals(getAllRealms(), expectedRealmsSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
@@ -144,9 +151,10 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
     Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
     Assert.assertFalse(expectedShardingKeysSet.contains(TEST_SHARDING_KEY),
         "Realm does not have sharding key: " + TEST_SHARDING_KEY);
-    sendRequestAndValidate(
+    HttpUriRequest request = buildRequest(
         "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
-        HttpConstants.RestVerbs.PUT, Response.Status.CREATED.getStatusCode());
+        HttpConstants.RestVerbs.PUT, "");
+    sendRequestAndValidate(request, Response.Status.CREATED.getStatusCode());
     expectedShardingKeysSet.add(TEST_SHARDING_KEY);
     Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
@@ -156,28 +164,47 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
   public void testDeleteShardingKeyRequestForwarding()
       throws InvalidRoutingDataException, IOException {
     Set<String> expectedShardingKeysSet = getAllShardingKeysInTestRealm1();
-    sendRequestAndValidate(
+    HttpUriRequest request = buildRequest(
         "/metadata-store-realms/" + TEST_REALM_1 + "/sharding-keys/" + TEST_SHARDING_KEY,
-        HttpConstants.RestVerbs.DELETE, Response.Status.OK.getStatusCode());
+        HttpConstants.RestVerbs.DELETE, "");
+    sendRequestAndValidate(request, Response.Status.OK.getStatusCode());
     expectedShardingKeysSet.remove(TEST_SHARDING_KEY);
     Assert.assertEquals(getAllShardingKeysInTestRealm1(), expectedShardingKeysSet);
     MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
   }
 
-  private void sendRequestAndValidate(String urlSuffix, HttpConstants.RestVerbs requestMethod,
-      int expectedResponseCode) throws IllegalArgumentException, IOException {
+  @Test(dependsOnMethods = "testDeleteShardingKeyRequestForwarding")
+  public void testSetRoutingDataRequestForwarding()
+      throws InvalidRoutingDataException, IOException {
+    Map<String, List<String>> routingData = new HashMap<>();
+    routingData.put(TEST_REALM_1, TEST_SHARDING_KEYS_2);
+    routingData.put(TEST_REALM_2, TEST_SHARDING_KEYS_1);
+    String routingDataString = new ObjectMapper().writeValueAsString(routingData);
+    HttpUriRequest request =
+        buildRequest(MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT,
+            HttpConstants.RestVerbs.PUT, routingDataString);
+    sendRequestAndValidate(request, Response.Status.CREATED.getStatusCode());
+    Assert.assertEquals(getRawRoutingData(), routingData);
+    MockMetadataStoreDirectoryAccessor._mockMSDInstance.close();
+  }
+
+  private HttpUriRequest buildRequest(String urlSuffix, HttpConstants.RestVerbs requestMethod,
+      String jsonEntity) {
     String url = _mockBaseUri + TEST_NAMESPACE_URI_PREFIX + MOCK_URL_PREFIX + urlSuffix;
-    HttpUriRequest request;
     switch (requestMethod) {
       case PUT:
-        request = new HttpPut(url);
-        break;
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.setEntity(new StringEntity(jsonEntity, ContentType.APPLICATION_JSON));
+        return httpPut;
       case DELETE:
-        request = new HttpDelete(url);
-        break;
+        return new HttpDelete(url);
       default:
         throw new IllegalArgumentException("Unsupported requestMethod: " + requestMethod);
     }
+  }
+
+  private void sendRequestAndValidate(HttpUriRequest request, int expectedResponseCode)
+      throws IllegalArgumentException, IOException {
     HttpResponse response = _httpClient.execute(request);
     Assert.assertEquals(response.getStatusLine().getStatusCode(), expectedResponseCode);
 

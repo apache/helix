@@ -167,8 +167,8 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
   }
 
   /*
-   * Checks for the edge case when the only sharding key in provided routing data is the delimiter
-   * or an empty string. When this is the case, the trie is valid and contains only one node, which
+   * Checks for the edge case when the only sharding key in provided routing data is the delimiter.
+   * When this is the case, the trie is valid and contains only one node, which
    * is the root node, and the root node is a leaf node with a realm address associated with it.
    * @param routingData - a mapping from "sharding keys" to "realm addresses" to be parsed into a
    *          trie

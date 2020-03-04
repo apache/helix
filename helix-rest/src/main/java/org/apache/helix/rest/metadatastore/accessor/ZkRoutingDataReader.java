@@ -99,7 +99,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (allRealmAddresses != null) {
       for (String realmAddress : allRealmAddresses) {
         ZNRecord record = _zkClient
-            .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress);
+            .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realmAddress, true);
         if (record != null) {
           List<String> shardingKeys =
               record.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY);

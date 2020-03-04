@@ -108,11 +108,11 @@ public class ConfigAccessor {
   /**
    * Initialize an accessor with a Zookeeper client
    * Note: it is recommended to use the other constructor instead to avoid having to create a
-   * HelixZkClient.
+   * RealmAwareZkClient.
    * @param zkClient
    */
   @Deprecated
-  public ConfigAccessor(HelixZkClient zkClient) {
+  public ConfigAccessor(RealmAwareZkClient zkClient) {
     _zkClient = zkClient;
     _usesExternalZkClient = true;
   }
@@ -124,9 +124,22 @@ public class ConfigAccessor {
    * @param zkAddress
    */
   public ConfigAccessor(String zkAddress) {
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    // First, attempt to connect on multi-realm mode using FederatedZkClient
+    RealmAwareZkClient zkClient;
+    try {
+      zkClient = new FederatedZkClient(
+          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+          new RealmAwareZkClient.RealmAwareZkClientConfig());
+    } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      // Connecting multi-realm failed - fall back to creating it on single-realm mode using the given ZK address
+      LOG.info(
+          "ConfigAccessor: not able to connect on multi-realm mode; connecting single-realm mode to ZK: {}",
+          zkAddress, e);
+      zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+              new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    }
+    _zkClient = zkClient;
     _usesExternalZkClient = false;
   }
 

@@ -113,7 +113,7 @@ public class CustomizedStateProvider {
   /**
    * Delete the customized state for a specified resource and a specified partition
    */
-  public void deletePerPartitionCustomizedState(String customizedStateName, String resourceName,
+  public synchronized void deletePerPartitionCustomizedState(String customizedStateName, String resourceName,
       String partitionName) {
     PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
     PropertyKey propertyKey =

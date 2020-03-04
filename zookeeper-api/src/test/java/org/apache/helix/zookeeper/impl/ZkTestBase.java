@@ -29,6 +29,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.slf4j.Logger;
@@ -50,8 +51,8 @@ public class ZkTestBase {
   private static final String MULTI_ZK_PROPERTY_KEY = "multiZk";
   private static final String NUM_ZK_PROPERTY_KEY = "numZk";
 
-  protected static final String ZK_PREFIX = "localhost:";
-  protected static final int ZK_START_PORT = 2127;
+  public static final String ZK_PREFIX = TestConstants.ZK_PREFIX;
+  public static final int ZK_START_PORT = TestConstants.ZK_START_PORT;
 
   /*
    * Multiple ZK references

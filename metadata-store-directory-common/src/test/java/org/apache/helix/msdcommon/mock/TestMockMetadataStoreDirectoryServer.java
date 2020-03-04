@@ -22,12 +22,14 @@ package org.apache.helix.msdcommon.mock;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.constant.TestConstants;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -40,12 +42,6 @@ import org.testng.Assert;
 public class TestMockMetadataStoreDirectoryServer {
   @Test
   public void testMockMetadataStoreDirectoryServer() throws IOException {
-    // Create fake routing data
-    Map<String, Collection<String>> routingData = new HashMap<>();
-    routingData.put("zk-0", ImmutableList.of("sharding-key-0", "sharding-key-1", "sharding-key-2"));
-    routingData.put("zk-1", ImmutableList.of("sharding-key-3", "sharding-key-4", "sharding-key-5"));
-    routingData.put("zk-2", ImmutableList.of("sharding-key-6", "sharding-key-7", "sharding-key-8"));
-
     // Start MockMSDS
     String host = "localhost";
     int port = 11000;
@@ -53,7 +49,8 @@ public class TestMockMetadataStoreDirectoryServer {
     String namespace = "MY-HELIX-NAMESPACE";
 
     MockMetadataStoreDirectoryServer server =
-        new MockMetadataStoreDirectoryServer(host, port, namespace, routingData);
+        new MockMetadataStoreDirectoryServer(host, port, namespace,
+            TestConstants.FAKE_ROUTING_DATA);
     server.startServer();
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
       // Send a GET request for all routing data
@@ -69,13 +66,13 @@ public class TestMockMetadataStoreDirectoryServer {
       Collection<String> allRealms = routingDataList.stream().map(mapEntry -> (String) mapEntry
           .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM))
           .collect(Collectors.toSet());
-      Assert.assertEquals(allRealms, routingData.keySet());
+      Assert.assertEquals(new HashSet(allRealms), TestConstants.FAKE_ROUTING_DATA.keySet());
       Map<String, List<String>> retrievedRoutingData = routingDataList.stream().collect(Collectors
           .toMap(mapEntry -> (String) mapEntry
                   .get(MetadataStoreRoutingConstants.SINGLE_METADATA_STORE_REALM),
               mapEntry -> (List<String>) mapEntry
                   .get(MetadataStoreRoutingConstants.SHARDING_KEYS)));
-      Assert.assertEquals(retrievedRoutingData, routingData);
+      Assert.assertEquals(retrievedRoutingData, TestConstants.FAKE_ROUTING_DATA);
 
       // Send a GET request for all realms
       getRequest = new HttpGet(endpoint + MockMetadataStoreDirectoryServer.REST_PREFIX + namespace
@@ -86,7 +83,7 @@ public class TestMockMetadataStoreDirectoryServer {
       Assert.assertTrue(
           allRealmsMap.containsKey(MetadataStoreRoutingConstants.METADATA_STORE_REALMS));
       allRealms = allRealmsMap.get(MetadataStoreRoutingConstants.METADATA_STORE_REALMS);
-      Assert.assertEquals(allRealms, routingData.keySet());
+      Assert.assertEquals(allRealms, TestConstants.FAKE_ROUTING_DATA.keySet());
 
       // Send a GET request for testZkRealm
       String testZkRealm = "zk-0";
@@ -103,7 +100,7 @@ public class TestMockMetadataStoreDirectoryServer {
       Collection<String> shardingKeyList =
           (Collection) shardingKeysMap.get(MetadataStoreRoutingConstants.SHARDING_KEYS);
       Assert.assertEquals(zkRealm, testZkRealm);
-      Assert.assertEquals(shardingKeyList, routingData.get(testZkRealm));
+      Assert.assertEquals(shardingKeyList, TestConstants.FAKE_ROUTING_DATA.get(testZkRealm));
 
       // Try sending a POST request (not supported)
       HttpPost postRequest = new HttpPost(

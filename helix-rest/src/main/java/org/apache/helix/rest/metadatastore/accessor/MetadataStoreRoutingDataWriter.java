@@ -63,7 +63,7 @@ public interface MetadataStoreRoutingDataWriter {
    * Sets (overwrites) the routing data with the given <realm, list of sharding keys> mapping.
    * WARNING: This overwrites all existing routing data. Use with care!
    * @param routingData
-   * @return
+   * @return true if successful; false otherwise.
    */
   boolean setRoutingData(Map<String, List<String>> routingData);
 

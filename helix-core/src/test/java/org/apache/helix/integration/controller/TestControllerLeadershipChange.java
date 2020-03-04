@@ -34,12 +34,12 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -148,7 +148,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     callbackHandlers.forEach(callbackHandler -> Assert.assertTrue(callbackHandler.isReady()));
 
     // check the zk connection is open
-    HelixZkClient zkClient = controller.getZkClient();
+    RealmAwareZkClient zkClient = controller.getZkClient();
     Assert.assertFalse(zkClient.isClosed());
     Long sessionId = zkClient.getSessionId();
     Assert.assertNotNull(sessionId);

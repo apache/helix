@@ -47,6 +47,7 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -62,7 +63,7 @@ import org.slf4j.LoggerFactory;
 public class ParticipantManager {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantManager.class);
 
-  final HelixZkClient _zkclient;
+  final RealmAwareZkClient _zkclient;
   final HelixManager _manager;
   final PropertyKey.Builder _keyBuilder;
   final String _clusterName;
@@ -81,7 +82,7 @@ public class ParticipantManager {
   // session race condition when handling new session for the participant.
   private final String _sessionId;
 
-  public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
+  public ParticipantManager(HelixManager manager, RealmAwareZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks,
       final String sessionId) {
     _zkclient = zkclient;

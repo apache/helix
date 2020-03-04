@@ -47,6 +47,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -427,7 +428,7 @@ public class TestResourceGroupEndtoEnd extends ZkTestBase {
     }
 
     @Override
-    public HelixZkClient getZkClient() {
+    public RealmAwareZkClient getZkClient() {
       return _zkclient;
     }
 

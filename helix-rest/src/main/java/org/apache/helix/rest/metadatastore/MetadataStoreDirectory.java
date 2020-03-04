@@ -61,6 +61,15 @@ public interface MetadataStoreDirectory extends AutoCloseable {
   Map<String, List<String>> getNamespaceRoutingData(String namespace);
 
   /**
+   * Sets and overwrites routing data in the given namespace.
+   *
+   * @param namespace namespace in metadata store directory.
+   * @param routingData Routing data map: realm -> List of sharding keys
+   * @return true if successful; false otherwise.
+   */
+  boolean setNamespaceRoutingData(String namespace, Map<String, List<String>> routingData);
+
+  /**
    * Returns all path-based sharding keys in the given namespace and the realm.
    * @param namespace
    * @param realm

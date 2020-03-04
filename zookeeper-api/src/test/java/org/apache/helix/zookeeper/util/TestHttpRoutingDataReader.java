@@ -33,6 +33,7 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
+import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -42,25 +43,15 @@ import org.testng.annotations.Test;
 
 public class TestHttpRoutingDataReader extends ZkTestBase {
   private MockMetadataStoreDirectoryServer _msdsServer;
-  private Map<String, Collection<String>> _testRawRoutingData;
   private final String _host = "localhost";
   private final int _port = 1991;
   private final String _namespace = "TestHttpRoutingDataReader";
 
   @BeforeClass
   public void beforeClass() throws IOException {
-    // Create fake routing data
-    _testRawRoutingData = new HashMap<>();
-    _testRawRoutingData
-        .put("zk-0", ImmutableSet.of("/sharding-key-0", "/sharding-key-1", "/sharding-key-2"));
-    _testRawRoutingData
-        .put("zk-1", ImmutableSet.of("/sharding-key-3", "/sharding-key-4", "/sharding-key-5"));
-    _testRawRoutingData
-        .put("zk-2", ImmutableSet.of("/sharding-key-6", "/sharding-key-7", "/sharding-key-8"));
-
     // Start MockMSDS
-    _msdsServer =
-        new MockMetadataStoreDirectoryServer(_host, _port, _namespace, _testRawRoutingData);
+    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace,
+        TestConstants.FAKE_ROUTING_DATA);
     _msdsServer.startServer();
 
     // Register the endpoint as a System property
@@ -76,7 +67,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   @Test
   public void testGetRawRoutingData() throws IOException {
     Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
-    _testRawRoutingData.forEach((realm, keys) -> Assert
+    TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
@@ -87,8 +78,10 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
             Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-    _testRawRoutingData.forEach(
-        (realm, keys) -> Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys)));
+
+    TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> {
+      Assert.assertEquals(groupedMappings.get(realm), new HashSet(keys));
+    });
   }
 
   /**
@@ -98,12 +91,12 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   public void testStaticMapping() throws IOException, InvalidRoutingDataException {
     // Modify routing data
     String newRealm = "newRealm";
-    _testRawRoutingData.put(newRealm, ImmutableSet.of("/newKey"));
+    Map<String, Collection<String>> newRoutingData = new HashMap<>(TestConstants.FAKE_ROUTING_DATA);
+    newRoutingData.put(newRealm, ImmutableSet.of("/newKey"));
 
     // Kill MSDS and restart with a new mapping
     _msdsServer.stopServer();
-    _msdsServer =
-        new MockMetadataStoreDirectoryServer(_host, _port, _namespace, _testRawRoutingData);
+    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace, newRoutingData);
     _msdsServer.startServer();
 
     // HttpRoutingDataReader should still return old data because it's static
@@ -112,9 +105,9 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     Assert.assertFalse(rawRoutingData.containsKey(newRealm));
 
     // Remove newRealm and check for equality
-    _testRawRoutingData.remove(newRealm);
-    Assert.assertEquals(rawRoutingData.keySet(), _testRawRoutingData.keySet());
-    _testRawRoutingData.forEach((realm, keys) -> Assert
+    newRoutingData.remove(newRealm);
+    Assert.assertEquals(rawRoutingData.keySet(), TestConstants.FAKE_ROUTING_DATA.keySet());
+    TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
 
     MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();

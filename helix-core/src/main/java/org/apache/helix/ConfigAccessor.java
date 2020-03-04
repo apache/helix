@@ -85,8 +85,7 @@ public class ConfigAccessor {
    * Constructor that creates a realm-aware ConfigAccessor using a builder.
    * @param builder
    */
-  private ConfigAccessor(Builder builder)
-      throws IOException, InvalidRoutingDataException {
+  private ConfigAccessor(Builder builder) throws IOException, InvalidRoutingDataException {
     switch (builder._realmMode) {
       case MULTI_REALM:
         _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
@@ -901,8 +900,7 @@ public class ConfigAccessor {
       return this;
     }
 
-    public ConfigAccessor build()
-        throws Exception {
+    public ConfigAccessor build() throws Exception {
       validate();
       return new ConfigAccessor(this);
     }

@@ -107,7 +107,7 @@ public class ConfigAccessor {
   /**
    * Initialize an accessor with a Zookeeper client
    * Note: it is recommended to use the other constructor instead to avoid having to create a
-   * HelixZkClient.
+   * RealmAwareZkClient.
    * @param zkClient
    */
   @Deprecated
@@ -129,7 +129,7 @@ public class ConfigAccessor {
       zkClient = new FederatedZkClient(
           new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
           new RealmAwareZkClient.RealmAwareZkClientConfig());
-    } catch (IOException | InvalidRoutingDataException e) {
+    } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
       // Connecting multi-realm failed - fall back to creating it on single-realm mode using the given ZK address
       LOG.info(
           "ConfigAccessor: not able to connect on multi-realm mode; connecting single-realm mode to ZK: {}",

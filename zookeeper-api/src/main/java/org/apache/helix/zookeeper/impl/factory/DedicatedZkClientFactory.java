@@ -19,7 +19,9 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
-import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import java.io.IOException;
+
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.client.DedicatedZkClient;
@@ -37,9 +39,9 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   @Override
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
-    return new DedicatedZkClient(connectionConfig, clientConfig, metadataStoreRoutingData);
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
+      throws IOException, InvalidRoutingDataException {
+    return new DedicatedZkClient(connectionConfig, clientConfig);
   }
 
   private static class SingletonHelper {

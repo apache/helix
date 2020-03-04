@@ -18,8 +18,8 @@ specific language governing permissions and limitations
 under the License.
 -->
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="Suite" parallel="false">
-  <test name="Test" preserve-order="true">
+<suite name="Suite" parallel="false" preserve-order="true">
+  <test name="Test">
     <packages>
       <package name="org.apache.helix.zookeeper.*"/>
     </packages>

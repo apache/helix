@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.impl.client;
+package org.apache.helix.msdcommon.constant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.zookeeper.impl.client;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,19 +19,19 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 
-import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.testng.annotations.BeforeClass;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 
-public class TestDedicatedZkClient extends RealmAwareZkClientFactoryTestBase {
-
-  @BeforeClass
-  public void beforeClass() throws IOException, InvalidRoutingDataException {
-    super.beforeClass();
-    // Set the factory to DedicatedZkClientFactory
-    _realmAwareZkClientFactory = DedicatedZkClientFactory.getInstance();
-  }
+/**
+ * Constants to be used for testing.
+ */
+public class TestConstants {
+  public static final Map<String, Collection<String>> FAKE_ROUTING_DATA = ImmutableMap.of(
+      "zk-0", ImmutableList.of("/sharding-key-0", "/sharding-key-1", "/sharding-key-2"),
+      "zk-1", ImmutableList.of("/sharding-key-3", "/sharding-key-4", "/sharding-key-5"),
+      "zk-2", ImmutableList.of("/sharding-key-6", "/sharding-key-7", "/sharding-key-8"));
 }

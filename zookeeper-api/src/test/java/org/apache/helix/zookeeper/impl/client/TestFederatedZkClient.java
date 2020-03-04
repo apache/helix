@@ -57,7 +57,9 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
     // Feed the raw routing data into TrieRoutingData to construct an in-memory representation
     // of routing information.
-    _realmAwareZkClient = new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkClientConfig());
+    _realmAwareZkClient =
+        new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig());
   }
 
   @AfterClass

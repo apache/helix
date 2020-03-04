@@ -63,12 +63,21 @@ public class SharedZkClient implements RealmAwareZkClient {
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
       throws IOException, InvalidRoutingDataException {
-    // Get the routing data from a static Singleton HttpRoutingDataReader
-    _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
-
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
+    if (clientConfig == null) {
+      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+    }
+
+    // Get the routing data from a static Singleton HttpRoutingDataReader
+    String msdsEndpoint = connectionConfig.getMsdsEndpoint();
+    if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
+    } else {
+      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData(msdsEndpoint);
+    }
+
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
 
     // Get the ZkRealm address based on the ZK path sharding key

@@ -83,12 +83,22 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private PathBasedZkSerializer _pathBasedZkSerializer;
 
   // TODO: support capacity of ZkClient number in one FederatedZkClient and do garbage collection.
-  public FederatedZkClient(RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
+  public FederatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
       throws IOException, InvalidRoutingDataException {
-    _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
-
+    if (connectionConfig == null) {
+      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+    }
     if (clientConfig == null) {
-      throw new IllegalArgumentException("Client config cannot be null!");
+      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+    }
+
+    // Attempt to get MetadataStoreRoutingData
+    String msdsEndpoint = connectionConfig.getMsdsEndpoint();
+    if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
+    } else {
+      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData(msdsEndpoint);
     }
 
     _isClosed = false;

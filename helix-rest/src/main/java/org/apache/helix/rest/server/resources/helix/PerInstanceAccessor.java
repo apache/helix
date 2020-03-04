@@ -35,6 +35,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -85,7 +86,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @GET
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
-      @DefaultValue("getInstance") @QueryParam("command") String command) throws IOException {
+      @DefaultValue("getInstance") @QueryParam("command") String command) {
     // Get the command. If not provided, the default would be "getInstance"
     Command cmd;
     try {
@@ -103,7 +104,13 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
-      return OK(objectMapper.writeValueAsString(instanceInfo));
+      String instanceInfoString;
+      try {
+        instanceInfoString = objectMapper.writeValueAsString(instanceInfo);
+      } catch (JsonProcessingException e) {
+        return serverError(e);
+      }
+      return OK(instanceInfoString);
     case validateWeight:
       // Validates instanceConfig for WAGED rebalance
       HelixAdmin admin = getHelixAdmin();

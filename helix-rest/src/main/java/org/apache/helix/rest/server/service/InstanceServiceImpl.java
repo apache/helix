@@ -87,6 +87,8 @@ public class InstanceServiceImpl implements InstanceService {
         _dataAccessor.getProperty(_dataAccessor.keyBuilder().liveInstance(instanceName));
     if (instanceConfig != null) {
       instanceInfoBuilder.instanceConfig(instanceConfig.getRecord());
+    } else {
+      LOG.warn("Missing instance config for {}", instanceName);
     }
     if (liveInstance != null) {
       instanceInfoBuilder.liveInstance(liveInstance.getRecord());
@@ -101,9 +103,15 @@ public class InstanceServiceImpl implements InstanceService {
             _dataAccessor.keyBuilder().currentState(instanceName, sessionId, resourceName));
         if (currentState != null && currentState.getPartitionStateMap() != null) {
           partitions.addAll(currentState.getPartitionStateMap().keySet());
+        } else {
+          LOG.warn(
+              "Current state is either null or partitionStateMap is missing. InstanceName: {}, SessionId: {}, ResourceName: {}",
+              instanceName, sessionId, resourceName);
         }
       }
       instanceInfoBuilder.partitions(partitions);
+    } else {
+      LOG.warn("Missing instance config for {}", instanceName);
     }
     try {
       Map<String, Boolean> healthStatus =

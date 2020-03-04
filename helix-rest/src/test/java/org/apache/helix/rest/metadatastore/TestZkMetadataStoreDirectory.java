@@ -35,6 +35,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -62,8 +63,10 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   private MetadataStoreDirectory _metadataStoreDirectory;
 
   @BeforeClass
-  public void beforeClass() throws InvalidRoutingDataException {
+  public void beforeClass() throws Exception {
     _zkList = new ArrayList<>(ZK_SERVER_MAP.keySet());
+
+    clearRoutingData();
 
     // Populate routingZkAddrMap
     _routingZkAddrMap = new LinkedHashMap<>();
@@ -111,10 +114,9 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @AfterClass
-  public void afterClass() {
+  public void afterClass() throws Exception {
     _metadataStoreDirectory.close();
-    _zkList.forEach(zk -> ZK_SERVER_MAP.get(zk).getZkClient()
-        .deleteRecursive(MetadataStoreRoutingConstants.ROUTING_DATA_PATH));
+    clearRoutingData();
     System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
   }
 
@@ -147,6 +149,42 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetAllShardingKeys")
+  public void testGetNamespaceRoutingData() {
+    Map<String, List<String>> routingDataMap = new HashMap<>();
+    routingDataMap.put(TEST_REALM_1, TEST_SHARDING_KEYS_1);
+    routingDataMap.put(TEST_REALM_2, TEST_SHARDING_KEYS_2);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      Assert
+          .assertEquals(_metadataStoreDirectory.getNamespaceRoutingData(namespace), routingDataMap);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetNamespaceRoutingData")
+  public void testSetNamespaceRoutingData() {
+    Map<String, List<String>> routingDataMap = new HashMap<>();
+    routingDataMap.put(TEST_REALM_1, TEST_SHARDING_KEYS_2);
+    routingDataMap.put(TEST_REALM_2, TEST_SHARDING_KEYS_1);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      _metadataStoreDirectory.setNamespaceRoutingData(namespace, routingDataMap);
+      Assert
+          .assertEquals(_metadataStoreDirectory.getNamespaceRoutingData(namespace), routingDataMap);
+    }
+
+    // Revert it back to the original state
+    Map<String, List<String>> originalRoutingDataMap = new HashMap<>();
+    originalRoutingDataMap.put(TEST_REALM_1, TEST_SHARDING_KEYS_1);
+    originalRoutingDataMap.put(TEST_REALM_2, TEST_SHARDING_KEYS_2);
+
+    for (String namespace : _routingZkAddrMap.keySet()) {
+      _metadataStoreDirectory.setNamespaceRoutingData(namespace, originalRoutingDataMap);
+      Assert.assertEquals(_metadataStoreDirectory.getNamespaceRoutingData(namespace),
+          originalRoutingDataMap);
+    }
+  }
+
+  @Test(dependsOnMethods = "testGetNamespaceRoutingData")
   public void testGetAllShardingKeysInRealm() {
     for (String namespace : _routingZkAddrMap.keySet()) {
       // Test two realms independently
@@ -276,5 +314,28 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
       }
       return false;
     }, TestHelper.WAIT_DURATION));
+  }
+
+  private void clearRoutingData() throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          for (String zkRealm : zkClient
+              .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+            zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          }
+        }
+      }
+
+      for (String zk : _zkList) {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH) && !zkClient
+            .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH).isEmpty()) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 }

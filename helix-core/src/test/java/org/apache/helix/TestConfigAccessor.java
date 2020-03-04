@@ -24,9 +24,12 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -203,5 +206,47 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     admin.dropCluster(clusterName);
     configAccessor.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSetRestConfig() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(clusterName, true);
+    ConfigAccessor configAccessor = new ConfigAccessor(ZK_ADDR);
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    RESTConfig restConfig = new RESTConfig(clusterName);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL");
+    configAccessor.setRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+  }
+
+  @Test
+  public void testUpdateRestConfig() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(clusterName, true);
+    ConfigAccessor configAccessor = new ConfigAccessor(ZK_ADDR);
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    // No rest config exist
+    RESTConfig restConfig = new RESTConfig(clusterName);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL");
+    configAccessor.updateRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+
+    // Rest config exists
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL_2");
+    configAccessor.updateRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
   }
 }

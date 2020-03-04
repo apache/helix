@@ -91,14 +91,14 @@ public class TestCurrentStateSnapshot {
     Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
     liveInstanceMap.put(instanceName, instance);
 
-    retVal = cache.refresh(accessor, liveInstanceMap, true, new HashSet<>());
+    retVal = cache.refresh(accessor, liveInstanceMap, true);
     Assert.assertTrue(retVal);
 
     retVal = accessor.setProperty(keyBuilder.currentState(instanceName, instance.getEphemeralOwner(), resourceName),
         currentState);
     Assert.assertTrue(retVal);
 
-    retVal = cache.refresh(accessor, liveInstanceMap, true, new HashSet<>());
+    retVal = cache.refresh(accessor, liveInstanceMap, true);
     Assert.assertTrue(retVal);
 
     CurrentStateSnapshot snapshot = cache.getSnapshot();

@@ -35,6 +35,7 @@ import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Represent a cache that holds a certain participant side state of for the whole cluster.
  */
@@ -46,7 +47,7 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
 
   public ParticipantStateCache(ControlContextProvider controlContextProvider) {
     super(controlContextProvider);
-    _participantStateMap = Collections.emptyMap();
+    _participantStateMap = new HashMap<>();
   }
 
   /**
@@ -57,10 +58,10 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
    * @return
    */
   public boolean refresh(HelixDataAccessor accessor, Map<String, LiveInstance> liveInstanceMap,
-      Boolean snapshotEnabled, Set<String> restrictedKeys) {
+      Boolean snapshotEnabled) {
     long startTime = System.currentTimeMillis();
 
-    refreshParticipantStatesCacheFromZk(accessor, liveInstanceMap, snapshotEnabled, restrictedKeys);
+    refreshParticipantStatesCacheFromZk(accessor, liveInstanceMap, snapshotEnabled);
     Map<String, Map<String, Map<String, T>>> allParticipantStateMap = new HashMap<>();
     // There should be 4 levels of keys. The first one is the cluster name, the second one is the
     // instance name, the third one is a customized key (could be session Id or customized state
@@ -84,8 +85,7 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
         }
         customizedMap.put(resourceName, participantState);
       } else {
-        LogUtil.logError(LOG, genEventInfo(),
-            "Invalid key found in the participant state cache" + key);
+        LogUtil.logError(LOG, genEventInfo(), "Invalid key found in the participant state cache" + key);
       }
     }
 
@@ -93,9 +93,8 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
 
     long endTime = System.currentTimeMillis();
     LogUtil.logInfo(LOG, genEventInfo(),
-        "END: participantStateCache.refresh() for cluster "
-            + _controlContextProvider.getClusterName() + ", started at : " + startTime + ", took "
-            + (endTime - startTime) + " ms");
+        "END: participantStateCache.refresh() for cluster " + _controlContextProvider.getClusterName()
+            + ", started at : " + startTime + ", took " + (endTime - startTime) + " ms");
     if (LOG.isDebugEnabled()) {
       LogUtil.logDebug(LOG, genEventInfo(),
           String.format("Participant State refreshed : %s", _participantStateMap.toString()));
@@ -105,12 +104,10 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
 
   // reload participant states that has been changed from zk to local cache.
   private void refreshParticipantStatesCacheFromZk(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap, Boolean snapshotEnabled,
-      Set<String> restrictedKeys) {
+      Map<String, LiveInstance> liveInstanceMap, Boolean snapshotEnabled) {
 
     long start = System.currentTimeMillis();
-    Set<PropertyKey> participantStateKeys = new HashSet<>();
-    PopulateParticipantKeys(accessor, participantStateKeys, liveInstanceMap, restrictedKeys);
+    Set<PropertyKey> participantStateKeys = PopulateParticipantKeys(accessor, liveInstanceMap);
 
     // All new entries from zk not cached locally yet should be read from ZK.
     Set<PropertyKey> reloadKeys = new HashSet<>(participantStateKeys);
@@ -120,8 +117,8 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
     cachedKeys.retainAll(participantStateKeys);
 
     Set<PropertyKey> reloadedKeys = new HashSet<>();
-    Map<PropertyKey, T> newStateCache = Collections.unmodifiableMap(refreshProperties(accessor,
-        reloadKeys, new ArrayList<>(cachedKeys), _participantStateCache, reloadedKeys));
+    Map<PropertyKey, T> newStateCache = Collections.unmodifiableMap(
+        refreshProperties(accessor, reloadKeys, new ArrayList<>(cachedKeys), _participantStateCache, reloadedKeys));
 
     if (snapshotEnabled) {
       refreshSnapshot(newStateCache, _participantStateCache, reloadedKeys);
@@ -130,22 +127,19 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
     _participantStateCache = newStateCache;
 
     if (LOG.isDebugEnabled()) {
-      LogUtil.logDebug(LOG, genEventInfo(), "# of participant state reload: " + reloadKeys.size()
-          + ", skipped:" + (participantStateKeys.size() - reloadKeys.size()) + ". took "
-          + (System.currentTimeMillis() - start)
-          + " ms to reload new participant states for cluster: "
-          + _controlContextProvider.getClusterName() + "and state: " + this.getClass().getName());
+      LogUtil.logDebug(LOG, genEventInfo(),
+          "# of participant state reload: " + reloadKeys.size() + ", skipped:" + (participantStateKeys.size()
+              - reloadKeys.size()) + ". took " + (System.currentTimeMillis() - start)
+              + " ms to reload new participant states for cluster: " + _controlContextProvider.getClusterName()
+              + "and state: " + this.getClass().getName());
     }
   }
 
-  public void PopulateParticipantKeys(HelixDataAccessor accessor,
-      Set<PropertyKey> participantStateKeys, Map<String, LiveInstance> liveInstanceMap,
-      Set<String> restrictedKeys) {
-  }
+  protected abstract Set<PropertyKey> PopulateParticipantKeys(HelixDataAccessor accessor,
+      Map<String, LiveInstance> liveInstanceMap);
 
-  protected void refreshSnapshot(Map<PropertyKey, T> newStateCache,
-      Map<PropertyKey, T> participantStateCache, Set<PropertyKey> reloadedKeys) {
-  }
+  protected abstract void refreshSnapshot(Map<PropertyKey, T> newStateCache, Map<PropertyKey, T> participantStateCache,
+      Set<PropertyKey> reloadedKeys);
 
   /**
    * Return the whole participant state map.
@@ -174,8 +168,8 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
    * @return
    */
   public Map<String, T> getParticipantState(String instanceName, String customizedKey) {
-    if (!_participantStateMap.containsKey(instanceName)
-        || !_participantStateMap.get(instanceName).containsKey(customizedKey)) {
+    if (!_participantStateMap.containsKey(instanceName) || !_participantStateMap.get(instanceName)
+        .containsKey(customizedKey)) {
       return Collections.emptyMap();
     }
     return Collections.unmodifiableMap(_participantStateMap.get(instanceName).get(customizedKey));

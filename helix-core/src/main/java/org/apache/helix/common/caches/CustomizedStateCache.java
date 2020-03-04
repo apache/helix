@@ -19,15 +19,18 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class CustomizedStateCache extends ParticipantStateCache<CustomizedState> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
@@ -40,16 +43,29 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
     super(contextProvider);
   }
 
-  public void PopulateParticipantKeys(HelixDataAccessor accessor,
-      Set<PropertyKey> participantStateKeys, Map<String, LiveInstance> liveInstanceMap,
-      Set<String> restrictedKeys) {
+  @Override
+  protected Set<PropertyKey> PopulateParticipantKeys(HelixDataAccessor accessor,
+      Map<String, LiveInstance> liveInstanceMap) {
+    Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Set<String> restrictedKeys = new HashSet<>(
+        accessor.getProperty(accessor.keyBuilder().customizedStateAggregationConfig())
+            .getRecord()
+            .getListFields()
+            .get(CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name()));
     for (String instanceName : liveInstanceMap.keySet()) {
       for (String customizedStateType : restrictedKeys) {
         accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
-            .stream().forEach(resourceName -> participantStateKeys
-                .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
+            .stream()
+            .forEach(resourceName -> participantStateKeys.add(
+                keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
       }
     }
+    return participantStateKeys;
+  }
+
+  @Override
+  protected void refreshSnapshot(Map<PropertyKey, CustomizedState> newStateCache,
+      Map<PropertyKey, CustomizedState> participantStateCache, Set<PropertyKey> reloadedKeys) {
   }
 }

@@ -19,7 +19,9 @@ package org.apache.helix.zookeeper.api.factory;
  * under the License.
  */
 
-import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import java.io.IOException;
+
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 
 
@@ -31,26 +33,24 @@ public interface RealmAwareZkClientFactory {
    * Build a RealmAwareZkClient using specified connection config and client config.
    * @param connectionConfig
    * @param clientConfig
-   * @param metadataStoreRoutingData
-   * @return HelixZkClient
+   * @return RealmAwareZkClient
+   * @throws IOException if Metadata Store Directory Service is unresponsive over HTTP
+   * @throws InvalidRoutingDataException if the routing data received is invalid or empty
    */
-  // TODO: remove MetadataStoreRoutingData
   RealmAwareZkClient buildZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData);
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
+      throws IOException, InvalidRoutingDataException;
 
   /**
    * Builds a RealmAwareZkClient using specified connection config and default client config.
    * @param connectionConfig
-   * @param metadataStoreRoutingData
    * @return RealmAwareZkClient
+   * @throws IOException if Metadata Store Directory Service is unresponsive over HTTP
+   * @throws InvalidRoutingDataException if the routing data received is invalid or empty
    */
-
-  // TODO: remove MetadataStoreRoutingData
   default RealmAwareZkClient buildZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      MetadataStoreRoutingData metadataStoreRoutingData) {
-    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig(),
-        metadataStoreRoutingData);
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig)
+      throws IOException, InvalidRoutingDataException {
+    return buildZkClient(connectionConfig, new RealmAwareZkClient.RealmAwareZkClientConfig());
   }
 }

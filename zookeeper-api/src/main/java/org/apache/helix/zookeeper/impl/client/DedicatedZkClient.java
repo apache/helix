@@ -59,7 +59,6 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   private final ZkClient _rawZkClient;
   private final MetadataStoreRoutingData _metadataStoreRoutingData;
   private final String _zkRealmShardingKey;
-  private final String _zkRealmAddress;
 
   /**
    * DedicatedZkClient connects to a single ZK realm and supports full ZkClient functionalities
@@ -96,7 +95,6 @@ public class DedicatedZkClient implements RealmAwareZkClient {
           "ZK realm address for the given ZK realm sharding key is invalid! ZK realm address: "
               + zkRealmAddress + " ZK realm sharding key: " + _zkRealmShardingKey);
     }
-    _zkRealmAddress = zkRealmAddress;
 
     // Create a ZK connection
     IZkConnection zkConnection =

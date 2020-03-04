@@ -75,7 +75,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
     if (clientConfig == null) {
-      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+      throw new IllegalArgumentException("RealmAwareZkClientConfig cannot be null!");
     }
 
     // Get the routing data from a static Singleton HttpRoutingDataReader
@@ -87,6 +87,10 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     }
 
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
+    if (_zkRealmShardingKey == null || _zkRealmShardingKey.isEmpty()) {
+      throw new IllegalArgumentException(
+          "RealmAwareZkConnectionConfig's ZK realm sharding key cannot be null or empty for DedicatedZkClient!");
+    }
 
     // Get the ZkRealm address based on the ZK path sharding key
     String zkRealmAddress = _metadataStoreRoutingData.getMetadataStoreRealm(_zkRealmShardingKey);

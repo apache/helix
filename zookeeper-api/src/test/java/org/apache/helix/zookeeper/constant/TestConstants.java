@@ -35,7 +35,7 @@ public class TestConstants {
   public static final int ZK_START_PORT = 2127;
 
   // Based on the ZK hostname constants, construct a set of fake routing data mappings
-  public static Map<String, Collection<String>> FAKE_ROUTING_DATA = ImmutableMap
+  public static final Map<String, Collection<String>> FAKE_ROUTING_DATA = ImmutableMap
       .of(ZK_PREFIX + ZK_START_PORT,
           ImmutableList.of("/sharding-key-0", "/sharding-key-1", "/sharding-key-2"),
           ZK_PREFIX + (ZK_START_PORT + 1),

@@ -35,9 +35,9 @@ import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
-import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -90,7 +90,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
     if (clientConfig == null) {
-      throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
+      throw new IllegalArgumentException("RealmAwareZkClientConfig cannot be null!");
     }
 
     // Attempt to get MetadataStoreRoutingData

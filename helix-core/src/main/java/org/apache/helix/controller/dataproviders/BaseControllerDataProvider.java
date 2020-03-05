@@ -332,7 +332,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     // Refresh derived data
     _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
-    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap(), true);
+    _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.

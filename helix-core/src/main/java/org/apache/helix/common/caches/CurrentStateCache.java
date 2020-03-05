@@ -59,9 +59,11 @@ public class CurrentStateCache extends ParticipantStateCache<CurrentState> {
     for (String instanceName : liveInstanceMap.keySet()) {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getEphemeralOwner();
-      List<String> currentStateNames = accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
+      List<String> currentStateNames =
+          accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
       for (String currentStateName : currentStateNames) {
-        participantStateKeys.add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
+        participantStateKeys
+            .add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
       }
     }
     return participantStateKeys;

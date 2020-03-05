@@ -22,6 +22,7 @@ package org.apache.helix.common.caches;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
@@ -49,23 +50,17 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
     Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Set<String> restrictedKeys = new HashSet<>(
-        accessor.getProperty(accessor.keyBuilder().customizedStateAggregationConfig())
-            .getRecord()
-            .getListFields()
-            .get(CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name()));
+        accessor.getProperty(accessor.keyBuilder().customizedStateAggregationConfig()).getRecord()
+            .getListFields().get(
+            CustomizedStateAggregationConfig.CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES
+                .name()));
     for (String instanceName : liveInstanceMap.keySet()) {
       for (String customizedStateType : restrictedKeys) {
         accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
-            .stream()
-            .forEach(resourceName -> participantStateKeys.add(
-                keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
+            .stream().forEach(resourceName -> participantStateKeys
+            .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
       }
     }
     return participantStateKeys;
-  }
-
-  @Override
-  protected void refreshSnapshot(Map<PropertyKey, CustomizedState> newStateCache,
-      Map<PropertyKey, CustomizedState> participantStateCache, Set<PropertyKey> reloadedKeys) {
   }
 }

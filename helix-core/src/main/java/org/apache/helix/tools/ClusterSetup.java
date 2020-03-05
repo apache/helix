@@ -147,9 +147,6 @@ public class ClusterSetup {
   private final HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
-    if (zkServerAddress == null || zkServerAddress.isEmpty()) {
-      throw new IllegalArgumentException("ZK server address is null or empty!");
-    }
     _zkServerAddress = zkServerAddress;
 
     // First, try to start on multi-realm mode using FederatedZkClient
@@ -162,6 +159,9 @@ public class ClusterSetup {
       // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be found
       // Fall back to single-realm mode using SharedZkClient (HelixZkClient)
       // This is to preserve backward-compatibility
+      if (zkServerAddress == null || zkServerAddress.isEmpty()) {
+        throw new IllegalArgumentException("ZK server address is null or empty!");
+      }
       zkClient = SharedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkServerAddress));
       zkClient.setZkSerializer(new ZNRecordSerializer());

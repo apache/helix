@@ -111,7 +111,7 @@ public class InstanceServiceImpl implements InstanceService {
       }
       instanceInfoBuilder.partitions(partitions);
     } else {
-      LOG.warn("Missing instance config for {}", instanceName);
+      LOG.warn("Missing live instance for {}", instanceName);
     }
     try {
       Map<String, Boolean> healthStatus =

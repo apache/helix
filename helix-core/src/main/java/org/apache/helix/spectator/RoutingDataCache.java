@@ -121,7 +121,7 @@ class RoutingDataCache extends BasicClusterDataCache {
    * @return
    */
   public Map<String, Map<String, Map<String, CurrentState>>> getCurrentStatesMap() {
-    return _currentStateCache.getCurrentStatesMap();
+    return _currentStateCache.getParticipantStatesMap();
   }
 
   public CurrentStateSnapshot getCurrentStateSnapshot() {

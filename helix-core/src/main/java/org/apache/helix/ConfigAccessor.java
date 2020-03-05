@@ -921,11 +921,9 @@ public class ConfigAccessor {
       }
 
       // Resolve RealmAwareZkClientConfig
-      boolean isZkClientConfigSet = _realmAwareZkClientConfig != null;
-      // Resolve which clientConfig to use
-      _realmAwareZkClientConfig =
-          isZkClientConfigSet ? _realmAwareZkClientConfig.createHelixZkClientConfig()
-              : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+      if (_realmAwareZkClientConfig == null) {
+        _realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+      }
 
       // Resolve RealmAwareZkConnectionConfig
       if (_realmAwareZkConnectionConfig == null) {

@@ -1338,30 +1338,30 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private RealmAwareZkClient buildRealmAwareZkClient(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {
-    RealmAwareZkClient zkClient;
-
     try {
-      zkClient = new FederatedZkClient(
+      return new FederatedZkClient(
           new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
     } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
       // Fall back to connect on single-realm mode if failed to connect on multi-realm mode and
       // ZK address is not empty.
       LOG.info("Not able to connect on multi-realm mode, caused by: {}. "
           + "Connecting on single-realm mode to ZK: {}.", e.getMessage(), zkAddress);
+    }
 
-      switch (zkClientType) {
-        case DEDICATED:
-          zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(
-              new HelixZkClient.ZkConnectionConfig(zkAddress),
-              clientConfig.createHelixZkClientConfig());
-          break;
-        case SHARED:
-        default:
-          zkClient = SharedZkClientFactory.getInstance().buildZkClient(
-              new HelixZkClient.ZkConnectionConfig(zkAddress),
-              clientConfig.createHelixZkClientConfig());
-          break;
-      }
+    RealmAwareZkClient zkClient;
+
+    switch (zkClientType) {
+      case DEDICATED:
+        zkClient = DedicatedZkClientFactory.getInstance()
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                clientConfig.createHelixZkClientConfig());
+        break;
+      case SHARED:
+      default:
+        zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                clientConfig.createHelixZkClientConfig());
+        break;
     }
 
     return zkClient;

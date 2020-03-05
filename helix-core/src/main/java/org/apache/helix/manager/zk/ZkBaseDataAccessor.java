@@ -104,7 +104,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final RealmAwareZkClient _zkClient;
-  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+
+  // true if ZkBaseDataAccessor was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
   // ZkClient
   private final boolean _usesExternalZkClient;

@@ -40,6 +40,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -136,14 +137,15 @@ public class ClusterSetup {
 
   private static final Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
   private final String _zkServerAddress;
-  private final HelixZkClient _zkClient;
-  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+  private final RealmAwareZkClient _zkClient;
+  // true if ZkBaseDataAccessor was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
   // ZkClient
   private final boolean _usesExternalZkClient;
   private final HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
+
     _zkServerAddress = zkServerAddress;
     _zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkServerAddress));
@@ -152,7 +154,7 @@ public class ClusterSetup {
     _usesExternalZkClient = false;
   }
 
-  public ClusterSetup(HelixZkClient zkClient) {
+  public ClusterSetup(RealmAwareZkClient zkClient) {
     _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);

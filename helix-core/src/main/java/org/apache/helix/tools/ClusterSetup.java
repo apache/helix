@@ -158,7 +158,8 @@ public class ClusterSetup {
       zkClient = new FederatedZkClient(
           new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
           new RealmAwareZkClient.RealmAwareZkClientConfig());
-    } catch (InvalidRoutingDataException | IOException e) {
+    } catch (InvalidRoutingDataException | IOException | IllegalStateException e) {
+      // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be found
       // Fall back to single-realm mode using SharedZkClient (HelixZkClient)
       // This is to preserve backward-compatibility
       zkClient = SharedZkClientFactory.getInstance()

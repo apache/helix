@@ -269,9 +269,6 @@ public class InstanceValidationUtil {
       IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));
       if (idealState == null || !idealState.isEnabled() || !idealState.isValid()
           || TaskConstants.STATE_MODEL_NAME.equals(idealState.getStateModelDefRef())) {
-        _logger.warn(
-            "idealState is either null, not enabled, not valid, or has Task as stateModelDefRef. IdealState: {}",
-            instanceName);
         continue;
       }
 

@@ -633,7 +633,7 @@ public class ConfigAccessor {
 
     // Create "/{clusterId}/CONFIGS/REST" if it does not exist
     String parentPath = HelixUtil.getZkParentPath(zkPath);
-    if (!_zkClient.exists(HelixUtil.getZkParentPath(zkPath))) {
+    if (!_zkClient.exists(parentPath)) {
       ZKUtil.createOrMerge(_zkClient, parentPath, new ZNRecord(parentPath), true, true);
     }
 
@@ -642,6 +642,23 @@ public class ConfigAccessor {
     } else {
       ZKUtil.createOrUpdate(_zkClient, zkPath, restConfig.getRecord(), true, true);
     }
+  }
+
+  public void deleteRESTConfig(String clusterName) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("fail to delete REST config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    String zkPath = scope.getZkPath();
+
+    // Create "/{clusterId}/CONFIGS/REST" if it does not exist
+    String parentPath = HelixUtil.getZkParentPath(zkPath);
+    if (!_zkClient.exists(parentPath)) {
+      return;
+    }
+
+    ZKUtil.dropChildren(_zkClient, parentPath, new ZNRecord(clusterName));
   }
 
   /**

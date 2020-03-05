@@ -538,11 +538,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       configAccessor.setRESTConfig(clusterId, config);
     } catch (HelixException ex) {
+      // TODO: Could use a more generic error for HelixException
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
-          "Failed to create rest config, cluster " + clusterId + " new config: " + content
-              + ", Exception: " + ex);
+      _logger.error("Failed to create rest config, cluster " + clusterId + " new config: " + content
+          + ", Exception: " + ex);
       return serverError(ex);
     }
     return OK();
@@ -570,11 +570,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       configAccessor.updateRESTConfig(clusterId, config);
     } catch (HelixException ex) {
+      // TODO: Could use a more generic error for HelixException
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
-          "Failed to update rest config, cluster " + clusterId + " new config: " + content
-              + ", Exception: " + ex);
+      _logger.error("Failed to update rest config, cluster " + clusterId + " new config: " + content
+          + ", Exception: " + ex);
       return serverError(ex);
     }
     return OK();
@@ -588,8 +588,9 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       config = accessor.getRESTConfig(clusterId);
     } catch (HelixException ex) {
-      _logger.info("Failed to get rest config for cluster " + clusterId
-          + ", cluster not found, Exception: " + ex);
+      _logger.info(
+          "Failed to get rest config for cluster " + clusterId + ", cluster not found, Exception: "
+              + ex);
     } catch (Exception ex) {
       _logger.error("Failed to get rest config for cluster " + clusterId + " Exception: " + ex);
       return serverError(ex);
@@ -598,6 +599,23 @@ public class ClusterAccessor extends AbstractHelixResource {
       return notFound();
     }
     return JSONRepresentation(config.getRecord());
+  }
+
+  @DELETE
+  @Path("{clusterId}/restconfig")
+  public Response deleteClusterRESTConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    try {
+      accessor.deleteRESTConfig(clusterId);
+    } catch (HelixException ex) {
+      _logger.info(
+          "Failed to delete rest config for cluster " + clusterId + ", cluster rest config is not found, Exception: "
+              + ex);
+    } catch (Exception ex) {
+      _logger.error("Failed to delete rest config, cluster " + clusterId + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
   }
 
   @GET

@@ -620,6 +620,15 @@ public class TestClusterAccessor extends AbstractTestClass {
         "rest config from response: " + restConfigRest + " vs rest config actually: " + restConfigZk);
   }
 
+  @Test(dependsOnMethods = "testGetClusterRESTConfig")
+  public void testDeleteClusterRESTConfig() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
+    get("clusters/" + cluster + "/restconfig", null, Response.Status.NOT_FOUND.getStatusCode(), true);
+    delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
+  }
+
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
     String body = get("clusters/" + cluster + "/configs", null, Response.Status.OK.getStatusCode(), true);
 

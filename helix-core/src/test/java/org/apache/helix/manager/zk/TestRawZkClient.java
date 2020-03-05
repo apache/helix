@@ -760,14 +760,14 @@ public class TestRawZkClient extends ZkUnitTestBase {
       zkClient.setZkSerializer(new ZNRecordSerializer());
 
       ZNRecord oversizeZNRecord = new ZNRecord("Oversize");
-      StringBuilder sb = new StringBuilder(1204);
+      char[] buff = new char[1024];
       Random ran = new Random();
       for (int i = 0; i < 1024; i++) {
-        sb.append(ran.nextInt(26) + 'a');
+        buff[i] = (char) (ran.nextInt(26) + 'a');
       }
-      String buf = sb.toString();
+      String buffString = new String(buff);
       for (int i = 0; i < 1024; i++) {
-        oversizeZNRecord.setSimpleField(Integer.toString(i), buf);
+        oversizeZNRecord.setSimpleField(Integer.toString(i), buffString);
       }
 
       // ensure /tmp exists for the test
@@ -776,31 +776,37 @@ public class TestRawZkClient extends ZkUnitTestBase {
       }
 
       org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.CreateCallbackHandler
-          createCallback = new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.CreateCallbackHandler();
+          createCallback =
+          new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.CreateCallbackHandler();
+
       zkClient.asyncCreate("/tmp/async", null, CreateMode.PERSISTENT, createCallback);
       createCallback.waitForSuccess();
       Assert.assertEquals(createCallback.getRc(), 0);
       Assert.assertTrue(zkClient.exists("/tmp/async"));
 
+      Assert.assertFalse(zkClient.exists("/tmp/asyncOversize"));
       // try to create oversize node, should fail
       zkClient.asyncCreate("/tmp/asyncOversize", oversizeZNRecord, CreateMode.PERSISTENT,
           createCallback);
       createCallback.waitForSuccess();
-      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.MARSHALLINGERROR.intValue());
       Assert.assertFalse(zkClient.exists("/tmp/asyncOversize"));
 
       ZNRecord normalZNRecord = new ZNRecord("normal");
-      normalZNRecord.setSimpleField("key", buf);
+      normalZNRecord.setSimpleField("key", buffString);
 
       org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.SetDataCallbackHandler
-          setDataCallbackHandler = new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.SetDataCallbackHandler();
+          setDataCallbackHandler =
+          new org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.SetDataCallbackHandler();
+
       zkClient.asyncSetData("/tmp/async", normalZNRecord, -1, setDataCallbackHandler);
       setDataCallbackHandler.waitForSuccess();
       Assert.assertEquals(setDataCallbackHandler.getRc(), 0);
 
       zkClient.asyncSetData("/tmp/async", oversizeZNRecord, -1, setDataCallbackHandler);
       setDataCallbackHandler.waitForSuccess();
-      Assert.assertEquals(setDataCallbackHandler.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertEquals(setDataCallbackHandler.getRc(),
+          KeeperException.Code.MARSHALLINGERROR.intValue());
       Assert.assertEquals(zkClient.readData("/tmp/async"), normalZNRecord);
     } finally {
       if (originSizeLimit == null) {

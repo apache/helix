@@ -1721,7 +1721,7 @@ public class ZkClient implements Watcher {
   public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
-    byte[] data = null;
+    final byte[] data;
     try {
       data = (datat == null ? null : serialize(datat, path));
     } catch (ZkMarshallingError e) {
@@ -1729,13 +1729,12 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false), null);
       return;
     }
-    final byte[] finalData = data;
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper()
-          .create(path, finalData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+          .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
               // Arrays.asList(DEFAULT_ACL),
               mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
-                  finalData == null ? 0 : finalData.length, false));
+                  data == null ? 0 : data.length, false));
       return null;
     });
   }
@@ -1744,7 +1743,7 @@ public class ZkClient implements Watcher {
   public void asyncSetData(final String path, Object datat, final int version,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
-    byte[] data = null;
+    final byte[] data;
     try {
       data = serialize(datat, path);
     } catch (ZkMarshallingError e) {
@@ -1752,11 +1751,10 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false), null);
       return;
     }
-    final byte[] finalData = data;
     retryUntilConnected(() -> {
-      ((ZkConnection) getConnection()).getZookeeper().setData(path, finalData, version, cb,
+      ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
           new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
-              finalData == null ? 0 : finalData.length, false));
+              data == null ? 0 : data.length, false));
       return null;
     });
   }

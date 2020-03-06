@@ -183,8 +183,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
           // found
-          // Fall back to single-realm mode using SharedZkClient (HelixZkClient)
-          // This is to preserve backward-compatibility
+          throw new HelixException("Failed to create ZkCacheBaseDataAccessor!", e);
         }
       case SINGLE_REALM:
         switch (builder._zkClientType) {
@@ -982,6 +981,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
         throw new HelixException(
             "ZkCacheBaseDataAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+
+      if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ZkCacheBaseDataAccessor: You cannot set the ZkAddress on multi-realm mode!");
       }
 
       if (_realmMode == null) {

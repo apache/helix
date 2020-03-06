@@ -146,7 +146,7 @@ public final class ZKUtil {
       for (String path : requiredPaths) {
         if (!zkclient.exists(path)) {
           isValid = false;
-          logger.error("Invalid instance setup, missing znode path: {}", path);
+          logger.info("Invalid instance setup, missing znode path: {}", path);
         }
       }
 

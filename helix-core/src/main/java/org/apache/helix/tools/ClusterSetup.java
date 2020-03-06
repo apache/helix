@@ -187,10 +187,10 @@ public class ClusterSetup {
         try {
           _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
               builder._realmAwareZkClientConfig);
+          break;
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("Failed to create ClusterSetup!", e);
         }
-        break;
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do
         // ephemeral operations

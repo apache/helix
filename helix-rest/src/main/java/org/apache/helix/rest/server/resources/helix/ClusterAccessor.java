@@ -551,7 +551,13 @@ public class ClusterAccessor extends AbstractHelixResource {
   @POST
   @Path("{clusterId}/restconfig")
   public Response updateClusterRESTConfig(@PathParam("clusterId") String clusterId,
-      String content) {
+      @QueryParam("command") String commandStr, String content) {
+    Command command;
+    try {
+      command = getCommand(commandStr);
+    } catch (HelixException ex) {
+      return badRequest(ex.getMessage());
+    }
 
     ZNRecord record;
     try {
@@ -568,13 +574,23 @@ public class ClusterAccessor extends AbstractHelixResource {
     RESTConfig config = new RESTConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
-      configAccessor.updateRESTConfig(clusterId, config);
+      switch (command) {
+        case update:
+          configAccessor.updateRESTConfig(clusterId, config);
+          break;
+        case delete: {
+          configAccessor.deleteRESTConfig(clusterId);
+        }
+        break;
+        default:
+          return badRequest("Unsupported command " + commandStr);
+      }
     } catch (HelixException ex) {
-      // TODO: Could use a more generic error for HelixException
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Failed to update rest config, cluster " + clusterId + " new config: " + content
-          + ", Exception: " + ex);
+      _logger.error(
+          "Failed to " + command + " rest config, cluster " + clusterId + " new config: " + content
+              + ", Exception: " + ex);
       return serverError(ex);
     }
     return OK();
@@ -599,23 +615,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       return notFound();
     }
     return JSONRepresentation(config.getRecord());
-  }
-
-  @DELETE
-  @Path("{clusterId}/restconfig")
-  public Response deleteClusterRESTConfig(@PathParam("clusterId") String clusterId) {
-    ConfigAccessor accessor = getConfigAccessor();
-    try {
-      accessor.deleteRESTConfig(clusterId);
-    } catch (HelixException ex) {
-      _logger.info(
-          "Failed to delete rest config for cluster " + clusterId + ", cluster rest config is not found, Exception: "
-              + ex);
-    } catch (Exception ex) {
-      _logger.error("Failed to delete rest config, cluster " + clusterId + ", Exception: " + ex);
-      return serverError(ex);
-    }
-    return OK();
   }
 
   @GET

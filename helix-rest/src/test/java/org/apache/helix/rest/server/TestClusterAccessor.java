@@ -38,6 +38,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterDistributedController;
@@ -587,11 +588,16 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
+
+    ClusterConfig clusterConfigFromZk = _configAccessor.getClusterConfig(clusterName);
+    Assert.assertEquals(clusterConfigFromZk.getTopology(), AzureConstants.AZURE_TOPOLOGY);
+    Assert.assertEquals(clusterConfigFromZk.getFaultZoneType(), AzureConstants.AZURE_FAULT_ZONE_TYPE);
+    Assert.assertTrue(clusterConfigFromZk.isTopologyAwareEnabled());
   }
 
   @Test(dependsOnMethods = "testAddClusterWithCloudConfig")
@@ -662,7 +668,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -692,7 +698,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertFalse(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -751,7 +757,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig("TestCloud");
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -795,7 +801,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and make sure it has been removed
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig("TestCloud");
     Assert.assertNull(cloudConfigFromZk);
 

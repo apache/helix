@@ -37,12 +37,13 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -189,6 +190,16 @@ public class ClusterSetup {
 
     if (cloudConfig != null) {
       _admin.addCloudConfig(clusterName, cloudConfig);
+      // If cloud is enabled and Cloud Provider is Azure, populated the Topology information in cluster config
+      if (cloudConfig.isCloudEnabled()
+          && cloudConfig.getCloudProvider().equals(CloudProvider.AZURE.name())) {
+        ConfigAccessor configAccessor = new ConfigAccessor(_zkServerAddress);
+        ClusterConfig clusterConfig = new ClusterConfig(clusterName);
+        clusterConfig.setTopology(AzureConstants.AZURE_TOPOLOGY);
+        clusterConfig.setTopologyAwareEnabled(true);
+        clusterConfig.setFaultZoneType(AzureConstants.AZURE_FAULT_ZONE_TYPE);
+        configAccessor.updateClusterConfig(clusterName, clusterConfig);
+      }
     }
   }
 

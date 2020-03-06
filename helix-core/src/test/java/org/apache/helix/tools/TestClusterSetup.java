@@ -34,12 +34,14 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -355,7 +357,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // add fake liveInstance
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR));
     Builder keyBuilder = new Builder(clusterName);
     LiveInstance liveInstance = new LiveInstance("localhost_12918");
     liveInstance.setSessionId("session_0");
@@ -421,7 +423,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     ClusterSetup.processCommandLineArgs(new String[] {
         "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "false"
     });
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -505,11 +507,17 @@ public class TestClusterSetup extends ZkUnitTestBase {
     _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");
     List<String> listUrlFromZk = cloudConfigFromZk.getCloudInfoSources();
+
+    // Since it is Azure, topology information should have been populated.
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
+    Assert.assertEquals(clusterConfig.getTopology(), AzureConstants.AZURE_TOPOLOGY);
+    Assert.assertEquals(clusterConfig.getFaultZoneType(), AzureConstants.AZURE_FAULT_ZONE_TYPE);
+    Assert.assertTrue(clusterConfig.isTopologyAwareEnabled());
 
     // Since provider is not customized, CloudInfoSources and CloudInfoProcessorName will be null.
     Assert.assertNull(listUrlFromZk);

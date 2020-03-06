@@ -184,8 +184,12 @@ public class ClusterSetup {
   private ClusterSetup(Builder builder) throws IOException, InvalidRoutingDataException {
     switch (builder._realmMode) {
       case MULTI_REALM:
-        _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-            builder._realmAwareZkClientConfig);
+        try {
+          _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
+              builder._realmAwareZkClientConfig);
+        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          throw new HelixException("Failed to create ClusterSetup!", e);
+        }
         break;
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do

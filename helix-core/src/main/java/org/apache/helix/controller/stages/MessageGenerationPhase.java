@@ -156,12 +156,13 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         boolean isCancellationEnabled = cache.getClusterConfig().isStateTransitionCancelEnabled();
         Message cancellationMessage =
             currentStateOutput.getCancellationMessage(resourceName, partition, instanceName);
+        String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
         Message message = null;
 
         if (currentState == null) {
           currentState = stateModelDef.getInitialState();
-          String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
+          nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           if (desiredState.equals(HelixDefinedState.DROPPED.name())) {
             LogUtil.logDebug(logger, _eventId,
@@ -184,8 +185,6 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
             continue;
           }
         }
-
-        String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
         if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
             currentStateOutput.getEndTime(resourceName, partition, instanceName))) {

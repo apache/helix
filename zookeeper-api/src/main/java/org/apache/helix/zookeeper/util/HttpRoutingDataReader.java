@@ -21,9 +21,9 @@ package org.apache.helix.zookeeper.util;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,10 +49,10 @@ public class HttpRoutingDataReader {
   /** Double-checked locking requires that the following fields be volatile */
   // The following map stands for (MSDS endpoint, Raw Routing Data)
   private static volatile Map<String, Map<String, List<String>>> _rawRoutingDataMap =
-      new HashMap<>();
+      new ConcurrentHashMap<>();
   // The following map stands for (MSDS endpoint, MetadataStoreRoutingData)
   private static volatile Map<String, MetadataStoreRoutingData> _metadataStoreRoutingDataMap =
-      new HashMap<>();
+      new ConcurrentHashMap<>();
 
   /**
    * This class is a Singleton.

@@ -643,6 +643,10 @@ under the License.
               </goals>
               <id>default-test</id>
               <phase>test</phase>
+              <configuration>
+                <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                <skipAfterFailureCount>10</skipAfterFailureCount>
+              </configuration>
             </execution>
             <execution>
               <goals>
@@ -655,6 +659,8 @@ under the License.
                   <multiZk>true</multiZk>
                   <numZk>3</numZk>
                 </systemPropertyVariables>
+                <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                <skipAfterFailureCount>10</skipAfterFailureCount>
               </configuration>
             </execution>
           </executions>

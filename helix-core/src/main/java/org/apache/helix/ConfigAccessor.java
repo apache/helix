@@ -915,6 +915,10 @@ public class ConfigAccessor {
         throw new HelixException(
             "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
       }
+      if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ConfigAccessor: You cannot set the ZkAddress on multi-realm mode!");
+      }
       if (_realmMode == null) {
         _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
             : RealmAwareZkClient.RealmMode.MULTI_REALM;

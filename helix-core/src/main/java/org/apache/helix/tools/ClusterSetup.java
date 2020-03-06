@@ -138,7 +138,6 @@ public class ClusterSetup {
   public static final String removeConstraint = "removeConstraint";
 
   private static final Logger _logger = LoggerFactory.getLogger(ClusterSetup.class);
-  private String _zkServerAddress;
   private final RealmAwareZkClient _zkClient;
   // true if ZkBaseDataAccessor was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
@@ -147,8 +146,6 @@ public class ClusterSetup {
   private final HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
-    _zkServerAddress = zkServerAddress;
-
     // First, try to start on multi-realm mode using FederatedZkClient
     RealmAwareZkClient zkClient;
     try {
@@ -163,7 +160,7 @@ public class ClusterSetup {
         throw new IllegalArgumentException("ZK server address is null or empty!");
       }
       zkClient = SharedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkServerAddress));
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkServerAddress));
       zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 
@@ -173,14 +170,12 @@ public class ClusterSetup {
   }
 
   public ClusterSetup(RealmAwareZkClient zkClient) {
-    _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
     _usesExternalZkClient = true;
   }
 
   public ClusterSetup(RealmAwareZkClient zkClient, HelixAdmin zkHelixAdmin) {
-    _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = zkHelixAdmin;
     _usesExternalZkClient = true;
@@ -1653,6 +1648,10 @@ public class ClusterSetup {
       if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
         throw new HelixException(
             "ClusterSetup: RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+      if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ClusterSetup: You cannot set the ZkAddress on multi-realm mode!");
       }
       if (_realmMode == null) {
         _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM

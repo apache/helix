@@ -1,5 +1,6 @@
 package org.apache.helix.controller.stages;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -7,27 +8,32 @@ import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestCancelMessage extends MessageGenerationPhase {
+
+/**
+ * This test checks the cancellation message generation when currentState=null and desiredState=DROPPED
+ */
+public class TestSendCancellationMessageFromOFFLINEToDROPPED extends MessageGenerationPhase {
   private static final String TEST_CLUSTER = "testCluster";
   private static final String TEST_RESOURCE = "resource0";
   private static final String TEST_INSTANCE = "instance0";
-  private static final PropertyKey.Builder BUILDER = new PropertyKey.Builder(TEST_CLUSTER);
+  private static final String TEST_PARTITION = "partition0";
 
   @Test
   public void TestCancelMessageSent() throws Exception {
@@ -38,6 +44,7 @@ public class TestCancelMessage extends MessageGenerationPhase {
     // Set current state to event
     CurrentStateOutput currentStateOutput = mock(CurrentStateOutput.class);
     Partition partition = mock(Partition.class);
+    when(partition.getPartitionName()).thenReturn(TEST_PARTITION);
     when(currentStateOutput.getCurrentState(TEST_RESOURCE, partition, TEST_INSTANCE)).thenReturn(null);
     Message message = mock(Message.class);
     when(message.getFromState()).thenReturn("OFFLINE");
@@ -52,6 +59,12 @@ public class TestCancelMessage extends MessageGenerationPhase {
     BaseControllerDataProvider cache = mock(BaseControllerDataProvider.class);
     StateModelDefinition stateModelDefinition = new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
     when(cache.getStateModelDef(TaskConstants.STATE_MODEL_NAME)).thenReturn(stateModelDefinition);
+    Map<String, LiveInstance> liveInstances= mock(Map.class);
+    LiveInstance mockLiveInstance = mock(LiveInstance.class);
+    when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
+    when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
+    when(liveInstances.values()).thenReturn(Arrays.asList(mockLiveInstance));
+    when(cache.getLiveInstances()).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);
@@ -79,6 +92,6 @@ public class TestCancelMessage extends MessageGenerationPhase {
 
     processEvent(event, resourcesStateMap);
     MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
-    System.out.println(output.getMessages(TEST_RESOURCE, partition).size());
+    Assert.assertEquals(output.getMessages(TEST_RESOURCE, partition).size(), 1);
   }
 }

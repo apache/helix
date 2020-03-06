@@ -93,7 +93,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  private BestPossibleExternalViewVerifier(BestPossibleExternalViewVerifier.Builder builder) {
+  private BestPossibleExternalViewVerifier(Builder builder) {
     super(builder);
     _errStates = builder._errStates;
     _resources = builder._resources;

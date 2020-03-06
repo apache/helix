@@ -29,14 +29,14 @@ import static org.mockito.Mockito.when;
 /**
  * This test checks the cancellation message generation when currentState=null and desiredState=DROPPED
  */
-public class TestSendCancellationMessageFromOFFLINEToDROPPED extends MessageGenerationPhase {
+public class TestCancellationMessageGeneration extends MessageGenerationPhase {
   private static final String TEST_CLUSTER = "testCluster";
   private static final String TEST_RESOURCE = "resource0";
   private static final String TEST_INSTANCE = "instance0";
   private static final String TEST_PARTITION = "partition0";
 
   @Test
-  public void TestCancelMessageSent() throws Exception {
+  public void TestOFFLINEToDROPPED() throws Exception {
 
     ClusterEvent event = new ClusterEvent(TEST_CLUSTER, ClusterEventType.Unknown);
 

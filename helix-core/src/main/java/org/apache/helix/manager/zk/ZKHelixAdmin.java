@@ -145,23 +145,34 @@ public class ZKHelixAdmin implements HelixAdmin {
     _usesExternalZkClient = false;
   }
 
-  private ZKHelixAdmin(Builder builder) throws IOException, InvalidRoutingDataException {
+  private ZKHelixAdmin(Builder builder) {
+    RealmAwareZkClient zkClient;
     switch (builder.realmMode) {
       case MULTI_REALM:
-        _zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
-            builder.realmAwareZkClientConfig);
-        break;
+        try {
+          zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
+              builder.realmAwareZkClientConfig);
+          break;
+        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          if (builder.zkAddress == null || builder.zkAddress.isEmpty()) {
+            throw new IllegalStateException("Not able to connect on multi-realm mode.", e);
+          }
+          LOG.info("Not able to connect on multi-realm mode. "
+              + "Connecting on single-realm mode to ZK: {}", builder.zkAddress);
+          builder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+        }
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ZKHelixAdmin does not need to do
         // ephemeral operations
-        _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(builder.realmAwareZkConnectionConfig.createZkConnectionConfig(),
+        zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
                 builder.realmAwareZkClientConfig.createHelixZkClientConfig());
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder.realmMode);
     }
 
+    _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
     _usesExternalZkClient = false;
   }
@@ -1898,11 +1909,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       }
 
       // Resolve RealmAwareZkClientConfig
-      boolean isZkClientConfigSet = realmAwareZkClientConfig != null;
-      // Resolve which clientConfig to use
-      realmAwareZkClientConfig =
-          isZkClientConfigSet ? realmAwareZkClientConfig.createHelixZkClientConfig()
-              : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+      if (realmAwareZkClientConfig == null) {
+        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+      }
 
       // Resolve RealmAwareZkConnectionConfig
       if (realmAwareZkConnectionConfig == null) {

@@ -84,6 +84,7 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.HelixZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
@@ -98,7 +99,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
 
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
-  private static final String SLASH = "/";
   private static final int FLAPPING_TIME_WINDOW = 300000; // Default to 300 sec
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
@@ -1290,61 +1290,38 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     RealmAwareZkClient newClient;
     if (_instanceType == InstanceType.ADMINISTRATOR) {
-      newClient = buildSharedZkClient(connectionConfig, clientConfig);
+      newClient = buildHelixZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
+          clientConfig);
     } else {
-      newClient = buildDedicatedZkClient(connectionConfig, clientConfig);
+      newClient = buildHelixZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+          clientConfig);
     }
 
     return newClient;
   }
 
-  private RealmAwareZkClient buildSharedZkClient(
+  private RealmAwareZkClient buildHelixZkClient(HelixZkClientFactory zkClientFactory,
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    RealmAwareZkClient zkClient;
     try {
-      zkClient =
-          SharedZkClientFactory.getInstance().buildZkClient(connectionConfig, clientConfig);
+      return zkClientFactory.buildZkClient(connectionConfig, clientConfig);
     } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
-      LOG.warn("Not able to build realm-aware shared ZK client for sharding key: {}, caused by: {}"
-              + " Fallback to HelixZkClient.", connectionConfig.getZkRealmShardingKey(),
-          e.getMessage());
-
-      // Fallback to HelixZkClient
-      HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
-          new HelixZkClient.ZkConnectionConfig(_zkAddress);
-      helixZkConnectionConfig.setSessionTimeout(connectionConfig.getSessionTimeout());
-      zkClient = SharedZkClientFactory.getInstance()
-          .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
+      LOG.info("Not able to connect on realm-aware mode for sharding key: {}, caused by: {} ."
+              + "Trying to connect to ZK: {}.", connectionConfig.getZkRealmShardingKey(),
+          e.getMessage(), _zkAddress);
     }
 
-    return zkClient;
+    // Fall back to HelixZkClient
+    HelixZkClient.ZkClientConfig helixZkClientConfig = clientConfig.createHelixZkClientConfig();
+    HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
+        new HelixZkClient.ZkConnectionConfig(_zkAddress)
+            .setSessionTimeout(connectionConfig.getSessionTimeout());
+
+    return zkClientFactory.buildZkClient(helixZkConnectionConfig, helixZkClientConfig);
   }
 
-  private RealmAwareZkClient buildDedicatedZkClient(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    RealmAwareZkClient zkClient;
-    try {
-      zkClient =
-          DedicatedZkClientFactory.getInstance().buildZkClient(connectionConfig, clientConfig);
-    } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
-      LOG.warn("Not able to build realm-aware Dedicated ZK client for sharding key: {}, caused by: {}"
-              + " Fall back to HelixZkClient.", connectionConfig.getZkRealmShardingKey(),
-          e.getMessage());
-
-      // Fallback to HelixZkClient
-      HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
-          new HelixZkClient.ZkConnectionConfig(_zkAddress);
-      helixZkConnectionConfig.setSessionTimeout(connectionConfig.getSessionTimeout());
-      zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
-    }
-
-    return zkClient;
-  }
 
   private String buildShardingKey() {
-    return _clusterName.charAt(0) == '/' ? _clusterName : SLASH + _clusterName;
+    return _clusterName.charAt(0) == '/' ? _clusterName : "/" + _clusterName;
   }
 }

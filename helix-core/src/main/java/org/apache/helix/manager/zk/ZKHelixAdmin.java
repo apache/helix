@@ -1893,8 +1893,8 @@ public class ZKHelixAdmin implements HelixAdmin {
       return new ZKHelixAdmin(this);
     }
 
-    /**
-     * Validate the given parameters before creating an instance of ConfigAccessor.
+    /*
+     * Validates the given parameters before creating an instance of ZKHelixAdmin.
      */
     private void validate() {
       // Resolve RealmMode based on other parameters

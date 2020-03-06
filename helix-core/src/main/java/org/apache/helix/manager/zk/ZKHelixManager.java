@@ -1320,7 +1320,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return zkClientFactory.buildZkClient(helixZkConnectionConfig, helixZkClientConfig);
   }
 
-
   private String buildShardingKey() {
     return _clusterName.charAt(0) == '/' ? _clusterName : "/" + _clusterName;
   }

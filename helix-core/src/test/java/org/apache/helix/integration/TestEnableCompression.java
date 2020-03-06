@@ -1,25 +1,5 @@
 package org.apache.helix.integration;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.TestHelper;
-import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.builder.CustomModeISBuilder;
-import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.util.GZipCompressionUtil;
-import org.apache.helix.zookeeper.zkclient.serialize.BytesPushThroughSerializer;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -38,6 +18,29 @@ import org.testng.annotations.Test;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.serialize.BytesPushThroughSerializer;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+
 /**
  * Test controller, spectator and participant roles when compression is enabled.
  * Compression can be enabled for a specific resource by setting enableCompression=true in the
@@ -66,6 +69,8 @@ public class TestEnableCompression extends ZkTestBase {
     List<String> instancesInCluster =
         _gSetupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     String resourceName = "TestResource";
+    Set<String> expectedResources = new HashSet<>();
+    expectedResources.add(resourceName);
     CustomModeISBuilder customModeISBuilder = new CustomModeISBuilder(resourceName);
 
     int numPartitions = 10000;
@@ -96,15 +101,19 @@ public class TestEnableCompression extends ZkTestBase {
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
+    Set<String> expectedLiveInstances = new HashSet<>();
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
+      expectedLiveInstances.add(instanceName);
     }
 
-    boolean result = ClusterStateVerifier
-        .verifyByPolling(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName), 120000L);
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
+            .setExpectLiveInstances(expectedLiveInstances).setResources(expectedResources).build();
+    boolean result = verifier.verify(120000L);
     Assert.assertTrue(result);
 
     List<String> compressedPaths = new ArrayList<>();

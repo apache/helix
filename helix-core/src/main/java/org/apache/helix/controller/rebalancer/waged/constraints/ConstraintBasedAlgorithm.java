@@ -63,8 +63,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   }
 
   @Override
-  public OptimalAssignment calculate(ClusterModel clusterModel)
-      throws HelixRebalanceException {
+  public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
     Set<String> busyInstances =
@@ -122,9 +121,12 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           if (scoreCompareResult == 0) {
             // If the evaluation scores of 2 nodes are the same, the algorithm assigns the replica
             // to the idle node first.
-            int idleScore1 = busyInstances.contains(nodeEntry1.getKey().getInstanceName()) ? 0 : 1;
-            int idleScore2 = busyInstances.contains(nodeEntry2.getKey().getInstanceName()) ? 0 : 1;
-            return idleScore1 - idleScore2;
+            String instanceName1 = nodeEntry1.getKey().getInstanceName();
+            String instanceName2 = nodeEntry2.getKey().getInstanceName();
+            int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
+            int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
+            return idleScore1 != idleScore2 ? idleScore1 - idleScore2
+                : 0 - instanceName1.compareTo(instanceName2);
           } else {
             return scoreCompareResult;
           }

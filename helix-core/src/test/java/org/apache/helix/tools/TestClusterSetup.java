@@ -34,6 +34,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -514,8 +515,8 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // Since it is Azure, topology information should have been populated.
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
-    Assert.assertEquals(clusterConfig.getTopology(), "/helixZoneId/host");
-    Assert.assertEquals(clusterConfig.getFaultZoneType(), "helixZoneId");
+    Assert.assertEquals(clusterConfig.getTopology(), AzureConstants.AZURE_TOPOLOGY);
+    Assert.assertEquals(clusterConfig.getFaultZoneType(), AzureConstants.AZURE_FAULT_ZONE_TYPE);
     Assert.assertTrue(clusterConfig.isTopologyAwareEnabled());
 
     // Since provider is not customized, CloudInfoSources and CloudInfoProcessorName will be null.

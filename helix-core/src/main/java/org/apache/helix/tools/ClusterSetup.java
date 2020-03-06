@@ -43,6 +43,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -194,9 +195,9 @@ public class ClusterSetup {
           && cloudConfig.getCloudProvider().equals(CloudProvider.AZURE.name())) {
         ConfigAccessor configAccessor = new ConfigAccessor(_zkServerAddress);
         ClusterConfig clusterConfig = new ClusterConfig(clusterName);
-        clusterConfig.setTopology("/helixZoneId/host");
+        clusterConfig.setTopology(AzureConstants.AZURE_TOPOLOGY);
         clusterConfig.setTopologyAwareEnabled(true);
-        clusterConfig.setFaultZoneType("helixZoneId");
+        clusterConfig.setFaultZoneType(AzureConstants.AZURE_FAULT_ZONE_TYPE);
         configAccessor.updateClusterConfig(clusterName, clusterConfig);
       }
     }

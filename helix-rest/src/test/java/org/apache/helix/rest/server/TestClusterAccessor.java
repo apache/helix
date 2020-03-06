@@ -38,6 +38,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterDistributedController;
@@ -594,8 +595,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
 
     ClusterConfig clusterConfigFromZk = _configAccessor.getClusterConfig(clusterName);
-    Assert.assertEquals(clusterConfigFromZk.getTopology(), "/helixZoneId/host");
-    Assert.assertEquals(clusterConfigFromZk.getFaultZoneType(), "helixZoneId");
+    Assert.assertEquals(clusterConfigFromZk.getTopology(), AzureConstants.AZURE_TOPOLOGY);
+    Assert.assertEquals(clusterConfigFromZk.getFaultZoneType(), AzureConstants.AZURE_FAULT_ZONE_TYPE);
     Assert.assertTrue(clusterConfigFromZk.isTopologyAwareEnabled());
   }
 

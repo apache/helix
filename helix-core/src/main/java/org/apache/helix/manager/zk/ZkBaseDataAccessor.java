@@ -137,24 +137,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   private ZkBaseDataAccessor(Builder builder) {
-    RealmAwareZkClient zkClient;
     switch (builder.realmMode) {
       case MULTI_REALM:
         try {
-          zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
+          _zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
               builder.realmAwareZkClientConfig);
-          // Break here to exit.
-          break;
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          if (builder.zkAddress == null || builder.zkAddress.isEmpty()) {
-            throw new IllegalStateException("Not able to connect on multi-realm mode.", e);
-          }
-          LOG.info("Not able to connect on multi-realm mode. "
-              + "Connecting on single-realm mode to ZK: {}", builder.zkAddress);
-          builder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+          throw new HelixException("Not able to connect on multi-realm mode.", e);
         }
-        // No break here. If connecting on multi-realm fails and ZK address is valid, connecting
-        // on single-realm is allowed.
+        break;
 
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ZkBaseDataAccessor does not need to
@@ -163,24 +154,24 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           case DEDICATED:
             // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
             // operations
-            zkClient = DedicatedZkClientFactory.getInstance()
+            _zkClient = DedicatedZkClientFactory.getInstance()
                 .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
                     builder.realmAwareZkClientConfig.createHelixZkClientConfig());
             break;
           case SHARED:
           default:
-            zkClient = SharedZkClientFactory.getInstance()
+            _zkClient = SharedZkClientFactory.getInstance()
                 .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
                     builder.realmAwareZkClientConfig.createHelixZkClientConfig());
-            zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            _zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
                 TimeUnit.MILLISECONDS);
+            break;
         }
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder.realmMode);
     }
 
-    _zkClient = zkClient;
     _usesExternalZkClient = false;
   }
 
@@ -1383,6 +1374,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
   }
 
+  /*
+   * This is used for constructors that do not take a Builder in as a parameter
+   * because of the fallback behavior.
+   */
   private RealmAwareZkClient buildRealmAwareZkClient(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {
@@ -1391,7 +1386,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
     } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
       // Fall back to connect on single-realm mode if failed to connect on multi-realm mode and
-      // ZK address is not empty.
+      // ZK address is not empty. This is for backward-compatibility for constructors that take
+      // in zkAddress or zkClient.
       LOG.info("Not able to connect on multi-realm mode, caused by: {}. "
           + "Connecting on single-realm mode to ZK: {}.", e.getMessage(), zkAddress);
     }

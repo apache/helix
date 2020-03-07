@@ -152,15 +152,10 @@ public class ZKHelixAdmin implements HelixAdmin {
         try {
           zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
               builder.realmAwareZkClientConfig);
-          break;
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          if (builder.zkAddress == null || builder.zkAddress.isEmpty()) {
-            throw new IllegalStateException("Not able to connect on multi-realm mode.", e);
-          }
-          LOG.info("Not able to connect on multi-realm mode. "
-              + "Connecting on single-realm mode to ZK: {}", builder.zkAddress);
-          builder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
+          throw new HelixException("Not able to connect on multi-realm mode.", e);
         }
+        break;
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ZKHelixAdmin does not need to do
         // ephemeral operations

@@ -1896,7 +1896,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       boolean isZkAddressSet = zkAddress != null && !zkAddress.isEmpty();
       if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
         throw new HelixException(
-            "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
+            "RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+      if (realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ZkAddress cannot be set on multi-realm mode!");
       }
       if (realmMode == null) {
         realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM

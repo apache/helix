@@ -45,6 +45,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.api.cloud.CloudInstanceInformation;
 import org.apache.helix.api.cloud.CloudInstanceInformationProcessor;
+import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
@@ -177,8 +178,8 @@ public class ParticipantManager {
         } else {
           LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
           CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
-          String domain = cloudInstanceInformation
-              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
+          String domain = ConstructDomainField(cloudInstanceInformation
+              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()));
 
           // Disable the verification for now
           /*String cloudIdInRemote = cloudInstanceInformation
@@ -198,6 +199,22 @@ public class ParticipantManager {
         }
       }
     }
+  }
+
+  private String ConstructDomainField(String faultDomain) {
+    Boolean topologyEnabled = _configAccessor.getClusterConfig(_clusterName).isTopologyAwareEnabled();
+    if (!topologyEnabled) {
+      throw new HelixException("Topology is not enabled, so Helix cannot do auto "
+          + "registration");
+    }
+    String topologyDef = _configAccessor.getClusterConfig(_clusterName).getTopology();
+    String[] parts = topologyDef.trim().split("/");
+    if (parts.length != 2) {
+      throw new HelixException("Invalid cluster topology definition, so Helix cannot do auto "
+          + "registration" + topologyDef);
+    }
+    String domain = parts[0] + "=" + faultDomain + "," + parts[1] + "=" + _instanceName;
+    return domain;
   }
 
   private CloudInstanceInformation getCloudInstanceInformation() {

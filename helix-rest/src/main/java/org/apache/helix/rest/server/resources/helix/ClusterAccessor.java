@@ -579,7 +579,10 @@ public class ClusterAccessor extends AbstractHelixResource {
           configAccessor.updateRESTConfig(clusterId, config);
           break;
         case delete: {
-          configAccessor.deleteRESTConfig(clusterId);
+          HelixConfigScope scope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.REST)
+                  .forCluster(clusterId).build();
+          configAccessor.remove(scope, config.getRecord());
         }
         break;
         default:
@@ -615,6 +618,22 @@ public class ClusterAccessor extends AbstractHelixResource {
       return notFound();
     }
     return JSONRepresentation(config.getRecord());
+  }
+
+  @DELETE
+  @Path("{clusterId}/restconfig")
+  public Response deleteClusterRESTConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    try {
+      accessor.deleteRESTConfig(clusterId);
+    } catch (HelixException ex) {
+      _logger.info("Failed to delete rest config for cluster " + clusterId
+          + ", cluster rest config is not found, Exception: " + ex);
+    } catch (Exception ex) {
+      _logger.error("Failed to delete rest config, cluster " + clusterId + ", Exception: " + ex);
+      return serverError(ex);
+    }
+    return OK();
   }
 
   @GET

@@ -144,9 +144,6 @@ public class AzureCloudInstanceInformationProcessor
         String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
         String azureTopology = AzureConstants.AZURE_TOPOLOGY;
         String[] parts = azureTopology.trim().split("/");
-        if (parts.length != 2) {
-          throw new HelixException("Invalid Azure topology definition: " + azureTopology);
-        }
         //The hostname will be filled in by each participant
         String domain = parts[0] + "=" + platformFaultDomain + "," + parts[1] + "=";
 

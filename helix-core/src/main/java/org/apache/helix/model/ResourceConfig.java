@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.RebalanceConfig;
@@ -873,72 +872,40 @@ public class ResourceConfig extends HelixProperty {
     }
     // Fill the compatible Idealstate fields to the ResourceConfig if possible.
     ZNRecord mergedZNRecord = mergedResourceConfig.getRecord();
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name())) {
-      mergedZNRecord.setSimpleField(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name(),
-          idealState.getInstanceGroupTag());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name())) {
-      mergedZNRecord
-          .setIntField(ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
-              idealState.getMaxPartitionsPerInstance());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.NUM_PARTITIONS.name())) {
-      mergedZNRecord
-          .setIntField(ResourceConfigProperty.NUM_PARTITIONS.name(), idealState.getNumPartitions());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.STATE_MODEL_DEF_REF.name())) {
-      mergedZNRecord
-          .setSimpleField(ResourceConfig.ResourceConfigProperty.STATE_MODEL_DEF_REF.name(),
-              idealState.getStateModelDefRef());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.STATE_MODEL_FACTORY_NAME.name())) {
-      mergedZNRecord
-          .setSimpleField(ResourceConfig.ResourceConfigProperty.STATE_MODEL_FACTORY_NAME.name(),
-              idealState.getStateModelFactoryName());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.REPLICAS.name())) {
-      mergedZNRecord.setSimpleField(ResourceConfig.ResourceConfigProperty.REPLICAS.name(),
-          idealState.getReplicas());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.MIN_ACTIVE_REPLICAS.name())) {
-      mergedZNRecord.setIntField(ResourceConfig.ResourceConfigProperty.MIN_ACTIVE_REPLICAS.name(),
-          idealState.getMinActiveReplicas());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.HELIX_ENABLED.name())) {
-      mergedZNRecord.setBooleanField(ResourceConfig.ResourceConfigProperty.HELIX_ENABLED.name(),
-          idealState.isEnabled());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.RESOURCE_GROUP_NAME.name())) {
-      mergedZNRecord
-          .setSimpleField(ResourceConfig.ResourceConfigProperty.RESOURCE_GROUP_NAME.name(),
-              idealState.getResourceGroupName());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.RESOURCE_TYPE.name())) {
-      mergedZNRecord.setSimpleField(ResourceConfig.ResourceConfigProperty.RESOURCE_TYPE.name(),
-          idealState.getResourceType());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name())) {
-      mergedZNRecord
-          .setBooleanField(ResourceConfig.ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name(),
-              idealState.isExternalViewDisabled());
-    }
-    if (null == mergedZNRecord
-        .getSimpleField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name())) {
-      mergedZNRecord
-          .setBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
-              idealState.isDelayRebalanceEnabled());
-    }
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name(),
+            idealState.getInstanceGroupTag());
+    mergedZNRecord.setIntFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
+        idealState.getMaxPartitionsPerInstance());
+    mergedZNRecord.setIntFieldIfAbsent(ResourceConfigProperty.NUM_PARTITIONS.name(),
+        idealState.getNumPartitions());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.STATE_MODEL_DEF_REF.name(),
+            idealState.getStateModelDefRef());
+    mergedZNRecord.setSimpleFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.STATE_MODEL_FACTORY_NAME.name(),
+        idealState.getStateModelFactoryName());
+    mergedZNRecord.setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.REPLICAS.name(),
+        idealState.getReplicas());
+    mergedZNRecord
+        .setIntFieldIfAbsent(ResourceConfig.ResourceConfigProperty.MIN_ACTIVE_REPLICAS.name(),
+            idealState.getMinActiveReplicas());
+    mergedZNRecord
+        .setBooleanFieldIfAbsent(ResourceConfig.ResourceConfigProperty.HELIX_ENABLED.name(),
+            idealState.isEnabled());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.RESOURCE_GROUP_NAME.name(),
+            idealState.getResourceGroupName());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.RESOURCE_TYPE.name(),
+            idealState.getResourceType());
+    mergedZNRecord.setBooleanFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name(),
+        idealState.isExternalViewDisabled());
+    mergedZNRecord.setBooleanFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+        idealState.isDelayRebalanceEnabled());
     return mergedResourceConfig;
   }
 }

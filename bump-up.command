@@ -41,21 +41,21 @@ sed -i "s/${version}/${new_version}/g" pom.xml
 # git diff pom.xml
 grep -C 1 "$new_version" pom.xml
 
-echo "bump up helix-common/pom.xml"
-sed -i "s/${version}/${new_version}/g" helix-common/pom.xml
-grep -C 1 "$new_version" helix-common/pom.xml
-# git diff helix-common/pom.xml
+echo "bump up metrics-common/pom.xml"
+sed -i "s/${version}/${new_version}/g" metrics-common/pom.xml
+grep -C 1 "$new_version" metrics-common/pom.xml
+# git diff metrics-common/pom.xml
 
-ivy_file="helix-common-"$version".ivy"
-new_ivy_file="helix-common-"$new_version".ivy"
+ivy_file="metrics-common-"$version".ivy"
+new_ivy_file="metrics-common-"$new_version".ivy"
 # echo "$ivy_file"
-if [ -f helix-common/$ivy_file ]; then
-  echo "bump up helix-common/$ivy_file"
-  git mv "helix-common/$ivy_file" "helix-common/$new_ivy_file"
-  sed -i "s/${version}/${new_version}/g" "helix-common/$new_ivy_file"
-  grep -C 1 "$new_version" "helix-common/$new_ivy_file"
+if [ -f metrics-common/$ivy_file ]; then
+  echo "bump up metrics-common/$ivy_file"
+  git mv "metrics-common/$ivy_file" "metrics-common/$new_ivy_file"
+  sed -i "s/${version}/${new_version}/g" "metrics-common/$new_ivy_file"
+  grep -C 1 "$new_version" "metrics-common/$new_ivy_file"
 else
-  echo "helix-common/$ivy_file not exist"
+  echo "metrics-common/$ivy_file not exist"
 fi
 
 echo "bump up zookeeper-api/pom.xml"
@@ -73,6 +73,23 @@ if [ -f zookeeper-api/$ivy_file ]; then
   grep -C 1 "$new_version" "zookeeper-api/$new_ivy_file"
 else
   echo "zookeeper-api/$ivy_file not exist"
+fi
+
+echo "bump up helix-common/pom.xml"
+sed -i "s/${version}/${new_version}/g" helix-common/pom.xml
+grep -C 1 "$new_version" helix-common/pom.xml
+# git diff helix-common/pom.xml
+
+ivy_file="helix-common-"$version".ivy"
+new_ivy_file="helix-common-"$new_version".ivy"
+# echo "$ivy_file"
+if [ -f helix-common/$ivy_file ]; then
+  echo "bump up helix-common/$ivy_file"
+  git mv "helix-common/$ivy_file" "helix-common/$new_ivy_file"
+  sed -i "s/${version}/${new_version}/g" "helix-common/$new_ivy_file"
+  grep -C 1 "$new_version" "helix-common/$new_ivy_file"
+else
+  echo "helix-common/$ivy_file not exist"
 fi
 
 echo "bump up helix-core/pom.xml"

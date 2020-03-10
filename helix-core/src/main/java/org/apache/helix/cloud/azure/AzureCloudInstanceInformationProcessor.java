@@ -142,8 +142,13 @@ public class AzureCloudInstanceInformationProcessor
         String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
         String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
         String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
+        String azureTopology = AzureConstants.AZURE_TOPOLOGY;
+        String[] parts = azureTopology.trim().split("/");
+        //The hostname will be filled in by each participant
+        String domain = parts[0] + "=" + platformFaultDomain + "," + parts[1] + "=";
+
         AzureCloudInstanceInformation.Builder builder = new AzureCloudInstanceInformation.Builder();
-        builder.setInstanceName(vmName).setFaultDomain(platformFaultDomain)
+        builder.setInstanceName(vmName).setFaultDomain(domain)
             .setInstanceSetName(vmssName);
         azureCloudInstanceInformation = builder.build();
       }

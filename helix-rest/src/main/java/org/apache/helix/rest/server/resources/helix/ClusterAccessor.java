@@ -519,7 +519,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @PUT
   @Path("{clusterId}/restconfig")
-  public Response createClusterRESTConfig(@PathParam("clusterId") String clusterId,
+  public Response createRESTConfig(@PathParam("clusterId") String clusterId,
       String content) {
     ZNRecord record;
     try {
@@ -550,7 +550,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @POST
   @Path("{clusterId}/restconfig")
-  public Response updateClusterRESTConfig(@PathParam("clusterId") String clusterId,
+  public Response updateRESTConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, String content) {
     Command command;
     try {
@@ -601,7 +601,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @GET
   @Path("{clusterId}/restconfig")
-  public Response getClusterRESTConfig(@PathParam("clusterId") String clusterId) {
+  public Response getRESTConfig(@PathParam("clusterId") String clusterId) {
     ConfigAccessor accessor = getConfigAccessor();
     RESTConfig config = null;
     try {
@@ -622,7 +622,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @DELETE
   @Path("{clusterId}/restconfig")
-  public Response deleteClusterRESTConfig(@PathParam("clusterId") String clusterId) {
+  public Response deleteRESTConfig(@PathParam("clusterId") String clusterId) {
     ConfigAccessor accessor = getConfigAccessor();
     try {
       accessor.deleteRESTConfig(clusterId);

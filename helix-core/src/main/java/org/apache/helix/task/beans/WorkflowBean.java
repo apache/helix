@@ -21,6 +21,7 @@ package org.apache.helix.task.beans;
 
 import java.util.List;
 
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowConfig;
 
 /**
@@ -32,4 +33,5 @@ public class WorkflowBean {
   public ScheduleBean schedule;
   public long expiry = WorkflowConfig.DEFAULT_EXPIRY;
   public String workflowType;
+  public boolean enableCompression = TaskConstants.DEFAULT_TASK_ENABLE_COMPRESSION;
 }

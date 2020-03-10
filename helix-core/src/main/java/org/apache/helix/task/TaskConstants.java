@@ -48,5 +48,5 @@ public class TaskConstants {
 
   public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
-
+  public static final boolean DEFAULT_TASK_ENABLE_COMPRESSION = false;
 }

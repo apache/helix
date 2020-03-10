@@ -178,7 +178,7 @@ public class ParticipantManager {
           LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
           CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
           String domain = cloudInstanceInformation
-              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name());
+              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
 
           // Disable the verification for now
           /*String cloudIdInRemote = cloudInstanceInformation

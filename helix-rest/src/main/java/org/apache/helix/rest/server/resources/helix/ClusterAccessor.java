@@ -525,7 +525,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      LOG.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -541,7 +541,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       // TODO: Could use a more generic error for HelixException
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Failed to create rest config, cluster " + clusterId + " new config: " + content
+      LOG.error("Failed to create rest config, cluster " + clusterId + " new config: " + content
           + ", Exception: " + ex);
       return serverError(ex);
     }
@@ -552,6 +552,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}/restconfig")
   public Response updateRESTConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, String content) {
+    //TODO: abstract out the logic that is duplicated from cluster config methods
     Command command;
     try {
       command = getCommand(commandStr);
@@ -563,7 +564,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      LOG.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -587,7 +588,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
+      LOG.error(
           "Failed to " + command + " rest config, cluster " + clusterId + " new config: " + content
               + ", Exception: " + ex);
       return serverError(ex);
@@ -603,11 +604,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       config = accessor.getRESTConfig(clusterId);
     } catch (HelixException ex) {
-      _logger.info(
+      LOG.info(
           "Failed to get rest config for cluster " + clusterId + ", cluster not found, Exception: "
               + ex);
     } catch (Exception ex) {
-      _logger.error("Failed to get rest config for cluster " + clusterId + " Exception: " + ex);
+      LOG.error("Failed to get rest config for cluster " + clusterId + " Exception: " + ex);
       return serverError(ex);
     }
     if (config == null) {
@@ -623,10 +624,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       accessor.deleteRESTConfig(clusterId);
     } catch (HelixException ex) {
-      _logger.info("Failed to delete rest config for cluster " + clusterId
+      LOG.info("Failed to delete rest config for cluster " + clusterId
           + ", cluster rest config is not found, Exception: " + ex);
+      return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Failed to delete rest config, cluster " + clusterId + ", Exception: " + ex);
+      LOG.error("Failed to delete rest config, cluster " + clusterId + ", Exception: " + ex);
       return serverError(ex);
     }
     return OK();

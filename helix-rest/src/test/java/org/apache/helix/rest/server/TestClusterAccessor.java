@@ -578,7 +578,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testCreateClusterRESTConfig() throws IOException {
+  public void testCreateRESTConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     RESTConfig restConfigRest = new RESTConfig(cluster);
@@ -593,8 +593,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testCreateClusterRESTConfig")
-  public void testUpdateClusterRESTConfig() throws IOException {
+  @Test(dependsOnMethods = "testCreateRESTConfig")
+  public void testUpdateRESTConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     RESTConfig restConfigRest = new RESTConfig(cluster);
@@ -619,7 +619,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(restConfigZK, new RESTConfig(cluster),
         "rest config from response: " + new RESTConfig(cluster) + " vs rest config actually: "
             + restConfigZK);
-    System.out.println("End test :" + TestHelper.getTestMethodName());
 
     // Update a cluster rest config that the cluster does not exist
     String wrongClusterId = "wrong_cluster_id";
@@ -630,15 +629,17 @@ public class TestClusterAccessor extends AbstractTestClass {
     post("clusters/" + wrongClusterId + "/restconfig",
         ImmutableMap.of("command", Command.update.name()), entity,
         Response.Status.NOT_FOUND.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(dependsOnMethods = "testUpdateClusterRESTConfig")
-  public void testDeleteClusterRESTConfig() {
+  @Test(dependsOnMethods = "testUpdateRESTConfig")
+  public void testDeleteRESTConfig() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
     get("clusters/" + cluster + "/restconfig", null, Response.Status.NOT_FOUND.getStatusCode(), true);
     delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

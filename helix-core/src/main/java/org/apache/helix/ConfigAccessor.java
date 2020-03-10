@@ -655,8 +655,7 @@ public class ConfigAccessor {
     // Create "/{clusterId}/CONFIGS/REST" if it does not exist
     String parentPath = HelixUtil.getZkParentPath(zkPath);
     if (!_zkClient.exists(parentPath)) {
-      return;
-    }
+      throw new HelixException("fail to delete REST config. cluster: " + clusterName + " is NOT setup.");    }
 
     ZKUtil.dropChildren(_zkClient, parentPath, new ZNRecord(clusterName));
   }

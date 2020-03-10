@@ -213,16 +213,24 @@ public class DelayedRebalanceUtil {
    * Get the minimum active replica count threshold that allows delayed rebalance.
    * Prioritize of the input params:
    * 1. resourceConfig
-   * 2. replicaCount
+   * 2. idealState
+   * 3. replicaCount
    * The lower priority minimum active replica count will only be applied if the higher priority
    * items are missing.
+   * TODO: Remove the idealState input once we have all the config information migrated to the
+   * TODO: resource config by default.
    *
    * @param resourceConfig the resource config
+   * @param idealState     the ideal state of the resource
    * @param replicaCount   the expected active replica count.
    * @return the expected minimum active replica count that is required
    */
-  public static int getMinActiveReplica(ResourceConfig resourceConfig, int replicaCount) {
+  public static int getMinActiveReplica(ResourceConfig resourceConfig, IdealState idealState,
+      int replicaCount) {
     int minActiveReplicas = resourceConfig == null ? -1 : resourceConfig.getMinActiveReplica();
+    if (minActiveReplicas < 0) {
+      minActiveReplicas = idealState.getMinActiveReplicas();
+    }
     if (minActiveReplicas < 0) {
       minActiveReplicas = replicaCount;
     }

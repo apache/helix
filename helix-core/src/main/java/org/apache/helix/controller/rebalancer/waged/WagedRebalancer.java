@@ -746,10 +746,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       IdealState currentIdealState = clusterData.getIdealState(resourceName);
       Set<String> enabledLiveInstances = clusterData.getEnabledLiveInstances();
       int numReplica = currentIdealState.getReplicaCount(enabledLiveInstances.size());
-      int minActiveReplica =
-          DelayedRebalanceUtil.getMinActiveReplica(currentIdealState, numReplica);
-      Map<String, List<String>> finalPreferenceLists = DelayedRebalanceUtil
-          .getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
+      int minActiveReplica = DelayedRebalanceUtil.getMinActiveReplica(ResourceConfig
+          .mergeIdealStateWithResourceConfig(clusterData.getResourceConfig(resourceName),
+              currentIdealState), currentIdealState, numReplica);
+      Map<String, List<String>> finalPreferenceLists =
+          DelayedRebalanceUtil.getFinalDelayedMapping(newActiveIdealState.getPreferenceLists(),
               newIdealState.getPreferenceLists(), enabledLiveInstances,
               Math.min(minActiveReplica, numReplica));
 

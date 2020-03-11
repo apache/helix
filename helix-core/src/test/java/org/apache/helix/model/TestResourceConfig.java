@@ -19,16 +19,16 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 public class TestResourceConfig {
   private static final ObjectMapper _objectMapper = new ObjectMapper();
@@ -182,5 +182,90 @@ public class TestResourceConfig {
     builder.setPartitionCapacity("Random", capacityDataMap);
 
     builder.build();
+  }
+
+  @Test
+  public void testMergeWithIdealState() {
+    // Test failure case
+    ResourceConfig testConfig = new ResourceConfig("testResource");
+    IdealState testIdealState = new IdealState("DifferentState");
+    try {
+      ResourceConfig.mergeIdealStateWithResourceConfig(testConfig, testIdealState);
+      Assert.fail("Should not be able merge with a IdealState of different resource.");
+    } catch (IllegalArgumentException ex) {
+      // expected
+    }
+    testIdealState = new IdealState("testResource");
+    testIdealState.setInstanceGroupTag("testISGroup");
+    testIdealState.setMaxPartitionsPerInstance(1);
+    testIdealState.setNumPartitions(1);
+    testIdealState.setStateModelDefRef("testISDef");
+    testIdealState.setStateModelFactoryName("testISFactory");
+    testIdealState.setReplicas("3");
+    testIdealState.setMinActiveReplicas(1);
+    testIdealState.enable(true);
+    testIdealState.setResourceGroupName("testISGroup");
+    testIdealState.setResourceType("ISType");
+    testIdealState.setDisableExternalView(false);
+    testIdealState.setDelayRebalanceEnabled(true);
+    // Test IdealState info overriding the empty config fields.
+    ResourceConfig mergedResourceConfig =
+        ResourceConfig.mergeIdealStateWithResourceConfig(null, testIdealState);
+    Assert.assertEquals(mergedResourceConfig.getInstanceGroupTag(),
+        testIdealState.getInstanceGroupTag());
+    Assert.assertEquals(mergedResourceConfig.getMaxPartitionsPerInstance(),
+        testIdealState.getMaxPartitionsPerInstance());
+    Assert.assertEquals(mergedResourceConfig.getNumPartitions(), testIdealState.getNumPartitions());
+    Assert.assertEquals(mergedResourceConfig.getStateModelDefRef(),
+        testIdealState.getStateModelDefRef());
+    Assert.assertEquals(mergedResourceConfig.getStateModelFactoryName(),
+        testIdealState.getStateModelFactoryName());
+    Assert.assertEquals(mergedResourceConfig.getNumReplica(), testIdealState.getReplicas());
+    Assert.assertEquals(mergedResourceConfig.getMinActiveReplica(),
+        testIdealState.getMinActiveReplicas());
+    Assert
+        .assertEquals(mergedResourceConfig.isEnabled().booleanValue(), testIdealState.isEnabled());
+    Assert.assertEquals(mergedResourceConfig.getResourceGroupName(),
+        testIdealState.getResourceGroupName());
+    Assert.assertEquals(mergedResourceConfig.getResourceType(), testIdealState.getResourceType());
+    Assert.assertEquals(mergedResourceConfig.isExternalViewDisabled().booleanValue(),
+        testIdealState.isExternalViewDisabled());
+    Assert.assertEquals(Boolean.valueOf(mergedResourceConfig
+        .getSimpleConfig(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name()))
+        .booleanValue(), testIdealState.isDelayRebalanceEnabled());
+    // Test priority, Resource Config field has higher priority.
+    ResourceConfig.Builder configBuilder = new ResourceConfig.Builder("testResource");
+    configBuilder.setInstanceGroupTag("testRCGroup");
+    configBuilder.setMaxPartitionsPerInstance(2);
+    configBuilder.setNumPartitions(2);
+    configBuilder.setStateModelDefRef("testRCDef");
+    configBuilder.setStateModelFactoryName("testRCFactory");
+    configBuilder.setNumReplica("4");
+    configBuilder.setMinActiveReplica(2);
+    configBuilder.setHelixEnabled(false);
+    configBuilder.setResourceGroupName("testRCGroup");
+    configBuilder.setResourceType("RCType");
+    configBuilder.setExternalViewDisabled(true);
+    testConfig = configBuilder.build();
+    mergedResourceConfig =
+        ResourceConfig.mergeIdealStateWithResourceConfig(testConfig, testIdealState);
+    Assert
+        .assertEquals(mergedResourceConfig.getInstanceGroupTag(), testConfig.getInstanceGroupTag());
+    Assert.assertEquals(mergedResourceConfig.getMaxPartitionsPerInstance(),
+        testConfig.getMaxPartitionsPerInstance());
+    Assert.assertEquals(mergedResourceConfig.getNumPartitions(), testConfig.getNumPartitions());
+    Assert
+        .assertEquals(mergedResourceConfig.getStateModelDefRef(), testConfig.getStateModelDefRef());
+    Assert.assertEquals(mergedResourceConfig.getStateModelFactoryName(),
+        testConfig.getStateModelFactoryName());
+    Assert.assertEquals(mergedResourceConfig.getNumReplica(), testConfig.getNumReplica());
+    Assert
+        .assertEquals(mergedResourceConfig.getMinActiveReplica(), testConfig.getMinActiveReplica());
+    Assert.assertEquals(mergedResourceConfig.isEnabled(), testConfig.isEnabled());
+    Assert.assertEquals(mergedResourceConfig.getResourceGroupName(),
+        testConfig.getResourceGroupName());
+    Assert.assertEquals(mergedResourceConfig.getResourceType(), testConfig.getResourceType());
+    Assert.assertEquals(mergedResourceConfig.isExternalViewDisabled(),
+        testConfig.isExternalViewDisabled());
   }
 }

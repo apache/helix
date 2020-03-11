@@ -27,10 +27,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
@@ -545,7 +545,6 @@ public class ResourceConfig extends HelixProperty {
     return true;
   }
 
-
   public static class Builder {
     private String _resourceId;
     private Boolean _monitorDisabled;
@@ -841,6 +840,73 @@ public class ResourceConfig extends HelixProperty {
           _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig, _preferenceLists,
           _mapFields, _p2pMessageEnabled, _partitionCapacityMap);
     }
+  }
+
+  /**
+   * For backward compatibility, propagate the critical simple fields from the IdealState to
+   * the Resource Config.
+   * Eventually, Resource Config should be the only metadata node that contains the required information.
+   *
+   * Note that the config fields get updated in this method shall be fully compatible with ones in the IdealState.
+   *  1. The fields shall have exactly the same meaning.
+   *  2. The value shall be fully compatible, no additional calculation involved.
+   *  3. Resource Config items have a high priority.
+   */
+  public static ResourceConfig mergeIdealStateWithResourceConfig(
+      final ResourceConfig resourceConfig, final IdealState idealState) {
+    if (idealState == null) {
+      return resourceConfig;
+    }
+    ResourceConfig mergedResourceConfig;
+    if (resourceConfig != null) {
+      if (!resourceConfig.getResourceName().equals(idealState.getResourceName())) {
+        throw new IllegalArgumentException(String.format(
+            "Cannot merge the IdealState of resource %s with the ResourceConfig of resource %s",
+            resourceConfig.getResourceName(), idealState.getResourceName()));
+      }
+      // Copy the resource config to avoid the original value being modified unexpectedly.
+      mergedResourceConfig = new ResourceConfig(resourceConfig.getRecord());
+    } else {
+      // If no resource config specified, construct one based on the Idealstate.
+      mergedResourceConfig = new ResourceConfig(idealState.getResourceName());
+    }
+    // Fill the compatible Idealstate fields to the ResourceConfig if possible.
+    ZNRecord mergedZNRecord = mergedResourceConfig.getRecord();
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.INSTANCE_GROUP_TAG.name(),
+            idealState.getInstanceGroupTag());
+    mergedZNRecord.setIntFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.MAX_PARTITIONS_PER_INSTANCE.name(),
+        idealState.getMaxPartitionsPerInstance());
+    mergedZNRecord.setIntFieldIfAbsent(ResourceConfigProperty.NUM_PARTITIONS.name(),
+        idealState.getNumPartitions());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.STATE_MODEL_DEF_REF.name(),
+            idealState.getStateModelDefRef());
+    mergedZNRecord.setSimpleFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.STATE_MODEL_FACTORY_NAME.name(),
+        idealState.getStateModelFactoryName());
+    mergedZNRecord.setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.REPLICAS.name(),
+        idealState.getReplicas());
+    mergedZNRecord
+        .setIntFieldIfAbsent(ResourceConfig.ResourceConfigProperty.MIN_ACTIVE_REPLICAS.name(),
+            idealState.getMinActiveReplicas());
+    mergedZNRecord
+        .setBooleanFieldIfAbsent(ResourceConfig.ResourceConfigProperty.HELIX_ENABLED.name(),
+            idealState.isEnabled());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.RESOURCE_GROUP_NAME.name(),
+            idealState.getResourceGroupName());
+    mergedZNRecord
+        .setSimpleFieldIfAbsent(ResourceConfig.ResourceConfigProperty.RESOURCE_TYPE.name(),
+            idealState.getResourceType());
+    mergedZNRecord.setBooleanFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.EXTERNAL_VIEW_DISABLED.name(),
+        idealState.isExternalViewDisabled());
+    mergedZNRecord.setBooleanFieldIfAbsent(
+        ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+        idealState.isDelayRebalanceEnabled());
+    return mergedResourceConfig;
   }
 }
 

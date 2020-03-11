@@ -218,6 +218,16 @@ public class ZNRecord {
     simpleFields.put(k, v);
   }
 
+  /**
+   * Set a value with the input key if the key is absent.
+   * @param k
+   * @param v
+   */
+  @JsonProperty
+  public void setSimpleFieldIfAbsent(String k, String v) {
+    simpleFields.putIfAbsent(k, v);
+  }
+
   @JsonProperty
   public String getId() {
     return id;
@@ -325,6 +335,15 @@ public class ZNRecord {
   }
 
   /**
+   * Set a single simple int field with the input key if the key is absent.
+   * @param k
+   * @param v
+   */
+  public void setIntFieldIfAbsent(String k, int v) {
+    setSimpleFieldIfAbsent(k, Integer.toString(v));
+  }
+
+  /**
    * Get a single int field
    * @param k
    * @param defaultValue
@@ -406,6 +425,17 @@ public class ZNRecord {
    */
   public void setBooleanField(String k, boolean v) {
     setSimpleField(k, Boolean.toString(v));
+  }
+
+  /**
+   * Set a single simple boolean field with the input key if the key is absent.
+   *
+   * @param k
+   * @param v
+   */
+  @JsonProperty
+  public void setBooleanFieldIfAbsent(String k, boolean v) {
+    setSimpleFieldIfAbsent(k, Boolean.toString(v));
   }
 
   /**

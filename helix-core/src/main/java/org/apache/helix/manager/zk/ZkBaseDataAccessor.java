@@ -1443,10 +1443,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         zkClient = SharedZkClientFactory.getInstance()
             .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
                 clientConfig.createHelixZkClientConfig());
+
+        zkClient
+            .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         break;
     }
-
-    zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
 
     return zkClient;
   }

@@ -20,17 +20,17 @@ package org.apache.helix.api.listeners;
  */
 
 import org.apache.helix.NotificationContext;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 
 /**
  * Interface to implement to listen for changes to customized state aggregation configurations.
  */
-public interface CustomizedStateAggregationConfigChangeListener {
+public interface CustomizedStateConfigChangeListener {
   /**
    * Invoked when customized state aggregation config changes
-   * @param customizedStateAggregationConfig
+   * @param customizedStateConfig
    * @param context
    */
-  void onCustomizedStateAggregationConfigChange(CustomizedStateAggregationConfig customizedStateAggregationConfig,
+  void onCustomizedStateConfigChange(CustomizedStateConfig customizedStateConfig,
       NotificationContext context);
 }

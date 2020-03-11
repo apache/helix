@@ -30,7 +30,7 @@ public interface HelixConstants {
     CONFIG (PropertyType.CONFIGS),
     INSTANCE_CONFIG (PropertyType.CONFIGS),
     RESOURCE_CONFIG (PropertyType.CONFIGS),
-    CUSTOMIZED_STATE_AGGREGATION_CONFIG (PropertyType.CONFIGS),
+    CUSTOMIZED_STATE_CONFIG (PropertyType.CONFIGS),
     CLUSTER_CONFIG (PropertyType.CONFIGS),
     LIVE_INSTANCE (PropertyType.LIVEINSTANCES),
     CURRENT_STATE (PropertyType.CURRENTSTATES),

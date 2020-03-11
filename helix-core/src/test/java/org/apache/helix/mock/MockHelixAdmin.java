@@ -34,7 +34,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ConstraintItem;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -143,23 +143,23 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void addCustomizedStateAggregationConfig(String clusterName,
-      CustomizedStateAggregationConfig customizedStateAggregationConfig) {
+  public void addCustomizedStateConfig(String clusterName,
+      CustomizedStateConfig customizedStateConfig) {
 
   }
 
   @Override
-  public void removeCustomizedStateAggregationConfig(String clusterName) {
+  public void removeCustomizedStateConfig(String clusterName) {
 
   }
 
   @Override
-  public void addTypeToCustomizedStateAggregationConfig(String clusterName, String type) {
+  public void addTypeToCustomizedStateConfig(String clusterName, String type) {
 
   }
 
   @Override
-  public void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type) {
+  public void removeTypeFromCustomizedStateConfig(String clusterName, String type) {
 
   }
 

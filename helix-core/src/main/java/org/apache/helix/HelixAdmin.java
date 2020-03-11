@@ -26,7 +26,7 @@ import java.util.Map;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -105,30 +105,30 @@ public interface HelixAdmin {
    */
   void addClusterToGrandCluster(String clusterName, String grandCluster);
 
-  /** Add a CustomizedStateAggregationConfig to a cluster
+  /** Add a CustomizedStateConfig to a cluster
    * @param clusterName
-   * @param customizedStateAggregationConfig
+   * @param customizedStateConfig
    */
-  void addCustomizedStateAggregationConfig(String clusterName,
-      CustomizedStateAggregationConfig customizedStateAggregationConfig);
+  void addCustomizedStateConfig(String clusterName,
+      CustomizedStateConfig customizedStateConfig);
 
   /**
-   * Remove CustomizedStateAggregationConfig from specific cluster
+   * Remove CustomizedStateConfig from specific cluster
    * @param clusterName
    */
-  void removeCustomizedStateAggregationConfig(String clusterName);
+  void removeCustomizedStateConfig(String clusterName);
 
   /**
-   * Add a type to CustomizedStateAggregationConfig of specific cluster
+   * Add a type to CustomizedStateConfig of specific cluster
    * @param clusterName
    */
-  void addTypeToCustomizedStateAggregationConfig(String clusterName, String type);
+  void addTypeToCustomizedStateConfig(String clusterName, String type);
 
   /**
-   * Remove a type from CustomizedStateAggregationConfig of specific cluster
+   * Remove a type from CustomizedStateConfig of specific cluster
    * @param clusterName
    */
-  void removeTypeFromCustomizedStateAggregationConfig(String clusterName, String type);
+  void removeTypeFromCustomizedStateConfig(String clusterName, String type);
 
   /**
    * Add a resource to a cluster, using the default ideal state mode AUTO

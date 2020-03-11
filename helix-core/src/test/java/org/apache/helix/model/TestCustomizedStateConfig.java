@@ -31,70 +31,70 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCustomizedStateAggregationConfig extends ZkUnitTestBase {
+public class TestCustomizedStateConfig extends ZkUnitTestBase {
 
   @Test(expectedExceptions = HelixException.class)
-  public void TestCustomizedStateAggregationConfigNonExistentCluster() {
+  public void TestCustomizedStateConfigNonExistentCluster() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
-    // Read CustomizedStateAggregationConfig from Zookeeper and get exception since cluster in not setup yet
+    // Read CustomizedStateConfig from Zookeeper and get exception since cluster in not setup yet
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig customizedStateAggregationConfig =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    CustomizedStateConfig customizedStateConfig =
+        _configAccessor.getCustomizedStateConfig(clusterName);
   }
 
-  @Test(dependsOnMethods = "TestCustomizedStateAggregationConfigNonExistentCluster")
-  public void testCustomizedStateAggregationConfigNull() {
+  @Test(dependsOnMethods = "TestCustomizedStateConfigNonExistentCluster")
+  public void testCustomizedStateConfigNull() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    // Read CustomizedStateAggregationConfig from Zookeeper
+    // Read CustomizedStateConfig from Zookeeper
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig customizedStateAggregationConfigFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
-    Assert.assertNull(customizedStateAggregationConfigFromZk);
+    CustomizedStateConfig customizedStateConfigFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
+    Assert.assertNull(customizedStateConfigFromZk);
   }
 
-  @Test(dependsOnMethods = "testCustomizedStateAggregationConfigNull")
-  public void testCustomizedStateAggregationConfig() {
+  @Test(dependsOnMethods = "testCustomizedStateConfigNull")
+  public void testCustomizedStateConfig() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
-    // Create dummy CustomizedStateAggregationConfig object
-    CustomizedStateAggregationConfig.Builder customizedStateAggregationConfigBuilder =
-        new CustomizedStateAggregationConfig.Builder();
+    // Create dummy CustomizedStateConfig object
+    CustomizedStateConfig.Builder customizedStateConfigBuilder =
+        new CustomizedStateConfig.Builder();
     List<String> aggregationEnabledTypes = new ArrayList<String>();
     aggregationEnabledTypes.add("mockType1");
     aggregationEnabledTypes.add("mockType2");
-    customizedStateAggregationConfigBuilder.setAggregationEnabledTypes(aggregationEnabledTypes);
-    CustomizedStateAggregationConfig customizedStateAggregationConfig =
-        customizedStateAggregationConfigBuilder.build();
+    customizedStateConfigBuilder.setAggregationEnabledTypes(aggregationEnabledTypes);
+    CustomizedStateConfig customizedStateConfig =
+        customizedStateConfigBuilder.build();
 
-    // Write the CustomizedStateAggregationConfig to Zookeeper
+    // Write the CustomizedStateConfig to Zookeeper
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(ZK_ADDR));
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(),
-        customizedStateAggregationConfig);
+    accessor.setProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfig);
 
-    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    // Read CustomizedStateConfig from Zookeeper and check the content
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig customizedStateAggregationConfigFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
-    Assert.assertEquals(customizedStateAggregationConfigFromZk.getAggregationEnabledTypes().size(),
+    CustomizedStateConfig customizedStateConfigFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
+    Assert.assertEquals(customizedStateConfigFromZk.getAggregationEnabledTypes().size(),
         2);
     Assert.assertEquals(aggregationEnabledTypes.get(0), "mockType1");
     Assert.assertEquals(aggregationEnabledTypes.get(1), "mockType2");
   }
 
-  @Test(dependsOnMethods = "testCustomizedStateAggregationConfig")
-  public void testCustomizedStateAggregationConfigBuilder() {
+  @Test(dependsOnMethods = "testCustomizedStateConfig")
+  public void testCustomizedStateConfigBuilder() {
     String className = getShortClassName();
     String clusterName = "CLUSTER_" + className;
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    CustomizedStateAggregationConfig.Builder builder =
-        new CustomizedStateAggregationConfig.Builder();
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder();
     builder.addAggregationEnabledType("mockType1");
     builder.addAggregationEnabledType("mockType2");
 
@@ -104,20 +104,20 @@ public class TestCustomizedStateAggregationConfig extends ZkUnitTestBase {
     Assert.assertEquals(aggregationEnabledTypes.get(0), "mockType1");
     Assert.assertEquals(aggregationEnabledTypes.get(1), "mockType2");
 
-    CustomizedStateAggregationConfig customizedStateAggregationConfig = builder.build();
+    CustomizedStateConfig customizedStateConfig = builder.build();
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(ZK_ADDR));
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.customizedStateAggregationConfig(),
-        customizedStateAggregationConfig);
+    accessor.setProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfig);
 
-    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    // Read CustomizedStateConfig from Zookeeper and check the content
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig customizedStateAggregationConfigFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    CustomizedStateConfig customizedStateConfigFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
     List<String> aggregationEnabledTypesFromZk =
-        customizedStateAggregationConfigFromZk.getAggregationEnabledTypes();
+        customizedStateConfigFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(aggregationEnabledTypesFromZk.get(0), "mockType1");
     Assert.assertEquals(aggregationEnabledTypesFromZk.get(1), "mockType2");
   }

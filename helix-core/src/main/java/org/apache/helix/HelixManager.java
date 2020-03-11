@@ -26,7 +26,7 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
@@ -41,7 +41,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -159,13 +159,13 @@ public interface HelixManager {
   void addResourceConfigChangeListener(ResourceConfigChangeListener listener) throws Exception;
 
   /**
-   * @see CustomizedStateAggregationConfigChangeListener#onCustomizedStateAggregationConfigChange(CustomizedStateAggregationConfig,
+   * @see CustomizedStateConfigChangeListener#onCustomizedStateConfigChange(CustomizedStateConfig,
    *      NotificationContext)
    * @param listener
    */
 
-  void addCustomizedStateAggregationConfigChangeListener(
-      CustomizedStateAggregationConfigChangeListener listener) throws Exception;
+  void addCustomizedStateConfigChangeListener(
+      CustomizedStateConfigChangeListener listener) throws Exception;
 
   /**
    * @see ClusterConfigChangeListener#onClusterConfigChange(ClusterConfig, NotificationContext)

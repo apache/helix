@@ -57,6 +57,8 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   private final String PARTITION_STATE = "partitionState";
   private static HelixManager _manager;
   private static CustomizedStateProvider _mockProvider;
+  private PropertyKey _propertyKey;
+  private HelixDataAccessor _dataAccessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -67,6 +69,9 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     _participants[0].connect();
     _mockProvider = CustomizedStateProviderFactory.getInstance()
         .buildCustomizedStateProvider(_manager, _participants[0].getInstanceName());
+    _dataAccessor = _manager.getHelixDataAccessor();
+    _propertyKey = _dataAccessor.keyBuilder()
+        .customizedStates(_participants[0].getInstanceName(), CUSTOMIZE_STATE_NAME);
   }
 
   @AfterClass
@@ -77,11 +82,8 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
 
   @BeforeMethod
   public void beforeMethod() {
-    HelixDataAccessor dataAccessor = _manager.getHelixDataAccessor();
-    PropertyKey propertyKey = dataAccessor.keyBuilder()
-        .customizedStates(_participants[0].getInstanceName(), CUSTOMIZE_STATE_NAME);
-    dataAccessor.removeProperty(propertyKey);
-    CustomizedState customizedStates = dataAccessor.getProperty(propertyKey);
+    _dataAccessor.removeProperty(_propertyKey);
+    CustomizedState customizedStates = _dataAccessor.getProperty(_propertyKey);
     Assert.assertNull(customizedStates);
   }
 
@@ -278,15 +280,14 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
 
   @Test
   public void testSimultaneousUpdateCustomizedState() {
-    int n = 10;
-
     List<Callable<Boolean>> threads = new ArrayList<>();
-    for (int i = 0; i < n; i++) {
+    int threadCount = 10;
+    for (int i = 0; i < threadCount; i++) {
       threads.add(new TestSimultaneousUpdate());
     }
     Map<String, Boolean> resultMap = TestHelper.startThreadsConcurrently(threads, 1000);
-    Assert.assertEquals(resultMap.size(), n);
-    Boolean[] results = new Boolean[n];
+    Assert.assertEquals(resultMap.size(), threadCount);
+    Boolean[] results = new Boolean[threadCount];
     Arrays.fill(results, true);
     Assert.assertEqualsNoOrder(resultMap.values().toArray(), results);
   }

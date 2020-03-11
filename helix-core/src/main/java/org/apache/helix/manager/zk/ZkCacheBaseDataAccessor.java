@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.store.HelixPropertyListener;
@@ -119,36 +120,41 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey,
       ZkBaseDataAccessor.ZkClientType zkClientType) {
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(serializer).setMonitorType(monitorType).setMonitorKey(monitorkey);
-    switch (zkClientType) {
-      case DEDICATED:
-        // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
-        // operations
-        _zkClient = DedicatedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                new HelixZkClient.ZkClientConfig().setZkSerializer(serializer));
-        break;
-      case SHARED:
-      default:
-        // If SHARED, we first attempt to use FederatedZkClient (multi-realm)
-        RealmAwareZkClient zkClient;
-        try {
-          zkClient = new FederatedZkClient(
-              new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-              new RealmAwareZkClient.RealmAwareZkClientConfig());
-        } catch (InvalidRoutingDataException | IOException | IllegalStateException e) {
-          // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
-          // found
-          // Fall back to single-realm mode using SharedZkClient (HelixZkClient)
-          // This is to preserve backward-compatibility
-          zkClient = SharedZkClientFactory.getInstance()
+
+    // If the multi ZK config is enabled, use multi-realm mode with FederatedZkClient
+    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      try {
+        RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+            new RealmAwareZkClient.RealmAwareZkClientConfig();
+        clientConfig.setZkSerializer(serializer).setMonitorType(monitorType)
+            .setMonitorKey(monitorkey);
+        // Use a federated zk client
+        _zkClient = new FederatedZkClient(connectionConfigBuilder.build(), clientConfig);
+      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
+        // found
+        throw new HelixException("Failed to create ZkCacheBaseDataAccessor!", e);
+      }
+    } else {
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+      clientConfig.setZkSerializer(serializer).setMonitorType(monitorType)
+          .setMonitorKey(monitorkey);
+      switch (zkClientType) {
+        case DEDICATED:
+          _zkClient = DedicatedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                  new HelixZkClient.ZkClientConfig().setZkSerializer(serializer));
+          break;
+        case SHARED:
+        default:
+          _zkClient = SharedZkClientFactory.getInstance()
               .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
-          zkClient
-              .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-        }
-        _zkClient = zkClient;
+      }
+      _zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
     }
+
     _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     if (chrootPath == null || chrootPath.equals("/")) {
@@ -177,8 +183,21 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     switch (builder._realmMode) {
       case MULTI_REALM:
         try {
-          zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-              builder._realmAwareZkClientConfig);
+          if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.DEDICATED) {
+            // Use a realm-aware dedicated zk client
+            zkClient = DedicatedZkClientFactory.getInstance()
+                .buildZkClient(builder._realmAwareZkConnectionConfig,
+                    builder._realmAwareZkClientConfig);
+          } else if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.SHARED) {
+            // Use a realm-aware shared zk client
+            zkClient = SharedZkClientFactory.getInstance()
+                .buildZkClient(builder._realmAwareZkConnectionConfig,
+                    builder._realmAwareZkClientConfig);
+          } else {
+            // Use a federated zk client
+            zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
+                builder._realmAwareZkClientConfig);
+          }
           break; // Must break out of the switch statement here
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
@@ -958,7 +977,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       return this;
     }
 
-    public ZkCacheBaseDataAccessor build() throws Exception {
+    public ZkCacheBaseDataAccessor build() {
       validate();
       return new ZkCacheBaseDataAccessor(this);
     }
@@ -986,6 +1005,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
         throw new HelixException(
             "ZkCacheBaseDataAccessor: You cannot set the ZkAddress on multi-realm mode!");
+      }
+
+      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
+          && _zkClientType == ZkBaseDataAccessor.ZkClientType.FEDERATED) {
+        throw new HelixException(
+            "ZkCacheBaseDataAccessor: You cannot use FederatedZkClient on single-realm mode!");
       }
 
       if (_realmMode == null) {

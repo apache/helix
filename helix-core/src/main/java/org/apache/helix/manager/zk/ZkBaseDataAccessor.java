@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.store.zk.ZNode;
@@ -65,21 +66,23 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   // created on SHARED mode.
   // TODO: move this to RealmAwareZkClient
   public enum ZkClientType {
-    /*
+    /**
      * When ZkBaseDataAccessor is created with the DEDICATED type, it supports ephemeral node
      * creation, callback functionality, and session management. But note that this is more
      * resource-heavy since it creates a dedicated ZK connection so should be used sparingly only
      * when the aforementioned features are needed.
      */
     DEDICATED,
-    /*
+
+    /**
      * When ZkBaseDataAccessor is created with the SHARED type, it only supports CRUD
      * functionalities. This will be the default mode of creation.
      */
     SHARED,
-    /*
+
+    /**
      * Uses FederatedZkClient (applicable on multi-realm mode only) that queries Metadata Store
-     * Directory Service for routing data
+     * Directory Service for routing data.
      */
     FEDERATED
   }
@@ -122,8 +125,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private final boolean _usesExternalZkClient;
 
   /**
-   * @deprecated it is recommended to use the other constructors instead to avoid having to manually
-   * create and maintain a RealmAwareZkClient outside of ZkBaseDataAccessor.
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
+   * instead to avoid having to manually create and maintain a RealmAwareZkClient
+   * outside of ZkBaseDataAccessor.
    *
    * @param zkClient A created RealmAwareZkClient
    */
@@ -181,7 +185,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Do NOT use this for ephemeral node creation/callbacks/session management.
    * Do use this for simple CRUD operations to ZooKeeper.
    * @param zkAddress The zookeeper address
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer) {
     this(zkAddress, zkSerializer, ZkClientType.SHARED);
   }
@@ -192,7 +199,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Do NOT use this for ephemeral node creation/callbacks/session management.
    * Do use this for simple CRUD operations to ZooKeeper.
    * @param zkAddress The zookeeper address
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer pathBasedZkSerializer) {
     this(zkAddress, pathBasedZkSerializer, ZkClientType.SHARED);
   }
@@ -203,7 +213,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * Does NOT support ephemeral node creation, callbacks, or session management.
    * Uses {@link ZNRecordSerializer} serializer
    * @param zkAddress The zookeeper address
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress) {
     this(zkAddress, new ZNRecordSerializer());
   }
@@ -216,7 +229,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * CRUD operations to ZooKeeper.
    * @param zkAddress
    * @param zkClientType
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress, ZkClientType zkClientType) {
     this(zkAddress, new ZNRecordSerializer(), zkClientType);
   }
@@ -229,7 +245,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * CRUD operations to ZooKeeper.
    * @param zkAddress
    * @param zkSerializer
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer,
       ZkClientType zkClientType) {
     this(zkAddress, new BasicZkSerializer(zkSerializer), zkClientType);
@@ -244,7 +263,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkAddress
    * @param pathBasedZkSerializer
    * @param zkClientType
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
+  @Deprecated
   public ZkBaseDataAccessor(String zkAddress,
       org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer pathBasedZkSerializer,
       ZkClientType zkClientType) {
@@ -1326,27 +1348,18 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return this;
     }
 
-    public ZkBaseDataAccessor<?> build() throws Exception {
+    public ZkBaseDataAccessor<?> build() {
       validate();
       return new ZkBaseDataAccessor<>(this);
     }
 
-    /**
-     * Validate the given parameters before creating an instance of ConfigAccessor.
+    /*
+     * Validates the given parameters before building an instance of ZkBaseDataAccessor.
      */
     private void validate() {
       // Resolve RealmMode based on other parameters
       boolean isZkAddressSet = zkAddress != null && !zkAddress.isEmpty();
       boolean isZkClientTypeSet = zkClientType != null;
-
-      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-        throw new HelixException(
-            "RealmMode cannot be single-realm without a valid ZkAddress set!");
-      }
-      if (realmMode == null) {
-        realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
-            : RealmAwareZkClient.RealmMode.MULTI_REALM;
-      }
 
       // If ZkClientType is set, RealmMode must either be single-realm or not set.
       if (isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) {
@@ -1358,12 +1371,31 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         zkClientType = ZkBaseDataAccessor.ZkClientType.SHARED;
       }
 
+      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
+        throw new HelixException(
+            "RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+
+      if (realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ZkAddress cannot be set on multi-realm mode!");
+      }
+
+      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
+          && zkClientType == ZkClientType.FEDERATED) {
+        throw new HelixException(
+            "FederatedZkClient cannot be set on single-realm mode!");
+      }
+
+      if (realmMode == null) {
+        realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
+            : RealmAwareZkClient.RealmMode.MULTI_REALM;
+      }
+
       // Resolve RealmAwareZkClientConfig
-      boolean isZkClientConfigSet = realmAwareZkClientConfig != null;
-      // Resolve which clientConfig to use
-      realmAwareZkClientConfig =
-          isZkClientConfigSet ? realmAwareZkClientConfig.createHelixZkClientConfig()
-              : new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+      if (realmAwareZkClientConfig == null) {
+        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+      }
 
       // Resolve RealmAwareZkConnectionConfig
       if (realmAwareZkConnectionConfig == null) {
@@ -1375,21 +1407,19 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /*
-   * This is used for constructors that do not take a Builder in as a parameter
-   * because of the fallback behavior.
+   * This is used for constructors that do not take a Builder in as a parameter because of
+   * keeping backward-compatibility.
    */
   private RealmAwareZkClient buildRealmAwareZkClient(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {
-    try {
-      return new FederatedZkClient(
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
-    } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
-      // Fall back to connect on single-realm mode if failed to connect on multi-realm mode and
-      // ZK address is not empty. This is for backward-compatibility for constructors that take
-      // in zkAddress or zkClient.
-      LOG.info("Not able to connect on multi-realm mode, caused by: {}. "
-          + "Connecting on single-realm mode to ZK: {}.", e.getMessage(), zkAddress);
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        return new FederatedZkClient(
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
+      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on multi-realm mode.", e);
+      }
     }
 
     RealmAwareZkClient zkClient;
@@ -1407,6 +1437,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
                 clientConfig.createHelixZkClientConfig());
         break;
     }
+
+    zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
 
     return zkClient;
   }

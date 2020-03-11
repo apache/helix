@@ -47,7 +47,6 @@ import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -784,6 +783,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
   }
 
+
   @Test(dependsOnMethods = "testAddClusterWithCloudConfigDisabledCloud")
   public void testAddCloudConfigNonExistedCluster() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -897,6 +897,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
+
 
   @Test(dependsOnMethods = "testDeleteCloudConfig")
   public void testPartialDeleteCloudConfig() throws IOException {

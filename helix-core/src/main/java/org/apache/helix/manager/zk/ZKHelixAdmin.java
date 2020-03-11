@@ -49,6 +49,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -107,8 +108,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
   /**
-   * @deprecated it is recommended to use the other constructors instead to avoid having to manually
-   * create and maintain a RealmAwareZkClient outside of ZkBaseDataAccessor.
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
+   * instead to avoid having to manually create and maintain a RealmAwareZkClient
+   * outside of ZKHelixAdmin.
    *
    * @param zkClient A created RealmAwareZkClient
    */
@@ -119,6 +121,18 @@ public class ZKHelixAdmin implements HelixAdmin {
     _usesExternalZkClient = true;
   }
 
+  /**
+   * There are 2 realm-aware modes to connect to ZK:
+   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>,
+   * it will connect on multi-realm mode;
+   * 2. otherwise, it will connect on single-realm mode to the <code>zkAddress</code> provided.
+   *
+   * @param zkAddress ZK address
+   * @exception HelixException if not able to connect on multi-realm mode
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
+   */
+  @Deprecated
   public ZKHelixAdmin(String zkAddress) {
     int timeOutInSec = Integer.parseInt(System.getProperty(CONNECTION_TIMEOUT, "30"));
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
@@ -127,13 +141,15 @@ public class ZKHelixAdmin implements HelixAdmin {
             .setZkSerializer(new ZNRecordSerializer());
 
     RealmAwareZkClient zkClient;
-    try {
-      zkClient = new FederatedZkClient(
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
-    } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
-      LOG.info("Not able to connect on multi-realm mode. "
-          + "Connecting on single-realm mode to ZK: {}", zkAddress);
 
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        zkClient = new FederatedZkClient(
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
+      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on multi-realm mode.", e);
+      }
+    } else {
       zkClient = SharedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
               clientConfig.createHelixZkClientConfig());
@@ -1883,7 +1899,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       return this;
     }
 
-    public ZKHelixAdmin build() throws Exception {
+    public ZKHelixAdmin build() {
       validate();
       return new ZKHelixAdmin(this);
     }

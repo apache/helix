@@ -1303,15 +1303,17 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private RealmAwareZkClient buildHelixZkClient(HelixZkClientFactory zkClientFactory,
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    try {
-      return zkClientFactory.buildZkClient(connectionConfig, clientConfig);
-    } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
-      LOG.info("Not able to connect on realm-aware mode for sharding key: {}, caused by: {} ."
-              + "Trying to connect to ZK: {}.", connectionConfig.getZkRealmShardingKey(),
-          e.getMessage(), _zkAddress);
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        // Create realm-aware ZkClient.
+        return zkClientFactory.buildZkClient(connectionConfig, clientConfig);
+      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on realm-aware mode for sharding key: "
+            + connectionConfig.getZkRealmShardingKey(), e);
+      }
     }
 
-    // Fall back to HelixZkClient
+    // If multi-zk mode is not enabled, create HelixZkClient with the provided zk address.
     HelixZkClient.ZkClientConfig helixZkClientConfig = clientConfig.createHelixZkClientConfig();
     HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
         new HelixZkClient.ZkConnectionConfig(_zkAddress)

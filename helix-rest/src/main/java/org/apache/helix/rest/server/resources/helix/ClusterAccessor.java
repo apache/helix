@@ -50,7 +50,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
@@ -283,7 +283,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @PUT
   @Path("{clusterId}/customized-state-aggregation-config")
-  public Response addCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
+  public Response addCustomizedStateConfig(@PathParam("clusterId") String clusterId,
       String content) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
@@ -298,11 +298,11 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
 
     try {
-      CustomizedStateAggregationConfig customizedStateAggregationConfig =
-          new CustomizedStateAggregationConfig.Builder(record).build();
-      admin.addCustomizedStateAggregationConfig(clusterId, customizedStateAggregationConfig);
+      CustomizedStateConfig customizedStateConfig =
+          new CustomizedStateConfig.Builder(record).build();
+      admin.addCustomizedStateConfig(clusterId, customizedStateConfig);
     } catch (Exception ex) {
-      _logger.error("Cannot add CustomizedStateAggregationConfig to cluster: {} Exception: {}",
+      _logger.error("Cannot add CustomizedStateConfig to cluster: {} Exception: {}",
           clusterId, ex);
       return serverError(ex);
     }
@@ -312,17 +312,17 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @DELETE
   @Path("{clusterId}/customized-state-aggregation-config")
-  public Response removeCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
+  public Response removeCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
     HelixAdmin admin = getHelixAdmin();
     try {
-      admin.removeCustomizedStateAggregationConfig(clusterId);
+      admin.removeCustomizedStateConfig(clusterId);
     } catch (Exception ex) {
       _logger.error(
-          "Cannot remove CustomizedStateAggregationConfig from cluster: {}, Exception: {}",
+          "Cannot remove CustomizedStateConfig from cluster: {}, Exception: {}",
           clusterId, ex);
       return serverError(ex);
     }
@@ -332,17 +332,17 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @GET
   @Path("{clusterId}/customized-state-aggregation-config")
-  public Response getCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId) {
+  public Response getCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
     }
 
     ConfigAccessor configAccessor = getConfigAccessor();
-    CustomizedStateAggregationConfig customizedStateAggregationConfig =
-        configAccessor.getCustomizedStateAggregationConfig(clusterId);
+    CustomizedStateConfig customizedStateConfig =
+        configAccessor.getCustomizedStateConfig(clusterId);
 
-    if (customizedStateAggregationConfig != null) {
-      return JSONRepresentation(customizedStateAggregationConfig.getRecord());
+    if (customizedStateConfig != null) {
+      return JSONRepresentation(customizedStateConfig.getRecord());
     }
 
     return notFound();
@@ -350,7 +350,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @POST
   @Path("{clusterId}/customized-state-aggregation-config")
-  public Response updateCustomizedStateAggregationConfig(@PathParam("clusterId") String clusterId,
+  public Response updateCustomizedStateConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("type") String type) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
@@ -372,16 +372,16 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       switch (command) {
       case delete:
-        admin.removeTypeFromCustomizedStateAggregationConfig(clusterId, type);
+        admin.removeTypeFromCustomizedStateConfig(clusterId, type);
         break;
       case add:
-        admin.addTypeToCustomizedStateAggregationConfig(clusterId, type);
+        admin.addTypeToCustomizedStateConfig(clusterId, type);
         break;
       default:
         return badRequest("Unsupported command " + commandStr);
       }
     } catch (Exception ex) {
-      _logger.error("Failed to {} CustomizedStateAggregationConfig for cluster {} new type: {}, Exception: {}", command, clusterId, type, ex);
+      _logger.error("Failed to {} CustomizedStateConfig for cluster {} new type: {}, Exception: {}", command, clusterId, type, ex);
       return serverError(ex);
     }
     return OK();

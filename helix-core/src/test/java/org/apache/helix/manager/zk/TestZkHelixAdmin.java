@@ -51,7 +51,7 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -618,91 +618,91 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   }
 
   @Test
-  public void testAddCustomizedStateAggregationConfig() {
+  public void testAddCustomizedStateConfig() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
     HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
-    CustomizedStateAggregationConfig.Builder builder =
-        new CustomizedStateAggregationConfig.Builder();
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder();
     builder.addAggregationEnabledType("mockType1");
-    CustomizedStateAggregationConfig customizedStateAggregationConfig = builder.build();
+    CustomizedStateConfig customizedStateConfig = builder.build();
 
-    admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
+    admin.addCustomizedStateConfig(clusterName, customizedStateConfig);
 
-    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    // Read CustomizedStateConfig from Zookeeper and check the content
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig configFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    CustomizedStateConfig configFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
   }
 
   @Test
-  public void testRemoveCustomizedStateAggregationConfig() throws Exception {
+  public void testRemoveCustomizedStateConfig() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
     HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
-    CustomizedStateAggregationConfig.Builder builder =
-        new CustomizedStateAggregationConfig.Builder();
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder();
     builder.addAggregationEnabledType("mockType1");
-    CustomizedStateAggregationConfig customizedStateAggregationConfig = builder.build();
+    CustomizedStateConfig customizedStateConfig = builder.build();
 
-    admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
+    admin.addCustomizedStateConfig(clusterName, customizedStateConfig);
 
-    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    // Read CustomizedStateConfig from Zookeeper and check the content
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig configFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    CustomizedStateConfig configFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
 
-    // Remove CustomizedStateAggregationConfig Config and make sure it has been removed from
+    // Remove CustomizedStateConfig Config and make sure it has been removed from
     // Zookeeper
-    admin.removeCustomizedStateAggregationConfig(clusterName);
-    configFromZk = _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    admin.removeCustomizedStateConfig(clusterName);
+    configFromZk = _configAccessor.getCustomizedStateConfig(clusterName);
     Assert.assertNull(configFromZk);
   }
 
   @Test
-  public void testUpdateCustomizedStateAggregationConfig() throws Exception {
+  public void testUpdateCustomizedStateConfig() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
     HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
     admin.addCluster(clusterName, true);
-    CustomizedStateAggregationConfig.Builder builder =
-        new CustomizedStateAggregationConfig.Builder();
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder();
     builder.addAggregationEnabledType("mockType1");
-    CustomizedStateAggregationConfig customizedStateAggregationConfig = builder.build();
+    CustomizedStateConfig customizedStateConfig = builder.build();
 
-    admin.addCustomizedStateAggregationConfig(clusterName, customizedStateAggregationConfig);
+    admin.addCustomizedStateConfig(clusterName, customizedStateConfig);
 
-    // Read CustomizedStateAggregationConfig from Zookeeper and check the content
+    // Read CustomizedStateConfig from Zookeeper and check the content
     ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CustomizedStateAggregationConfig configFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+    CustomizedStateConfig configFromZk =
+        _configAccessor.getCustomizedStateConfig(clusterName);
     List<String> listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
 
-    admin.addTypeToCustomizedStateAggregationConfig(clusterName, "mockType2");
-    admin.addTypeToCustomizedStateAggregationConfig(clusterName, "mockType3");
+    admin.addTypeToCustomizedStateConfig(clusterName, "mockType2");
+    admin.addTypeToCustomizedStateConfig(clusterName, "mockType3");
     configFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+        _configAccessor.getCustomizedStateConfig(clusterName);
     listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType1");
     Assert.assertEquals(listTypesFromZk.get(1), "mockType2");
     Assert.assertEquals(listTypesFromZk.get(2), "mockType3");
 
-    admin.removeTypeFromCustomizedStateAggregationConfig(clusterName, "mockType1");
+    admin.removeTypeFromCustomizedStateConfig(clusterName, "mockType1");
     configFromZk =
-        _configAccessor.getCustomizedStateAggregationConfig(clusterName);
+        _configAccessor.getCustomizedStateConfig(clusterName);
     listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
     Assert.assertEquals(listTypesFromZk.get(1), "mockType3");

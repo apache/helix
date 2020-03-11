@@ -55,7 +55,7 @@ import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
-import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
@@ -474,10 +474,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
-  public void addCustomizedStateAggregationConfigChangeListener(
-      CustomizedStateAggregationConfigChangeListener listener) throws Exception {
-    addListener(listener, new Builder(_clusterName).customizedStateAggregationConfig(),
-        ChangeType.CUSTOMIZED_STATE_AGGREGATION_CONFIG, new EventType[] {
+  public void addCustomizedStateConfigChangeListener(
+      CustomizedStateConfigChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedStateConfig(),
+        ChangeType.CUSTOMIZED_STATE_CONFIG, new EventType[] {
             EventType.NodeDataChanged
         });
   }

@@ -144,12 +144,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     switch (builder.realmMode) {
       case MULTI_REALM:
         try {
-          if (builder.zkClientType == ZkBaseDataAccessor.ZkClientType.DEDICATED) {
+          if (builder.zkClientType == ZkClientType.DEDICATED) {
             // Use a realm-aware dedicated zk client
             _zkClient = DedicatedZkClientFactory.getInstance()
                 .buildZkClient(builder.realmAwareZkConnectionConfig,
                     builder.realmAwareZkClientConfig);
-          } else if (builder.zkClientType == ZkBaseDataAccessor.ZkClientType.SHARED) {
+          } else if (builder.zkClientType == ZkClientType.SHARED) {
             // Use a realm-aware shared zk client
             _zkClient = SharedZkClientFactory.getInstance()
                 .buildZkClient(builder.realmAwareZkConnectionConfig,

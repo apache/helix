@@ -126,7 +126,7 @@ public class HelixConfigScopeBuilder {
     case REST:
       scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
       break;
-    case CUSTOMIZED_STATE_AGGREGATION:
+    case CUSTOMIZED_STATE:
       scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
     default:
       break;

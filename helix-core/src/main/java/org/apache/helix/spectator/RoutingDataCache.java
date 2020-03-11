@@ -19,6 +19,7 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
+import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.helix.HelixConstants;
@@ -80,7 +81,7 @@ class RoutingDataCache extends BasicClusterDataCache {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
       Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
-      _currentStateCache.refresh(accessor, liveInstanceMap);
+      _currentStateCache.refresh(accessor, liveInstanceMap, new HashSet<>());
       LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
     }
 

@@ -53,7 +53,7 @@ public class CurrentStateCache extends ParticipantStateCache<CurrentState> {
 
   @Override
   protected Set<PropertyKey> PopulateParticipantKeys(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap) {
+      Map<String, LiveInstance> liveInstanceMap, Set<String> restrictedKeys) {
     Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     for (String instanceName : liveInstanceMap.keySet()) {

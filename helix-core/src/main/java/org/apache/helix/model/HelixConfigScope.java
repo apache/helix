@@ -37,7 +37,7 @@ public class HelixConfigScope {
     PARTITION(2, 1),
     CONSTRAINT(2, 0),
     REST(2, 0),
-    CUSTOMIZED_STATE_AGGREGATION(2, 0);
+    CUSTOMIZED_STATE(2, 0);
 
     final int _zkPathArgNum;
     final int _mapKeyArgNum;
@@ -85,8 +85,8 @@ public class HelixConfigScope {
     template.addEntry(ConfigScopeProperty.PARTICIPANT, 1, "/{clusterName}/CONFIGS/PARTICIPANT");
     template.addEntry(ConfigScopeProperty.RESOURCE, 1, "/{clusterName}/CONFIGS/RESOURCE");
     template.addEntry(ConfigScopeProperty.REST, 2, "/{clusterName}/CONFIGS/REST/{clusterName}");
-    template.addEntry(ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION, 2,
-        "/{clusterName}/CONFIGS/CUSTOMIZED_STATE_AGGREGATION/{clusterName}");
+    template.addEntry(ConfigScopeProperty.CUSTOMIZED_STATE, 2,
+        "/{clusterName}/CONFIGS/CUSTOMIZED_STATE/{clusterName}");
   }
 
   final ConfigScopeProperty _type;

@@ -46,14 +46,9 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
 
   @Override
   protected Set<PropertyKey> PopulateParticipantKeys(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap) {
+      Map<String, LiveInstance> liveInstanceMap, Set<String> restrictedKeys) {
     Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Set<String> restrictedKeys = new HashSet<>(
-        accessor.getProperty(accessor.keyBuilder().customizedStateConfig()).getRecord()
-            .getListFields().get(
-            CustomizedStateConfig.CustomizedStateProperty.AGGREGATION_ENABLED_TYPES
-                .name()));
     for (String instanceName : liveInstanceMap.keySet()) {
       for (String customizedStateType : restrictedKeys) {
         accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))

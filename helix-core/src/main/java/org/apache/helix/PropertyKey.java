@@ -244,9 +244,9 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey customizedStateConfig() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CUSTOMIZED_STATE,
           CustomizedStateConfig.class, _clusterName,
-          ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION.name(), _clusterName);
+          ConfigScopeProperty.CUSTOMIZED_STATE.name(), _clusterName);
     }
 
     /**
@@ -634,7 +634,7 @@ public class PropertyKey {
      * Get a property key associated with all {@link CustomizedView}
      * @return {@link PropertyKey}
      */
-    public PropertyKey customizedView() {
+    public PropertyKey customizedViews() {
       return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName);
     }
 

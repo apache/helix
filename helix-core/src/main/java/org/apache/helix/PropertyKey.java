@@ -27,7 +27,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Error;
@@ -254,9 +254,9 @@ public class PropertyKey {
      * Get a property key associated with this customized state aggregation configuration
      * @return {@link PropertyKey}
      */
-    public PropertyKey customizedStateAggregationConfig() {
+    public PropertyKey customizedStateConfig() {
       return new PropertyKey(CONFIGS, ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION,
-          CustomizedStateAggregationConfig.class, _clusterName,
+          CustomizedStateConfig.class, _clusterName,
           ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION.name(), _clusterName);
     }
 

@@ -44,6 +44,7 @@ import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Provides access to the persistent configuration of the cluster, the instances that live on it,
  * and the logical resources assigned to it.
@@ -52,6 +53,7 @@ public class ConfigAccessor {
   private static Logger LOG = LoggerFactory.getLogger(ConfigAccessor.class);
 
   private static final StringTemplate template = new StringTemplate();
+
   static {
     // @formatter:off
     template.addEntry(ConfigScopeProperty.CLUSTER, 1, "/{clusterName}/CONFIGS/CLUSTER");
@@ -94,9 +96,9 @@ public class ConfigAccessor {
    * @param zkAddress
    */
   public ConfigAccessor(String zkAddress) {
-    _zkClient = SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(zkAddress),
-        new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
     _usesExternalZkClient = false;
   }
 
@@ -157,7 +159,6 @@ public class ConfigAccessor {
       }
     }
     return map;
-
   }
 
   /**
@@ -184,13 +185,13 @@ public class ConfigAccessor {
    */
   public Map<String, String> get(HelixConfigScope scope, List<String> keys) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
-      LOG.error("fail to get configs. invalid config scope. scope: " + scope + ", keys: " + keys);
+      LOG.error("fail to get configs. invalid config scope. scope: {}, keys: {}.", scope, keys);
       return null;
     }
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No config found at " + scope.getZkPath());
+      LOG.warn("No config found at {}.", scope.getZkPath());
       return null;
     }
 
@@ -205,7 +206,7 @@ public class ConfigAccessor {
     } else {
       Map<String, String> configMap = record.getMapField(mapKey);
       if (configMap == null) {
-        LOG.warn("No map-field found in " + record + " using mapKey: " + mapKey);
+        LOG.warn("No map-field found in {} using mapKey: {}.", record, mapKey);
         return null;
       }
 
@@ -251,7 +252,7 @@ public class ConfigAccessor {
   @Deprecated
   public void set(ConfigScope scope, Map<String, String> keyValueMap) {
     if (scope == null || scope.getScope() == null) {
-      LOG.error("Scope can't be null");
+      LOG.error("Scope can't be null.");
       return;
     }
 
@@ -265,8 +266,8 @@ public class ConfigAccessor {
       String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
       if (!ZKUtil.isInstanceSetup(_zkClient, scope.getClusterName(), instanceName,
           InstanceType.PARTICIPANT)) {
-        throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: "
-            + clusterName);
+        throw new HelixException(
+            "instance: " + instanceName + " is NOT setup in cluster: " + clusterName);
       }
     }
 
@@ -314,7 +315,7 @@ public class ConfigAccessor {
    */
   public void set(HelixConfigScope scope, Map<String, String> keyValueMap) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
-      LOG.error("fail to set config. invalid config scope. scope: {}", scope);
+      LOG.error("fail to set config. invalid config scope. Scope: {}.", scope);
       return;
     }
 
@@ -364,7 +365,7 @@ public class ConfigAccessor {
   @Deprecated
   public void remove(ConfigScope scope, List<String> keys) {
     if (scope == null || scope.getScope() == null) {
-      LOG.error("Scope can't be null");
+      LOG.error("Scope can't be null.");
       return;
     }
 
@@ -414,7 +415,7 @@ public class ConfigAccessor {
    */
   public void remove(HelixConfigScope scope, List<String> keys) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
-      LOG.error("fail to remove. invalid scope: " + scope + ", keys: " + keys);
+      LOG.error("fail to remove. invalid scope: {}, keys: {}", scope, keys);
       return;
     }
 
@@ -452,7 +453,7 @@ public class ConfigAccessor {
    */
   public void remove(HelixConfigScope scope, ZNRecord recordToRemove) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
-      LOG.error("fail to remove. invalid scope: " + scope);
+      LOG.error("fail to remove. invalid scope: {}.", scope);
       return;
     }
 
@@ -476,13 +477,13 @@ public class ConfigAccessor {
   @Deprecated
   public List<String> getKeys(ConfigScopeProperty type, String clusterName, String... keys) {
     if (type == null || clusterName == null) {
-      LOG.error("clusterName|scope can't be null");
+      LOG.error("ClusterName|scope can't be null.");
       return Collections.emptyList();
     }
 
     try {
       if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
-        LOG.error("cluster " + clusterName + " is not setup yet");
+        LOG.error("cluster {} is not setup yet.", clusterName);
         return Collections.emptyList();
       }
 
@@ -499,7 +500,6 @@ public class ConfigAccessor {
 
         if (splits[1].startsWith("SIMPLEKEYS")) {
           retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
-
         } else if (splits[1].startsWith("MAPKEYS")) {
           retKeys = new ArrayList<String>(record.getMapFields().keySet());
         } else if (splits[1].startsWith("MAPMAPKEYS")) {
@@ -507,7 +507,7 @@ public class ConfigAccessor {
         }
       }
       if (retKeys == null) {
-        LOG.error("Invalid scope: " + type + " or keys: " + Arrays.toString(args));
+        LOG.error("Invalid scope: {} or keys: {}.", type, Arrays.toString(args));
         return Collections.emptyList();
       }
 
@@ -516,7 +516,6 @@ public class ConfigAccessor {
     } catch (Exception e) {
       return Collections.emptyList();
     }
-
   }
 
   /**
@@ -526,12 +525,12 @@ public class ConfigAccessor {
    */
   public List<String> getKeys(HelixConfigScope scope) {
     if (scope == null || scope.getType() == null) {
-      LOG.error("fail to getKeys. invalid config scope: " + scope);
+      LOG.error("Fail to getKeys. Invalid config scope: {}.", scope);
       return null;
     }
 
     if (!ZKUtil.isClusterSetup(scope.getClusterName(), _zkClient)) {
-      LOG.error("fail to getKeys. cluster " + scope.getClusterName() + " is not setup yet");
+      LOG.error("Fail to getKeys. Cluster {} is not setup yet.", scope.getClusterName());
       return Collections.emptyList();
     }
 
@@ -578,7 +577,7 @@ public class ConfigAccessor {
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No config found at " + scope.getZkPath());
+      LOG.warn("No config found at {}.", scope.getZkPath());
       return null;
     }
 
@@ -598,7 +597,7 @@ public class ConfigAccessor {
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No rest config found at " + scope.getZkPath());
+      LOG.warn("No rest config found at {}.", scope.getZkPath());
       return null;
     }
 
@@ -638,8 +637,8 @@ public class ConfigAccessor {
     updateClusterConfig(clusterName, clusterConfig, false);
   }
 
-
-  private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig, boolean overwrite) {
+  private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig,
+      boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to update config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -670,7 +669,7 @@ public class ConfigAccessor {
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No config found at " + scope.getZkPath());
+      LOG.warn("No config found at {}.", scope.getZkPath());
       return null;
     }
 
@@ -754,7 +753,7 @@ public class ConfigAccessor {
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {
-      LOG.warn("No config found at " + scope.getZkPath());
+      LOG.warn("No config found at {}.", scope.getZkPath());
       return null;
     }
 
@@ -775,7 +774,6 @@ public class ConfigAccessor {
   public void setInstanceConfig(String clusterName, String instanceName,
       InstanceConfig instanceConfig) {
     updateInstanceConfig(clusterName, instanceName, instanceConfig, true);
-
   }
 
   /**

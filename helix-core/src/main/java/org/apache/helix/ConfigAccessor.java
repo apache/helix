@@ -33,7 +33,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
@@ -589,11 +589,11 @@ public class ConfigAccessor {
   }
 
   /**
-   * Get CustomizedStateAggregationConfig of the given cluster.
+   * Get CustomizedStateConfig of the given cluster.
    * @param clusterName
-   * @return The instance of {@link CustomizedStateAggregationConfig}
+   * @return The instance of {@link CustomizedStateConfig}
    */
-  public CustomizedStateAggregationConfig getCustomizedStateAggregationConfig(String clusterName) {
+  public CustomizedStateConfig getCustomizedStateConfig(String clusterName) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException(String.format("Failed to get config. cluster: %s is not setup.", clusterName));
     }
@@ -606,7 +606,7 @@ public class ConfigAccessor {
       return null;
     }
 
-    return new CustomizedStateAggregationConfig.Builder(record).build();
+    return new CustomizedStateConfig.Builder(record).build();
   }
 
   /**

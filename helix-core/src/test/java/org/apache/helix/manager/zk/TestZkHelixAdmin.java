@@ -54,7 +54,6 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
-import org.apache.helix.model.CustomizedStateAggregationConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -548,12 +547,12 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", false);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 3);
     Assert.assertEquals(instanceConfig.getRecord()
-        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         3);
     instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", true);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 2);
     Assert.assertEquals(instanceConfig.getRecord()
-        .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
         2);
   }
 
@@ -600,7 +599,6 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       // OK since resourceConfig is empty
     }
 
-<<<<<<< HEAD
     // Set PARTITION_CAPACITY_MAP
     Map<String, String> capacityDataMap =
         ImmutableMap.of("WCU", "1", "RCU", "2", "STORAGE", "3");
@@ -685,6 +683,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(listUrlFromZk.get(0), "TestURL");
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessor");
   }
+
 
   @Test
   public void testRemoveCloudConfig() throws Exception {

@@ -37,7 +37,7 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.CustomizedStateAggregationConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
@@ -302,7 +302,7 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
-  public void addCustomizedStateAggregationConfigChangeListener(CustomizedStateAggregationConfigChangeListener listener)
+  public void addCustomizedStateConfigChangeListener(CustomizedStateConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
 

@@ -30,33 +30,33 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 /**
  * CustomizedStateAggregation configurations
  */
-public class CustomizedStateAggregationConfig extends HelixProperty {
+public class CustomizedStateConfig extends HelixProperty {
 
-  public static final String CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW =
-      "CustomizedStateAggregationConfig";
+  public static final String CUSTOMIZED_STATE_CONFIG_KW =
+      "CustomizedStateConfig";
 
   /**
    * Indicate which customized states will be aggregated.
    * NOTE: Do NOT use this field name directly, use its corresponding getter/setter in the
-   * CustomizedStateAggregationConfig.
+   * CustomizedStateConfig.
    */
-  public enum CustomizedStateAggregationProperty {
+  public enum CustomizedStateProperty {
     AGGREGATION_ENABLED_TYPES,
   }
 
   /**
-   * Instantiate the CustomizedStateAggregationConfig
+   * Instantiate the CustomizedStateConfig
    */
-  public CustomizedStateAggregationConfig() {
-    super(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
+  public CustomizedStateConfig() {
+    super(CUSTOMIZED_STATE_CONFIG_KW);
   }
 
   /**
    * Instantiate with a pre-populated record
-   * @param record a ZNRecord corresponding to a CustomizedStateAggregationConfig
+   * @param record a ZNRecord corresponding to a CustomizedStateConfig
    */
-  public CustomizedStateAggregationConfig(ZNRecord record) {
-    super(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
+  public CustomizedStateConfig(ZNRecord record) {
+    super(CUSTOMIZED_STATE_CONFIG_KW);
     _record.setSimpleFields(record.getSimpleFields());
     _record.setListFields(record.getListFields());
     _record.setMapFields(record.getMapFields());
@@ -67,7 +67,7 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
    * @param aggregationEnabledTypes
    */
   public void setAggregationEnabledTypes(List<String> aggregationEnabledTypes) {
-    _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(),
+    _record.setListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name(),
         aggregationEnabledTypes);
   }
 
@@ -77,22 +77,22 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
    */
   public List<String> getAggregationEnabledTypes() {
     return _record
-        .getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
+        .getListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name());
   }
 
   public static class Builder {
     private ZNRecord _record;
 
 
-    public CustomizedStateAggregationConfig build() {
-      return new CustomizedStateAggregationConfig(_record);
+    public CustomizedStateConfig build() {
+      return new CustomizedStateConfig(_record);
     }
 
     /**
      * Default constructor
      */
     public Builder() {
-      _record = new ZNRecord(CUSTOMIZED_STATE_AGGREGATION_CONFIG_KW);
+      _record = new ZNRecord(CUSTOMIZED_STATE_CONFIG_KW);
     }
 
     /**
@@ -104,43 +104,43 @@ public class CustomizedStateAggregationConfig extends HelixProperty {
     }
 
     /**
-     * Constructor with CustomizedStateAggregationConfig as input
-     * @param customizedStateAggregationConfig
+     * Constructor with CustomizedStateConfig as input
+     * @param customizedStateConfig
      */
-    public Builder(CustomizedStateAggregationConfig customizedStateAggregationConfig) {
-      _record = customizedStateAggregationConfig.getRecord();
+    public Builder(CustomizedStateConfig customizedStateConfig) {
+      _record = customizedStateConfig.getRecord();
     }
 
     public Builder setAggregationEnabledTypes(List<String> aggregationEnabledTypes) {
-      _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
+      _record.setListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
       return this;
     }
 
     public Builder addAggregationEnabledType(String type) {
       if (_record.getListField(
-          CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name()) == null) {
-        _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), new ArrayList<String>());
+          CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name()) == null) {
+        _record.setListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name(), new ArrayList<String>());
       }
-      List<String> aggregationEnabledTypes = _record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
+      List<String> aggregationEnabledTypes = _record.getListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name());
       aggregationEnabledTypes.add(type);
-      _record.setListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
+      _record.setListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name(), aggregationEnabledTypes);
       return this;
     }
 
     public Builder removeAggregationEnabledType(String type) {
-      if (!_record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name())
+      if (!_record.getListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name())
           .contains(type)) {
         throw new HelixException(
-            "Type " + type + " is missing from the CustomizedStateAggregationConfig");
+            "Type " + type + " is missing from the CustomizedStateConfig");
       }
-      _record.getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name())
+      _record.getListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name())
           .remove(type);
       return this;
     }
 
     public List<String> getAggregationEnabledTypes() {
       return _record
-          .getListField(CustomizedStateAggregationProperty.AGGREGATION_ENABLED_TYPES.name());
+          .getListField(CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name());
     }
   }
 }

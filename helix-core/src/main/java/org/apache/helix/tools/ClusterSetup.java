@@ -146,6 +146,7 @@ public class ClusterSetup {
   private final boolean _usesExternalZkClient;
   private final HelixAdmin _admin;
 
+  @Deprecated
   public ClusterSetup(String zkServerAddress) {
     // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
     if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
@@ -166,12 +167,14 @@ public class ClusterSetup {
     _usesExternalZkClient = false;
   }
 
+  @Deprecated
   public ClusterSetup(RealmAwareZkClient zkClient) {
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
     _usesExternalZkClient = true;
   }
 
+  @Deprecated
   public ClusterSetup(RealmAwareZkClient zkClient, HelixAdmin zkHelixAdmin) {
     _zkClient = zkClient;
     _admin = zkHelixAdmin;

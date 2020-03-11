@@ -74,6 +74,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private final Set<String> _expectLiveInstances;
   private final ResourceControllerDataProvider _dataProvider;
 
+  @Deprecated
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
     super(zkAddr, clusterName);
@@ -83,6 +84,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
+  @Deprecated
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
@@ -95,9 +97,13 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private BestPossibleExternalViewVerifier(Builder builder) {
     super(builder);
-    _errStates = builder._errStates;
-    _resources = builder._resources;
-    _expectLiveInstances = builder._expectLiveInstances;
+    // Deep copy data from Builder
+    _errStates = new HashMap<>();
+    if (builder._errStates != null) {
+      builder._errStates.forEach((k, v) -> _errStates.put(k, new HashMap<>(v)));
+    }
+    _resources = new HashSet<>(builder._resources);
+    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
     _dataProvider = new ResourceControllerDataProvider();
   }
 

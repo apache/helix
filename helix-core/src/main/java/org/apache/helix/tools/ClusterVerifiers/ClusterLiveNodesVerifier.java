@@ -31,6 +31,7 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 
   final Set<String> _expectLiveNodes;
 
+  @Deprecated
   public ClusterLiveNodesVerifier(RealmAwareZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
@@ -39,7 +40,7 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 
   private ClusterLiveNodesVerifier(Builder builder) {
     super(builder);
-    _expectLiveNodes = builder._expectLiveNodes;
+    _expectLiveNodes = new HashSet<>(builder._expectLiveNodes);
   }
 
   @Override

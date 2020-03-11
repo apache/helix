@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     this(zkClient, clusterName, resources, expectLiveInstances, false);
   }
 
+  @Deprecated
   private StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkAddr, clusterName);
@@ -76,6 +78,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
+  @Deprecated
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkClient, clusterName);
@@ -86,8 +89,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private StrictMatchExternalViewVerifier(Builder builder) {
     super(builder);
-    _resources = builder._resources;
-    _expectLiveInstances = builder._expectLiveInstances;
+    _resources = new HashSet<>(builder._resources);
+    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
     _isDeactivatedNodeAware = builder._isDeactivatedNodeAware;
   }
 

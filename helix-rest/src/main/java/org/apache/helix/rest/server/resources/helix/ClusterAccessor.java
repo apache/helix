@@ -63,6 +63,7 @@ import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 @Path("/clusters")
 public class ClusterAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(ClusterAccessor.class.getName());
@@ -113,7 +114,8 @@ public class ClusterAccessor extends AbstractHelixResource {
       clusterInfo.put(ClusterProperties.controller.name(), "No Lead Controller!");
     }
 
-    boolean paused = dataAccessor.getBaseDataAccessor().exists(keyBuilder.pause().getPath(), AccessOption.PERSISTENT);
+    boolean paused = dataAccessor.getBaseDataAccessor()
+        .exists(keyBuilder.pause().getPath(), AccessOption.PERSISTENT);
     clusterInfo.put(ClusterProperties.paused.name(), paused);
     boolean maintenance = getHelixAdmin().isInMaintenanceMode(clusterId);
     clusterInfo.put(ClusterProperties.maintenance.name(), maintenance);
@@ -128,7 +130,6 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(clusterInfo);
   }
 
-
   @PUT
   @Path("{clusterId}")
   public Response createCluster(@PathParam("clusterId") String clusterId,
@@ -139,7 +140,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       clusterSetup.addCluster(clusterId, recreateIfExists);
     } catch (Exception ex) {
-      _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
+      _logger.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
 
@@ -154,11 +155,12 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       clusterSetup.deleteCluster(clusterId);
     } catch (HelixException ex) {
-      _logger.info(
-          "Failed to delete cluster " + clusterId + ", cluster is still in use. Exception: " + ex);
+      _logger
+          .info("Failed to delete cluster {}, cluster is still in use. Exception: {}.", clusterId,
+              ex);
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Failed to delete cluster " + clusterId + ", exception: " + ex);
+      _logger.error("Failed to delete cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
 
@@ -181,74 +183,75 @@ public class ClusterAccessor extends AbstractHelixResource {
     HelixAdmin helixAdmin = getHelixAdmin();
 
     switch (command) {
-    case activate:
-      if (superCluster == null) {
-        return badRequest("Super Cluster name is missing!");
-      }
-      try {
-        clusterSetup.activateCluster(clusterId, superCluster, true);
-      } catch (Exception ex) {
-        _logger.error("Failed to add cluster " + clusterId + " to super cluster " + superCluster);
-        return serverError(ex);
-      }
-      break;
+      case activate:
+        if (superCluster == null) {
+          return badRequest("Super Cluster name is missing!");
+        }
+        try {
+          clusterSetup.activateCluster(clusterId, superCluster, true);
+        } catch (Exception ex) {
+          _logger.error("Failed to add cluster {} to super cluster {}.", clusterId, superCluster);
+          return serverError(ex);
+        }
+        break;
 
-    case expand:
-      try {
-        clusterSetup.expandCluster(clusterId);
-      } catch (Exception ex) {
-        _logger.error("Failed to expand cluster " + clusterId);
-        return serverError(ex);
-      }
-      break;
+      case expand:
+        try {
+          clusterSetup.expandCluster(clusterId);
+        } catch (Exception ex) {
+          _logger.error("Failed to expand cluster {}.", clusterId);
+          return serverError(ex);
+        }
+        break;
 
-    case enable:
-      try {
-        helixAdmin.enableCluster(clusterId, true);
-      } catch (Exception ex) {
-        _logger.error("Failed to enable cluster " + clusterId);
-        return serverError(ex);
-      }
-      break;
+      case enable:
+        try {
+          helixAdmin.enableCluster(clusterId, true);
+        } catch (Exception ex) {
+          _logger.error("Failed to enable cluster {}.", clusterId);
+          return serverError(ex);
+        }
+        break;
 
-    case disable:
-      try {
-        helixAdmin.enableCluster(clusterId, false);
-      } catch (Exception ex) {
-        _logger.error("Failed to disable cluster " + clusterId);
-        return serverError(ex);
-      }
-      break;
+      case disable:
+        try {
+          helixAdmin.enableCluster(clusterId, false);
+        } catch (Exception ex) {
+          _logger.error("Failed to disable cluster {}.", clusterId);
+          return serverError(ex);
+        }
+        break;
 
-    case enableMaintenanceMode:
-    case disableMaintenanceMode:
-      // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
-      // as a REASON String
-      Map<String, String> customFieldsMap = null;
-      try {
-        // Try to parse content
-        customFieldsMap =
-            OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
-            });
-        // content is given as a KV mapping. Nullify content
-        content = null;
-      } catch (Exception e) {
-        // NOP
-      }
-      helixAdmin.manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
-          content, customFieldsMap);
-      break;
-    case enableWagedRebalanceForAllResources:
-      // Enable WAGED rebalance for all resources in the cluster
-      List<String> resources = helixAdmin.getResourcesInCluster(clusterId);
-      try {
-        helixAdmin.enableWagedRebalance(clusterId, resources);
-      } catch (HelixException e) {
-        return badRequest(e.getMessage());
-      }
-      break;
-    default:
-      return badRequest("Unsupported command " + command);
+      case enableMaintenanceMode:
+      case disableMaintenanceMode:
+        // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
+        // as a REASON String
+        Map<String, String> customFieldsMap = null;
+        try {
+          // Try to parse content
+          customFieldsMap =
+              OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
+              });
+          // content is given as a KV mapping. Nullify content
+          content = null;
+        } catch (Exception e) {
+          // NOP
+        }
+        helixAdmin
+            .manuallyEnableMaintenanceMode(clusterId, command == Command.enableMaintenanceMode,
+                content, customFieldsMap);
+        break;
+      case enableWagedRebalanceForAllResources:
+        // Enable WAGED rebalance for all resources in the cluster
+        List<String> resources = helixAdmin.getResourcesInCluster(clusterId);
+        try {
+          helixAdmin.enableWagedRebalance(clusterId, resources);
+        } catch (HelixException e) {
+          return badRequest(e.getMessage());
+        }
+        break;
+      default:
+        return badRequest("Unsupported command {}." + command);
     }
 
     return OK();
@@ -263,10 +266,10 @@ public class ClusterAccessor extends AbstractHelixResource {
       config = accessor.getClusterConfig(clusterId);
     } catch (HelixException ex) {
       // cluster not found.
-      _logger.info("Failed to get cluster config for cluster " + clusterId
-          + ", cluster not found, Exception: " + ex);
+      _logger.info("Failed to get cluster config for cluster {}, cluster not found. Exception: {}.",
+          clusterId, ex);
     } catch (Exception ex) {
-      _logger.error("Failed to get cluster config for cluster " + clusterId + " Exception: " + ex);
+      _logger.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
       return serverError(ex);
     }
     if (config == null) {
@@ -279,7 +282,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}/topology")
   public Response getClusterTopology(@PathParam("clusterId") String clusterId) throws IOException {
     //TODO reduce the GC by dependency injection
-    ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+    ClusterService clusterService =
+        new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
     ObjectMapper objectMapper = new ObjectMapper();
     ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
 
@@ -288,9 +292,8 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @POST
   @Path("{clusterId}/configs")
-  public Response updateClusterConfig(
-      @PathParam("clusterId") String clusterId, @QueryParam("command") String commandStr,
-      String content) {
+  public Response updateClusterConfig(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String commandStr, String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -302,7 +305,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -314,26 +317,26 @@ public class ClusterAccessor extends AbstractHelixResource {
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
       switch (command) {
-      case update:
-        configAccessor.updateClusterConfig(clusterId, config);
-        break;
-      case delete: {
-        HelixConfigScope clusterScope =
-            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-                .forCluster(clusterId).build();
-        configAccessor.remove(clusterScope, config.getRecord());
+        case update:
+          configAccessor.updateClusterConfig(clusterId, config);
+          break;
+        case delete: {
+          HelixConfigScope clusterScope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+                  .forCluster(clusterId).build();
+          configAccessor.remove(clusterScope, config.getRecord());
         }
         break;
 
-      default:
-        return badRequest("Unsupported command " + commandStr);
+        default:
+          return badRequest("Unsupported command " + commandStr);
       }
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error(
-          "Failed to " + command + " cluster config, cluster " + clusterId + " new config: "
-              + content + ", Exception: " + ex);
+      _logger
+          .error("Failed to {} cluster config, cluster {}, new config: {}. Exception: {}.", command,
+              clusterId, content, ex);
       return serverError(ex);
     }
     return OK();
@@ -360,8 +363,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/controller/history")
   public Response getClusterControllerLeadershipHistory(@PathParam("clusterId") String clusterId) {
-    return JSONRepresentation(getControllerHistory(clusterId,
-        ControllerHistory.HistoryType.CONTROLLER_LEADERSHIP));
+    return JSONRepresentation(
+        getControllerHistory(clusterId, ControllerHistory.HistoryType.CONTROLLER_LEADERSHIP));
   }
 
   @GET
@@ -403,10 +406,11 @@ public class ClusterAccessor extends AbstractHelixResource {
 
   @GET
   @Path("{clusterId}/controller/messages/{messageId}")
-  public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId, @PathParam("messageId") String messageId) {
+  public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId,
+      @PathParam("messageId") String messageId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    Message message = dataAccessor.getProperty(
-        dataAccessor.keyBuilder().controllerMessage(messageId));
+    Message message =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().controllerMessage(messageId));
     return JSONRepresentation(message.getRecord());
   }
 
@@ -429,7 +433,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
       @PathParam("statemodel") String statemodel) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    StateModelDefinition stateModelDef = dataAccessor.getProperty(dataAccessor.keyBuilder().stateModelDef(statemodel));
+    StateModelDefinition stateModelDef =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().stateModelDef(statemodel));
 
     if (stateModelDef == null) {
       return badRequest("Statemodel not found!");
@@ -445,7 +450,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
     HelixZkClient zkClient = getHelixZkClient();
@@ -453,7 +458,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       ZKUtil.createChildren(zkClient, path, record);
     } catch (Exception e) {
-      _logger.error("Failed to create zk node with path " + path + ", Exception:" + e);
+      _logger.error("Failed to create zk node with path {}. Exception: {}", path, e);
       return badRequest("Failed to create a Znode for stateModel! " + e);
     }
 
@@ -468,7 +473,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
+      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -480,7 +485,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       retcode = dataAccessor.setProperty(key, stateModelDefinition);
     } catch (Exception e) {
-      _logger.error("Failed to set StateModelDefinition key:" + key + ", Exception: " + e);
+      _logger.error("Failed to set StateModelDefinition key: {}. Exception: {}.", key, e);
       return badRequest("Failed to set the content " + content);
     }
 
@@ -502,7 +507,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       retcode = dataAccessor.removeProperty(key);
     } catch (Exception e) {
-      _logger.error("Failed to remove StateModelDefinition key:" + key + ", Exception: " + e);
+      _logger.error("Failed to remove StateModelDefinition key: {}. Exception: {}.", key, e);
       retcode = false;
     }
     if (!retcode) {
@@ -514,9 +519,10 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/maintenance")
   public Response getClusterMaintenanceMode(@PathParam("clusterId") String clusterId) {
-    return JSONRepresentation(
-        ImmutableMap.of(ClusterProperties.maintenance.name(), getHelixAdmin().isInMaintenanceMode(clusterId)));
+    return JSONRepresentation(ImmutableMap
+        .of(ClusterProperties.maintenance.name(), getHelixAdmin().isInMaintenanceMode(clusterId)));
   }
+
   private boolean doesClusterExist(String cluster) {
     HelixZkClient zkClient = getHelixZkClient();
     return ZKUtil.isClusterSetup(cluster, zkClient);
@@ -539,15 +545,15 @@ public class ClusterAccessor extends AbstractHelixResource {
         dataAccessor.getProperty(dataAccessor.keyBuilder().controllerLeaderHistory());
 
     switch (historyType) {
-    case CONTROLLER_LEADERSHIP:
-      history.put(Properties.history.name(),
-          historyRecord != null ? historyRecord.getHistoryList() : Collections.emptyList());
-      break;
-    case MAINTENANCE:
-      history.put(ClusterProperties.maintenanceHistory.name(),
-          historyRecord != null ? historyRecord.getMaintenanceHistoryList()
-              : Collections.emptyList());
-      break;
+      case CONTROLLER_LEADERSHIP:
+        history.put(Properties.history.name(),
+            historyRecord != null ? historyRecord.getHistoryList() : Collections.emptyList());
+        break;
+      case MAINTENANCE:
+        history.put(ClusterProperties.maintenanceHistory.name(),
+            historyRecord != null ? historyRecord.getMaintenanceHistoryList()
+                : Collections.emptyList());
+        break;
     }
     return history;
   }

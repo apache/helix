@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
 
 @Path("/clusters")
 public class ClusterAccessor extends AbstractHelixResource {
-  private static Logger _logger = LoggerFactory.getLogger(ClusterAccessor.class.getName());
+  private static Logger LOG = LoggerFactory.getLogger(ClusterAccessor.class.getName());
 
   public enum ClusterProperties {
     controller,
@@ -140,7 +140,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       clusterSetup.addCluster(clusterId, recreateIfExists);
     } catch (Exception ex) {
-      _logger.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
+      LOG.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
 
@@ -155,12 +155,12 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       clusterSetup.deleteCluster(clusterId);
     } catch (HelixException ex) {
-      _logger
+      LOG
           .info("Failed to delete cluster {}, cluster is still in use. Exception: {}.", clusterId,
               ex);
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
-      _logger.error("Failed to delete cluster {}. Exception: {}.", clusterId, ex);
+      LOG.error("Failed to delete cluster {}. Exception: {}.", clusterId, ex);
       return serverError(ex);
     }
 
@@ -190,7 +190,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         try {
           clusterSetup.activateCluster(clusterId, superCluster, true);
         } catch (Exception ex) {
-          _logger.error("Failed to add cluster {} to super cluster {}.", clusterId, superCluster);
+          LOG.error("Failed to add cluster {} to super cluster {}.", clusterId, superCluster);
           return serverError(ex);
         }
         break;
@@ -199,7 +199,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         try {
           clusterSetup.expandCluster(clusterId);
         } catch (Exception ex) {
-          _logger.error("Failed to expand cluster {}.", clusterId);
+          LOG.error("Failed to expand cluster {}.", clusterId);
           return serverError(ex);
         }
         break;
@@ -208,7 +208,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         try {
           helixAdmin.enableCluster(clusterId, true);
         } catch (Exception ex) {
-          _logger.error("Failed to enable cluster {}.", clusterId);
+          LOG.error("Failed to enable cluster {}.", clusterId);
           return serverError(ex);
         }
         break;
@@ -217,7 +217,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         try {
           helixAdmin.enableCluster(clusterId, false);
         } catch (Exception ex) {
-          _logger.error("Failed to disable cluster {}.", clusterId);
+          LOG.error("Failed to disable cluster {}.", clusterId);
           return serverError(ex);
         }
         break;
@@ -266,10 +266,10 @@ public class ClusterAccessor extends AbstractHelixResource {
       config = accessor.getClusterConfig(clusterId);
     } catch (HelixException ex) {
       // cluster not found.
-      _logger.info("Failed to get cluster config for cluster {}, cluster not found. Exception: {}.",
+      LOG.info("Failed to get cluster config for cluster {}, cluster not found. Exception: {}.",
           clusterId, ex);
     } catch (Exception ex) {
-      _logger.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
+      LOG.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
       return serverError(ex);
     }
     if (config == null) {
@@ -305,7 +305,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
+      LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -334,7 +334,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
-      _logger
+      LOG
           .error("Failed to {} cluster config, cluster {}, new config: {}. Exception: {}.", command,
               clusterId, content, ex);
       return serverError(ex);
@@ -450,7 +450,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
+      LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
     HelixZkClient zkClient = getHelixZkClient();
@@ -458,7 +458,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       ZKUtil.createChildren(zkClient, path, record);
     } catch (Exception e) {
-      _logger.error("Failed to create zk node with path {}. Exception: {}", path, e);
+      LOG.error("Failed to create zk node with path {}. Exception: {}", path, e);
       return badRequest("Failed to create a Znode for stateModel! " + e);
     }
 
@@ -473,7 +473,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       record = toZNRecord(content);
     } catch (IOException e) {
-      _logger.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
+      LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
 
@@ -485,7 +485,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       retcode = dataAccessor.setProperty(key, stateModelDefinition);
     } catch (Exception e) {
-      _logger.error("Failed to set StateModelDefinition key: {}. Exception: {}.", key, e);
+      LOG.error("Failed to set StateModelDefinition key: {}. Exception: {}.", key, e);
       return badRequest("Failed to set the content " + content);
     }
 
@@ -507,7 +507,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       retcode = dataAccessor.removeProperty(key);
     } catch (Exception e) {
-      _logger.error("Failed to remove StateModelDefinition key: {}. Exception: {}.", key, e);
+      LOG.error("Failed to remove StateModelDefinition key: {}. Exception: {}.", key, e);
       retcode = false;
     }
     if (!retcode) {

@@ -84,10 +84,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   private RealmAwareZkClient _zkClient;
 
+  @Deprecated
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, List<String> wtCachePaths) {
     this(baseAccessor, null, wtCachePaths, null);
   }
 
+  @Deprecated
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
     _baseAccessor = baseAccessor;
@@ -105,18 +107,21 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     start();
   }
 
+  @Deprecated
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
     this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, null, null,
         ZkBaseDataAccessor.ZkClientType.SHARED);
   }
 
+  @Deprecated
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey) {
     this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, monitorType, monitorkey,
         ZkBaseDataAccessor.ZkClientType.SHARED);
   }
 
+  @Deprecated
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey,
       ZkBaseDataAccessor.ZkClientType zkClientType) {

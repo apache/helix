@@ -198,7 +198,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
             zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
                 builder._realmAwareZkClientConfig);
           }
-          break; // Must break out of the switch statement here
+          break; // Must break out of the switch statement here since zkClient has been created
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
           // found
@@ -220,8 +220,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
                     builder._realmAwareZkClientConfig.createHelixZkClientConfig());
             zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
                 TimeUnit.MILLISECONDS);
+            break;
         }
-        break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
     }

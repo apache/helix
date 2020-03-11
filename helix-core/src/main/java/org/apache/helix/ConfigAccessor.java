@@ -85,17 +85,21 @@ public class ConfigAccessor {
    * Constructor that creates a realm-aware ConfigAccessor using a builder.
    * @param builder
    */
-  private ConfigAccessor(Builder builder) throws IOException, InvalidRoutingDataException {
+  private ConfigAccessor(Builder builder) {
     switch (builder._realmMode) {
       case MULTI_REALM:
-        _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-            builder._realmAwareZkClientConfig);
+        try {
+          _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
+              builder._realmAwareZkClientConfig);
+        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          throw new HelixException("Failed to create ConfigAccessor!", e);
+        }
         break;
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do
         // ephemeral operations
         _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(builder._realmAwareZkConnectionConfig.createZkConnectionConfig(),
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
                 builder._realmAwareZkClientConfig.createHelixZkClientConfig());
         break;
       default:
@@ -123,23 +127,23 @@ public class ConfigAccessor {
    * @param zkAddress
    */
   public ConfigAccessor(String zkAddress) {
-    // First, attempt to connect on multi-realm mode using FederatedZkClient
-    RealmAwareZkClient zkClient;
-    try {
-      zkClient = new FederatedZkClient(
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-          new RealmAwareZkClient.RealmAwareZkClientConfig());
-    } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-      // Connecting multi-realm failed - fall back to creating it on single-realm mode using the given ZK address
-      LOG.info(
-          "ConfigAccessor: not able to connect on multi-realm mode; connecting single-realm mode to ZK: {}",
-          zkAddress, e);
-      zkClient = SharedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-              new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
-    }
-    _zkClient = zkClient;
     _usesExternalZkClient = false;
+
+    // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
+    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      try {
+        _zkClient = new FederatedZkClient(
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig());
+        return;
+      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        throw new HelixException("Failed to create ConfigAccessor!", e);
+      }
+    }
+
+    _zkClient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
   }
 
   /**
@@ -900,7 +904,7 @@ public class ConfigAccessor {
       return this;
     }
 
-    public ConfigAccessor build() throws Exception {
+    public ConfigAccessor build() {
       validate();
       return new ConfigAccessor(this);
     }
@@ -919,6 +923,7 @@ public class ConfigAccessor {
         throw new HelixException(
             "ConfigAccessor: You cannot set the ZkAddress on multi-realm mode!");
       }
+
       if (_realmMode == null) {
         _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
             : RealmAwareZkClient.RealmMode.MULTI_REALM;

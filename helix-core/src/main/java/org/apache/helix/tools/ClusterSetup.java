@@ -40,6 +40,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -146,25 +147,21 @@ public class ClusterSetup {
   private final HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress) {
-    // First, try to start on multi-realm mode using FederatedZkClient
-    RealmAwareZkClient zkClient;
-    try {
-      zkClient = new FederatedZkClient(
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-          new RealmAwareZkClient.RealmAwareZkClientConfig());
-    } catch (InvalidRoutingDataException | IOException | IllegalStateException e) {
-      // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be found
-      // Fall back to single-realm mode using SharedZkClient (HelixZkClient)
-      // This is to preserve backward-compatibility
-      if (zkServerAddress == null || zkServerAddress.isEmpty()) {
-        throw new IllegalArgumentException("ZK server address is null or empty!");
+    // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
+    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      try {
+        _zkClient = new FederatedZkClient(
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig());
+      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        throw new HelixException("Failed to create ConfigAccessor!", e);
       }
-      zkClient = SharedZkClientFactory.getInstance()
+    } else {
+      _zkClient = SharedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkServerAddress));
-      zkClient.setZkSerializer(new ZNRecordSerializer());
+      _zkClient.setZkSerializer(new ZNRecordSerializer());
     }
 
-    _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
     _usesExternalZkClient = false;
   }
@@ -181,7 +178,7 @@ public class ClusterSetup {
     _usesExternalZkClient = true;
   }
 
-  private ClusterSetup(Builder builder) throws IOException, InvalidRoutingDataException {
+  private ClusterSetup(Builder builder) {
     switch (builder._realmMode) {
       case MULTI_REALM:
         try {
@@ -195,7 +192,7 @@ public class ClusterSetup {
         // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do
         // ephemeral operations
         _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(builder._realmAwareZkConnectionConfig.createZkConnectionConfig(),
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
                 builder._realmAwareZkClientConfig.createHelixZkClientConfig());
         break;
       default:
@@ -1641,7 +1638,7 @@ public class ClusterSetup {
       return this;
     }
 
-    public ClusterSetup build() throws Exception {
+    public ClusterSetup build() {
       validate();
       return new ClusterSetup(this);
     }

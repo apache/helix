@@ -50,7 +50,7 @@ public class CustomizedStateProvider {
    * Update a specific customized state based on the resource name and partition name. The
    * customized state is input as a single string
    */
-  public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
+  public void updateCustomizedState(String customizedStateName, String resourceName,
       String partitionName, String customizedState) {
     Map<String, String> customizedStateMap = new HashMap<>();
     customizedStateMap.put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), customizedState);
@@ -61,29 +61,16 @@ public class CustomizedStateProvider {
    * Update a specific customized state based on the resource name and partition name. The
    * customized state is input as a map
    */
-  public synchronized void updateCustomizedState(String customizedStateName, String resourceName,
+  public void updateCustomizedState(String customizedStateName, String resourceName,
       String partitionName, Map<String, String> customizedStateMap) {
     PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     ZNRecord record = new ZNRecord(resourceName);
-    Map<String, Map<String, String>> mapFields = new HashMap<>();
-    CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
-    if (existingState != null
-        && existingState.getRecord().getMapFields().containsKey(partitionName)) {
-      Map<String, String> existingMap = new HashMap<>();
-      for (String key : customizedStateMap.keySet()) {
-        existingMap.put(key, customizedStateMap.get(key));
-      }
-
-      mapFields.put(partitionName, existingMap);
-    } else {
-      mapFields.put(partitionName, customizedStateMap);
-    }
-    record.setMapFields(mapFields);
+    record.setMapField(partitionName, customizedStateMap);
     if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {
-      throw new HelixException(
-          String.format("Failed to persist customized state %s to zk for instance %s, resource %s",
+      throw new HelixException(String
+          .format("Failed to persist customized state %s to zk for instance %s, resource %s",
               customizedStateName, _instanceName, record.getId()));
     }
   }

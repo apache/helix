@@ -34,6 +34,7 @@ import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -102,14 +103,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
-  private final HelixZkClient _zkClient;
+  private final RealmAwareZkClient _zkClient;
   // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
   // ZkClient
   private final boolean _usesExternalZkClient;
 
   @Deprecated
-  public ZkBaseDataAccessor(HelixZkClient zkClient) {
+  public ZkBaseDataAccessor(RealmAwareZkClient zkClient) {
     if (zkClient == null) {
       throw new NullPointerException("zkclient is null");
     }

@@ -38,6 +38,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
+import org.apache.helix.common.caches.CustomizedStateCache;
 import org.apache.helix.common.caches.InstanceMessagesCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.common.controllers.ControlContextProvider;
@@ -45,6 +46,8 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -96,6 +99,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   // Special caches
   private CurrentStateCache _currentStateCache;
+  private CustomizedStateCache _customizedStateCache;
   private InstanceMessagesCache _instanceMessagesCache;
 
   // Other miscellaneous caches
@@ -103,6 +107,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Map<String, Map<String, String>> _idealStateRuleMap;
   private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private Set<String> _disabledInstanceSet = new HashSet<>();
+  private Set<String> _aggregationEnabledTypes = new HashSet<>();
 
   public BaseControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER, AbstractDataCache.UNKNOWN_PIPELINE);
@@ -217,6 +222,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       }
     }, false);
     _currentStateCache = new CurrentStateCache(this);
+    _customizedStateCache = new CustomizedStateCache(this, _aggregationEnabledTypes);
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
   }
 
@@ -286,6 +292,27 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
+  private void refreshCustomizedStateConfig(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG)
+        .getAndSet(false)) {
+      CustomizedStateConfig customizedStateConfig =
+          accessor.getProperty(accessor.keyBuilder().customizedStateConfig());
+      if (customizedStateConfig != null) {
+        _aggregationEnabledTypes = new HashSet<>(customizedStateConfig.getRecord().getListFields()
+            .get(CustomizedStateConfig.CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name()));
+      }
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
+              _clusterName, getPipelineName()));
+      refreshedType.add(HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG);
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("No customized state config change for %s cluster, %s pipeline",
+              _clusterName, getPipelineName()));
+    }
+  }
+
   private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;
@@ -323,6 +350,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshLiveInstances(accessor, refreshedTypes);
     refreshInstanceConfigs(accessor, refreshedTypes);
     refreshResourceConfig(accessor, refreshedTypes);
+    refreshCustomizedStateConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
     updateMaintenanceInfo(accessor);
@@ -333,6 +361,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // Refresh derived data
     _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
     _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    _customizedStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
@@ -363,6 +392,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       LogUtil.logDebug(logger, getClusterEventId(),
           "InstanceConfigs: " + getInstanceConfigMap().keySet());
       LogUtil.logDebug(logger, getClusterEventId(), "ClusterConfigs: " + getClusterConfig());
+      LogUtil.logDebug(logger, getClusterEventId(),
+          "CustomizedStateConfig: " + getCustomizedStateConfig());
     }
   }
 
@@ -372,6 +403,14 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public void setClusterConfig(ClusterConfig clusterConfig) {
     _clusterConfig = clusterConfig;
+  }
+
+  public Set<String> getCustomizedStateConfig() {
+    return _aggregationEnabledTypes;
+  }
+
+  public void setCustomizedStateConfig(Set<String> aggregationEnabledTypes) {
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 
   @Override
@@ -527,6 +566,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
     return _currentStateCache.getParticipantState(instanceName, clientSessionId);
+  }
+
+  /**
+   * Provides the customized state of the node for a given state type (resource -> customizedState)
+   * @param instanceName
+   * @param customizedStateType
+   * @return
+   */
+  public Map<String, CustomizedState> getCustomizedState(String instanceName,
+      String customizedStateType) {
+    return _customizedStateCache.getParticipantState(instanceName, customizedStateType);
   }
 
   /**

@@ -43,7 +43,6 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -65,6 +64,7 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -153,7 +153,8 @@ public class ClusterSetup {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-            new RealmAwareZkClient.RealmAwareZkClientConfig());
+            new RealmAwareZkClient.RealmAwareZkClientConfig()
+                .setZkSerializer(new ZNRecordSerializer()));
       } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
         throw new HelixException("Failed to create ConfigAccessor!", e);
       }
@@ -186,7 +187,7 @@ public class ClusterSetup {
       case MULTI_REALM:
         try {
           _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-              builder._realmAwareZkClientConfig);
+              builder._realmAwareZkClientConfig.setZkSerializer(new ZNRecordSerializer()));
           break;
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("Failed to create ClusterSetup!", e);
@@ -196,7 +197,8 @@ public class ClusterSetup {
         // ephemeral operations
         _zkClient = SharedZkClientFactory.getInstance()
             .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
-                builder._realmAwareZkClientConfig.createHelixZkClientConfig());
+                builder._realmAwareZkClientConfig.createHelixZkClientConfig()
+                    .setZkSerializer(new ZNRecordSerializer()));
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder._realmMode);

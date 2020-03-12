@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
@@ -43,6 +42,7 @@ import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
@@ -90,7 +90,7 @@ public class ConfigAccessor {
       case MULTI_REALM:
         try {
           _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-              builder._realmAwareZkClientConfig);
+              builder._realmAwareZkClientConfig.setZkSerializer(new ZNRecordSerializer()));
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("Failed to create ConfigAccessor!", e);
         }
@@ -100,7 +100,8 @@ public class ConfigAccessor {
         // ephemeral operations
         _zkClient = SharedZkClientFactory.getInstance()
             .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
-                builder._realmAwareZkClientConfig.createHelixZkClientConfig());
+                builder._realmAwareZkClientConfig.createHelixZkClientConfig()
+                    .setZkSerializer(new ZNRecordSerializer()));
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
@@ -126,6 +127,7 @@ public class ConfigAccessor {
    * ConfigAccessor only deals with Helix's data models like ResourceConfig.
    * @param zkAddress
    */
+  @Deprecated
   public ConfigAccessor(String zkAddress) {
     _usesExternalZkClient = false;
 
@@ -134,7 +136,8 @@ public class ConfigAccessor {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
-            new RealmAwareZkClient.RealmAwareZkClientConfig());
+            new RealmAwareZkClient.RealmAwareZkClientConfig()
+                .setZkSerializer(new ZNRecordSerializer()));
         return;
       } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
         throw new HelixException("Failed to create ConfigAccessor!", e);

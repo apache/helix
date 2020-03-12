@@ -24,11 +24,15 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestConfigAccessor extends ZkUnitTestBase {
   @Test
@@ -113,9 +117,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
         "should be [HELIX_ENABLED, HELIX_ENABLED_TIMESTAMP, HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(4), "participantConfigKey");
 
-    keys =
-        configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource",
-            "testPartition");
+    keys = configAccessor
+        .getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource", "testPartition");
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
@@ -163,7 +166,6 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     configAccessor.close();
     configAccessorZkAddr.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   // HELIX-25: set participant Config should check existence of instance
@@ -183,8 +185,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
 
     try {
       configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
-      Assert
-          .fail("Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
+      Assert.fail(
+          "Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
     } catch (HelixException e) {
       // OK
     }
@@ -193,8 +195,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     try {
       configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
     } catch (Exception e) {
-      Assert
-          .fail("Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
+      Assert.fail(
+          "Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
     }
 
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
@@ -203,5 +205,75 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     admin.dropCluster(clusterName);
     configAccessor.close();
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSetRestConfig() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(clusterName, true);
+    ConfigAccessor configAccessor = new ConfigAccessor(ZK_ADDR);
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    RESTConfig restConfig = new RESTConfig(clusterName);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL");
+    configAccessor.setRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+  }
+
+  @Test
+  public void testUpdateAndDeleteRestConfig() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    admin.addCluster(clusterName, true);
+    ConfigAccessor configAccessor = new ConfigAccessor(ZK_ADDR);
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    // Update
+    // No rest config exist
+    RESTConfig restConfig = new RESTConfig(clusterName);
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL");
+    configAccessor.updateRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+
+    // Rest config exists
+    restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL_2");
+    configAccessor.updateRESTConfig(clusterName, restConfig);
+    Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+
+    // Delete
+    // Existing rest config
+    configAccessor.deleteRESTConfig(clusterName);
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    // Nonexisting rest config
+    admin.addCluster(clusterName, true);
+    try {
+      configAccessor.deleteRESTConfig(clusterName);
+      Assert.fail("Helix exception expected.");
+    } catch (HelixException e) {
+      Assert.assertEquals(e.getMessage(),
+          "Fail to delete REST config. cluster: " + clusterName + " does not have a rest config.");
+    }
+
+    // Nonexisting cluster
+    String anotherClusterName = "anotherCluster";
+    try {
+      configAccessor.deleteRESTConfig(anotherClusterName);
+      Assert.fail("Helix exception expected.");
+    } catch (HelixException e) {
+      Assert.assertEquals(e.getMessage(),
+          "Fail to delete REST config. cluster: " + anotherClusterName + " is NOT setup.");
+    }
   }
 }

@@ -44,6 +44,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -512,6 +513,119 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
     if (!retcode) {
       return badRequest("Failed to remove!");
+    }
+    return OK();
+  }
+
+  @PUT
+  @Path("{clusterId}/restconfig")
+  public Response createRESTConfig(@PathParam("clusterId") String clusterId,
+      String content) {
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    if (!record.getId().equals(clusterId)) {
+      return badRequest("ID does not match the cluster name in input!");
+    }
+
+    RESTConfig config = new RESTConfig(record);
+    ConfigAccessor configAccessor = getConfigAccessor();
+    try {
+      configAccessor.setRESTConfig(clusterId, config);
+    } catch (HelixException ex) {
+      // TODO: Could use a more generic error for HelixException
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      LOG.error("Failed to create rest config, cluster {}, new config: {}. Exception: {}.", clusterId, content, ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
+  @POST
+  @Path("{clusterId}/restconfig")
+  public Response updateRESTConfig(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String commandStr, String content) {
+    //TODO: abstract out the logic that is duplicated from cluster config methods
+    Command command;
+    try {
+      command = getCommand(commandStr);
+    } catch (HelixException ex) {
+      return badRequest(ex.getMessage());
+    }
+
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      LOG.error("Failed to deserialize user's input {}. Exception: {}", content, e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    RESTConfig config = new RESTConfig(record);
+    ConfigAccessor configAccessor = getConfigAccessor();
+    try {
+      switch (command) {
+        case update:
+          configAccessor.updateRESTConfig(clusterId, config);
+          break;
+        case delete: {
+          HelixConfigScope scope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.REST)
+                  .forCluster(clusterId).build();
+          configAccessor.remove(scope, config.getRecord());
+        }
+        break;
+        default:
+          return badRequest("Unsupported command " + commandStr);
+      }
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      LOG.error(
+          "Failed to {} rest config, cluster {}, new config: {}. Exception: {}", command, clusterId, content, ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
+  @GET
+  @Path("{clusterId}/restconfig")
+  public Response getRESTConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    RESTConfig config = null;
+    try {
+      config = accessor.getRESTConfig(clusterId);
+    } catch (HelixException ex) {
+      LOG.info(
+          "Failed to get rest config for cluster {}, cluster not found. Exception: {}.", clusterId, ex);
+    } catch (Exception ex) {
+      LOG.error("Failed to get rest config for cluster {}. Exception: {}.", clusterId, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    return JSONRepresentation(config.getRecord());
+  }
+
+  @DELETE
+  @Path("{clusterId}/restconfig")
+  public Response deleteRESTConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    try {
+      accessor.deleteRESTConfig(clusterId);
+    } catch (HelixException ex) {
+      LOG.info("Failed to delete rest config for cluster {}, cluster rest config is not found. Exception: {}.", clusterId, ex);
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      LOG.error("Failed to delete rest config, cluster {}, Exception: {}.", clusterId, ex);
+      return serverError(ex);
     }
     return OK();
   }

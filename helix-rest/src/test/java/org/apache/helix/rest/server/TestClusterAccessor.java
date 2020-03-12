@@ -36,6 +36,7 @@ import com.sun.research.ws.wadl.HTTPMethods;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -574,6 +575,71 @@ public class TestClusterAccessor extends AbstractTestClass {
           _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
       Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
     }
+  }
+
+  @Test
+  public void testCreateRESTConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    RESTConfig restConfigRest = new RESTConfig(cluster);
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:00");
+    put("clusters/" + cluster + "/restconfig", null, Entity
+        .entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()),
+            MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
+    RESTConfig restConfigZK = _configAccessor.getRESTConfig(cluster);
+    Assert.assertEquals(restConfigZK, restConfigRest,
+        "rest config from response: " + restConfigRest + " vs rest config actually: "
+            + restConfigZK);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testCreateRESTConfig")
+  public void testUpdateRESTConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    RESTConfig restConfigRest = new RESTConfig(cluster);
+    // Update an entry
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:01");
+    Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + cluster + "/restconfig", ImmutableMap.of("command", Command.update.name()),
+        entity, Response.Status.OK.getStatusCode());
+    RESTConfig restConfigZK = _configAccessor.getRESTConfig(cluster);
+    Assert.assertEquals(restConfigZK, restConfigRest,
+        "rest config from response: " + restConfigRest + " vs rest config actually: "
+            + restConfigZK);
+
+    // Delete an entry
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, null);
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + cluster + "/restconfig", ImmutableMap.of("command", Command.delete.name()),
+        entity, Response.Status.OK.getStatusCode());
+    restConfigZK = _configAccessor.getRESTConfig(cluster);
+    Assert.assertEquals(restConfigZK, new RESTConfig(cluster),
+        "rest config from response: " + new RESTConfig(cluster) + " vs rest config actually: "
+            + restConfigZK);
+
+    // Update a cluster rest config that the cluster does not exist
+    String wrongClusterId = "wrong_cluster_id";
+    restConfigRest = new RESTConfig(wrongClusterId);
+    restConfigRest.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "http://*:01");
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(restConfigRest.getRecord()),
+        MediaType.APPLICATION_JSON_TYPE);
+    post("clusters/" + wrongClusterId + "/restconfig",
+        ImmutableMap.of("command", Command.update.name()), entity,
+        Response.Status.NOT_FOUND.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateRESTConfig")
+  public void testDeleteRESTConfig() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
+    get("clusters/" + cluster + "/restconfig", null, Response.Status.NOT_FOUND.getStatusCode(), true);
+    delete("clusters/" + cluster + "/restconfig", Response.Status.OK.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

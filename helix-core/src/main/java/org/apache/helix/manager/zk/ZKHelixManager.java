@@ -121,7 +121,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final String _version;
   private int _reportLatency;
 
-  protected RealmAwareZkClient _zkclient = null;
+  protected RealmAwareZkClient _zkclient;
   private final DefaultMessagingService _messagingService;
   private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
 
@@ -1289,15 +1289,24 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .setMonitorRootPathOnly(isMonitorRootPathOnly());
 
     if (_instanceType == InstanceType.ADMINISTRATOR) {
-      return buildSelectiveZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
+      return resolveZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
           clientConfig);
     }
 
-    return buildSelectiveZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+    return resolveZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
         clientConfig);
   }
 
-  private RealmAwareZkClient buildSelectiveZkClient(HelixZkClientFactory zkClientFactory,
+  /*
+   * Resolves what type of ZkClient this HelixManager should use based on whether MULTI_ZK_ENABLED
+   * System config is set or not. Two types of ZkClients are available:
+   * 1) If MULTI_ZK_ENABLED is set to true, we create a dedicated RealmAwareZkClient
+   * that provides full ZkClient functionalities and connects to the correct ZK by querying
+   * MetadataStoreDirectoryService.
+   * 2) Otherwise, we create a dedicated HelixZkClient which plainly connects to
+   * the ZK address given.
+   */
+  private RealmAwareZkClient resolveZkClient(HelixZkClientFactory zkClientFactory,
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {

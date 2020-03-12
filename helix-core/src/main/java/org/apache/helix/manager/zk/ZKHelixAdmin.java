@@ -94,7 +94,6 @@ import org.slf4j.LoggerFactory;
 public class ZKHelixAdmin implements HelixAdmin {
   private static final Logger LOG = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
-
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;

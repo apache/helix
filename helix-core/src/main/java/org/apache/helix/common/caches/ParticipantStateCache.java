@@ -56,11 +56,10 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
    * @param liveInstanceMap map of all liveInstances in cluster
    * @return
    */
-  public boolean refresh(HelixDataAccessor accessor, Map<String, LiveInstance> liveInstanceMap,
-      Set<String> restrictedKeys) {
+  public boolean refresh(HelixDataAccessor accessor, Map<String, LiveInstance> liveInstanceMap) {
     long startTime = System.currentTimeMillis();
 
-    refreshParticipantStatesCacheFromZk(accessor, liveInstanceMap, restrictedKeys);
+    refreshParticipantStatesCacheFromZk(accessor, liveInstanceMap);
     Map<String, Map<String, Map<String, T>>> allParticipantStateMap = new HashMap<>();
     // There should be 4 levels of keys. The first one is the cluster name, the second one is the
     // instance name, the third one is a customized key (could be session Id or customized state
@@ -105,11 +104,11 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
 
   // reload participant states that has been changed from zk to local cache.
   private void refreshParticipantStatesCacheFromZk(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap, Set<String> restrictedKeys) {
+      Map<String, LiveInstance> liveInstanceMap) {
 
     long start = System.currentTimeMillis();
     Set<PropertyKey> participantStateKeys =
-        PopulateParticipantKeys(accessor, liveInstanceMap, restrictedKeys);
+        PopulateParticipantKeys(accessor, liveInstanceMap);
 
     // All new entries from zk not cached locally yet should be read from ZK.
     Set<PropertyKey> reloadKeys = new HashSet<>(participantStateKeys);
@@ -138,7 +137,7 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
   }
 
   protected abstract Set<PropertyKey> PopulateParticipantKeys(HelixDataAccessor accessor,
-      Map<String, LiveInstance> liveInstanceMap, Set<String> restrictedKeys);
+      Map<String, LiveInstance> liveInstanceMap);
 
   /**
    * Refresh the snapshot of the cache. This method is optional for child class to extend. If the

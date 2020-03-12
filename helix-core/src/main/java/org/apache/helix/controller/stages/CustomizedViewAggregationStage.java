@@ -45,8 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class CustomizedViewAggregateStage extends AbstractAsyncBaseStage {
-  private static Logger LOG = LoggerFactory.getLogger(CustomizedViewAggregateStage.class);
+public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
+  private static Logger LOG = LoggerFactory.getLogger(CustomizedViewAggregationStage.class);
 
   @Override
   public AsyncWorkerType getAsyncWorkerType() {

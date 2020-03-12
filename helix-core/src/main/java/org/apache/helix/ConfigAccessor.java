@@ -571,7 +571,7 @@ public class ConfigAccessor {
       throw new HelixException(String.format("Failed to get config. cluster: %s is not setup.", clusterName));
     }
     HelixConfigScope scope =
-        new HelixConfigScopeBuilder(ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION).forCluster(clusterName).build();
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CUSTOMIZED_STATE).forCluster(clusterName).build();
     ZNRecord record = getConfigZnRecord(scope);
 
     if (record == null) {

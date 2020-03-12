@@ -67,7 +67,6 @@ public interface RealmAwareZkClient {
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
-  PathBasedZkSerializer DEFAULT_SERIALIZER = new BasicZkSerializer(new ZNRecordSerializer());
 
   // listener subscription
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
@@ -468,8 +467,8 @@ public interface RealmAwareZkClient {
     // Data access configs
     protected long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
 
-    // Serializer (ZNRecordSerializer by default)
-    protected PathBasedZkSerializer _zkSerializer = DEFAULT_SERIALIZER;
+    // Serializer
+    protected PathBasedZkSerializer _zkSerializer;
 
     // Monitoring
     protected String _monitorType;

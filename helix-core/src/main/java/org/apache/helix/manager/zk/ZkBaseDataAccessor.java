@@ -58,6 +58,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   // Designates which mode ZkBaseDataAccessor should be created in. If not specified, it will be
   // created on SHARED mode.
+  // TODO: move this to RealmAwareZkClient
   public enum ZkClientType {
     /*
      * When ZkBaseDataAccessor is created with the DEDICATED type, it supports ephemeral node
@@ -70,7 +71,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
      * When ZkBaseDataAccessor is created with the SHARED type, it only supports CRUD
      * functionalities. This will be the default mode of creation.
      */
-    SHARED
+    SHARED,
+    /*
+     * Uses FederatedZkClient (applicable on multi-realm mode only) that queries Metadata Store
+     * Directory Service for routing data
+     */
+    FEDERATED
   }
 
   enum RetCode {
@@ -104,7 +110,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private static Logger LOG = LoggerFactory.getLogger(ZkBaseDataAccessor.class);
 
   private final RealmAwareZkClient _zkClient;
-  // true if ZkBaseDataAccessor was instantiated with a HelixZkClient, false otherwise
+
+  // true if ZkBaseDataAccessor was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZkBaseDataAccessor should close the underlying
   // ZkClient
   private final boolean _usesExternalZkClient;

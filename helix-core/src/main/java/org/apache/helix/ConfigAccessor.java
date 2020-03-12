@@ -625,7 +625,7 @@ public class ConfigAccessor {
 
   private void updateRESTConfig(String clusterName, RESTConfig restConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
-      throw new HelixException("fail to update REST config. cluster: " + clusterName + " is NOT setup.");
+      throw new HelixException("Fail to update REST config. cluster: " + clusterName + " is NOT setup.");
     }
 
     HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
@@ -646,16 +646,16 @@ public class ConfigAccessor {
 
   public void deleteRESTConfig(String clusterName) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
-      throw new HelixException("fail to delete REST config. cluster: " + clusterName + " is NOT setup.");
+      throw new HelixException("Fail to delete REST config. cluster: " + clusterName + " is NOT setup.");
     }
 
     HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(clusterName).build();
     String zkPath = scope.getZkPath();
 
-    // Create "/{clusterId}/CONFIGS/REST" if it does not exist
+    // Check if "/{clusterId}/CONFIGS/REST" exists
     String parentPath = HelixUtil.getZkParentPath(zkPath);
     if (!_zkClient.exists(parentPath)) {
-      throw new HelixException("fail to delete REST config. cluster: " + clusterName + " is NOT setup.");    }
+      throw new HelixException("Fail to delete REST config. cluster: " + clusterName + " does not have a rest config.");    }
 
     ZKUtil.dropChildren(_zkClient, parentPath, new ZNRecord(clusterName));
   }

@@ -38,6 +38,7 @@ abstract class HelixZkClientFactory implements RealmAwareZkClientFactory {
    * @param clientConfig
    * @return HelixZkClient
    */
+  @Deprecated
   public abstract HelixZkClient buildZkClient(HelixZkClient.ZkConnectionConfig connectionConfig,
       HelixZkClient.ZkClientConfig clientConfig);
 
@@ -47,6 +48,7 @@ abstract class HelixZkClientFactory implements RealmAwareZkClientFactory {
    * @param connectionConfig
    * @return HelixZkClient
    */
+  @Deprecated
   public HelixZkClient buildZkClient(HelixZkClient.ZkConnectionConfig connectionConfig) {
     return buildZkClient(connectionConfig, new HelixZkClient.ZkClientConfig());
   }

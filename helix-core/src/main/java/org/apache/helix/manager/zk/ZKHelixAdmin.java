@@ -1868,6 +1868,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     return true;
   }
 
+  // TODO: refactor builder to reduce duplicate code with other Helix Java APIs
   public static class Builder {
     private String zkAddress;
     private RealmAwareZkClient.RealmMode realmMode;

@@ -74,6 +74,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private final Set<String> _expectLiveInstances;
   private final ResourceControllerDataProvider _dataProvider;
 
+  /**
+   * Deprecated - please use the Builder to construct this class.
+   * @param zkAddr
+   * @param clusterName
+   * @param resources
+   * @param errStates
+   * @param expectLiveInstances
+   */
   @Deprecated
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
@@ -84,6 +92,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
+  /**
+   * Deprecated - please use the Builder to construct this class.
+   * @param zkClient
+   * @param clusterName
+   * @param resources
+   * @param errStates
+   * @param expectLiveInstances
+   */
   @Deprecated
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,

@@ -35,6 +35,7 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
@@ -492,7 +493,7 @@ public class TestHandleNewSession extends ZkTestBase {
       return _handlers;
     }
 
-    HelixZkClient getZkClient() {
+    RealmAwareZkClient getZkClient() {
       return _zkclient;
     }
 
@@ -538,7 +539,7 @@ public class TestHandleNewSession extends ZkTestBase {
       return _handlers;
     }
 
-    HelixZkClient getZkClient() {
+    RealmAwareZkClient getZkClient() {
       return _zkclient;
     }
 

@@ -126,7 +126,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
             int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
             return idleScore1 != idleScore2 ? idleScore1 - idleScore2
-                : 0 - instanceName1.compareTo(instanceName2);
+                : - instanceName1.compareTo(instanceName2);
           } else {
             return scoreCompareResult;
           }

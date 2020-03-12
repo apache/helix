@@ -54,6 +54,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -70,7 +71,7 @@ public class ParticipantManager {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantManager.class);
   private static final String CLOUD_PROCESSOR_PATH_PREFIX = "org.apache.helix.cloud.";
 
-  final HelixZkClient _zkclient;
+  final RealmAwareZkClient _zkclient;
   final HelixManager _manager;
   final PropertyKey.Builder _keyBuilder;
   final String _clusterName;
@@ -91,14 +92,14 @@ public class ParticipantManager {
   private final String _sessionId;
 
   @Deprecated
-  public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
+  public ParticipantManager(HelixManager manager, RealmAwareZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks,
       final String sessionId) {
     this(manager, zkclient, sessionTimeout, liveInstanceInfoProvider, preConnectCallbacks,
         sessionId, null);
   }
 
-  public ParticipantManager(HelixManager manager, HelixZkClient zkclient, int sessionTimeout,
+  public ParticipantManager(HelixManager manager, RealmAwareZkClient zkclient, int sessionTimeout,
       LiveInstanceInfoProvider liveInstanceInfoProvider,
       List<PreConnectCallback> preConnectCallbacks, final String sessionId,
       HelixManagerProperty helixManagerProperty) {

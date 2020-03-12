@@ -27,6 +27,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
   }
 
   @Override
-  public HelixZkClient getZkClient() {
+  public RealmAwareZkClient getZkClient() {
     return _zkclient;
   }
 

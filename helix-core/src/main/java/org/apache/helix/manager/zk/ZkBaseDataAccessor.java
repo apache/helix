@@ -51,7 +51,6 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
@@ -259,7 +258,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Deprecated
   public ZkBaseDataAccessor(String zkAddress, ZkSerializer zkSerializer,
       ZkClientType zkClientType) {
-    this(zkAddress, new BasicZkSerializer(zkSerializer), zkClientType);
+    RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+        new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(zkSerializer);
+
+    _zkClient = buildRealmAwareZkClient(clientConfig, zkAddress, zkClientType);
+    _usesExternalZkClient = false;
   }
 
   /**
@@ -275,8 +278,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @deprecated it is recommended to use the builder constructor {@link Builder}
    */
   @Deprecated
-  public ZkBaseDataAccessor(String zkAddress,
-      org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer pathBasedZkSerializer,
+  public ZkBaseDataAccessor(String zkAddress, PathBasedZkSerializer pathBasedZkSerializer,
       ZkClientType zkClientType) {
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(pathBasedZkSerializer);
@@ -1357,6 +1359,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return this;
     }
 
+    /**
+     * Returns a <code>ZkBaseDataAccessor</code> instance.
+     * <p>
+     * Note: in multi-realm mode, if and only if ZK client type is set to <code>FEDERATED</code>,
+     * <code>ZkBaseDataAccessor</code> can access to multi-realm. Otherwise, it can only access to
+     * single-ream.
+     */
     public ZkBaseDataAccessor<?> build() {
       validate();
       return new ZkBaseDataAccessor<>(this);

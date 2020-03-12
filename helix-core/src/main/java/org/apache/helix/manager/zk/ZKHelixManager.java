@@ -656,7 +656,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   void createClient() throws Exception {
-    final RealmAwareZkClient newClient = buildRealmAwareZkClient();
+    final RealmAwareZkClient newClient = createSingleRealmZkClient();
 
     synchronized (this) {
       if (_zkclient != null) {
@@ -1267,7 +1267,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return _sessionStartTime;
   }
 
-  private RealmAwareZkClient buildRealmAwareZkClient() {
+  private RealmAwareZkClient createSingleRealmZkClient() {
     final String shardingKey = buildShardingKey();
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
@@ -1288,19 +1288,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .setMonitorInstanceName(_instanceName)
         .setMonitorRootPathOnly(isMonitorRootPathOnly());
 
-    RealmAwareZkClient newClient;
     if (_instanceType == InstanceType.ADMINISTRATOR) {
-      newClient = buildHelixZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
-          clientConfig);
-    } else {
-      newClient = buildHelixZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+      return buildSelectiveZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
           clientConfig);
     }
 
-    return newClient;
+    return buildSelectiveZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+        clientConfig);
   }
 
-  private RealmAwareZkClient buildHelixZkClient(HelixZkClientFactory zkClientFactory,
+  private RealmAwareZkClient buildSelectiveZkClient(HelixZkClientFactory zkClientFactory,
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {

@@ -24,16 +24,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+
 
 public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 
   final Set<String> _expectLiveNodes;
 
-  public ClusterLiveNodesVerifier(HelixZkClient zkclient, String clusterName,
+  @Deprecated
+  public ClusterLiveNodesVerifier(RealmAwareZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
     _expectLiveNodes = new HashSet<>(expectLiveNodes);
+  }
+
+  private ClusterLiveNodesVerifier(Builder builder) {
+    super(builder);
+    _expectLiveNodes = new HashSet<>(builder._expectLiveNodes);
   }
 
   @Override
@@ -51,4 +58,39 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
     return _expectLiveNodes.equals(actualLiveNodes);
   }
 
+  public static class Builder extends ZkHelixClusterVerifier.Builder {
+    private final String _clusterName; // This is the ZK path sharding key
+    private final Set<String> _expectLiveNodes;
+
+    public Builder(String clusterName, Set<String> expectLiveNodes) {
+      _clusterName = clusterName;
+      _expectLiveNodes = expectLiveNodes;
+    }
+
+    public ClusterLiveNodesVerifier build() {
+      if (_clusterName == null || _clusterName.isEmpty()) {
+        throw new IllegalArgumentException("Cluster name is missing!");
+      }
+
+      validate();
+      return new ClusterLiveNodesVerifier(this);
+    }
+
+    @Override
+    public Builder setZkAddr(String zkAddress) {
+      return (Builder) super.setZkAddr(zkAddress);
+    }
+
+    @Override
+    public Builder setRealmAwareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
+      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
+    }
+
+    @Override
+    public Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
+      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
+    }
+  }
 }

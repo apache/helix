@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +34,6 @@ import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -42,6 +41,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,11 +64,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   @Deprecated
-  public StrictMatchExternalViewVerifier(HelixZkClient zkClient, String clusterName,
+  public StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances) {
     this(zkClient, clusterName, resources, expectLiveInstances, false);
   }
 
+  @Deprecated
   private StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkAddr, clusterName);
@@ -77,7 +78,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  private StrictMatchExternalViewVerifier(HelixZkClient zkClient, String clusterName,
+  @Deprecated
+  private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkClient, clusterName);
     _resources = resources;
@@ -85,17 +87,23 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  public static class Builder {
-    private String _clusterName;
+  private StrictMatchExternalViewVerifier(Builder builder) {
+    super(builder);
+    _resources = new HashSet<>(builder._resources);
+    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
+    _isDeactivatedNodeAware = builder._isDeactivatedNodeAware;
+  }
+
+  public static class Builder extends ZkHelixClusterVerifier.Builder {
+    private final String _clusterName; // This is the ZK path sharding key
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
-    private String _zkAddr;
-    private HelixZkClient _zkClient;
+    private RealmAwareZkClient _zkClient;
     // For backward compatibility, set the default isDeactivatedNodeAware to be false.
     private boolean _isDeactivatedNodeAware = false;
 
     public StrictMatchExternalViewVerifier build() {
-      if (_clusterName == null || (_zkAddr == null && _zkClient == null)) {
+      if (_clusterName == null || (_zkAddress == null && _zkClient == null)) {
         throw new IllegalArgumentException("Cluster name or zookeeper info is missing!");
       }
 
@@ -103,8 +111,15 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
         return new StrictMatchExternalViewVerifier(_zkClient, _clusterName, _resources,
             _expectLiveInstances, _isDeactivatedNodeAware);
       }
-      return new StrictMatchExternalViewVerifier(_zkAddr, _clusterName, _resources,
-          _expectLiveInstances, _isDeactivatedNodeAware);
+
+      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
+        // For backward-compatibility
+        return new StrictMatchExternalViewVerifier(_zkAddress, _clusterName, _resources,
+            _expectLiveInstances, _isDeactivatedNodeAware);
+      }
+
+      validate();
+      return new StrictMatchExternalViewVerifier(this);
     }
 
     public Builder(String clusterName) {
@@ -133,25 +148,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       return this;
     }
 
-    public String getZkAddr() {
-      return _zkAddr;
-    }
-
-    public Builder setZkAddr(String zkAddr) {
-      _zkAddr = zkAddr;
-      return this;
-    }
-
-    public HelixZkClient getHelixZkClient() {
-      return _zkClient;
+    public String getZkAddress() {
+      return _zkAddress;
     }
 
     @Deprecated
-    public ZkClient getZkClient() {
-      return (ZkClient) getHelixZkClient();
-    }
-
-    public Builder setZkClient(HelixZkClient zkClient) {
+    public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
       return this;
     }
@@ -163,6 +165,33 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     public Builder setDeactivatedNodeAwareness(boolean isDeactivatedNodeAware) {
       _isDeactivatedNodeAware = isDeactivatedNodeAware;
       return this;
+    }
+
+    @Override
+    public Builder setZkAddr(String zkAddress) {
+      return (Builder) super.setZkAddr(zkAddress);
+    }
+
+    @Override
+    public Builder setRealmAwareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
+      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
+    }
+
+    @Override
+    public Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
+      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
+    }
+
+    protected void validate() {
+      super.validate();
+      if (!_clusterName.equals(_realmAwareZkConnectionConfig.getZkRealmShardingKey())) {
+        throw new IllegalArgumentException(
+            "StrictMatchExternalViewVerifier: Cluster name: " + _clusterName
+                + " and ZK realm sharding key: " + _realmAwareZkConnectionConfig
+                .getZkRealmShardingKey() + " do not match!");
+      }
     }
   }
 

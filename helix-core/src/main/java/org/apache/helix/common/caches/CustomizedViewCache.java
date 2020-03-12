@@ -139,6 +139,17 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
     return Collections.unmodifiableMap(_customizedViewMap);
   }
 
+  /**
+   * Remove dead customized views from map
+   * @param resourceNames
+   */
+
+  public synchronized void removeCustomizedView(List<String> resourceNames) {
+    for (String resourceName : resourceNames) {
+      _customizedViewCache.remove(resourceName);
+    }
+  }
+
   public void clear() {
     _customizedViewCache.clear();
     _customizedViewMap.clear();

@@ -23,11 +23,11 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.CustomizedStateConfig;
 
 /**
- * Interface to implement to listen for changes to customized state aggregation configurations.
+ * Interface to implement to listen for changes to customized state configurations.
  */
 public interface CustomizedStateConfigChangeListener {
   /**
-   * Invoked when customized state aggregation config changes
+   * Invoked when customized state config changes
    * @param customizedStateConfig
    * @param context
    */

@@ -38,7 +38,8 @@ public class HelixConfigScope {
     CONSTRAINT(2, 0),
     REST(2, 0),
     CLOUD(2, 0),
-    CUSTOMIZED_STATE_AGGREGATION(2, 0);
+    CUSTOMIZED_STATE_AGGREGATION(2, 0),
+    CUSTOMIZED_STATE(2, 0);
 
     final int _zkPathArgNum;
     final int _mapKeyArgNum;
@@ -91,6 +92,8 @@ public class HelixConfigScope {
     template.addEntry(ConfigScopeProperty.CLOUD, 1, "/{clusterName}/CONFIGS/CLOUD");
     template.addEntry(ConfigScopeProperty.CUSTOMIZED_STATE_AGGREGATION, 2,
         "/{clusterName}/CONFIGS/CUSTOMIZED_STATE_AGGREGATION/{clusterName}");
+    template.addEntry(ConfigScopeProperty.CUSTOMIZED_STATE, 2,
+        "/{clusterName}/CONFIGS/CUSTOMIZED_STATE/{clusterName}");
   }
 
   final ConfigScopeProperty _type;

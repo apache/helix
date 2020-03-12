@@ -34,6 +34,7 @@ import org.apache.helix.mock.participant.MockSchemataModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,7 +137,7 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
   }
 
   @Override
-  public HelixZkClient getZkClient() {
+  public RealmAwareZkClient getZkClient() {
     return _zkclient;
   }
 

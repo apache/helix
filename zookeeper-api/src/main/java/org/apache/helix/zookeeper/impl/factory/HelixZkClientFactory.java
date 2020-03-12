@@ -29,7 +29,7 @@ import org.apache.helix.zookeeper.zkclient.ZkConnection;
 /**
  * Abstract class of the ZkClient factory.
  */
-abstract class HelixZkClientFactory implements RealmAwareZkClientFactory {
+public abstract class HelixZkClientFactory implements RealmAwareZkClientFactory {
 
   /**
    * Build a ZkClient using specified connection config and client config

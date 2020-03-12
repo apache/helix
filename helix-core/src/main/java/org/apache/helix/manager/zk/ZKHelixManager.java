@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -73,14 +74,17 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.helix.monitoring.mbeans.MonitorLevel;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.HelixZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
@@ -117,7 +121,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final String _version;
   private int _reportLatency;
 
-  protected HelixZkClient _zkclient = null;
+  protected RealmAwareZkClient _zkclient;
   private final DefaultMessagingService _messagingService;
   private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
 
@@ -652,30 +656,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   void createClient() throws Exception {
-    PathBasedZkSerializer zkSerializer =
-        ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
-
-    HelixZkClient.ZkConnectionConfig connectionConfig = new HelixZkClient.ZkConnectionConfig(_zkAddress);
-    connectionConfig.setSessionTimeout(_sessionTimeout);
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig
-        .setZkSerializer(zkSerializer)
-        .setConnectInitTimeout(_connectionInitTimeout)
-        .setMonitorType(_instanceType.name())
-        .setMonitorKey(_clusterName)
-        .setMonitorInstanceName(_instanceName)
-        .setMonitorRootPathOnly(isMonitorRootPathOnly());
-
-    HelixZkClient newClient;
-    switch (_instanceType) {
-    case ADMINISTRATOR:
-      newClient = SharedZkClientFactory.getInstance().buildZkClient(connectionConfig, clientConfig);
-      break;
-    default:
-      newClient = DedicatedZkClientFactory
-          .getInstance().buildZkClient(connectionConfig, clientConfig);
-      break;
-    }
+    final RealmAwareZkClient newClient = createSingleRealmZkClient();
 
     synchronized (this) {
       if (_zkclient != null) {
@@ -1284,5 +1265,76 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public Long getSessionStartTime() {
     return _sessionStartTime;
+  }
+
+  /*
+   * Prepares connection config and client config based on the internal parameters given to
+   * HelixManager in order to create a ZkClient instance to use. Note that a shared ZkClient
+   * instance will be created if connecting as an ADMINISTRATOR to minimize the cost of creating
+   * ZkConnections.
+   */
+  private RealmAwareZkClient createSingleRealmZkClient() {
+    final String shardingKey = buildShardingKey();
+    PathBasedZkSerializer zkSerializer =
+        ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
+
+    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+            .setZkRealmShardingKey(shardingKey)
+            .setSessionTimeout(_sessionTimeout).build();
+
+    RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+        new RealmAwareZkClient.RealmAwareZkClientConfig();
+
+    clientConfig.setZkSerializer(zkSerializer)
+        .setConnectInitTimeout(_connectionInitTimeout)
+        .setMonitorType(_instanceType.name())
+        .setMonitorKey(_clusterName)
+        .setMonitorInstanceName(_instanceName)
+        .setMonitorRootPathOnly(isMonitorRootPathOnly());
+
+    if (_instanceType == InstanceType.ADMINISTRATOR) {
+      return resolveZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
+          clientConfig);
+    }
+
+    return resolveZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+        clientConfig);
+  }
+
+  /*
+   * Resolves what type of ZkClient this HelixManager should use based on whether MULTI_ZK_ENABLED
+   * System config is set or not. Two types of ZkClients are available:
+   * 1) If MULTI_ZK_ENABLED is set to true, we create a dedicated RealmAwareZkClient
+   * that provides full ZkClient functionalities and connects to the correct ZK by querying
+   * MetadataStoreDirectoryService.
+   * 2) Otherwise, we create a dedicated HelixZkClient which plainly connects to
+   * the ZK address given.
+   */
+  private RealmAwareZkClient resolveZkClient(HelixZkClientFactory zkClientFactory,
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        // Create realm-aware ZkClient.
+        return zkClientFactory.buildZkClient(connectionConfig, clientConfig);
+      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on realm-aware mode for sharding key: "
+            + connectionConfig.getZkRealmShardingKey(), e);
+      }
+    }
+
+    // If multi-zk mode is not enabled, create HelixZkClient with the provided zk address.
+    HelixZkClient.ZkClientConfig helixZkClientConfig = clientConfig.createHelixZkClientConfig();
+    HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
+        new HelixZkClient.ZkConnectionConfig(_zkAddress)
+            .setSessionTimeout(connectionConfig.getSessionTimeout());
+
+    return zkClientFactory.buildZkClient(helixZkConnectionConfig, helixZkClientConfig);
+  }
+
+  private String buildShardingKey() {
+    return _clusterName.charAt(0) == '/' ? _clusterName : "/" + _clusterName;
   }
 }

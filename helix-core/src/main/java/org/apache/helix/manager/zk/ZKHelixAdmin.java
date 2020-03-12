@@ -47,9 +47,9 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -74,12 +74,14 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
@@ -90,18 +92,27 @@ import org.slf4j.LoggerFactory;
 
 
 public class ZKHelixAdmin implements HelixAdmin {
+  private static final Logger LOG = LoggerFactory.getLogger(ZKHelixAdmin.class);
+
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
 
   private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
-  // true if ZKHelixAdmin was instantiated with a HelixZkClient, false otherwise
+  // true if ZKHelixAdmin was instantiated with a RealmAwareZkClient, false otherwise
   // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
+  /**
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
+   * instead to avoid having to manually create and maintain a RealmAwareZkClient
+   * outside of ZKHelixAdmin.
+   *
+   * @param zkClient A created RealmAwareZkClient
+   */
   @Deprecated
   public ZKHelixAdmin(RealmAwareZkClient zkClient) {
     _zkClient = zkClient;
@@ -109,14 +120,69 @@ public class ZKHelixAdmin implements HelixAdmin {
     _usesExternalZkClient = true;
   }
 
+  /**
+   * There are 2 realm-aware modes to connect to ZK:
+   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>,
+   * it will connect on multi-realm mode;
+   * 2. otherwise, it will connect on single-realm mode to the <code>zkAddress</code> provided.
+   *
+   * @param zkAddress ZK address
+   * @exception HelixException if not able to connect on multi-realm mode
+   *
+   * @deprecated it is recommended to use the builder constructor {@link Builder}
+   */
+  @Deprecated
   public ZKHelixAdmin(String zkAddress) {
     int timeOutInSec = Integer.parseInt(System.getProperty(CONNECTION_TIMEOUT, "30"));
-    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-    clientConfig.setZkSerializer(new ZNRecordSerializer())
-        .setConnectInitTimeout(timeOutInSec * 1000);
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
-    _zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
+    RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+        new RealmAwareZkClient.RealmAwareZkClientConfig()
+            .setConnectInitTimeout(timeOutInSec * 1000L)
+            .setZkSerializer(new ZNRecordSerializer());
+
+    RealmAwareZkClient zkClient;
+
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        zkClient = new FederatedZkClient(
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
+      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on multi-realm mode.", e);
+      }
+    } else {
+      zkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+              clientConfig.createHelixZkClientConfig());
+      zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
+    }
+
+    _zkClient = zkClient;
+    _configAccessor = new ConfigAccessor(_zkClient);
+    _usesExternalZkClient = false;
+  }
+
+  private ZKHelixAdmin(Builder builder) {
+    RealmAwareZkClient zkClient;
+    switch (builder.realmMode) {
+      case MULTI_REALM:
+        try {
+          zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
+              builder.realmAwareZkClientConfig);
+        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          throw new HelixException("Not able to connect on multi-realm mode.", e);
+        }
+        break;
+      case SINGLE_REALM:
+        // Create a HelixZkClient: Use a SharedZkClient because ZKHelixAdmin does not need to do
+        // ephemeral operations
+        zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
+                builder.realmAwareZkClientConfig.createHelixZkClientConfig());
+        break;
+      default:
+        throw new HelixException("Invalid RealmMode given: " + builder.realmMode);
+    }
+
+    _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
     _usesExternalZkClient = false;
   }
@@ -206,7 +272,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.instanceConfig(instanceName));
   }
@@ -382,7 +448,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         reason == null ? "NULL" : reason);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     if (enabled) {
       accessor.removeProperty(keyBuilder.pause());
@@ -407,7 +473,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public boolean isInMaintenanceMode(String clusterName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getBaseDataAccessor()
         .exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
   }
@@ -448,7 +514,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       final MaintenanceSignal.TriggeringEntity triggeringEntity) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     logger.info("Cluster {} {} {} maintenance mode for reason {}.", clusterName,
         triggeringEntity == MaintenanceSignal.TriggeringEntity.CONTROLLER ? "automatically"
             : "manually", enabled ? "enters" : "exits", reason == null ? "NULL" : reason);
@@ -516,7 +582,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         instanceName, clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     // check the instance is alive
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
@@ -634,7 +700,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         instanceNames == null ? "NULL" : HelixUtil.serializeByComma(instanceNames), clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
 
     Set<String> resetInstanceNames = new HashSet<String>(instanceNames);
@@ -662,7 +728,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         resourceNames == null ? "NULL" : HelixUtil.serializeByComma(resourceNames), clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
 
     Set<String> resetResourceNames = new HashSet<String>(resourceNames);
@@ -790,7 +856,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (String instanceName : instances) {
       InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
@@ -909,7 +975,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (String resourceName : getResourcesInCluster(clusterName)) {
       IdealState is = accessor.getProperty(keyBuilder.idealStates(resourceName));
@@ -925,7 +991,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public IdealState getResourceIdealState(String clusterName, String resourceName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.idealStates(resourceName));
   }
@@ -938,7 +1004,7 @@ public class ZKHelixAdmin implements HelixAdmin {
             clusterName, idealState == null ? "NULL" : idealState.toString());
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
   }
@@ -981,7 +1047,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public ExternalView getResourceExternalView(String clusterName, String resourceName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.externalView(resourceName));
   }
 
@@ -1015,7 +1081,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.stateModelDef(stateModelDef), stateModel);
   }
 
@@ -1024,7 +1090,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info("Drop resource {} from cluster {}", resourceName, clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.removeProperty(keyBuilder.idealStates(resourceName));
     accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
@@ -1039,7 +1105,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public StateModelDefinition getStateModelDef(String clusterName, String stateModelName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
   }
@@ -1049,7 +1115,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info("Deleting cluster {}.", clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     String root = "/" + clusterName;
     if (accessor.getChildNames(keyBuilder.liveInstances()).size() > 0) {
@@ -1093,7 +1159,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
   }
@@ -1288,7 +1354,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         constraintId, clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    Builder keyBuilder = new Builder(clusterName);
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>() {
@@ -1311,7 +1377,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         constraintId, clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    Builder keyBuilder = new Builder(clusterName);
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>() {
@@ -1333,7 +1399,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
 
-    Builder keyBuilder = new Builder(clusterName);
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     return accessor.getProperty(keyBuilder.constraint(constraintType.toString()));
   }
 
@@ -1415,7 +1481,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.addTag(tag);
@@ -1436,7 +1502,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.removeTag(tag);
@@ -1457,7 +1523,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.setZoneId(zoneId);
@@ -1649,7 +1715,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates());
     List<String> nullIdealStates = new ArrayList<>();
     for (int i = 0; i < idealStates.size(); i++) {
@@ -1690,7 +1756,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     // Ensure that all instances are valid
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
     if (validateInstancesForWagedRebalance(clusterName, instances).containsValue(false)) {
       throw new HelixException(String
@@ -1799,5 +1865,75 @@ public class ZKHelixAdmin implements HelixAdmin {
         .validateAndGetPartitionCapacity(partitionName, resourceConfig, capacityMap,
             clusterConfig));
     return true;
+  }
+
+  // TODO: refactor builder to reduce duplicate code with other Helix Java APIs
+  public static class Builder {
+    private String zkAddress;
+    private RealmAwareZkClient.RealmMode realmMode;
+    private RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig;
+    private RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig;
+
+    public Builder() {
+    }
+
+    public ZKHelixAdmin.Builder setZkAddress(String zkAddress) {
+      this.zkAddress = zkAddress;
+      return this;
+    }
+
+    public ZKHelixAdmin.Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
+      this.realmMode = realmMode;
+      return this;
+    }
+
+    public ZKHelixAdmin.Builder setRealmAwareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
+      realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
+      return this;
+    }
+
+    public ZKHelixAdmin.Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
+      realmAwareZkClientConfig = realmAwareZkClientConfig;
+      return this;
+    }
+
+    public ZKHelixAdmin build() {
+      validate();
+      return new ZKHelixAdmin(this);
+    }
+
+    /*
+     * Validates the given parameters before creating an instance of ZKHelixAdmin.
+     */
+    private void validate() {
+      // Resolve RealmMode based on other parameters
+      boolean isZkAddressSet = zkAddress != null && !zkAddress.isEmpty();
+      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
+        throw new HelixException(
+            "RealmMode cannot be single-realm without a valid ZkAddress set!");
+      }
+      if (realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
+        throw new HelixException(
+            "ZkAddress cannot be set on multi-realm mode!");
+      }
+      if (realmMode == null) {
+        realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
+            : RealmAwareZkClient.RealmMode.MULTI_REALM;
+      }
+
+      // Resolve RealmAwareZkClientConfig
+      if (realmAwareZkClientConfig == null) {
+        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+      }
+
+      // Resolve RealmAwareZkConnectionConfig
+      if (realmAwareZkConnectionConfig == null) {
+        // If not set, create a default one
+        realmAwareZkConnectionConfig =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
+      }
+    }
   }
 }

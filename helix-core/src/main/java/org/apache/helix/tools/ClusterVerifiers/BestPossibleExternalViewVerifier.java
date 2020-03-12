@@ -50,8 +50,6 @@ import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -60,6 +58,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +74,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private final Set<String> _expectLiveInstances;
   private final ResourceControllerDataProvider _dataProvider;
 
+  /**
+   * Deprecated - please use the Builder to construct this class.
+   * @param zkAddr
+   * @param clusterName
+   * @param resources
+   * @param errStates
+   * @param expectLiveInstances
+   */
+  @Deprecated
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
     super(zkAddr, clusterName);
@@ -84,7 +92,16 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  public BestPossibleExternalViewVerifier(HelixZkClient zkClient, String clusterName,
+  /**
+   * Deprecated - please use the Builder to construct this class.
+   * @param zkClient
+   * @param clusterName
+   * @param resources
+   * @param errStates
+   * @param expectLiveInstances
+   */
+  @Deprecated
+  public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
     super(zkClient, clusterName);
@@ -94,20 +111,31 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  public static class Builder {
-    private String _clusterName;
+  private BestPossibleExternalViewVerifier(Builder builder) {
+    super(builder);
+    // Deep copy data from Builder
+    _errStates = new HashMap<>();
+    if (builder._errStates != null) {
+      builder._errStates.forEach((k, v) -> _errStates.put(k, new HashMap<>(v)));
+    }
+    _resources = new HashSet<>(builder._resources);
+    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
+    _dataProvider = new ResourceControllerDataProvider();
+  }
+
+  public static class Builder extends ZkHelixClusterVerifier.Builder {
+    private final String _clusterName;
     private Map<String, Map<String, String>> _errStates;
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
-    private String _zkAddr;
-    private HelixZkClient _zkClient;
+    private RealmAwareZkClient _zkClient;
 
     public Builder(String clusterName) {
       _clusterName = clusterName;
     }
 
     public BestPossibleExternalViewVerifier build() {
-      if (_clusterName == null || (_zkAddr == null && _zkClient == null)) {
+      if (_clusterName == null || (_zkAddress == null && _zkClient == null)) {
         throw new IllegalArgumentException("Cluster name or zookeeper info is missing!");
       }
 
@@ -115,8 +143,15 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         return new BestPossibleExternalViewVerifier(_zkClient, _clusterName, _resources, _errStates,
             _expectLiveInstances);
       }
-      return new BestPossibleExternalViewVerifier(_zkAddr, _clusterName, _resources, _errStates,
-          _expectLiveInstances);
+
+      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
+        // For backward-compatibility
+        return new BestPossibleExternalViewVerifier(_zkAddress, _clusterName, _resources,
+            _errStates, _expectLiveInstances);
+      }
+
+      validate();
+      return new BestPossibleExternalViewVerifier(this);
     }
 
     public String getClusterName() {
@@ -151,25 +186,29 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddr() {
-      return _zkAddr;
+      return _zkAddress;
     }
 
-    public Builder setZkAddr(String zkAddr) {
-      _zkAddr = zkAddr;
-      return this;
-    }
-
-    public HelixZkClient getHelixZkClient() {
-      return _zkClient;
-    }
-
-    @Deprecated
-    public ZkClient getZkClient() {
-      return (ZkClient) getHelixZkClient();
-    }
-    public Builder setZkClient(HelixZkClient zkClient) {
+    public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
       return this;
+    }
+
+    @Override
+    public Builder setZkAddr(String zkAddress) {
+      return (Builder) super.setZkAddr(zkAddress);
+    }
+
+    @Override
+    public Builder setRealmAwareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
+      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
+    }
+
+    @Override
+    public Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
+      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
     }
   }
 

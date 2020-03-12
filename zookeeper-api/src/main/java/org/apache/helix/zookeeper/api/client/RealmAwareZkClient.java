@@ -59,7 +59,8 @@ public interface RealmAwareZkClient {
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
   enum RealmMode {
-    SINGLE_REALM, MULTI_REALM
+    SINGLE_REALM,
+    MULTI_REALM
   }
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
@@ -465,7 +466,7 @@ public interface RealmAwareZkClient {
     // Data access configs
     protected long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
 
-    // Others
+    // Serializer
     protected PathBasedZkSerializer _zkSerializer;
 
     // Monitoring

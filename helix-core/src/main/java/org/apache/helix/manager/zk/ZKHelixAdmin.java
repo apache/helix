@@ -79,6 +79,7 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -94,7 +95,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
 
-  private final HelixZkClient _zkClient;
+  private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
   // true if ZKHelixAdmin was instantiated with a HelixZkClient, false otherwise
   // This is used for close() to determine how ZKHelixAdmin should close the underlying ZkClient
@@ -103,7 +104,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
 
   @Deprecated
-  public ZKHelixAdmin(HelixZkClient zkClient) {
+  public ZKHelixAdmin(RealmAwareZkClient zkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(zkClient);
     _usesExternalZkClient = true;

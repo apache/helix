@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -43,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
-import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
@@ -99,6 +97,10 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,
         "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 3,
+        "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}/{customizedStateName}");
     addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");
     addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
@@ -276,6 +278,20 @@ public class PropertyPathBuilder {
     return String.format("/%s/TARGETEXTERNALVIEW/%s", clusterName, resourceName);
   }
 
+  public static String customizedView(String clusterName) {
+    return String.format("/%s/CUSTOMIZEDVIEW", clusterName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName) {
+    return String.format("/%s/CUSTOMIZEDVIEW/%s", clusterName, customizedStateName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName,
+      String resourceName) {
+    return String
+        .format("/%s/CUSTOMIZEDVIEW/%s/%s", clusterName, customizedStateName, resourceName);
+  }
+
   public static String liveInstance(String clusterName) {
     return String.format("/%s/LIVEINSTANCES", clusterName);
   }
@@ -371,6 +387,10 @@ public class PropertyPathBuilder {
 
   public static String resourceConfig(String clusterName) {
     return String.format("/%s/CONFIGS/RESOURCE", clusterName);
+  }
+
+  public static String customizedStateConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/CUSTOMIZED_STATE", clusterName);
   }
 
   public static String controller(String clusterName) {

@@ -19,8 +19,6 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
-import com.google.common.collect.Maps;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
@@ -108,7 +107,8 @@ public abstract class ParticipantStateCache<T> extends AbstractDataCache {
       Map<String, LiveInstance> liveInstanceMap) {
 
     long start = System.currentTimeMillis();
-    Set<PropertyKey> participantStateKeys = PopulateParticipantKeys(accessor, liveInstanceMap);
+    Set<PropertyKey> participantStateKeys =
+        PopulateParticipantKeys(accessor, liveInstanceMap);
 
     // All new entries from zk not cached locally yet should be read from ZK.
     Set<PropertyKey> reloadKeys = new HashSet<>(participantStateKeys);

@@ -27,7 +27,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.model.CustomizedState;
-import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +34,16 @@ import org.slf4j.LoggerFactory;
 
 public class CustomizedStateCache extends ParticipantStateCache<CustomizedState> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
+  private final Set<String> _aggregationEnabledTypes;
 
-  public CustomizedStateCache(String clusterName) {
-    this(createDefaultControlContextProvider(clusterName));
+  public CustomizedStateCache(String clusterName, Set<String> aggregationEnabledTypes) {
+    this(createDefaultControlContextProvider(clusterName), aggregationEnabledTypes);
   }
 
-  public CustomizedStateCache(ControlContextProvider contextProvider) {
+  public CustomizedStateCache(ControlContextProvider contextProvider,
+      Set<String> aggregationEnabledTypes) {
     super(contextProvider);
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 
   @Override
@@ -49,13 +51,8 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
       Map<String, LiveInstance> liveInstanceMap) {
     Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Set<String> restrictedKeys = new HashSet<>(
-        accessor.getProperty(accessor.keyBuilder().customizedStateConfig()).getRecord()
-            .getListFields().get(
-            CustomizedStateConfig.CustomizedStateProperty.AGGREGATION_ENABLED_TYPES
-                .name()));
     for (String instanceName : liveInstanceMap.keySet()) {
-      for (String customizedStateType : restrictedKeys) {
+      for (String customizedStateType : _aggregationEnabledTypes) {
         accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
             .stream().forEach(resourceName -> participantStateKeys
             .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));

@@ -1318,6 +1318,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
   }
 
+  // TODO: refactor Builder class to remove duplicate code with other Helix Java APIs
   public static class Builder {
     private String zkAddress;
     private RealmAwareZkClient.RealmMode realmMode;

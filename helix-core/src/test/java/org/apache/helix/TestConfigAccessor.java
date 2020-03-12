@@ -226,8 +226,8 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
   }
 
-  @Test
-  public void testUpdateRestConfig() {
+  @Test (expectedExceptions = HelixException.class)
+  public void testUpdateAndDeleteRestConfig() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -248,5 +248,15 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     restConfig.set(RESTConfig.SimpleFields.CUSTOMIZED_HEALTH_URL, "TEST_URL_2");
     configAccessor.updateRESTConfig(clusterName, restConfig);
     Assert.assertEquals(restConfig, configAccessor.getRESTConfig(clusterName));
+
+    // Existing rest config
+    configAccessor.deleteRESTConfig(clusterName);
+    Assert.assertNull(configAccessor.getRESTConfig(clusterName));
+
+    // Nonexisting rest config
+    String antherClusterName = "anotherCluster";
+    scope = new HelixConfigScopeBuilder(ConfigScopeProperty.REST).forCluster(antherClusterName).build();
+    restConfig = new RESTConfig(antherClusterName);
+    configAccessor.deleteRESTConfig(antherClusterName);
   }
 }

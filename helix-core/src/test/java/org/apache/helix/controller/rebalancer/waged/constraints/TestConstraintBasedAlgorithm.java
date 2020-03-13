@@ -19,41 +19,34 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
  * under the License.
  */
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelTestHelper;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 
 public class TestConstraintBasedAlgorithm {
-  private ConstraintBasedAlgorithm _algorithm;
-
-  @BeforeMethod
-  public void beforeMethod() {
+  @Test(expectedExceptions = HelixRebalanceException.class)
+  public void testCalculateNoValidAssignment() throws IOException, HelixRebalanceException {
     HardConstraint mockHardConstraint = mock(HardConstraint.class);
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(false);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
-
-    _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
-        ImmutableMap.of(mockSoftConstraint, 1f));
-  }
-
-  @Test(expectedExceptions = HelixRebalanceException.class)
-  public void testCalculateNoValidAssignment() throws IOException, HelixRebalanceException {
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
+            ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
-    _algorithm.calculate(clusterModel);
+    algorithm.calculate(clusterModel);
   }
 
   @Test
@@ -62,11 +55,32 @@ public class TestConstraintBasedAlgorithm {
     SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
     when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
     when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
-    _algorithm = new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
-        ImmutableMap.of(mockSoftConstraint, 1f));
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
+            ImmutableMap.of(mockSoftConstraint, 1f));
     ClusterModel clusterModel = new ClusterModelTestHelper().getDefaultClusterModel();
-    OptimalAssignment optimalAssignment = _algorithm.calculate(clusterModel);
+    OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
 
     Assert.assertFalse(optimalAssignment.hasAnyFailure());
+  }
+
+  @Test
+  public void testCalculateScoreDeterminism() throws IOException, HelixRebalanceException {
+    HardConstraint mockHardConstraint = mock(HardConstraint.class);
+    SoftConstraint mockSoftConstraint = mock(SoftConstraint.class);
+    when(mockHardConstraint.isAssignmentValid(any(), any(), any())).thenReturn(true);
+    when(mockSoftConstraint.getAssignmentNormalizedScore(any(), any(), any())).thenReturn(1.0);
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(mockHardConstraint),
+            ImmutableMap.of(mockSoftConstraint, 1f));
+    ClusterModel clusterModel = new ClusterModelTestHelper().getMultiNodeClusterModel();
+    OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
+
+    optimalAssignment.getOptimalResourceAssignment().values().forEach(
+        resourceAssignment -> resourceAssignment.getMappedPartitions().forEach(partition -> {
+          Assert.assertEquals(resourceAssignment.getReplicaMap(partition).keySet().size(), 1);
+          Assert.assertTrue(resourceAssignment.getReplicaMap(partition)
+              .containsKey(ClusterModelTestHelper.TEST_INSTANCE_ID_1));
+        }));
   }
 }

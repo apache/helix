@@ -196,9 +196,8 @@ public abstract class AbstractTestClusterModel {
 
   protected Set<AssignableNode> generateNodes(ResourceControllerDataProvider testCache) {
     Set<AssignableNode> nodeSet = new HashSet<>();
-    testCache.getInstanceConfigMap().values().stream()
-        .forEach(config -> nodeSet.add(new AssignableNode(testCache.getClusterConfig(),
-            testCache.getInstanceConfigMap().get(_testInstanceId), config.getInstanceName())));
+    testCache.getInstanceConfigMap().values().forEach(config -> nodeSet
+        .add(new AssignableNode(testCache.getClusterConfig(), config, config.getInstanceName())));
     return nodeSet;
   }
 }

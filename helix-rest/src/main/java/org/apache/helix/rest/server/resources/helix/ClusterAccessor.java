@@ -587,7 +587,6 @@ public class ClusterAccessor extends AbstractHelixResource {
   @DELETE
   @Path("{clusterId}/cloudconfig")
   public Response deleteCloudConfig(@PathParam("clusterId") String clusterId) {
-    HelixZkClient zkClient = getHelixZkClient();
     HelixAdmin admin = getHelixAdmin();
     admin.removeCloudConfig(clusterId);
     return OK();

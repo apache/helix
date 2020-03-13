@@ -793,7 +793,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    
+
     ZNRecord record = new ZNRecord("testZnode");
     record.setBooleanField(CloudConfig.CloudConfigProperty.CLOUD_ENABLED.name(), true);
     record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_ID.name(), "TestCloudID");
@@ -810,7 +810,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNotNull(cloudConfigFromZk);
     String urlBase = "clusters/" + clusterName + "/cloudconfig/";
-
     delete(urlBase, Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and make sure it has been removed
@@ -821,7 +820,54 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+
   @Test(dependsOnMethods = "testDeleteCloudConfig")
+  public void testPartialDeleteCloudConfig() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+
+    ZNRecord record = new ZNRecord(clusterName);
+    record.setBooleanField(CloudConfig.CloudConfigProperty.CLOUD_ENABLED.name(), true);
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_PROVIDER.name(),
+        CloudProvider.AZURE.name());
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_ID.name(), "TestCloudID");
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_INFO_PROCESSOR_NAME.name(), "TestProcessor");
+    _gSetupTool.addCluster(clusterName, true, new CloudConfig.Builder(record).build());
+
+    String urlBase = "clusters/" + clusterName +"/cloudconfig/";
+    Map<String, String> map = new HashMap<>();
+    map.put("addCloudConfig", "true");
+    put("clusters/" + clusterName, map,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
+    // Read CloudConfig from Zookeeper and make sure it has been created
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNotNull(cloudConfigFromZk);
+
+    record = new ZNRecord(clusterName);
+    Map<String, String> map1 = new HashMap<>();
+    map1.put("command",  Command.delete.name());
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_ID.name(), "TestCloudID");
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_PROVIDER.name(), CloudProvider.AZURE.name());
+    post(urlBase, map1, Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Read CloudConfig from Zookeeper and make sure it has been removed
+    _configAccessor = new ConfigAccessor(ZK_ADDR);
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNull(cloudConfigFromZk.getCloudID());
+    Assert.assertNull(cloudConfigFromZk.getCloudProvider());
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+    Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(),"TestProcessor");
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testPartialDeleteCloudConfig")
   public void testUpdateCloudConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestCloud", true);

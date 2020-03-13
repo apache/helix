@@ -64,7 +64,7 @@ public class CloudConfig extends HelixProperty {
    * The constructor from the ZNRecord.
    * @param record
    */
-  private CloudConfig(ZNRecord record) {
+  public CloudConfig(ZNRecord record) {
     super(CLOUD_CONFIG_KW);
     _record.setSimpleFields(record.getSimpleFields());
     _record.setListFields(record.getListFields());

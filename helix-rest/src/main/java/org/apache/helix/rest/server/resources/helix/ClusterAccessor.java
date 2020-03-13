@@ -584,6 +584,14 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @DELETE
+  @Path("{clusterId}/cloudconfig")
+  public Response deleteCloudConfig(@PathParam("clusterId") String clusterId) {
+    HelixAdmin admin = getHelixAdmin();
+    admin.removeCloudConfig(clusterId);
+    return OK();
+  }
+
   @POST
   @Path("{clusterId}/cloudconfig")
   public Response updateCloudConfig(@PathParam("clusterId") String clusterId,
@@ -617,10 +625,6 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
     try {
       switch (command) {
-      case delete: {
-        admin.removeCloudConfig(clusterId);
-      }
-      break;
       case update: {
         try {
           CloudConfig cloudConfig = new CloudConfig.Builder(record).build();

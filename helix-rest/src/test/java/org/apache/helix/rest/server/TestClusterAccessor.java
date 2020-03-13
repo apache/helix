@@ -790,19 +790,32 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testAddCloudConfig")
   public void testDeleteCloudConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    _gSetupTool.addCluster("TestCloud", true);
-    String urlBase = "clusters/TestCloud/cloudconfig/";
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    
+    ZNRecord record = new ZNRecord("testZnode");
+    record.setBooleanField(CloudConfig.CloudConfigProperty.CLOUD_ENABLED.name(), true);
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_ID.name(), "TestCloudID");
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_PROVIDER.name(),
+        CloudProvider.AZURE.name());
 
-    Map<String, String> map1 = new HashMap<>();
-    map1.put("command", AbstractResource.Command.delete.name());
+    Map<String, String> map = new HashMap<>();
+    map.put("addCloudConfig", "true");
+    put("clusters/" + clusterName, map,
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.CREATED.getStatusCode());
+    // Read CloudConfig from Zookeeper and make sure it has been created
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNotNull(cloudConfigFromZk);
+    String urlBase = "clusters/" + clusterName + "/cloudconfig/";
 
-    ZNRecord record = new ZNRecord("TestCloud");
-    post(urlBase, map1, Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode());
+    delete(urlBase, Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and make sure it has been removed
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
-    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig("TestCloud");
+    _configAccessor = new ConfigAccessor(ZK_ADDR);
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNull(cloudConfigFromZk);
 
     System.out.println("End test :" + TestHelper.getTestMethodName());

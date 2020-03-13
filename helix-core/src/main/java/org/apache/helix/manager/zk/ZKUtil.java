@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Using this ZKUtil class for production purposes is NOT recommended since a lot of the static
  * methods require a ZkClient instance to be passed in.
+ *
+ * NOTE: Ephemeral operations will not be supported on multi-zk mode!
  */
 public final class ZKUtil {
   private static Logger logger = LoggerFactory.getLogger(ZKUtil.class);
@@ -605,7 +607,8 @@ public final class ZKUtil {
   }
 
   /**
-   * Returns a dedicated ZkClient.
+   * Returns a dedicated ZkClient. A federatedZkClient will be used on multi-zk mode.
+   * WARNING: ephemeral operations will not be supported on multi-zk mode!
    * @return
    */
   private static RealmAwareZkClient getHelixZkClient(String zkAddr) {

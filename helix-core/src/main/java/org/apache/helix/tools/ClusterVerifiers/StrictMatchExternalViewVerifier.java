@@ -103,8 +103,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     private boolean _isDeactivatedNodeAware = false;
 
     public StrictMatchExternalViewVerifier build() {
-      if (_clusterName == null || (_zkAddress == null && _zkClient == null)) {
-        throw new IllegalArgumentException("Cluster name or zookeeper info is missing!");
+      if (_clusterName == null) {
+        throw new IllegalArgumentException("Cluster name is missing!");
       }
 
       if (_zkClient != null) {

@@ -955,6 +955,12 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public List<String> getClusters() {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)
+        || _zkClient instanceof FederatedZkClient) {
+      throw new UnsupportedOperationException(
+          "getClusters() is not supported in multi-realm mode! Use Metadata Store Directory Service instead!");
+    }
+
     List<String> zkToplevelPathes = _zkClient.getChildren("/");
     List<String> result = new ArrayList<String>();
     for (String pathName : zkToplevelPathes) {
@@ -1953,7 +1959,10 @@ public class ZKHelixAdmin implements HelixAdmin {
 
       // Resolve RealmAwareZkClientConfig
       if (realmAwareZkClientConfig == null) {
-        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+        // ZkHelixAdmin should have ZNRecordSerializer set by default
+        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig()
+            .setZkSerializer(
+                new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer());
       }
 
       // Resolve RealmAwareZkConnectionConfig

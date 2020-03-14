@@ -623,14 +623,13 @@ public final class ZKUtil {
       } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
-    } else {
-      if (zkAddr == null || zkAddr.isEmpty()) {
-        throw new HelixException("ZK Address given is either null or empty!");
-      }
-      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-      clientConfig.setZkSerializer(new ZNRecordSerializer());
-      return DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
     }
+    if (zkAddr == null || zkAddr.isEmpty()) {
+      throw new HelixException("ZK Address given is either null or empty!");
+    }
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    return DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
   }
 }

@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,9 +27,12 @@ import java.util.List;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.zookeeper.CreateMode;
@@ -40,6 +44,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Using this ZKUtil class for production purposes is NOT recommended since a lot of the static
  * methods require a ZkClient instance to be passed in.
+ *
+ * NOTE: Ephemeral operations will not be supported on multi-zk mode!
  */
 public final class ZKUtil {
   private static Logger logger = LoggerFactory.getLogger(ZKUtil.class);
@@ -56,7 +62,7 @@ public final class ZKUtil {
    * @return
    */
   public static boolean isClusterSetup(String clusterName, String zkAddress) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     boolean result;
     try {
       result = isClusterSetup(clusterName, zkClient);
@@ -129,7 +135,7 @@ public final class ZKUtil {
    */
   public static boolean isInstanceSetup(String zkAddress, String clusterName, String instanceName,
       InstanceType type) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     boolean result;
     try {
       result = isInstanceSetup(zkClient, clusterName, instanceName, type);
@@ -179,7 +185,7 @@ public final class ZKUtil {
    * @param list
    */
   public static void createChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       createChildren(zkClient, parentPath, list);
     } finally {
@@ -205,7 +211,7 @@ public final class ZKUtil {
    * @param nodeRecord
    */
   public static void createChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       createChildren(zkClient, parentPath, nodeRecord);
     } finally {
@@ -230,7 +236,7 @@ public final class ZKUtil {
    * @param list
    */
   public static void dropChildren(String zkAddress, String parentPath, List<ZNRecord> list) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       dropChildren(zkClient, parentPath, list);
     } finally {
@@ -256,7 +262,7 @@ public final class ZKUtil {
    * @param nodeRecord
    */
   public static void dropChildren(String zkAddress, String parentPath, ZNRecord nodeRecord) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       dropChildren(zkClient, parentPath, nodeRecord);
     } finally {
@@ -280,7 +286,7 @@ public final class ZKUtil {
    * @return
    */
   public static List<ZNRecord> getChildren(String zkAddress, String path) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     List<ZNRecord> result;
     try {
       result = getChildren(zkClient, path);
@@ -323,7 +329,7 @@ public final class ZKUtil {
    */
   public static void updateIfExists(String zkAddress, String path, final ZNRecord record,
       boolean mergeOnUpdate) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       updateIfExists(zkClient, path, record, mergeOnUpdate);
     } finally {
@@ -355,7 +361,7 @@ public final class ZKUtil {
    */
   public static void createOrMerge(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       createOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
     } finally {
@@ -410,7 +416,7 @@ public final class ZKUtil {
    */
   public static void createOrUpdate(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       createOrUpdate(zkClient, path, record, persistent, mergeOnUpdate);
     } finally {
@@ -459,7 +465,7 @@ public final class ZKUtil {
    */
   public static void asyncCreateOrMerge(String zkAddress, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       asyncCreateOrMerge(zkClient, path, record, persistent, mergeOnUpdate);
     } finally {
@@ -512,7 +518,7 @@ public final class ZKUtil {
    */
   public static void createOrReplace(String zkAddress, String path, final ZNRecord record,
       final boolean persistent) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       createOrReplace(zkClient, path, record, persistent);
     } finally {
@@ -555,7 +561,7 @@ public final class ZKUtil {
    */
   public static void subtract(String zkAddress, final String path,
       final ZNRecord recordTosubtract) {
-    HelixZkClient zkClient = getHelixZkClient(zkAddress);
+    RealmAwareZkClient zkClient = getHelixZkClient(zkAddress);
     try {
       subtract(zkClient, path, recordTosubtract);
     } finally {
@@ -601,10 +607,23 @@ public final class ZKUtil {
   }
 
   /**
-   * Returns a dedicated ZkClient.
+   * Returns a dedicated ZkClient. A federatedZkClient will be used on multi-zk mode.
+   * WARNING: ephemeral operations will not be supported on multi-zk mode!
    * @return
    */
-  private static HelixZkClient getHelixZkClient(String zkAddr) {
+  private static RealmAwareZkClient getHelixZkClient(String zkAddr) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      try {
+        // Create realm-aware ZkClient.
+        RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
+        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+            new RealmAwareZkClient.RealmAwareZkClientConfig();
+        return new FederatedZkClient(connectionConfig, clientConfig);
+      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on realm-aware mode", e);
+      }
+    }
     if (zkAddr == null || zkAddr.isEmpty()) {
       throw new HelixException("ZK Address given is either null or empty!");
     }

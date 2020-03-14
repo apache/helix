@@ -166,14 +166,21 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // refreshed once during the cache's first refresh() call, or when full refresh is required
     List<String> stateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
-      for (String stateType: stateTypes) {
-        _customizedViewCacheMap.get(stateType).refresh(accessor);
+      for (String stateType : stateTypes) {
+        if (!_customizedViewCacheMap.containsKey(stateType)) {
+          CustomizedViewCache newCustomizedViewCache =
+              new CustomizedViewCache(getClusterName(), stateType);
+          newCustomizedViewCache.refresh(accessor);
+          _customizedViewCacheMap.put(stateType, newCustomizedViewCache);
+        } else {
+          _customizedViewCacheMap.get(stateType).refresh(accessor);
+        }
       }
-    }
-    for (String stateType : _customizedViewCacheMap.keySet()) {
-      if (!stateTypes.contains(stateType)) {
-        logger.info("Remove customizedView for state: " + stateType);
-        _customizedViewCacheMap.remove(stateType);
+      for (String stateType : _customizedViewCacheMap.keySet()) {
+        if (!stateTypes.contains(stateType)) {
+          logger.info("Remove customizedView for state: " + stateType);
+          _customizedViewCacheMap.remove(stateType);
+        }
       }
     }
   }

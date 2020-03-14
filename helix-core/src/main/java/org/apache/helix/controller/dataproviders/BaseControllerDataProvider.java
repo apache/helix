@@ -299,8 +299,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       CustomizedStateConfig customizedStateConfig =
           accessor.getProperty(accessor.keyBuilder().customizedStateConfig());
       if (customizedStateConfig != null) {
-        _aggregationEnabledTypes = new HashSet<>(customizedStateConfig.getRecord().getListFields()
-            .get(CustomizedStateConfig.CustomizedStateProperty.AGGREGATION_ENABLED_TYPES.name()));
+        _aggregationEnabledTypes =
+            new HashSet<>(customizedStateConfig.getAggregationEnabledTypes());
       }
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
@@ -393,7 +393,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
           "InstanceConfigs: " + getInstanceConfigMap().keySet());
       LogUtil.logDebug(logger, getClusterEventId(), "ClusterConfigs: " + getClusterConfig());
       LogUtil.logDebug(logger, getClusterEventId(),
-          "CustomizedStateConfig: " + getCustomizedStateConfig());
+          "CustomizedStateConfig: " + getAggregationEnabledCustomizedStateTypes());
     }
   }
 
@@ -405,11 +405,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _clusterConfig = clusterConfig;
   }
 
-  public Set<String> getCustomizedStateConfig() {
+  public Set<String> getAggregationEnabledCustomizedStateTypes() {
     return _aggregationEnabledTypes;
   }
 
-  public void setCustomizedStateConfig(Set<String> aggregationEnabledTypes) {
+  public void SetAggregationEnabledCustomizedStateTypes(Set<String> aggregationEnabledTypes) {
     _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 

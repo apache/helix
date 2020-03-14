@@ -40,7 +40,6 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,14 +71,12 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
 
     CustomizedStateOutput customizedStateOutput =
         event.getAttribute(AttributeName.CUSTOMIZED_STATE.name());
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
 
     List<CustomizedView> newCustomizedViews = new ArrayList<>();
     Set<String> monitoringResources = new HashSet<>();
 
-    Map<String, CustomizedViewCache> customizedViewCacheMap = cache.getCustomizedViewCacheMap();
     cache.refreshCustomizedViewMap(dataAccessor);
+    Map<String, CustomizedViewCache> customizedViewCacheMap = cache.getCustomizedViewCacheMap();
 
     // remove stale customized view type from ZK and cache
     List<String> customizedViewTypesToRemove = new ArrayList<>();
@@ -107,10 +104,6 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
         try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
               newCustomizedViews);
-          // Keep MBeans for existing resources and unregister MBeans for dropped resources
-          if (clusterStatusMonitor != null) {
-            clusterStatusMonitor.retainResourceMonitor(monitoringResources);
-          }
 
           List<PropertyKey> keys = new ArrayList<>();
           for (Iterator<CustomizedView> it = newCustomizedViews.iterator(); it.hasNext(); ) {

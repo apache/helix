@@ -19,16 +19,13 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedState;
-import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -41,21 +38,11 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    HelixManager helixManager = event.getAttribute(AttributeName.helixmanager.name());
-    Set<String> aggregationEnabledTypes = new HashSet<>();
-    if (helixManager.getHelixDataAccessor().getProperty(
-        helixManager.getHelixDataAccessor().keyBuilder().customizedStateConfig())
-        != null) {
-      aggregationEnabledTypes = new HashSet<>(helixManager.getHelixDataAccessor().getProperty(
-          helixManager.getHelixDataAccessor().keyBuilder().customizedStateConfig())
-          .getRecord().getListFields().get(
-              CustomizedStateConfig.CustomizedStateProperty.AGGREGATION_ENABLED_TYPES
-                  .name()));
-    }
     _eventId = event.getEventId();
     BaseControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    Set<String> aggregationEnabledTypes = cache.getAggregationEnabledCustomizedStateTypes();
 
     if (cache == null || resourceMap == null) {
       throw new StageException(

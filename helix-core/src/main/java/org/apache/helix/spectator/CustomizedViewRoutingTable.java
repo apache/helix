@@ -80,10 +80,10 @@ public class CustomizedViewRoutingTable extends RoutingTable {
         for (String partitionName : customView.getPartitionSet()) {
           Map<String, String> stateMap = customView.getStateMap(partitionName);
           for (String instanceName : stateMap.keySet()) {
-            String currentState = stateMap.get(instanceName);
+            String customizedState = stateMap.get(instanceName);
             if (instanceConfigMap.containsKey(instanceName)) {
               InstanceConfig instanceConfig = instanceConfigMap.get(instanceName);
-              addEntry(resourceName, partitionName, currentState, instanceConfig);
+              addEntry(resourceName, partitionName, customizedState, instanceConfig);
             } else {
               logger.warn(
                   "Participant {} is not found with proper configuration information. It might already be removed from the cluster. "
@@ -108,7 +108,7 @@ public class CustomizedViewRoutingTable extends RoutingTable {
    * Returns CustomizedStateType
    * @return the CustomizedStateType of this RoutingTable (Used for CustomizedView)
    */
-  protected String getCustomizedStateType() {
+  protected String getStateType() {
     return _customizedStateType;
   }
 }

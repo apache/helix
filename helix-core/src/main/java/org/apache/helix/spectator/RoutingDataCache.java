@@ -50,7 +50,9 @@ class RoutingDataCache extends BasicClusterDataCache {
   private final Map<PropertyType, List<String>> _sourceDataTypeMap;
 
   private CurrentStateCache _currentStateCache;
-  private Map <String, CustomizedViewCache> _customizedViewCaches;
+  // TODO: CustomizedCache needs to be migrated to propertyCache. Once we migrate all cache to
+  // propertyCache, this hardcoded list of fields won't be necessary.
+  private Map<String, CustomizedViewCache> _customizedViewCaches;
   private TargetExternalViewCache _targetExternalViewCache;
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
@@ -88,10 +90,10 @@ class RoutingDataCache extends BasicClusterDataCache {
 
     super.refresh(accessor);
     for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+      long start = System.currentTimeMillis();
       switch (propertyType) {
       case TARGETEXTERNALVIEW:
         if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
-          long start = System.currentTimeMillis();
           _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
           _targetExternalViewCache.refresh(accessor);
           LOG.info("Reload " + _targetExternalViewCache.getExternalViewMap().keySet().size()
@@ -100,7 +102,6 @@ class RoutingDataCache extends BasicClusterDataCache {
         break;
       case CURRENTSTATES:
         if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE)) {
-          long start = System.currentTimeMillis();
           _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
           Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
           _currentStateCache.refresh(accessor, liveInstanceMap);
@@ -108,18 +109,16 @@ class RoutingDataCache extends BasicClusterDataCache {
         }
         break;
       case CUSTOMIZEDVIEW: {
-        for (String customizedStateType : _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW)) {
-          if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW)) {
-            long start = System.currentTimeMillis();
+        if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW)) {
+          for (String customizedStateType : _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW)) {
             _customizedViewCaches.get(customizedStateType).refresh(accessor);
-            LOG.info("Reload "
-                + _customizedViewCaches.get(customizedStateType).getCustomizedViewMap().keySet()
-                    .size()
-                + " CustomizedView. Takes " + (System.currentTimeMillis() - start) + " ms");
           }
+          LOG.info("Reload CustomizedView for types "
+              + _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW) + " Takes "
+              + (System.currentTimeMillis() - start) + " ms");
         }
         _propertyDataChangedMap.put(HelixConstants.ChangeType.CUSTOMIZED_VIEW, false);
-        }
+      }
         break;
       default:
         break;
@@ -153,7 +152,11 @@ class RoutingDataCache extends BasicClusterDataCache {
    * @return
    */
   public Map<String, CustomizedView> getCustomizedView(String customizedStateType) {
-    return _customizedViewCaches.get(customizedStateType).getCustomizedViewMap();
+    if (_customizedViewCaches.containsKey(customizedStateType)) {
+      return _customizedViewCaches.get(customizedStateType).getCustomizedViewMap();
+    }
+    throw new HelixException(String.format(
+        "customizedStateType %s does not exist in customizedViewCaches.", customizedStateType));
   }
 
   /**

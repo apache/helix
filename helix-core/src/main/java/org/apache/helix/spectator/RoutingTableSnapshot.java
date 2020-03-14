@@ -37,12 +37,12 @@ import org.apache.helix.model.LiveInstance;
 public class RoutingTableSnapshot {
   private final RoutingTable _routingTable;
   private final PropertyType _propertyType;
-  private final String _customizedStateType;
+  private final String _stateType;
 
   public RoutingTableSnapshot(RoutingTable routingTable) {
     _routingTable = routingTable;
     _propertyType = routingTable.getPropertyType();
-    _customizedStateType = routingTable.getCustomizedStateType();
+    _stateType = routingTable.getStateType();
   }
 
   /**
@@ -180,6 +180,6 @@ public class RoutingTableSnapshot {
    * @return
    */
   public String getCustomizedStateType() {
-    return _customizedStateType;
+    return _stateType;
   }
 }

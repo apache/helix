@@ -146,10 +146,10 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
 
     @Override
-    protected synchronized void refresh(List<ExternalView> externalViewList,
-        List<CustomizedView> customizedViewList, NotificationContext changeContext,
+    protected synchronized void refreshExternalView(Collection<ExternalView> externalViews,
+        Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances,
         String referenceKey) {
-      super.refresh(externalViewList, Collections.emptyList(), changeContext, referenceKey);
+      super.refreshExternalView(externalViews, instanceConfigs, liveInstances, referenceKey);
       _refreshCount++;
       if (DEBUG) {
         print();
@@ -157,23 +157,11 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
 
     @Override
-    protected synchronized void refresh(Collection<ExternalView> externalViews,
-        Collection<CustomizedView> customizedView, Collection<InstanceConfig> instanceConfigs,
-        Collection<LiveInstance> liveInstances, String referenceKey) {
-      super.refresh(externalViews, Collections.emptyList(), instanceConfigs, liveInstances,
-          referenceKey);
-      _refreshCount++;
-      if (DEBUG) {
-        print();
-      }
-    }
-
-    @Override
-    protected synchronized void refresh(
+    protected synchronized void refreshCurrentState(
         Map<String, Map<String, Map<String, CurrentState>>> currentStateMap,
         Collection<InstanceConfig> instanceConfigs, Collection<LiveInstance> liveInstances,
         String referenceKey) {
-      super.refresh(currentStateMap, instanceConfigs, liveInstances, "Test");
+      super.refreshCurrentState(currentStateMap, instanceConfigs, liveInstances, "Test");
       _refreshCount++;
       if (DEBUG) {
         print();

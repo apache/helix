@@ -89,6 +89,7 @@ class RoutingTable {
 
   protected RoutingTable(Collection<ExternalView> externalViews, Collection<InstanceConfig> instanceConfigs,
       Collection<LiveInstance> liveInstances, PropertyType propertytype) {
+    // TODO Refactor these constructors so we don't have so many constructor.
     _propertyType = propertytype;
     _resourceInfoMap = new HashMap<>();
     _resourceGroupInfoMap = new HashMap<>();
@@ -385,8 +386,8 @@ class RoutingTable {
    * Returns CustomizedStateType
    * @return the CustomizedStateType of this RoutingTable (Used for CustomizedView)
    */
-  protected String getCustomizedStateType() {
-    return RoutingTableProvider.DEFAULT_TYPE;
+  protected String getStateType() {
+    return RoutingTableProvider.DEFAULT_STATE_TYPE;
   }
 
 

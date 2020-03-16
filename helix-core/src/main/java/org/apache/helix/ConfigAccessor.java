@@ -612,7 +612,7 @@ public class ConfigAccessor {
    * @param clusterName
    * @param cloudConfig
    */
-  public void deleteCloudConfigPatrial(String clusterName, CloudConfig cloudConfig) {
+  public void deleteCloudConfigFields(String clusterName, CloudConfig cloudConfig) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to delete cloud config. cluster: " + clusterName + " is NOT setup.");
     }

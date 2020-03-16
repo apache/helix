@@ -286,7 +286,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     cloudConfigBuilderToDelete.setCloudID("TestCloudID");
     CloudConfig cloudConfigToDelete = cloudConfigBuilderToDelete.build();
 
-    _configAccessor.deleteCloudConfigPatrial(clusterName, cloudConfigToDelete);
+    _configAccessor.deleteCloudConfigFields(clusterName, cloudConfigToDelete);
 
     cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());

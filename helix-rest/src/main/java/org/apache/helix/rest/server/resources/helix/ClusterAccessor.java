@@ -627,7 +627,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       switch (command) {
       case delete: {
-        configAccessor.deleteCloudConfigPatrial(clusterId, cloudConfig);
+        configAccessor.deleteCloudConfigFields(clusterId, cloudConfig);
       }
       break;
       case update: {

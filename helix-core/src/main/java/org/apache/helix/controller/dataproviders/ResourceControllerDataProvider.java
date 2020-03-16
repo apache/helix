@@ -19,8 +19,10 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,11 +32,14 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
+import org.apache.helix.common.caches.CustomizedStateCache;
 import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
@@ -53,6 +58,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Resource control specific property caches
   private final PropertyCache<ExternalView> _externalViewCache;
   private final PropertyCache<ExternalView> _targetExternalViewCache;
+  private final CustomizedStateCache _customizedStateCache;
   // a map from customized state type to customized view cache
   private final Map<String, CustomizedViewCache> _customizedViewCacheMap;
 
@@ -66,6 +72,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // records for top state handoff
   private Map<String, Map<String, MissingTopStateRecord>> _missingTopStateMap;
   private Map<String, Map<String, String>> _lastTopStateLocationMap;
+
+  private Set<String> _aggregationEnabledTypes = new HashSet<>();
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -109,6 +117,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     _idealMappingCache = new HashMap<>();
     _missingTopStateMap = new HashMap<>();
     _lastTopStateLocationMap = new HashMap<>();
+    _customizedStateCache = new CustomizedStateCache(this, _aggregationEnabledTypes);
     _customizedViewCacheMap = new HashMap<>();
   }
 
@@ -127,6 +136,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     }
 
     // Refresh resource controller specific property caches
+    refreshCustomizedStateConfig(accessor);
+    _customizedStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
     refreshCustomizedViewMap(accessor);
@@ -141,6 +152,27 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
     if (logger.isTraceEnabled()) {
       logger.trace("Cache content: " + toString());
+    }
+  }
+
+  private void refreshCustomizedStateConfig(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG)
+        .getAndSet(false)) {
+      CustomizedStateConfig customizedStateConfig =
+          accessor.getProperty(accessor.keyBuilder().customizedStateConfig());
+      if (customizedStateConfig != null) {
+        _aggregationEnabledTypes =
+            new HashSet<>(customizedStateConfig.getAggregationEnabledTypes());
+      } else {
+        _aggregationEnabledTypes.clear();
+      }
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
+              getClusterName(), getPipelineName()));
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("No customized state config change for %s cluster, %s pipeline",
+              getClusterName(), getPipelineName()));
     }
   }
 
@@ -164,9 +196,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void refreshCustomizedViewMap(final HelixDataAccessor accessor) {
     // As we are not listening on customized view change, customized view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
-    List<String> stateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
+    List<String> newStateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
-      for (String stateType : stateTypes) {
+      for (String stateType : newStateTypes) {
         if (!_customizedViewCacheMap.containsKey(stateType)) {
           CustomizedViewCache newCustomizedViewCache =
               new CustomizedViewCache(getClusterName(), stateType);
@@ -176,13 +208,30 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
           _customizedViewCacheMap.get(stateType).refresh(accessor);
         }
       }
-      for (String stateType : _customizedViewCacheMap.keySet()) {
-        if (!stateTypes.contains(stateType)) {
-          logger.info("Remove customizedView for state: " + stateType);
-          _customizedViewCacheMap.remove(stateType);
-        }
-      }
+      Set<String> previousCachedStateTypes = _customizedViewCacheMap.keySet();
+      previousCachedStateTypes.removeAll(newStateTypes);
+      logger.info("Remove customizedView for state: " + previousCachedStateTypes);
+      removeCustomizedViewTypes(new ArrayList<>(previousCachedStateTypes));
     }
+  }
+
+  /**
+   * Provides the customized state of the node for a given state type (resource -> customizedState)
+   * @param instanceName
+   * @param customizedStateType
+   * @return
+   */
+  public Map<String, CustomizedState> getCustomizedState(String instanceName,
+      String customizedStateType) {
+    return _customizedStateCache.getParticipantState(instanceName, customizedStateType);
+  }
+
+  public Set<String> getAggregationEnabledCustomizedStateTypes() {
+    return _aggregationEnabledTypes;
+  }
+
+  protected void SetAggregationEnabledCustomizedStateTypes(Set<String> aggregationEnabledTypes) {
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 
   public ExternalView getTargetExternalView(String resourceName) {

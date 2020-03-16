@@ -22,7 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedState;
@@ -39,7 +39,7 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
-    BaseControllerDataProvider cache =
+    ResourceControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     Set<String> aggregationEnabledTypes = cache.getAggregationEnabledCustomizedStateTypes();
@@ -58,7 +58,7 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
       for (String customizedStateType : aggregationEnabledTypes) {
         Map<String, CustomizedState> customizedStateMap =
             cache.getCustomizedState(instanceName, customizedStateType);
-        updateCustomizedStates(instance, customizedStateType, customizedStateMap,
+        updateCustomizedStates(instance.getLiveInstance(), customizedStateType, customizedStateMap,
             customizedStateOutput, resourceMap);
       }
     }
@@ -66,11 +66,9 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
   }
 
   // update customized state in CustomizedStateOutput
-  private void updateCustomizedStates(LiveInstance instance, String customizedStateType,
+  private void updateCustomizedStates(String instanceName, String customizedStateType,
       Map<String, CustomizedState> customizedStates, CustomizedStateOutput customizedStateOutput,
       Map<String, Resource> resourceMap) {
-    String instanceName = instance.getInstanceName();
-
     // for each CustomizedState, update corresponding entry in CustomizedStateOutput
     for (CustomizedState customizedState : customizedStates.values()) {
       String resourceName = customizedState.getResourceName();

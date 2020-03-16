@@ -21,11 +21,9 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -72,10 +70,6 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     CustomizedStateOutput customizedStateOutput =
         event.getAttribute(AttributeName.CUSTOMIZED_STATE.name());
 
-    List<CustomizedView> newCustomizedViews = new ArrayList<>();
-    Set<String> monitoringResources = new HashSet<>();
-
-    cache.refreshCustomizedViewMap(dataAccessor);
     Map<String, CustomizedViewCache> customizedViewCacheMap = cache.getCustomizedViewCacheMap();
 
     // remove stale customized view type from ZK and cache
@@ -88,46 +82,38 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       }
     }
 
-    cache.removeCustomizedViewTypes(customizedViewTypesToRemove);
-
+    List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {
         curCustomizedViews = customizedViewCache.getCustomizedViewMap();
-      } else {
-        customizedViewCache = new CustomizedViewCache(event.getClusterName(), stateType);
       }
 
       for (Resource resource : resourceMap.values()) {
         try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
-              newCustomizedViews);
+              updatedCustomizedViews);
 
           List<PropertyKey> keys = new ArrayList<>();
-          for (Iterator<CustomizedView> it = newCustomizedViews.iterator(); it.hasNext(); ) {
+          for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
             CustomizedView view = it.next();
             String resourceName = view.getResourceName();
             keys.add(keyBuilder.customizedView(stateType, resourceName));
           }
           // add/update customized-views
-          if (newCustomizedViews.size() > 0) {
-            dataAccessor.setChildren(keys, newCustomizedViews);
-            customizedViewCache.refresh(dataAccessor);
+          if (updatedCustomizedViews.size() > 0) {
+            dataAccessor.setChildren(keys, updatedCustomizedViews);
           }
-
-          List<String> customizedViewsToRemove = new ArrayList<>();
 
           // remove stale customized views
           for (String resourceName : curCustomizedViews.keySet()) {
             if (!resourceMap.keySet().contains(resourceName)) {
               LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
               dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
-              customizedViewsToRemove.add(resourceName);
             }
           }
-          customizedViewCache.removeCustomizedView(customizedViewsToRemove);
         } catch (HelixException ex) {
           LogUtil.logError(LOG, _eventId,
               "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
@@ -139,7 +125,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
   private void computeCustomizedStateView(final Resource resource, final String stateType,
       CustomizedStateOutput customizedStateOutput,
       final Map<String, CustomizedView> curCustomizedViews,
-      List<CustomizedView> newCustomizedViews) {
+      List<CustomizedView> updatedCustomizedViews) {
     String resourceName = resource.getResourceName();
     CustomizedView view = new CustomizedView(resource.getResourceName());
 
@@ -158,7 +144,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     // compare the new customized view with current one, set only on different
     if (curCustomizedView == null || !curCustomizedView.getRecord().equals(view.getRecord())) {
       // Add customized view to the list which will be written to ZK later.
-      newCustomizedViews.add(view);
+      updatedCustomizedViews.add(view);
     }
   }
 }

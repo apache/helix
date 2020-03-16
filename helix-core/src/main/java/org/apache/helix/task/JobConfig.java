@@ -35,6 +35,8 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.beans.JobBean;
 import org.apache.helix.task.beans.TaskBean;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 /**
  * Provides a typed interface to job configurations.
@@ -455,6 +457,7 @@ public class JobConfig extends ResourceConfig {
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
     private boolean _rebalanceRunningTask = DEFAULT_REBALANCE_RUNNING_TASK;
+    private boolean _enableCompression = TaskConstants.DEFAULT_TASK_ENABLE_COMPRESSION;
 
     public JobConfig build() {
       if (_targetResource == null && _taskConfigMap.isEmpty()) {
@@ -536,11 +539,11 @@ public class JobConfig extends ResourceConfig {
       }
       if (cfg.containsKey(JobConfigProperty.DisableExternalView.name())) {
         b.setDisableExternalView(
-            Boolean.valueOf(cfg.get(JobConfigProperty.DisableExternalView.name())));
+            Boolean.parseBoolean(cfg.get(JobConfigProperty.DisableExternalView.name())));
       }
       if (cfg.containsKey(JobConfigProperty.IgnoreDependentJobFailure.name())) {
         b.setIgnoreDependentJobFailure(
-            Boolean.valueOf(cfg.get(JobConfigProperty.IgnoreDependentJobFailure.name())));
+            Boolean.parseBoolean(cfg.get(JobConfigProperty.IgnoreDependentJobFailure.name())));
       }
       if (cfg.containsKey(JobConfigProperty.JobType.name())) {
         b.setJobType(cfg.get(JobConfigProperty.JobType.name()));
@@ -553,7 +556,11 @@ public class JobConfig extends ResourceConfig {
       }
       if (cfg.containsKey(JobConfigProperty.RebalanceRunningTask.name())) {
         b.setRebalanceRunningTask(
-            Boolean.valueOf(cfg.get(JobConfigProperty.RebalanceRunningTask.name())));
+            Boolean.parseBoolean(cfg.get(JobConfigProperty.RebalanceRunningTask.name())));
+      }
+      if (cfg.containsKey(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD)) {
+        b.setEnableCompression(
+            Boolean.parseBoolean(cfg.get(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD)));
       }
       return b;
     }
@@ -689,6 +696,11 @@ public class JobConfig extends ResourceConfig {
       return this;
     }
 
+    public Builder setEnableCompression(boolean enabled) {
+      _enableCompression = enabled;
+      return this;
+    }
+
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
@@ -760,7 +772,8 @@ public class JobConfig extends ResourceConfig {
           .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure)
           .setNumberOfTasks(jobBean.numberOfTasks).setExecutionDelay(jobBean.executionDelay)
           .setExecutionStart(jobBean.executionStart)
-          .setRebalanceRunningTask(jobBean.rebalanceRunningTask);
+          .setRebalanceRunningTask(jobBean.rebalanceRunningTask)
+          .setEnableCompression(jobBean.enableCompression);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);
@@ -790,6 +803,7 @@ public class JobConfig extends ResourceConfig {
       if (jobBean.instanceGroupTag != null) {
         b.setInstanceGroupTag(jobBean.instanceGroupTag);
       }
+      b.setEnableCompression(jobBean.enableCompression);
       return b;
     }
 

@@ -31,6 +31,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.beans.WorkflowBean;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -338,6 +339,7 @@ public class WorkflowConfig extends ResourceConfig {
     private long _jobPurgeInterval = DEFAULT_JOB_PURGE_INTERVAL;
     private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
     private long _timeout = TaskConstants.DEFAULT_NEVER_TIMEOUT;
+    private boolean _enableCompression = TaskConstants.DEFAULT_TASK_ENABLE_COMPRESSION;
 
     public WorkflowConfig build() {
       validate();
@@ -492,6 +494,11 @@ public class WorkflowConfig extends ResourceConfig {
       return this;
     }
 
+    public Builder setEnableCompression(boolean enableCompression) {
+      _enableCompression = enableCompression;
+      return this;
+    }
+
     @Deprecated
     public static Builder fromMap(Map<String, String> cfg) {
       Builder builder = new Builder();
@@ -550,6 +557,11 @@ public class WorkflowConfig extends ResourceConfig {
         if (threshold >= 0) {
           setFailureThreshold(threshold);
         }
+      }
+
+      if (cfg.containsKey(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD)) {
+        setEnableCompression(
+            Boolean.parseBoolean(cfg.get(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD)));
       }
 
       // Parse schedule-specific configs, if they exist
@@ -625,6 +637,7 @@ public class WorkflowConfig extends ResourceConfig {
       }
       b.setExpiry(workflowBean.expiry);
       b.setWorkFlowType(workflowBean.workflowType);
+      b.setEnableCompression(workflowBean.enableCompression);
       return b;
     }
 

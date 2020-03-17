@@ -28,4 +28,5 @@ public class HttpConstants {
   }
 
   public static final String HTTP_PROTOCOL_PREFIX = "http://";
+  public static final String REST_ENDPOINT_PREFIX = "/admin/v2";
 }

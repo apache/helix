@@ -342,8 +342,9 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   }
 
   private String constructUrlSuffix(String... urlParams) {
-    List<String> allUrlParameters = new ArrayList<>(
-        Arrays.asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
+    List<String> allUrlParameters = new ArrayList<>(Arrays
+        .asList(HttpConstants.REST_ENDPOINT_PREFIX,
+            MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
     for (String urlParam : urlParams) {
       if (urlParam.charAt(0) != '/') {
         urlParam = "/" + urlParam;

@@ -602,6 +602,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       return notFound();
     }
 
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     // Here to update cloud config
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
@@ -614,22 +615,24 @@ public class ClusterAccessor extends AbstractHelixResource {
       }
     }
 
-    HelixAdmin admin = getHelixAdmin();
-
     ZNRecord record;
+    CloudConfig cloudConfig;
     try {
       record = toZNRecord(content);
+      cloudConfig = new CloudConfig(record);
     } catch (IOException e) {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a vaild ZNRecord!");
     }
     try {
       switch (command) {
+      case delete: {
+        configAccessor.deleteCloudConfigFields(clusterId, cloudConfig);
+      }
+      break;
       case update: {
         try {
-          CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
-          admin.removeCloudConfig(clusterId);
-          admin.addCloudConfig(clusterId, cloudConfig);
+          configAccessor.updateCloudConfig(clusterId, cloudConfig);
         } catch (HelixException ex) {
           _logger.error("Error in updating a CloudConfig to cluster: " + clusterId, ex);
           return badRequest(ex.getMessage());

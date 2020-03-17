@@ -604,7 +604,47 @@ public class ConfigAccessor {
       return null;
     }
 
-    return new CloudConfig.Builder(record).build();
+    return new CloudConfig(record);
+  }
+
+  /**
+   * Delete cloud config fields (not the whole config)
+   * @param clusterName
+   * @param cloudConfig
+   */
+  public void deleteCloudConfigFields(String clusterName, CloudConfig cloudConfig) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("fail to delete cloud config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLOUD).forCluster(clusterName).build();
+    remove(scope, cloudConfig.getRecord());
+  }
+
+  /**
+   * Update cloud config
+   * @param clusterName
+   * @param cloudConfig
+   */
+  public void updateCloudConfig(String clusterName, CloudConfig cloudConfig) {
+    updateCloudConfig(clusterName, cloudConfig, false);
+  }
+
+  private void updateCloudConfig(String clusterName, CloudConfig cloudConfig, boolean overwrite) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("Fail to update cloud config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLOUD).forCluster(clusterName).build();
+    String zkPath = scope.getZkPath();
+
+    if (overwrite) {
+      ZKUtil.createOrReplace(_zkClient, zkPath, cloudConfig.getRecord(), true);
+    } else {
+      ZKUtil.createOrUpdate(_zkClient, zkPath, cloudConfig.getRecord(), true, true);
+    }
   }
 
   /**

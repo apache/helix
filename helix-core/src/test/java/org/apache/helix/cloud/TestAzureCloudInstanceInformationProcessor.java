@@ -55,12 +55,12 @@ public class TestAzureCloudInstanceInformationProcessor extends MockHttpClient {
     // Verify the response from mock http client
     AzureCloudInstanceInformation azureCloudInstanceInformation =
         processor.parseCloudInstanceInformation(response);
-    Assert.assertEquals(azureCloudInstanceInformation
-        .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()), "2");
     Assert.assertEquals(
         azureCloudInstanceInformation
-            .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name()),
-        "test-helix");
+            .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()),
+        "faultDomain=2," + "hostname=");
+    Assert.assertEquals(azureCloudInstanceInformation
+        .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_SET_NAME.name()), "test-helix");
     Assert.assertEquals(
         azureCloudInstanceInformation
             .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_NAME.name()),

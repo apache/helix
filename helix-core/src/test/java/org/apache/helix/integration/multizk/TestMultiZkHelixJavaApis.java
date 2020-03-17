@@ -76,11 +76,11 @@ import org.testng.annotations.Test;
 
 
 /**
- * TestMultiZkEnvironment spins up multiple in-memory ZooKeepers with a pre-configured
+ * TestMultiZkHelixJavaApis spins up multiple in-memory ZooKeepers with a pre-configured
  * cluster-Zk realm routing information.
  * This test verifies that all Helix Java APIs work as expected.
  */
-public class TestMultiZkEnvironment {
+public class TestMultiZkHelixJavaApis {
   private static final int NUM_ZK = 3;
   private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
   private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();

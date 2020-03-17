@@ -145,15 +145,15 @@ public class AzureCloudInstanceInformationProcessor
         String azureTopology = AzureConstants.AZURE_TOPOLOGY;
         String[] parts = azureTopology.trim().split("/");
         //The hostname will be filled in by each participant
-        String domain = parts[0] + "=" + platformFaultDomain + "," + parts[1] + "=";
+        String domain = parts[1] + "=" + platformFaultDomain + "," + parts[2] + "=";
 
         AzureCloudInstanceInformation.Builder builder = new AzureCloudInstanceInformation.Builder();
-        builder.setInstanceName(vmName).setFaultDomain(domain)
-            .setInstanceSetName(vmssName);
+        builder.setInstanceName(vmName).setFaultDomain(domain).setInstanceSetName(vmssName);
         azureCloudInstanceInformation = builder.build();
       }
     } catch (IOException e) {
-      throw new HelixException(String.format("Error in parsing cloud instance information: {}", response, e));
+      throw new HelixException(
+          String.format("Error in parsing cloud instance information: {}", response, e));
     }
     return azureCloudInstanceInformation;
   }

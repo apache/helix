@@ -149,7 +149,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddress() {
-      return getZkAddress();
+      return super.getZkAddress();
     }
 
     @Deprecated

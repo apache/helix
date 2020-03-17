@@ -40,6 +40,7 @@ import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.PathUtils;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -919,7 +920,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
   }
 
-  public static class Builder {
+  public static class Builder<T> {
     private String _zkAddress;
     private RealmAwareZkClient.RealmMode _realmMode;
     private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
@@ -934,39 +935,39 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     public Builder() {
     }
 
-    public Builder setZkAddress(String zkAddress) {
+    public Builder<T> setZkAddress(String zkAddress) {
       _zkAddress = zkAddress;
       return this;
     }
 
-    public Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
+    public Builder<T> setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
       _realmMode = realmMode;
       return this;
     }
 
-    public Builder setRealmAwareZkConnectionConfig(
+    public Builder<T> setRealmAwareZkConnectionConfig(
         RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
       _realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
       return this;
     }
 
-    public Builder setRealmAwareZkClientConfig(
+    public Builder<T> setRealmAwareZkClientConfig(
         RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
       _realmAwareZkClientConfig = realmAwareZkClientConfig;
       return this;
     }
 
-    public Builder setChrootPath(String chrootPath) {
+    public Builder<T> setChrootPath(String chrootPath) {
       _chrootPath = chrootPath;
       return this;
     }
 
-    public Builder setWtCachePaths(List<String> wtCachePaths) {
+    public Builder<T> setWtCachePaths(List<String> wtCachePaths) {
       _wtCachePaths = wtCachePaths;
       return this;
     }
 
-    public Builder setZkCachePaths(List<String> zkCachePaths) {
+    public Builder<T> setZkCachePaths(List<String> zkCachePaths) {
       _zkCachePaths = zkCachePaths;
       return this;
     }
@@ -977,14 +978,14 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
      * @param zkClientType
      * @return
      */
-    public Builder setZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType) {
+    public Builder<T> setZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType) {
       _zkClientType = zkClientType;
       return this;
     }
 
-    public ZkCacheBaseDataAccessor build() {
+    public ZkCacheBaseDataAccessor<T> build() {
       validate();
-      return new ZkCacheBaseDataAccessor(this);
+      return new ZkCacheBaseDataAccessor<>(this);
     }
 
     private void validate() {
@@ -997,8 +998,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         throw new HelixException(
             "ZkCacheBaseDataAccessor: you cannot set ZkClientType on multi-realm mode!");
       }
-      // If ZkClientType is not set, default to SHARED
-      if (!isZkClientTypeSet) {
+      // If ZkClientType is not set and realmMode is single-realm, default to SHARED
+      if (!isZkClientTypeSet && _realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
         _zkClientType = ZkBaseDataAccessor.ZkClientType.SHARED;
       }
 
@@ -1025,7 +1026,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
       // Resolve RealmAwareZkClientConfig
       if (_realmAwareZkClientConfig == null) {
-        _realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
+        _realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig()
+            .setZkSerializer(new ZNRecordSerializer());
       }
 
       // Resolve RealmAwareZkConnectionConfig

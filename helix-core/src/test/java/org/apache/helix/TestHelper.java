@@ -47,6 +47,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -295,12 +296,12 @@ public class TestHelper {
     zkClient.close();
   }
 
-  public static void dropCluster(String clusterName, HelixZkClient zkClient) throws Exception {
+  public static void dropCluster(String clusterName, RealmAwareZkClient zkClient) {
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     dropCluster(clusterName, zkClient, setupTool);
   }
 
-  public static void dropCluster(String clusterName, HelixZkClient zkClient, ClusterSetup setup) {
+  public static void dropCluster(String clusterName, RealmAwareZkClient zkClient, ClusterSetup setup) {
     String namespace = "/" + clusterName;
     if (zkClient.exists(namespace)) {
       try {

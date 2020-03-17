@@ -19,31 +19,22 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
-import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
-import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.PathUtils;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
-import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -126,41 +117,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths, String monitorType, String monitorkey,
       ZkBaseDataAccessor.ZkClientType zkClientType) {
-
-    // If the multi ZK config is enabled, use multi-realm mode with FederatedZkClient
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
-      try {
-        RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
-            new RealmAwareZkClient.RealmAwareZkClientConfig();
-        clientConfig.setZkSerializer(serializer).setMonitorType(monitorType)
-            .setMonitorKey(monitorkey);
-        // Use a federated zk client
-        _zkClient = new FederatedZkClient(connectionConfigBuilder.build(), clientConfig);
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-        // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
-        // found
-        throw new HelixException("Failed to create ZkCacheBaseDataAccessor!", e);
-      }
-    } else {
-      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-      clientConfig.setZkSerializer(serializer).setMonitorType(monitorType)
-          .setMonitorKey(monitorkey);
-      switch (zkClientType) {
-        case DEDICATED:
-          _zkClient = DedicatedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                  new HelixZkClient.ZkClientConfig().setZkSerializer(serializer));
-          break;
-        case SHARED:
-        default:
-          _zkClient = SharedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
-      }
-      _zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-    }
-
+    _zkClient = ZkBaseDataAccessor.buildRealmAwareZkClientWithDefaultConfigs(
+        new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(serializer)
+            .setMonitorType(monitorType).setMonitorKey(monitorkey), zkAddress, zkClientType);
     _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     if (chrootPath == null || chrootPath.equals("/")) {
@@ -181,59 +140,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
    * @param builder
    */
   private ZkCacheBaseDataAccessor(Builder<T> builder) {
+    _zkClient = ZkBaseDataAccessor.buildRealmAwareZkClientFromBuilder(builder);
+    _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+
     _chrootPath = builder._chrootPath;
     _wtCachePaths = builder._wtCachePaths;
     _zkCachePaths = builder._zkCachePaths;
-
-    RealmAwareZkClient zkClient;
-    switch (builder.getRealmMode()) {
-      case MULTI_REALM:
-        try {
-          if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.DEDICATED) {
-            // Use a realm-aware dedicated zk client
-            zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
-                    builder.getRealmAwareZkClientConfig());
-          } else if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.SHARED) {
-            // Use a realm-aware shared zk client
-            zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
-                    builder.getRealmAwareZkClientConfig());
-          } else {
-            // Use a federated zk client
-            zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
-                builder.getRealmAwareZkClientConfig());
-          }
-          break; // Must break out of the switch statement here since zkClient has been created
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
-          // found
-          throw new HelixException("Failed to create ZkCacheBaseDataAccessor!", e);
-        }
-      case SINGLE_REALM:
-        switch (builder._zkClientType) {
-          case DEDICATED:
-            // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
-            // operations
-            zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                    builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
-            break;
-          case SHARED:
-          default:
-            zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                    builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
-            zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                TimeUnit.MILLISECONDS);
-            break;
-        }
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
-    }
-
-    _zkClient = zkClient;
-    _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     start();
   }
@@ -920,12 +832,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
   }
 
-  public static class Builder<T> extends GenericZkHelixApiBuilder<Builder<T>> {
+  public static class Builder<T> extends GenericBaseDataAccessorBuilder<Builder<T>> {
     /** ZkCacheBaseDataAccessor-specific parameters */
     private String _chrootPath;
     private List<String> _wtCachePaths;
     private List<String> _zkCachePaths;
-    private ZkBaseDataAccessor.ZkClientType _zkClientType;
 
     public Builder() {
     }
@@ -945,27 +856,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       return this;
     }
 
-    /**
-     * Sets the ZkClientType.
-     * If this is set to either DEDICATED or SHARED, ZkCacheBaseDataAccessor will be created on
-     * single-realm mode.
-     * If this is set to FEDERATED, multi-realm mode will be used.
-     * @param zkClientType
-     * @return
-     */
-    public Builder<T> setZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType) {
-      _zkClientType = zkClientType;
-      return this;
-    }
-
     public ZkCacheBaseDataAccessor<T> build() {
       validate();
       return new ZkCacheBaseDataAccessor<>(this);
-    }
-
-    protected void validate() {
-      super.validate();
-      ZkBaseDataAccessor.Builder.validateZkClientType(_zkClientType, getRealmMode());
     }
   }
 }

@@ -286,7 +286,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-
   private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;

@@ -202,11 +202,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         if (!_customizedViewCacheMap.containsKey(stateType)) {
           CustomizedViewCache newCustomizedViewCache =
               new CustomizedViewCache(getClusterName(), stateType);
-          newCustomizedViewCache.refresh(accessor);
           _customizedViewCacheMap.put(stateType, newCustomizedViewCache);
-        } else {
-          _customizedViewCacheMap.get(stateType).refresh(accessor);
         }
+        _customizedViewCacheMap.get(stateType).refresh(accessor);
       }
       Set<String> previousCachedStateTypes = _customizedViewCacheMap.keySet();
       previousCachedStateTypes.removeAll(newStateTypes);
@@ -284,7 +282,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param stateTypeNames
    */
 
-  public void removeCustomizedViewTypes(List<String> stateTypeNames) {
+  private void removeCustomizedViewTypes(List<String> stateTypeNames) {
     for (String stateType : stateTypeNames) {
       _customizedViewCacheMap.remove(stateType);
     }

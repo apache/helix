@@ -94,6 +94,9 @@ public class TestMultiZkEnvironment {
   private RealmAwareZkClient _zkClient;
   private HelixAdmin _zkHelixAdmin;
 
+  // Save System property configs from before this test and pass onto after the test
+  private Map<String, String> _configStore = new HashMap<>();
+
   @BeforeClass
   public void beforeClass() throws Exception {
     // Create 3 in-memory zookeepers and routing mapping
@@ -119,6 +122,18 @@ public class TestMultiZkEnvironment {
         _rawRoutingData);
     _msds.startServer();
 
+    // Save previously-set system configs
+    String prevMultiZkEnabled = System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+    String prevMsdsServerEndpoint =
+        System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
+    if (prevMultiZkEnabled != null) {
+      _configStore.put(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
+    }
+    if (prevMsdsServerEndpoint != null) {
+      _configStore
+          .put(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, prevMsdsServerEndpoint);
+    }
+
     // Turn on multiZk mode in System config
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
     // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
@@ -133,32 +148,45 @@ public class TestMultiZkEnvironment {
 
   @AfterClass
   public void afterClass() throws Exception {
-    // Kill all mock controllers and participants
-    MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
-    MOCK_PARTICIPANTS.forEach(MockParticipantManager::syncStop);
+    try {
+      // Kill all mock controllers and participants
+      MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
+      MOCK_PARTICIPANTS.forEach(MockParticipantManager::syncStop);
 
-    // Tear down all clusters
-    CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));
+      // Tear down all clusters
+      CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));
 
-    // Verify that all clusters are gone in each zookeeper
-    Assert.assertTrue(TestHelper.verify(() -> {
-      for (Map.Entry<String, HelixZkClient> zkClientEntry : ZK_CLIENT_MAP.entrySet()) {
-        List<String> children = zkClientEntry.getValue().getChildren("/");
-        if (children.stream().anyMatch(CLUSTER_LIST::contains)) {
-          return false;
+      // Verify that all clusters are gone in each zookeeper
+      Assert.assertTrue(TestHelper.verify(() -> {
+        for (Map.Entry<String, HelixZkClient> zkClientEntry : ZK_CLIENT_MAP.entrySet()) {
+          List<String> children = zkClientEntry.getValue().getChildren("/");
+          if (children.stream().anyMatch(CLUSTER_LIST::contains)) {
+            return false;
+          }
         }
+        return true;
+      }, TestHelper.WAIT_DURATION));
+
+      // Tear down zookeepers
+      ZK_SERVER_MAP.forEach((zkAddress, zkServer) -> zkServer.shutdown());
+
+      // Stop MockMSDS
+      _msds.stopServer();
+    } finally {
+      // Restore System property configs
+      if (_configStore.containsKey(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+        System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED,
+            _configStore.get(SystemPropertyKeys.MULTI_ZK_ENABLED));
+      } else {
+        System.clearProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
       }
-      return true;
-    }, TestHelper.WAIT_DURATION));
-
-    // Tear down zookeepers
-    ZK_SERVER_MAP.forEach((zkAddress, zkServer) -> zkServer.shutdown());
-
-    // Stop MockMSDS
-    _msds.stopServer();
-
-    // Turn off multiZK mode in System config
-    System.clearProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+      if (_configStore.containsKey(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY)) {
+        System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
+            _configStore.get(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY));
+      } else {
+        System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
+      }
+    }
   }
 
   /**

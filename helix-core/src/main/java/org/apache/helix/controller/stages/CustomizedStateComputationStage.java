@@ -41,7 +41,8 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
     _eventId = event.getEventId();
     ResourceControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
-    final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    final Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     Set<String> aggregationEnabledTypes = cache.getAggregationEnabledCustomizedStateTypes();
 
     if (cache == null || resourceMap == null) {

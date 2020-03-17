@@ -19,11 +19,14 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.Workflow;
 
 /**
@@ -35,12 +38,14 @@ public class WorkflowGenerator {
   public static final String JOB_NAME_2 = "SomeJob2";
 
   public static final Map<String, String> DEFAULT_JOB_CONFIG;
+  public static final Map<String, String> DEFAULT_JOB_CONFIG_NOT_TARGETED;
   static {
     Map<String, String> tmpMap = new TreeMap<String, String>();
-    tmpMap.put("TargetResource", DEFAULT_TGT_DB);
-    tmpMap.put("TargetPartitionStates", "MASTER");
     tmpMap.put("Command", MockTask.TASK_COMMAND);
     tmpMap.put("TimeoutPerPartition", String.valueOf(10 * 1000));
+    DEFAULT_JOB_CONFIG_NOT_TARGETED = Collections.unmodifiableMap(new TreeMap<>(tmpMap));
+    tmpMap.put("TargetResource", DEFAULT_TGT_DB);
+    tmpMap.put("TargetPartitionStates", "MASTER");
     DEFAULT_JOB_CONFIG = Collections.unmodifiableMap(tmpMap);
   }
 
@@ -54,6 +59,24 @@ public class WorkflowGenerator {
   public static Workflow.Builder generateDefaultSingleJobWorkflowBuilder(String jobName) {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+    return generateSingleJobWorkflowBuilder(jobName, jobBuilder);
+  }
+
+  public static Workflow.Builder generateNonTargetedSingleWorkflowBuilder(String jobName) {
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG_NOT_TARGETED);
+    jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+
+    // Create 5 TaskConfigs
+    List<TaskConfig> taskConfigs = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      TaskConfig.Builder taskConfigBuilder = new TaskConfig.Builder();
+      taskConfigBuilder.setTaskId("task_" + i);
+      taskConfigBuilder.addConfig("Timeout", String.valueOf(2000));
+      taskConfigBuilder.setCommand(MockTask.TASK_COMMAND);
+      taskConfigs.add(taskConfigBuilder.build());
+    }
+
+    jobBuilder.addTaskConfigs(taskConfigs);
     return generateSingleJobWorkflowBuilder(jobName, jobBuilder);
   }
 

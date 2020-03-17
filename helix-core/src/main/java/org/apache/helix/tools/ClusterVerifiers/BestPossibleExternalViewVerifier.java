@@ -123,7 +123,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  public static class Builder extends ZkHelixClusterVerifier.Builder {
+  public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName;
     private Map<String, Map<String, String>> _errStates;
     private Set<String> _resources;
@@ -144,9 +144,9 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
             _expectLiveInstances);
       }
 
-      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
+      if (getRealmAwareZkConnectionConfig() == null || getRealmAwareZkClientConfig() == null) {
         // For backward-compatibility
-        return new BestPossibleExternalViewVerifier(_zkAddress, _clusterName, _resources,
+        return new BestPossibleExternalViewVerifier(getZkAddress(), _clusterName, _resources,
             _errStates, _expectLiveInstances);
       }
 
@@ -186,29 +186,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddr() {
-      return _zkAddress;
+      return getZkAddress();
     }
 
     public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
       return this;
-    }
-
-    @Override
-    public Builder setZkAddr(String zkAddress) {
-      return (Builder) super.setZkAddr(zkAddress);
-    }
-
-    @Override
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
-    }
-
-    @Override
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
     }
   }
 

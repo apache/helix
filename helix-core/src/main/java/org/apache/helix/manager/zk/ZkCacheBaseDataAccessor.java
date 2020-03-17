@@ -180,29 +180,29 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
    * Constructor using a Builder that allows users to set connection and client configs.
    * @param builder
    */
-  private ZkCacheBaseDataAccessor(Builder builder) {
+  private ZkCacheBaseDataAccessor(Builder<T> builder) {
     _chrootPath = builder._chrootPath;
     _wtCachePaths = builder._wtCachePaths;
     _zkCachePaths = builder._zkCachePaths;
 
     RealmAwareZkClient zkClient;
-    switch (builder._realmMode) {
+    switch (builder.getRealmMode()) {
       case MULTI_REALM:
         try {
           if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.DEDICATED) {
             // Use a realm-aware dedicated zk client
             zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(builder._realmAwareZkConnectionConfig,
-                    builder._realmAwareZkClientConfig);
+                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
+                    builder.getRealmAwareZkClientConfig());
           } else if (builder._zkClientType == ZkBaseDataAccessor.ZkClientType.SHARED) {
             // Use a realm-aware shared zk client
             zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(builder._realmAwareZkConnectionConfig,
-                    builder._realmAwareZkClientConfig);
+                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
+                    builder.getRealmAwareZkClientConfig());
           } else {
             // Use a federated zk client
-            zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-                builder._realmAwareZkClientConfig);
+            zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
+                builder.getRealmAwareZkClientConfig());
           }
           break; // Must break out of the switch statement here since zkClient has been created
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
@@ -216,20 +216,20 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
             // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
             // operations
             zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
-                    builder._realmAwareZkClientConfig.createHelixZkClientConfig());
+                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
+                    builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
             break;
           case SHARED:
           default:
             zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
-                    builder._realmAwareZkClientConfig.createHelixZkClientConfig());
+                .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
+                    builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
             zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
                 TimeUnit.MILLISECONDS);
             break;
         }
       default:
-        throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
+        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
     }
 
     _zkClient = zkClient;
@@ -920,12 +920,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
   }
 
-  public static class Builder<T> {
-    private String _zkAddress;
-    private RealmAwareZkClient.RealmMode _realmMode;
-    private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
-    private RealmAwareZkClient.RealmAwareZkClientConfig _realmAwareZkClientConfig;
-
+  public static class Builder<T> extends GenericZkHelixApiBuilder<Builder<T>> {
     /** ZkCacheBaseDataAccessor-specific parameters */
     private String _chrootPath;
     private List<String> _wtCachePaths;
@@ -933,28 +928,6 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     private ZkBaseDataAccessor.ZkClientType _zkClientType;
 
     public Builder() {
-    }
-
-    public Builder<T> setZkAddress(String zkAddress) {
-      _zkAddress = zkAddress;
-      return this;
-    }
-
-    public Builder<T> setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
-      _realmMode = realmMode;
-      return this;
-    }
-
-    public Builder<T> setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      _realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
-      return this;
-    }
-
-    public Builder<T> setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      _realmAwareZkClientConfig = realmAwareZkClientConfig;
-      return this;
     }
 
     public Builder<T> setChrootPath(String chrootPath) {
@@ -973,8 +946,10 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     /**
-     * Sets the ZkClientType. If this is set, ZkCacheBaseDataAccessor will be created on
+     * Sets the ZkClientType.
+     * If this is set to either DEDICATED or SHARED, ZkCacheBaseDataAccessor will be created on
      * single-realm mode.
+     * If this is set to FEDERATED, multi-realm mode will be used.
      * @param zkClientType
      * @return
      */
@@ -988,54 +963,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       return new ZkCacheBaseDataAccessor<>(this);
     }
 
-    private void validate() {
-      // Resolve RealmMode based on other parameters
-      boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
-      boolean isZkClientTypeSet = _zkClientType != null;
-
-      // If ZkClientType is set, RealmMode must either be single-realm or not set.
-      if (isZkClientTypeSet && _realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) {
-        throw new HelixException(
-            "ZkCacheBaseDataAccessor: you cannot set ZkClientType on multi-realm mode!");
-      }
-      // If ZkClientType is not set and realmMode is single-realm, default to SHARED
-      if (!isZkClientTypeSet && _realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
-        _zkClientType = ZkBaseDataAccessor.ZkClientType.SHARED;
-      }
-
-      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-        throw new HelixException(
-            "ZkCacheBaseDataAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
-      }
-
-      if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
-        throw new HelixException(
-            "ZkCacheBaseDataAccessor: You cannot set the ZkAddress on multi-realm mode!");
-      }
-
-      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
-          && _zkClientType == ZkBaseDataAccessor.ZkClientType.FEDERATED) {
-        throw new HelixException(
-            "ZkCacheBaseDataAccessor: You cannot use FederatedZkClient on single-realm mode!");
-      }
-
-      if (_realmMode == null) {
-        _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
-            : RealmAwareZkClient.RealmMode.MULTI_REALM;
-      }
-
-      // Resolve RealmAwareZkClientConfig
-      if (_realmAwareZkClientConfig == null) {
-        _realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig()
-            .setZkSerializer(new ZNRecordSerializer());
-      }
-
-      // Resolve RealmAwareZkConnectionConfig
-      if (_realmAwareZkConnectionConfig == null) {
-        // If not set, create a default one
-        _realmAwareZkConnectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
-      }
+    protected void validate() {
+      super.validate();
+      ZkBaseDataAccessor.Builder.validateZkClientType(_zkClientType, getRealmMode());
     }
   }
 }

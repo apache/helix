@@ -142,22 +142,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   private ZkBaseDataAccessor(Builder<T> builder) {
-    switch (builder.realmMode) {
+    switch (builder.getRealmMode()) {
       case MULTI_REALM:
         try {
-          if (builder.zkClientType == ZkClientType.DEDICATED) {
+          if (builder._zkClientType == ZkClientType.DEDICATED) {
             // Use a realm-aware dedicated zk client
             _zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(builder.realmAwareZkConnectionConfig,
-                    builder.realmAwareZkClientConfig);
-          } else if (builder.zkClientType == ZkClientType.SHARED) {
+                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
+                    builder.getRealmAwareZkClientConfig());
+          } else if (builder._zkClientType == ZkClientType.SHARED) {
             // Use a realm-aware shared zk client
             _zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(builder.realmAwareZkConnectionConfig,
-                    builder.realmAwareZkClientConfig);
+                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
+                    builder.getRealmAwareZkClientConfig());
           } else {
-            _zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
-                builder.realmAwareZkClientConfig);
+            _zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
+                builder.getRealmAwareZkClientConfig());
           }
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("Not able to connect on multi-realm mode.", e);
@@ -167,22 +167,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ZkBaseDataAccessor does not need to
         // do ephemeral operations.
-        if (builder.zkClientType == ZkClientType.DEDICATED) {
+        if (builder._zkClientType == ZkClientType.DEDICATED) {
           // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
           // operations
           _zkClient = DedicatedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
-                  builder.realmAwareZkClientConfig.createHelixZkClientConfig());
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
+                  builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
         } else {
           _zkClient = SharedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
-                  builder.realmAwareZkClientConfig.createHelixZkClientConfig());
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
+                  builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
           _zkClient
               .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         }
         break;
       default:
-        throw new HelixException("Invalid RealmMode given: " + builder.realmMode);
+        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
     }
 
     _usesExternalZkClient = false;
@@ -1308,7 +1308,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Subscrie to zookeeper data changes
+   * Subscribe to zookeeper data changes
    */
   @Override
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -1316,7 +1316,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * Unsubscrie to zookeeper data changes
+   * Unsubscribe to zookeeper data changes
    */
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
@@ -1341,41 +1341,23 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
   }
 
-  // TODO: refactor Builder class to remove duplicate code with other Helix Java APIs
-  public static class Builder<T> {
-    private String zkAddress;
-    private ZkBaseDataAccessor.ZkClientType zkClientType;
-    private RealmAwareZkClient.RealmMode realmMode;
-    private RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig;
-    private RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig;
+  public static class Builder<T> extends GenericZkHelixApiBuilder<Builder<T>> {
+    /** ZkBaseDataAccessor-specific parameter **/
+    private ZkBaseDataAccessor.ZkClientType _zkClientType;
 
     public Builder() {
     }
 
-    public Builder<T> setZkAddress(String zkAddress) {
-      this.zkAddress = zkAddress;
-      return this;
-    }
-
-    public Builder<T> setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
-      this.realmMode = realmMode;
-      return this;
-    }
-
+    /**
+     * Sets the ZkClientType.
+     * If this is set to either DEDICATED or SHARED, this accessor will be created on
+     * single-realm mode.
+     * If this is set to FEDERATED, multi-realm mode will be used.
+     * @param zkClientType
+     * @return
+     */
     public Builder<T> setZkClientType(ZkClientType zkClientType) {
-      this.zkClientType = zkClientType;
-      return this;
-    }
-
-    public Builder<T> setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      this.realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
-      return this;
-    }
-
-    public Builder<T> setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      this.realmAwareZkClientConfig = realmAwareZkClientConfig;
+      _zkClientType = zkClientType;
       return this;
     }
 
@@ -1391,14 +1373,23 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return new ZkBaseDataAccessor<>(this);
     }
 
-    /*
+    /**
      * Validates the given parameters before building an instance of ZkBaseDataAccessor.
      */
-    private void validate() {
-      // Resolve RealmMode based on other parameters
-      boolean isZkAddressSet = zkAddress != null && !zkAddress.isEmpty();
-      boolean isZkClientTypeSet = zkClientType != null;
+    @Override
+    protected void validate() {
+      super.validate();
+      validateZkClientType(_zkClientType, getRealmMode());
+    }
 
+    /**
+     * Validate ZkClientType based on RealmMode.
+     * @param zkClientType
+     * @param realmMode
+     */
+    public static void validateZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType,
+        RealmAwareZkClient.RealmMode realmMode) {
+      boolean isZkClientTypeSet = zkClientType != null;
       // If ZkClientType is set, RealmMode must either be single-realm or not set.
       if (isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) {
         throw new HelixException("ZkClientType cannot be set on multi-realm mode!");
@@ -1407,36 +1398,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       if (!isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
         zkClientType = ZkClientType.SHARED;
       }
-
-      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-        throw new HelixException("RealmMode cannot be single-realm without a valid ZkAddress set!");
-      }
-
-      if (realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
-        throw new HelixException("ZkAddress cannot be set on multi-realm mode!");
-      }
-
       if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
           && zkClientType == ZkClientType.FEDERATED) {
         throw new HelixException("FederatedZkClient cannot be set on single-realm mode!");
-      }
-
-      if (realmMode == null) {
-        realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
-            : RealmAwareZkClient.RealmMode.MULTI_REALM;
-      }
-
-      // Resolve RealmAwareZkClientConfig
-      if (realmAwareZkClientConfig == null) {
-        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig()
-            .setZkSerializer(new ZNRecordSerializer());
-      }
-
-      // Resolve RealmAwareZkConnectionConfig
-      if (realmAwareZkConnectionConfig == null) {
-        // If not set, create a default one
-        realmAwareZkConnectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
       }
     }
   }

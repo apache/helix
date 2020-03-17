@@ -94,7 +94,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = builder._isDeactivatedNodeAware;
   }
 
-  public static class Builder extends ZkHelixClusterVerifier.Builder {
+  public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName; // This is the ZK path sharding key
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
@@ -112,9 +112,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
             _expectLiveInstances, _isDeactivatedNodeAware);
       }
 
-      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
+      if (getRealmAwareZkConnectionConfig() == null || getRealmAwareZkClientConfig() == null) {
         // For backward-compatibility
-        return new StrictMatchExternalViewVerifier(_zkAddress, _clusterName, _resources,
+        return new StrictMatchExternalViewVerifier(getZkAddress(), _clusterName, _resources,
             _expectLiveInstances, _isDeactivatedNodeAware);
       }
 
@@ -149,7 +149,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddress() {
-      return _zkAddress;
+      return getZkAddress();
     }
 
     @Deprecated
@@ -167,29 +167,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       return this;
     }
 
-    @Override
-    public Builder setZkAddr(String zkAddress) {
-      return (Builder) super.setZkAddr(zkAddress);
-    }
-
-    @Override
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
-    }
-
-    @Override
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
-    }
-
     protected void validate() {
       super.validate();
-      if (!_clusterName.equals(_realmAwareZkConnectionConfig.getZkRealmShardingKey())) {
+      if (!_clusterName.equals(getRealmAwareZkConnectionConfig().getZkRealmShardingKey())) {
         throw new IllegalArgumentException(
             "StrictMatchExternalViewVerifier: Cluster name: " + _clusterName
-                + " and ZK realm sharding key: " + _realmAwareZkConnectionConfig
+                + " and ZK realm sharding key: " + getRealmAwareZkConnectionConfig()
                 .getZkRealmShardingKey() + " do not match!");
       }
     }

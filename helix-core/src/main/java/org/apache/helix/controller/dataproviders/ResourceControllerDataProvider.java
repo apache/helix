@@ -166,6 +166,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
       } else {
         _aggregationEnabledTypes.clear();
       }
+      _customizedStateCache.setAggregationEnabledTypes(_aggregationEnabledTypes);
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
               getClusterName(), getPipelineName()));
@@ -228,7 +229,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     return _aggregationEnabledTypes;
   }
 
-  protected void SetAggregationEnabledCustomizedStateTypes(Set<String> aggregationEnabledTypes) {
+  protected void setAggregationEnabledCustomizedStateTypes(Set<String> aggregationEnabledTypes) {
     _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 

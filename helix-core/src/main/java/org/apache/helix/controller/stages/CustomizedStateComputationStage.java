@@ -58,7 +58,7 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
       for (String customizedStateType : aggregationEnabledTypes) {
         Map<String, CustomizedState> customizedStateMap =
             cache.getCustomizedState(instanceName, customizedStateType);
-        updateCustomizedStates(instance.getLiveInstance(), customizedStateType, customizedStateMap,
+        updateCustomizedStates(instanceName, customizedStateType, customizedStateMap,
             customizedStateOutput, resourceMap);
       }
     }

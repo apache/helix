@@ -89,7 +89,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   // Property caches
   private final PropertyCache<ResourceConfig> _resourceConfigCache;
   private final PropertyCache<InstanceConfig> _instanceConfigCache;
-  protected final PropertyCache<LiveInstance> _liveInstanceCache;
+  private final PropertyCache<LiveInstance> _liveInstanceCache;
   private final PropertyCache<IdealState> _idealStateCache;
   private final PropertyCache<ClusterConstraints> _clusterConstraintsCache;
   private final PropertyCache<StateModelDefinition> _stateModelDefinitionCache;
@@ -750,6 +750,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     sb.append(String.format("currentStateCache: %s", _currentStateCache)).append("\n");
     sb.append(String.format("clusterConfig: %s", _clusterConfig)).append("\n");
     return sb;
+  }
+
+  protected PropertyCache<LiveInstance> getLiveInstanceCache() {
+    return _liveInstanceCache;
   }
 
   @Override

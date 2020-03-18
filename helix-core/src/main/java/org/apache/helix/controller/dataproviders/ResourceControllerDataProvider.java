@@ -137,7 +137,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
     // Refresh resource controller specific property caches
     refreshCustomizedStateConfig(accessor);
-    _customizedStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
+    _customizedStateCache.setAggregationEnabledTypes(_aggregationEnabledTypes);
+    _customizedStateCache.refresh(accessor, getLiveInstanceCache().getPropertyMap());
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
     refreshCustomizedViewMap(accessor);
@@ -166,7 +167,6 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
       } else {
         _aggregationEnabledTypes.clear();
       }
-      _customizedStateCache.setAggregationEnabledTypes(_aggregationEnabledTypes);
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
               getClusterName(), getPipelineName()));

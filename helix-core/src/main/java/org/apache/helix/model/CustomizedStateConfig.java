@@ -26,7 +26,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
 /**
- * CustomizedStateAggregation configurations
+ * Customized state configurations
  */
 public class CustomizedStateConfig extends HelixProperty {
 

@@ -94,7 +94,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     if (hostName == null || hostName.isEmpty()) {
       throw new IllegalStateException(
-          "Unable to get the hostname of this server instance or the hostname is empty. System.getProperty fails to fetch "
+          "Hostname is not set or is empty. System.getProperty fails to fetch "
               + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
     }
     _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;

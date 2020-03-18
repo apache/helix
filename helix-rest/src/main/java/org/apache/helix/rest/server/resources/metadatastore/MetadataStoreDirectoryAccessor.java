@@ -235,7 +235,9 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
       Map<String, List<String>> routingData =
           OBJECT_MAPPER.readValue(jsonContent, new TypeReference<HashMap<String, List<String>>>() {
           });
-      _metadataStoreDirectory.setNamespaceRoutingData(_namespace, routingData);
+      if (!_metadataStoreDirectory.setNamespaceRoutingData(_namespace, routingData)) {
+        return serverError();
+      }
     } catch (JsonMappingException | JsonParseException | IllegalArgumentException e) {
       return badRequest(e.getMessage());
     } catch (IOException e) {

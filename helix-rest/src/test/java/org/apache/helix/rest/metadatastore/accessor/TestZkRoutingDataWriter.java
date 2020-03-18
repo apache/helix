@@ -55,8 +55,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
 
     // This method does not call super() because the http call should not be actually made
     @Override
-    protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
-        String leaderHostName) {
+    protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode) {
       calledRequest = request;
       return false;
     }
@@ -66,7 +65,9 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   public void beforeClass() throws Exception {
     _zkClient = ZK_SERVER_MAP.get(_zkAddrTestNS).getZkClient();
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().getHost() + ":" + getBaseUri().getPort());
+        getBaseUri().getHost());
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY,
+        Integer.toString(getBaseUri().getPort()));
     _zkRoutingDataWriter = new ZkRoutingDataWriter(TEST_NAMESPACE, _zkAddrTestNS);
     clearRoutingDataPath();
   }
@@ -74,6 +75,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   @AfterClass
   public void afterClass() throws Exception {
     System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY);
     _zkRoutingDataWriter.close();
     clearRoutingDataPath();
   }

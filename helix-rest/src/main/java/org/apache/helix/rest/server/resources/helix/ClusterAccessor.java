@@ -320,7 +320,7 @@ public class ClusterAccessor extends AbstractHelixResource {
           new CustomizedStateConfig.Builder(record).build();
       admin.addCustomizedStateConfig(clusterId, customizedStateConfig);
     } catch (Exception ex) {
-      _logger.error("Cannot add CustomizedStateConfig to cluster: {} Exception: {}",
+      LOG.error("Cannot add CustomizedStateConfig to cluster: {} Exception: {}",
           clusterId, ex);
       return serverError(ex);
     }
@@ -339,7 +339,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       admin.removeCustomizedStateConfig(clusterId);
     } catch (Exception ex) {
-      _logger.error(
+      LOG.error(
           "Cannot remove CustomizedStateConfig from cluster: {}, Exception: {}",
           clusterId, ex);
       return serverError(ex);
@@ -399,7 +399,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         return badRequest("Unsupported command " + commandStr);
       }
     } catch (Exception ex) {
-      _logger.error("Failed to {} CustomizedStateConfig for cluster {} new type: {}, Exception: {}", command, clusterId, type, ex);
+      LOG.error("Failed to {} CustomizedStateConfig for cluster {} new type: {}, Exception: {}", command, clusterId, type, ex);
       return serverError(ex);
     }
     return OK();

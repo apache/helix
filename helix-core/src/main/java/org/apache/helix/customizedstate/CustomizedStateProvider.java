@@ -21,13 +21,14 @@ package org.apache.helix.customizedstate;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.I0Itec.zkclient.DataUpdater;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

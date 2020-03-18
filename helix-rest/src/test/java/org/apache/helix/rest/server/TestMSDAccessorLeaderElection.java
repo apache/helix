@@ -99,7 +99,9 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
 
     // Set the new uri to be used in leader election
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
-        getBaseUri().getHost() + ":" + newPort);
+        getBaseUri().getHost());
+    System
+        .setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY, Integer.toString(newPort));
 
     // Start http client for testing
     _httpClient = HttpClients.createDefault();

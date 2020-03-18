@@ -87,16 +87,18 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
 
     // Get the hostname (REST endpoint) from System property
     String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
+    String port = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY);
     if (hostName == null || hostName.isEmpty()) {
       throw new IllegalStateException(
-          "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
+          "Unable to get the hostname of this server instance or the hostname is empty. System.getProperty fails to fetch "
               + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
     }
-    // remove trailing slash
-    if (hostName.charAt(hostName.length() - 1) == '/') {
-      hostName = hostName.substring(0, hostName.length() - 1);
+    if (port == null || port.isEmpty()) {
+      throw new IllegalStateException(
+          "Unable to get the port of this server instance or the port is empty. System.getProperty fails to fetch "
+              + MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY + ".");
     }
-    _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;
+    _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName + ":" + port;
     ZNRecord myServerInfo = new ZNRecord(_myHostName);
 
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
@@ -342,9 +344,13 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   }
 
   private String constructUrlSuffix(String... urlParams) {
-    List<String> allUrlParameters = new ArrayList<>(Arrays
-        .asList(HttpConstants.REST_ENDPOINT_PREFIX,
-            MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
+    List<String> allUrlParameters = new ArrayList<>(
+        Arrays.asList(MetadataStoreRoutingConstants.MSDS_NAMESPACES_URL_PREFIX, "/", _namespace));
+    String contextUrlPrefix =
+        System.getProperty(MetadataStoreRoutingConstants.MSDS_CONTEXT_URL_PREFIX_KEY);
+    if (contextUrlPrefix != null && !contextUrlPrefix.isEmpty()) {
+      allUrlParameters.add(0, contextUrlPrefix);
+    }
     for (String urlParam : urlParams) {
       if (urlParam.charAt(0) != '/') {
         urlParam = "/" + urlParam;

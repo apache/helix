@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 public class CustomizedStateCache extends ParticipantStateCache<CustomizedState> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
-  private final Set<String> _aggregationEnabledTypes;
+  private Set<String> _aggregationEnabledTypes;
 
   public CustomizedStateCache(String clusterName, Set<String> aggregationEnabledTypes) {
     this(createDefaultControlContextProvider(clusterName), aggregationEnabledTypes);
@@ -59,5 +59,9 @@ public class CustomizedStateCache extends ParticipantStateCache<CustomizedState>
       }
     }
     return participantStateKeys;
+  }
+
+  public void setAggregationEnabledTypes(Set<String> aggregationEnabledTypes) {
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 }

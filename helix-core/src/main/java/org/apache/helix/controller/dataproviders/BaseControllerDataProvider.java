@@ -752,6 +752,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return sb;
   }
 
+  protected PropertyCache<LiveInstance> getLiveInstanceCache() {
+    return _liveInstanceCache;
+  }
+
   @Override
   public String toString() {
     return genCacheContentStringBuilder().toString();

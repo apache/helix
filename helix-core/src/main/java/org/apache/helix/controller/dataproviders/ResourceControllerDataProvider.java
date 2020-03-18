@@ -22,6 +22,7 @@ package org.apache.helix.controller.dataproviders;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,10 +32,14 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.caches.AbstractDataCache;
+import org.apache.helix.common.caches.CustomizedStateCache;
+import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
@@ -55,6 +60,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Resource control specific property caches
   private final PropertyCache<ExternalView> _externalViewCache;
   private final PropertyCache<ExternalView> _targetExternalViewCache;
+  private final CustomizedStateCache _customizedStateCache;
+  // a map from customized state type to customized view cache
+  private final Map<String, CustomizedViewCache> _customizedViewCacheMap;
 
   // maintain a cache of bestPossible assignment across pipeline runs
   // TODO: this is only for customRebalancer, remove it and merge it with _idealMappingCache.
@@ -69,6 +77,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   // Maintain a set of all ChangeTypes for change detection
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
+  private Set<String> _aggregationEnabledTypes = new HashSet<>();
 
   // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
   // previous seen partition lists. If the members in a list are not modified, the old list will be
@@ -122,6 +131,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     _missingTopStateMap = new HashMap<>();
     _lastTopStateLocationMap = new HashMap<>();
     _refreshedChangeTypes = ConcurrentHashMap.newKeySet();
+    _customizedStateCache = new CustomizedStateCache(this, _aggregationEnabledTypes);
+    _customizedViewCacheMap = new HashMap<>();
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
@@ -141,8 +152,12 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     }
 
     // Refresh resource controller specific property caches
+    refreshCustomizedStateConfig(accessor);
+    _customizedStateCache.setAggregationEnabledTypes(_aggregationEnabledTypes);
+    _customizedStateCache.refresh(accessor, getLiveInstanceCache().getPropertyMap());
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
+    refreshCustomizedViewMap(accessor);
 
     // This is part of the backward compatible workaround to fix
     // https://github.com/apache/helix/issues/940.
@@ -164,6 +179,27 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     }
   }
 
+  private void refreshCustomizedStateConfig(final HelixDataAccessor accessor) {
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG)
+        .getAndSet(false)) {
+      CustomizedStateConfig customizedStateConfig =
+          accessor.getProperty(accessor.keyBuilder().customizedStateConfig());
+      if (customizedStateConfig != null) {
+        _aggregationEnabledTypes =
+            new HashSet<>(customizedStateConfig.getAggregationEnabledTypes());
+      } else {
+        _aggregationEnabledTypes.clear();
+      }
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("Reloaded CustomizedStateConfig for cluster %s, %s pipeline.",
+              getClusterName(), getPipelineName()));
+    } else {
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("No customized state config change for %s cluster, %s pipeline",
+              getClusterName(), getPipelineName()));
+    }
+  }
+
   private void refreshExternalViews(final HelixDataAccessor accessor) {
     // As we are not listening on external view change, external view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
@@ -179,6 +215,45 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         _targetExternalViewCache.refresh(accessor);
       }
     }
+  }
+
+  public void refreshCustomizedViewMap(final HelixDataAccessor accessor) {
+    // As we are not listening on customized view change, customized view will be
+    // refreshed once during the cache's first refresh() call, or when full refresh is required
+    List<String> newStateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
+    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
+      for (String stateType : newStateTypes) {
+        if (!_customizedViewCacheMap.containsKey(stateType)) {
+          CustomizedViewCache newCustomizedViewCache =
+              new CustomizedViewCache(getClusterName(), stateType);
+          _customizedViewCacheMap.put(stateType, newCustomizedViewCache);
+        }
+        _customizedViewCacheMap.get(stateType).refresh(accessor);
+      }
+      Set<String> previousCachedStateTypes = _customizedViewCacheMap.keySet();
+      previousCachedStateTypes.removeAll(newStateTypes);
+      logger.info("Remove customizedView for state: " + previousCachedStateTypes);
+      removeCustomizedViewTypes(new ArrayList<>(previousCachedStateTypes));
+    }
+  }
+
+  /**
+   * Provides the customized state of the node for a given state type (resource -> customizedState)
+   * @param instanceName
+   * @param customizedStateType
+   * @return
+   */
+  public Map<String, CustomizedState> getCustomizedState(String instanceName,
+      String customizedStateType) {
+    return _customizedStateCache.getParticipantState(instanceName, customizedStateType);
+  }
+
+  public Set<String> getAggregationEnabledCustomizedStateTypes() {
+    return _aggregationEnabledTypes;
+  }
+
+  protected void setAggregationEnabledCustomizedStateTypes(Set<String> aggregationEnabledTypes) {
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 
   public ExternalView getTargetExternalView(String resourceName) {
@@ -208,6 +283,14 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
+   * Get local cached customized view map
+   * @return
+   */
+  public Map<String, CustomizedViewCache> getCustomizedViewCacheMap() {
+    return _customizedViewCacheMap;
+  }
+
+  /**
    * Remove dead external views from map
    * @param resourceNames
    */
@@ -215,6 +298,17 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void removeExternalViews(List<String> resourceNames) {
     for (String resourceName : resourceNames) {
       _externalViewCache.deletePropertyByName(resourceName);
+    }
+  }
+
+  /**
+   * Remove dead customized views for certain state types from map
+   * @param stateTypeNames
+   */
+
+  private void removeCustomizedViewTypes(List<String> stateTypeNames) {
+    for (String stateType : stateTypeNames) {
+      _customizedViewCacheMap.remove(stateType);
     }
   }
 

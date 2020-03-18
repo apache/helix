@@ -28,7 +28,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**
- * CustomizedStateAggregation configurations
+ * Customized state configurations
  */
 public class CustomizedStateConfig extends HelixProperty {
 

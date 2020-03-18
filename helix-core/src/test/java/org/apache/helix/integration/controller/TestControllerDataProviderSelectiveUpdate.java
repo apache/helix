@@ -49,7 +49,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 1);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 2);
 
     accessor.clearReadCounters();
 
@@ -94,7 +94,7 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 1);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 1);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 2);
 
     accessor.clearReadCounters();
 

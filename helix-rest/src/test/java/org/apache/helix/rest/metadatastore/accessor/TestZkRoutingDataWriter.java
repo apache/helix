@@ -55,8 +55,7 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
 
     // This method does not call super() because the http call should not be actually made
     @Override
-    protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
-        String leaderHostName) {
+    protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode) {
       calledRequest = request;
       return false;
     }

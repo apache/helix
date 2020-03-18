@@ -125,6 +125,22 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
   }
 
+  public static String buildEndpointFromLeaderElectionNode(ZNRecord znRecord) {
+    List<String> urlComponents =
+        new ArrayList<>(Collections.singletonList(HttpConstants.HTTP_PROTOCOL_PREFIX));
+    urlComponents.add(znRecord.getSimpleField(SIMPLE_FIELD_KEY_HOSTNAME));
+    String port = znRecord.getSimpleField(SIMPLE_FIELD_KEY_PORT);
+    if (port != null && !port.isEmpty()) {
+      urlComponents.add(":");
+      urlComponents.add(port);
+    }
+    String contextUrlPrefix = znRecord.getSimpleField(SIMPLE_FIELD_KEY_CONTEXT_URL_PREFIX);
+    if (contextUrlPrefix != null && !contextUrlPrefix.isEmpty()) {
+      urlComponents.add(contextUrlPrefix);
+    }
+    return String.join("", urlComponents);
+  }
+
   @Override
   public synchronized boolean addMetadataStoreRealm(String realm) {
     if (_leaderElection.isLeader()) {
@@ -232,8 +248,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    String url = constructLeaderEndpoint() + constructUrlSuffix(
-        MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+    String url = buildEndpointFromLeaderElectionNode(_leaderElection.getCurrentLeaderInfo())
+        + constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
     HttpPut httpPut = new HttpPut(url);
     String routingDataJsonString;
     try {
@@ -369,27 +385,11 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     return String.join("", allUrlParameters);
   }
 
-  private String constructLeaderEndpoint() {
-    List<String> urlComponents =
-        new ArrayList<>(Collections.singletonList(HttpConstants.HTTP_PROTOCOL_PREFIX));
-    ZNRecord znRecord = _leaderElection.getCurrentLeaderInfo();
-    urlComponents.add(znRecord.getSimpleField(SIMPLE_FIELD_KEY_HOSTNAME));
-    String port = znRecord.getSimpleField(SIMPLE_FIELD_KEY_PORT);
-    if (port != null && !port.isEmpty()) {
-      urlComponents.add(":");
-      urlComponents.add(port);
-    }
-    String contextUrlPrefix = znRecord.getSimpleField(SIMPLE_FIELD_KEY_CONTEXT_URL_PREFIX);
-    if (contextUrlPrefix != null && !contextUrlPrefix.isEmpty()) {
-      urlComponents.add(contextUrlPrefix);
-    }
-    return String.join("", urlComponents);
-  }
-
   private boolean buildAndSendRequestToLeader(String urlSuffix,
       HttpConstants.RestVerbs requestMethod, int expectedResponseCode)
       throws IllegalArgumentException {
-    String url = constructLeaderEndpoint() + urlSuffix;
+    String url =
+        buildEndpointFromLeaderElectionNode(_leaderElection.getCurrentLeaderInfo()) + urlSuffix;
     HttpUriRequest request;
     switch (requestMethod) {
       case PUT:

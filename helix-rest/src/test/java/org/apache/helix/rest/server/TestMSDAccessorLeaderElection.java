@@ -36,6 +36,7 @@ import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.common.ServletType;
+import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.mock.MockMetadataStoreDirectoryAccessor;
@@ -219,8 +220,11 @@ public class TestMSDAccessorLeaderElection extends MetadataStoreDirectoryAccesso
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(0));
     ZNRecord secondEphemeralNode = _zkClient.readData(
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE + "/" + leaderSelectionNodes.get(1));
-    Assert.assertEquals(firstEphemeralNode.getId(), _leaderBaseUri);
-    Assert.assertEquals(secondEphemeralNode.getId(), _mockBaseUri);
+    Assert.assertEquals(ZkRoutingDataWriter.buildEndpointFromLeaderElectionNode(firstEphemeralNode),
+        _leaderBaseUri);
+    Assert
+        .assertEquals(ZkRoutingDataWriter.buildEndpointFromLeaderElectionNode(secondEphemeralNode),
+            _mockBaseUri);
 
     // Make sure the operation is not done by the follower instance
     Assert.assertFalse(MockMetadataStoreDirectoryAccessor.operatedOnZk);

@@ -22,6 +22,7 @@ package org.apache.helix.rest.metadatastore.accessor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +60,10 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private static final Logger LOG = LoggerFactory.getLogger(ZkRoutingDataWriter.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private static final String SIMPLE_FIELD_KEY_HOSTNAME = "hostname";
+  private static final String SIMPLE_FIELD_KEY_PORT = "port";
+  private static final String SIMPLE_FIELD_KEY_CONTEXT_URL_PREFIX = "contextUrlPrefix";
+
   private final String _namespace;
   private final HelixZkClient _zkClient;
   private final ZkDistributedLeaderElection _leaderElection;
@@ -89,15 +94,27 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
     String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     if (hostName == null || hostName.isEmpty()) {
       throw new IllegalStateException(
-          "Unable to get the hostname of this server instance. System.getProperty fails to fetch "
+          "Hostname is not set or is empty. System.getProperty fails to fetch "
               + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
     }
-    // remove trailing slash
-    if (hostName.charAt(hostName.length() - 1) == '/') {
-      hostName = hostName.substring(0, hostName.length() - 1);
-    }
     _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;
-    ZNRecord myServerInfo = new ZNRecord(_myHostName);
+
+    ZNRecord myServerInfo = new ZNRecord(hostName);
+    myServerInfo.setSimpleField(SIMPLE_FIELD_KEY_HOSTNAME, hostName);
+
+    String port = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY);
+    if (port != null && !port.isEmpty()) {
+      myServerInfo.setSimpleField(SIMPLE_FIELD_KEY_PORT, port);
+    }
+
+    // One example of context url prefix is "/admin/v2". With the prefix specified, we want to
+    // make sure the final url is "/admin/v2/namespaces/NAMESPACE/some/endpoint"; without it
+    // being specified, we will skip it and go with "/namespaces/NAMESPACE/some/endpoint".
+    String contextUrlPrefix =
+        System.getProperty(MetadataStoreRoutingConstants.MSDS_CONTEXT_URL_PREFIX_KEY);
+    if (contextUrlPrefix != null && !contextUrlPrefix.isEmpty()) {
+      myServerInfo.setSimpleField(SIMPLE_FIELD_KEY_CONTEXT_URL_PREFIX, contextUrlPrefix);
+    }
 
     _leaderElection = new ZkDistributedLeaderElection(_zkClient,
         MetadataStoreRoutingConstants.LEADER_ELECTION_ZNODE, myServerInfo);
@@ -106,6 +123,22 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         .setConnectionRequestTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT)
         .setSocketTimeout(HTTP_REQUEST_FORWARDING_TIMEOUT).build();
     _forwardHttpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
+  }
+
+  public static String buildEndpointFromLeaderElectionNode(ZNRecord znRecord) {
+    List<String> urlComponents =
+        new ArrayList<>(Collections.singletonList(HttpConstants.HTTP_PROTOCOL_PREFIX));
+    urlComponents.add(znRecord.getSimpleField(SIMPLE_FIELD_KEY_HOSTNAME));
+    String port = znRecord.getSimpleField(SIMPLE_FIELD_KEY_PORT);
+    if (port != null && !port.isEmpty()) {
+      urlComponents.add(":");
+      urlComponents.add(port);
+    }
+    String contextUrlPrefix = znRecord.getSimpleField(SIMPLE_FIELD_KEY_CONTEXT_URL_PREFIX);
+    if (contextUrlPrefix != null && !contextUrlPrefix.isEmpty()) {
+      urlComponents.add(contextUrlPrefix);
+    }
+    return String.join("", urlComponents);
   }
 
   @Override
@@ -215,9 +248,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return true;
     }
 
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url = leaderHostName + constructUrlSuffix(
-        MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+    String url = buildEndpointFromLeaderElectionNode(_leaderElection.getCurrentLeaderInfo())
+        + constructUrlSuffix(MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
     HttpPut httpPut = new HttpPut(url);
     String routingDataJsonString;
     try {
@@ -231,7 +263,7 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       return false;
     }
     httpPut.setEntity(new StringEntity(routingDataJsonString, ContentType.APPLICATION_JSON));
-    return sendRequestToLeader(httpPut, Response.Status.CREATED.getStatusCode(), leaderHostName);
+    return sendRequestToLeader(httpPut, Response.Status.CREATED.getStatusCode());
   }
 
   @Override
@@ -356,8 +388,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
   private boolean buildAndSendRequestToLeader(String urlSuffix,
       HttpConstants.RestVerbs requestMethod, int expectedResponseCode)
       throws IllegalArgumentException {
-    String leaderHostName = _leaderElection.getCurrentLeaderInfo().getId();
-    String url = leaderHostName + urlSuffix;
+    String url =
+        buildEndpointFromLeaderElectionNode(_leaderElection.getCurrentLeaderInfo()) + urlSuffix;
     HttpUriRequest request;
     switch (requestMethod) {
       case PUT:
@@ -370,19 +402,18 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         throw new IllegalArgumentException("Unsupported requestMethod: " + requestMethod.name());
     }
 
-    return sendRequestToLeader(request, expectedResponseCode, leaderHostName);
+    return sendRequestToLeader(request, expectedResponseCode);
   }
 
   // Set to be protected for testing purposes
-  protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode,
-      String leaderHostName) {
+  protected boolean sendRequestToLeader(HttpUriRequest request, int expectedResponseCode) {
     try {
       HttpResponse response = _forwardHttpClient.execute(request);
       if (response.getStatusLine().getStatusCode() != expectedResponseCode) {
         HttpEntity respEntity = response.getEntity();
         String errorLog = "The forwarded request to leader has failed. Uri: " + request.getURI()
             + ". Error code: " + response.getStatusLine().getStatusCode() + " Current hostname: "
-            + _myHostName + " Leader hostname: " + leaderHostName;
+            + _myHostName;
         if (respEntity != null) {
           errorLog += " Response: " + EntityUtils.toString(respEntity);
         }
@@ -391,8 +422,8 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
       }
     } catch (IOException e) {
       LOG.error(
-          "The forwarded request to leader raised an exception. Uri: {} Current hostname: {} Leader hostname: {}",
-          request.getURI(), _myHostName, leaderHostName, e);
+          "The forwarded request to leader raised an exception. Uri: {} Current hostname: {} ",
+          request.getURI(), _myHostName, e);
       return false;
     }
     return true;

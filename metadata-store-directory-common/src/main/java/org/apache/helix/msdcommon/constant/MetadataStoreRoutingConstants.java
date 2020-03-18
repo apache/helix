@@ -78,7 +78,16 @@ public class MetadataStoreRoutingConstants {
   // MSDS resource get all sharding keys endpoint string
   public static final String MSDS_GET_ALL_SHARDING_KEYS_ENDPOINT = "/sharding-keys";
 
-  // The key for system properties that contains the hostname of of the
+  // The key for system properties that contains the hostname of the
   // MetadataStoreDirectoryService server instance
   public static final String MSDS_SERVER_HOSTNAME_KEY = "msds_hostname";
+
+  // The key for system properties that contains the port of the
+  // MetadataStoreDirectoryService server instance
+  public static final String MSDS_SERVER_PORT_KEY = "msds_port";
+
+  // This is added for helix-rest 2.0. For example, without this value, the url will be
+  // "localhost:9998"; with this value, the url will be "localhost:9998/admin/v2" if this
+  // value is "/admin/v2".
+  public static final String MSDS_CONTEXT_URL_PREFIX_KEY = "msds_context_url_prefix";
 }

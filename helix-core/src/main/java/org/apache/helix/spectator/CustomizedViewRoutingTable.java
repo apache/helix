@@ -32,7 +32,6 @@ import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CustomizedViewRoutingTable extends RoutingTable {
   private static final Logger logger = LoggerFactory.getLogger(CustomizedViewRoutingTable.class);
 
@@ -44,7 +43,6 @@ public class CustomizedViewRoutingTable extends RoutingTable {
    * sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA", "typeB"));
    * RoutingTableProvider routingTableProvider =
    * new RoutingTableProvider(_spectator, sourceDataTypes);
-   *
    * Each one of the TypeA and TypeB is a customizedStateType.
    */
   private final String _customizedStateType;
@@ -75,10 +73,10 @@ public class CustomizedViewRoutingTable extends RoutingTable {
       for (InstanceConfig config : _instanceConfigs) {
         instanceConfigMap.put(config.getId(), config);
       }
-      for (CustomizedView customView : customizedViewList) {
-        String resourceName = customView.getId();
-        for (String partitionName : customView.getPartitionSet()) {
-          Map<String, String> stateMap = customView.getStateMap(partitionName);
+      for (CustomizedView customizeView : customizedViewList) {
+        String resourceName = customizeView.getId();
+        for (String partitionName : customizeView.getPartitionSet()) {
+          Map<String, String> stateMap = customizeView.getStateMap(partitionName);
           for (String instanceName : stateMap.keySet()) {
             String customizedState = stateMap.get(instanceName);
             if (instanceConfigMap.containsKey(instanceName)) {

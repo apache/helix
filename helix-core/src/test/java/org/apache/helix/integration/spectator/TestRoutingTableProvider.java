@@ -315,78 +315,11 @@ public class TestRoutingTableProvider extends ZkTestBase {
 
     Map<String, Map<String, RoutingTableSnapshot>> routingTableSnapshots =
         routingTableProvider.getRoutingTableSnapshots();
-
     Assert.assertEquals(routingTableSnapshots.size(), 2);
     Assert.assertEquals(routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).size(), 2);
     routingTableProvider.shutdown();
   }
 
-  @Test(dependsOnMethods = "testGetRoutingTableSnapshot")
-  public void testSnapshotContents() throws Exception {
-    Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
-    sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA", "typeB"));
-    RoutingTableProvider routingTableProvider =
-        new RoutingTableProvider(_spectator, sourceDataTypes);
-
-    CustomizedView customizedView1 = new CustomizedView("Resource1");
-    customizedView1.setState("p1", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT),
-        "testState1");
-    customizedView1.setState("p1", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 1),
-        "testState1");
-    customizedView1.setState("p2", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT),
-        "testState2");
-    customizedView1.setState("p3", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 1),
-        "testState3");
-    String customizedViewPath1 =
-        PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeA", "Resource1");
-
-    CustomizedView customizedView2 = new CustomizedView("Resource2");
-    customizedView2.setState("p1", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 2),
-        "testState3");
-    customizedView2.setState("p1", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 1),
-        "testState2");
-    customizedView2.setState("p2", PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 2),
-        "testState2");
-    String customizedViewPath2 =
-        PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeB", "Resource2");
-
-    _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath1,
-        customizedView1.getRecord(), AccessOption.PERSISTENT);
-    _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath2,
-        customizedView2.getRecord(), AccessOption.PERSISTENT);
-    // Check resources are in a correct state
-    boolean isRoutingTableUpdatedProperly = TestHelper.verify(() -> {
-      Set<InstanceConfig> instanceConfigsResource1TypeAState1 = routingTableProvider
-          .getInstances("Resource1", "testState1", PropertyType.CUSTOMIZEDVIEW, "typeA");
-      Set<InstanceConfig> instanceConfigsResource1TypeAState2 = routingTableProvider
-          .getInstances("Resource1", "testState2", PropertyType.CUSTOMIZEDVIEW, "typeA");
-      Set<InstanceConfig> instanceConfigsResource1TypeAState3 = routingTableProvider
-          .getInstances("Resource1", "testState3", PropertyType.CUSTOMIZEDVIEW, "typeA");
-      Set<InstanceConfig> instanceConfigsResource2TypeBState2 = routingTableProvider
-          .getInstances("Resource2", "testState2", PropertyType.CUSTOMIZEDVIEW, "typeB");
-      Set<InstanceConfig> instanceConfigsResource2TypeBState3 = routingTableProvider
-          .getInstances("Resource2", "testState3", PropertyType.CUSTOMIZEDVIEW, "typeB");
-      return (instanceConfigsResource1TypeAState1.size() == 2
-          && instanceConfigsResource1TypeAState2.size() == 1
-          && instanceConfigsResource1TypeAState3.size() == 1
-          && instanceConfigsResource2TypeBState2.size() == 2
-          && instanceConfigsResource2TypeBState3.size() == 1);
-    }, TestHelper.WAIT_DURATION);
-    Assert.assertTrue(isRoutingTableUpdatedProperly);
-
-    // Check {resource,partition,state} of routingTableProvider is correct
-    List<InstanceConfig> instanceConfigsResource1TypeAState1 = routingTableProvider
-        .getInstances("Resource1", "p1", "testState1", PropertyType.CUSTOMIZEDVIEW, "typeA");
-
-    List<String> correctInstanceConfigName =
-        Arrays.asList(PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT),
-            PARTICIPANT_PREFIX + "_" + (PARTICIPANT_START_PORT + 1));
-    for (InstanceConfig instanceConfig : instanceConfigsResource1TypeAState1) {
-      Assert.assertTrue(correctInstanceConfigName.contains(instanceConfig.getInstanceName()));
-
-    }
-    routingTableProvider.shutdown();
-  }
 
   private void validateRoutingTable(RoutingTableProvider routingTableProvider,
       Set<String> masterNodes, Set<String> slaveNodes) {

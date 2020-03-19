@@ -176,7 +176,7 @@ public class RoutingTableSnapshot {
   }
 
   /**
-   * Return the Type associated with thi RoutingTableSnapshot (mainly used for CustomizedView)
+   * Return the Type associated with the RoutingTableSnapshot (mainly used for CustomizedView)
    * @return
    */
   public String getCustomizedStateType() {

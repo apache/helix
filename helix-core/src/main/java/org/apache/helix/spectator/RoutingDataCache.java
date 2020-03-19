@@ -69,9 +69,9 @@ class RoutingDataCache extends BasicClusterDataCache {
     _sourceDataTypeMap = sourceDataTypeMap;
     _currentStateCache = new CurrentStateCache(clusterName);
     _customizedViewCaches = new HashMap<>();
-    for (String customizedStateType : sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
-      _customizedViewCaches.put(customizedStateType, new CustomizedViewCache(clusterName, customizedStateType));
-    }
+    sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())
+        .forEach(customizedStateType -> _customizedViewCaches.put(customizedStateType,
+            new CustomizedViewCache(clusterName, customizedStateType)));
     _targetExternalViewCache = new TargetExternalViewCache(clusterName);
     requireFullRefresh();
   }

@@ -22,7 +22,6 @@ package org.apache.helix.spectator;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,8 +142,34 @@ public class RoutingTableProvider
     _sourceDataTypeMap = sourceDataTypeMap;
     _routingTableChangeListenerMap = new ConcurrentHashMap<>();
     String clusterName = _helixManager != null ? _helixManager.getClusterName() : null;
-    _routerUpdater = new RouterUpdater(clusterName, sourceDataTypeMap);
-    _routerUpdater.start();
+
+    // Initialize the tables
+    for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+      if (_sourceDataTypeMap.get(propertyType).size() == 0) {
+        if (propertyType.equals(PropertyType.CUSTOMIZEDVIEW)) {
+          throw new HelixException("CustomizedView has been used without any aggregation type!");
+        }
+        String key = generateReferenceKey(propertyType.name(),  DEFAULT_STATE_TYPE);
+        if (_routingTableRefMap.get(key) == null) {
+          _routingTableRefMap.put(key, new AtomicReference<>(new RoutingTable(propertyType)));
+        }
+      } else {
+        if (!propertyType.equals(PropertyType.CUSTOMIZEDVIEW)) {
+          throw new HelixException(
+              String.format("Type %s has been used in addition to the propertyType %s !",
+                  sourceDataTypeMap.get(propertyType), propertyType.name()));
+        }
+        for (String customizedStateType : _sourceDataTypeMap.get(propertyType)) {
+          String key = generateReferenceKey(propertyType.name(),  customizedStateType);
+          if (_routingTableRefMap.get(key) == null) {
+            _routingTableRefMap.put(key, new AtomicReference<>(
+                new CustomizedViewRoutingTable(propertyType, customizedStateType)));
+          }
+        }
+      }
+    }
+
+    // Start Monitoring
     _monitorMap = new HashMap<>();
 
     for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
@@ -157,23 +182,11 @@ public class RoutingTableProvider
     }
     _reportExecutor = Executors.newSingleThreadExecutor();
 
-    for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
-      if (_sourceDataTypeMap.get(propertyType).size() == 0) {
-        String key = generateReferenceKey(propertyType.name(),  DEFAULT_STATE_TYPE);
-        if (_routingTableRefMap.get(key) == null) {
-          _routingTableRefMap.put(key, new AtomicReference<>(new RoutingTable(propertyType)));
-        }
-      } else {
-        for (String customizedStateType : _sourceDataTypeMap.get(propertyType)) {
-          String key = generateReferenceKey(propertyType.name(),  customizedStateType);
-          if (_routingTableRefMap.get(key) == null) {
-            _routingTableRefMap.put(key, new AtomicReference<>(
-                new CustomizedViewRoutingTable(propertyType, customizedStateType)));
-          }
-        }
-      }
-    }
+    // Start Updaters
+    _routerUpdater = new RouterUpdater(clusterName, sourceDataTypeMap);
+    _routerUpdater.start();
 
+    // Add listeners
     addListeners();
 
     // For periodic refresh
@@ -213,7 +226,6 @@ public class RoutingTableProvider
             _helixManager.addExternalViewChangeListener(this);
           } catch (Exception e) {
             shutdown();
-            logger.error("Failed to attach ExternalView Listener to HelixManager!");
             throw new HelixException("Failed to attach ExternalView Listener to HelixManager!", e);
           }
           break;
@@ -224,8 +236,6 @@ public class RoutingTableProvider
               _helixManager.addCustomizedViewChangeListener(this, customizedStateType);
             } catch (Exception e) {
               shutdown();
-              logger.error("Failed to attach CustomizedView Listener to HelixManager for type {}!",
-                  customizedStateType);
               throw new HelixException(String.format(
                   "Failed to attach CustomizedView Listener to HelixManager for type %s!",
                   customizedStateType), e);
@@ -245,7 +255,6 @@ public class RoutingTableProvider
             _helixManager.addTargetExternalViewChangeListener(this);
           } catch (Exception e) {
             shutdown();
-            logger.error("Failed to attach TargetExternalView Listener to HelixManager!");
             throw new HelixException(
                 "Failed to attach TargetExternalView Listener to HelixManager!", e);
           }
@@ -262,8 +271,6 @@ public class RoutingTableProvider
         _helixManager.addLiveInstanceChangeListener(this);
       } catch (Exception e) {
         shutdown();
-        logger.error(
-            "Failed to attach InstanceConfig and LiveInstance Change listeners to HelixManager!");
         throw new HelixException(
             "Failed to attach InstanceConfig and LiveInstance Change listeners to HelixManager!",
             e);
@@ -343,8 +350,7 @@ public class RoutingTableProvider
    * @return snapshot of current routing table.
    */
   public RoutingTableSnapshot getRoutingTableSnapshot() {
-      String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-      return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+    return new RoutingTableSnapshot(getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE));
   }
 
   /**
@@ -353,9 +359,8 @@ public class RoutingTableProvider
    * called.
    * @return snapshot of current routing table.
    */
-  public RoutingTableSnapshot getRoutingTableSnapshot (PropertyType propertyType) {
-    String key = getRoutingTableKey(propertyType.name(), DEFAULT_STATE_TYPE);
-    return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+  public RoutingTableSnapshot getRoutingTableSnapshot(PropertyType propertyType) {
+    return new RoutingTableSnapshot(getRoutingTableRef(propertyType.name(), DEFAULT_STATE_TYPE));
   }
 
   /**
@@ -364,8 +369,7 @@ public class RoutingTableProvider
    * @return snapshot associated with specific propertyType and type.
    */
   public RoutingTableSnapshot getRoutingTableSnapshot(PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return new RoutingTableSnapshot(_routingTableRefMap.get(key).get());
+    return new RoutingTableSnapshot(getRoutingTableRef(propertyType.name(), stateType));
   }
 
   /**
@@ -382,7 +386,8 @@ public class RoutingTableProvider
       if (!snapshots.containsKey(propertyTypeName)) {
         snapshots.put(propertyTypeName, new HashMap<>());
       }
-      snapshots.get(propertyTypeName).put(customizedStateType, new RoutingTableSnapshot(routingTable));
+      snapshots.get(propertyTypeName).put(customizedStateType,
+          new RoutingTableSnapshot(routingTable));
     }
     return snapshots;
   }
@@ -425,22 +430,6 @@ public class RoutingTableProvider
   }
 
   /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns the instances for {resource group,partition} pair contains any of the given tags that
-   * are in a specific {state}.
-   * @param resourceName
-   * @param partitionName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public List<InstanceConfig> getInstances(String resourceName, String partitionName, String state,
-      PropertyType propertyType, String stateType) {
-    return getInstancesForResource(resourceName, partitionName, state, propertyType, stateType);
-  }
-
-  /**
    * returns the instances for {resource,partition} pair that are in a specific {state}
    * @param resourceName
    * @param partitionName
@@ -449,26 +438,8 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
       String state) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, partitionName,
-        state);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns the instances for {resource,partition} pair that are in a specific {state}
-   * @param resourceName
-   * @param partitionName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public List<InstanceConfig> getInstancesForResource(String resourceName, String partitionName,
-      String state, PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, partitionName,
-        state);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResource(resourceName, partitionName, state);
   }
 
   /**
@@ -483,27 +454,8 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
-        partitionName, state);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns the instances for {resource group,partition} pair in all resources belongs to the given
-   * resource group that are in a specific {state}.
-   * @param resourceGroupName
-   * @param partitionName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
-      String partitionName, String state, PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
-        partitionName, state);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResourceGroup(resourceGroupName, partitionName, state);
   }
 
   /**
@@ -519,29 +471,8 @@ public class RoutingTableProvider
    */
   public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
       String partitionName, String state, List<String> resourceTags) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
-        partitionName, state, resourceTags);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns the instances for {resource group,partition} pair contains any of the given tags that
-   * are in a specific {state}.
-   * @param resourceGroupName
-   * @param partitionName
-   * @param state
-   * @param resourceTags
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public List<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName,
-      String partitionName, String state, List<String> resourceTags, PropertyType propertyType,
-      String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName,
-        partitionName, state, resourceTags);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResourceGroup(resourceGroupName, partitionName, state, resourceTags);
   }
 
   /**
@@ -558,42 +489,14 @@ public class RoutingTableProvider
   }
 
   /**
-   * returns all instances for {resource} that are in a specific {state}
-   * @param resourceName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public Set<InstanceConfig> getInstances(String resourceName, String state,
-      PropertyType propertyType, String stateType) {
-    return getInstancesForResource(resourceName, state, propertyType, stateType);
-  }
-
-  /**
    * returns all instances for {resource} that are in a specific {state}.
    * @param resourceName
    * @param state
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResource(String resourceName, String state) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, state);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns all instances for {resource} that are in a specific {state}.
-   * @param resourceName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public Set<InstanceConfig> getInstancesForResource(String resourceName, String state,
-      PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResource(resourceName, state);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResource(resourceName, state);
   }
 
   /**
@@ -603,23 +506,8 @@ public class RoutingTableProvider
    * @return empty list if there is no instance in a given state
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns all instances for all resources in {resource group} that are in a specific {state}
-   * @param resourceGroupName
-   * @param state
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
-      PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResourceGroup(resourceGroupName, state);
   }
 
   /**
@@ -631,26 +519,8 @@ public class RoutingTableProvider
    */
   public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
       List<String> resourceTags) {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state,
-        resourceTags);
-  }
-
-  /**
-   * For specific routing table associated with {propertyType, stateType}
-   * returns all instances for resources contains any given tags in {resource group} that are in a specific {state}
-   * @param resourceGroupName
-   * @param state
-   * @param resourceTags
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public Set<InstanceConfig> getInstancesForResourceGroup(String resourceGroupName, String state,
-      List<String> resourceTags, PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getInstancesForResourceGroup(resourceGroupName, state,
-        resourceTags);
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE)
+        .getInstancesForResourceGroup(resourceGroupName, state, resourceTags);
   }
 
   /**
@@ -660,16 +530,9 @@ public class RoutingTableProvider
   public Collection<LiveInstance> getLiveInstances() {
     // Since line instances will be the same across all _routingTableRefMap, here one of the keys
     // will be used without considering PropertyType
-    // TODO each table will keep a separate instance list.This can be improve by only keeping one copy of the data
-    String key = null;
-    Iterator<String> iter = _routingTableRefMap.keySet().iterator();
-    if (iter.hasNext()) {
-      key = iter.next();
-    }
-    if (key == null) {
-      throw new HelixException("There is no key available in this RoutingTableProvider.");
-    }
-    return _routingTableRefMap.get(key).get().getLiveInstances();
+    // TODO each table will keep a separate instance list.This can be improve by only keeping one
+    // copy of the data
+    return _routingTableRefMap.values().iterator().next().get().getLiveInstances();
   }
 
   /**
@@ -680,35 +543,14 @@ public class RoutingTableProvider
     // Since line instances will be the same across all _routingTableRefMap, here one of the keys
     // will be used without considering PropertyType
     // TODO each table will keep a separate instance list.This can be improve by only keeping one copy of the data
-    String key = null;
-    Iterator<String> iter = _routingTableRefMap.keySet().iterator();
-    if (iter.hasNext()) {
-      key = iter.next();
-    }
-    if (key == null) {
-      throw new HelixException("There is no key available in this RoutingTableProvider.");
-    }
-    return _routingTableRefMap.get(key).get().getInstanceConfigs();
+    return _routingTableRefMap.values().iterator().next().get().getInstanceConfigs();
   }
 
   /**
    * Return names of all resources (shown in ExternalView or CustomizedView) in this cluster.
    */
   public Collection<String> getResources() {
-    String key = getRoutingTableKey(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE);
-    return _routingTableRefMap.get(key).get().getResources();
-  }
-
-  /**
-   * For specific RoutingTable associated with {propertyType, stateType}
-   * Return names of all resources (shown in ExternalView or CustomizedView) in this cluster.
-   * @param propertyType
-   * @param stateType
-   * @return
-   */
-  public Collection<String> getResources(PropertyType propertyType, String stateType) {
-    String key = getRoutingTableKey(propertyType.name(), stateType);
-    return _routingTableRefMap.get(key).get().getResources();
+    return getRoutingTableRef(DEFAULT_PROPERTY_TYPE, DEFAULT_STATE_TYPE).getResources();
   }
 
   /**
@@ -717,7 +559,7 @@ public class RoutingTableProvider
    * @param stateType
    * @return
    */
-  private String getRoutingTableKey(String propertyTypeName, String stateType) {
+  private RoutingTable getRoutingTableRef(String propertyTypeName, String stateType) {
     if (propertyTypeName.equals(DEFAULT_PROPERTY_TYPE)) {
       // Check whether there exist only one snapshot (_routingTableRefMap)
       if (_routingTableRefMap.keySet().size() == 1) {
@@ -727,7 +569,7 @@ public class RoutingTableProvider
               String.format("Currently there is no snapshot available for PropertyType %s and stateType %s",
                   propertyTypeName, stateType));
         }
-        return key;
+        return _routingTableRefMap.get(key).get();
       } else {
         throw new HelixException("There is none or more than one RoutingTableSnapshot");
       }
@@ -745,7 +587,7 @@ public class RoutingTableProvider
           String.format("Currently there is no snapshot available for PropertyType %s and stateType %s",
               propertyTypeName, stateType));
     }
-    return key;
+    return _routingTableRefMap.get(key).get();
   }
 
   private String generateReferenceKey(String propertyType, String stateType) {
@@ -826,16 +668,19 @@ public class RoutingTableProvider
       logger.warn(
           "RoutingTableProvider does not use CurrentStates as source, ignore CurrentState changes!");
     }
-    _routerUpdater.queueEvent(changeContext, ClusterEventType.CurrentStateChange,
-        HelixConstants.ChangeType.CURRENT_STATE);
   }
 
   @Override
   @PreFetch(enabled = false)
   public void onCustomizedViewChange(List<CustomizedView> customizedViewList,
       NotificationContext changeContext) {
-    _routerUpdater.queueEvent(changeContext, ClusterEventType.CustomizedViewChange,
-        HelixConstants.ChangeType.CUSTOMIZED_VIEW);
+    if (_sourceDataTypeMap.containsKey(PropertyType.CUSTOMIZEDVIEW)) {
+      _routerUpdater.queueEvent(changeContext, ClusterEventType.CustomizedViewChange,
+          HelixConstants.ChangeType.CUSTOMIZED_VIEW);
+    } else {
+      logger.warn(
+          "RoutingTableProvider does not use CurrentStates as source, ignore CurrentState changes!");
+    }
   }
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions = new AtomicReference<>();
@@ -901,16 +746,16 @@ public class RoutingTableProvider
 
   private void reset() {
     logger.info("Resetting the routing table.");
+    RoutingTable newRoutingTable;
     for (String key: _routingTableRefMap.keySet()) {
       PropertyType propertyType = _routingTableRefMap.get(key).get().getPropertyType();
       if (propertyType == PropertyType.CUSTOMIZEDVIEW) {
         String stateType = _routingTableRefMap.get(key).get().getStateType();
-        RoutingTable newRoutingTable = new CustomizedViewRoutingTable(propertyType, stateType);
-        _routingTableRefMap.get(key).set(newRoutingTable);
+        newRoutingTable = new CustomizedViewRoutingTable(propertyType, stateType);
       } else {
-        RoutingTable newRoutingTable = new RoutingTable(propertyType);
-        _routingTableRefMap.get(key).set(newRoutingTable);
+        newRoutingTable = new RoutingTable(propertyType);
       }
+      _routingTableRefMap.get(key).set(newRoutingTable);
     }
   }
 
@@ -1108,6 +953,10 @@ public class RoutingTableProvider
       event.addAttribute(AttributeName.helixmanager.name(), context.getManager());
       event.addAttribute(AttributeName.changeContext.name(), context);
       queueEvent(event);
+      // TODO: Split the monitor into. One is general router callback tracking. The other one is for
+      // each type of tracking.
+      // TODO: We may need to add more complexity to the customized view monitor for each state
+      // type.
       for (PropertyType propertyType : _monitorMap.keySet()) {
         _monitorMap.get(propertyType).increaseCallbackCounters(_eventQueue.size());
       }

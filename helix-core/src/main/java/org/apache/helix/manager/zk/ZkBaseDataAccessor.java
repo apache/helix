@@ -65,7 +65,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   // Designates which mode ZkBaseDataAccessor should be created in. If not specified, it will be
   // created on SHARED mode.
-  // TODO: move this to RealmAwareZkClient
   public enum ZkClientType {
     /**
      * When ZkBaseDataAccessor is created with the DEDICATED type, it supports ephemeral node

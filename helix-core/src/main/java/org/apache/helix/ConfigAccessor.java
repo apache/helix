@@ -88,26 +88,7 @@ public class ConfigAccessor {
    * @param builder
    */
   private ConfigAccessor(Builder builder) {
-    switch (builder.getRealmMode()) {
-      case MULTI_REALM:
-        try {
-          _zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
-              builder.getRealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Failed to create ConfigAccessor!", e);
-        }
-        break;
-      case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do
-        // ephemeral operations
-        _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                builder.getRealmAwareZkClientConfig().createHelixZkClientConfig()
-                    .setZkSerializer(new ZNRecordSerializer()));
-        break;
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
-    }
+    _zkClient = builder.createZkClientFromBuilder();
     _usesExternalZkClient = false;
   }
 

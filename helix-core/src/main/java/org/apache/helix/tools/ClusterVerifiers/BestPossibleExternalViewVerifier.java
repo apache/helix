@@ -144,9 +144,9 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
             _expectLiveInstances);
       }
 
-      if (getRealmAwareZkConnectionConfig() == null || getRealmAwareZkClientConfig() == null) {
+      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
         // For backward-compatibility
-        return new BestPossibleExternalViewVerifier(getZkAddress(), _clusterName, _resources,
+        return new BestPossibleExternalViewVerifier(_zkAddress, _clusterName, _resources,
             _errStates, _expectLiveInstances);
       }
 
@@ -186,7 +186,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddr() {
-      return getZkAddress();
+      return _zkAddress;
     }
 
     public Builder setZkClient(RealmAwareZkClient zkClient) {

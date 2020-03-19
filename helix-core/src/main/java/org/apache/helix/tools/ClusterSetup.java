@@ -36,7 +36,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
@@ -185,26 +184,7 @@ public class ClusterSetup {
   }
 
   private ClusterSetup(Builder builder) {
-    switch (builder.getRealmMode()) {
-      case MULTI_REALM:
-        try {
-          _zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
-              builder.getRealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
-          break;
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Failed to create ClusterSetup!", e);
-        }
-      case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do
-        // ephemeral operations
-        _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                builder.getRealmAwareZkClientConfig().createHelixZkClientConfig()
-                    .setZkSerializer(new ZNRecordSerializer()));
-        break;
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
-    }
+    _zkClient = builder.createZkClientFromBuilder();
     _admin = new ZKHelixAdmin(_zkClient);
     _usesExternalZkClient = false;
   }

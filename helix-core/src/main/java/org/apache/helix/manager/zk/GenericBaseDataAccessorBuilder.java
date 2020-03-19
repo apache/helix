@@ -19,8 +19,17 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.helix.HelixException;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.api.client.ZkClientType;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 
 
 /**
@@ -30,7 +39,7 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
  */
 public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBuilder<B>> extends GenericZkHelixApiBuilder<B> {
   /** ZK-based BaseDataAccessor-specific parameter **/
-  private ZkBaseDataAccessor.ZkClientType _zkClientType;
+  private ZkClientType _zkClientType;
 
   /**
    * Sets the ZkClientType.
@@ -41,12 +50,13 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
    * @return
    */
   public B setZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType) {
-    _zkClientType = zkClientType;
+    _zkClientType = Enum.valueOf(ZkClientType.class, zkClientType.name());
     return self();
   }
 
-  public ZkBaseDataAccessor.ZkClientType getZkClientType() {
-    return _zkClientType;
+  public B setZkClientType(ZkClientType zkClientType) {
+    _zkClientType = zkClientType;
+    return self();
   }
 
   /**
@@ -55,7 +65,59 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
   @Override
   protected void validate() {
     super.validate();
-    validateZkClientType(_zkClientType, getRealmMode());
+    validateZkClientType(_zkClientType, _realmMode);
+  }
+
+  /**
+   * This method contains construction logic for ZK-based BaseDataAccessor
+   * implementations.
+   * It uses an implementation of GenericBaseDataAccessorBuilder to construct the right
+   * RealmAwareZkClient based on a host of configs provided in the Builder.
+   * @return RealmAwareZkClient
+   */
+  public RealmAwareZkClient createRealmAwareZkClientFromBuilder() {
+    RealmAwareZkClient zkClient;
+    switch (_realmMode) {
+      case MULTI_REALM:
+        try {
+          if (_zkClientType == ZkClientType.DEDICATED) {
+            // Use a realm-aware dedicated zk client
+            zkClient = DedicatedZkClientFactory.getInstance()
+                .buildZkClient(_realmAwareZkConnectionConfig, _realmAwareZkClientConfig);
+          } else if (_zkClientType == ZkClientType.SHARED) {
+            // Use a realm-aware shared zk client
+            zkClient = SharedZkClientFactory.getInstance()
+                .buildZkClient(_realmAwareZkConnectionConfig, _realmAwareZkClientConfig);
+          } else {
+            zkClient =
+                new FederatedZkClient(_realmAwareZkConnectionConfig, _realmAwareZkClientConfig);
+          }
+        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          throw new HelixException("Not able to connect on multi-realm mode.", e);
+        }
+        break;
+
+      case SINGLE_REALM:
+        // Create a HelixZkClient: Use a SharedZkClient because ZkBaseDataAccessor does not need to
+        // do ephemeral operations.
+        if (_zkClientType == ZkClientType.DEDICATED) {
+          // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
+          // operations
+          zkClient = DedicatedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddress),
+                  _realmAwareZkClientConfig.createHelixZkClientConfig());
+        } else {
+          zkClient = SharedZkClientFactory.getInstance()
+              .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddress),
+                  _realmAwareZkClientConfig.createHelixZkClientConfig());
+          zkClient
+              .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+        break;
+      default:
+        throw new HelixException("Invalid RealmMode given: " + _realmMode);
+    }
+    return zkClient;
   }
 
   /**
@@ -63,7 +125,7 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
    * @param zkClientType
    * @param realmMode
    */
-  private void validateZkClientType(ZkBaseDataAccessor.ZkClientType zkClientType,
+  private void validateZkClientType(ZkClientType zkClientType,
       RealmAwareZkClient.RealmMode realmMode) {
     boolean isZkClientTypeSet = zkClientType != null;
     // If ZkClientType is set, RealmMode must either be single-realm or not set.
@@ -72,10 +134,10 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
     }
     // If ZkClientType is not set and realmMode is single-realm, default to SHARED
     if (!isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
-      zkClientType = ZkBaseDataAccessor.ZkClientType.SHARED;
+      zkClientType = ZkClientType.SHARED;
     }
     if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
-        && zkClientType == ZkBaseDataAccessor.ZkClientType.FEDERATED) {
+        && zkClientType == ZkClientType.FEDERATED) {
       throw new HelixException("FederatedZkClient cannot be set on single-realm mode!");
     }
   }

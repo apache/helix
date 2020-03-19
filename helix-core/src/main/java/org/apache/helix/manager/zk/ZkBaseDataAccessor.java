@@ -142,7 +142,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   private ZkBaseDataAccessor(Builder<T> builder) {
-    _zkClient = buildRealmAwareZkClientFromBuilder(builder);
+    _zkClient = builder.createRealmAwareZkClientFromBuilder();
     _usesExternalZkClient = false;
   }
 
@@ -1353,63 +1353,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         zkClient
             .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         break;
-    }
-    return zkClient;
-  }
-
-  /**
-   * This method contains construction logic (business logic) for ZK-based BaseDataAccessor
-   * implementations.
-   * It uses an implementation of GenericBaseDataAccessorBuilder to construct the right
-   * RealmAwareZkClient based on a host of configs provided in the Builder.
-   * @param builder
-   * @param <B>
-   * @return
-   */
-  static <B extends GenericBaseDataAccessorBuilder<B>> RealmAwareZkClient buildRealmAwareZkClientFromBuilder(
-      B builder) {
-    RealmAwareZkClient zkClient;
-    switch (builder.getRealmMode()) {
-      case MULTI_REALM:
-        try {
-          if (builder.getZkClientType() == ZkClientType.DEDICATED) {
-            // Use a realm-aware dedicated zk client
-            zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
-                    builder.getRealmAwareZkClientConfig());
-          } else if (builder.getZkClientType() == ZkClientType.SHARED) {
-            // Use a realm-aware shared zk client
-            zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(builder.getRealmAwareZkConnectionConfig(),
-                    builder.getRealmAwareZkClientConfig());
-          } else {
-            zkClient = new FederatedZkClient(builder.getRealmAwareZkConnectionConfig(),
-                builder.getRealmAwareZkClientConfig());
-          }
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Not able to connect on multi-realm mode.", e);
-        }
-        break;
-
-      case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ZkBaseDataAccessor does not need to
-        // do ephemeral operations.
-        if (builder.getZkClientType() == ZkClientType.DEDICATED) {
-          // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
-          // operations
-          zkClient = DedicatedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                  builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
-        } else {
-          zkClient = SharedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.getZkAddress()),
-                  builder.getRealmAwareZkClientConfig().createHelixZkClientConfig());
-          zkClient
-              .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
-        }
-        break;
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder.getRealmMode());
     }
     return zkClient;
   }

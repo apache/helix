@@ -112,9 +112,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
             _expectLiveInstances, _isDeactivatedNodeAware);
       }
 
-      if (getRealmAwareZkConnectionConfig() == null || getRealmAwareZkClientConfig() == null) {
+      if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
         // For backward-compatibility
-        return new StrictMatchExternalViewVerifier(getZkAddress(), _clusterName, _resources,
+        return new StrictMatchExternalViewVerifier(_zkAddress, _clusterName, _resources,
             _expectLiveInstances, _isDeactivatedNodeAware);
       }
 
@@ -149,7 +149,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     }
 
     public String getZkAddress() {
-      return super.getZkAddress();
+      return _zkAddress;
     }
 
     @Deprecated
@@ -169,7 +169,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     protected void validate() {
       super.validate();
-      if (!_clusterName.equals(getRealmAwareZkConnectionConfig().getZkRealmShardingKey())) {
+      if (!_clusterName.equals(_realmAwareZkConnectionConfig.getZkRealmShardingKey())) {
         throw new IllegalArgumentException(
             "StrictMatchExternalViewVerifier: Cluster name: " + _clusterName
                 + " and ZK realm sharding key: " + getRealmAwareZkConnectionConfig()

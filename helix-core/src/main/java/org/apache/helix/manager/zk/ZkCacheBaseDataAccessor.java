@@ -140,7 +140,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
    * @param builder
    */
   private ZkCacheBaseDataAccessor(Builder<T> builder) {
-    _zkClient = ZkBaseDataAccessor.buildRealmAwareZkClientFromBuilder(builder);
+    _zkClient = builder.createRealmAwareZkClientFromBuilder();
     _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     _chrootPath = builder._chrootPath;

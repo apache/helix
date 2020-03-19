@@ -19,7 +19,6 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 

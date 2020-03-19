@@ -35,7 +35,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
@@ -50,6 +49,7 @@ import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -122,7 +122,9 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * 5. send messages
  */
 public class GenericHelixController implements IdealStateChangeListener, LiveInstanceChangeListener,
-    MessageListener, CurrentStateChangeListener, CustomizedStateChangeListener,
+                                               MessageListener, CurrentStateChangeListener,
+                                               CustomizedStateRootChangeListener,
+                                               CustomizedStateChangeListener,
     CustomizedStateConfigChangeListener, ControllerChangeListener,
     InstanceConfigChangeListener, ResourceConfigChangeListener, ClusterConfigChangeListener {
   private static final Logger logger =
@@ -810,6 +812,27 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   }
 
   @Override
+  public void onCustomizedStateRootChange(String instanceName, NotificationContext changeContext) {
+    logger.info("START: GenericClusterController.onCustomizedStateRootChange()");
+    notifyCaches(changeContext, ChangeType.CUSTOMIZED_STATE_ROOT);
+    HelixManager manager = changeContext.getManager();
+    List<String> customizedStateTypes =
+        manager.getHelixDataAccessor().getChildNames(
+        manager.getHelixDataAccessor().keyBuilder().customizedStatesRoot(instanceName));
+
+    for (String customizedState : customizedStateTypes) {
+      try {
+        manager.addCustomizedStateChangeListener(this, instanceName, customizedState);
+        logger.info(
+            manager.getInstanceName() + " added customized state listener for " + instanceName
+                + ", listener: " + this);
+      } catch (Exception e) {
+        logger.error("Fail to add customized state listener for instance: " + instanceName, e);
+      }
+    }
+  }
+
+  @Override
   @PreFetch(enabled = false)
   public void onCustomizedStateChange(String instanceName, List<CustomizedState> statesInfo,
       NotificationContext changeContext) {
@@ -949,22 +972,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   public void onCustomizedStateConfigChange(
       CustomizedStateConfig customizedStateConfig,
       NotificationContext context) {
-    HelixManager helixManager = context.getManager();
-    // add customized state listeners for existing instances
-    List<String> customizedStates = getEnabledCustomizedStates(helixManager);
-
-    Map<String, LiveInstance> liveInstanceMap = helixManager.getHelixDataAccessor()
-        .getChildValuesMap(helixManager.getHelixDataAccessor().keyBuilder().liveInstances());
-
-    List<String> liveInstances = liveInstanceMap.values().stream()
-        .map(liveInstance -> liveInstance.getInstanceName()).collect(Collectors.toList());
-
-    for (String customizedState : customizedStates) {
-      for (String instance : liveInstances) {
-        addCustomizedStateListeners(helixManager, customizedState, instance);
-      }
-    }
-
     logger.info(
         "START: GenericClusterController.onCustomizedStateConfigChange() for cluster "
             + _clusterName);
@@ -1149,12 +1156,17 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         }
       }
 
-      List<String> customizedStates = getEnabledCustomizedStates(manager);
-      for (String customizedState: customizedStates) {
         for (String instance : curInstances.keySet()) {
           if (lastInstances == null || !lastInstances.containsKey(instance)) {
-            addCustomizedStateListeners(manager, customizedState, instance);
-          }
+            try {
+              manager.addCustomizedStateRootChangeListener(this, instance);
+              logger.info(manager.getInstanceName() + " added customized root change listener for"
+                  + " " + instance
+                  + ", listener: " + this);
+            } catch (Exception e) {
+              logger.error("Fail to add customized root change listener for instance: " + instance,
+                  e);
+            }
         }
       }
 
@@ -1331,12 +1343,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   private void addCustomizedStateListeners(HelixManager manager, String customizedState,
       String instance) {
-    try {
-      manager.addCustomizedStateChangeListener(this, instance, customizedState);
-      logger.info(manager.getInstanceName() + " added customized state listener for " + instance
-          + ", listener: " + this);
-    } catch (Exception e) {
-      logger.error("Fail to add customized state listener for instance: " + instance, e);
-    }
+
   }
 }

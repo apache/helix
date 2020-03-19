@@ -51,6 +51,7 @@ import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
@@ -84,6 +85,7 @@ import static org.apache.helix.HelixConstants.ChangeType.CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE_ROOT;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_VIEW;
 import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
 import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
@@ -292,6 +294,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       case CURRENT_STATE:
         listenerClass = CurrentStateChangeListener.class;
         break;
+      case CUSTOMIZED_STATE_ROOT:
+        listenerClass = CustomizedStateRootChangeListener.class;
       case CUSTOMIZED_STATE:
         listenerClass = CustomizedStateChangeListener.class;
         break;
@@ -441,6 +445,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         List<CurrentState> currentStates = preFetch(_propertyKey);
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
+
+      } else if (_changeType == CUSTOMIZED_STATE_ROOT) {
+        CustomizedStateRootChangeListener customizedStateRootChangeListener =
+            (CustomizedStateRootChangeListener) _listener;
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+        customizedStateRootChangeListener.onCustomizedStateRootChange(instanceName,
+            changeContext);
 
       } else if (_changeType == CUSTOMIZED_STATE) {
         CustomizedStateChangeListener customizedStateChangeListener =

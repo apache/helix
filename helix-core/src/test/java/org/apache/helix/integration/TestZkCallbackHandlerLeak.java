@@ -98,7 +98,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         // System.out.println("controller watch paths: " + watchPaths);
 
         // where n is number of nodes and r is number of resources
-        return watchPaths.size() == (8 + r + ( 4 + r) * n);
+        return watchPaths.size() == (8 + r + ( 5 + r) * n);
       }
     }, 2000);
     Assert.assertTrue(result, "Controller has incorrect number of zk-watchers.");
@@ -123,8 +123,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // printHandlers(participantManagerToExpire);
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 12,
-        "HelixController should have 10 (5+2n) callback handlers for 2 (n) participant");
+    Assert.assertEquals(controllerHandlerNb, 14,
+        "HelixController should have 14 (8+3n) callback handlers for 2 (n) participant");
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
@@ -153,7 +153,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         // System.out.println("controller watch paths after session expiry: " + watchPaths);
 
         // where n is number of nodes and r is number of resources
-        return watchPaths.size() == (8 + r + ( 4 + r) * n);
+        return watchPaths.size() == (8 + r + ( 5 + r) * n);
       }
     }, 2000);
     Assert.assertTrue(result, "Controller has incorrect number of zk-watchers after session expiry.");
@@ -247,8 +247,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 8 + 2 * n,
-        "HelixController should have 10 (6+2n) callback handlers for 2 participant, but was "
+    Assert.assertEquals(controllerHandlerNb, 8 + 3 * n,
+        "HelixController should have 14 (8+3n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + printHandlers(controller));
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
@@ -276,7 +276,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         System.err.println("controller watch paths after session expiry: " + watchPaths.size());
 
         // where r is number of resources and n is number of nodes
-        int expected = (8 + r + (4 + r) * n);
+        int expected = (8 + r + (5 + r) * n);
         return watchPaths.size() == expected;
       }
     }, 2000);

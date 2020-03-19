@@ -468,10 +468,13 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       registry
           .register(ClusterEventType.OnDemandRebalance, dataRefresh, autoExitMaintenancePipeline,
               dataPreprocess, externalViewPipeline, rebalancePipeline);
+      // TODO: We now include rebalance pipeline in customized state change for correctness.
+      // However, it is not efficient, and we should improve this by splitting the pipeline or
+      // controller roles to multiple hosts.
       registry.register(ClusterEventType.CustomizedStateChange, dataRefresh, dataPreprocess,
-          externalViewPipeline, customizedViewPipeline, rebalancePipeline);
-      registry.register(ClusterEventType.CustomizeStateAggregationConfigChange, dataRefresh,
-          dataPreprocess, externalViewPipeline, customizedViewPipeline, rebalancePipeline);
+          customizedViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.CustomizeStateConfigChange, dataRefresh, dataPreprocess,
+          customizedViewPipeline, rebalancePipeline);
       return registry;
     }
   }
@@ -966,7 +969,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         "START: GenericClusterController.onCustomizedStateConfigChange() for cluster "
             + _clusterName);
     notifyCaches(context, ChangeType.CUSTOMIZED_STATE_CONFIG);
-    pushToEventQueues(ClusterEventType.CustomizeStateAggregationConfigChange, context,
+    pushToEventQueues(ClusterEventType.CustomizeStateConfigChange, context,
         Collections.<String, Object> emptyMap());
     logger.info(
         "END: GenericClusterController.onCustomizedStateConfigChange() for cluster "
@@ -1323,7 +1326,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     if (customizedStateConfig != null) {
       return customizedStateConfig.getAggregationEnabledTypes();
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 
   private void addCustomizedStateListeners(HelixManager manager, String customizedState,

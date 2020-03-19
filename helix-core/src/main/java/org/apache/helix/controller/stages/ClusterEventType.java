@@ -27,7 +27,7 @@ public enum ClusterEventType {
   ClusterConfigChange,
   ResourceConfigChange,
   InstanceConfigChange,
-  CustomizeStateAggregationConfigChange,
+  CustomizeStateConfigChange,
   LiveInstanceChange,
   MessageChange,
   ExternalViewChange,

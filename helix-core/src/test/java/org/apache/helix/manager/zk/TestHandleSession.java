@@ -28,25 +28,29 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestHandleNewSession extends ZkTestBase {
+public class TestHandleSession extends ZkTestBase {
+  private static final String _className = TestHelper.getTestClassName();
+
   @Test
   public void testHandleNewSession() throws Exception {
-    String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
+    String clusterName = _className + "_" + methodName;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -191,9 +195,8 @@ public class TestHandleNewSession extends ZkTestBase {
    */
   @Test(timeOut = 5 * 60 * 1000L)
   public void testDiscardExpiredSessions() throws Exception {
-    final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
+    final String clusterName = _className + "_" + methodName;
 
     final ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(ZK_ADDR));
@@ -314,9 +317,8 @@ public class TestHandleNewSession extends ZkTestBase {
    */
   @Test
   public void testSessionExpiredWhenResetHandlers() throws Exception {
-    final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
+    final String clusterName = _className + "_" + methodName;
 
     final ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(ZK_ADDR));
@@ -466,6 +468,79 @@ public class TestHandleNewSession extends ZkTestBase {
     deleteCluster(clusterName);
   }
 
+  @Test
+  public void testConcurrentInitCallbackHandlers() throws Exception {
+    final String clusterName =
+        CLUSTER_PREFIX + "_" + _className + "_" + TestHelper.getTestMethodName();
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    final String spectatorName = "testConcurrentHandlerChangeSpectator";
+    try {
+      BlockingHandleNewSessionZkHelixManager helixManager =
+          new BlockingHandleNewSessionZkHelixManager(clusterName, spectatorName,
+              InstanceType.SPECTATOR, _gZkClient.getServers());
+      helixManager.connect();
+      // Add two mock listeners that will add more callback handlers while handling INIT or CALLBACK event.
+      // Note that we have to test with 2 separate listeners so one of them has a chance to fail if
+      // there is a concurrent modification exception.
+      helixManager.addLiveInstanceChangeListener(
+          (LiveInstanceChangeListener) (liveInstances, changeContext) -> {
+            if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
+              for (LiveInstance liveInstance : liveInstances) {
+                if (liveInstance.getInstanceName().equals("localhost_1")) {
+                  try {
+                    helixManager.addCurrentStateChangeListener(
+                        (CurrentStateChangeListener) (instanceName, statesInfo, currentStateChangeContext) -> {
+                          // empty callback
+                        }, liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
+                  } catch (Exception e) {
+                    throw new HelixException(
+                        "Unexpected exception in the testConcurrentHandlerProcessing.", e);
+                  }
+                }
+              }
+            }
+          });
+      helixManager.addLiveInstanceChangeListener(
+          (LiveInstanceChangeListener) (liveInstances, changeContext) -> {
+            if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
+              for (LiveInstance liveInstance : liveInstances) {
+                if (liveInstance.getInstanceName().equals("localhost_2")) {
+                  try {
+                    helixManager.addCurrentStateChangeListener(
+                        (CurrentStateChangeListener) (instanceName, statesInfo, currentStateChangeContext) -> {
+                          // empty callback
+                        }, liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
+                  } catch (Exception e) {
+                    throw new HelixException(
+                        "Unexpected exception in the testConcurrentHandlerProcessing.", e);
+                  }
+                }
+              }
+            }
+          });
+      // Session expire will trigger all callbacks to be init. And the injected liveInstance
+      // listener will trigger more callbackhandlers to be registered during the init process.
+      ZkTestHelper.asyncExpireSession(helixManager.getZkClient());
+      // Create mock live instance znodes to trigger the internal callback handling logic which will
+      // modify the handler list.
+      setupLiveInstances(clusterName, new int[] { 1, 2 });
+      // Start new session handling so the manager will call the initHandler() for initializing all
+      // existing handlers.
+      helixManager.proceedNewSessionHandling();
+      // Ensure the new session has been processed.
+      TestHelper.verify(() -> helixManager.getHandleNewSessionEndTime() != 0, 3000);
+      // Verify that both new mock current state callback handlers have been initialized normally.
+      // Note that if there is concurrent modification that cause errors, one of the callback will
+      // not be initialized normally.
+      for (CallbackHandler handler : helixManager.getHandlers()) {
+        Assert.assertTrue(handler.isReady(),
+            "CallbackHandler is not initialized as expected. It might be caused by a ConcurrentModificationException");
+      }
+    } finally {
+      TestHelper.dropCluster(clusterName, _gZkClient);
+    }
+  }
+
   static class BlockingHandleNewSessionZkHelixManager extends ZKHelixManager {
     private final Semaphore newSessionHandlingCount = new Semaphore(1);
     private long handleNewSessionStartTime = 0L;
@@ -485,6 +560,8 @@ public class TestHandleNewSession extends ZkTestBase {
     }
 
     void proceedNewSessionHandling() {
+      handleNewSessionStartTime = 0L;
+      handleNewSessionEndTime = 0L;
       newSessionHandlingCount.release();
     }
 

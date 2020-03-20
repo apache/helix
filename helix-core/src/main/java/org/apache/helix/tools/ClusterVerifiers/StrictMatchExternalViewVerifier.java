@@ -78,20 +78,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  @Deprecated
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkClient, clusterName);
-    _resources = resources;
-    _expectLiveInstances = expectLiveInstances;
+    _resources = new HashSet<>(resources);
+    _expectLiveInstances = new HashSet<>(expectLiveInstances);
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
-  }
-
-  private StrictMatchExternalViewVerifier(Builder builder) {
-    super(builder);
-    _resources = new HashSet<>(builder._resources);
-    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
-    _isDeactivatedNodeAware = builder._isDeactivatedNodeAware;
   }
 
   public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
@@ -119,7 +111,10 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       validate();
-      return new StrictMatchExternalViewVerifier(this);
+      return new StrictMatchExternalViewVerifier(
+          createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _resources,
+          _expectLiveInstances, _isDeactivatedNodeAware);
     }
 
     public Builder(String clusterName) {

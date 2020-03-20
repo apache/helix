@@ -38,9 +38,10 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
     _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
-  private ClusterLiveNodesVerifier(Builder builder) {
-    super(builder);
-    _expectLiveNodes = new HashSet<>(builder._expectLiveNodes);
+  private ClusterLiveNodesVerifier(RealmAwareZkClient zkClient, String clusterName,
+      Set<String> expectLiveNodes) {
+    super(zkClient, clusterName);
+    _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
   @Override
@@ -73,7 +74,9 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
       }
 
       validate();
-      return new ClusterLiveNodesVerifier(this);
+      return new ClusterLiveNodesVerifier(
+          createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _expectLiveNodes);
     }
   }
 }

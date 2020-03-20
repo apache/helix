@@ -365,7 +365,7 @@ public abstract class ZkHelixClusterVerifier
     protected void validate() {
       // Validate that either ZkAddress or ZkRealmShardingKey is set
       if (_zkAddress == null || _zkAddress.isEmpty()) {
-        if (_realmAwareZkClientConfig == null
+        if (_realmAwareZkConnectionConfig == null
             || _realmAwareZkConnectionConfig.getZkRealmShardingKey() == null
             || _realmAwareZkConnectionConfig.getZkRealmShardingKey().isEmpty()) {
           throw new IllegalArgumentException(

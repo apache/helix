@@ -812,6 +812,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   }
 
   @Override
+  @PreFetch(enabled = false)
   public void onCustomizedStateRootChange(String instanceName, NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onCustomizedStateRootChange()");
     notifyCaches(changeContext, ChangeType.CUSTOMIZED_STATE_ROOT);
@@ -1124,6 +1125,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           if (!curInstances.containsKey(instance)) {
             // remove message listener for disconnected instances
             manager.removeListener(keyBuilder.messages(instance), this);
+            // remove customized state root listener for disconnected instances
+            manager.removeListener(keyBuilder.customizedStatesRoot(instance), this);
           }
         }
       }

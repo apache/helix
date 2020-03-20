@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
@@ -70,6 +72,7 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(IDEALSTATES, IdealState.class);
     typeToClassMapping.put(CONFIGS, InstanceConfig.class);
     typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
+    typeToClassMapping.put(CUSTOMIZEDVIEW, CustomizedView.class);
     typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
     typeToClassMapping.put(MESSAGES, Message.class);
     typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
@@ -94,6 +97,10 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 3, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}/{resourceName}");
+
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,
         "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
@@ -269,7 +276,7 @@ public class PropertyPathBuilder {
   public static String externalView(String clusterName, String resourceName) {
     return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
   }
-
+  
   public static String targetExternalView(String clusterName) {
     return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
   }

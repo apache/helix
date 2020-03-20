@@ -20,7 +20,23 @@ package org.apache.helix.zookeeper.api.client;
  */
 
 public enum ZkClientType {
+  /**
+   * If a Helix API is created with the DEDICATED type, it supports ephemeral node
+   * creation, callback functionality, and session management. But note that this is more
+   * resource-heavy since it creates a dedicated ZK connection so should be used sparingly only
+   * when the aforementioned features are needed.
+   */
   DEDICATED,
+
+  /**
+   * If a Helix API is created with the SHARED type, it only supports CRUD
+   * functionalities. This will be the default mode of creation.
+   */
   SHARED,
+
+  /**
+   * Uses FederatedZkClient (applicable on multi-realm mode only) that queries Metadata Store
+   * Directory Service for routing data.
+   */
   FEDERATED
 }

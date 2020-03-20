@@ -57,10 +57,6 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
     return self();
   }
 
-  public RealmAwareZkClient.RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
-    return _realmAwareZkConnectionConfig;
-  }
-
   public B setRealmAwareZkClientConfig(
       RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
     _realmAwareZkClientConfig = realmAwareZkClientConfig;
@@ -109,12 +105,14 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
    * To be used in Helix ZK APIs' constructors: ConfigAccessor, ClusterSetup, ZKHelixAdmin
    * @return
    */
-  public RealmAwareZkClient createZkClientFromBuilder() {
-    switch (_realmMode) {
+  protected RealmAwareZkClient createZkClient(RealmAwareZkClient.RealmMode realmMode,
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress) {
+    switch (realmMode) {
       case MULTI_REALM:
         try {
-          return new FederatedZkClient(_realmAwareZkConnectionConfig,
-              _realmAwareZkClientConfig.setZkSerializer(new ZNRecordSerializer()));
+          return new FederatedZkClient(connectionConfig,
+              clientConfig.setZkSerializer(new ZNRecordSerializer()));
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("Failed to create FederatedZkClient!", e);
         }
@@ -122,11 +120,10 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
         // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do
         // ephemeral operations
         return SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddress),
-                _realmAwareZkClientConfig.createHelixZkClientConfig()
-                    .setZkSerializer(new ZNRecordSerializer()));
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
       default:
-        throw new HelixException("Invalid RealmMode given: " + _realmMode);
+        throw new HelixException("Invalid RealmMode given: " + realmMode);
     }
   }
 

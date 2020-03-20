@@ -183,10 +183,10 @@ public class ClusterSetup {
     _usesExternalZkClient = true;
   }
 
-  private ClusterSetup(Builder builder) {
-    _zkClient = builder.createZkClientFromBuilder();
+  private ClusterSetup(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
-    _usesExternalZkClient = false;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   /**
@@ -1600,7 +1600,9 @@ public class ClusterSetup {
 
     public ClusterSetup build() {
       validate();
-      return new ClusterSetup(this);
+      return new ClusterSetup(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), false);
     }
   }
 }

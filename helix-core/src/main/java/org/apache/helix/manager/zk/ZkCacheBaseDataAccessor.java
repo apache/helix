@@ -135,17 +135,14 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     start();
   }
 
-  /**
-   * Constructor using a Builder that allows users to set connection and client configs.
-   * @param builder
-   */
-  private ZkCacheBaseDataAccessor(Builder<T> builder) {
-    _zkClient = builder.createRealmAwareZkClientFromBuilder();
+  private ZkCacheBaseDataAccessor(RealmAwareZkClient zkClient, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths) {
+    _zkClient = zkClient;
     _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
-    _chrootPath = builder._chrootPath;
-    _wtCachePaths = builder._wtCachePaths;
-    _zkCachePaths = builder._zkCachePaths;
+    _chrootPath = chrootPath;
+    _wtCachePaths = wtCachePaths;
+    _zkCachePaths = zkCachePaths;
 
     start();
   }
@@ -858,7 +855,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
     public ZkCacheBaseDataAccessor<T> build() {
       validate();
-      return new ZkCacheBaseDataAccessor<>(this);
+      return new ZkCacheBaseDataAccessor<>(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), _chrootPath, _wtCachePaths, _zkCachePaths);
     }
   }
 }

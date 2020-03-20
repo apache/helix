@@ -83,13 +83,9 @@ public class ConfigAccessor {
   // This is used for close() to determine how ConfigAccessor should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
 
-  /**
-   * Constructor that creates a realm-aware ConfigAccessor using a builder.
-   * @param builder
-   */
-  private ConfigAccessor(Builder builder) {
-    _zkClient = builder.createZkClientFromBuilder();
-    _usesExternalZkClient = false;
+  private ConfigAccessor(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    _zkClient = zkClient;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   /**
@@ -920,7 +916,9 @@ public class ConfigAccessor {
 
     public ConfigAccessor build() {
       validate();
-      return new ConfigAccessor(this);
+      return new ConfigAccessor(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), false);
     }
   }
 }

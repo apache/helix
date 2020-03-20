@@ -140,9 +140,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     _usesExternalZkClient = true;
   }
 
-  private ZkBaseDataAccessor(Builder<T> builder) {
-    _zkClient = builder.createRealmAwareZkClientFromBuilder();
-    _usesExternalZkClient = false;
+  private ZkBaseDataAccessor(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    _zkClient = zkClient;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   /**
@@ -1309,7 +1309,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
      */
     public ZkBaseDataAccessor<T> build() {
       validate();
-      return new ZkBaseDataAccessor<>(this);
+      return new ZkBaseDataAccessor<>(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress));
     }
   }
 
@@ -1323,6 +1325,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkClientType
    * @return
    */
+  @Deprecated
   static RealmAwareZkClient buildRealmAwareZkClientWithDefaultConfigs(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {

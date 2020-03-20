@@ -160,10 +160,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     _usesExternalZkClient = false;
   }
 
-  private ZKHelixAdmin(Builder builder) {
-    _zkClient = builder.createZkClientFromBuilder();
+  private ZKHelixAdmin(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
-    _usesExternalZkClient = false;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   @Override
@@ -1858,7 +1858,9 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     public ZKHelixAdmin build() {
       validate();
-      return new ZKHelixAdmin(this);
+      return new ZKHelixAdmin(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), false);
     }
   }
 }

@@ -172,7 +172,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       if (!_clusterName.equals(_realmAwareZkConnectionConfig.getZkRealmShardingKey())) {
         throw new IllegalArgumentException(
             "StrictMatchExternalViewVerifier: Cluster name: " + _clusterName
-                + " and ZK realm sharding key: " + getRealmAwareZkConnectionConfig()
+                + " and ZK realm sharding key: " + _realmAwareZkConnectionConfig
                 .getZkRealmShardingKey() + " do not match!");
       }
     }

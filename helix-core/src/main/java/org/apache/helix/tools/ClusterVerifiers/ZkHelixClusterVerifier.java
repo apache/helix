@@ -149,7 +149,7 @@ public abstract class ZkHelixClusterVerifier
     _zkClient = builder.createZkClientFromBuilderForVerifier();
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     _usesExternalZkClient = false;
-    _clusterName = builder.getRealmAwareZkConnectionConfig().getZkRealmShardingKey();
+    _clusterName = builder.getClusterName();
     _accessor = new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
   }
@@ -349,6 +349,17 @@ public abstract class ZkHelixClusterVerifier
     @Deprecated
     public B setZkAddr(String zkAddress) {
       return setZkAddress(zkAddress);
+    }
+
+    public String getClusterName() {
+      if (_realmAwareZkConnectionConfig != null && (
+          _realmAwareZkConnectionConfig.getZkRealmShardingKey() != null
+              && !_realmAwareZkConnectionConfig.getZkRealmShardingKey().isEmpty())) {
+        // Need to remove the first "/" from sharding key given
+        return _realmAwareZkConnectionConfig.getZkRealmShardingKey().substring(1);
+      }
+      throw new HelixException(
+          "Failed to get the cluster name! Either RealmAwareZkConnectionConfig is null or its sharding key is null or empty!");
     }
 
     protected void validate() {

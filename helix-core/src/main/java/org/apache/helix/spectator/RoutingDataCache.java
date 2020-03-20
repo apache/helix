@@ -19,14 +19,19 @@ package org.apache.helix.spectator;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.CurrentStateSnapshot;
+import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.TargetExternalViewCache;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -40,14 +45,31 @@ import org.slf4j.LoggerFactory;
 class RoutingDataCache extends BasicClusterDataCache {
   private static Logger LOG = LoggerFactory.getLogger(RoutingDataCache.class.getName());
 
-  private final PropertyType _sourceDataType;
+  private final Map<PropertyType, List<String>> _sourceDataTypeMap;
   private CurrentStateCache _currentStateCache;
+  // TODO: CustomizedCache needs to be migrated to propertyCache. Once we migrate all cache to
+  // propertyCache, this hardcoded list of fields won't be necessary.
+  private Map<String, CustomizedViewCache> _customizedViewCaches;
   private TargetExternalViewCache _targetExternalViewCache;
 
   public RoutingDataCache(String clusterName, PropertyType sourceDataType) {
+
+    this (clusterName, ImmutableMap.of(sourceDataType, Collections.emptyList()));
+  }
+
+  /**
+   * Initialize empty RoutingDataCache with clusterName, _propertyTypes.
+   * @param clusterName
+   * @param sourceDataTypeMap
+   */
+  public RoutingDataCache(String clusterName, Map<PropertyType, List<String>> sourceDataTypeMap) {
     super(clusterName);
-    _sourceDataType = sourceDataType;
+    _sourceDataTypeMap = sourceDataTypeMap;
     _currentStateCache = new CurrentStateCache(clusterName);
+    _customizedViewCaches = new HashMap<>();
+    sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())
+        .forEach(customizedStateType -> _customizedViewCaches.put(customizedStateType,
+            new CustomizedViewCache(clusterName, customizedStateType)));
     _targetExternalViewCache = new TargetExternalViewCache(clusterName);
     requireFullRefresh();
   }
@@ -66,35 +88,56 @@ class RoutingDataCache extends BasicClusterDataCache {
 
     super.refresh(accessor);
 
-    if (_sourceDataType.equals(PropertyType.TARGETEXTERNALVIEW) && _propertyDataChangedMap
-        .get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
+    for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
       long start = System.currentTimeMillis();
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
-      _targetExternalViewCache.refresh(accessor);
-      LOG.info("Reload " + _targetExternalViewCache.getExternalViewMap().keySet().size()
-          + " TargetExternalViews. Takes " + (System.currentTimeMillis() - start) + " ms");
+      switch (propertyType) {
+        case TARGETEXTERNALVIEW:
+          if (_propertyDataChangedMap.get(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW)) {
+            _propertyDataChangedMap.put(HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW, false);
+            _targetExternalViewCache.refresh(accessor);
+            LOG.info("Reload " + _targetExternalViewCache.getExternalViewMap().keySet().size()
+                + " TargetExternalViews. Takes " + (System.currentTimeMillis() - start) + " ms");
+          }
+          break;
+        case CURRENTSTATES:
+          if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE)) {
+            _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
+            /**
+             * Workaround of https://github.com/apache/helix/issues/919.
+             * Why it is workaround?
+             * 1. Before a larger scale refactoring, to minimize the impact on cache logic, this
+             * change
+             * introduces extra read to update the liveInstance list before processing current
+             * states.
+             * 2. This change does not handle the corresponding callback handlers, which should
+             * also be
+             * registered when a new liveInstance node is found.
+             * TODO: Refactor cache processing logic and also refine the callback handler
+             * registration
+             * TODO: logic.
+             **/
+            _liveInstancePropertyCache.refresh(accessor);
+            Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
+            _currentStateCache.refresh(accessor, liveInstanceMap);
+            LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
+          }
+          break;
+        case CUSTOMIZEDVIEW: {
+          if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW)) {
+            for (String customizedStateType : _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW)) {
+              _customizedViewCaches.get(customizedStateType).refresh(accessor);
+            }
+            LOG.info("Reload CustomizedView for types " + _sourceDataTypeMap
+                .get(PropertyType.CUSTOMIZEDVIEW) + " Takes " + (System.currentTimeMillis() - start)
+                + " ms");
+          }
+          _propertyDataChangedMap.put(HelixConstants.ChangeType.CUSTOMIZED_VIEW, false);
+        }
+        break;
+        default:
+          break;
+      }
     }
-
-    if (_sourceDataType.equals(PropertyType.CURRENTSTATES) && _propertyDataChangedMap
-        .get(HelixConstants.ChangeType.CURRENT_STATE)) {
-      long start = System.currentTimeMillis();
-      _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
-      /**
-       * Workaround of https://github.com/apache/helix/issues/919.
-       * Why it is workaround?
-       * 1. Before a larger scale refactoring, to minimize the impact on cache logic, this change
-       * introduces extra read to update the liveInstance list before processing current states.
-       * 2. This change does not handle the corresponding callback handlers, which should also be
-       * registered when a new liveInstance node is found.
-       * TODO: Refactor cache processing logic and also refine the callback handler registration
-       * TODO: logic.
-       **/
-      _liveInstancePropertyCache.refresh(accessor);
-      Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
-      _currentStateCache.refresh(accessor, liveInstanceMap);
-      LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");
-    }
-
     long endTime = System.currentTimeMillis();
     LOG.info("END: RoutingDataCache.refresh() for cluster " + _clusterName + ", took " + (endTime
         - startTime) + " ms");
@@ -102,6 +145,10 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (LOG.isDebugEnabled()) {
       LOG.debug("CurrentStates: " + _currentStateCache);
       LOG.debug("TargetExternalViews: " + _targetExternalViewCache.getExternalViewMap());
+      for (String customizedStateType : _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW)) {
+        LOG.debug("CustomizedViews customizedStateType: " + customizedStateType + " "
+            + _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
+      }
     }
   }
 
@@ -128,4 +175,3 @@ class RoutingDataCache extends BasicClusterDataCache {
     return _currentStateCache.getSnapshot();
   }
 }
-

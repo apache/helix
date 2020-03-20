@@ -147,7 +147,7 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
-  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String aggregationType) throws Exception {
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType) throws Exception {
     // TODO Auto-generated method stub
 
   }

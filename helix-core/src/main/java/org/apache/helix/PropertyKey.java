@@ -640,20 +640,20 @@ public class PropertyKey {
 
     /**
      * Get a property key associated with an {@link CustomizedView} of a type
-     * @param aggregationType
+     * @param customizedStateType
      * @return {@link PropertyKey}
      */
-    public PropertyKey customizedView(String aggregationType) {
-      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, aggregationType);
+    public PropertyKey customizedView(String customizedStateType) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, customizedStateType);
     }
 
     /**
      * Get a property key associated with an {@link CustomizedView} of a type and resource
-     * @param aggregationType
+     * @param customizedStateType
      * @return {@link PropertyKey}
      */
-    public PropertyKey customizedView(String aggregationType, String resourceName) {
-      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, aggregationType,
+    public PropertyKey customizedView(String customizedStateType, String resourceName) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, customizedStateType,
           resourceName);
     }
 

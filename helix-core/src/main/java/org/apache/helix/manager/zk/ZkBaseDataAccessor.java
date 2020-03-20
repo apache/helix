@@ -1325,7 +1325,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * @param zkClientType
    * @return
    */
-  @Deprecated
   static RealmAwareZkClient buildRealmAwareZkClientWithDefaultConfigs(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {

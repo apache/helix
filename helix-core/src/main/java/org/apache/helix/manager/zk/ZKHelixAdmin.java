@@ -160,31 +160,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     _usesExternalZkClient = false;
   }
 
-  private ZKHelixAdmin(Builder builder) {
-    RealmAwareZkClient zkClient;
-    switch (builder.realmMode) {
-      case MULTI_REALM:
-        try {
-          zkClient = new FederatedZkClient(builder.realmAwareZkConnectionConfig,
-              builder.realmAwareZkClientConfig);
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Not able to connect on multi-realm mode.", e);
-        }
-        break;
-      case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ZKHelixAdmin does not need to do
-        // ephemeral operations
-        zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder.zkAddress),
-                builder.realmAwareZkClientConfig.createHelixZkClientConfig());
-        break;
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder.realmMode);
-    }
-
+  private ZKHelixAdmin(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
     _zkClient = zkClient;
     _configAccessor = new ConfigAccessor(_zkClient);
-    _usesExternalZkClient = false;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   @Override
@@ -1873,76 +1852,15 @@ public class ZKHelixAdmin implements HelixAdmin {
     return true;
   }
 
-  // TODO: refactor builder to reduce duplicate code with other Helix Java APIs
-  public static class Builder {
-    private String zkAddress;
-    private RealmAwareZkClient.RealmMode realmMode;
-    private RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig;
-    private RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig;
-
+  public static class Builder extends GenericZkHelixApiBuilder<Builder> {
     public Builder() {
-    }
-
-    public ZKHelixAdmin.Builder setZkAddress(String zkAddress) {
-      this.zkAddress = zkAddress;
-      return this;
-    }
-
-    public ZKHelixAdmin.Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
-      this.realmMode = realmMode;
-      return this;
-    }
-
-    public ZKHelixAdmin.Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
-      return this;
-    }
-
-    public ZKHelixAdmin.Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      realmAwareZkClientConfig = realmAwareZkClientConfig;
-      return this;
     }
 
     public ZKHelixAdmin build() {
       validate();
-      return new ZKHelixAdmin(this);
-    }
-
-    /*
-     * Validates the given parameters before creating an instance of ZKHelixAdmin.
-     */
-    private void validate() {
-      // Resolve RealmMode based on other parameters
-      boolean isZkAddressSet = zkAddress != null && !zkAddress.isEmpty();
-      if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-        throw new HelixException(
-            "RealmMode cannot be single-realm without a valid ZkAddress set!");
-      }
-      if (realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
-        throw new HelixException(
-            "ZkAddress cannot be set on multi-realm mode!");
-      }
-      if (realmMode == null) {
-        realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
-            : RealmAwareZkClient.RealmMode.MULTI_REALM;
-      }
-
-      // Resolve RealmAwareZkClientConfig
-      if (realmAwareZkClientConfig == null) {
-        // ZkHelixAdmin should have ZNRecordSerializer set by default
-        realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig()
-            .setZkSerializer(
-                new org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer());
-      }
-
-      // Resolve RealmAwareZkConnectionConfig
-      if (realmAwareZkConnectionConfig == null) {
-        // If not set, create a default one
-        realmAwareZkConnectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
-      }
+      return new ZKHelixAdmin(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), false);
     }
   }
 }

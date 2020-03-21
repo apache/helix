@@ -22,11 +22,13 @@ package org.apache.helix.manager.zk;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
@@ -468,12 +470,42 @@ public class TestHandleSession extends ZkTestBase {
     deleteCluster(clusterName);
   }
 
+  class MockLiveInstanceChangeListener implements LiveInstanceChangeListener {
+    private final HelixManager _manager;
+    private final Set<String> _expectedLiveInstances;
+
+    public MockLiveInstanceChangeListener(HelixManager manager,
+        Set<String> expectedLiveInstanceNames) {
+      _manager = manager;
+      _expectedLiveInstances = expectedLiveInstanceNames;
+    }
+
+    @Override
+    public void onLiveInstanceChange(List<LiveInstance> liveInstances,
+        NotificationContext changeContext) {
+      if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
+        for (LiveInstance liveInstance : liveInstances) {
+          if (_expectedLiveInstances.contains(liveInstance.getInstanceName())) {
+            try {
+              _manager.addCurrentStateChangeListener(
+                  (CurrentStateChangeListener) (instanceName, statesInfo, currentStateChangeContext) -> {
+                    // empty callback
+                  }, liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
+            } catch (Exception e) {
+              throw new HelixException("Unexpected exception in the test method.", e);
+            }
+          }
+        }
+      }
+    }
+  }
+
   @Test
   public void testConcurrentInitCallbackHandlers() throws Exception {
     final String clusterName =
         CLUSTER_PREFIX + "_" + _className + "_" + TestHelper.getTestMethodName();
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    final String spectatorName = "testConcurrentHandlerChangeSpectator";
+    final String spectatorName = TestHelper.getTestMethodName() + "Spectator";
     try {
       BlockingHandleNewSessionZkHelixManager helixManager =
           new BlockingHandleNewSessionZkHelixManager(clusterName, spectatorName,
@@ -483,41 +515,10 @@ public class TestHandleSession extends ZkTestBase {
       // Note that we have to test with 2 separate listeners so one of them has a chance to fail if
       // there is a concurrent modification exception.
       helixManager.addLiveInstanceChangeListener(
-          (LiveInstanceChangeListener) (liveInstances, changeContext) -> {
-            if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
-              for (LiveInstance liveInstance : liveInstances) {
-                if (liveInstance.getInstanceName().equals("localhost_1")) {
-                  try {
-                    helixManager.addCurrentStateChangeListener(
-                        (CurrentStateChangeListener) (instanceName, statesInfo, currentStateChangeContext) -> {
-                          // empty callback
-                        }, liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
-                  } catch (Exception e) {
-                    throw new HelixException(
-                        "Unexpected exception in the testConcurrentHandlerProcessing.", e);
-                  }
-                }
-              }
-            }
-          });
+          new MockLiveInstanceChangeListener(helixManager, Collections.singleton("localhost_1")));
       helixManager.addLiveInstanceChangeListener(
-          (LiveInstanceChangeListener) (liveInstances, changeContext) -> {
-            if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
-              for (LiveInstance liveInstance : liveInstances) {
-                if (liveInstance.getInstanceName().equals("localhost_2")) {
-                  try {
-                    helixManager.addCurrentStateChangeListener(
-                        (CurrentStateChangeListener) (instanceName, statesInfo, currentStateChangeContext) -> {
-                          // empty callback
-                        }, liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());
-                  } catch (Exception e) {
-                    throw new HelixException(
-                        "Unexpected exception in the testConcurrentHandlerProcessing.", e);
-                  }
-                }
-              }
-            }
-          });
+          new MockLiveInstanceChangeListener(helixManager, Collections.singleton("localhost_2")));
+
       // Session expire will trigger all callbacks to be init. And the injected liveInstance
       // listener will trigger more callbackhandlers to be registered during the init process.
       ZkTestHelper.asyncExpireSession(helixManager.getZkClient());

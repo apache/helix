@@ -419,6 +419,12 @@ public interface RealmAwareZkClient {
         return this;
       }
 
+      /**
+       * Note: this must be a valid ZK path. For example, if you are trying to create a sharding key
+       * out of a cluster name "CLUSTER", then your sharding key should be "/CLUSTER".
+       * @param shardingKey
+       * @return
+       */
       public Builder setZkRealmShardingKey(String shardingKey) {
         _zkRealmShardingKey = shardingKey;
         return this;

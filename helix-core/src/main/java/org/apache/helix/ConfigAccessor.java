@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CloudConfig;
@@ -83,32 +84,9 @@ public class ConfigAccessor {
   // This is used for close() to determine how ConfigAccessor should close the underlying ZkClient
   private final boolean _usesExternalZkClient;
 
-  /**
-   * Constructor that creates a realm-aware ConfigAccessor using a builder.
-   * @param builder
-   */
-  private ConfigAccessor(Builder builder) {
-    switch (builder._realmMode) {
-      case MULTI_REALM:
-        try {
-          _zkClient = new FederatedZkClient(builder._realmAwareZkConnectionConfig,
-              builder._realmAwareZkClientConfig.setZkSerializer(new ZNRecordSerializer()));
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Failed to create ConfigAccessor!", e);
-        }
-        break;
-      case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ConfigAccessor does not need to do
-        // ephemeral operations
-        _zkClient = SharedZkClientFactory.getInstance()
-            .buildZkClient(new HelixZkClient.ZkConnectionConfig(builder._zkAddress),
-                builder._realmAwareZkClientConfig.createHelixZkClientConfig()
-                    .setZkSerializer(new ZNRecordSerializer()));
-        break;
-      default:
-        throw new HelixException("Invalid RealmMode given: " + builder._realmMode);
-    }
-    _usesExternalZkClient = false;
+  private ConfigAccessor(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    _zkClient = zkClient;
+    _usesExternalZkClient = usesExternalZkClient;
   }
 
   /**
@@ -993,73 +971,15 @@ public class ConfigAccessor {
     }
   }
 
-  public static class Builder {
-    private String _zkAddress;
-    private RealmAwareZkClient.RealmMode _realmMode;
-    private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
-    private RealmAwareZkClient.RealmAwareZkClientConfig _realmAwareZkClientConfig;
-
+  public static class Builder extends GenericZkHelixApiBuilder<Builder> {
     public Builder() {
-    }
-
-    public Builder setZkAddress(String zkAddress) {
-      _zkAddress = zkAddress;
-      return this;
-    }
-
-    public Builder setRealmMode(RealmAwareZkClient.RealmMode realmMode) {
-      _realmMode = realmMode;
-      return this;
-    }
-
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      _realmAwareZkConnectionConfig = realmAwareZkConnectionConfig;
-      return this;
-    }
-
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      _realmAwareZkClientConfig = realmAwareZkClientConfig;
-      return this;
     }
 
     public ConfigAccessor build() {
       validate();
-      return new ConfigAccessor(this);
-    }
-
-    /**
-     * Validate the given parameters before creating an instance of ConfigAccessor.
-     */
-    private void validate() {
-      // Resolve RealmMode based on other parameters
-      boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
-      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM && !isZkAddressSet) {
-        throw new HelixException(
-            "ConfigAccessor: RealmMode cannot be single-realm without a valid ZkAddress set!");
-      }
-      if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM && isZkAddressSet) {
-        throw new HelixException(
-            "ConfigAccessor: You cannot set the ZkAddress on multi-realm mode!");
-      }
-
-      if (_realmMode == null) {
-        _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
-            : RealmAwareZkClient.RealmMode.MULTI_REALM;
-      }
-
-      // Resolve RealmAwareZkClientConfig
-      if (_realmAwareZkClientConfig == null) {
-        _realmAwareZkClientConfig = new RealmAwareZkClient.RealmAwareZkClientConfig();
-      }
-
-      // Resolve RealmAwareZkConnectionConfig
-      if (_realmAwareZkConnectionConfig == null) {
-        // If not set, create a default one
-        _realmAwareZkConnectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
-      }
+      return new ConfigAccessor(
+          createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
+              _zkAddress), false);
     }
   }
 }

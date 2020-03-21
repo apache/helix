@@ -1004,7 +1004,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   void initHandlers(List<CallbackHandler> handlers) {
     synchronized (this) {
       if (handlers != null) {
-        for (CallbackHandler handler : handlers) {
+        // get a copy of the list and iterate over the copy list
+        // in case handler.init() modifies the original handler list
+        List<CallbackHandler> tmpHandlers = new ArrayList<>(handlers);
+        for (CallbackHandler handler : tmpHandlers) {
           handler.init();
           LOG.info("init handler: " + handler.getPath() + ", " + handler.getListener());
         }
@@ -1016,10 +1019,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     synchronized (this) {
       if (_handlers != null) {
         // get a copy of the list and iterate over the copy list
-        // in case handler.reset() modify the original handler list
-        List<CallbackHandler> tmpHandlers = new ArrayList<>();
-        tmpHandlers.addAll(_handlers);
-
+        // in case handler.reset() modifies the original handler list
+        List<CallbackHandler> tmpHandlers = new ArrayList<>(_handlers);
         for (CallbackHandler handler : tmpHandlers) {
           handler.reset(isShutdown);
           LOG.info("reset handler: " + handler.getPath() + ", " + handler.getListener());

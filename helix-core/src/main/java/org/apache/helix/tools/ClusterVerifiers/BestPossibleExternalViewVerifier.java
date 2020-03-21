@@ -120,8 +120,9 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     if (errStates != null) {
       errStates.forEach((k, v) -> _errStates.put(k, new HashMap<>(v)));
     }
-    _resources = new HashSet<>(resources);
-    _expectLiveInstances = new HashSet<>(expectLiveInstances);
+    _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
+    _expectLiveInstances =
+        expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
     _dataProvider = new ResourceControllerDataProvider();
   }
 

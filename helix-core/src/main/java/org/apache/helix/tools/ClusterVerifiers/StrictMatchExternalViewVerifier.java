@@ -78,23 +78,16 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  @Deprecated
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkClient, clusterName);
-    _resources = resources;
-    _expectLiveInstances = expectLiveInstances;
+    _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
+    _expectLiveInstances =
+        expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  private StrictMatchExternalViewVerifier(Builder builder) {
-    super(builder);
-    _resources = new HashSet<>(builder._resources);
-    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
-    _isDeactivatedNodeAware = builder._isDeactivatedNodeAware;
-  }
-
-  public static class Builder extends ZkHelixClusterVerifier.Builder {
+  public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName; // This is the ZK path sharding key
     private Set<String> _resources;
     private Set<String> _expectLiveInstances;
@@ -119,7 +112,10 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       validate();
-      return new StrictMatchExternalViewVerifier(this);
+      return new StrictMatchExternalViewVerifier(
+          createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _resources,
+          _expectLiveInstances, _isDeactivatedNodeAware);
     }
 
     public Builder(String clusterName) {
@@ -165,23 +161,6 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     public Builder setDeactivatedNodeAwareness(boolean isDeactivatedNodeAware) {
       _isDeactivatedNodeAware = isDeactivatedNodeAware;
       return this;
-    }
-
-    @Override
-    public Builder setZkAddr(String zkAddress) {
-      return (Builder) super.setZkAddr(zkAddress);
-    }
-
-    @Override
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
-    }
-
-    @Override
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
     }
 
     protected void validate() {

@@ -38,9 +38,10 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
     _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
-  private ClusterLiveNodesVerifier(Builder builder) {
-    super(builder);
-    _expectLiveNodes = new HashSet<>(builder._expectLiveNodes);
+  private ClusterLiveNodesVerifier(RealmAwareZkClient zkClient, String clusterName,
+      Set<String> expectLiveNodes) {
+    super(zkClient, clusterName);
+    _expectLiveNodes = expectLiveNodes == null ? new HashSet<>() : new HashSet<>(expectLiveNodes);
   }
 
   @Override
@@ -58,7 +59,7 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
     return _expectLiveNodes.equals(actualLiveNodes);
   }
 
-  public static class Builder extends ZkHelixClusterVerifier.Builder {
+  public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName; // This is the ZK path sharding key
     private final Set<String> _expectLiveNodes;
 
@@ -73,24 +74,9 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
       }
 
       validate();
-      return new ClusterLiveNodesVerifier(this);
-    }
-
-    @Override
-    public Builder setZkAddr(String zkAddress) {
-      return (Builder) super.setZkAddr(zkAddress);
-    }
-
-    @Override
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
-    }
-
-    @Override
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
+      return new ClusterLiveNodesVerifier(
+          createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _expectLiveNodes);
     }
   }
 }

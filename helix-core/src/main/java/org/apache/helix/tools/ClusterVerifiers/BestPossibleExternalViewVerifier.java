@@ -111,19 +111,22 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  private BestPossibleExternalViewVerifier(Builder builder) {
-    super(builder);
+  private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+      Map<String, Map<String, String>> errStates, Set<String> resources,
+      Set<String> expectLiveInstances) {
+    super(zkClient, clusterName);
     // Deep copy data from Builder
     _errStates = new HashMap<>();
-    if (builder._errStates != null) {
-      builder._errStates.forEach((k, v) -> _errStates.put(k, new HashMap<>(v)));
+    if (errStates != null) {
+      errStates.forEach((k, v) -> _errStates.put(k, new HashMap<>(v)));
     }
-    _resources = new HashSet<>(builder._resources);
-    _expectLiveInstances = new HashSet<>(builder._expectLiveInstances);
+    _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
+    _expectLiveInstances =
+        expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  public static class Builder extends ZkHelixClusterVerifier.Builder {
+  public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName;
     private Map<String, Map<String, String>> _errStates;
     private Set<String> _resources;
@@ -151,7 +154,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       validate();
-      return new BestPossibleExternalViewVerifier(this);
+      return new BestPossibleExternalViewVerifier(
+          createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _errStates, _resources,
+          _expectLiveInstances);
     }
 
     public String getClusterName() {
@@ -192,23 +198,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
       return this;
-    }
-
-    @Override
-    public Builder setZkAddr(String zkAddress) {
-      return (Builder) super.setZkAddr(zkAddress);
-    }
-
-    @Override
-    public Builder setRealmAwareZkConnectionConfig(
-        RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
-      return (Builder) super.setRealmAwareZkConnectionConfig(realmAwareZkConnectionConfig);
-    }
-
-    @Override
-    public Builder setRealmAwareZkClientConfig(
-        RealmAwareZkClient.RealmAwareZkClientConfig realmAwareZkClientConfig) {
-      return (Builder) super.setRealmAwareZkClientConfig(realmAwareZkClientConfig);
     }
   }
 

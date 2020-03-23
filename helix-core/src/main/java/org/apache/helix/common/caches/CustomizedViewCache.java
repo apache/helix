@@ -19,23 +19,16 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.model.CustomizedView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
 
 /**
  * Cache to hold all CustomizedView of a specific type.
@@ -43,8 +36,7 @@ import com.google.common.collect.Maps;
 public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedViewCache.class.getName());
 
-  protected Map<String, CustomizedView> _customizedViewMap;
-  protected Map<String, CustomizedView> _customizedViewCache;
+  private final PropertyCache<CustomizedView> _customizedViewCache;
   protected String _clusterName;
   private PropertyType _propertyType;
   private String _customizedStateType;
@@ -54,13 +46,27 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
   }
 
   protected CustomizedViewCache(String clusterName, PropertyType propertyType, String customizedStateType) {
-    super(createDefaultControlContextProvider(clusterName));
-    _clusterName = clusterName;
-    _customizedViewMap = Collections.emptyMap();
-    _customizedViewCache = Collections.emptyMap();
-    _propertyType = propertyType;
-    _customizedStateType = customizedStateType;
-  }
+      super(createDefaultControlContextProvider(clusterName));
+      _clusterName = clusterName;
+      _propertyType = propertyType;
+      _customizedStateType = customizedStateType;
+      _customizedViewCache = new PropertyCache<>(AbstractDataCache.createDefaultControlContextProvider(clusterName), "CustomizedView", new PropertyCache.PropertyCacheKeyFuncs<CustomizedView>() {
+        @Override
+        public PropertyKey getRootKey(HelixDataAccessor accessor) {
+          return accessor.keyBuilder().customizedView(_customizedStateType);
+        }
+
+        @Override
+        public PropertyKey getObjPropertyKey(HelixDataAccessor accessor, String objName) {
+          return accessor.keyBuilder().customizedView(_customizedStateType, objName);
+        }
+
+        @Override
+        public String getObjName(CustomizedView obj) {
+          return obj.getResourceName();
+        }
+      }, true);
+    }
 
 
   /**
@@ -71,64 +77,11 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
    */
   public void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Set<PropertyKey> currentPropertyKeys = new HashSet<>();
-
-    List<String> resources = accessor.getChildNames(customizedViewsKey(keyBuilder));
-
-    for (String resource : resources) {
-      currentPropertyKeys.add(customizedViewKey(keyBuilder, resource));
-    }
-
-    Set<PropertyKey> cachedKeys = new HashSet<>();
-    Map<PropertyKey, CustomizedView> cachedCustomizedViewMap = Maps.newHashMap();
-    for (String resource : _customizedViewCache.keySet()) {
-      PropertyKey key = customizedViewKey(keyBuilder, resource);
-      cachedKeys.add(key);
-      cachedCustomizedViewMap.put(key, _customizedViewCache.get(resource));
-    }
-    cachedKeys.retainAll(currentPropertyKeys);
-
-    Set<PropertyKey> reloadKeys = new HashSet<>(currentPropertyKeys);
-    reloadKeys.removeAll(cachedKeys);
-
-    Map<PropertyKey, CustomizedView> updatedMap =
-        refreshProperties(accessor, reloadKeys, new ArrayList<>(cachedKeys),
-            cachedCustomizedViewMap, new HashSet<>());
-
-    Map<String, CustomizedView> newCustomizedViewMap = Maps.newHashMap();
-    for (CustomizedView customizedView : updatedMap.values()) {
-      newCustomizedViewMap.put(customizedView.getResourceName(), customizedView);
-    }
-
-    _customizedViewCache = new HashMap<>(newCustomizedViewMap);
-    _customizedViewMap = new HashMap<>(newCustomizedViewMap);
-
+    _customizedViewCache.refresh(accessor);
     long endTime = System.currentTimeMillis();
-    LOG.info("Refresh " + _customizedViewMap.size() + " CustomizedViews of type " + _customizedStateType
+
+    LOG.info("Refresh " + _customizedViewCache.getPropertyMap().size() + " CustomizedViews of type " + _customizedStateType
         + " for cluster " + _clusterName + ", took " + (endTime - startTime) + " ms");
-  }
-
-  private PropertyKey customizedViewsKey(PropertyKey.Builder keyBuilder) {
-    PropertyKey customizedViewPropertyKey;
-    if (_propertyType.equals(PropertyType.CUSTOMIZEDVIEW)){
-      customizedViewPropertyKey = keyBuilder.customizedView(_customizedStateType);
-    } else {
-      throw new HelixException(
-          "Failed to refresh CustomizedViewCache, Wrong property type " + _propertyType + "!");
-    }
-    return customizedViewPropertyKey;
-  }
-
-  private PropertyKey customizedViewKey(PropertyKey.Builder keyBuilder, String resource) {
-    PropertyKey customizedViewPropertyKey;
-    if (_propertyType.equals(PropertyType.CUSTOMIZEDVIEW)) {
-      customizedViewPropertyKey = keyBuilder.customizedView(_customizedStateType, resource);
-    } else {
-      throw new HelixException(
-          "Failed to refresh CustomizedViewCache, Wrong property type " + _propertyType + "!");
-    }
-    return customizedViewPropertyKey;
   }
 
   /**
@@ -136,22 +89,6 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
    * @return
    */
   public Map<String, CustomizedView> getCustomizedViewMap() {
-    return Collections.unmodifiableMap(_customizedViewMap);
-  }
-
-  /**
-   * Remove dead customized views from map
-   * @param resourceNames
-   */
-
-  public synchronized void removeCustomizedView(List<String> resourceNames) {
-    for (String resourceName : resourceNames) {
-      _customizedViewCache.remove(resourceName);
-    }
-  }
-
-  public void clear() {
-    _customizedViewCache.clear();
-    _customizedViewMap.clear();
+    return Collections.unmodifiableMap(_customizedViewCache.getPropertyMap());
   }
 }

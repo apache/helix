@@ -1,5 +1,24 @@
 package org.apache.helix.integration.spectator;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -278,7 +297,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testCustomizedViewCorrectConstructor")
-  public void testGetRoutingTableSnapshot() {
+  public void testGetRoutingTableSnapshot() throws Exception {
     Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
     sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA", "typeB"));
     sourceDataTypes.put(PropertyType.EXTERNALVIEW, Collections.emptyList());
@@ -308,18 +327,52 @@ public class TestRoutingTableProvider extends ZkTestBase {
         routingTableProvider.getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, "typeA");
     Assert.assertEquals(routingTableSnapshot.getPropertyType(), PropertyType.CUSTOMIZEDVIEW);
     Assert.assertEquals(routingTableSnapshot.getCustomizedStateType(), "typeA");
+
     routingTableSnapshot =
         routingTableProvider.getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, "typeB");
     Assert.assertEquals(routingTableSnapshot.getPropertyType(), PropertyType.CUSTOMIZEDVIEW);
     Assert.assertEquals(routingTableSnapshot.getCustomizedStateType(), "typeB");
 
-    Map<String, Map<String, RoutingTableSnapshot>> routingTableSnapshots =
-        routingTableProvider.getRoutingTableSnapshots();
-    Assert.assertEquals(routingTableSnapshots.size(), 2);
-    Assert.assertEquals(routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).size(), 2);
+    // Make sure snapshot information is correct
+    // Check resources are in a correct state
+    boolean isRoutingTableUpdatedProperly = TestHelper.verify(() -> {
+      Map<String, Map<String, RoutingTableSnapshot>> routingTableSnapshots =
+          routingTableProvider.getRoutingTableSnapshots();
+      RoutingTableSnapshot routingTableSnapshotTypeA =
+          routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).get("typeA");
+      RoutingTableSnapshot routingTableSnapshotTypeB =
+          routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).get("typeB");
+      String typeAp1h1 = "noState";
+      String typeAp1h2 = "noState";
+      String typeAp2h1 = "noState";
+      String typeAp3h2 = "noState";
+      String typeBp1h2 = "noState";
+      String typeBp1h4 = "noState";
+      try {
+        typeAp1h1 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h1");
+        typeAp1h2 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h2");
+        typeAp2h1 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p2").get("h1");
+        typeAp3h2 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p3").get("h2");
+        typeBp1h2 = routingTableSnapshotTypeB.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h3");
+        typeBp1h4 = routingTableSnapshotTypeB.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h4");
+      } catch (Exception e) {
+        // ok because RoutingTable has not been updated yet
+      }
+      return (routingTableSnapshots.size() == 2
+          && routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).size() == 2
+          && typeAp1h1.equals("testState1") && typeAp1h2.equals("testState1")
+          && typeAp2h1.equals("testState2") && typeAp3h2.equals("testState3")
+          && typeBp1h2.equals("testState3") && typeBp1h4.equals("testState2"));
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isRoutingTableUpdatedProperly);
     routingTableProvider.shutdown();
   }
-
 
   private void validateRoutingTable(RoutingTableProvider routingTableProvider,
       Set<String> masterNodes, Set<String> slaveNodes) {

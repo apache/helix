@@ -61,10 +61,10 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
 
     ZkMetadataStoreDirectory.createRoutingDataPath(_zkClient, _zkAddress);
-    
+
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
-      subscribeRoutingDataChanges(_zkClient, this, this);
+      _zkClient.subscribeRoutingDataChanges(this, this);
     }
   }
 
@@ -148,28 +148,13 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     _routingDataListener.refreshRoutingData(_namespace);
   }
 
-  /**
-   * Subscribes to the routing data paths using the provided ZkClient.
-   * @param zkClient
-   * @param childListener
-   * @param dataListener
-   */
-  public static void subscribeRoutingDataChanges(RealmAwareZkClient zkClient,
-      IZkChildListener childListener, IZkDataListener dataListener) {
-    zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, childListener);
-    for (String child : zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-      zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-          dataListener);
-    }
-  }
-
   private void handleResubscription() {
     if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
     // Renew subscription
     _zkClient.unsubscribeAll();
-    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClient, this, this);
+    _zkClient.subscribeRoutingDataChanges(this, this);
     _routingDataListener.refreshRoutingData(_namespace);
   }
 }

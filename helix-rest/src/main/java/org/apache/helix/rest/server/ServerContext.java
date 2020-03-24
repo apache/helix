@@ -120,7 +120,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
               }
               // Refresh data subscription
               _zkClientForListener.unsubscribeAll();
-              ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
+              _zkClientForListener.subscribeRoutingDataChanges(this, this);
             } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
               throw new HelixException("Failed to create FederatedZkClient!", e);
             }
@@ -250,7 +250,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     }
     // Resubscribe
     _zkClientForListener.unsubscribeAll();
-    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
+    _zkClientForListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
@@ -274,7 +274,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     }
     // Resubscribe
     _zkClientForListener.unsubscribeAll();
-    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
+    _zkClientForListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
@@ -285,7 +285,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     }
     // Resubscribe
     _zkClientForListener.unsubscribeAll();
-    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
+    _zkClientForListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
@@ -296,7 +296,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     }
     // Resubscribe
     _zkClientForListener.unsubscribeAll();
-    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
+    _zkClientForListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 

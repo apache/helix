@@ -19,8 +19,9 @@ package org.apache.helix.api.listeners;
  * under the License.
  */
 
-import org.apache.helix.NotificationContext;
+import java.util.List;
 
+import org.apache.helix.NotificationContext;
 
 /**
  * Interface to implement to respond to changes in the root path of customized state
@@ -30,7 +31,9 @@ public interface CustomizedStateRootChangeListener {
   /**
    * Invoked when root path customized state changes
    * @param instanceName name of the instance whose state changed
+   * @param customizedStateTypes the state types under the root
    * @param changeContext the change event and state
    */
-  void onCustomizedStateRootChange(String instanceName, NotificationContext changeContext);
+  void onCustomizedStateRootChange(String instanceName,
+      List<String> customizedStateTypes, NotificationContext changeContext);
 }

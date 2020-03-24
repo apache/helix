@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.helix.PropertyKey.Builder;
@@ -118,7 +119,7 @@ public class TestZKCallback extends ZkUnitTestBase {
 
 
     @Override
-    public void onCustomizedStateRootChange(String instanceName,
+    public void onCustomizedStateRootChange(String instanceName, List<String> customizedStateTypes,
         NotificationContext changeContext) {
       // TODO Auto-generated method stub
       customizedStateRootChangeReceived = true;

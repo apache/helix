@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,6 +138,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
+
+  final AtomicReference<Set<String>> _lastSeenCustomizedStateTypes;
 
   // By default not reporting status until controller status is changed to activate
   // TODO This flag should be inside ClusterStatusMonitor. When false, no MBean registering.
@@ -545,6 +548,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     _taskRegistry = taskRegistry;
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
+    _lastSeenCustomizedStateTypes = new AtomicReference<>();
     _clusterName = clusterName;
     _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
     _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
@@ -813,23 +817,36 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   @Override
   @PreFetch(enabled = false)
-  public void onCustomizedStateRootChange(String instanceName, NotificationContext changeContext) {
+  public void onCustomizedStateRootChange(String instanceName, List<String> customizedStateTypes,
+      NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onCustomizedStateRootChange()");
-    notifyCaches(changeContext, ChangeType.CUSTOMIZED_STATE_ROOT);
     HelixManager manager = changeContext.getManager();
-    List<String> customizedStateTypes =
-        manager.getHelixDataAccessor().getChildNames(
-        manager.getHelixDataAccessor().keyBuilder().customizedStatesRoot(instanceName));
+    Builder keyBuilder = new Builder(manager.getClusterName());
 
-    for (String customizedState : customizedStateTypes) {
-      try {
-        manager.addCustomizedStateChangeListener(this, instanceName, customizedState);
-        logger.info(
-            manager.getInstanceName() + " added customized state listener for " + instanceName
-                + ", listener: " + this);
-      } catch (Exception e) {
-        logger.error("Fail to add customized state listener for instance: " + instanceName, e);
+    synchronized (_lastSeenCustomizedStateTypes) {
+      Set<String> lastSeenCustomizedStateTypes = _lastSeenCustomizedStateTypes.get();
+      for (String customizedState : customizedStateTypes) {
+        try {
+          if (lastSeenCustomizedStateTypes == null || !lastSeenCustomizedStateTypes
+              .contains(customizedState)) {
+            manager.addCustomizedStateChangeListener(this, instanceName, customizedState);
+            logger.info(
+                manager.getInstanceName() + " added customized state listener for " + instanceName
+                    + ", listener: " + this);
+          }
+        } catch (Exception e) {
+          logger.error("Fail to add customized state listener for instance: " + instanceName, e);
+        }
       }
+
+      for (String previousCustomizedState : lastSeenCustomizedStateTypes) {
+        if (!customizedStateTypes.contains(previousCustomizedState)) {
+          manager.removeListener(keyBuilder.customizedStates(instanceName, previousCustomizedState),
+              this);
+        }
+      }
+
+      _lastSeenCustomizedStateTypes.set(new HashSet<>(customizedStateTypes));
     }
   }
 
@@ -1333,19 +1350,5 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     eventThread.setDaemon(true);
     eventThread.start();
-  }
-
-  private List<String> getEnabledCustomizedStates(HelixManager manager) {
-    CustomizedStateConfig customizedStateConfig =
-        manager.getConfigAccessor().getCustomizedStateConfig(_clusterName);
-    if (customizedStateConfig != null) {
-      return customizedStateConfig.getAggregationEnabledTypes();
-    }
-    return Collections.emptyList();
-  }
-
-  private void addCustomizedStateListeners(HelixManager manager, String customizedState,
-      String instance) {
-
   }
 }

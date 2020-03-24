@@ -296,6 +296,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         break;
       case CUSTOMIZED_STATE_ROOT:
         listenerClass = CustomizedStateRootChangeListener.class;
+        break;
       case CUSTOMIZED_STATE:
         listenerClass = CustomizedStateChangeListener.class;
         break;
@@ -450,8 +451,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         CustomizedStateRootChangeListener customizedStateRootChangeListener =
             (CustomizedStateRootChangeListener) _listener;
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
-        customizedStateRootChangeListener.onCustomizedStateRootChange(instanceName,
-            changeContext);
+        List<String> customizedStateTypes =
+            _accessor.getChildNames(_accessor.keyBuilder().customizedStatesRoot(instanceName));
+        customizedStateRootChangeListener
+            .onCustomizedStateRootChange(instanceName, customizedStateTypes, changeContext);
 
       } else if (_changeType == CUSTOMIZED_STATE) {
         CustomizedStateChangeListener customizedStateChangeListener =

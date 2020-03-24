@@ -42,6 +42,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.model.RESTConfig;
@@ -261,22 +262,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/configs")
   public Response getClusterConfig(@PathParam("clusterId") String clusterId) {
-    ConfigAccessor accessor = getConfigAccessor();
-    ClusterConfig config = null;
-    try {
-      config = accessor.getClusterConfig(clusterId);
-    } catch (HelixException ex) {
-      // cluster not found.
-      LOG.info("Failed to get cluster config for cluster {}, cluster not found. Exception: {}.",
-          clusterId, ex);
-    } catch (Exception ex) {
-      LOG.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
-      return serverError(ex);
-    }
-    if (config == null) {
-      return notFound();
-    }
-    return JSONRepresentation(config.getRecord());
+    return getConfig(clusterId, HelixConfigScope.ConfigScopeProperty.CLUSTER);
+
   }
 
   @GET
@@ -295,52 +282,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}/configs")
   public Response updateClusterConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, String content) {
-    Command command;
-    try {
-      command = getCommand(commandStr);
-    } catch (HelixException ex) {
-      return badRequest(ex.getMessage());
-    }
-
-    ZNRecord record;
-    try {
-      record = toZNRecord(content);
-    } catch (IOException e) {
-      LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
-      return badRequest("Input is not a valid ZNRecord!");
-    }
-
-    if (!record.getId().equals(clusterId)) {
-      return badRequest("ID does not match the cluster name in input!");
-    }
-
-    ClusterConfig config = new ClusterConfig(record);
-    ConfigAccessor configAccessor = getConfigAccessor();
-    try {
-      switch (command) {
-        case update:
-          configAccessor.updateClusterConfig(clusterId, config);
-          break;
-        case delete: {
-          HelixConfigScope clusterScope =
-              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-                  .forCluster(clusterId).build();
-          configAccessor.remove(clusterScope, config.getRecord());
-        }
-        break;
-
-        default:
-          return badRequest("Unsupported command " + commandStr);
-      }
-    } catch (HelixException ex) {
-      return notFound(ex.getMessage());
-    } catch (Exception ex) {
-      LOG
-          .error("Failed to {} cluster config, cluster {}, new config: {}. Exception: {}.", command,
-              clusterId, content, ex);
-      return serverError(ex);
-    }
-    return OK();
+    return updateConfig(clusterId, commandStr, content, HelixConfigScope.ConfigScopeProperty.CLUSTER);
   }
 
   @GET
@@ -551,67 +493,13 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}/restconfig")
   public Response updateRESTConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, String content) {
-    //TODO: abstract out the logic that is duplicated from cluster config methods
-    Command command;
-    try {
-      command = getCommand(commandStr);
-    } catch (HelixException ex) {
-      return badRequest(ex.getMessage());
-    }
-
-    ZNRecord record;
-    try {
-      record = toZNRecord(content);
-    } catch (IOException e) {
-      LOG.error("Failed to deserialize user's input {}. Exception: {}", content, e);
-      return badRequest("Input is not a valid ZNRecord!");
-    }
-
-    RESTConfig config = new RESTConfig(record);
-    ConfigAccessor configAccessor = getConfigAccessor();
-    try {
-      switch (command) {
-        case update:
-          configAccessor.updateRESTConfig(clusterId, config);
-          break;
-        case delete: {
-          HelixConfigScope scope =
-              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.REST)
-                  .forCluster(clusterId).build();
-          configAccessor.remove(scope, config.getRecord());
-        }
-        break;
-        default:
-          return badRequest("Unsupported command " + commandStr);
-      }
-    } catch (HelixException ex) {
-      return notFound(ex.getMessage());
-    } catch (Exception ex) {
-      LOG.error(
-          "Failed to {} rest config, cluster {}, new config: {}. Exception: {}", command, clusterId, content, ex);
-      return serverError(ex);
-    }
-    return OK();
+    return updateConfig(clusterId, commandStr, content, HelixConfigScope.ConfigScopeProperty.REST);
   }
 
   @GET
   @Path("{clusterId}/restconfig")
   public Response getRESTConfig(@PathParam("clusterId") String clusterId) {
-    ConfigAccessor accessor = getConfigAccessor();
-    RESTConfig config = null;
-    try {
-      config = accessor.getRESTConfig(clusterId);
-    } catch (HelixException ex) {
-      LOG.info(
-          "Failed to get rest config for cluster {}, cluster not found. Exception: {}.", clusterId, ex);
-    } catch (Exception ex) {
-      LOG.error("Failed to get rest config for cluster {}. Exception: {}.", clusterId, ex);
-      return serverError(ex);
-    }
-    if (config == null) {
-      return notFound();
-    }
-    return JSONRepresentation(config.getRecord());
+    return getConfig(clusterId, HelixConfigScope.ConfigScopeProperty.REST);
   }
 
   @DELETE
@@ -670,5 +558,86 @@ public class ClusterAccessor extends AbstractHelixResource {
         break;
     }
     return history;
+  }
+
+  private Response updateConfig(String clusterId, String commandStr, String content,
+      HelixConfigScope.ConfigScopeProperty configScope) {
+
+    Command command;
+    try {
+      command = getCommand(commandStr);
+    } catch (HelixException ex) {
+      return badRequest(ex.getMessage());
+    }
+
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      LOG.error("Failed to deserialize user's input {}. Exception: {}", content, e);
+      return badRequest("Input is not a valid ZNRecord!");
+    }
+
+    ConfigAccessor configAccessor = getConfigAccessor();
+
+    HelixProperty config = null;
+    if (configScope == HelixConfigScope.ConfigScopeProperty.CLUSTER) {
+
+      if (!record.getId().equals(clusterId)) {
+        return badRequest("ID does not match the cluster name in input!");
+      }
+      config = new ClusterConfig(record);
+    } else if (configScope == HelixConfigScope.ConfigScopeProperty.REST) {
+      config = new RESTConfig(record);
+    }
+    try {
+      switch (command) {
+        case update:
+          if (configScope == HelixConfigScope.ConfigScopeProperty.CLUSTER) {
+            configAccessor.updateClusterConfig(clusterId, (ClusterConfig) config);
+          } else if (configScope == HelixConfigScope.ConfigScopeProperty.REST) {
+            configAccessor.updateRESTConfig(clusterId, (RESTConfig) config);
+          }
+          break;
+        case delete: {
+          HelixConfigScope scope =
+              new HelixConfigScopeBuilder(configScope).forCluster(clusterId).build();
+          configAccessor.remove(scope, config.getRecord());
+        }
+        break;
+        default:
+          return badRequest("Unsupported command " + commandStr);
+      }
+    } catch (HelixException ex) {
+      return notFound(ex.getMessage());
+    } catch (Exception ex) {
+      LOG.error("Failed to {} {} config, cluster {}, new config: {}. Exception: {}", command,
+          configScope.name(), clusterId, content, ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
+  private Response getConfig(String clusterId, HelixConfigScope.ConfigScopeProperty configScope) {
+    ConfigAccessor accessor = getConfigAccessor();
+    HelixProperty config = null;
+    try {
+      if (configScope == HelixConfigScope.ConfigScopeProperty.CLUSTER) {
+        config = accessor.getClusterConfig(clusterId);
+      } else if (configScope == HelixConfigScope.ConfigScopeProperty.REST) {
+        config = accessor.getRESTConfig(clusterId);
+      }
+    } catch (HelixException ex) {
+      // cluster not found.
+      LOG.info("Failed to get {} config for cluster {}, cluster not found. Exception: {}.", configScope.name(),
+          clusterId, ex);
+    } catch (Exception ex) {
+      LOG.error("Failed to get {} config for cluster {}. Exception: {}", configScope.name(), clusterId, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    return JSONRepresentation(config.getRecord());
   }
 }

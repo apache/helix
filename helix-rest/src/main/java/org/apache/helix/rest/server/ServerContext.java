@@ -264,6 +264,11 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
 
   @Override
   public void handleDataDeleted(String dataPath) {
+    // NOP because this is covered by handleChildChange()
+  }
+
+  @Override
+  public void handleStateChanged(Watcher.Event.KeeperState state) {
     if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
       return;
     }
@@ -274,18 +279,13 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   }
 
   @Override
-  public void handleStateChanged(Watcher.Event.KeeperState state) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
-      return;
-    }
-    resetZkResources();
-  }
-
-  @Override
   public void handleNewSession(String sessionId) {
     if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
       return;
     }
+    // Resubscribe
+    _zkClientForListener.unsubscribeAll();
+    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
     resetZkResources();
   }
 
@@ -294,6 +294,9 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
       return;
     }
+    // Resubscribe
+    _zkClientForListener.unsubscribeAll();
+    ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClientForListener, this, this);
     resetZkResources();
   }
 

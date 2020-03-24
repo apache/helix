@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.helix.msdcommon.callback.RoutingDataListener;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -58,6 +59,9 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     _zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+
+    ZkMetadataStoreDirectory.createRoutingDataPath(_zkClient, _zkAddress);
+    
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
       subscribeRoutingDataChanges(_zkClient, this, this);
@@ -163,7 +167,6 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
     if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
-
     // Renew subscription
     _zkClient.unsubscribeAll();
     ZkRoutingDataReader.subscribeRoutingDataChanges(_zkClient, this, this);

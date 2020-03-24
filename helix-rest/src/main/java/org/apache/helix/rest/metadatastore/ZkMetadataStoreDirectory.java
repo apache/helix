@@ -154,7 +154,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
     }
     Set<String> allShardingKeys = new HashSet<>();
-    _realmToShardingKeysMap.get(namespace).values().forEach(keys -> allShardingKeys.addAll(keys));
+    _realmToShardingKeysMap.get(namespace).values().forEach(allShardingKeys::addAll);
     return allShardingKeys;
   }
 
@@ -353,7 +353,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
    * Make sure the root routing data path exists. Also, register the routing ZK address.
    * @param zkClient
    */
-  private void createRoutingDataPath(HelixZkClient zkClient, String zkAddress) {
+  public static void createRoutingDataPath(HelixZkClient zkClient, String zkAddress) {
     try {
       zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
     } catch (ZkNodeExistsException e) {

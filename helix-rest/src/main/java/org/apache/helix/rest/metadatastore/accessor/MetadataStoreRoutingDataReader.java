@@ -22,11 +22,7 @@ package org.apache.helix.rest.metadatastore.accessor;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.zkclient.IZkChildListener;
-import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 
 
 /**

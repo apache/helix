@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -304,7 +303,6 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
    */
   private void resetZkResources() {
     synchronized (this) {
-      System.out.println("ServerContext: Resetting ZK resources due to routing data change! Routing ZK: " + _zkAddr);
       LOG.info("ServerContext: Resetting ZK resources due to routing data change! Routing ZK: {}",
           _zkAddr);
       try {
@@ -327,8 +325,6 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       } catch (Exception e) {
         LOG.error("Failed to reset ZkClient and Helix APIs in ServerContext!", e);
       }
-
-      System.out.println("ServerContext: Finished reset ZK resources due to routing data change! Routing ZK: " + _zkAddr);
     }
   }
 }

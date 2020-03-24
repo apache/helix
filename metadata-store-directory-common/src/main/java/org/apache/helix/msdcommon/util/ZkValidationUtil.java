@@ -27,6 +27,7 @@ public class ZkValidationUtil {
    * /
    * /abc
    * /abc/abc/abc/abc
+   * /abc/localhost:1234
    * Invalid matches:
    * null or empty string
    * /abc/

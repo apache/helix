@@ -44,22 +44,22 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.model.RESTConfig;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,7 +137,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       @DefaultValue("false") @QueryParam("recreate") String recreate) {
     boolean recreateIfExists = Boolean.valueOf(recreate);
     ClusterSetup clusterSetup = getClusterSetup();
-
     try {
       clusterSetup.addCluster(clusterId, recreateIfExists);
     } catch (Exception ex) {
@@ -454,7 +453,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       LOG.error("Failed to deserialize user's input {}. Exception: {}.", content, e);
       return badRequest("Input is not a valid ZNRecord!");
     }
-    HelixZkClient zkClient = getHelixZkClient();
+    RealmAwareZkClient zkClient = getRealmAwareZkClient();
     String path = PropertyPathBuilder.stateModelDef(clusterId);
     try {
       ZKUtil.createChildren(zkClient, path, record);
@@ -638,7 +637,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   private boolean doesClusterExist(String cluster) {
-    HelixZkClient zkClient = getHelixZkClient();
+    RealmAwareZkClient zkClient = getRealmAwareZkClient();
     return ZKUtil.isClusterSetup(cluster, zkClient);
   }
 

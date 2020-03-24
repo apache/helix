@@ -136,6 +136,14 @@ public class HttpRoutingDataReader {
   }
 
   /**
+   * Clears the statically-cached routing data in HttpRoutingDataReader.
+   */
+  public static void reset() {
+    _rawRoutingDataMap.clear();
+    _metadataStoreRoutingDataMap.clear();
+  }
+
+  /**
    * Makes an HTTP call to fetch all routing data.
    * @return
    * @throws IOException

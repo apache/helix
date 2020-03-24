@@ -630,40 +630,6 @@ under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M3</version>
-          <executions>
-            <!--
-            "executions" enables multiple runs of integration test suites. This is to enable two
-            runs: 1. run in a single-ZK environment, 2. run in a multi-ZK environment.
-            "multiZk" is the config accessible via Systems.Properties so that the two runs could be
-            differentiated.
-            -->
-            <execution>
-              <goals>
-                <goal>test</goal>
-              </goals>
-              <id>default-test</id>
-              <phase>test</phase>
-              <configuration>
-                <rerunFailingTestsCount>3</rerunFailingTestsCount>
-                <skipAfterFailureCount>10</skipAfterFailureCount>
-              </configuration>
-            </execution>
-            <execution>
-              <goals>
-                <goal>test</goal>
-              </goals>
-              <id>multi-zk</id>
-              <phase>test</phase>
-              <configuration>
-                <systemPropertyVariables>
-                  <multiZk>true</multiZk>
-                  <numZk>3</numZk>
-                </systemPropertyVariables>
-                <rerunFailingTestsCount>3</rerunFailingTestsCount>
-                <skipAfterFailureCount>10</skipAfterFailureCount>
-              </configuration>
-            </execution>
-          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.rat</groupId>

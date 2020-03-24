@@ -22,6 +22,8 @@ package org.apache.helix.msdcommon.constant;
 public class MetadataStoreRoutingConstants {
   public static final String ROUTING_DATA_PATH = "/METADATA_STORE_ROUTING_DATA";
 
+  public static final String ROUTING_ZK_ADDRESS_KEY = "ROUTING_ZK_ADDRESS";
+
   // For ZK only
   public static final String ZNRECORD_LIST_FIELD_KEY = "ZK_PATH_SHARDING_KEYS";
 

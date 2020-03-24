@@ -33,6 +33,6 @@ public class ZkValidationUtil {
    * /abc/abc/abc/abc/
    **/
   public static boolean isPathValid(String path) {
-    return path.matches("^/|(/[\\w-]+)+$");
+    return path.matches("^/|(/[\\w?:-]+)+$");
   }
 }

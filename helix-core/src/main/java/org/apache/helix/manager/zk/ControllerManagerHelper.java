@@ -82,6 +82,7 @@ public class ControllerManagerHelper {
       _manager.addInstanceConfigChangeListener(controller);
       _manager.addResourceConfigChangeListener(controller);
       _manager.addClusterfigChangeListener(controller);
+      _manager.addCustomizedStateConfigChangeListener(controller);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);
     } catch (ZkInterruptedException e) {
@@ -99,6 +100,7 @@ public class ControllerManagerHelper {
      */
     _manager.removeListener(keyBuilder.idealStates(), controller);
     _manager.removeListener(keyBuilder.liveInstances(), controller);
+    _manager.removeListener(keyBuilder.customizedStateConfig(), controller);
     _manager.removeListener(keyBuilder.clusterConfig(), controller);
     _manager.removeListener(keyBuilder.resourceConfigs(), controller);
     _manager.removeListener(keyBuilder.instanceConfigs(), controller);

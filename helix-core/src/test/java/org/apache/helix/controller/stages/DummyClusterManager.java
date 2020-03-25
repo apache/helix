@@ -19,7 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.List;
 import java.util.Set;
 
 import org.apache.helix.ClusterMessagingService;
@@ -37,10 +36,11 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
-import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -134,8 +134,15 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
+  public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
+      String instanceName) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
   public void addCustomizedStateChangeListener(CustomizedStateChangeListener listener,
-      String instanceName, String sessionId) throws Exception {
+      String instanceName, String customizedStateType) throws Exception {
     // TODO Auto-generated method stub
 
   }

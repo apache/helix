@@ -20,20 +20,20 @@ package org.apache.helix.api.listeners;
  */
 
 import java.util.List;
+
 import org.apache.helix.NotificationContext;
-import org.apache.helix.model.CustomizedState;
 
 /**
- * Interface to implement to respond to changes in the customized state
+ * Interface to implement to respond to changes in the root path of customized state
  */
-public interface CustomizedStateChangeListener {
+public interface CustomizedStateRootChangeListener {
 
   /**
-   * Invoked when customized state changes
+   * Invoked when root path customized state changes
    * @param instanceName name of the instance whose state changed
-   * @param customizedStatesInfo a list of the customized states
+   * @param customizedStateTypes the state types under the root
    * @param changeContext the change event and state
    */
-  void onCustomizedStateChange(String instanceName, List<CustomizedState> customizedStatesInfo,
-      NotificationContext changeContext);
+  void onCustomizedStateRootChange(String instanceName,
+      List<String> customizedStateTypes, NotificationContext changeContext);
 }

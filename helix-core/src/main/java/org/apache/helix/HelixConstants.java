@@ -34,6 +34,7 @@ public interface HelixConstants {
     CLUSTER_CONFIG (PropertyType.CONFIGS),
     LIVE_INSTANCE (PropertyType.LIVEINSTANCES),
     CURRENT_STATE (PropertyType.CURRENTSTATES),
+    CUSTOMIZED_STATE_ROOT (PropertyType.CUSTOMIZEDSTATES),
     CUSTOMIZED_STATE (PropertyType.CUSTOMIZEDSTATES),
     MESSAGE (PropertyType.MESSAGES),
     EXTERNAL_VIEW (PropertyType.EXTERNALVIEW),

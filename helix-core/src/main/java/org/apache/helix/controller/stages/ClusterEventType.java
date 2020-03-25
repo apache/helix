@@ -22,10 +22,12 @@ package org.apache.helix.controller.stages;
 public enum ClusterEventType {
   IdealStateChange,
   CurrentStateChange,
+  CustomizedStateChange,
   ConfigChange,
   ClusterConfigChange,
   ResourceConfigChange,
   InstanceConfigChange,
+  CustomizeStateConfigChange,
   LiveInstanceChange,
   MessageChange,
   ExternalViewChange,

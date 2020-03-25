@@ -104,6 +104,10 @@ public class MockHelixAdmin implements HelixAdmin {
 
     path = PropertyPathBuilder.resourceConfig(clusterName);
     _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+
+    path = PropertyPathBuilder.customizedStateConfig(clusterName);
+    _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+
     // PROPERTY STORE
     path = PropertyPathBuilder.propertyStore(clusterName);
     _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);

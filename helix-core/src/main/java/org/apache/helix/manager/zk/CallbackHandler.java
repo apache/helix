@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -451,8 +452,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         CustomizedStateRootChangeListener customizedStateRootChangeListener =
             (CustomizedStateRootChangeListener) _listener;
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
-        List<String> customizedStateTypes =
-            _accessor.getChildNames(_accessor.keyBuilder().customizedStatesRoot(instanceName));
+        List<String> customizedStateTypes = new ArrayList<>();
+        if (_preFetchEnabled) {
+          customizedStateTypes =
+              _accessor.getChildNames(_accessor.keyBuilder().customizedStatesRoot(instanceName));
+        }
         customizedStateRootChangeListener
             .onCustomizedStateRootChange(instanceName, customizedStateTypes, changeContext);
 

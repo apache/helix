@@ -21,16 +21,20 @@ package org.apache.helix;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -53,12 +57,17 @@ public class TestZKCallback extends ZkUnitTestBase {
   }
 
   public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,
-      ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
+                                               ConfigChangeListener, CurrentStateChangeListener,
+                                               CustomizedStateConfigChangeListener,
+                                               CustomizedStateRootChangeListener,
+                                               ExternalViewChangeListener,
       IdealStateChangeListener {
     boolean externalViewChangeReceived = false;
     boolean liveInstanceChangeReceived = false;
     boolean configChangeReceived = false;
     boolean currentStateChangeReceived = false;
+    boolean customizedStateConfigChangeReceived = false;
+    boolean customizedStateRootChangeReceived = false;
     boolean messageChangeReceived = false;
     boolean idealStateChangeReceived = false;
 
@@ -96,6 +105,8 @@ public class TestZKCallback extends ZkUnitTestBase {
       liveInstanceChangeReceived = false;
       configChangeReceived = false;
       currentStateChangeReceived = false;
+      customizedStateConfigChangeReceived = false;
+      customizedStateRootChangeReceived = false;
       messageChangeReceived = false;
       idealStateChangeReceived = false;
     }
@@ -104,6 +115,21 @@ public class TestZKCallback extends ZkUnitTestBase {
     public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
       // TODO Auto-generated method stub
       idealStateChangeReceived = true;
+    }
+
+
+    @Override
+    public void onCustomizedStateRootChange(String instanceName, List<String> customizedStateTypes,
+        NotificationContext changeContext) {
+      // TODO Auto-generated method stub
+      customizedStateRootChangeReceived = true;
+    }
+
+    @Override
+    public void onCustomizedStateConfigChange(CustomizedStateConfig customizedStateConfig,
+        NotificationContext context) {
+      // TODO Auto-generated method stub
+      customizedStateConfigChangeReceived = true;
     }
   }
 
@@ -122,6 +148,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     testHelixManager.addMessageListener(testListener, "localhost_8900");
     testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
         testHelixManager.getSessionId());
+    testHelixManager.addCustomizedStateRootChangeListener(testListener, "localhost_8900");
     testHelixManager.addConfigChangeListener(testListener);
     testHelixManager.addIdealStateChangeListener(testListener);
     testHelixManager.addExternalViewChangeListener(testListener);

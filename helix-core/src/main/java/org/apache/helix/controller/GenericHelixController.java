@@ -822,12 +822,12 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info("START: GenericClusterController.onCustomizedStateRootChange()");
     HelixManager manager = changeContext.getManager();
     Builder keyBuilder = new Builder(manager.getClusterName());
-   if (customizedStateTypes.isEmpty()) {
-     customizedStateTypes =
-         manager.getHelixDataAccessor().getChildNames(
-             manager.getHelixDataAccessor().keyBuilder().customizedStatesRoot(instanceName));
-   }
+    if (customizedStateTypes.isEmpty()) {
+      customizedStateTypes = manager.getHelixDataAccessor()
+          .getChildNames(keyBuilder.customizedStatesRoot(instanceName));
+    }
 
+    // TODO: remove the synchronization here once we move this update into dataCache.
     synchronized (_lastSeenCustomizedStateTypes) {
       Set<String> lastSeenCustomizedStateTypes = _lastSeenCustomizedStateTypes.get();
       for (String customizedState : customizedStateTypes) {

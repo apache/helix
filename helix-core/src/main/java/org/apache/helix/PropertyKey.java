@@ -475,6 +475,15 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with the root of {@link CustomizedState} of an instance
+     * @param instanceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStatesRoot(String instanceName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName);
+    }
+
+    /**
      * Get a property key associated with {@link CustomizedState} of an instance and customized state
      * @param instanceName
      * @param customizedStateName

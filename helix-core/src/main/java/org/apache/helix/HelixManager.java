@@ -26,10 +26,11 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
-import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
-import org.apache.helix.api.listeners.ExternalViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -223,6 +224,15 @@ public interface HelixManager {
   @Deprecated
   void addCurrentStateChangeListener(org.apache.helix.CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception;
+
+  /**
+
+   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
+      String instanceName) throws Exception;
 
   /**
    * @see CustomizedStateChangeListener#onCustomizedStateChange(String, List, NotificationContext)

@@ -361,7 +361,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     }
     // Make sure ROUTING_DATA_PATH is mapped to the routing ZK so that FederatedZkClient used
     // in Helix REST can subscribe to the routing data path
-    ZNRecord znRecord = new ZNRecord(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+    ZNRecord znRecord = new ZNRecord(MetadataStoreRoutingConstants.ROUTING_DATA_PATH.substring(1));
     znRecord.setListField(MetadataStoreRoutingConstants.ROUTING_ZK_ADDRESS_KEY,
         Collections.singletonList(zkAddress));
     zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, znRecord);

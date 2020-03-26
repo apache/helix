@@ -189,21 +189,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
           @Override
           public void start() {
             if (_helixRestServer == null) {
-              // Create namespace manifest map
-              List<HelixRestNamespace> namespaces = new ArrayList<>();
-              // Add test namespace
-              namespaces.add(new HelixRestNamespace(TEST_NAMESPACE,
-                  HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, _zkAddrTestNS, false));
-              // Add default namesapce
-              namespaces.add(new HelixRestNamespace(ZK_ADDR));
-              try {
-                _helixRestServer =
-                    new HelixRestServer(namespaces, baseUri.getPort(), baseUri.getPath(),
-                        Collections.singletonList(_auditLogger));
-                _helixRestServer.start();
-              } catch (Exception ex) {
-                throw new TestContainerException(ex);
-              }
+              _helixRestServer = startRestServer();
             }
           }
 
@@ -583,5 +569,29 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
     _clusters.add(STOPPABLE_CLUSTER);
     _workflowMap.put(STOPPABLE_CLUSTER, createWorkflows(STOPPABLE_CLUSTER, 3));
+  }
+
+  /**
+   * Starts a HelixRestServer for the test suite.
+   * @return
+   */
+  protected HelixRestServer startRestServer() {
+    // Create namespace manifest map
+    List<HelixRestNamespace> namespaces = new ArrayList<>();
+    // Add test namespace
+    namespaces.add(new HelixRestNamespace(TEST_NAMESPACE,
+        HelixRestNamespace.HelixMetadataStoreType.ZOOKEEPER, _zkAddrTestNS, false));
+    // Add default namesapce
+    namespaces.add(new HelixRestNamespace(ZK_ADDR));
+    HelixRestServer server;
+    try {
+      server =
+          new HelixRestServer(namespaces, getBaseUri().getPort(), getBaseUri().getPath(),
+              Collections.singletonList(_auditLogger));
+      server.start();
+    } catch (Exception ex) {
+      throw new TestContainerException(ex);
+    }
+    return server;
   }
 }

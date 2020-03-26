@@ -27,7 +27,9 @@ import java.util.Map;
 import org.apache.helix.msdcommon.callback.RoutingDataListener;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -35,7 +37,6 @@ import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.zookeeper.Watcher;
 
 
@@ -59,24 +60,11 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
 
-    // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
-    // create() semantic will fail if it already exists
-    try {
-      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
-    } catch (ZkNodeExistsException e) {
-      // This is okay
-    }
+    ZkMetadataStoreDirectory.createRoutingDataPath(_zkClient, _zkAddress);
 
     _routingDataListener = routingDataListener;
     if (_routingDataListener != null) {
-      // Subscribe child changes
-      _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
-      // Subscribe data changes
-      for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        _zkClient
-            .subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-                this);
-      }
+      _zkClient.subscribeRoutingDataChanges(this, this);
     }
   }
 
@@ -118,7 +106,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleDataChange(String s, Object o) {
-    if (_zkClient.isClosed()) {
+    if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
     _routingDataListener.refreshRoutingData(_namespace);
@@ -138,7 +126,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleStateChanged(Watcher.Event.KeeperState state) {
-    if (_zkClient.isClosed()) {
+    if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
     _routingDataListener.refreshRoutingData(_namespace);
@@ -146,7 +134,7 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleNewSession(String sessionId) {
-    if (_zkClient.isClosed()) {
+    if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
     _routingDataListener.refreshRoutingData(_namespace);
@@ -154,24 +142,19 @@ public class ZkRoutingDataReader implements MetadataStoreRoutingDataReader, IZkD
 
   @Override
   public synchronized void handleSessionEstablishmentError(Throwable error) {
-    if (_zkClient.isClosed()) {
+    if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
     _routingDataListener.refreshRoutingData(_namespace);
   }
 
   private void handleResubscription() {
-    if (_zkClient.isClosed()) {
+    if (_zkClient == null || _zkClient.isClosed()) {
       return;
     }
-
     // Renew subscription
     _zkClient.unsubscribeAll();
-    _zkClient.subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, this);
-    for (String child : _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-      _zkClient.subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
-          this);
-    }
+    _zkClient.subscribeRoutingDataChanges(this, this);
     _routingDataListener.refreshRoutingData(_namespace);
   }
 }

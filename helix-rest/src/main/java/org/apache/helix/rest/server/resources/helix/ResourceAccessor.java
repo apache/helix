@@ -41,18 +41,18 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.codehaus.jackson.type.TypeReference;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
+import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +79,7 @@ public class ResourceAccessor extends AbstractHelixResource {
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), JsonNodeFactory.instance.textNode(clusterId));
 
-    HelixZkClient zkClient = getHelixZkClient();
+    RealmAwareZkClient zkClient = getRealmAwareZkClient();
 
     ArrayNode idealStatesNode = root.putArray(ResourceProperties.idealStates.name());
     ArrayNode externalViewsNode = root.putArray(ResourceProperties.externalViews.name());
@@ -109,7 +109,7 @@ public class ResourceAccessor extends AbstractHelixResource {
   @Path("health")
   public Response getResourceHealth(@PathParam("clusterId") String clusterId) {
 
-    HelixZkClient zkClient = getHelixZkClient();
+    RealmAwareZkClient zkClient = getRealmAwareZkClient();
 
     List<String> resourcesInIdealState =
         zkClient.getChildren(PropertyPathBuilder.idealState(clusterId));

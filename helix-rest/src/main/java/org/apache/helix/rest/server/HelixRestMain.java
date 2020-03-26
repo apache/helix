@@ -146,10 +146,12 @@ public class HelixRestMain {
       // Currently we don't support adding default namespace through yaml manifest so all
       // namespaces created here will not be default
       // TODO: support specifying default namespace from config file
-      namespaces.add(new HelixRestNamespace(config.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name()),
+      namespaces.add(new HelixRestNamespace(
+          config.get(HelixRestNamespace.HelixRestNamespaceProperty.NAME.name()),
           HelixRestNamespace.HelixMetadataStoreType.valueOf(
               config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_TYPE.name())),
-          config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_ADDRESS.name()), false));
+          config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_ADDRESS.name()),
+          false, config.get(HelixRestNamespace.HelixRestNamespaceProperty.MSDS_ENDPOINT.name())));
     }
   }
 

@@ -27,12 +27,13 @@ public class ZkValidationUtil {
    * /
    * /abc
    * /abc/abc/abc/abc
+   * /abc/localhost:1234
    * Invalid matches:
    * null or empty string
    * /abc/
    * /abc/abc/abc/abc/
    **/
   public static boolean isPathValid(String path) {
-    return path.matches("^/|(/[\\w-]+)+$");
+    return path.matches("^/|(/[\\w?:-]+)+$");
   }
 }

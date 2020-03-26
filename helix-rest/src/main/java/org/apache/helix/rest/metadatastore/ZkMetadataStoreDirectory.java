@@ -39,6 +39,7 @@ import org.apache.helix.rest.metadatastore.accessor.MetadataStoreRoutingDataWrit
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataWriter;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
@@ -98,20 +99,27 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     if (!_routingZkAddressMap.containsKey(namespace)) {
       synchronized (_routingZkAddressMap) {
         if (!_routingZkAddressMap.containsKey(namespace)) {
-          // Ensure that ROUTING_DATA_PATH exists in ZK.
-          HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                  new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+          HelixZkClient zkClient = null;
           try {
-            zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
-          } catch (ZkNodeExistsException e) {
-            // The node already exists and it's okay
+            // Ensure that ROUTING_DATA_PATH exists in ZK.
+            zkClient = DedicatedZkClientFactory.getInstance()
+                .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+                    new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+            createRoutingDataPath(zkClient, zkAddress);
+          } finally {
+            if (zkClient != null && !zkClient.isClosed()) {
+              zkClient.close();
+            }
           }
-
-          _routingZkAddressMap.put(namespace, zkAddress);
-          _routingDataReaderMap.put(namespace, new ZkRoutingDataReader(namespace, zkAddress, this));
-          _routingDataWriterMap.put(namespace, new ZkRoutingDataWriter(namespace, zkAddress));
-
+          try {
+            _routingZkAddressMap.put(namespace, zkAddress);
+            _routingDataReaderMap
+                .put(namespace, new ZkRoutingDataReader(namespace, zkAddress, this));
+            _routingDataWriterMap.put(namespace, new ZkRoutingDataWriter(namespace, zkAddress));
+          } catch (IllegalArgumentException | IllegalStateException e) {
+            LOG.error("ZkMetadataStoreDirectory: initializing ZkRoutingDataReader/Writer failed!",
+                e);
+          }
           // Populate realmToShardingKeys with ZkRoutingDataReader
           Map<String, List<String>> rawRoutingData =
               _routingDataReaderMap.get(namespace).getRoutingData();
@@ -119,7 +127,8 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           try {
             _routingDataMap.put(namespace, new TrieRoutingData(rawRoutingData));
           } catch (InvalidRoutingDataException e) {
-            LOG.warn("TrieRoutingData is not created for namespace {}", namespace, e);
+            LOG.warn("ZkMetadataStoreDirectory: TrieRoutingData is not created for namespace {}",
+                namespace, e);
           }
         }
       }
@@ -145,7 +154,7 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       throw new NoSuchElementException("Namespace " + namespace + " does not exist!");
     }
     Set<String> allShardingKeys = new HashSet<>();
-    _realmToShardingKeysMap.get(namespace).values().forEach(keys -> allShardingKeys.addAll(keys));
+    _realmToShardingKeysMap.get(namespace).values().forEach(allShardingKeys::addAll);
     return allShardingKeys;
   }
 
@@ -338,5 +347,23 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
     _realmToShardingKeysMap.clear();
     _routingDataMap.clear();
     _zkMetadataStoreDirectoryInstance = null;
+  }
+
+  /**
+   * Make sure the root routing data path exists. Also, register the routing ZK address.
+   * @param zkClient
+   */
+  public static void createRoutingDataPath(HelixZkClient zkClient, String zkAddress) {
+    try {
+      zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
+    } catch (ZkNodeExistsException e) {
+      // The node already exists and it's okay
+    }
+    // Make sure ROUTING_DATA_PATH is mapped to the routing ZK so that FederatedZkClient used
+    // in Helix REST can subscribe to the routing data path
+    ZNRecord znRecord = new ZNRecord(MetadataStoreRoutingConstants.ROUTING_DATA_PATH.substring(1));
+    znRecord.setListField(MetadataStoreRoutingConstants.ROUTING_ZK_ADDRESS_KEY,
+        Collections.singletonList(zkAddress));
+    zkClient.writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, znRecord);
   }
 }

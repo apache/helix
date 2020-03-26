@@ -34,7 +34,8 @@ public class HelixRestNamespace {
     NAME,
     METADATA_STORE_TYPE,
     METADATA_STORE_ADDRESS,
-    IS_DEFAULT
+    IS_DEFAULT,
+    MSDS_ENDPOINT
   }
 
   /**
@@ -55,7 +56,7 @@ public class HelixRestNamespace {
   private HelixMetadataStoreType _metadataStoreType;
 
   /**
-   * Address of metadata store. Should be informat of
+   * Address of metadata store. Should be in the format of
    * "[ip-address]:[port]" or "[dns-name]:[port]"
    */
   private String _metadataStoreAddress;
@@ -65,16 +66,27 @@ public class HelixRestNamespace {
    */
   private boolean _isDefault;
 
+  /**
+   * Endpoint for accessing MSDS for this namespace.
+   */
+  private String _msdsEndpoint;
+
   public HelixRestNamespace(String metadataStoreAddress) throws IllegalArgumentException {
     this(DEFAULT_NAMESPACE_NAME, HelixMetadataStoreType.ZOOKEEPER, metadataStoreAddress, true);
   }
 
-  public HelixRestNamespace(String name, HelixMetadataStoreType metadataStoreType, String metadataStoreAddress, boolean isDefault)
-      throws IllegalArgumentException {
+  public HelixRestNamespace(String name, HelixMetadataStoreType metadataStoreType,
+      String metadataStoreAddress, boolean isDefault) throws IllegalArgumentException {
+    this(name, metadataStoreType, metadataStoreAddress, isDefault, null);
+  }
+
+  public HelixRestNamespace(String name, HelixMetadataStoreType metadataStoreType,
+      String metadataStoreAddress, boolean isDefault, String msdsEndpoint) {
     _name = name;
     _metadataStoreAddress = metadataStoreAddress;
     _metadataStoreType = metadataStoreType;
     _isDefault = isDefault;
+    _msdsEndpoint = msdsEndpoint;
     validate();
   }
 
@@ -108,5 +120,9 @@ public class HelixRestNamespace {
     ret.put(HelixRestNamespaceProperty.NAME.name(), _name);
     ret.put(HelixRestNamespaceProperty.IS_DEFAULT.name(), String.valueOf(_isDefault));
     return ret;
+  }
+
+  public String getMsdsEndpoint() {
+    return _msdsEndpoint;
   }
 }

@@ -24,6 +24,7 @@ import org.apache.helix.customizedstate.CustomizedStateProvider;
 import org.apache.helix.customizedstate.CustomizedStateProviderFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.spectator.RoutingTableProvider;
@@ -42,22 +43,24 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   private static HelixManager _spectator;
   private static HelixManager _manager;
   // 1st key: customized state type, 2nd key: resource name, 3rd key: partition name, 4th key: instance name, value: state value
-  // This map contains all the customized state information that is enabled for aggregation in config, including those are not listened by routing table provider
+  // This map contains all the customized state information that is updated to ZooKeeper
   private static Map<String, Map<String, Map<String, Map<String, String>>>> _localCustomizedView;
-  // The set contains customized state types that are listened by routing table provider
-  private static Set<String> _localVisibleCustomizedStateType;
+  // The set contains customized state types that are enabled for aggregation in config
+  private static Set<String> _aggregationEnabledTypes;
+  // The set contains customized state types that routing table provider shows to users
+  private static Set<String> _routingTableProviderDataSources;
   private String INSTANCE_0;
   private String INSTANCE_1;
-  private final String RESOURCE_A = "TestDB0";
-  private final String RESOURCE_B = "TestDB1";
-  private final String PARTITION_A1 = "TestDB0_0";
-  private final String PARTITION_A2 = "TestDB0_1";
-  private final String PARTITION_B1 = "TestDB1_0";
-  private final String PARTITION_B2 = "TestDB1_1";
+  private final String RESOURCE_0 = "TestDB0";
+  private final String RESOURCE_1 = "TestDB1";
+  private final String PARTITION_00 = "TestDB0_0";
+  private final String PARTITION_01 = "TestDB0_1";
+  private final String PARTITION_10 = "TestDB1_0";
+  private final String PARTITION_11 = "TestDB1_1";
 
-  // Customized state values used for test, StatusA1 - StatusA3 are values for Customized state TypeA, etc.
+  // Customized state values used for test, TYPE_A_0 - TYPE_A_2 are values for Customized state TypeA, etc.
   private enum CurrentStateValues {
-    StatusA1, StatusA2, StatusA3, StatusB1, StatusB2, StatusB3, StatusC1, StatusC2, StatusC3
+    TYPE_A_0, TYPE_A_1, TYPE_A_2, TYPE_B_0, TYPE_B_1, TYPE_B_2, TYPE_C_0, TYPE_C_1, TYPE_C_2
   }
 
   private enum CustomizedStateType {
@@ -107,7 +110,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     _spectator = HelixManagerFactory
         .getZKHelixManager(clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
-    HelixDataAccessor dataAccessor = _manager.getHelixDataAccessor();
 
     // Initialize customized state provider
     _customizedStateProvider_participant0 = CustomizedStateProviderFactory.getInstance()
@@ -115,18 +117,9 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     _customizedStateProvider_participant1 = CustomizedStateProviderFactory.getInstance()
         .buildCustomizedStateProvider(_manager, participants[1].getInstanceName());
 
-    // Set up aggregation config
-    List<String> aggregationEnabledTypes = Arrays
-        .asList(CustomizedStateType.TYPE_A.name(), CustomizedStateType.TYPE_B.name(),
-            CustomizedStateType.TYPE_C.name());
-    CustomizedStateConfig.Builder customizedStateConfigBuilder =
-        new CustomizedStateConfig.Builder();
-    customizedStateConfigBuilder.setAggregationEnabledTypes(aggregationEnabledTypes);
-    dataAccessor.updateProperty(dataAccessor.keyBuilder().customizedStateConfig(),
-        customizedStateConfigBuilder.build());
-
     _localCustomizedView = new HashMap<>();
-    _localVisibleCustomizedStateType = new HashSet<>();
+    _routingTableProviderDataSources = new HashSet<>();
+    _aggregationEnabledTypes = new HashSet<>();
   }
 
   @AfterClass
@@ -137,7 +130,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   }
 
   /**
-   * Compare the customized state values between ZK and local record
+   * Compare the customized view values between ZK and local record
    * @throws Exception thread interrupted exception
    */
   private void validateAggregationSnapshot() throws Exception {
@@ -150,12 +143,14 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         // Get customized view snapshot
         Map<String, RoutingTableSnapshot> fullCustomizedViewSnapshot =
             routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name());
+        boolean result = false;
+
+        if (fullCustomizedViewSnapshot.isEmpty() && !_routingTableProviderDataSources.isEmpty()) {
+          return false;
+        }
 
         for (String customizedStateType : fullCustomizedViewSnapshot.keySet()) {
-          if (!_localVisibleCustomizedStateType.contains(customizedStateType)) {
-            System.out.println(
-                "Local record does not contain customized state type " + customizedStateType
-                    + ", while it is shown in snapshot");
+          if (!_routingTableProviderDataSources.contains(customizedStateType)) {
             return false;
           }
 
@@ -169,6 +164,12 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
           Collection<CustomizedView> customizedViews = customizedViewSnapshot.getCustomizeViews();
 
+          // If a customized state is not set to be aggregated in config, but is enabled in routing table provider, it will show up in customized view returned to user, but will be empty
+          if (!_aggregationEnabledTypes.contains(customizedStateType)
+              && customizedViews.size() != 0) {
+            return false;
+          }
+
           // Get per resource snapshot
           for (CustomizedView resourceCustomizedView : customizedViews) {
             ZNRecord record = resourceCustomizedView.getRecord();
@@ -177,6 +178,10 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
             // Get local per resource map
             Map<String, Map<String, String>> localPerResourceCustomizedView = localSnapshot
                 .getOrDefault(resourceCustomizedView.getResourceName(), Maps.newHashMap());
+
+            if (resourceStateMap.isEmpty() && !localPerResourceCustomizedView.isEmpty()) {
+              return false;
+            }
 
             // Get per partition snapshot
             for (String partitionName : resourceStateMap.keySet()) {
@@ -187,27 +192,25 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
               Map<String, String> localStateMap =
                   localPerResourceCustomizedView.getOrDefault(partitionName, Maps.newTreeMap());
 
+              if (stateMap.isEmpty() && !localStateMap.isEmpty()) {
+                return false;
+              }
+
               for (String instanceName : stateMap.keySet()) {
                 // Per instance value
                 String stateMapValue = stateMap.get(instanceName);
                 String localStateMapValue = localStateMap.get(instanceName);
                 if (isEmptyValue(stateMapValue) && isEmptyValue(localStateMapValue)) {
-                  return true;
-                }
-                if ((!isEmptyValue(stateMapValue) && !isEmptyValue(localStateMapValue)
+                } else if ((!isEmptyValue(stateMapValue) && !isEmptyValue(localStateMapValue)
                     && !stateMapValue.equals(localStateMapValue)) || (isEmptyValue(stateMapValue)
                     || isEmptyValue(localStateMapValue))) {
-                  System.out.println("The customized state value is: " + stateMapValue
-                      + ", it does not match local record value: " + localStateMapValue
-                      + ", for instance " + instanceName + ".");
                   return false;
                 }
-                return true;
               }
             }
           }
         }
-        return false; // There is no any customized state type enabled for aggregation set
+        return true;
       }
     }, 12000);
 
@@ -219,7 +222,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   }
 
   /**
-   * Update the local record of customized state
+   * Update the local record of customized view
    * @param instanceName the instance to be updated
    * @param customizedStateType the customized state type to be updated
    * @param resourceName the resource to be updated
@@ -238,13 +241,22 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     Map<String, String> localPerPartition = localPerResource.get(partitionName);
     if (customizedStateValue == null) {
       localPerPartition.remove(instanceName);
+      if (localPerPartition.isEmpty()) {
+        localPerResource.remove(partitionName);
+        if (localPerResource.isEmpty()) {
+          localPerStateType.remove(resourceName);
+          if (localPerStateType.isEmpty()) {
+            _localCustomizedView.remove(customizedStateType.name());
+          }
+        }
+      }
     } else {
       localPerPartition.put(instanceName, customizedStateValue.name());
     }
   }
 
   /**
-   * Call this method in the test for an update on customized state in both ZK and local map
+   * Call this method in the test for an update on customized view in both ZK and local map
    * @param instanceName the instance to be updated
    * @param customizedStateType the customized state type to be updated
    * @param resourceName the resource to be updated
@@ -274,7 +286,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
   /**
    *
-   * Call this method in the test for an delete on customized state in both ZK and local map
+   * Call this method in the test for an delete on customized view in both ZK and local map
    * @param instanceName the instance to be updated
    * @param customizedStateType the customized state type to be updated
    * @param resourceName the resource to be updated
@@ -301,104 +313,153 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   }
 
   /**
-   * Set the customized state types to be listened by routing table provider
-   * @param customizedStateTypes a list of the types to listen
+   * Set the data sources (customized state types) for routing table provider
+   * @param customizedStateTypes list of customized state types that routing table provider will include in the snapshot shown to users
    */
-  private void setTypesToListenInRoutingTableProvider(
-      List<CustomizedStateType> customizedStateTypes) {
-    List<String> enabledTypes = new ArrayList<>();
-    _localVisibleCustomizedStateType.clear();
+  private void setRoutingTableProviderDataSources(List<CustomizedStateType> customizedStateTypes) {
+    List<String> customizedViewSources = new ArrayList<>();
+    _routingTableProviderDataSources.clear();
     for (CustomizedStateType type : customizedStateTypes) {
-      enabledTypes.add(type.name());
-      _localVisibleCustomizedStateType.add(type.name());
+      customizedViewSources.add(type.name());
+      _routingTableProviderDataSources.add(type.name());
     }
     Map<PropertyType, List<String>> dataSource = new HashMap<>();
-    dataSource.put(PropertyType.CUSTOMIZEDVIEW, enabledTypes);
+    dataSource.put(PropertyType.CUSTOMIZEDVIEW, customizedViewSources);
     _routingTableProvider = new RoutingTableProvider(_spectator, dataSource);
   }
 
   /**
-   * First update of customized state
-   * Currently only aggregates CURRENT_STATE
-   * instance    state type  resource    partition            key                 value
-   * ---------------------------------------------------------------------------------
-   *    0            A          A           1            CURRENT_STATE         StatusA1 - D
-   *    0            B          A           1            CURRENT_STATE         StatusB1
-   *    0            B          A           2            CURRENT_STATE         StatusB2  -M -> StatusB3
-   *    0            A          B           2            CURRENT_STATE         StatusA2  -M -> StatusA1
-   *    1            C          A           1            CURRENT_STATE         StatusC1
-   *    1            C          A           2            CURRENT_STATE         StatusC2
-   *    1            A          B           1            CURRENT_STATE         StatusA3 -D
-   *    1            B          B           1            CURRENT_STATE         StatusB3 -D -M-> StatusB2
-   *    1            C          B           1            CURRENT_STATE         StatusC3 -M -> StatusC1
-   *
-   *    -D: to be deleted in the test
-   *    -M: to be modified in the test
+   * Set the customized view aggregation config in controller
+   * @param aggregationEnabledTypes list of customized state types that the controller will aggregate to customized view
    */
+  private void setAggregationEnabledTypes(List<CustomizedStateType> aggregationEnabledTypes) {
+    List<String> enabledTypes = new ArrayList<>();
+    _aggregationEnabledTypes.clear();
+    for (CustomizedStateType type : aggregationEnabledTypes) {
+      enabledTypes.add(type.name());
+      _aggregationEnabledTypes.add(type.name());
+    }
+    CustomizedStateConfig.Builder customizedStateConfigBuilder =
+        new CustomizedStateConfig.Builder();
+    customizedStateConfigBuilder.setAggregationEnabledTypes(enabledTypes);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    accessor.setProperty(accessor.keyBuilder().customizedStateConfig(),
+        customizedStateConfigBuilder.build());
+  }
+
   @Test
   public void testCustomizedStateViewAggregation() throws Exception {
+    setAggregationEnabledTypes(
+        Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B));
 
-    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_A, PARTITION_A1,
-        CurrentStateValues.StatusA1);
-    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_A, PARTITION_A1,
-        CurrentStateValues.StatusB1);
-    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_A, PARTITION_A2,
-        CurrentStateValues.StatusB2);
-    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_B, PARTITION_B2,
-        CurrentStateValues.StatusA2);
-    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_A, PARTITION_A1,
-        CurrentStateValues.StatusC1);
-    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_A, PARTITION_A2,
-        CurrentStateValues.StatusC2);
-    update(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_B, PARTITION_B1,
-        CurrentStateValues.StatusA3);
-    update(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_B, PARTITION_B1,
-        CurrentStateValues.StatusB3);
+    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_0, PARTITION_00,
+        CurrentStateValues.TYPE_A_0);
+    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_0, PARTITION_00,
+        CurrentStateValues.TYPE_B_0);
+    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_0, PARTITION_01,
+        CurrentStateValues.TYPE_B_1);
+    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_11,
+        CurrentStateValues.TYPE_A_1);
+    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_0, PARTITION_00,
+        CurrentStateValues.TYPE_C_0);
+    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_0, PARTITION_01,
+        CurrentStateValues.TYPE_C_1);
+    update(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_1, PARTITION_10,
+        CurrentStateValues.TYPE_B_2);
+    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_1, PARTITION_10,
+        CurrentStateValues.TYPE_C_2);
+    update(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_11,
+        CurrentStateValues.TYPE_A_1);
 
-    // Test batch update API to update several customized states in the same customized state type for one resource, but for now only CURRENT_STATE will be aggregated in customized view
-    Map<String, String> customizedStates = Maps.newHashMap();
-    customizedStates.put("CURRENT_STATE", CurrentStateValues.StatusC3.name());
-    customizedStates.put("PREVIOUS_STATE", CurrentStateValues.StatusC1.name());
-    _customizedStateProvider_participant1
-        .updateCustomizedState(CustomizedStateType.TYPE_C.name(), RESOURCE_B, PARTITION_B1,
-            customizedStates);
-    updateLocalCustomizedViewMap(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_B, PARTITION_B1,
-        CurrentStateValues.StatusC3);
-
-    // Only listen to Type A
-    setTypesToListenInRoutingTableProvider(Arrays.asList(CustomizedStateType.TYPE_A));
-    validateAggregationSnapshot();
-
-    // Listens to all all three types
-    setTypesToListenInRoutingTableProvider(Arrays
+    // Aggregation enabled types: A, B; Routing table provider data sources: A, B, C; should show TypeA, TypeB customized views
+    setRoutingTableProviderDataSources(Arrays
         .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
             CustomizedStateType.TYPE_C));
     validateAggregationSnapshot();
 
+    // Aggregation enabled types: A, B; Routing table provider data sources: A, B, C; should show TypeA, TypeB customized views
+    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
+        CustomizedStateType.TYPE_C));
+    validateAggregationSnapshot();
+
+    Assert.assertNull(_customizedStateProvider_participant0
+        .getCustomizedState(CustomizedStateType.TYPE_C.name(), RESOURCE_0));
+
+    // Test batch update API to update several customized state fields in the same customized state, but for now only CURRENT_STATE will be aggregated in customized view
+    Map<String, String> customizedStates = Maps.newHashMap();
+    customizedStates.put("CURRENT_STATE", CurrentStateValues.TYPE_A_2.name());
+    customizedStates.put("PREVIOUS_STATE", CurrentStateValues.TYPE_A_0.name());
+    _customizedStateProvider_participant1
+        .updateCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1, PARTITION_10,
+            customizedStates);
+    updateLocalCustomizedViewMap(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10,
+        CurrentStateValues.TYPE_A_2);
+
+    // Aggregation enabled types: A, B, C; Routing table provider data sources: A; should only show TypeA customized view
+    setRoutingTableProviderDataSources(Arrays.asList(CustomizedStateType.TYPE_A));
+    validateAggregationSnapshot();
+
+    // Test get customized state and get per partition customized state via customized state provider, this part of test doesn't change customized view
+    CustomizedState customizedState = _customizedStateProvider_participant1
+        .getCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1);
+    Assert.assertEquals(customizedState.getState(PARTITION_10), CurrentStateValues.TYPE_A_2.name());
+    Assert.assertEquals(customizedState.getPreviousState(PARTITION_10),
+        CurrentStateValues.TYPE_A_0.name());
+    Assert.assertEquals(customizedState.getState(PARTITION_11), CurrentStateValues.TYPE_A_1.name());
+    Map<String, String> perPartitionCustomizedState = _customizedStateProvider_participant1
+        .getPerPartitionCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1,
+            PARTITION_10);
+    Map<String, String> actualPerPartitionCustomizedState = Maps.newHashMap();
+    actualPerPartitionCustomizedState
+        .put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(),
+            CurrentStateValues.TYPE_A_2.name());
+    actualPerPartitionCustomizedState
+        .put(CustomizedState.CustomizedStateProperty.PREVIOUS_STATE.name(),
+            CurrentStateValues.TYPE_A_0.name());
+    Assert.assertEquals(perPartitionCustomizedState, actualPerPartitionCustomizedState);
+
+    // Test delete per partition customized state via customized state provider.
+    _customizedStateProvider_participant1
+        .deletePerPartitionCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1,
+            PARTITION_10);
+    customizedState = _customizedStateProvider_participant1
+        .getCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1);
+    Assert.assertEquals(customizedState.getState(PARTITION_11), CurrentStateValues.TYPE_A_1.name());
+    Assert.assertNull(_customizedStateProvider_participant1
+        .getPerPartitionCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1,
+            PARTITION_10));
+    // Customized view only reflect CURRENT_STATE field
+    updateLocalCustomizedViewMap(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10,
+        null);
+    validateAggregationSnapshot();
+
+    //Aggregation enabled types: B; Routing table provider data sources: A, B, C; should show TypeB customized views
+    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_B));
+    setRoutingTableProviderDataSources(Arrays
+        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
+            CustomizedStateType.TYPE_C));
+    validateAggregationSnapshot();
+
+    //Aggregation enabled types: B; Routing table provider data sources: A; should show empty customized view
+    setRoutingTableProviderDataSources(Arrays.asList(CustomizedStateType.TYPE_A));
+    validateAggregationSnapshot();
+
     // Update some customized states and verify
-    delete(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_A, PARTITION_A1);
+    delete(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_0, PARTITION_00);
+    delete(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_1, PARTITION_10);
+
+    // delete a customize state that does not exist
+    delete(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10);
     validateAggregationSnapshot();
 
-    delete(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_B, PARTITION_B1);
-    validateAggregationSnapshot();
-
-    delete(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_B, PARTITION_B1);
-    validateAggregationSnapshot();
-
-    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_A, PARTITION_A2,
-        CurrentStateValues.StatusB3);
-    validateAggregationSnapshot();
-
-    update(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_B, PARTITION_B1,
-        CurrentStateValues.StatusB2);
-    validateAggregationSnapshot();
-
-    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_B, PARTITION_B1,
-        CurrentStateValues.StatusC1);
-    validateAggregationSnapshot();
-
-    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_B, PARTITION_B2,
-        CurrentStateValues.StatusA1);
+    update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_0, PARTITION_01,
+        CurrentStateValues.TYPE_B_2);
+    update(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_1, PARTITION_10,
+        CurrentStateValues.TYPE_B_1);
+    update(INSTANCE_1, CustomizedStateType.TYPE_C, RESOURCE_1, PARTITION_10,
+        CurrentStateValues.TYPE_C_0);
+    update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_11,
+        CurrentStateValues.TYPE_A_0);
     validateAggregationSnapshot();
   }
 }

@@ -141,6 +141,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
                       .setZkSerializer(new ZNRecordSerializer()));
               LOG.info("ServerContext: FederatedZkClient created successfully!");
             } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+              LOG.error("Failed to create FederatedZkClient!", e);
               throw new HelixException("Failed to create FederatedZkClient!", e);
             }
           } else {

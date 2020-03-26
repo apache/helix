@@ -43,7 +43,7 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {
-    // Create a mock MSDS so that HttpRoudingDataReader could fetch the routing data
+    // Create a mock MSDS so that HttpRoutingDataReader could fetch the routing data
     if (_msdsServer == null) {
       // Do not create again if Mock MSDS server has already been created by other tests
       _msdsServer = new MockMetadataStoreDirectoryServer(MSDS_HOSTNAME, MSDS_PORT, MSDS_NAMESPACE,

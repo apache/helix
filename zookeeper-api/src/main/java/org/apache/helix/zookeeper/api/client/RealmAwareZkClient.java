@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
@@ -577,6 +578,21 @@ public interface RealmAwareZkClient {
           .setMonitorInstanceName(_monitorInstanceName).setMonitorRootPathOnly(_monitorRootPathOnly)
           .setOperationRetryTimeout(_operationRetryTimeout)
           .setConnectInitTimeout(_connectInitTimeout);
+    }
+  }
+
+  /**
+   * Subscribes to the routing data paths using the provided ZkClient.
+   * Note: this method assumes that the routing data path has already been created.
+   * @param childListener
+   * @param dataListener
+   */
+  default void subscribeRoutingDataChanges(IZkChildListener childListener,
+      IZkDataListener dataListener) {
+    subscribeChildChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, childListener);
+    for (String child : getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+      subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
+          dataListener);
     }
   }
 }

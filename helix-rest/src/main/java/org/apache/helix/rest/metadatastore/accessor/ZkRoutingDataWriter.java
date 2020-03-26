@@ -30,6 +30,7 @@ import javax.ws.rs.core.Response;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.concurrency.ZkDistributedLeaderElection;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -82,20 +83,16 @@ public class ZkRoutingDataWriter implements MetadataStoreRoutingDataWriter {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
             new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
 
-    // Ensure that ROUTING_DATA_PATH exists in ZK. If not, create
-    // create() semantic will fail if it already exists
-    try {
-      _zkClient.createPersistent(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, true);
-    } catch (ZkNodeExistsException e) {
-      // This is okay
-    }
+    ZkMetadataStoreDirectory.createRoutingDataPath(_zkClient, zkAddress);
 
     // Get the hostname (REST endpoint) from System property
     String hostName = System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY);
     if (hostName == null || hostName.isEmpty()) {
-      throw new IllegalStateException(
-          "Hostname is not set or is empty. System.getProperty fails to fetch "
-              + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY + ".");
+      String errMsg =
+          "ZkRoutingDataWriter: Hostname is not set or is empty. System.getProperty fails to fetch "
+              + MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY;
+      LOG.error(errMsg);
+      throw new IllegalStateException(errMsg);
     }
     _myHostName = HttpConstants.HTTP_PROTOCOL_PREFIX + hostName;
 

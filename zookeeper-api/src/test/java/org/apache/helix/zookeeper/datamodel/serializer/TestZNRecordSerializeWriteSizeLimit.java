@@ -24,8 +24,8 @@ import java.io.IOException;
 
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -47,35 +47,38 @@ public class TestZNRecordSerializeWriteSizeLimit {
     final String compressionThresholdProperty =
         System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
-    // Prepare system properties to disable auto compression.
-    final int writeSizeLimit = 200 * 1024;
-    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-        String.valueOf(writeSizeLimit));
-
-    // 2. Set the auto compression enabled property to false so auto compression is disabled.
-    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED, "false");
-
-    // Verify auto compression is disabled.
-    Assert.assertFalse(
-        Boolean.getBoolean(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED));
-    // Data size 300 KB > size limit 200 KB: exception expected.
-    verifyAutoCompression(300, writeSizeLimit, true, false, true);
-
-    // Data size 100 KB < size limit 200 KB: pass
-    verifyAutoCompression(100, writeSizeLimit, false, false, false);
-
-    // Reset: add the properties back to system properties if they were originally available.
-    if (compressionEnabledProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
-          compressionEnabledProperty);
-    } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED);
-    }
-    if (compressionThresholdProperty != null) {
+    try {
+      // Prepare system properties to disable auto compression.
+      final int writeSizeLimit = 200 * 1024;
       System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-          compressionThresholdProperty);
-    } else {
-      System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+          String.valueOf(writeSizeLimit));
+
+      // 2. Set the auto compression enabled property to false so auto compression is disabled.
+      System
+          .setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED, "false");
+
+      // Verify auto compression is disabled.
+      Assert.assertFalse(
+          Boolean.getBoolean(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED));
+      // Data size 300 KB > size limit 200 KB: exception expected.
+      verifyAutoCompression(300, writeSizeLimit, true, false, true);
+
+      // Data size 100 KB < size limit 200 KB: pass
+      verifyAutoCompression(100, writeSizeLimit, false, false, false);
+    } finally {
+      // Reset: add the properties back to system properties if they were originally available.
+      if (compressionEnabledProperty != null) {
+        System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
+            compressionEnabledProperty);
+      } else {
+        System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED);
+      }
+      if (compressionThresholdProperty != null) {
+        System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+            compressionThresholdProperty);
+      } else {
+        System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+      }
     }
   }
 
@@ -85,7 +88,7 @@ public class TestZNRecordSerializeWriteSizeLimit {
    * 1. limit is not set
    * --> default size is used.
    * 2. limit is set
-   * --> serialized data is checked by the limit: pass or throw ZkClientException.
+   * --> serialized data is checked by the limit: pass or throw exception.
    */
   @Test
   public void testZNRecordSerializerWriteSizeLimit() {
@@ -93,39 +96,41 @@ public class TestZNRecordSerializeWriteSizeLimit {
     final String writeSizeLimitProperty =
         System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
 
-    // Unset write size limit property so default limit is used.
-    System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
-
-    Assert.assertNull(
-        System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES));
-
-    verifyAutoCompression(500, ZNRecord.SIZE_LIMIT, false, false, false);
-
-    // 2. Set size limit so serialized data is greater than the size limit but compressed data
-    // is smaller than the size limit.
-    // Set it to 2000 bytes
-    int writeSizeLimit = 2000;
-    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-        String.valueOf(writeSizeLimit));
-
-    // Verify auto compression is done.
-    verifyAutoCompression(200, writeSizeLimit, true, true, false);
-
-    // 3. Set size limit to be be less than default value. The default value will be used for write
-    // size limit.
-    writeSizeLimit = 2000;
-    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-        String.valueOf(writeSizeLimit));
-
-    // Verify ZkClientException is thrown because compressed data is larger than size limit.
-    verifyAutoCompression(1000, writeSizeLimit, true, true, true);
-
-    // Reset: add the properties back to system properties if they were originally available.
-    if (writeSizeLimitProperty != null) {
-      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-          writeSizeLimitProperty);
-    } else {
+    try {
+      // Unset write size limit property so default limit is used.
       System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+
+      Assert.assertNull(
+          System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES));
+
+      verifyAutoCompression(500, ZNRecord.SIZE_LIMIT, false, false, false);
+
+      // 2. Set size limit so serialized data is greater than the size limit but compressed data
+      // is smaller than the size limit.
+      // Set it to 2000 bytes
+      int writeSizeLimit = 2000;
+      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+          String.valueOf(writeSizeLimit));
+
+      // Verify auto compression is done.
+      verifyAutoCompression(200, writeSizeLimit, true, true, false);
+
+      // 3. Set size limit to be be less than default value. The default value will be used for write
+      // size limit.
+      writeSizeLimit = 2000;
+      System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+          String.valueOf(writeSizeLimit));
+
+      // Verify exception is thrown because compressed data is larger than size limit.
+      verifyAutoCompression(1000, writeSizeLimit, true, true, true);
+    } finally {
+      // Reset: add the properties back to system properties if they were originally available.
+      if (writeSizeLimitProperty != null) {
+        System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+            writeSizeLimitProperty);
+      } else {
+        System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+      }
     }
   }
 
@@ -147,9 +152,9 @@ public class TestZNRecordSerializeWriteSizeLimit {
 
       Assert.assertEquals(bytes.length >= limit, exceptionExpected);
       Assert.assertFalse(exceptionExpected);
-    } catch (ZkClientException ex) {
-      Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
-      Assert.assertTrue(ex.getMessage().contains(" is greater than " + limit + " bytes"));
+    } catch (ZkMarshallingError e) {
+      Assert.assertTrue(exceptionExpected, "Should not throw exception.");
+      Assert.assertTrue(e.getMessage().contains(" is greater than " + limit + " bytes"));
       // No need to verify following asserts as bytes data is not returned.
       return;
     }

@@ -87,7 +87,7 @@ public class HttpRoutingDataReader {
       synchronized (HttpRoutingDataReader.class) {
         rawRoutingData = _rawRoutingDataMap.get(msdsEndpoint);
         if (rawRoutingData == null) {
-          String routingDataJson = getAllRoutingData();
+          String routingDataJson = getAllRoutingData(msdsEndpoint);
           // Update the reference if reading routingData over HTTP is successful
           rawRoutingData = parseRoutingData(routingDataJson);
           _rawRoutingDataMap.put(msdsEndpoint, rawRoutingData);
@@ -148,12 +148,12 @@ public class HttpRoutingDataReader {
    * @return
    * @throws IOException
    */
-  private static String getAllRoutingData() throws IOException {
+  private static String getAllRoutingData(String msdsEndpoint) throws IOException {
     // Note that MSDS_ENDPOINT should provide high-availability - it risks becoming a single point
     // of failure if it's backed by a single IP address/host
     // Retry count is 3 by default.
     HttpGet requestAllData = new HttpGet(
-        SYSTEM_MSDS_ENDPOINT + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
+        msdsEndpoint + MetadataStoreRoutingConstants.MSDS_GET_ALL_ROUTING_DATA_ENDPOINT);
 
     // Define timeout configs
     RequestConfig config = RequestConfig.custom().setConnectTimeout(HTTP_TIMEOUT_IN_MS)

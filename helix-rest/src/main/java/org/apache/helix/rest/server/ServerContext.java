@@ -36,7 +36,6 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
-import org.apache.helix.rest.metadatastore.accessor.ZkRoutingDataReader;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -62,6 +61,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private static final Logger LOG = LoggerFactory.getLogger(ServerContext.class);
 
   private final String _zkAddr;
+  private final String _msdsEndpoint;
   private volatile RealmAwareZkClient _zkClient;
 
   private volatile ZKHelixAdmin _zkHelixAdmin;
@@ -83,7 +83,17 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private RealmAwareZkClient _zkClientForListener;
 
   public ServerContext(String zkAddr) {
+    this(zkAddr, null);
+  }
+
+  /**
+   * Initializes a ServerContext for this namespace.
+   * @param zkAddr routing ZK address (on multi-zk mode)
+   * @param msdsEndpoint if given, this server context will try to read routing data from this MSDS.
+   */
+  public ServerContext(String zkAddr, String msdsEndpoint) {
     _zkAddr = zkAddr;
+    _msdsEndpoint = msdsEndpoint; // only applicable on multi-zk mode
 
     // We should NOT initiate _zkClient and anything that depends on _zkClient in
     // constructor, as it is reasonable to start up HelixRestServer first and then
@@ -105,8 +115,13 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
             LOG.info("ServerContext: initializing FederatedZkClient with routing ZK at {}!",
                 _zkAddr);
             try {
-              _zkClient = new FederatedZkClient(
-                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
+              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+              // If MSDS endpoint is set for this namespace, use that instead.
+              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
+                connectionConfigBuilder.setMsdsEndpoint(_msdsEndpoint);
+              }
+              _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
                   new RealmAwareZkClient.RealmAwareZkClientConfig()
                       .setZkSerializer(new ZNRecordSerializer()));
 

@@ -115,6 +115,12 @@ public abstract class AbstractTaskDispatcher {
         TaskPartitionState currState = updateJobContextAndGetTaskCurrentState(currStateOutput,
             jobResource, pId, pName, instance, jobCtx, jobTgtState);
 
+        if (!instance.equals(jobCtx.getAssignedParticipant(pId))) {
+          LOG.warn(String.format(
+              "Instance %s does not match the assigned participant for pId %d in the job context. Skipping task scheduling.",
+              instance, pId));
+          continue;
+        }
         // This avoids a race condition in the case that although currentState is in the following
         // error condition, the pending message (INIT->RUNNNING) might still be present.
         // This is undesirable because this prevents JobContext from getting the proper update of
@@ -383,6 +389,7 @@ public abstract class AbstractTaskDispatcher {
       return stateFromContext == null ? TaskPartitionState.INIT : stateFromContext;
     }
     TaskPartitionState currentState = TaskPartitionState.valueOf(currentStateString);
+    jobCtx.setAssignedParticipant(pId, instance);
     jobCtx.setPartitionState(pId, currentState);
     String taskMsg = currentStateOutput.getInfo(jobResource, new Partition(pName), instance);
     if (taskMsg != null) {
@@ -827,7 +834,9 @@ public abstract class AbstractTaskDispatcher {
               break;
             }
           }
-          if (existsInNewAssignment) {
+          if (existsInNewAssignment
+              && instance.equals(jobContext.getAssignedParticipant(pId))
+          ) {
             // We need to drop this task in the old assignment
             paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
             jobContext.setPartitionState(pId, TaskPartitionState.DROPPED);

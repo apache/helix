@@ -479,6 +479,6 @@ public class TestMultiZkHelixJavaApis {
    */
   @Test(dependsOnMethods = "testTaskFramework")
   public void testGetAllClusters() {
-    Assert.assertEquals(_zkHelixAdmin.getClusters(), CLUSTER_LIST);
+    Assert.assertEquals(new HashSet<>(_zkHelixAdmin.getClusters()), new HashSet<>(CLUSTER_LIST));
   }
 }

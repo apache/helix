@@ -950,13 +950,13 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
       } catch (IOException e) {
         throw new HelixException(
-            "ZKHelixAdmin: Failed to read raw routing data from Metadata Store Directory Service!",
-            e);
+            "ZKHelixAdmin: Failed to read raw routing data from Metadata Store Directory Service! MSDS endpoint used: "
+                + msdsEndpoint, e);
       }
       if (realmToShardingKeys == null || realmToShardingKeys.isEmpty()) {
         return Collections.emptyList();
       }
-      // Note that all preceding "/"s are removed
+      // Preceding "/"s are removed: e.g.) "/CLUSTER-SHARDING-KEY" -> "CLUSTER-SHARDING-KEY"
       zkToplevelPaths = realmToShardingKeys.values().stream().flatMap(List::stream)
           .map(shardingKey -> shardingKey.substring(1)).collect(Collectors.toList());
     } else {

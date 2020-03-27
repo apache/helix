@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+
+
 public class SystemPropertyKeys {
   // Task Driver
   public static final String TASK_CONFIG_LIMITATION = "helixTask.configsLimitation";
@@ -63,4 +66,8 @@ public class SystemPropertyKeys {
 
   // Multi-ZK mode enable/disable flag
   public static final String MULTI_ZK_ENABLED = "helix.multiZkEnabled";
+
+  // System Property Metadata Store Directory Server endpoint key
+  public static final String MSDS_SERVER_ENDPOINT_KEY =
+      MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
 }

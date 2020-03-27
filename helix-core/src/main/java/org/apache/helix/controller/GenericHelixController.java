@@ -139,7 +139,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
 
-  final AtomicReference<Set<String>> _lastSeenCustomizedStateTypes;
+  final AtomicReference<Map<String, Set<String>>> _lastSeenCustomizedStateTypesMap;
 
   // By default not reporting status until controller status is changed to activate
   // TODO This flag should be inside ClusterStatusMonitor. When false, no MBean registering.
@@ -548,7 +548,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     _taskRegistry = taskRegistry;
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
-    _lastSeenCustomizedStateTypes = new AtomicReference<>();
+    _lastSeenCustomizedStateTypesMap = new AtomicReference<>();
     _clusterName = clusterName;
     _lastPipelineEndTimestamp = TopStateHandoffReportStage.TIMESTAMP_NOT_RECORDED;
     _clusterStatusMonitor = new ClusterStatusMonitor(_clusterName);
@@ -828,8 +828,14 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     // TODO: remove the synchronization here once we move this update into dataCache.
-    synchronized (_lastSeenCustomizedStateTypes) {
-      Set<String> lastSeenCustomizedStateTypes = _lastSeenCustomizedStateTypes.get();
+    synchronized (_lastSeenCustomizedStateTypesMap) {
+      Map<String, Set<String>> lastSeenCustomizedStateTypesMap =
+          _lastSeenCustomizedStateTypesMap.get();
+      Set<String> lastSeenCustomizedStateTypes = new HashSet<>();
+      if (lastSeenCustomizedStateTypesMap != null && lastSeenCustomizedStateTypesMap
+          .containsKey(instanceName)) {
+        lastSeenCustomizedStateTypes = lastSeenCustomizedStateTypesMap.get(instanceName);
+      }
       for (String customizedState : customizedStateTypes) {
         try {
           if (lastSeenCustomizedStateTypes == null || !lastSeenCustomizedStateTypes
@@ -844,14 +850,24 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         }
       }
 
-      for (String previousCustomizedState : lastSeenCustomizedStateTypes) {
-        if (!customizedStateTypes.contains(previousCustomizedState)) {
-          manager.removeListener(keyBuilder.customizedStates(instanceName, previousCustomizedState),
-              this);
+      if (lastSeenCustomizedStateTypes != null) {
+        for (String previousCustomizedState : lastSeenCustomizedStateTypes) {
+          if (!customizedStateTypes.contains(previousCustomizedState)) {
+            manager
+                .removeListener(keyBuilder.customizedStates(instanceName, previousCustomizedState),
+                    this);
+          }
         }
       }
 
-      _lastSeenCustomizedStateTypes.set(new HashSet<>(customizedStateTypes));
+      if (lastSeenCustomizedStateTypesMap == null) {
+        Map<String, Set<String>> currentTypesMap = new HashMap<>();
+        currentTypesMap.put(instanceName, new HashSet<>(customizedStateTypes));
+        _lastSeenCustomizedStateTypesMap.set(currentTypesMap);
+      } else {
+        _lastSeenCustomizedStateTypesMap.get()
+            .put(instanceName, new HashSet<>(customizedStateTypes));
+      }
     }
   }
 

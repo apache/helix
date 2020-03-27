@@ -197,9 +197,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void refreshCustomizedViewMap(final HelixDataAccessor accessor) {
     // As we are not listening on customized view change, customized view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
-    List<String> newStateTypes = accessor.getChildNames(accessor.keyBuilder().customizedViews());
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CUSTOMIZED_VIEW).getAndSet(false)) {
-      for (String stateType : newStateTypes) {
+      for (String stateType : _aggregationEnabledTypes) {
         if (!_customizedViewCacheMap.containsKey(stateType)) {
           CustomizedViewCache newCustomizedViewCache =
               new CustomizedViewCache(getClusterName(), stateType);
@@ -207,8 +206,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
         }
         _customizedViewCacheMap.get(stateType).refresh(accessor);
       }
-      Set<String> previousCachedStateTypes = _customizedViewCacheMap.keySet();
-      previousCachedStateTypes.removeAll(newStateTypes);
+      Set<String> previousCachedStateTypes = new HashSet<>(_customizedViewCacheMap.keySet());
+      previousCachedStateTypes.removeAll(_aggregationEnabledTypes);
       logger.info("Remove customizedView for state: " + previousCachedStateTypes);
       removeCustomizedViewTypes(new ArrayList<>(previousCachedStateTypes));
     }

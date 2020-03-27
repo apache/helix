@@ -935,8 +935,10 @@ public class ZKHelixAdmin implements HelixAdmin {
   public List<String> getClusters() {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)
         || _zkClient instanceof FederatedZkClient) {
-      throw new UnsupportedOperationException(
-          "getClusters() is not supported in multi-realm mode! Use Metadata Store Directory Service instead!");
+      String errMsg =
+          "getClusters() is not supported in multi-realm mode! Use Metadata Store Directory Service instead!";
+      LOG.error(errMsg);
+      throw new UnsupportedOperationException(errMsg);
     }
 
     List<String> zkToplevelPathes = _zkClient.getChildren("/");

@@ -151,7 +151,9 @@ public class HelixRestMain {
           HelixRestNamespace.HelixMetadataStoreType.valueOf(
               config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_TYPE.name())),
           config.get(HelixRestNamespace.HelixRestNamespaceProperty.METADATA_STORE_ADDRESS.name()),
-          false, config.get(HelixRestNamespace.HelixRestNamespaceProperty.MSDS_ENDPOINT.name())));
+          false, Boolean.parseBoolean(
+          config.get(HelixRestNamespace.HelixRestNamespaceProperty.MULTI_ZK_ENABLED.name())),
+          config.get(HelixRestNamespace.HelixRestNamespaceProperty.MSDS_ENDPOINT.name())));
     }
   }
 

@@ -61,6 +61,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private static final Logger LOG = LoggerFactory.getLogger(ServerContext.class);
 
   private final String _zkAddr;
+  private boolean _isMultiZkEnabled;
   private final String _msdsEndpoint;
   private volatile RealmAwareZkClient _zkClient;
 
@@ -83,16 +84,18 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private RealmAwareZkClient _zkClientForListener;
 
   public ServerContext(String zkAddr) {
-    this(zkAddr, null);
+    this(zkAddr, false, null);
   }
 
   /**
    * Initializes a ServerContext for this namespace.
    * @param zkAddr routing ZK address (on multi-zk mode)
+   * @param isMultiZkEnabled boolean flag for whether multi-zk mode is enabled
    * @param msdsEndpoint if given, this server context will try to read routing data from this MSDS.
    */
-  public ServerContext(String zkAddr, String msdsEndpoint) {
+  public ServerContext(String zkAddr, boolean isMultiZkEnabled, String msdsEndpoint) {
     _zkAddr = zkAddr;
+    _isMultiZkEnabled = isMultiZkEnabled;
     _msdsEndpoint = msdsEndpoint; // only applicable on multi-zk mode
 
     // We should NOT initiate _zkClient and anything that depends on _zkClient in
@@ -111,20 +114,9 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       synchronized (this) {
         if (_zkClient == null) {
           // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-          if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
-            LOG.info("ServerContext: initializing FederatedZkClient with routing ZK at {}!",
-                _zkAddr);
+          if (_isMultiZkEnabled || Boolean
+              .parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
             try {
-              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-              // If MSDS endpoint is set for this namespace, use that instead.
-              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setMsdsEndpoint(_msdsEndpoint);
-              }
-              _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
-                  new RealmAwareZkClient.RealmAwareZkClientConfig()
-                      .setZkSerializer(new ZNRecordSerializer()));
-
               // Make sure the ServerContext is subscribed to routing data change so that it knows
               // when to reset ZkClient and Helix APIs
               if (_zkClientForListener == null) {
@@ -136,7 +128,20 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
               // Refresh data subscription
               _zkClientForListener.unsubscribeAll();
               _zkClientForListener.subscribeRoutingDataChanges(this, this);
+              LOG.info("ServerContext: subscribed to routing data in routing ZK at {}!", _zkAddr);
+
+              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+              // If MSDS endpoint is set for this namespace, use that instead.
+              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
+                connectionConfigBuilder.setMsdsEndpoint(_msdsEndpoint);
+              }
+              _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
+                  new RealmAwareZkClient.RealmAwareZkClientConfig()
+                      .setZkSerializer(new ZNRecordSerializer()));
+              LOG.info("ServerContext: FederatedZkClient created successfully!");
             } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+              LOG.error("Failed to create FederatedZkClient!", e);
               throw new HelixException("Failed to create FederatedZkClient!", e);
             }
           } else {
@@ -279,7 +284,13 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
 
   @Override
   public void handleDataDeleted(String dataPath) {
-    // NOP because this is covered by handleChildChange()
+    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+      return;
+    }
+    // Resubscribe
+    _zkClientForListener.unsubscribeAll();
+    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    resetZkResources();
   }
 
   @Override

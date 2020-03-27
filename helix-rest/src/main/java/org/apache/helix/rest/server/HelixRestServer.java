@@ -149,7 +149,8 @@ public class HelixRestServer {
     // Enable the default statistical monitoring MBean for Jersey server
     cfg.property(ServerProperties.MONITORING_STATISTICS_MBEANS_ENABLED, true);
     cfg.property(ContextPropertyKeys.SERVER_CONTEXT.name(),
-        new ServerContext(namespace.getMetadataStoreAddress(), namespace.getMsdsEndpoint()));
+        new ServerContext(namespace.getMetadataStoreAddress(), namespace.isMultiZkEnabled(),
+            namespace.getMsdsEndpoint()));
     if (type == ServletType.DEFAULT_SERVLET) {
       cfg.property(ContextPropertyKeys.ALL_NAMESPACES.name(), _helixNamespaces);
     } else {

@@ -35,6 +35,7 @@ public class HelixRestNamespace {
     METADATA_STORE_TYPE,
     METADATA_STORE_ADDRESS,
     IS_DEFAULT,
+    MULTI_ZK_ENABLED,
     MSDS_ENDPOINT
   }
 
@@ -67,6 +68,11 @@ public class HelixRestNamespace {
   private boolean _isDefault;
 
   /**
+   * Flag indicating whether this namespace should have multi-zk feature enabled.
+   */
+  private boolean _isMultiZkEnabled;
+
+  /**
    * Endpoint for accessing MSDS for this namespace.
    */
   private String _msdsEndpoint;
@@ -77,15 +83,17 @@ public class HelixRestNamespace {
 
   public HelixRestNamespace(String name, HelixMetadataStoreType metadataStoreType,
       String metadataStoreAddress, boolean isDefault) throws IllegalArgumentException {
-    this(name, metadataStoreType, metadataStoreAddress, isDefault, null);
+    this(name, metadataStoreType, metadataStoreAddress, isDefault, false, null);
   }
 
   public HelixRestNamespace(String name, HelixMetadataStoreType metadataStoreType,
-      String metadataStoreAddress, boolean isDefault, String msdsEndpoint) {
+      String metadataStoreAddress, boolean isDefault, boolean isMultiZkEnabled,
+      String msdsEndpoint) {
     _name = name;
     _metadataStoreAddress = metadataStoreAddress;
     _metadataStoreType = metadataStoreType;
     _isDefault = isDefault;
+    _isMultiZkEnabled = isMultiZkEnabled;
     _msdsEndpoint = msdsEndpoint;
     validate();
   }
@@ -119,7 +127,13 @@ public class HelixRestNamespace {
     Map<String, String> ret = new HashMap<>();
     ret.put(HelixRestNamespaceProperty.NAME.name(), _name);
     ret.put(HelixRestNamespaceProperty.IS_DEFAULT.name(), String.valueOf(_isDefault));
+    ret.put(HelixRestNamespaceProperty.MULTI_ZK_ENABLED.name(), String.valueOf(_isMultiZkEnabled));
+    ret.put(HelixRestNamespaceProperty.MSDS_ENDPOINT.name(), String.valueOf(_msdsEndpoint));
     return ret;
+  }
+
+  public boolean isMultiZkEnabled() {
+    return _isMultiZkEnabled;
   }
 
   public String getMsdsEndpoint() {

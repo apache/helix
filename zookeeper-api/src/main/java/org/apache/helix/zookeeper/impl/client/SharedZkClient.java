@@ -59,6 +59,8 @@ public class SharedZkClient implements RealmAwareZkClient {
   private final MetadataStoreRoutingData _metadataStoreRoutingData;
   private final String _zkRealmShardingKey;
   private final String _zkRealmAddress;
+  private final RealmAwareZkClient.RealmAwareZkConnectionConfig _connectionConfig;
+  private final RealmAwareZkClient.RealmAwareZkClientConfig _clientConfig;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
@@ -69,6 +71,8 @@ public class SharedZkClient implements RealmAwareZkClient {
     if (clientConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkClientConfig cannot be null!");
     }
+    _connectionConfig = connectionConfig;
+    _clientConfig = clientConfig;
 
     // Get the routing data from a static Singleton HttpRoutingDataReader
     String msdsEndpoint = connectionConfig.getMsdsEndpoint();
@@ -496,6 +500,16 @@ public class SharedZkClient implements RealmAwareZkClient {
   @Override
   public void setZkSerializer(PathBasedZkSerializer zkSerializer) {
     _innerSharedZkClient.setZkSerializer(zkSerializer);
+  }
+
+  @Override
+  public RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
+    return _connectionConfig;
+  }
+
+  @Override
+  public RealmAwareZkClientConfig getRealmAwareZkClientConfig() {
+    return _clientConfig;
   }
 
   @Override

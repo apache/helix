@@ -19,7 +19,6 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -209,7 +208,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
       Set<String> previousCachedStateTypes = new HashSet<>(_customizedViewCacheMap.keySet());
       previousCachedStateTypes.removeAll(_aggregationEnabledTypes);
       logger.info("Remove customizedView for state: " + previousCachedStateTypes);
-      removeCustomizedViewTypes(new ArrayList<>(previousCachedStateTypes));
+      removeCustomizedViewTypes(previousCachedStateTypes);
     }
   }
 
@@ -282,7 +281,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param stateTypeNames
    */
 
-  private void removeCustomizedViewTypes(List<String> stateTypeNames) {
+  private void removeCustomizedViewTypes(Set<String> stateTypeNames) {
     for (String stateType : stateTypeNames) {
       _customizedViewCacheMap.remove(stateType);
     }

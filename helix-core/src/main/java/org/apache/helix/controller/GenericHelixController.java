@@ -139,6 +139,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
 
+  // map that stores the mapping between instance and the customized state types available on that
+  //instance
   final AtomicReference<Map<String, Set<String>>> _lastSeenCustomizedStateTypesMap;
 
   // By default not reporting status until controller status is changed to activate
@@ -831,15 +833,14 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     synchronized (_lastSeenCustomizedStateTypesMap) {
       Map<String, Set<String>> lastSeenCustomizedStateTypesMap =
           _lastSeenCustomizedStateTypesMap.get();
-      Set<String> lastSeenCustomizedStateTypes = new HashSet<>();
+      Set<String> lastSeenCustomizedStateTypes = Collections.emptySet();
       if (lastSeenCustomizedStateTypesMap != null && lastSeenCustomizedStateTypesMap
           .containsKey(instanceName)) {
         lastSeenCustomizedStateTypes = lastSeenCustomizedStateTypesMap.get(instanceName);
       }
       for (String customizedState : customizedStateTypes) {
         try {
-          if (lastSeenCustomizedStateTypes == null || !lastSeenCustomizedStateTypes
-              .contains(customizedState)) {
+          if (!lastSeenCustomizedStateTypes.contains(customizedState)) {
             manager.addCustomizedStateChangeListener(this, instanceName, customizedState);
             logger.info(
                 manager.getInstanceName() + " added customized state listener for " + instanceName

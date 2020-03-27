@@ -80,9 +80,9 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       }
     }
 
-    List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
+      List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {
@@ -117,7 +117,6 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
               "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
         }
       }
-      updatedCustomizedViews.clear();
     }
   }
 

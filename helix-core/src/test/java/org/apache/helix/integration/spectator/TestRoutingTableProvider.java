@@ -66,6 +66,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
   static final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   static final int PARTICIPANT_NUMBER = 3;
   static final int PARTICIPANT_START_PORT = 12918;
+  static final long WAIT_DURATION = 5 * 1000L; // 5 seconds
 
   static final int PARTITION_NUMBER = 20;
   static final int REPLICA_NUMBER = 3;
@@ -288,7 +289,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
         customizedView.getRecord(), AccessOption.PERSISTENT);
 
     boolean onCustomizedViewChangeCalled =
-        TestHelper.verify(() -> customizedViewChangeCalled.get(), TestHelper.WAIT_DURATION);
+        TestHelper.verify(() -> customizedViewChangeCalled.get(), WAIT_DURATION);
     Assert.assertTrue(onCustomizedViewChangeCalled);
 
     _spectator.getHelixDataAccessor().getBaseDataAccessor().remove(customizedViewPath,
@@ -363,14 +364,15 @@ public class TestRoutingTableProvider extends ZkTestBase {
             .getStateMap("p1").get("h4");
       } catch (Exception e) {
         // ok because RoutingTable has not been updated yet
+        return false;
       }
       return (routingTableSnapshots.size() == 2
           && routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).size() == 2
           && typeAp1h1.equals("testState1") && typeAp1h2.equals("testState1")
           && typeAp2h1.equals("testState2") && typeAp3h2.equals("testState3")
           && typeBp1h2.equals("testState3") && typeBp1h4.equals("testState2"));
-    }, TestHelper.WAIT_DURATION);
-    Assert.assertTrue(isRoutingTableUpdatedProperly);
+    }, WAIT_DURATION);
+    Assert.assertTrue(isRoutingTableUpdatedProperly, "RoutingTable has been updated properly");
     routingTableProvider.shutdown();
   }
 

@@ -76,12 +76,7 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
    * @return
    */
   public void refresh(HelixDataAccessor accessor) {
-    long startTime = System.currentTimeMillis();
     _customizedViewCache.refresh(accessor);
-    long endTime = System.currentTimeMillis();
-
-    LOG.info("Refresh " + _customizedViewCache.getPropertyMap().size() + " CustomizedViews of type " + _customizedStateType
-        + " for cluster " + _clusterName + ", took " + (endTime - startTime) + " ms");
   }
 
   /**

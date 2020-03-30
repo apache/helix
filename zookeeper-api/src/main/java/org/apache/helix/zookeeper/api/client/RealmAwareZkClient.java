@@ -266,6 +266,14 @@ public interface RealmAwareZkClient {
 
   PathBasedZkSerializer getZkSerializer();
 
+  default RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
+    throw new UnsupportedOperationException("getRealmAwareZkClientConfig() is not supported!");
+  }
+
+  default RealmAwareZkClientConfig getRealmAwareZkClientConfig() {
+    throw new UnsupportedOperationException("getRealmAwareZkClientConfig() is not supported!");
+  }
+
   /**
    * A class that wraps a default implementation of
    * {@link IZkStateListener}, which means this listener

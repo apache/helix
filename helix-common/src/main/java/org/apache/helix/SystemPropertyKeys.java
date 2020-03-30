@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+
+
 public class SystemPropertyKeys {
   // Used to compose default values in HelixManagerProperty
   public static final String HELIX_MANAGER_PROPERTIES = "helix-manager.properties";
@@ -71,4 +74,8 @@ public class SystemPropertyKeys {
 
   // Multi-ZK mode enable/disable flag
   public static final String MULTI_ZK_ENABLED = "helix.multiZkEnabled";
+
+  // System Property Metadata Store Directory Server endpoint key
+  public static final String MSDS_SERVER_ENDPOINT_KEY =
+      MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
 }

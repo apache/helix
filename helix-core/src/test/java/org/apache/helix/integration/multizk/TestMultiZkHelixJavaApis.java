@@ -473,4 +473,12 @@ public class TestMultiZkHelixJavaApis {
       Assert.assertEquals(context.getWorkflowState(), wfStateFromTaskDriver);
     }
   }
+
+  /**
+   * This method tests that ZKHelixAdmin::getClusters() works in multi-zk environment.
+   */
+  @Test(dependsOnMethods = "testTaskFramework")
+  public void testGetAllClusters() {
+    Assert.assertEquals(new HashSet<>(_zkHelixAdmin.getClusters()), new HashSet<>(CLUSTER_LIST));
+  }
 }

@@ -74,6 +74,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
       DedicatedZkClientFactory.class.getSimpleName();
 
   private final MetadataStoreRoutingData _metadataStoreRoutingData;
+  private final RealmAwareZkClient.RealmAwareZkConnectionConfig _connectionConfig;
   private final RealmAwareZkClient.RealmAwareZkClientConfig _clientConfig;
 
   // ZK realm -> ZkClient
@@ -102,6 +103,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
     }
 
     _isClosed = false;
+    _connectionConfig = connectionConfig;
     _clientConfig = clientConfig;
     _pathBasedZkSerializer = clientConfig.getZkSerializer();
     _zkRealmToZkClientMap = new ConcurrentHashMap<>();
@@ -475,6 +477,16 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public PathBasedZkSerializer getZkSerializer() {
     return _pathBasedZkSerializer;
+  }
+
+  @Override
+  public RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
+    return _connectionConfig;
+  }
+
+  @Override
+  public RealmAwareZkClientConfig getRealmAwareZkClientConfig() {
+    return _clientConfig;
   }
 
   private String create(final String path, final Object dataObject, final List<ACL> acl,

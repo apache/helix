@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -83,6 +84,7 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
@@ -933,17 +935,37 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public List<String> getClusters() {
+    List<String> zkToplevelPaths;
+
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)
         || _zkClient instanceof FederatedZkClient) {
-      String errMsg =
-          "getClusters() is not supported in multi-realm mode! Use Metadata Store Directory Service instead!";
-      LOG.error(errMsg);
-      throw new UnsupportedOperationException(errMsg);
+      // If on multi-zk mode, we retrieve cluster information from Metadata Store Directory Service.
+      Map<String, List<String>> realmToShardingKeys;
+      String msdsEndpoint = _zkClient.getRealmAwareZkConnectionConfig().getMsdsEndpoint();
+      try {
+        if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData();
+        } else {
+          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData(msdsEndpoint);
+        }
+      } catch (IOException e) {
+        throw new HelixException(
+            "ZKHelixAdmin: Failed to read raw routing data from Metadata Store Directory Service! MSDS endpoint used: "
+                + msdsEndpoint, e);
+      }
+      if (realmToShardingKeys == null || realmToShardingKeys.isEmpty()) {
+        return Collections.emptyList();
+      }
+      // Preceding "/"s are removed: e.g.) "/CLUSTER-SHARDING-KEY" -> "CLUSTER-SHARDING-KEY"
+      zkToplevelPaths = realmToShardingKeys.values().stream().flatMap(List::stream)
+          .map(shardingKey -> shardingKey.substring(1)).collect(Collectors.toList());
+    } else {
+      // single-zk mode
+      zkToplevelPaths = _zkClient.getChildren("/");
     }
 
-    List<String> zkToplevelPathes = _zkClient.getChildren("/");
-    List<String> result = new ArrayList<String>();
-    for (String pathName : zkToplevelPathes) {
+    List<String> result = new ArrayList<>();
+    for (String pathName : zkToplevelPaths) {
       if (ZKUtil.isClusterSetup(pathName, _zkClient)) {
         result.add(pathName);
       }

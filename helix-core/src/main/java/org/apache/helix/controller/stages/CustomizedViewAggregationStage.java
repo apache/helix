@@ -72,19 +72,17 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
 
     Map<String, CustomizedViewCache> customizedViewCacheMap = cache.getCustomizedViewCacheMap();
 
-    // remove stale customized view type from ZK and cache
-    List<String> customizedViewTypesToRemove = new ArrayList<>();
+    // remove stale customized view type from ZK
     for (String stateType : customizedViewCacheMap.keySet()) {
       if (!customizedStateOutput.getAllStateTypes().contains(stateType)) {
         LogUtil.logInfo(LOG, _eventId, "Remove customizedView for stateType: " + stateType);
         dataAccessor.removeProperty(keyBuilder.customizedView(stateType));
-        customizedViewTypesToRemove.add(stateType);
       }
     }
 
-    List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
+      List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {

@@ -126,7 +126,6 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
     // add CUSTOMIZED_STATE_NAME1 to aggregation enabled types
     aggregationEnabledTypes.add(CUSTOMIZED_STATE_NAME1);
     config.setAggregationEnabledTypes(aggregationEnabledTypes);
-    config.setAggregationEnabledTypes(aggregationEnabledTypes);
     accessor.setProperty(keyBuilder.customizedStateConfig(), config);
 
     // verify the customized view should have "STARTED" for CUSTOMIZED_STATE_NAME1 for INSTANCE1,
@@ -164,8 +163,8 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
     }, 12000);
 
     Thread.sleep(50);
-    Assert.assertTrue(result, String.format("Customized view should not have state for instance: "
-            + "%s", INSTANCE_NAME2));
+    Assert.assertTrue(result, String
+        .format("Customized view should not have state for instance: " + "%s", INSTANCE_NAME2));
 
     // set INSTANCE2 to "STARTED" for CUSTOMIZED_STATE_NAME1
     customizedState = new CustomizedState(RESOURCE_NAME);
@@ -221,6 +220,27 @@ public class TestComputeAndCleanupCustomizedView extends ZkUnitTestBase {
         "Customized view should have state " + "as STARTED " + "for instance: %s, "
             + " resource: %s, partition: %s and state: %s", INSTANCE_NAME2, RESOURCE_NAME,
         PARTITION_NAME2, CUSTOMIZED_STATE_NAME2));
+
+    // remove CUSTOMIZED_STATE_NAME1 from aggregation enabled types
+    aggregationEnabledTypes.remove(CUSTOMIZED_STATE_NAME1);
+    config.setAggregationEnabledTypes(aggregationEnabledTypes);
+    accessor.setProperty(keyBuilder.customizedStateConfig(), config);
+
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() {
+        CustomizedView customizedView =
+            accessor.getProperty(keyBuilder.customizedView(CUSTOMIZED_STATE_NAME1, RESOURCE_NAME));
+        if (customizedView == null) {
+          return true;
+        }
+        return false;
+      }
+    }, 12000);
+
+    Thread.sleep(50);
+    Assert.assertTrue(result,
+        String.format("Customized view should not have state %s", CUSTOMIZED_STATE_NAME1));
 
     // disable controller
     ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);

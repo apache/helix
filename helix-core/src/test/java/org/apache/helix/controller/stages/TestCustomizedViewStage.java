@@ -39,8 +39,8 @@ import org.testng.annotations.Test;
 
 
 public class TestCustomizedViewStage extends ZkUnitTestBase {
-  private final String RESOURCE_NAME = "testResourceName";
-  private final String PARTITION_NAME = "testResourceName_0";
+  private final String RESOURCE_NAME = "TestDB";
+  private final String PARTITION_NAME = "TestDB_0";
   private final String CUSTOMIZED_STATE_NAME = "customizedState1";
   private final String INSTANCE_NAME = "localhost_1";
 
@@ -52,7 +52,16 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
 
-    setupLiveInstances(clusterName, new int[]{0, 1});
+    // ideal state: node0 is MASTER, node1 is SLAVE
+    // replica=2 means 1 master and 1 slave
+    setupIdealState(clusterName, new int[] {
+        0, 1
+    }, new String[] {
+        "TestDB"
+    }, 1, 2);
+    setupLiveInstances(clusterName, new int[] {
+        0, 1
+    });
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
@@ -82,8 +91,8 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
     runStage(event, new ResourceComputationStage());
     runStage(event, new CustomizedStateComputationStage());
     runStage(event, customizedViewComputeStage);
-    Assert.assertEquals(cache.getCustomizedViewCacheMap().values(),
-        accessor.getChildValues(accessor.keyBuilder().customizedViews()));
+    Assert.assertEquals(cache.getCustomizedViewCacheMap().size(),
+        accessor.getChildNames(accessor.keyBuilder().customizedViews()).size());
 
     // Assure there is no customized view got updated when running the stage again
     List<CustomizedView> oldCustomizedViews =

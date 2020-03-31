@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 
@@ -46,5 +47,10 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
   public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath,
       ZkBaseDataAccessor.ZkClientType zkClientType) {
     super(zkAddress, serializer, chrootPath, null, null, MONITOR_TYPE, chrootPath, zkClientType);
+  }
+
+  // test only
+  protected HelixZkClient getTestZkClient() {
+    return getZkClient();
   }
 }

@@ -1073,10 +1073,24 @@ public class ZkClient implements Watcher {
 
     fireStateChangedEvent(event.getState());
 
+    // This following is the case for sharedZkClient
     if (!isManagingZkConnection()) {
+      /*
+       For SharedZkClient, we will not invoke fireNewSessionEvents and we will invoke fireAllEvents
+       This keeps the same behavior as original SharedZkClient.
+       Invoking fireAllEvents is important to make sure HelixPropertyStore working correctly.
+      */
+      if ((event.getState() == KeeperState.SyncConnected) && (!_isNewSessionEventFired) && (!"0"
+          .equals(getHexSessionId()))) {
+        fireAllEvents();
+        _isNewSessionEventFired = true;
+      } else if (event.getState() == KeeperState.Expired) {
+        _isNewSessionEventFired = false;
+      }
       return;
     }
 
+    // The following is the case for non sharedZkClient
     if (event.getState() == KeeperState.SyncConnected) {
       if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
         /*

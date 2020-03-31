@@ -72,6 +72,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   private HelixZkClient _zkClient = null;
 
+  // test only
+  public HelixZkClient getZkClient() {
+    return _zkClient;
+  }
+
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, List<String> wtCachePaths) {
     this(baseAccessor, null, wtCachePaths, null);
   }

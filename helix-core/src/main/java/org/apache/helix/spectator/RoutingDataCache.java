@@ -79,6 +79,17 @@ class RoutingDataCache extends BasicClusterDataCache {
         .get(HelixConstants.ChangeType.CURRENT_STATE)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, false);
+      /**
+       * Workaround of https://github.com/apache/helix/issues/919.
+       * Why it is workaround?
+       * 1. Before a larger scale refactoring, to minimize the impact on cache logic, this change
+       * introduces extra read to update the liveInstance list before processing current states.
+       * 2. This change does not handle the corresponding callback handlers, which should also be
+       * registered when a new liveInstance node is found.
+       * TODO: Refactor cache processing logic and also refine the callback handler registration
+       * TODO: logic.
+       **/
+      _liveInstancePropertyCache.refresh(accessor);
       Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
       _currentStateCache.refresh(accessor, liveInstanceMap);
       LOG.info("Reload CurrentStates. Takes " + (System.currentTimeMillis() - start) + " ms");

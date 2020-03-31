@@ -86,7 +86,7 @@ public class TestTargetedTaskStateChange {
    */
   @Test
   public void testTwoRunningCurrentStates() {
-    Mock mock = new Mock();
+    MockTestInformation mock = new MockTestInformation();
     when(mock.cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
     when(mock.cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
     when(mock.cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
@@ -128,7 +128,7 @@ public class TestTargetedTaskStateChange {
    */
   @Test
   public void testOneRunningOneNull() {
-    Mock mock = new Mock();
+    MockTestInformation mock = new MockTestInformation();
     when(mock.cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
     when(mock.cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
     when(mock.cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
@@ -319,7 +319,7 @@ public class TestTargetedTaskStateChange {
     return prevAssignment;
   }
 
-  private class Mock {
+  private class MockTestInformation {
     private String slaveInstance = INSTANCE_PREFIX + "0";
     private String masterInstance = INSTANCE_PREFIX + "1";
     private String slaveInstance2 = INSTANCE_PREFIX + "2";
@@ -342,7 +342,7 @@ public class TestTargetedTaskStateChange {
     private TaskDataCache _taskDataCache = mock(TaskDataCache.class);
     private RuntimeJobDag _runtimeJobDag = mock(RuntimeJobDag.class);
 
-    Mock() {
+    MockTestInformation() {
     }
   }
 }

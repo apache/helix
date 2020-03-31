@@ -116,9 +116,9 @@ public abstract class AbstractTaskDispatcher {
             jobResource, pId, pName, instance, jobCtx, jobTgtState);
 
         if (!instance.equals(jobCtx.getAssignedParticipant(pId))) {
-          LOG.warn(String.format(
-              "Instance %s does not match the assigned participant for pId %d in the job context. Skipping task scheduling.",
-              instance, pId));
+          LOG.warn(
+              "Instance {} does not match the assigned participant for pId {} in the job context. Skipping task scheduling.",
+              instance, pId);
           continue;
         }
         // This avoids a race condition in the case that although currentState is in the following

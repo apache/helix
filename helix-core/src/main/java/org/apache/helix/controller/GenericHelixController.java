@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -839,7 +840,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       }
 
       if (!lastSeenCustomizedStateTypesMap.containsKey(instanceName)) {
-        lastSeenCustomizedStateTypesMap.put(instanceName, Collections.emptySet());
+        lastSeenCustomizedStateTypesMap.put(instanceName, new HashSet<>());
       }
 
       Set<String> lastSeenCustomizedStateTypes = lastSeenCustomizedStateTypesMap.get(instanceName);

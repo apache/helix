@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
 

@@ -210,7 +210,6 @@ public class ZkTestHelper {
         "Fail to expire current session, zk: " + curZookeeper);
   }
 
-
   public static void expireSession(HelixZkClient client) throws Exception {
     final CountDownLatch waitNewSession = new CountDownLatch(1);
     final ZkClient zkClient = (ZkClient) client;

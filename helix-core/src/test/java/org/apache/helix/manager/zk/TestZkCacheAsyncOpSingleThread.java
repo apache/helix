@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
@@ -37,6 +38,83 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
+  @Test
+  public void testSessionExpirationWithSharedZkClient() throws Exception {
+    int CURSTATECNT = 10;
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    // init external base data accessor
+    HelixZkClient sharedZkclient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+    sharedZkclient.setZkSerializer(new ZNRecordSerializer());
+    ZkBaseDataAccessor<ZNRecord> sharedBaseAccessor = new ZkBaseDataAccessor<>(sharedZkclient);
+
+    // init zkCacheBaseDataAccessor
+    String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
+
+    ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
+    extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
+
+    List<String> zkCacheInitPaths = Arrays.asList(curStatePath, extViewPath);
+    ZkCacheBaseDataAccessor<ZNRecord> accessor =
+        new ZkCacheBaseDataAccessor<>(sharedBaseAccessor, null, null, zkCacheInitPaths);
+
+    boolean ret =
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
+
+    // create 10 current states using external base accessor
+    List<String> paths = new ArrayList<>();
+    List<ZNRecord> records = new ArrayList<>();
+    for (int i = 0; i < CURSTATECNT; i++) {
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
+      ZNRecord record = new ZNRecord("TestDB" + i);
+
+      paths.add(path);
+      records.add(record);
+    }
+
+    boolean[] success = extBaseAccessor.createChildren(paths, records, AccessOption.PERSISTENT);
+    for (int i = 0; i < CURSTATECNT; i++) {
+      Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
+    }
+
+    TestHelper.verifyWithTimeout("verifyZkCache", 5000,
+        zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true  );
+
+    Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
+
+    // dup shared ZkClient
+    HelixZkClient dupZkclient = SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
+
+    // kill the session to make sure shared zkClient re-installs watcher
+    ZkTestHelper.expireSharedZkClientSession(dupZkclient);
+
+    // kill the session one more time to cover code path ZkClient resetting flag that
+    // indicates first time synconnect happened.
+    ZkTestHelper.expireSharedZkClientSession(dupZkclient);
+
+    // remove the currentstates
+    paths.clear();
+    for (int i = 0; i < CURSTATECNT; i++) {
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
+          "session_0", "TestDB" + i);
+      paths.add(path);
+    }
+    success = extBaseAccessor.remove(paths, 0);
+    for (int i = 0; i < CURSTATECNT; i++) {
+      Assert.assertTrue(success[i], "Should succeed in remove:" + paths.get(i));
+    }
+
+    TestHelper.verifyWithTimeout("verifyZkCache", 5000,
+        zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+  }
+
   @Test
   public void testHappyPathExtOpZkCacheBaseDataAccessor() throws Exception {
     String className = TestHelper.getTestClassName();

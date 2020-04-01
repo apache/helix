@@ -21,6 +21,7 @@ package org.apache.helix.store.zk;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -44,6 +46,7 @@ import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -91,58 +94,6 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   public void afterClass() {
     deleteCluster(getShortClassName());
   }
-
-  @Test
-  public void testSessionExpirationWithSharedZkClient() throws Exception {
-    /*
-    This test is to make sure SharedZkClient would work with
-    HelixPropertyStore when session expiration happens. More specifically
-    HelixPropertyStore would register all the callbacks after session
-    expiration.
-     */
-    String subRoot = _root + "/" + "localCallback";
-    List<String> subscribedPaths = new ArrayList<>();
-    subscribedPaths.add(subRoot);
-
-    ZkSerializer serializer = new ZNRecordSerializer();
-    ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<>(ZK_ADDR, serializer, subRoot, subscribedPaths);
-
-    TestListener listener = new TestListener();
-    store.subscribe("/", listener);
-
-    // test dataCreate callbacks
-    listener.reset();
-    setNodes(store, 'a', true);
-
-    // kill the session to make sure shared zkClient re-installs watcher
-    // Note, current shared ZkClient does not issue new session. Thus, we need
-    // kill _zkConnectionManager's session. Otherwise, ZkTestHelper.expireSesson
-    // would not work.
-    SharedZkClient sharedClient = (SharedZkClient) store.getTestZkClient();
-    HelixZkClient  testClient =  sharedClient.getConnectionManager();
-    ZkTestHelper.expireSession(testClient);
-
-
-    // kill the session one more time to cover Shared ZkClient resetting flag
-    // indicating first time synconnect happened.
-    ZkTestHelper.expireSession(testClient);
-
-    listener.reset();
-    int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
-    store.remove("/", 0);
-    // wait until all callbacks have been received
-    for (int i = 0; i < 10; i++) {
-      if (listener._deleteKeys.size() == expectDeleteNodes)
-        break;
-      Thread.sleep(500);
-    }
-
-    System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
-        + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
-    Assert.assertEquals(listener._deleteKeys.size(), expectDeleteNodes);
-  }
-
   @Test
   public void testSet() {
     // Logger.getRootLogger().setLevel(Level.INFO);

@@ -112,9 +112,4 @@ public class SharedZkClient extends ZkClient implements HelixZkClient {
   protected boolean isManagingZkConnection() {
     return false;
   }
-
-  // test only
-  public HelixZkClient getConnectionManager() {
-    return _connectionManager;
-  }
 }

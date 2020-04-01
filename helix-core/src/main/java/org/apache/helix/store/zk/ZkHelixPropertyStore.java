@@ -48,9 +48,4 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T> {
       ZkBaseDataAccessor.ZkClientType zkClientType) {
     super(zkAddress, serializer, chrootPath, null, null, MONITOR_TYPE, chrootPath, zkClientType);
   }
-
-  // test only
-  protected HelixZkClient getTestZkClient() {
-    return getZkClient();
-  }
 }

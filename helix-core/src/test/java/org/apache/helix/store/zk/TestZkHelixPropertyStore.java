@@ -21,7 +21,6 @@ package org.apache.helix.store.zk;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,9 +32,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.TestHelper;
-import org.apache.helix.ZkTestHelper;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -45,11 +41,8 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.store.HelixPropertyListener;
-import org.apache.helix.zookeeper.impl.client.SharedZkClient;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
-import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
@@ -94,6 +87,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   public void afterClass() {
     deleteCluster(getShortClassName());
   }
+
   @Test
   public void testSet() {
     // Logger.getRootLogger().setLevel(Level.INFO);

@@ -27,6 +27,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.caches.BasicClusterDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
@@ -34,6 +35,7 @@ import org.apache.helix.common.caches.CurrentStateSnapshot;
 import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.TargetExternalViewCache;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
@@ -159,6 +161,18 @@ class RoutingDataCache extends BasicClusterDataCache {
    */
   public Map<String, ExternalView> getTargetExternalViews() {
     return _targetExternalViewCache.getExternalViewMap();
+  }
+
+  /**
+   * Retrieves the CustomizedView for all resources
+   * @return
+   */
+  public Map<String, CustomizedView> getCustomizedView(String customizedStateType) {
+    if (_customizedViewCaches.containsKey(customizedStateType)) {
+      return _customizedViewCaches.get(customizedStateType).getCustomizedViewMap();
+    }
+    throw new HelixException(String.format(
+        "customizedStateType %s does not exist in customizedViewCaches.", customizedStateType));
   }
 
   /**

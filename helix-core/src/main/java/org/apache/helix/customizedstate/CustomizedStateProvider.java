@@ -21,13 +21,13 @@ package org.apache.helix.customizedstate;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.I0Itec.zkclient.DataUpdater;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,12 +106,14 @@ public class CustomizedStateProvider {
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
-    _helixDataAccessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord current) {
-        current.getMapFields().remove(partitionName);
-        return current;
-      }
-    }, existingState);
+
+    _helixDataAccessor.updateProperty(propertyKey,
+        new org.apache.helix.zookeeper.zkclient.DataUpdater<ZNRecord>() {
+          @Override
+          public ZNRecord update(ZNRecord current) {
+            current.getMapFields().remove(partitionName);
+            return current;
+          }
+        }, existingState);
   }
 }

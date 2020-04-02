@@ -18,7 +18,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.customizedstate.CustomizedStateProvider;
 import org.apache.helix.customizedstate.CustomizedStateProviderFactory;
@@ -29,6 +28,7 @@ import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.spectator.RoutingTableSnapshot;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -164,7 +164,9 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
           Collection<CustomizedView> customizedViews = customizedViewSnapshot.getCustomizeViews();
 
-          // If a customized state is not set to be aggregated in config, but is enabled in routing table provider, it will show up in customized view returned to user, but will be empty
+          // If a customized state is not set to be aggregated in config, but is enabled in
+          //routing table provider, it will show up in customized view returned to user, but will
+          //be empty
           if (!_aggregationEnabledTypes.contains(customizedStateType)
               && customizedViews.size() != 0) {
             return false;

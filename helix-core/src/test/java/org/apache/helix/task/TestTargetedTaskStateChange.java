@@ -59,8 +59,6 @@ public class TestTargetedTaskStateChange {
 
   @BeforeClass
   public void beforeClass() {
-    System.out.println(
-        "START " + this.getClass().getSimpleName() + " at " + new Date(System.currentTimeMillis()));
     // Populate live instances and their corresponding instance configs
     _liveInstances = new HashMap<>();
     _instanceConfigs = new HashMap<>();
@@ -167,9 +165,7 @@ public class TestTargetedTaskStateChange {
     JobDag jobDag = new JobDag();
     jobDag.addNode(JOB_NAME);
     workflowConfigBuilder.setJobDag(jobDag);
-    WorkflowConfig workflowConfig = workflowConfigBuilder.build();
-
-    return workflowConfig;
+    return workflowConfigBuilder.build();
   }
 
   private JobConfig prepareJobConfig() {
@@ -206,20 +202,6 @@ public class TestTargetedTaskStateChange {
   }
 
   private JobContext prepareJobContext(String instance) {
-    Set<Integer> _taskPartitionSet;
-    Map<Integer, TaskPartitionState> _taskPartitionStateMap;
-    Map<Integer, String> _partitionToTaskIDMap;
-    Map<Integer, String> _taskToInstanceMap;
-    _taskPartitionSet = new HashSet<>();
-    _taskPartitionStateMap = new HashMap<>();
-    _partitionToTaskIDMap = new HashMap<>();
-    _taskToInstanceMap = new HashMap<>();
-
-    _taskPartitionSet.add(0);
-    _taskPartitionStateMap.put(0, TaskPartitionState.RUNNING);
-    _partitionToTaskIDMap.put(0, "0");
-    String someInstance = INSTANCE_PREFIX + 0;
-    _taskToInstanceMap.put(0, someInstance);
     ZNRecord record = new ZNRecord(JOB_NAME);
     JobContext jobContext = new JobContext(record);
     jobContext.setStartTime(0L);

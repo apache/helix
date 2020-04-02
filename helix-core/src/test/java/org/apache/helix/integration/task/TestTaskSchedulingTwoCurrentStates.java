@@ -64,7 +64,7 @@ import com.google.common.collect.ImmutableMap;
  * sent when there are two CurrentStates.
  */
 public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
-  private final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
+  private static final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
   protected HelixDataAccessor _accessor;
   private PropertyKey.Builder _keyBuilder;
   private static final AtomicInteger CANCEL_COUNT = new AtomicInteger(0);
@@ -80,10 +80,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     // Stop participants that have been started in super class
     for (int i = 0; i < _numNodes; i++) {
       super.stopParticipant(i);
-    }
-
-    // Check that participants are actually stopped
-    for (int i = 0; i < _numNodes; i++) {
       Assert.assertFalse(_participants[i].isConnected());
     }
 
@@ -159,31 +155,32 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isTaskAssignedToMasterNode);
 
+    String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
+    ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
+    String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
+    String currentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0 + "/CURRENTSTATES/"
+        + sessionIdP0 + "/" + namespacedJobName;
+
     // Get the current state of Participant1
     String instanceP1 = PARTICIPANT_PREFIX + "_" + (_startPort + 1);
     ZkClient clientP1 = (ZkClient) _participants[1].getZkClient();
     String sessionIdP1 = ZkTestHelper.getSessionId(clientP1);
     String currentStatePathP1 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP1 + "/CURRENTSTATES/"
         + sessionIdP1 + "/" + namespacedJobName;
+
     boolean isCurrentStateCreated = TestHelper.verify(() -> {
       ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor()
           .get(currentStatePathP1, new Stat(), AccessOption.PERSISTENT);
-      return (record != null);
+      if (record != null) {
+        record.setSimpleField(CurrentState.CurrentStateProperty.SESSION_ID.name(), sessionIdP0);
+        _manager.getHelixDataAccessor().getBaseDataAccessor().set(currentStatePathP0, record,
+            AccessOption.PERSISTENT);
+        return true;
+      } else {
+        return false;
+      }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isCurrentStateCreated);
-
-    ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor().get(currentStatePathP1,
-        new Stat(), AccessOption.PERSISTENT);
-
-    String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
-    ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
-    String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
-    String currentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0 + "/CURRENTSTATES/"
-        + sessionIdP0 + "/" + namespacedJobName;
-    record.setSimpleField(CurrentState.CurrentStateProperty.SESSION_ID.name(), sessionIdP0);
-
-    _manager.getHelixDataAccessor().getBaseDataAccessor().set(currentStatePathP0, record,
-        AccessOption.PERSISTENT);
 
     String previousAssignmentPath = "/" + CLUSTER_NAME + "/PROPERTYSTORE/TaskRebalancer/"
         + namespacedJobName + "/PreviousResourceAssignment";

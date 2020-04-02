@@ -146,8 +146,9 @@ public class ZkTestHelper {
     LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
   }
 
-  public static void expireSharedZkClientSession(HelixZkClient client) throws Exception {
+  public static void expireSession(HelixZkClient client) throws Exception {
     final CountDownLatch waitExpireSession = new CountDownLatch(1);
+    final CountDownLatch waitNewSession = new CountDownLatch(1);
     final ZkClient zkClient = (ZkClient) client;
 
     IZkStateListener listener = new IZkStateListener() {
@@ -156,6 +157,9 @@ public class ZkTestHelper {
         LOG.info("IZkStateListener#handleStateChanged, state: " + state);
         if (state == KeeperState.Expired) {
           waitExpireSession.countDown();
+        }
+        if (state == KeeperState.SyncConnected) {
+          waitNewSession.countDown();
         }
       }
 
@@ -195,71 +199,6 @@ public class ZkTestHelper {
 
     // make sure session expiry really happens
     waitExpireSession.await();
-    zkClient.unsubscribeStateChanges(listener);
-
-    connection = (ZkConnection) zkClient.getConnection();
-    curZookeeper = connection.getZookeeper();
-
-    // wait util connected
-    while (curZookeeper.getState() != States.CONNECTED) {
-      Thread.sleep(10);
-    }
-    String newSessionId = Long.toHexString(curZookeeper.getSessionId());
-    LOG.info("After session expiry. sessionId: " + newSessionId + ", zk: " + curZookeeper);
-    Assert.assertFalse(newSessionId.equals(oldSessionId),
-        "Fail to expire current session, zk: " + curZookeeper);
-  }
-
-  public static void expireSession(HelixZkClient client) throws Exception {
-    final CountDownLatch waitNewSession = new CountDownLatch(1);
-    final ZkClient zkClient = (ZkClient) client;
-
-    IZkStateListener listener = new IZkStateListener() {
-      @Override
-      public void handleStateChanged(KeeperState state) throws Exception {
-        LOG.info("IZkStateListener#handleStateChanged, state: " + state);
-      }
-
-      @Override
-      public void handleNewSession(final String sessionId) throws Exception {
-        // make sure zkclient is connected again
-        zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
-
-        LOG.info("handleNewSession. sessionId: {}.", sessionId);
-        waitNewSession.countDown();
-      }
-
-      @Override
-      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
-      }
-    };
-
-    zkClient.subscribeStateChanges(listener);
-
-    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-    ZooKeeper curZookeeper = connection.getZookeeper();
-    String oldSessionId = Long.toHexString(curZookeeper.getSessionId());
-    LOG.info("Before session expiry. sessionId: " + oldSessionId + ", zk: " + curZookeeper);
-
-    Watcher watcher = new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        LOG.info("Watcher#process, event: " + event);
-      }
-    };
-
-    final ZooKeeper dupZookeeper =
-        new ZooKeeper(connection.getServers(), curZookeeper.getSessionTimeout(), watcher,
-            curZookeeper.getSessionId(), curZookeeper.getSessionPasswd());
-    // wait until connected, then close
-    while (dupZookeeper.getState() != States.CONNECTED) {
-      Thread.sleep(10);
-    }
-    Assert.assertEquals(dupZookeeper.getState(), States.CONNECTED,
-        "Fail to connect to zk using current session info");
-    dupZookeeper.close();
-
-    // make sure session expiry really happens
     waitNewSession.await();
     zkClient.unsubscribeStateChanges(listener);
 

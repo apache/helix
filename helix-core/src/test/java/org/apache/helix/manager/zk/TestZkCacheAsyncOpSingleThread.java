@@ -86,18 +86,16 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     TestHelper.verifyWithTimeout("verifyZkCache", 5000,
         zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true  );
 
-    Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
-
     // dup shared ZkClient
     HelixZkClient dupZkclient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     // kill the session to make sure shared zkClient re-installs watcher
-    ZkTestHelper.expireSharedZkClientSession(dupZkclient);
+    ZkTestHelper.expireSession(dupZkclient);
 
     // kill the session one more time to cover code path ZkClient resetting flag that
     // indicates first time synconnect happened.
-    ZkTestHelper.expireSharedZkClientSession(dupZkclient);
+    ZkTestHelper.expireSession(dupZkclient);
 
     // remove the currentstates
     paths.clear();

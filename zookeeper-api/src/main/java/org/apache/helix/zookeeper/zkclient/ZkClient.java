@@ -1073,34 +1073,23 @@ public class ZkClient implements Watcher {
 
     fireStateChangedEvent(event.getState());
 
-    // This following is the case for ZkClient no managing connection
-    if (!isManagingZkConnection()) {
-      /*
-       * For SharedZkClient, we will not invoke fireNewSessionEvents but will invoke fireAllEvents
-       * This keeps the same behavior as original SharedZkClient.
-       * Invoking fireAllEvents is important to make sure HelixPropertyStore working correctly.
-       */
-      if ((event.getState() == KeeperState.SyncConnected) && (!_isNewSessionEventFired) && (!"0"
-          .equals(getHexSessionId()))) {
-        fireAllEvents();
-        _isNewSessionEventFired = true;
-      } else if (event.getState() == KeeperState.Expired) {
-        _isNewSessionEventFired = false;
-      }
-      return;
-    }
-
-    // The following is the case for ZkClient managing the connection
+    /*
+     *  Note, the intention is that only the ZkClient managing the session would do auto reconnect
+     *  and fireNewSessionEvents and fireAllEvent.
+     *  Other ZkClient not managing the session would only fireAllEvent upon a new session.
+     */
     if (event.getState() == KeeperState.SyncConnected) {
       if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
-        /*
-         * Before the new zookeeper instance is connected to the zookeeper service and its session
-         * is established, its session id is 0.
-         * New session event is not fired until the new zookeeper session receives the first
-         * SyncConnected state(the zookeeper session is established).
-         * Now the session id is available and non-zero, and we can fire new session events.
-         */
-        fireNewSessionEvents();
+        if (isManagingZkConnection()) {
+          /*
+           * Before the new zookeeper instance is connected to the zookeeper service and its session
+           * is established, its session id is 0.
+           * New session event is not fired until the new zookeeper session receives the first
+           * SyncConnected state(the zookeeper session is established).
+           * Now the session id is available and non-zero, and we can fire new session events.
+           */
+          fireNewSessionEvents();
+        }
         /*
          * Set it true to avoid firing events again for the same session next time
          * when SyncConnected events are received.
@@ -1115,7 +1104,10 @@ public class ZkClient implements Watcher {
         fireAllEvents();
       }
     } else if (event.getState() == KeeperState.Expired) {
-      reconnectOnExpiring();
+      _isNewSessionEventFired = false;
+      if (isManagingZkConnection()) {
+        reconnectOnExpiring();
+      }
     }
   }
 
@@ -1155,7 +1147,6 @@ public class ZkClient implements Watcher {
     try {
       ZkConnection connection = ((ZkConnection) getConnection());
       connection.reconnect(this);
-      _isNewSessionEventFired = false;
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
     } finally {

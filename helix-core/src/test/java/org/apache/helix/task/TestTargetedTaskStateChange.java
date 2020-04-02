@@ -51,7 +51,6 @@ public class TestTargetedTaskStateChange {
   private static final String JOB_NAME = "TestJob";
   private static final String PARTITION_NAME = "0";
   private static final String TARGET_RESOURCES = "TestDB";
-  private static final int NUM_TASKS = 1;
   private Map<String, LiveInstance> _liveInstances;
   private Map<String, InstanceConfig> _instanceConfigs;
   private ClusterConfig _clusterConfig;
@@ -85,27 +84,27 @@ public class TestTargetedTaskStateChange {
   @Test
   public void testTwoRunningCurrentStates() {
     MockTestInformation mock = new MockTestInformation();
-    when(mock.cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
-    when(mock.cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
-    when(mock.cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
-    when(mock.cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
-    when(mock.cache.getIdealStates()).thenReturn(mock._idealStates);
-    when(mock.cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
-    when(mock.cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
-    when(mock.cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
+    when(mock._cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
+    when(mock._cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
+    when(mock._cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
+    when(mock._cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
+    when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
+    when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
+    when(mock._cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
+    when(mock._cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
         .thenReturn(mock._resourceAssignment);
-    when(mock.cache.getClusterConfig()).thenReturn(_clusterConfig);
+    when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
-    when(mock.cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock.cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(true);
+    when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(true);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())
         .thenReturn(inflightJobDag);
     WorkflowDispatcher workflowDispatcher = new WorkflowDispatcher();
-    workflowDispatcher.updateCache(mock.cache);
+    workflowDispatcher.updateCache(mock._cache);
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     workflowDispatcher.updateWorkflowStatus(WORKFLOW_NAME, mock._workflowConfig,
         mock._workflowContext, mock._currentStateOutput, bestPossibleStateOutput);
@@ -127,28 +126,28 @@ public class TestTargetedTaskStateChange {
   @Test
   public void testOneRunningOneNull() {
     MockTestInformation mock = new MockTestInformation();
-    when(mock.cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
-    when(mock.cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
-    when(mock.cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
-    when(mock.cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
-    when(mock.cache.getIdealStates()).thenReturn(mock._idealStates);
-    when(mock.cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
-    when(mock.cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
-    when(mock.cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
+    when(mock._cache.getWorkflowConfig(WORKFLOW_NAME)).thenReturn(mock._workflowConfig);
+    when(mock._cache.getJobConfig(JOB_NAME)).thenReturn(mock._jobConfig);
+    when(mock._cache.getTaskDataCache()).thenReturn(mock._taskDataCache);
+    when(mock._cache.getJobContext(JOB_NAME)).thenReturn(mock._jobContext);
+    when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
+    when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
+    when(mock._cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
+    when(mock._cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
         .thenReturn(mock._resourceAssignment2);
-    when(mock.cache.getClusterConfig()).thenReturn(_clusterConfig);
+    when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
-    when(mock.cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock.cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(false);
+    when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(false);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())
         .thenReturn(inflightJobDag);
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     WorkflowDispatcher workflowDispatcher = new WorkflowDispatcher();
-    workflowDispatcher.updateCache(mock.cache);
+    workflowDispatcher.updateCache(mock._cache);
     workflowDispatcher.updateWorkflowStatus(WORKFLOW_NAME, mock._workflowConfig,
         mock._workflowContext, mock._currentStateOutput2, bestPossibleStateOutput);
     Partition taskPartition = new Partition(JOB_NAME + "_" + PARTITION_NAME);
@@ -302,25 +301,25 @@ public class TestTargetedTaskStateChange {
   }
 
   private class MockTestInformation {
-    private String slaveInstance = INSTANCE_PREFIX + "0";
-    private String masterInstance = INSTANCE_PREFIX + "1";
-    private String slaveInstance2 = INSTANCE_PREFIX + "2";
-    private WorkflowControllerDataProvider cache = mock(WorkflowControllerDataProvider.class);
+    private static final String SLAVE_INSTANCE = INSTANCE_PREFIX + "0";
+    private static final String MASTER_INSTANCE = INSTANCE_PREFIX + "1";
+    private static final String SLAVE_INSTANCE_2 = INSTANCE_PREFIX + "2";
+
+    private WorkflowControllerDataProvider _cache = mock(WorkflowControllerDataProvider.class);
     private WorkflowConfig _workflowConfig = prepareWorkflowConfig();
     private WorkflowContext _workflowContext = prepareWorkflowContext();
     private Map<String, IdealState> _idealStates =
-        prepareIdealStates(masterInstance, slaveInstance, slaveInstance2);
+        prepareIdealStates(MASTER_INSTANCE, SLAVE_INSTANCE, SLAVE_INSTANCE_2);
     private JobConfig _jobConfig = prepareJobConfig();
-    private JobContext _jobContext = prepareJobContext(slaveInstance);
-    private BestPossibleStateOutput _bestPossibleStateOutput = mock(BestPossibleStateOutput.class);
-    private CurrentStateOutput _currentStateOutput = prepareCurrentState(masterInstance,
-        slaveInstance, TaskPartitionState.RUNNING.name(), TaskPartitionState.RUNNING.name());
+    private JobContext _jobContext = prepareJobContext(SLAVE_INSTANCE);
+    private CurrentStateOutput _currentStateOutput = prepareCurrentState(MASTER_INSTANCE,
+        SLAVE_INSTANCE, TaskPartitionState.RUNNING.name(), TaskPartitionState.RUNNING.name());
     private CurrentStateOutput _currentStateOutput2 =
-        prepareCurrentState2(masterInstance, TaskPartitionState.RUNNING.name());
+        prepareCurrentState2(MASTER_INSTANCE, TaskPartitionState.RUNNING.name());
     private ResourceAssignment _resourceAssignment =
-        preparePreviousAssignment(slaveInstance, TaskPartitionState.RUNNING.name());
+        preparePreviousAssignment(SLAVE_INSTANCE, TaskPartitionState.RUNNING.name());
     private ResourceAssignment _resourceAssignment2 =
-        preparePreviousAssignment(slaveInstance, TaskPartitionState.DROPPED.name());
+        preparePreviousAssignment(SLAVE_INSTANCE, TaskPartitionState.DROPPED.name());
     private TaskDataCache _taskDataCache = mock(TaskDataCache.class);
     private RuntimeJobDag _runtimeJobDag = mock(RuntimeJobDag.class);
 

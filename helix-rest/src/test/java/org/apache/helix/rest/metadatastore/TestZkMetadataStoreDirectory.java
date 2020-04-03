@@ -319,6 +319,37 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     }, TestHelper.WAIT_DURATION));
   }
 
+  @Test(dependsOnMethods = "testChildChangeCallback")
+  public void testDataDeletionCallback() throws Exception {
+    // For all namespaces, delete all routing data
+    _zkList.forEach(zk -> {
+        ZkClient zkClient = ZK_SERVER_MAP.get(zk).getZkClient();
+        if (zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+          for (String zkRealm : zkClient
+              .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
+            zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+          }
+        }
+      }
+    );
+
+    // Confirm that TrieRoutingData has been removed due to missing routing data
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (String namespace : _routingZkAddrMap.keySet()) {
+        try {
+          _metadataStoreDirectory.getMetadataStoreRealm(namespace, "anyKey");
+          return false;
+        } catch (IllegalStateException e) {
+          if (!e.getMessage().equals("Failed to get metadata store realm: Namespace " + namespace
+              + " contains either empty or invalid routing data!")) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION));
+  }
+
   private void clearRoutingData() throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
       for (String zk : _zkList) {

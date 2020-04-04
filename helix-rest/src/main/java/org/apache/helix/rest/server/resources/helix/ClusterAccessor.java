@@ -50,6 +50,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ControllerHistory;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
@@ -278,6 +279,115 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
     return JSONRepresentation(config.getRecord());
   }
+
+
+  @PUT
+  @Path("{clusterId}/customized-state-config")
+  public Response addCustomizedStateConfig(@PathParam("clusterId") String clusterId,
+      String content) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    ZNRecord record;
+    try {
+      record = toZNRecord(content);
+    } catch (IOException e) {
+      return badRequest("Input is not a vaild ZNRecord!");
+    }
+
+    try {
+      CustomizedStateConfig customizedStateConfig =
+          new CustomizedStateConfig.Builder(record).build();
+      admin.addCustomizedStateConfig(clusterId, customizedStateConfig);
+    } catch (Exception ex) {
+      LOG.error("Cannot add CustomizedStateConfig to cluster: {} Exception: {}",
+          clusterId, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  @DELETE
+  @Path("{clusterId}/customized-state-config")
+  public Response removeCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+    try {
+      admin.removeCustomizedStateConfig(clusterId);
+    } catch (Exception ex) {
+      LOG.error(
+          "Cannot remove CustomizedStateConfig from cluster: {}, Exception: {}",
+          clusterId, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  @GET
+  @Path("{clusterId}/customized-state-config")
+  public Response getCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
+    ConfigAccessor configAccessor = getConfigAccessor();
+    CustomizedStateConfig customizedStateConfig =
+        configAccessor.getCustomizedStateConfig(clusterId);
+
+    if (customizedStateConfig != null) {
+      return JSONRepresentation(customizedStateConfig.getRecord());
+    }
+
+    return notFound();
+  }
+
+  @POST
+  @Path("{clusterId}/customized-state-config")
+  public Response updateCustomizedStateConfig(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String commandStr, @QueryParam("type") String type) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
+
+    Command command;
+    if (commandStr == null || commandStr.isEmpty()) {
+      command = Command.add; // Default behavior
+    } else {
+      try {
+        command = getCommand(commandStr);
+      } catch (HelixException ex) {
+        return badRequest(ex.getMessage());
+      }
+    }
+
+    HelixAdmin admin = getHelixAdmin();
+
+    try {
+      switch (command) {
+      case delete:
+        admin.removeTypeFromCustomizedStateConfig(clusterId, type);
+        break;
+      case add:
+        admin.addTypeToCustomizedStateConfig(clusterId, type);
+        break;
+      default:
+        return badRequest("Unsupported command " + commandStr);
+      }
+    } catch (Exception ex) {
+      LOG.error("Failed to {} CustomizedStateConfig for cluster {} new type: {}, Exception: {}",
+          command, clusterId, type, ex);
+      return serverError(ex);
+    }
+    return OK();
+  }
+
 
   @GET
   @Path("{clusterId}/topology")

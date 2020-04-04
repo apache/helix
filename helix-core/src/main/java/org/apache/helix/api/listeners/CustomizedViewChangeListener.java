@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,26 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  RESOURCES_TO_REBALANCE,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  CUSTOMIZED_STATE,
-  INTERMEDIATE_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  EVENT_CREATE_TIME,
-  helixmanager,
-  clusterStatusMonitor,
-  changeContext,
-  instanceName,
-  eventData,
-  AsyncFIFOWorkerPool,
-  PipelineType,
-  LastRebalanceFinishTimeStamp,
-  ControllerDataProvider,
-  STATEFUL_REBALANCER
+import java.util.List;
+
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.CustomizedView;
+
+/**
+ * Interface to implement to respond to changes in the CustomizedView
+ */
+public interface CustomizedViewChangeListener {
+
+  /**
+   * Invoked when customized view changes
+   * @param customizedViewList a list of CustomizedViews
+   * @param changeContext the change event and state
+   */
+  void onCustomizedViewChange(List<CustomizedView> customizedViewList,
+      NotificationContext changeContext);
+
 }

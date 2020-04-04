@@ -43,6 +43,7 @@ public enum PropertyType {
   INSTANCES(Type.CLUSTER, true, false),
   IDEALSTATES(Type.CLUSTER, true, false, false, false, true),
   EXTERNALVIEW(Type.CLUSTER, true, false),
+  CUSTOMIZEDVIEW(Type.CLUSTER, true, false),
   TARGETEXTERNALVIEW(Type.CLUSTER, true, false),
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
@@ -55,6 +56,8 @@ public enum PropertyType {
   ERRORS(Type.INSTANCE, true, true),
   INSTANCE_HISTORY(Type.INSTANCE, true, true, true),
   HEALTHREPORT(Type.INSTANCE, true, false, false, false, false, true),
+  CUSTOMIZEDSTATES(Type.INSTANCE, true, false, false, true, true),
+
 
   // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),

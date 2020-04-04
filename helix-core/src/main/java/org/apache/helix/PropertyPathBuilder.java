@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
@@ -52,6 +54,7 @@ import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
+
 
 /**
  * Utility mapping properties to their Zookeeper locations
@@ -69,6 +72,7 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(IDEALSTATES, IdealState.class);
     typeToClassMapping.put(CONFIGS, InstanceConfig.class);
     typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
+    typeToClassMapping.put(CUSTOMIZEDVIEW, CustomizedView.class);
     typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
     typeToClassMapping.put(MESSAGES, Message.class);
     typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
@@ -93,9 +97,17 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 3, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}/{resourceName}");
+
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,
         "/{clusterName}/TARGETEXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}");
+    addEntry(PropertyType.CUSTOMIZEDVIEW, 3,
+        "/{clusterName}/CUSTOMIZEDVIEW/{resourceName}/{customizedStateName}");
     addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");
     addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
@@ -112,6 +124,12 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.CURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 2,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}");
+    addEntry(PropertyType.CUSTOMIZEDSTATES, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES/{customizedStateName}/{resourceName}");
     addEntry(PropertyType.STATUSUPDATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES, 3,
@@ -258,13 +276,27 @@ public class PropertyPathBuilder {
   public static String externalView(String clusterName, String resourceName) {
     return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
   }
-
+  
   public static String targetExternalView(String clusterName) {
     return String.format("/%s/TARGETEXTERNALVIEW", clusterName);
   }
 
   public static String targetExternalView(String clusterName, String resourceName) {
     return String.format("/%s/TARGETEXTERNALVIEW/%s", clusterName, resourceName);
+  }
+
+  public static String customizedView(String clusterName) {
+    return String.format("/%s/CUSTOMIZEDVIEW", clusterName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName) {
+    return String.format("/%s/CUSTOMIZEDVIEW/%s", clusterName, customizedStateName);
+  }
+
+  public static String customizedView(String clusterName, String customizedStateName,
+      String resourceName) {
+    return String
+        .format("/%s/CUSTOMIZEDVIEW/%s/%s", clusterName, customizedStateName, resourceName);
   }
 
   public static String liveInstance(String clusterName) {
@@ -312,6 +344,20 @@ public class PropertyPathBuilder {
         sessionId, resourceName);
   }
 
+  public static String instanceCustomizedState(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES", clusterName, instanceName);
+  }
+
+  public static String instanceCustomizedState(String clusterName, String instanceName,
+      String customizedStateName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s", clusterName, instanceName, customizedStateName);
+  }
+
+  public static String instanceCustomizedState(String clusterName, String instanceName,
+      String customizedStateName, String resourceName) {
+    return String.format("/%s/INSTANCES/%s/CUSTOMIZEDSTATES/%s/%s", clusterName, instanceName,
+        customizedStateName, resourceName);
+  }
   public static String instanceError(String clusterName, String instanceName) {
     return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
   }
@@ -348,6 +394,10 @@ public class PropertyPathBuilder {
 
   public static String resourceConfig(String clusterName) {
     return String.format("/%s/CONFIGS/RESOURCE", clusterName);
+  }
+
+  public static String customizedStateConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/CUSTOMIZED_STATE", clusterName);
   }
 
   public static String controller(String clusterName) {

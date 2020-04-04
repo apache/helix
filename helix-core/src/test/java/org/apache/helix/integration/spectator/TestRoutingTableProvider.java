@@ -1,7 +1,28 @@
 package org.apache.helix.integration.spectator;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,15 +30,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.api.listeners.RoutingTableChangeListener;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
@@ -38,6 +66,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
   static final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   static final int PARTICIPANT_NUMBER = 3;
   static final int PARTICIPANT_START_PORT = 12918;
+  static final long WAIT_DURATION = 5 * 1000L; // 5 seconds
 
   static final int PARTITION_NUMBER = 20;
   static final int REPLICA_NUMBER = 3;
@@ -51,6 +80,9 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private RoutingTableProvider _routingTableProvider_ev;
   private RoutingTableProvider _routingTableProvider_cs;
   private boolean _listenerTestResult = true;
+
+
+  private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
     @Override
@@ -70,6 +102,19 @@ public class TestRoutingTableProvider extends ZkTestBase {
       } else {
         _listenerTestResult = true;
       }
+    }
+  }
+
+  class MockRoutingTableProvider extends RoutingTableProvider {
+    MockRoutingTableProvider(HelixManager helixManager, Map<PropertyType, List<String>> sourceDataTypes) {
+      super(helixManager, sourceDataTypes);
+    }
+
+    @Override
+    public void onCustomizedViewChange(List<CustomizedView> customizedViewList,
+        NotificationContext changeContext){
+      customizedViewChangeCalled.getAndSet(true);
+      super.onCustomizedViewChange(customizedViewList, changeContext);
     }
   }
 
@@ -210,6 +255,125 @@ public class TestRoutingTableProvider extends ZkTestBase {
         Sets.newSet(_instances.get(2)));
     validateRoutingTable(_routingTableProvider_cs, Sets.newSet(_instances.get(0)),
         Sets.newSet(_instances.get(2)));
+  }
+
+  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testShutdownInstance")
+  public void testExternalViewWithType() {
+    Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
+    sourceDataTypes.put(PropertyType.EXTERNALVIEW, Arrays.asList("typeA"));
+    sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA", "typeB"));
+    RoutingTableProvider routingTableProvider;
+    routingTableProvider = new RoutingTableProvider(_spectator, sourceDataTypes);
+  }
+
+  @Test(dependsOnMethods = "testExternalViewWithType", expectedExceptions = HelixException.class)
+  public void testCustomizedViewWithoutType() {
+    RoutingTableProvider routingTableProvider;
+    routingTableProvider = new RoutingTableProvider(_spectator, PropertyType.CUSTOMIZEDVIEW);
+  }
+
+  @Test(dependsOnMethods = "testCustomizedViewWithoutType")
+  public void testCustomizedViewCorrectConstructor() throws Exception {
+    Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
+    sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA"));
+    MockRoutingTableProvider routingTableProvider =
+        new MockRoutingTableProvider(_spectator, sourceDataTypes);
+
+    CustomizedView customizedView = new CustomizedView(TEST_DB);
+    customizedView.setState("p1", "h1", "testState");
+
+    // Clear the flag before writing to the Customized View Path
+    customizedViewChangeCalled.getAndSet(false);
+    String customizedViewPath = PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeA", TEST_DB);
+    _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath,
+        customizedView.getRecord(), AccessOption.PERSISTENT);
+
+    boolean onCustomizedViewChangeCalled =
+        TestHelper.verify(() -> customizedViewChangeCalled.get(), WAIT_DURATION);
+    Assert.assertTrue(onCustomizedViewChangeCalled);
+
+    _spectator.getHelixDataAccessor().getBaseDataAccessor().remove(customizedViewPath,
+        AccessOption.PERSISTENT);
+    routingTableProvider.shutdown();
+  }
+
+  @Test(dependsOnMethods = "testCustomizedViewCorrectConstructor")
+  public void testGetRoutingTableSnapshot() throws Exception {
+    Map<PropertyType, List<String>> sourceDataTypes = new HashMap<>();
+    sourceDataTypes.put(PropertyType.CUSTOMIZEDVIEW, Arrays.asList("typeA", "typeB"));
+    sourceDataTypes.put(PropertyType.EXTERNALVIEW, Collections.emptyList());
+    RoutingTableProvider routingTableProvider =
+        new RoutingTableProvider(_spectator, sourceDataTypes);
+
+    CustomizedView customizedView1 = new CustomizedView("Resource1");
+    customizedView1.setState("p1", "h1", "testState1");
+    customizedView1.setState("p1", "h2", "testState1");
+    customizedView1.setState("p2", "h1", "testState2");
+    customizedView1.setState("p3", "h2", "testState3");
+    String customizedViewPath1 =
+        PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeA", "Resource1");
+
+    CustomizedView customizedView2 = new CustomizedView("Resource2");
+    customizedView2.setState("p1", "h3", "testState3");
+    customizedView2.setState("p1", "h4", "testState2");
+    String customizedViewPath2 =
+        PropertyPathBuilder.customizedView(CLUSTER_NAME, "typeB", "Resource2");
+
+    _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath1,
+        customizedView1.getRecord(), AccessOption.PERSISTENT);
+    _spectator.getHelixDataAccessor().getBaseDataAccessor().set(customizedViewPath2,
+        customizedView2.getRecord(), AccessOption.PERSISTENT);
+
+    RoutingTableSnapshot routingTableSnapshot =
+        routingTableProvider.getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, "typeA");
+    Assert.assertEquals(routingTableSnapshot.getPropertyType(), PropertyType.CUSTOMIZEDVIEW);
+    Assert.assertEquals(routingTableSnapshot.getCustomizedStateType(), "typeA");
+
+    routingTableSnapshot =
+        routingTableProvider.getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, "typeB");
+    Assert.assertEquals(routingTableSnapshot.getPropertyType(), PropertyType.CUSTOMIZEDVIEW);
+    Assert.assertEquals(routingTableSnapshot.getCustomizedStateType(), "typeB");
+
+    // Make sure snapshot information is correct
+    // Check resources are in a correct state
+    boolean isRoutingTableUpdatedProperly = TestHelper.verify(() -> {
+      Map<String, Map<String, RoutingTableSnapshot>> routingTableSnapshots =
+          routingTableProvider.getRoutingTableSnapshots();
+      RoutingTableSnapshot routingTableSnapshotTypeA =
+          routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).get("typeA");
+      RoutingTableSnapshot routingTableSnapshotTypeB =
+          routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).get("typeB");
+      String typeAp1h1 = "noState";
+      String typeAp1h2 = "noState";
+      String typeAp2h1 = "noState";
+      String typeAp3h2 = "noState";
+      String typeBp1h2 = "noState";
+      String typeBp1h4 = "noState";
+      try {
+        typeAp1h1 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h1");
+        typeAp1h2 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h2");
+        typeAp2h1 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p2").get("h1");
+        typeAp3h2 = routingTableSnapshotTypeA.getCustomizeViews().iterator().next()
+            .getStateMap("p3").get("h2");
+        typeBp1h2 = routingTableSnapshotTypeB.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h3");
+        typeBp1h4 = routingTableSnapshotTypeB.getCustomizeViews().iterator().next()
+            .getStateMap("p1").get("h4");
+      } catch (Exception e) {
+        // ok because RoutingTable has not been updated yet
+        return false;
+      }
+      return (routingTableSnapshots.size() == 2
+          && routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name()).size() == 2
+          && typeAp1h1.equals("testState1") && typeAp1h2.equals("testState1")
+          && typeAp2h1.equals("testState2") && typeAp3h2.equals("testState3")
+          && typeBp1h2.equals("testState3") && typeBp1h4.equals("testState2"));
+    }, WAIT_DURATION);
+    Assert.assertTrue(isRoutingTableUpdatedProperly, "RoutingTable has been updated properly");
+    routingTableProvider.shutdown();
   }
 
   private void validateRoutingTable(RoutingTableProvider routingTableProvider,

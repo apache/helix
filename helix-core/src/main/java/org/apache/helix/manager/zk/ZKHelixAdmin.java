@@ -61,6 +61,7 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -138,6 +139,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     _zkClient.createPersistent(PropertyPathBuilder.instanceMessage(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceCustomizedState(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceError(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceHistory(clusterName, nodeId), true);
@@ -745,6 +747,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(path);
     path = PropertyPathBuilder.resourceConfig(clusterName);
     _zkClient.createPersistent(path);
+    path = PropertyPathBuilder.customizedStateConfig(clusterName);
+    _zkClient.createPersistent(path);
     // PROPERTY STORE
     path = PropertyPathBuilder.propertyStore(clusterName);
     _zkClient.createPersistent(path);
@@ -1106,6 +1110,87 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public Map<String, String> getConfig(HelixConfigScope scope, List<String> keys) {
     return _configAccessor.get(scope, keys);
+  }
+
+  @Override
+  public void addCustomizedStateConfig(String clusterName,
+      CustomizedStateConfig customizedStateConfig) {
+    logger.info(
+        "Add CustomizedStateConfig to cluster {}, CustomizedStateConfig is {}",
+        clusterName, customizedStateConfig.toString());
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder(customizedStateConfig);
+    CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfigFromBuilder);
+  }
+
+  @Override
+  public void removeCustomizedStateConfig(String clusterName) {
+    logger.info(
+        "Remove CustomizedStateConfig from cluster {}.", clusterName);
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.removeProperty(keyBuilder.customizedStateConfig());
+
+  }
+
+  @Override
+  public void addTypeToCustomizedStateConfig(String clusterName, String type) {
+    logger.info("Add type {} to CustomizedStateConfig of cluster {}", type, clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    CustomizedStateConfig.Builder builder =
+        new CustomizedStateConfig.Builder();
+
+    builder.addAggregationEnabledType(type);
+    CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.updateProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfigFromBuilder);
+  }
+
+
+  @Override
+  public void removeTypeFromCustomizedStateConfig(String clusterName, String type) {
+    logger.info("Remove type {} to CustomizedStateConfig of cluster {}", type,
+        clusterName);
+
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    CustomizedStateConfig.Builder builder = new CustomizedStateConfig.Builder(
+        _configAccessor.getCustomizedStateConfig(clusterName));
+
+    if (!builder.getAggregationEnabledTypes().contains(type)) {
+      throw new HelixException("Type " + type
+          + " is missing from the CustomizedStateConfig of cluster " + clusterName);
+    }
+
+    builder.removeAggregationEnabledType(type);
+    CustomizedStateConfig customizedStateConfigFromBuilder = builder.build();
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfigFromBuilder);
   }
 
   @Override

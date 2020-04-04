@@ -34,6 +34,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -103,6 +104,10 @@ public class MockHelixAdmin implements HelixAdmin {
 
     path = PropertyPathBuilder.resourceConfig(clusterName);
     _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+
+    path = PropertyPathBuilder.customizedStateConfig(clusterName);
+    _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+
     // PROPERTY STORE
     path = PropertyPathBuilder.propertyStore(clusterName);
     _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
@@ -139,6 +144,27 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override public void addClusterToGrandCluster(String clusterName, String grandCluster) {
+
+  }
+
+  @Override
+  public void addCustomizedStateConfig(String clusterName,
+      CustomizedStateConfig customizedStateConfig) {
+
+  }
+
+  @Override
+  public void removeCustomizedStateConfig(String clusterName) {
+
+  }
+
+  @Override
+  public void addTypeToCustomizedStateConfig(String clusterName, String type) {
+
+  }
+
+  @Override
+  public void removeTypeFromCustomizedStateConfig(String clusterName, String type) {
 
   }
 
@@ -192,6 +218,9 @@ public class MockHelixAdmin implements HelixAdmin {
         .set(PropertyPathBuilder.instanceMessage(clusterName, nodeId), new ZNRecord(nodeId), 0);
     _baseDataAccessor
         .set(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId), new ZNRecord(nodeId),
+            0);
+    _baseDataAccessor
+        .set(PropertyPathBuilder.instanceCustomizedState(clusterName, nodeId), new ZNRecord(nodeId),
             0);
     _baseDataAccessor
         .set(PropertyPathBuilder.instanceError(clusterName, nodeId), new ZNRecord(nodeId), 0);

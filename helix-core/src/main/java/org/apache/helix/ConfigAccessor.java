@@ -31,6 +31,7 @@ import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
@@ -559,6 +560,27 @@ public class ConfigAccessor {
       Collections.sort(retKeys);
     }
     return retKeys;
+  }
+
+  /**
+   * Get CustomizedStateConfig of the given cluster.
+   * @param clusterName
+   * @return The instance of {@link CustomizedStateConfig}
+   */
+  public CustomizedStateConfig getCustomizedStateConfig(String clusterName) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException(String.format("Failed to get config. cluster: %s is not setup.", clusterName));
+    }
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CUSTOMIZED_STATE).forCluster(clusterName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No customized state aggregation config found at {}.", scope.getZkPath());
+      return null;
+    }
+
+    return new CustomizedStateConfig.Builder(record).build();
   }
 
   /**

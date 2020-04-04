@@ -20,9 +20,12 @@ package org.apache.helix.spectator;
  */
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.helix.PropertyType;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -33,9 +36,13 @@ import org.apache.helix.model.LiveInstance;
  */
 public class RoutingTableSnapshot {
   private final RoutingTable _routingTable;
+  private final PropertyType _propertyType;
+  private final String _stateType;
 
   public RoutingTableSnapshot(RoutingTable routingTable) {
     _routingTable = routingTable;
+    _propertyType = routingTable.getPropertyType();
+    _stateType = routingTable.getStateType();
   }
 
   /**
@@ -144,5 +151,35 @@ public class RoutingTableSnapshot {
    */
   public Collection<ExternalView> getExternalViews() {
     return _routingTable.getExternalViews();
+  }
+
+  /**
+   * Returns a Collection of latest snapshot of CustomizedView. Note that if the RoutingTable is
+   * instantiated using CurrentStates, this Collection will be empty.
+   * @return
+   */
+  public Collection<CustomizedView> getCustomizeViews() {
+    if (_propertyType.equals(PropertyType.CUSTOMIZEDVIEW)){
+    CustomizedViewRoutingTable customizedViewRoutingTable =
+        (CustomizedViewRoutingTable) _routingTable;
+    return customizedViewRoutingTable.geCustomizedViews();
+    }
+    return Collections.emptySet();
+  }
+
+  /**
+   * Returns the PropertyType associated with this RoutingTableSnapshot
+   * @return
+   */
+  public PropertyType getPropertyType() {
+    return _propertyType;
+  }
+
+  /**
+   * Return the Type associated with the RoutingTableSnapshot (mainly used for CustomizedView)
+   * @return
+   */
+  public String getCustomizedStateType() {
+    return _stateType;
   }
 }

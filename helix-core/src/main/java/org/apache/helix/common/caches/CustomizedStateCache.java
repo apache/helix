@@ -9,7 +9,7 @@ package org.apache.helix.common.caches;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,35 +20,30 @@ package org.apache.helix.common.caches;
  */
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
-import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.LiveInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/**
- * Cache to hold all CurrentStates of a cluster.
- */
-public class CurrentStateCache extends ParticipantStateCache<CurrentState> {
+public class CustomizedStateCache extends ParticipantStateCache<CustomizedState> {
   private static final Logger LOG = LoggerFactory.getLogger(CurrentStateCache.class.getName());
-  // If the snapshot is already refreshed with current state data.
-  private boolean _initialized = false;
-  private CurrentStateSnapshot _snapshot;
+  private Set<String> _aggregationEnabledTypes;
 
-  public CurrentStateCache(String clusterName) {
-    this(createDefaultControlContextProvider(clusterName));
+  public CustomizedStateCache(String clusterName, Set<String> aggregationEnabledTypes) {
+    this(createDefaultControlContextProvider(clusterName), aggregationEnabledTypes);
   }
 
-  public CurrentStateCache(ControlContextProvider contextProvider) {
+  public CustomizedStateCache(ControlContextProvider contextProvider,
+      Set<String> aggregationEnabledTypes) {
     super(contextProvider);
-    _snapshot = new CurrentStateSnapshot(_participantStateCache);
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 
   @Override
@@ -57,30 +52,16 @@ public class CurrentStateCache extends ParticipantStateCache<CurrentState> {
     Set<PropertyKey> participantStateKeys = new HashSet<>();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     for (String instanceName : liveInstanceMap.keySet()) {
-      LiveInstance liveInstance = liveInstanceMap.get(instanceName);
-      String sessionId = liveInstance.getEphemeralOwner();
-      List<String> currentStateNames =
-          accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-      for (String currentStateName : currentStateNames) {
-        participantStateKeys
-            .add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
+      for (String customizedStateType : _aggregationEnabledTypes) {
+        accessor.getChildNames(keyBuilder.customizedStates(instanceName, customizedStateType))
+            .stream().forEach(resourceName -> participantStateKeys
+            .add(keyBuilder.customizedState(instanceName, customizedStateType, resourceName)));
       }
     }
     return participantStateKeys;
   }
 
-  protected void refreshSnapshot(Map<PropertyKey, CurrentState> newStateCache,
-      Map<PropertyKey, CurrentState> participantStateCache, Set<PropertyKey> reloadedKeys) {
-    if (_initialized) {
-      _snapshot = new CurrentStateSnapshot(newStateCache, participantStateCache, reloadedKeys);
-    } else {
-      _snapshot = new CurrentStateSnapshot(newStateCache);
-      _initialized = true;
-    }
-  }
-
-  @Override
-  public CurrentStateSnapshot getSnapshot() {
-    return _snapshot;
+  public void setAggregationEnabledTypes(Set<String> aggregationEnabledTypes) {
+    _aggregationEnabledTypes = aggregationEnabledTypes;
   }
 }

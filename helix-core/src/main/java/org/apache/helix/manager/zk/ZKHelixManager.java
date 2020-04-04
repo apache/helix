@@ -54,6 +54,10 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -471,6 +475,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
+  public void addCustomizedStateConfigChangeListener(
+      CustomizedStateConfigChangeListener listener) throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedStateConfig(),
+        ChangeType.CUSTOMIZED_STATE_CONFIG, new EventType[] {
+            EventType.NodeDataChanged
+        });
+  }
+
+  @Override
   public void addClusterfigChangeListener(ClusterConfigChangeListener listener) throws Exception{
     addListener(listener, new Builder(_clusterName).clusterConfig(), ChangeType.CLUSTER_CONFIG,
         new EventType[] { EventType.NodeDataChanged
@@ -560,9 +573,33 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
+  public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
+      String instanceName) throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedStatesRoot(instanceName),
+        ChangeType.CUSTOMIZED_STATE_ROOT, new EventType[]{EventType.NodeChildrenChanged});
+  }
+
+  @Override
+  public void addCustomizedStateChangeListener(CustomizedStateChangeListener listener,
+      String instanceName, String customizedStateType) throws Exception {
+    addListener(listener,
+        new Builder(_clusterName).customizedStates(instanceName, customizedStateType),
+        ChangeType.CUSTOMIZED_STATE, new EventType[]{EventType.NodeChildrenChanged});
+  }
+
+  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     addListener(listener, new Builder(_clusterName).externalViews(), ChangeType.EXTERNAL_VIEW,
         new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Override
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType)
+      throws Exception {
+    addListener(listener, new Builder(_clusterName).customizedView(customizedStateType),
+        ChangeType.CUSTOMIZED_VIEW, new EventType[] {
+            EventType.NodeChildrenChanged
+        });
   }
 
   @Override

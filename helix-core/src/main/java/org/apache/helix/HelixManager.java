@@ -26,6 +26,10 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -38,6 +42,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -157,6 +162,15 @@ public interface HelixManager {
   void addResourceConfigChangeListener(ResourceConfigChangeListener listener) throws Exception;
 
   /**
+   * @see CustomizedStateConfigChangeListener#onCustomizedStateConfigChange(CustomizedStateConfig,
+   *      NotificationContext)
+   * @param listener
+   */
+
+  void addCustomizedStateConfigChangeListener(
+      CustomizedStateConfigChangeListener listener) throws Exception;
+
+  /**
    * @see ClusterConfigChangeListener#onClusterConfigChange(ClusterConfig, NotificationContext)
    * @param listener
    */
@@ -214,10 +228,33 @@ public interface HelixManager {
       String sessionId) throws Exception;
 
   /**
+
+   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
+      String instanceName) throws Exception;
+
+  /**
+   * @see CustomizedStateChangeListener#onCustomizedStateChange(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addCustomizedStateChangeListener(CustomizedStateChangeListener listener, String instanceName,
+      String stateName) throws Exception;
+
+  /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
    * @param listener
    */
   void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
+
+  /**
+   * @see CustomizedViewChangeListener#onCustomizedViewChange(List, NotificationContext)
+   * @param listener
+   */
+  void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)

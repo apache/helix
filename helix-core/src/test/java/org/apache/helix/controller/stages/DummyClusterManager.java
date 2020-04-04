@@ -36,6 +36,10 @@ import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
+import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -130,7 +134,27 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
+  public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
+      String instanceName) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addCustomizedStateChangeListener(CustomizedStateChangeListener listener,
+      String instanceName, String customizedStateType) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType) throws Exception {
     // TODO Auto-generated method stub
 
   }
@@ -279,6 +303,13 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public void addResourceConfigChangeListener(ResourceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addCustomizedStateConfigChangeListener(CustomizedStateConfigChangeListener listener)
       throws Exception {
     // TODO Auto-generated method stub
 

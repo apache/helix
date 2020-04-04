@@ -26,6 +26,9 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -51,9 +54,11 @@ import org.slf4j.LoggerFactory;
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
 import static org.apache.helix.PropertyType.ERRORS;
 import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
+import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
 import static org.apache.helix.PropertyType.INSTANCE_HISTORY;
@@ -68,6 +73,7 @@ import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 import static org.apache.helix.PropertyType.TARGETEXTERNALVIEW;
+
 
 /**
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.
@@ -231,6 +237,16 @@ public class PropertyKey {
     public PropertyKey clusterConfig() {
       return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfig.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
+    }
+
+    /**
+     * Get a property key associated with this customized state aggregation configuration
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStateConfig() {
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CUSTOMIZED_STATE,
+          CustomizedStateConfig.class, _clusterName,
+          ConfigScopeProperty.CUSTOMIZED_STATE.name(), _clusterName);
     }
 
     /**
@@ -459,6 +475,39 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with the root of {@link CustomizedState} of an instance
+     * @param instanceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStatesRoot(String instanceName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName);
+    }
+
+    /**
+     * Get a property key associated with {@link CustomizedState} of an instance and customized state
+     * @param instanceName
+     * @param customizedStateName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedStates(String instanceName, String customizedStateName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName,
+          customizedStateName);
+    }
+
+    /**
+     * Get a property key associated with {@link CustomizedState} of an instance, customized state, and resource
+     * @param instanceName
+     * @param customizedStateName
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedState(String instanceName, String customizedStateName,
+        String resourceName) {
+      return new PropertyKey(CUSTOMIZEDSTATES, CustomizedState.class, _clusterName, instanceName,
+          customizedStateName, resourceName);
+    }
+
+    /**
      * Get a property key associated with {@link StatusUpdate} of an instance, session, resource,
      * and partition
      * @param instanceName
@@ -588,6 +637,33 @@ public class PropertyKey {
      */
     public PropertyKey externalView(String resourceName) {
       return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
+    }
+
+    /**
+     * Get a property key associated with all {@link CustomizedView}
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedViews() {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with an {@link CustomizedView} of a type
+     * @param customizedStateType
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedView(String customizedStateType) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, customizedStateType);
+    }
+
+    /**
+     * Get a property key associated with an {@link CustomizedView} of a type and resource
+     * @param customizedStateType
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey customizedView(String customizedStateType, String resourceName) {
+      return new PropertyKey(CUSTOMIZEDVIEW, CustomizedView.class, _clusterName, customizedStateType,
+          resourceName);
     }
 
     /**

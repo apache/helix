@@ -20,19 +20,21 @@ package org.apache.helix.customizedstate;
  */
 
 import java.util.HashMap;
-import org.apache.helix.HelixException;
+import java.util.Map;
+
+import javafx.util.Pair;
 import org.apache.helix.HelixManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Singleton factory that build customized state provider.
  */
 public class CustomizedStateProviderFactory {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
-  private final HashMap<String, CustomizedStateProvider> _customizedStateProviderMap =
-      new HashMap<>();
-  private HelixManager _helixManager;
+  private final Map<Pair<String, HelixManager>, CustomizedStateProvider>
+      _customizedStateProviderMap = new HashMap<>();
 
   protected CustomizedStateProviderFactory() {
   }
@@ -46,34 +48,30 @@ public class CustomizedStateProviderFactory {
     return SingletonHelper.INSTANCE;
   }
 
-  public CustomizedStateProvider buildCustomizedStateProvider(String instanceName) {
-    if (_helixManager == null) {
-      throw new HelixException("Helix Manager has not been set yet.");
-    }
-    return buildCustomizedStateProvider(_helixManager, instanceName);
+  public CustomizedStateProvider buildCustomizedStateProvider(String instanceName,
+      HelixManager helixManager) {
+    return buildCustomizedStateProvider(helixManager, instanceName);
   }
 
   /**
-   * Build a customized state provider based on the specified input. If the instance already has a
-   * provider, return it. Otherwise, build a new one and put it in the map.
-   * @param helixManager The helix manager that belongs to the instance
+   * Build a customized state provider based on the specified input. If the pair of instance
+   * name and helix manager already has a provider, return it. Otherwise, build a new one and put
+   * it in the map.
+   * @param helixManager A helix manager that belongs to the instance
    * @param instanceName The name of the instance
    * @return CustomizedStateProvider
    */
   public CustomizedStateProvider buildCustomizedStateProvider(HelixManager helixManager,
       String instanceName) {
+    Pair<String, HelixManager> pairKey = new Pair(instanceName, helixManager);
     synchronized (_customizedStateProviderMap) {
-      if (_customizedStateProviderMap.get(instanceName) != null) {
-        return _customizedStateProviderMap.get(instanceName);
+      if (_customizedStateProviderMap.get(pairKey) != null) {
+        return _customizedStateProviderMap.get(pairKey);
       }
       CustomizedStateProvider customizedStateProvider =
           new CustomizedStateProvider(helixManager, instanceName);
-      _customizedStateProviderMap.put(instanceName, customizedStateProvider);
+      _customizedStateProviderMap.put(pairKey, customizedStateProvider);
       return customizedStateProvider;
     }
-  }
-
-  public void setHelixManager(HelixManager helixManager) {
-    _helixManager = helixManager;
   }
 }

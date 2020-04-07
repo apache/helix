@@ -321,20 +321,20 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       return;
     }
 
-    Map<String, List<String>> rawRoutingData;
     // Remove the raw data first in case of failure on creation
     _realmToShardingKeysMap.remove(namespace);
+    // Remove routing data first in case of failure on creation
+    _routingDataMap.remove(namespace);
+
+    Map<String, List<String>> rawRoutingData;
     try {
       rawRoutingData = _routingDataReaderMap.get(namespace).getRoutingData();
       _realmToShardingKeysMap.put(namespace, rawRoutingData);
     } catch (InvalidRoutingDataException e) {
-      _routingDataMap.remove(namespace);
       LOG.error("Failed to refresh cached routing data for namespace {}", namespace, e);
       return;
     }
 
-    // Remove routing data first in case of failure on creation
-    _routingDataMap.remove(namespace);
     try {
       _routingDataMap.put(namespace, new TrieRoutingData(rawRoutingData));
     } catch (InvalidRoutingDataException e) {

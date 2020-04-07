@@ -147,7 +147,6 @@ public class ZkTestHelper {
   }
 
   public static void expireSession(HelixZkClient client) throws Exception {
-    final CountDownLatch waitExpireSession = new CountDownLatch(1);
     final CountDownLatch waitNewSession = new CountDownLatch(1);
     final ZkClient zkClient = (ZkClient) client;
 
@@ -155,16 +154,15 @@ public class ZkTestHelper {
       @Override
       public void handleStateChanged(KeeperState state) throws Exception {
         LOG.info("IZkStateListener#handleStateChanged, state: " + state);
-        if (state == KeeperState.Expired) {
-          waitExpireSession.countDown();
-        }
-        if (state == KeeperState.SyncConnected) {
-          waitNewSession.countDown();
-        }
       }
 
       @Override
       public void handleNewSession(final String sessionId) throws Exception {
+        // make sure zkclient is connected again
+        zkClient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+
+        LOG.info("handleNewSession. sessionId: {}.", sessionId);
+        waitNewSession.countDown();
       }
 
       @Override
@@ -198,7 +196,6 @@ public class ZkTestHelper {
     dupZookeeper.close();
 
     // make sure session expiry really happens
-    waitExpireSession.await();
     waitNewSession.await();
     zkClient.unsubscribeStateChanges(listener);
 

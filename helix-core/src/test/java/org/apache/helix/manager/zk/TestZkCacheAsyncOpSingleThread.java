@@ -91,11 +91,30 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     // kill the session to make sure shared zkClient re-installs watcher
-    ZkTestHelper.expireSession(dupZkclient);
+    long sessionId = dupZkclient.getSessionId();
+    ZkTestHelper.asyncExpireSession(dupZkclient);
+    while (true) {
+      long curSessionId = dupZkclient.getSessionId();
+      if (curSessionId == sessionId || curSessionId == 0) {
+        Thread.sleep(500);
+      } else {
+        sessionId = curSessionId;
+        break;
+      }
+    }
 
     // kill the session one more time to cover code path ZkClient resetting flag that
     // indicates first time synconnect happened.
-    ZkTestHelper.expireSession(dupZkclient);
+    ZkTestHelper.asyncExpireSession(dupZkclient);
+    while (true) {
+      long curSessionId = dupZkclient.getSessionId();
+      if (curSessionId == sessionId || curSessionId == 0) {
+        Thread.sleep(500);
+      } else {
+        sessionId = curSessionId;
+        break;
+      }
+    }
 
     // remove the currentstates
     paths.clear();

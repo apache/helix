@@ -19,9 +19,9 @@ package org.apache.helix.customizedstate;
  * under the License.
  */
 
-import java.util.HashMap;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +30,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomizedStateProviderFactory {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
-  private final HashMap<String, CustomizedStateProvider> _customizedStateProviderMap =
-      new HashMap<>();
-  private HelixManager _helixManager;
 
   protected CustomizedStateProviderFactory() {
   }
@@ -46,34 +43,28 @@ public class CustomizedStateProviderFactory {
     return SingletonHelper.INSTANCE;
   }
 
-  public CustomizedStateProvider buildCustomizedStateProvider(String instanceName) {
-    if (_helixManager == null) {
-      throw new HelixException("Helix Manager has not been set yet.");
-    }
-    return buildCustomizedStateProvider(_helixManager, instanceName);
+  /**
+   * Build a customized state provider based on user input.
+   * @param instanceName The name of the instance
+   * @param clusterName The name of the cluster that has the instance
+   * @param zkAddress The zookeeper address of the cluster
+   * @return CustomizedStateProvider
+   */
+  public CustomizedStateProvider buildCustomizedStateProvider(String instanceName,
+      String clusterName, String zkAddress) {
+    HelixManager helixManager = HelixManagerFactory
+        .getZKHelixManager(clusterName, instanceName, InstanceType.ADMINISTRATOR, zkAddress);
+    return new CustomizedStateProvider(helixManager, instanceName);
   }
 
   /**
-   * Build a customized state provider based on the specified input. If the instance already has a
-   * provider, return it. Otherwise, build a new one and put it in the map.
-   * @param helixManager The helix manager that belongs to the instance
+   * Build a customized state provider based on user input.
    * @param instanceName The name of the instance
+   * @param helixManager Helix manager provided by user
    * @return CustomizedStateProvider
    */
   public CustomizedStateProvider buildCustomizedStateProvider(HelixManager helixManager,
       String instanceName) {
-    synchronized (_customizedStateProviderMap) {
-      if (_customizedStateProviderMap.get(instanceName) != null) {
-        return _customizedStateProviderMap.get(instanceName);
-      }
-      CustomizedStateProvider customizedStateProvider =
-          new CustomizedStateProvider(helixManager, instanceName);
-      _customizedStateProviderMap.put(instanceName, customizedStateProvider);
-      return customizedStateProvider;
-    }
-  }
-
-  public void setHelixManager(HelixManager helixManager) {
-    _helixManager = helixManager;
+    return new CustomizedStateProvider(helixManager, instanceName);
   }
 }

@@ -137,10 +137,10 @@ public class ClusterAccessor extends AbstractHelixResource {
   public Response createCluster(@PathParam("clusterId") String clusterId,
       @DefaultValue("false") @QueryParam("recreate") String recreate,
       @DefaultValue("false") @QueryParam("addCloudConfig") String addCloudConfig,
-      String content) {
+      String cloudConfigManifest) {
 
-    boolean recreateIfExists = Boolean.valueOf(recreate);
-    boolean cloudConfigIncluded = Boolean.valueOf(addCloudConfig);
+    boolean recreateIfExists = Boolean.parseBoolean(recreate);
+    boolean cloudConfigIncluded = Boolean.parseBoolean(addCloudConfig);
 
 
     ClusterSetup clusterSetup = getClusterSetup();
@@ -150,20 +150,21 @@ public class ClusterAccessor extends AbstractHelixResource {
     if (cloudConfigIncluded) {
       ZNRecord record;
       try {
-        record = toZNRecord(content);
-      } catch (IOException e) {
-        _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
-        return badRequest("Input is not a vaild ZNRecord!");
-      }
-      try {
+        record = toZNRecord(cloudConfigManifest);
         cloudConfig = new CloudConfig.Builder(record).build();
-        clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
-      } catch (Exception ex) {
-        _logger.error("Error in adding a CloudConfig to cluster: " + clusterId, ex);
-        return badRequest(ex.getMessage());
+      } catch (IOException | HelixException e) {
+        String errMsg = "Failed to generate a valid CloudConfig from " + cloudConfigManifest;
+        _logger.error(errMsg, e);
+        return badRequest(errMsg + " Exception: " + e.getMessage());
       }
     }
-    clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
+
+    try {
+      clusterSetup.addCluster(clusterId, recreateIfExists, cloudConfig);
+    } catch (Exception ex) {
+      _logger.error("Failed to create cluster {}. Exception: {}.", clusterId, ex);
+      return serverError(ex);
+    }
     return created();
   }
 

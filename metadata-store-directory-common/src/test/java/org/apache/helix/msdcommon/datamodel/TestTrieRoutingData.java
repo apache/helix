@@ -48,6 +48,14 @@ public class TestTrieRoutingData {
     } catch (InvalidRoutingDataException e) {
       Assert.assertTrue(e.getMessage().contains("routingData cannot be null or empty"));
     }
+    Map<String, List<String>> routingData = new HashMap<>();
+    routingData.put("realmAddress", Collections.emptyList());
+    try {
+      new TrieRoutingData(routingData);
+      Assert.fail("Expecting InvalidRoutingDataException");
+    } catch (InvalidRoutingDataException e) {
+      Assert.assertTrue(e.getMessage().contains("routingData needs at least 1 sharding key"));
+    }
   }
 
   /**

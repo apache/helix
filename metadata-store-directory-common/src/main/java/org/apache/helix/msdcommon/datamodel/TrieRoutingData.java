@@ -48,6 +48,10 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       throw new InvalidRoutingDataException("routingData cannot be null or empty");
     }
 
+    if (!containsShardingKey(routingData)) {
+      throw new InvalidRoutingDataException("routingData needs at least 1 sharding key");
+    }
+
     if (isRootShardingKey(routingData)) {
       Map.Entry<String, List<String>> entry = routingData.entrySet().iterator().next();
       _rootNode = new TrieNode(Collections.emptyMap(), "/", true, entry.getKey());
@@ -164,6 +168,21 @@ public class TrieRoutingData implements MetadataStoreRoutingData {
       curNode = nextNode;
     }
     return curNode;
+  }
+
+  /*
+   * Checks if there is any sharding key in the routing data
+   * @param routingData - a mapping from "sharding keys" to "realm addresses" to be parsed into a
+   *          trie
+   * @return whether there is any sharding key
+   */
+  private boolean containsShardingKey(Map<String, List<String>> routingData) {
+    for (Map.Entry<String, List<String>> entry : routingData.entrySet()) {
+      if (entry.getValue().size() > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /*

@@ -321,6 +321,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       return;
     }
 
+    // Remove the raw data first in case of failure on creation
+    _realmToShardingKeysMap.remove(namespace);
+    // Remove routing data first in case of failure on creation
+    _routingDataMap.remove(namespace);
+
     Map<String, List<String>> rawRoutingData;
     try {
       rawRoutingData = _routingDataReaderMap.get(namespace).getRoutingData();

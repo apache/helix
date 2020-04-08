@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CustomizedStateCache;
@@ -264,6 +265,24 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
+   * Update the cached customized view map
+   * @param customizedViews
+   */
+  public void updateCustomizedViews(String customizedStateType,
+      List<CustomizedView> customizedViews) {
+    for (CustomizedView cv : customizedViews) {
+      if (_customizedViewCacheMap.containsKey(customizedStateType)) {
+        _customizedViewCacheMap.get(customizedStateType).getCustomizedViewCachePropertyCache().setProperty(cv);
+      } else {
+        CustomizedViewCache customizedViewCache = new CustomizedViewCache(getClusterName(),
+            customizedStateType);
+        customizedViewCache.getCustomizedViewCachePropertyCache().setProperty(cv);
+        _customizedViewCacheMap.put(customizedStateType, customizedViewCache);
+      }
+    }
+  }
+
+  /**
    * Get local cached customized view map
    * @return
    */
@@ -287,9 +306,15 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param stateTypeNames
    */
 
-  private void removeCustomizedViewTypes(Set<String> stateTypeNames) {
+  public void removeCustomizedViewTypes(Set<String> stateTypeNames) {
     for (String stateType : stateTypeNames) {
       _customizedViewCacheMap.remove(stateType);
+    }
+  }
+
+  public void removeCustomizedViews(String stateType, List<String> resourceNames) {
+    for (String resourceName : resourceNames) {
+      _customizedViewCacheMap.get(stateType).getCustomizedViewCachePropertyCache().deletePropertyByName(resourceName);
     }
   }
 

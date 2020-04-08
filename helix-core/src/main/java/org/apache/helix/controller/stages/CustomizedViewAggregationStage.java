@@ -21,9 +21,11 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -72,13 +74,16 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
 
     Map<String, CustomizedViewCache> customizedViewCacheMap = cache.getCustomizedViewCacheMap();
 
+    Set<String> customizedTypesToRemove = new HashSet<>();
     // remove stale customized view type from ZK
     for (String stateType : customizedViewCacheMap.keySet()) {
       if (!customizedStateOutput.getAllStateTypes().contains(stateType)) {
         LogUtil.logInfo(LOG, _eventId, "Remove customizedView for stateType: " + stateType);
         dataAccessor.removeProperty(keyBuilder.customizedView(stateType));
+        customizedTypesToRemove.add(stateType);
       }
     }
+    cache.removeCustomizedViewTypes(customizedTypesToRemove);
 
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
@@ -103,15 +108,20 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
           // add/update customized-views
           if (updatedCustomizedViews.size() > 0) {
             dataAccessor.setChildren(keys, updatedCustomizedViews);
+            cache.updateCustomizedViews(stateType, updatedCustomizedViews);
           }
 
+          List<String> customizedViewToRemove = new ArrayList<>();
           // remove stale customized views
           for (String resourceName : curCustomizedViews.keySet()) {
             if (!resourceMap.keySet().contains(resourceName)) {
               LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
               dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
+              customizedViewToRemove.add(resourceName);
             }
           }
+
+          cache.removeCustomizedViews(stateType, customizedViewToRemove);
         } catch (HelixException ex) {
           LogUtil.logError(LOG, _eventId,
               "Failed to calculate customized view for resource " + resource.getResourceName(), ex);

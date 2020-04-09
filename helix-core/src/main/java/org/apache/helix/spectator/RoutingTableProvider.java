@@ -46,6 +46,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
@@ -67,7 +68,8 @@ import org.slf4j.LoggerFactory;
 
 public class RoutingTableProvider
     implements ExternalViewChangeListener, InstanceConfigChangeListener, ConfigChangeListener,
-    LiveInstanceChangeListener, CurrentStateChangeListener, CustomizedViewChangeListener {
+               LiveInstanceChangeListener, CurrentStateChangeListener, CustomizedViewChangeListener,
+               CustomizedViewRootChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(RoutingTableProvider.class);
   private static final long DEFAULT_PERIODIC_REFRESH_INTERVAL = 300000L; // 5 minutes
   private final Map<String, AtomicReference<RoutingTable>> _routingTableRefMap;
@@ -230,6 +232,15 @@ public class RoutingTableProvider
           }
           break;
         case CUSTOMIZEDVIEW:
+          // Add CustomizedView root change listener
+          try {
+            _helixManager.addCustomizedViewRootChangeListener(this);
+          } catch (Exception e) {
+            shutdown();
+            throw new HelixException(
+                "Failed to attach CustomizedView Root Listener to HelixManager!", e);
+          }
+          // Add individual listeners for each customizedStateType
           List<String> customizedStateTypes = _sourceDataTypeMap.get(propertyType);
           for (String customizedStateType : customizedStateTypes) {
             try {
@@ -680,6 +691,27 @@ public class RoutingTableProvider
     } else {
       logger.warn(
           "RoutingTableProvider does not use CurrentStates as source, ignore CurrentState changes!");
+    }
+  }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onCustomizedViewRootChange(List<String> customizedViewTypes,
+      NotificationContext changeContext) {
+    logger.info(
+        "Registering the CustomizedView listeners again due to the CustomizedView root change.");
+    List<String> userRequestedTypes =
+        _sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList());
+    for (String customizedStateType : userRequestedTypes) {
+      try {
+        _helixManager.addCustomizedViewChangeListener(this, customizedStateType);
+      } catch (Exception e) {
+        shutdown();
+        throw new HelixException(
+            String.format("Failed to attach CustomizedView Listener to HelixManager for type %s!",
+                customizedStateType),
+            e);
+      }
     }
   }
 

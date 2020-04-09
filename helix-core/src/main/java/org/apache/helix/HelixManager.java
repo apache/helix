@@ -30,6 +30,7 @@ import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -253,6 +254,12 @@ public interface HelixManager {
    * @param listener
    */
   void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType) throws Exception;
+
+  /**
+   * @see CustomizedViewRootChangeListener#onCustomizedViewRootChange(List, NotificationContext)
+   * @param listener
+   */
+  void addCustomizedViewRootChangeListener(CustomizedViewRootChangeListener listener) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)

@@ -54,6 +54,7 @@ import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -88,6 +89,7 @@ import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_STATE_ROOT;
 import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_VIEW;
+import static org.apache.helix.HelixConstants.ChangeType.CUSTOMIZED_VIEW_ROOT;
 import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
 import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.INSTANCE_CONFIG;
@@ -96,6 +98,7 @@ import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
+
 
 @PreFetch(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
@@ -312,6 +315,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       case CUSTOMIZED_VIEW:
         listenerClass = CustomizedViewChangeListener.class;
         break;
+      case CUSTOMIZED_VIEW_ROOT:
+        listenerClass = CustomizedViewRootChangeListener.class;
+        break;
       case CONTROLLER:
         listenerClass = ControllerChangeListener.class;
     }
@@ -482,6 +488,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         List<ExternalView> externalViewList = preFetch(_propertyKey);
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
+
+      } else if (_changeType == CUSTOMIZED_VIEW_ROOT) {
+        CustomizedViewRootChangeListener customizedViewRootChangeListener =
+            (CustomizedViewRootChangeListener) _listener;
+        List<String> customizedViewTypes = new ArrayList<>();
+        if (_preFetchEnabled) {
+          customizedViewTypes = _accessor.getChildNames(_accessor.keyBuilder().customizedViews());
+        }
+        customizedViewRootChangeListener.onCustomizedViewRootChange(customizedViewTypes,
+            changeContext);
 
       } else if (_changeType == CUSTOMIZED_VIEW) {
         CustomizedViewChangeListener customizedViewListener = (CustomizedViewChangeListener) _listener;

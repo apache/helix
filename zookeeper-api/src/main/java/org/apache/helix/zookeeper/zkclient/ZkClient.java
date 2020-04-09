@@ -1081,12 +1081,6 @@ public class ZkClient implements Watcher {
     if (event.getState() == KeeperState.SyncConnected) {
       if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
         /*
-         * Set it true to avoid firing events again for the same session next time
-         * when SyncConnected events are received.
-         */
-        _isNewSessionEventFired = true;
-
-        /*
          * Before the new zookeeper instance is connected to the zookeeper service and its session
          * is established, its session id is 0.
          * New session event is not fired until the new zookeeper session receives the first
@@ -1094,6 +1088,12 @@ public class ZkClient implements Watcher {
          * Now the session id is available and non-zero, and we can fire new session events.
          */
         fireNewSessionEvents();
+
+        /*
+         * Set it true to avoid firing events again for the same session next time
+         * when SyncConnected events are received.
+         */
+        _isNewSessionEventFired = true;
 
         /*
          * With this first SyncConnected state, we just get connected to zookeeper service after
@@ -1109,8 +1109,8 @@ public class ZkClient implements Watcher {
   }
 
   private void reconnectOnExpiring() {
-    // only managing zkclient fire handleNewSession event
-    if (isManagingZkConnection()) {
+    // only managing zkclient reconnect
+    if (!isManagingZkConnection()) {
       return;
     }
     int retryCount = 0;
@@ -1157,7 +1157,7 @@ public class ZkClient implements Watcher {
 
   private void fireNewSessionEvents() {
     // only managing zkclient fire handleNewSession event
-    if (isManagingZkConnection()) {
+    if (!isManagingZkConnection()) {
       return;
     }
     final String sessionId = getHexSessionId();

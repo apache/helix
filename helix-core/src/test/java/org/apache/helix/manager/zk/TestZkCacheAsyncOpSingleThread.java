@@ -70,8 +70,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     List<String> paths = new ArrayList<>();
     List<ZNRecord> records = new ArrayList<>();
     for (int i = 0; i < CURSTATECNT; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
-          "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder
+          .instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -83,8 +83,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
     }
 
-    TestHelper.verifyWithTimeout("verifyZkCache", 5000,
-        zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true  );
+    TestHelper.verifyWithTimeout("verifyZkCache", 5000, zkCacheInitPaths, accessor._zkCache._cache,
+        _gZkClient, true);
 
     // dup shared ZkClient
     HelixZkClient dupZkclient = SharedZkClientFactory.getInstance()
@@ -93,12 +93,9 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // kill the session to make sure shared zkClient re-installs watcher
     final long sessionId = dupZkclient.getSessionId();
     ZkTestHelper.asyncExpireSession(dupZkclient);
-    ret = TestHelper.verify(()-> {
+    ret = TestHelper.verify(() -> {
       long curSessionId = dupZkclient.getSessionId();
-      if (curSessionId != sessionId && curSessionId != 0) {
-        return true;
-      }
-      return false;
+      return curSessionId != sessionId && curSessionId != 0 ? true : false;
     }, 10000);
     Assert.assertTrue(ret, "kill session timed out!");
 
@@ -106,20 +103,17 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // indicates first time synconnect happened.
     final long sessionId1 = dupZkclient.getSessionId();
     ZkTestHelper.asyncExpireSession(dupZkclient);
-    ret = TestHelper.verify(()->{
+    ret = TestHelper.verify(() -> {
       long curSessionId = dupZkclient.getSessionId();
-      if (curSessionId != sessionId1 && curSessionId != 0) {
-        return true;
-      }
-      return false;
+      return curSessionId != sessionId1 && curSessionId != 0 ? true : false;
     }, 10000);
     Assert.assertTrue(ret, "kill session second time timed out!");
 
     // remove the currentstates
     paths.clear();
     for (int i = 0; i < CURSTATECNT; i++) {
-      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901",
-          "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder
+          .instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       paths.add(path);
     }
     success = extBaseAccessor.remove(paths, 0);
@@ -127,8 +121,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       Assert.assertTrue(success[i], "Should succeed in remove:" + paths.get(i));
     }
 
-    TestHelper.verifyWithTimeout("verifyZkCache", 5000,
-        zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    TestHelper.verifyWithTimeout("verifyZkCache", 5000, zkCacheInitPaths, accessor._zkCache._cache,
+        _gZkClient, true);
   }
 
   @Test

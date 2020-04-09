@@ -19,17 +19,17 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
@@ -37,6 +37,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +68,15 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   // Maintain a set of all ChangeTypes for change detection
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
+
+  // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
+  // previous seen partition lists. If the members in a list are not modified, the old list will be
+  // used in the algorithm to ensure it calculates the same result.
+  // Refer to https://github.com/apache/helix/issues/940.
+  // TODO: Sorting the partition list in CrushEd strategy instead of using the cache to reduce
+  // TODO: dependency. Note that this will change the cluster partition assignment and potentially
+  // TODO: cause shuffling. So it is non backward compatible.
+  private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -293,5 +303,33 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void clearMonitoringRecords() {
     _missingTopStateMap.clear();
     _lastTopStateLocationMap.clear();
+  }
+
+  /**
+   * If the list items are the same, return the stable partition list cache. Otherwise, refresh
+   * the cache with new list and return the new list.
+   * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
+   *
+   * @param resourceName
+   * @param newPartitionSet
+   */
+  public List<String> getOrSetStablePartitionList(String resourceName,
+      Set<String> newPartitionSet) {
+    List<String> cachedPartitions = _stablePartitionListCache.get(resourceName);
+    if (cachedPartitions == null || cachedPartitions.size() != newPartitionSet.size()
+        || !cachedPartitions.containsAll(newPartitionSet)) {
+      _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
+    }
+    return _stablePartitionListCache.get(resourceName);
+  }
+
+  /**
+   * Retain the valid partition list cache items and remove the non-exist resources' cache.
+   * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
+   *
+   * @param resourceNames a list of the valid resources.
+   */
+  public void retainStablePartitionListCache(Set<String> resourceNames) {
+    _stablePartitionListCache.keySet().retainAll(resourceNames);
   }
 }

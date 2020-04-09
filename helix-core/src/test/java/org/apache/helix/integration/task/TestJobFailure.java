@@ -74,7 +74,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
   @Test(dataProvider = "testJobFailureInput")
   public void testNormalJobFailure(String comment, List<String> taskStates,
       List<String> expectedTaskEndingStates, String expectedJobEndingStates,
-      String expectedWorkflowEndingStates) throws InterruptedException {
+      String expectedWorkflowEndingStates) throws Exception {
     final String JOB_NAME = "test_job";
     final String WORKFLOW_NAME = TestHelper.getTestMethodName() + testNum++;
     System.out.println("Test case comment: " + comment);
@@ -118,8 +118,15 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
   }
 
   private Map<String, Map<String, String>> createPartitionConfig(List<String> taskStates,
-      List<String> expectedTaskEndingStates) {
+      List<String> expectedTaskEndingStates) throws Exception {
     Map<String, Map<String, String>> targetPartitionConfigs = new HashMap<>();
+    // Make sure external view is has been created to the resource
+    boolean isExternalViewCreated = TestHelper.verify(() -> {
+      ExternalView externalView =
+          _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
+      return (externalView != null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isExternalViewCreated);
     ExternalView externalView =
         _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
     Set<String> partitionSet = externalView.getPartitionSet();

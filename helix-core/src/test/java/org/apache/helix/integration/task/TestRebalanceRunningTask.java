@@ -20,6 +20,7 @@ package org.apache.helix.integration.task;
  */
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +28,7 @@ import com.google.common.collect.Sets;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -239,7 +241,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
    * Story: new node added
    */
   @Test
-  public void testFixedTargetTaskAndDisabledRebalanceAndNodeAdded() throws InterruptedException {
+  public void testFixedTargetTaskAndDisabledRebalanceAndNodeAdded() throws Exception {
     WORKFLOW = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setWorkflow(WORKFLOW).setTargetResource(DATABASE)
@@ -261,6 +263,28 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(Sets.newHashSet(DATABASE)).build();
     Assert.assertTrue(clusterVerifier.verify(10 * 1000));
+
+    // Wait until master is switched to new instance and two masters existed on two different instance
+    boolean isMasterOnTwoDifferentNodes = TestHelper.verify(() -> {
+      HashSet<String> masterInstances = new HashSet<>();
+      ExternalView externalView =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
+      Map<String, String> stateMap0 = externalView.getStateMap(DATABASE + "_0");
+      Map<String, String> stateMap1 = externalView.getStateMap(DATABASE + "_1");
+      for (Map.Entry<String, String> entry : stateMap0.entrySet()) {
+        if (entry.getValue().equals("MASTER")) {
+          masterInstances.add(entry.getKey());
+        }
+      }
+      for (Map.Entry<String, String> entry : stateMap1.entrySet()) {
+        if (entry.getValue().equals("MASTER")) {
+          masterInstances.add(entry.getKey());
+        }
+      }
+      return (masterInstances.size() == 2);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isMasterOnTwoDifferentNodes);
+
     // Running tasks are also rebalanced, even though RebalanceRunningTask is disabled
     Assert.assertTrue(checkTasksOnDifferentInstances());
   }

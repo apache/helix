@@ -84,8 +84,8 @@ public class ZkClient implements Watcher {
   // handling new session, the new session event is only fired after SyncConnected. Meanwhile,
   // SyncConnected state is also received when re-opening the zk connection. So to avoid firing
   // new session event more than once, this flag is used to check.
-  // It is set to false right after the new zookeeper instance is created in reconnect before the
-  // session is established. And set it to true once the new session event is fired the first time.
+  // It is set to false when once existing expires. And set it to true once the new session event
+  // is fired the first time.
   private boolean _isNewSessionEventFired;
 
   private boolean _shutdownTriggered;
@@ -1080,21 +1080,20 @@ public class ZkClient implements Watcher {
      */
     if (event.getState() == KeeperState.SyncConnected) {
       if (!_isNewSessionEventFired && !"0".equals(getHexSessionId())) {
-        if (isManagingZkConnection()) {
-          /*
-           * Before the new zookeeper instance is connected to the zookeeper service and its session
-           * is established, its session id is 0.
-           * New session event is not fired until the new zookeeper session receives the first
-           * SyncConnected state(the zookeeper session is established).
-           * Now the session id is available and non-zero, and we can fire new session events.
-           */
-          fireNewSessionEvents();
-        }
         /*
          * Set it true to avoid firing events again for the same session next time
          * when SyncConnected events are received.
          */
         _isNewSessionEventFired = true;
+
+        /*
+         * Before the new zookeeper instance is connected to the zookeeper service and its session
+         * is established, its session id is 0.
+         * New session event is not fired until the new zookeeper session receives the first
+         * SyncConnected state(the zookeeper session is established).
+         * Now the session id is available and non-zero, and we can fire new session events.
+         */
+        fireNewSessionEvents();
 
         /*
          * With this first SyncConnected state, we just get connected to zookeeper service after
@@ -1105,13 +1104,15 @@ public class ZkClient implements Watcher {
       }
     } else if (event.getState() == KeeperState.Expired) {
       _isNewSessionEventFired = false;
-      if (isManagingZkConnection()) {
-        reconnectOnExpiring();
-      }
+      reconnectOnExpiring();
     }
   }
 
   private void reconnectOnExpiring() {
+    // only managing zkclient fire handleNewSession event
+    if (isManagingZkConnection()) {
+      return;
+    }
     int retryCount = 0;
     ExponentialBackoffStrategy retryStrategy =
         new ExponentialBackoffStrategy(MAX_RECONNECT_INTERVAL_MS, true);
@@ -1155,6 +1156,10 @@ public class ZkClient implements Watcher {
   }
 
   private void fireNewSessionEvents() {
+    // only managing zkclient fire handleNewSession event
+    if (isManagingZkConnection()) {
+      return;
+    }
     final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread.send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {

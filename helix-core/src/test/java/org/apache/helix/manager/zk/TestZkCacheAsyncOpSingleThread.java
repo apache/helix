@@ -91,30 +91,29 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
 
     // kill the session to make sure shared zkClient re-installs watcher
-    long sessionId = dupZkclient.getSessionId();
+    final long sessionId = dupZkclient.getSessionId();
     ZkTestHelper.asyncExpireSession(dupZkclient);
-    while (true) {
+    ret = TestHelper.verify(()-> {
       long curSessionId = dupZkclient.getSessionId();
-      if (curSessionId == sessionId || curSessionId == 0) {
-        Thread.sleep(500);
-      } else {
-        sessionId = curSessionId;
-        break;
+      if (curSessionId != sessionId && curSessionId != 0) {
+        return true;
       }
-    }
+      return false;
+    }, 10000);
+    Assert.assertTrue(ret, "kill session timed out!");
 
     // kill the session one more time to cover code path ZkClient resetting flag that
     // indicates first time synconnect happened.
+    final long sessionId1 = dupZkclient.getSessionId();
     ZkTestHelper.asyncExpireSession(dupZkclient);
-    while (true) {
+    ret = TestHelper.verify(()->{
       long curSessionId = dupZkclient.getSessionId();
-      if (curSessionId == sessionId || curSessionId == 0) {
-        Thread.sleep(500);
-      } else {
-        sessionId = curSessionId;
-        break;
+      if (curSessionId != sessionId1 && curSessionId != 0) {
+        return true;
       }
-    }
+      return false;
+    }, 10000);
+    Assert.assertTrue(ret, "kill session second time timed out!");
 
     // remove the currentstates
     paths.clear();

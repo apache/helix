@@ -36,7 +36,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
-import org.apache.helix.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -62,7 +62,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   // Thread pool for deleting stale versions
-  private static final ScheduledExecutorService GC_THREAD = Executors.newScheduledThreadPool(1);
+  // Note that newScheduledThreadPool(1) may not work. newSingleThreadScheduledExecutor guarantees
+  // sequential execution, which is what we want for implementing TTL & GC here
+  private static final ScheduledExecutorService GC_THREAD =
+      Executors.newSingleThreadScheduledExecutor();
 
   private final int _bucketSize;
   private final long _versionTTL;
@@ -359,26 +362,26 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   /**
    * Filter out non-version children names and non-stale versions.
-   * @param children
+   * @param childrenToRemove
    */
-  private void filterChildrenNames(List<String> children, String currentVersion) {
+  private void filterChildrenNames(List<String> childrenToRemove, String currentVersion) {
     // Leave out metadata
-    children.remove(LAST_SUCCESSFUL_WRITE_KEY);
-    children.remove(LAST_WRITE_KEY);
+    childrenToRemove.remove(LAST_SUCCESSFUL_WRITE_KEY);
+    childrenToRemove.remove(LAST_WRITE_KEY);
 
     // Leave out currentVersion and above
     // This is because we want to honor the TTL for newer versions
-    children.remove(currentVersion);
+    childrenToRemove.remove(currentVersion);
     long currentVer = Long.parseLong(currentVersion);
-    for (String child : children) {
+    for (String child : childrenToRemove) {
       try {
         long version = Long.parseLong(child);
         if (version >= currentVer) {
-          children.remove(child);
+          childrenToRemove.remove(child);
         }
       } catch (Exception e) {
         // Ignore ZNode names that aren't parseable
-        children.remove(child);
+        childrenToRemove.remove(child);
         LOG.debug("Found an invalid ZNode: {}", child);
       }
     }

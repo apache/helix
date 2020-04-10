@@ -86,4 +86,12 @@ public class CustomizedViewCache extends AbstractDataCache<CustomizedView> {
   public Map<String, CustomizedView> getCustomizedViewMap() {
     return Collections.unmodifiableMap(_customizedViewCache.getPropertyMap());
   }
+
+  /**
+   * Return customized view cache as a property cache.
+   * @return
+   */
+  public PropertyCache<CustomizedView> getCustomizedViewCache() {
+    return _customizedViewCache;
+  }
 }

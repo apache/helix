@@ -39,6 +39,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
@@ -281,6 +282,22 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
+   * Update the cached customized view map
+   * @param customizedViews
+   */
+  public void updateCustomizedViews(String customizedStateType,
+      List<CustomizedView> customizedViews) {
+    if (!_customizedViewCacheMap.containsKey(customizedStateType)) {
+      CustomizedViewCache customizedViewCache =
+          new CustomizedViewCache(getClusterName(), customizedStateType);
+      _customizedViewCacheMap.put(customizedStateType, customizedViewCache);
+    }
+    for (CustomizedView cv : customizedViews) {
+      _customizedViewCacheMap.get(customizedStateType).getCustomizedViewCache().setProperty(cv);
+    }
+  }
+
+  /**
    * Get local cached customized view map
    * @return
    */
@@ -304,9 +321,25 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param stateTypeNames
    */
 
-  private void removeCustomizedViewTypes(Set<String> stateTypeNames) {
+  public void removeCustomizedViewTypes(Set<String> stateTypeNames) {
     for (String stateType : stateTypeNames) {
       _customizedViewCacheMap.remove(stateType);
+    }
+  }
+
+  /**
+   * Remove dead customized views for a certain state type from customized view cache
+   * @param stateType a specific customized state type
+   * @param resourceNames the names of resources whose customized view is stale
+   */
+  public void removeCustomizedViews(String stateType, List<String> resourceNames) {
+    if (!_customizedViewCacheMap.containsKey(stateType)) {
+      logger.warn(String.format("The customized state type : %s is not in the cache", stateType));
+      return;
+    }
+    for (String resourceName : resourceNames) {
+      _customizedViewCacheMap.get(stateType).getCustomizedViewCache()
+          .deletePropertyByName(resourceName);
     }
   }
 

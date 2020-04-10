@@ -319,6 +319,22 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   }
 
   /**
+   * Set the data sources (customized state types) for routing table provider
+   * @param customizedStateTypes list of customized state types that routing table provider will include in the snapshot shown to users
+   */
+  private void setRoutingTableProviderDataSources(List<CustomizedStateType> customizedStateTypes) {
+    List<String> customizedViewSources = new ArrayList<>();
+    _routingTableProviderDataSources.clear();
+    for (CustomizedStateType type : customizedStateTypes) {
+      customizedViewSources.add(type.name());
+      _routingTableProviderDataSources.add(type.name());
+    }
+    Map<PropertyType, List<String>> dataSource = new HashMap<>();
+    dataSource.put(PropertyType.CUSTOMIZEDVIEW, customizedViewSources);
+    _routingTableProvider = new RoutingTableProvider(_spectator, dataSource);
+  }
+
+  /**
    * Set the customized view aggregation config in controller
    * @param aggregationEnabledTypes list of customized state types that the controller will aggregate to customized view
    */
@@ -339,6 +355,9 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
   @Test
   public void testCustomizedViewAggregation() throws Exception {
+
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B, Type C
 
     update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_0, PARTITION_00,
         CurrentStateValues.TYPE_A_0);
@@ -375,6 +394,15 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
     validateAggregationSnapshot();
 
+    // Set the routing table provider data sources to only Type A and Type B, so users won't see Type C customized view
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B
+    setRoutingTableProviderDataSources(
+        Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B));
+    validateAggregationSnapshot();
+
+    // Aggregating: Type A
+    // Routing table: Type A, Type B
     setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A));
     validateAggregationSnapshot();
 
@@ -410,7 +438,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     // Customized view only reflect CURRENT_STATE field
     updateLocalCustomizedViewMap(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10,
         null);
-
     validateAggregationSnapshot();
 
     // Update some customized states and verify
@@ -421,6 +448,10 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     delete(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10);
     validateAggregationSnapshot();
 
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B, Type C
+    setRoutingTableProviderDataSources(Arrays
+        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B, CustomizedStateType.TYPE_C));
     setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
         CustomizedStateType.TYPE_C));
     validateAggregationSnapshot();

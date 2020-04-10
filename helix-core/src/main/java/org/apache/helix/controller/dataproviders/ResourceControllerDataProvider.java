@@ -264,15 +264,13 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    */
   public void updateCustomizedViews(String customizedStateType,
       List<CustomizedView> customizedViews) {
+    if (!_customizedViewCacheMap.containsKey(customizedStateType)) {
+      CustomizedViewCache customizedViewCache =
+          new CustomizedViewCache(getClusterName(), customizedStateType);
+      _customizedViewCacheMap.put(customizedStateType, customizedViewCache);
+    }
     for (CustomizedView cv : customizedViews) {
-      if (_customizedViewCacheMap.containsKey(customizedStateType)) {
-        _customizedViewCacheMap.get(customizedStateType).getCustomizedViewCache().setProperty(cv);
-      } else {
-        CustomizedViewCache customizedViewCache =
-            new CustomizedViewCache(getClusterName(), customizedStateType);
-        customizedViewCache.getCustomizedViewCache().setProperty(cv);
-        _customizedViewCacheMap.put(customizedStateType, customizedViewCache);
-      }
+      _customizedViewCacheMap.get(customizedStateType).getCustomizedViewCache().setProperty(cv);
     }
   }
 
@@ -312,6 +310,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param resourceNames the names of resources whose customized view is stale
    */
   public void removeCustomizedViews(String stateType, List<String> resourceNames) {
+    if (!_customizedViewCacheMap.containsKey(stateType)) {
+      logger.warn(String.format("The customized state type : %s is not in the cache", stateType));
+      return;
+    }
     for (String resourceName : resourceNames) {
       _customizedViewCacheMap.get(stateType).getCustomizedViewCache()
           .deletePropertyByName(resourceName);

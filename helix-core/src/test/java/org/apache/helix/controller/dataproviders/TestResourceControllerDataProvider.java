@@ -20,26 +20,42 @@ package org.apache.helix.controller.dataproviders;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.helix.model.IdealState;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestResourceControllerDataProvider {
   @Test
   public void testStablePartitionListCache() {
-    ResourceControllerDataProvider dataProvider = new ResourceControllerDataProvider();
     String resourceName = "TestResource";
     Set<String> partitionSetA = ImmutableSet.of("Partiton1", "Partiton2", "Partiton3");
     Set<String> partitionSetB = ImmutableSet.of("Partiton1", "Partiton2", "Partiton4");
+    Map<String, IdealState> idealStateMap = new HashMap<>();
+    IdealState is = mock(IdealState.class);
+    when(is.getPartitionSet()).thenReturn(partitionSetA);
+    when(is.getResourceName()).thenReturn(resourceName);
+    idealStateMap.put(resourceName, is);
 
-    // 1. Test get the stable list
+    ResourceControllerDataProvider dataProvider = new ResourceControllerDataProvider();
+
+    List<String> cachedPartitionList =
+        dataProvider.getStablePartitionList(resourceName);
+    Assert.assertTrue(cachedPartitionList.isEmpty());
+
+    // 1. Test refresh and get stable list
+    dataProvider.refreshStablePartitionList(idealStateMap);
     List<String> cachedPartitionListA =
-        dataProvider.getOrSetStablePartitionList(resourceName, partitionSetA);
+        dataProvider.getStablePartitionList(resourceName);
     Assert.assertTrue(cachedPartitionListA.size() == partitionSetA.size() && cachedPartitionListA
         .containsAll(partitionSetA));
 
@@ -50,22 +66,26 @@ public class TestResourceControllerDataProvider {
     // Verify that iterating this list will generate a different result
     List<String> tmpPartitionList = new ArrayList<>(partitionSetAWithDifferentOrder);
     Assert.assertFalse(cachedPartitionListA.equals(tmpPartitionList));
-    // Verify that the cached stable partition list still return a list with the same order.
-    Assert.assertTrue(
-        dataProvider.getOrSetStablePartitionList(resourceName, partitionSetAWithDifferentOrder)
-            .equals(cachedPartitionListA));
+    // Verify that the cached stable partition list still return a list with the same order even
+    // after refresh call.
+    when(is.getPartitionSet()).thenReturn(partitionSetAWithDifferentOrder);
+    dataProvider.refreshStablePartitionList(idealStateMap);
+    Assert
+        .assertTrue(dataProvider.getStablePartitionList(resourceName).equals(cachedPartitionListA));
 
-    // 2. Test update
+    // 2. Test update the cache if items in the list have been changed.
+    when(is.getPartitionSet()).thenReturn(partitionSetB);
+    dataProvider.refreshStablePartitionList(idealStateMap);
     List<String> cachedPartitionListB =
-        dataProvider.getOrSetStablePartitionList(resourceName, partitionSetB);
+        dataProvider.getStablePartitionList(resourceName);
     Assert.assertTrue(cachedPartitionListB.size() == partitionSetB.size() && cachedPartitionListB
         .containsAll(partitionSetB));
 
-    // 3. Test retain
-    dataProvider.retainStablePartitionListCache(Collections.emptySet());
+    // 3. Test removing item from the cache once the IdealState has been removed
+    idealStateMap.clear();
+    dataProvider.refreshStablePartitionList(idealStateMap);
     // Now, since the cache has been cleaned, the get will return different order.
-    Assert.assertFalse(
-        dataProvider.getOrSetStablePartitionList(resourceName, partitionSetAWithDifferentOrder)
-            .equals(cachedPartitionListA));
+    Assert.assertTrue(
+        dataProvider.getStablePartitionList(resourceName).isEmpty());
   }
 }

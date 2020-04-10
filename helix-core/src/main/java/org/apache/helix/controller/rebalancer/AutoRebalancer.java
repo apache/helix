@@ -64,12 +64,7 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
 
     LOG.info("Computing IdealState for " + resourceName);
 
-    // This is part of the backward compatible workaround to fix
-    // https://github.com/apache/helix/issues/940.
-    // TODO: remove the workaround once we are able to apply the simple fix without majorly
-    // TODO: impacting user's clusters.
-    List<String> partitions =
-        clusterData.getOrSetStablePartitionList(resourceName, currentIdealState.getPartitionSet());
+    List<String> partitions = getStablePartitionList(clusterData, currentIdealState);
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
     if (stateModelDef == null) {

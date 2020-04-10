@@ -36,6 +36,7 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -75,7 +76,7 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Refer to https://github.com/apache/helix/issues/940.
   // TODO: Sorting the partition list in CrushEd strategy instead of using the cache to reduce
   // TODO: dependency. Note that this will change the cluster partition assignment and potentially
-  // TODO: cause shuffling. So it is non backward compatible.
+  // TODO: cause shuffling. So it is not backward compatible.
   private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
 
   public ResourceControllerDataProvider() {
@@ -142,6 +143,13 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // Refresh resource controller specific property caches
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
+
+    // This is part of the backward compatible workaround to fix
+    // https://github.com/apache/helix/issues/940.
+    // TODO: remove the workaround once we are able to apply the simple fix without majorly
+    // TODO: impacting user's clusters.
+    refreshStablePartitionList(getIdealStates());
+
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: ResourceControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
         getClusterName(), startTime, System.currentTimeMillis() - startTime, getPipelineName()));
@@ -306,30 +314,31 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
-   * If the list items are the same, return the stable partition list cache. Otherwise, refresh
-   * the cache with new list and return the new list.
+   * Return the cached stable partition list of the specified resource. If no such cached item,
+   * return empty list.
    * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
    *
    * @param resourceName
-   * @param newPartitionSet
    */
-  public List<String> getOrSetStablePartitionList(String resourceName,
-      Set<String> newPartitionSet) {
-    List<String> cachedPartitions = _stablePartitionListCache.get(resourceName);
-    if (cachedPartitions == null || cachedPartitions.size() != newPartitionSet.size()
-        || !cachedPartitions.containsAll(newPartitionSet)) {
-      _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
-    }
-    return _stablePartitionListCache.get(resourceName);
+  public List<String> getStablePartitionList(String resourceName) {
+    return _stablePartitionListCache.getOrDefault(resourceName, Collections.EMPTY_LIST);
   }
 
   /**
-   * Retain the valid partition list cache items and remove the non-exist resources' cache.
+   * Refresh the stable partition list cache items and remove the non-exist resources' cache.
    * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
    *
-   * @param resourceNames a list of the valid resources.
+   * @param idealStateMap
    */
-  public void retainStablePartitionListCache(Set<String> resourceNames) {
-    _stablePartitionListCache.keySet().retainAll(resourceNames);
+  final void refreshStablePartitionList(Map<String, IdealState> idealStateMap) {
+    _stablePartitionListCache.keySet().retainAll(idealStateMap.keySet());
+    for (String resourceName : idealStateMap.keySet()) {
+      Set<String> newPartitionSet = idealStateMap.get(resourceName).getPartitionSet();
+      List<String> cachedPartitionList = getStablePartitionList(resourceName);
+      if (cachedPartitionList.size() != newPartitionSet.size() || !newPartitionSet
+          .containsAll(cachedPartitionList)) {
+        _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
+      }
+    }
   }
 }

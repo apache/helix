@@ -573,24 +573,29 @@ public class TestMultiZkHelixJavaApis {
     String clusterFourPath = formPath(CLUSTER_FOUR, methodName);
     ZNRecord record = new ZNRecord(methodName);
 
-    firstDataAccessor.create(clusterOnePath, record, AccessOption.PERSISTENT);
-    secondDataAccessor.create(clusterFourPath, record, AccessOption.PERSISTENT);
+    try {
+      firstDataAccessor.create(clusterOnePath, record, AccessOption.PERSISTENT);
+      secondDataAccessor.create(clusterFourPath, record, AccessOption.PERSISTENT);
 
-    // Verify data accessors that they could only talk to their own configured MSDS endpoint:
-    // either being set in builder or system property.
-    Assert.assertTrue(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
-    verifyMsdsZkRealm(CLUSTER_FOUR, false,
-        () -> firstDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+      // Verify data accessors that they could only talk to their own configured MSDS endpoint:
+      // either being set in builder or system property.
+      Assert.assertTrue(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+      verifyMsdsZkRealm(CLUSTER_FOUR, false,
+          () -> firstDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
 
-    Assert.assertTrue(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
-    verifyMsdsZkRealm(CLUSTER_ONE, false,
-        () -> secondDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+      Assert.assertTrue(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+      verifyMsdsZkRealm(CLUSTER_ONE, false,
+          () -> secondDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
 
-    firstDataAccessor.remove(clusterOnePath, AccessOption.PERSISTENT);
-    secondDataAccessor.remove(clusterFourPath, AccessOption.PERSISTENT);
+      firstDataAccessor.remove(clusterOnePath, AccessOption.PERSISTENT);
+      secondDataAccessor.remove(clusterFourPath, AccessOption.PERSISTENT);
 
-    Assert.assertFalse(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
-    Assert.assertFalse(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+      Assert.assertFalse(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+      Assert.assertFalse(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+    } finally {
+      firstDataAccessor.close();
+      secondDataAccessor.close();
+    }
   }
 
   private void verifyClusterSetupMsdsEndpoint(

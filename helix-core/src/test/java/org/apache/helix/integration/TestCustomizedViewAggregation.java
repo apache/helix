@@ -71,9 +71,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
 
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
+    String clusterName = TestHelper.getTestClassName();
     int n = 2;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -120,6 +118,23 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     _localCustomizedView = new HashMap<>();
     _routingTableProviderDataSources = new HashSet<>();
     _aggregationEnabledTypes = new HashSet<>();
+
+    List<String> customizedStateTypes = Arrays
+        .asList(CustomizedStateType.TYPE_A.name(), CustomizedStateType.TYPE_B.name(),
+            CustomizedStateType.TYPE_C.name());
+
+    CustomizedStateConfig.Builder customizedStateConfigBuilder =
+        new CustomizedStateConfig.Builder();
+    customizedStateConfigBuilder.setAggregationEnabledTypes(customizedStateTypes);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    accessor.setProperty(accessor.keyBuilder().customizedStateConfig(),
+        customizedStateConfigBuilder.build());
+    _aggregationEnabledTypes.addAll(customizedStateTypes);
+
+    Map<PropertyType, List<String>> dataSource = new HashMap<>();
+    dataSource.put(PropertyType.CUSTOMIZEDVIEW, customizedStateTypes);
+    _routingTableProvider = new RoutingTableProvider(_spectator, dataSource);
+    _routingTableProviderDataSources.addAll(customizedStateTypes);
   }
 
   @AfterClass
@@ -143,7 +158,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         // Get customized view snapshot
         Map<String, RoutingTableSnapshot> fullCustomizedViewSnapshot =
             routingTableSnapshots.get(PropertyType.CUSTOMIZEDVIEW.name());
-        boolean result = false;
 
         if (fullCustomizedViewSnapshot.isEmpty() && !_routingTableProviderDataSources.isEmpty()) {
           return false;
@@ -167,6 +181,11 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
           // If a customized state is not set to be aggregated in config, but is enabled in routing table provider, it will show up in customized view returned to user, but will be empty
           if (!_aggregationEnabledTypes.contains(customizedStateType)
               && customizedViews.size() != 0) {
+            return false;
+          }
+
+          if (_aggregationEnabledTypes.contains(customizedStateType)
+              && customizedViews.size() != localSnapshot.size()) {
             return false;
           }
 
@@ -200,10 +219,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
                 // Per instance value
                 String stateMapValue = stateMap.get(instanceName);
                 String localStateMapValue = localStateMap.get(instanceName);
-                if (isEmptyValue(stateMapValue) && isEmptyValue(localStateMapValue)) {
-                } else if ((!isEmptyValue(stateMapValue) && !isEmptyValue(localStateMapValue)
-                    && !stateMapValue.equals(localStateMapValue)) || (isEmptyValue(stateMapValue)
-                    || isEmptyValue(localStateMapValue))) {
+                if (!stateMapValue.equals(localStateMapValue)) {
                   return false;
                 }
               }
@@ -215,10 +231,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     }, 12000);
 
     Assert.assertTrue(result);
-  }
-
-  private boolean isEmptyValue(String value) {
-    return value == null || value.equals("");
   }
 
   /**
@@ -243,12 +255,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
       localPerPartition.remove(instanceName);
       if (localPerPartition.isEmpty()) {
         localPerResource.remove(partitionName);
-        if (localPerResource.isEmpty()) {
-          localPerStateType.remove(resourceName);
-          if (localPerStateType.isEmpty()) {
-            _localCustomizedView.remove(customizedStateType.name());
-          }
-        }
       }
     } else {
       localPerPartition.put(instanceName, customizedStateValue.name());
@@ -348,9 +354,10 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   }
 
   @Test
-  public void testCustomizedStateViewAggregation() throws Exception {
-    setAggregationEnabledTypes(
-        Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B));
+  public void testCustomizedViewAggregation() throws Exception {
+
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B, Type C
 
     update(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_0, PARTITION_00,
         CurrentStateValues.TYPE_A_0);
@@ -370,16 +377,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         CurrentStateValues.TYPE_C_2);
     update(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_11,
         CurrentStateValues.TYPE_A_1);
-
-    // Aggregation enabled types: A, B; Routing table provider data sources: A, B, C; should show TypeA, TypeB customized views
-    setRoutingTableProviderDataSources(Arrays
-        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
-            CustomizedStateType.TYPE_C));
-    validateAggregationSnapshot();
-
-    // Aggregation enabled types: A, B; Routing table provider data sources: A, B, C; should show TypeA, TypeB customized views
-    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
-        CustomizedStateType.TYPE_C));
     validateAggregationSnapshot();
 
     Assert.assertNull(_customizedStateProvider_participant0
@@ -395,8 +392,18 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     updateLocalCustomizedViewMap(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10,
         CurrentStateValues.TYPE_A_2);
 
-    // Aggregation enabled types: A, B, C; Routing table provider data sources: A; should only show TypeA customized view
-    setRoutingTableProviderDataSources(Arrays.asList(CustomizedStateType.TYPE_A));
+    validateAggregationSnapshot();
+
+    // Set the routing table provider data sources to only Type A and Type B, so users won't see Type C customized view
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B
+    setRoutingTableProviderDataSources(
+        Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B));
+    validateAggregationSnapshot();
+
+    // Aggregating: Type A
+    // Routing table: Type A, Type B
+    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A));
     validateAggregationSnapshot();
 
     // Test get customized state and get per partition customized state via customized state provider, this part of test doesn't change customized view
@@ -433,23 +440,20 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         null);
     validateAggregationSnapshot();
 
-    //Aggregation enabled types: B; Routing table provider data sources: A, B, C; should show TypeB customized views
-    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_B));
-    setRoutingTableProviderDataSources(Arrays
-        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
-            CustomizedStateType.TYPE_C));
-    validateAggregationSnapshot();
-
-    //Aggregation enabled types: B; Routing table provider data sources: A; should show empty customized view
-    setRoutingTableProviderDataSources(Arrays.asList(CustomizedStateType.TYPE_A));
-    validateAggregationSnapshot();
-
     // Update some customized states and verify
     delete(INSTANCE_0, CustomizedStateType.TYPE_A, RESOURCE_0, PARTITION_00);
     delete(INSTANCE_1, CustomizedStateType.TYPE_B, RESOURCE_1, PARTITION_10);
 
     // delete a customize state that does not exist
     delete(INSTANCE_1, CustomizedStateType.TYPE_A, RESOURCE_1, PARTITION_10);
+    validateAggregationSnapshot();
+
+    // Aggregating: Type A, Type B, Type C
+    // Routing table: Type A, Type B, Type C
+    setRoutingTableProviderDataSources(Arrays
+        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B, CustomizedStateType.TYPE_C));
+    setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
+        CustomizedStateType.TYPE_C));
     validateAggregationSnapshot();
 
     update(INSTANCE_0, CustomizedStateType.TYPE_B, RESOURCE_0, PARTITION_01,

@@ -40,6 +40,7 @@ import org.apache.helix.api.listeners.CustomizedStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateConfigChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateRootChangeListener;
 import org.apache.helix.api.listeners.CustomizedViewChangeListener;
+import org.apache.helix.api.listeners.CustomizedViewRootChangeListener;
 import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
@@ -157,6 +158,11 @@ public class DummyClusterManager implements HelixManager {
   public void addCustomizedViewChangeListener(CustomizedViewChangeListener listener, String customizedStateType) throws Exception {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public void addCustomizedViewRootChangeListener(CustomizedViewRootChangeListener listener) throws Exception {
+    // TODO Auto-generated method stub
   }
 
   @Override

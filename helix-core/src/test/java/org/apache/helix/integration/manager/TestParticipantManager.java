@@ -151,7 +151,7 @@ public class TestParticipantManager extends ZkTestBase {
     // check HelixCallback Monitor
     Set<ObjectInstance> objs =
         _server.queryMBeans(buildCallbackMonitorObjectName(type, clusterName, instanceName), null);
-    Assert.assertEquals(objs.size(), 17);
+    Assert.assertEquals(objs.size(), 18);
 
     // check HelixZkClient Monitors
     objs =

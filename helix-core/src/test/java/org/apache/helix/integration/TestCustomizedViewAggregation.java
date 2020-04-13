@@ -18,7 +18,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.customizedstate.CustomizedStateProvider;
 import org.apache.helix.customizedstate.CustomizedStateProviderFactory;
@@ -29,6 +28,7 @@ import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.spectator.RoutingTableSnapshot;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -322,17 +322,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
    * Set the data sources (customized state types) for routing table provider
    * @param customizedStateTypes list of customized state types that routing table provider will include in the snapshot shown to users
    */
-  private void setRoutingTableProviderDataSources(List<CustomizedStateType> customizedStateTypes) {
-    List<String> customizedViewSources = new ArrayList<>();
-    _routingTableProviderDataSources.clear();
-    for (CustomizedStateType type : customizedStateTypes) {
-      customizedViewSources.add(type.name());
-      _routingTableProviderDataSources.add(type.name());
-    }
-    Map<PropertyType, List<String>> dataSource = new HashMap<>();
-    dataSource.put(PropertyType.CUSTOMIZEDVIEW, customizedViewSources);
-    _routingTableProvider = new RoutingTableProvider(_spectator, dataSource);
-  }
 
   /**
    * Set the customized view aggregation config in controller
@@ -394,15 +383,8 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
     validateAggregationSnapshot();
 
-    // Set the routing table provider data sources to only Type A and Type B, so users won't see Type C customized view
-    // Aggregating: Type A, Type B, Type C
-    // Routing table: Type A, Type B
-    setRoutingTableProviderDataSources(
-        Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B));
-    validateAggregationSnapshot();
-
     // Aggregating: Type A
-    // Routing table: Type A, Type B
+    // Routing table: Type A, Type B, Type C
     setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A));
     validateAggregationSnapshot();
 
@@ -450,8 +432,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
     // Aggregating: Type A, Type B, Type C
     // Routing table: Type A, Type B, Type C
-    setRoutingTableProviderDataSources(Arrays
-        .asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B, CustomizedStateType.TYPE_C));
     setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A, CustomizedStateType.TYPE_B,
         CustomizedStateType.TYPE_C));
     validateAggregationSnapshot();

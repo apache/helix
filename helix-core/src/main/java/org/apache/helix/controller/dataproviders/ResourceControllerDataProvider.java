@@ -19,6 +19,7 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;

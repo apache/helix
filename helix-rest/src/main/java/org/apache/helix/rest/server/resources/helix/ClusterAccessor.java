@@ -299,7 +299,7 @@ public class ClusterAccessor extends AbstractHelixResource {
 
 
   @PUT
-  @Path("{clusterId}/customized-state-aggregation-config")
+  @Path("{clusterId}/customized-state-config")
   public Response addCustomizedStateConfig(@PathParam("clusterId") String clusterId,
       String content) {
     if (!doesClusterExist(clusterId)) {
@@ -328,7 +328,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @DELETE
-  @Path("{clusterId}/customized-state-aggregation-config")
+  @Path("{clusterId}/customized-state-config")
   public Response removeCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
@@ -348,7 +348,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @GET
-  @Path("{clusterId}/customized-state-aggregation-config")
+  @Path("{clusterId}/customized-state-config")
   public Response getCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
     if (!doesClusterExist(clusterId)) {
       return notFound(String.format("Cluster %s does not exist", clusterId));
@@ -366,7 +366,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
   @POST
-  @Path("{clusterId}/customized-state-aggregation-config")
+  @Path("{clusterId}/customized-state-config")
   public Response updateCustomizedStateConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("type") String type) {
     if (!doesClusterExist(clusterId)) {

@@ -1028,7 +1028,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testAddCustomizedConfig() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");
@@ -1071,7 +1071,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testDeleteCustomizedConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");
@@ -1101,7 +1101,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testUpdateCustomizedConfig() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     _gSetupTool.addCluster("TestClusterCustomized", true);
-    String urlBase = "clusters/TestClusterCustomized/customizedstateconfig/";
+    String urlBase = "clusters/TestClusterCustomized/customized-state-config/";
     ZNRecord record = new ZNRecord("TestCustomizedStateConfig");
     List<String> testList = new ArrayList<String>();
     testList.add("mockType1");

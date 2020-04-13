@@ -426,14 +426,12 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       IdealState currentIdealState) {
     List<String> partitions =
         clusterData.getStablePartitionList(currentIdealState.getResourceName());
-    Set<String> currentPartitionSet = currentIdealState.getPartitionSet();
-    if (partitions.size() != currentPartitionSet.size() || !currentPartitionSet
-        .containsAll(partitions)) {
+    if (partitions == null) {
+      Set<String> currentPartitionSet = currentIdealState.getPartitionSet();
       // In theory, the cached stable partition list must have contains all items in the current
       // partition set. Add one more check to avoid any intermediate change that modifies the list.
-      LOG.warn("The current partition set {} has been modified and it is different from the cached "
-              + "stable list {}. Use the current partition set.", currentPartitionSet.toString(),
-          partitions.toString());
+      LOG.warn("The current partition set {} has not been cached in the stable partition list. "
+              + "Use the IdealState partition set directly.", currentPartitionSet.toString());
       partitions = new ArrayList<>(currentPartitionSet);
     }
     return partitions;

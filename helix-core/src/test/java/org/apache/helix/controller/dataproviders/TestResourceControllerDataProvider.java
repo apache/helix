@@ -50,7 +50,7 @@ public class TestResourceControllerDataProvider {
 
     List<String> cachedPartitionList =
         dataProvider.getStablePartitionList(resourceName);
-    Assert.assertTrue(cachedPartitionList.isEmpty());
+    Assert.assertTrue(cachedPartitionList == null);
 
     // 1. Test refresh and get stable list
     dataProvider.refreshStablePartitionList(idealStateMap);
@@ -86,6 +86,6 @@ public class TestResourceControllerDataProvider {
     dataProvider.refreshStablePartitionList(idealStateMap);
     // Now, since the cache has been cleaned, the get will return different order.
     Assert.assertTrue(
-        dataProvider.getStablePartitionList(resourceName).isEmpty());
+        dataProvider.getStablePartitionList(resourceName) == null);
   }
 }

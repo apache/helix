@@ -314,14 +314,14 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   }
 
   /**
-   * Return the cached stable partition list of the specified resource. If no such cached item,
-   * return empty list.
    * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
    *
    * @param resourceName
+   * @return the cached stable partition list of the specified resource. If no such cached item,
+   * return null.
    */
   public List<String> getStablePartitionList(String resourceName) {
-    return _stablePartitionListCache.getOrDefault(resourceName, Collections.EMPTY_LIST);
+    return _stablePartitionListCache.get(resourceName);
   }
 
   /**
@@ -335,8 +335,8 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     for (String resourceName : idealStateMap.keySet()) {
       Set<String> newPartitionSet = idealStateMap.get(resourceName).getPartitionSet();
       List<String> cachedPartitionList = getStablePartitionList(resourceName);
-      if (cachedPartitionList.size() != newPartitionSet.size() || !newPartitionSet
-          .containsAll(cachedPartitionList)) {
+      if (cachedPartitionList == null || cachedPartitionList.size() != newPartitionSet.size()
+          || !newPartitionSet.containsAll(cachedPartitionList)) {
         _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
       }
     }

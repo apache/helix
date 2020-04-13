@@ -24,7 +24,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
 
 /**
  * Customized view is an aggregation (across all instances)

@@ -30,15 +30,19 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.AccessResult;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.data.Stat;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
@@ -342,6 +346,22 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     ZNRecord getRecord = _gZkClient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
+
+    // Tests that ZkClientException thrown from ZkClient should be caught
+    // and remove() should return false.
+    RealmAwareZkClient mockZkClient = Mockito.mock(RealmAwareZkClient.class);
+    Mockito.doThrow(new ZkException("Failed to delete " + path)).when(mockZkClient)
+        .delete(path);
+    Mockito.doThrow(new ZkClientException("Failed to recursively delete " + path)).when(mockZkClient)
+        .deleteRecursively(path);
+    ZkBaseDataAccessor<ZNRecord> accessorMock =
+        new ZkBaseDataAccessor<>(mockZkClient);
+    try {
+      Assert.assertFalse(accessorMock.remove(path, AccessOption.PERSISTENT),
+          "Should return false because ZkClientException is thrown");
+    } catch (ZkClientException e) {
+      Assert.fail("Should not throw ZkClientException because it should be caught.");
+    }
 
     success = accessor.remove(path, 0);
     Assert.assertTrue(success);

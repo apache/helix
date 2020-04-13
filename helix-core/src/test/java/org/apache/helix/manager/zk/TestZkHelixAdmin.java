@@ -41,6 +41,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -48,7 +49,6 @@ import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.cloud.constants.CloudProvider;
-import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
@@ -66,8 +66,12 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
@@ -191,6 +195,36 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       Assert.fail("HelixManager failed disconnecting");
     }
 
+    // Tests that ZkClientException thrown from ZkClient should be caught
+    // and it should be converted HelixException to be rethrown
+    String instancePath = PropertyPathBuilder.instance(clusterName, config.getInstanceName());
+    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+    String liveInstancePath = PropertyPathBuilder.liveInstance(clusterName, instanceName);
+    RealmAwareZkClient mockZkClient = Mockito.mock(RealmAwareZkClient.class);
+    // Mock the exists() method to let dropInstance() reach deleteRecursively().
+    Mockito.when(mockZkClient.exists(instanceConfigPath)).thenReturn(true);
+    Mockito.when(mockZkClient.exists(instancePath)).thenReturn(true);
+    Mockito.when(mockZkClient.exists(liveInstancePath)).thenReturn(false);
+    Mockito.doThrow(new ZkClientException("ZkClientException: failed to delete " + instancePath,
+        new ZkException("ZkException: failed to delete " + instancePath,
+            new KeeperException.NotEmptyException(
+                "NotEmptyException: directory" + instancePath + " is not empty"))))
+        .when(mockZkClient).deleteRecursively(instancePath);
+
+    HelixAdmin helixAdminMock = new ZKHelixAdmin(mockZkClient);
+    try {
+      helixAdminMock.dropInstance(clusterName, config);
+      Assert.fail("Should throw HelixException");
+    } catch (HelixException expected) {
+      // This exception is expected because it is converted from ZkClientException and rethrown.
+      Assert.assertEquals(expected.getMessage(),
+          "Failed to drop instance: " + config.getInstanceName() + ". Retry times: 3");
+    } catch (ZkClientException e) {
+      if (e.getMessage().equals("ZkClientException: failed to delete " + instancePath)) {
+        Assert.fail("Should not throw ZkClientException because it should be caught.");
+      }
+    }
+
     tool.dropInstance(clusterName, config); // correctly drop the instance
 
     try {
@@ -211,6 +245,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException e) {
       // OK
     }
+
     ZNRecord stateModelRecord = new ZNRecord("id1");
     try {
       tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));

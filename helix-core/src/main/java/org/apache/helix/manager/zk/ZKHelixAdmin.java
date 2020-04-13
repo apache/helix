@@ -83,6 +83,7 @@ import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
@@ -225,7 +226,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       try {
         _zkClient.deleteRecursively(instancePath);
         return;
-      } catch (HelixException e) {
+      } catch (ZkClientException e) {
         if (retryCnt < 3 && e.getCause() instanceof ZkException && e.getCause()
             .getCause() instanceof KeeperException.NotEmptyException) {
           // Racing condition with controller's persisting node history, retryable.
@@ -235,9 +236,10 @@ public class ZKHelixAdmin implements HelixAdmin {
               instanceConfig.getInstanceName(), e.getCause().getMessage());
           retryCnt++;
         } else {
-          logger.error("Failed to drop instance {} (not retryable).",
-              instanceConfig.getInstanceName(), e.getCause());
-          throw e;
+          String errorMessage = "Failed to drop instance: " + instanceConfig.getInstanceName()
+              + ". Retry times: " + retryCnt;
+          logger.error(errorMessage, retryCnt, e.getCause());
+          throw new HelixException(errorMessage, e);
         }
       }
     }

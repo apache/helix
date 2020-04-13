@@ -28,11 +28,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.InstanceType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -42,6 +46,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -242,13 +247,20 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     // shutdown participants, keep only two left
+    HelixDataAccessor helixDataAccessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, InstanceType.PARTICIPANT, _baseAccessor);
     for (int i = 2; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
       p.syncStop();
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, p.getInstanceName(),
           false);
+      Assert.assertTrue(TestHelper.verify(() -> {
+        _gSetupTool.getClusterManagementTool()
+            .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
+        return !InstanceValidationUtil.isEnabled(helixDataAccessor, p.getInstanceName())
+            && !InstanceValidationUtil.isAlive(helixDataAccessor, p.getInstanceName());
+      }, TestHelper.WAIT_DURATION), "Instance should be disabled and offline");
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
-
     }
 
     int j = 0;

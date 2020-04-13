@@ -40,6 +40,7 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -703,8 +704,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           e.getMessage());
       try {
         _zkClient.deleteRecursively(path);
-      } catch (HelixException he) {
-        LOG.error("Failed to delete {} recursively with opts {}.", path, options, he);
+      } catch (ZkClientException zce) {
+        LOG.error("Failed to delete {} recursively with opts {}.", path, options, zce);
         return false;
       }
     }

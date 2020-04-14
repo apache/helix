@@ -238,7 +238,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         } else {
           String errorMessage = "Failed to drop instance: " + instanceConfig.getInstanceName()
               + ". Retry times: " + retryCnt;
-          logger.error(errorMessage, retryCnt, e.getCause());
+          logger.error(errorMessage, e);
           throw new HelixException(errorMessage, e);
         }
       }

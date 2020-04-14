@@ -40,7 +40,7 @@ import org.testng.annotations.Test;
 public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
   @Test
   public void testSessionExpirationWithSharedZkClient() throws Exception {
-    int CURSTATECNT = 10;
+    int curstateCnt = 10;
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -69,7 +69,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // create 10 current states using external base accessor
     List<String> paths = new ArrayList<>();
     List<ZNRecord> records = new ArrayList<>();
-    for (int i = 0; i < CURSTATECNT; i++) {
+    for (int i = 0; i < curstateCnt; i++) {
       String path = PropertyPathBuilder
           .instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
@@ -79,7 +79,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     }
 
     boolean[] success = extBaseAccessor.createChildren(paths, records, AccessOption.PERSISTENT);
-    for (int i = 0; i < CURSTATECNT; i++) {
+    for (int i = 0; i < curstateCnt; i++) {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
     }
 
@@ -95,7 +95,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     ZkTestHelper.asyncExpireSession(dupZkclient);
     ret = TestHelper.verify(() -> {
       long curSessionId = dupZkclient.getSessionId();
-      return curSessionId != sessionId && curSessionId != 0 ? true : false;
+      return curSessionId != sessionId && curSessionId != 0;
     }, 10000);
     Assert.assertTrue(ret, "kill session timed out!");
 
@@ -105,19 +105,19 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     ZkTestHelper.asyncExpireSession(dupZkclient);
     ret = TestHelper.verify(() -> {
       long curSessionId = dupZkclient.getSessionId();
-      return curSessionId != sessionId1 && curSessionId != 0 ? true : false;
+      return curSessionId != sessionId1 && curSessionId != 0;
     }, 10000);
     Assert.assertTrue(ret, "kill session second time timed out!");
 
     // remove the currentstates
     paths.clear();
-    for (int i = 0; i < CURSTATECNT; i++) {
+    for (int i = 0; i < curstateCnt; i++) {
       String path = PropertyPathBuilder
           .instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       paths.add(path);
     }
     success = extBaseAccessor.remove(paths, 0);
-    for (int i = 0; i < CURSTATECNT; i++) {
+    for (int i = 0; i < curstateCnt; i++) {
       Assert.assertTrue(success[i], "Should succeed in remove:" + paths.get(i));
     }
 

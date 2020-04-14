@@ -109,6 +109,10 @@ public class MockMetadataStoreDirectoryServer {
         "Stopped MockMetadataStoreDirectoryServer at " + _hostname + ":" + _mockServerPort + "!");
   }
 
+  public String getEndpoint() {
+    return "http://" + _hostname + ":" + _mockServerPort + REST_PREFIX + _namespace;
+  }
+
   /**
    * Dynamically generates HTTP server contexts based on the routing data given.
    */

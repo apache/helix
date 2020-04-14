@@ -19,19 +19,23 @@ package org.apache.helix.integration.multizk;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
@@ -49,6 +53,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.HelixPropertyStore;
@@ -88,6 +93,10 @@ public class TestMultiZkHelixJavaApis {
   private static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
   private static final List<String> CLUSTER_LIST =
       ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");
+
+  // For testing different MSDS endpoint configs.
+  private static final String CLUSTER_ONE = CLUSTER_LIST.get(0);
+  private static final String CLUSTER_FOUR = "CLUSTER_4";
 
   private MockMetadataStoreDirectoryServer _msds;
   private static final Map<String, Collection<String>> _rawRoutingData = new HashMap<>();
@@ -480,5 +489,244 @@ public class TestMultiZkHelixJavaApis {
   @Test(dependsOnMethods = "testTaskFramework")
   public void testGetAllClusters() {
     Assert.assertEquals(new HashSet<>(_zkHelixAdmin.getClusters()), new HashSet<>(CLUSTER_LIST));
+  }
+
+  /**
+   * Tests Helix Java APIs which use different MSDS endpoint configs. Java API should
+   * only connect to the configured MSDS but not the others. The APIs are explicitly tested are:
+   * - ClusterSetup
+   * - HelixAdmin
+   * - ZkUtil
+   * - HelixManager
+   * - BaseDataAccessor
+   * - ConfigAccessor
+   */
+  @Test(dependsOnMethods = "testGetAllClusters")
+  public void testDifferentMsdsEndpointConfigs() throws IOException, InvalidRoutingDataException {
+    String methodName = TestHelper.getTestMethodName();
+    System.out.println("Start " + methodName);
+    final String zkAddress = ZK_SERVER_MAP.keySet().iterator().next();
+    final Map<String, Collection<String>> secondRoutingData =
+        ImmutableMap.of(zkAddress, Collections.singletonList(formPath(CLUSTER_FOUR)));
+    MockMetadataStoreDirectoryServer secondMsds =
+        new MockMetadataStoreDirectoryServer("localhost", 11118, "multiZkTest", secondRoutingData);
+    final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setMsdsEndpoint(secondMsds.getEndpoint()).build();
+    secondMsds.startServer();
+
+    try {
+      // Verify ClusterSetup
+      verifyClusterSetupMsdsEndpoint(connectionConfig);
+
+      // Verify HelixAdmin
+      verifyHelixAdminMsdsEndpoint(connectionConfig);
+
+      // Verify ZKUtil
+      verifyZkUtilMsdsEndpoint();
+
+      // Verify HelixManager
+      verifyHelixManagerMsdsEndpoint();
+
+      // Verify BaseDataAccessor
+      verifyBaseDataAccessorMsdsEndpoint(connectionConfig);
+
+      // Verify ConfigAccessor
+      verifyConfigAccessorMsdsEndpoint(connectionConfig);
+    } finally {
+      RealmAwareZkClient zkClient = new FederatedZkClient(connectionConfig,
+          new RealmAwareZkClient.RealmAwareZkClientConfig());
+      TestHelper.dropCluster(CLUSTER_FOUR, zkClient);
+      zkClient.close();
+      secondMsds.stopServer();
+    }
+    System.out.println("End " + methodName);
+  }
+
+  private void verifyHelixManagerMsdsEndpoint() {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+
+    // Mock participants are already created and started in the previous test.
+    // The mock participant only connects to MSDS configured in system property,
+    // but not the other.
+    final MockParticipantManager manager = MOCK_PARTICIPANTS.iterator().next();
+    verifyMsdsZkRealm(CLUSTER_ONE, true,
+        () -> manager.getZkClient().exists(formPath(manager.getClusterName())));
+    verifyMsdsZkRealm(CLUSTER_FOUR, false,
+        () -> manager.getZkClient().exists(formPath(CLUSTER_FOUR)));
+  }
+
+  private void verifyBaseDataAccessorMsdsEndpoint(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+    // MSDS endpoint is not configured in builder, so config in system property is used.
+    BaseDataAccessor<ZNRecord> firstDataAccessor =
+        new ZkBaseDataAccessor.Builder<ZNRecord>().build();
+
+    // Create base data accessor with MSDS endpoint configured in builder.
+    BaseDataAccessor<ZNRecord> secondDataAccessor =
+        new ZkBaseDataAccessor.Builder<ZNRecord>().setRealmAwareZkConnectionConfig(connectionConfig)
+            .build();
+
+    String methodName = TestHelper.getTestMethodName();
+    String clusterOnePath = formPath(CLUSTER_ONE, methodName);
+    String clusterFourPath = formPath(CLUSTER_FOUR, methodName);
+    ZNRecord record = new ZNRecord(methodName);
+
+    try {
+      firstDataAccessor.create(clusterOnePath, record, AccessOption.PERSISTENT);
+      secondDataAccessor.create(clusterFourPath, record, AccessOption.PERSISTENT);
+
+      // Verify data accessors that they could only talk to their own configured MSDS endpoint:
+      // either being set in builder or system property.
+      Assert.assertTrue(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+      verifyMsdsZkRealm(CLUSTER_FOUR, false,
+          () -> firstDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+
+      Assert.assertTrue(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+      verifyMsdsZkRealm(CLUSTER_ONE, false,
+          () -> secondDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+
+      firstDataAccessor.remove(clusterOnePath, AccessOption.PERSISTENT);
+      secondDataAccessor.remove(clusterFourPath, AccessOption.PERSISTENT);
+
+      Assert.assertFalse(firstDataAccessor.exists(clusterOnePath, AccessOption.PERSISTENT));
+      Assert.assertFalse(secondDataAccessor.exists(clusterFourPath, AccessOption.PERSISTENT));
+    } finally {
+      firstDataAccessor.close();
+      secondDataAccessor.close();
+    }
+  }
+
+  private void verifyClusterSetupMsdsEndpoint(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+
+    ClusterSetup firstClusterSetup = new ClusterSetup.Builder().build();
+    ClusterSetup secondClusterSetup =
+        new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+
+    try {
+      verifyMsdsZkRealm(CLUSTER_ONE, true,
+          () -> firstClusterSetup.addCluster(CLUSTER_ONE, false));
+      verifyMsdsZkRealm(CLUSTER_FOUR, false,
+          () -> firstClusterSetup.addCluster(CLUSTER_FOUR, false));
+
+      verifyMsdsZkRealm(CLUSTER_FOUR, true,
+          () -> secondClusterSetup.addCluster(CLUSTER_FOUR, false));
+      verifyMsdsZkRealm(CLUSTER_ONE, false,
+          () -> secondClusterSetup.addCluster(CLUSTER_ONE, false));
+    } finally {
+      firstClusterSetup.close();
+      secondClusterSetup.close();
+    }
+  }
+
+  private void verifyZkUtilMsdsEndpoint() {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+    String dummyZkAddress = "dummyZkAddress";
+
+    // MSDS endpoint 1
+    verifyMsdsZkRealm(CLUSTER_ONE, true,
+        () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_ONE)));
+    // Verify MSDS endpoint 2 is not used by this ZKUtil.
+    verifyMsdsZkRealm(CLUSTER_FOUR, false,
+        () -> ZKUtil.getChildren(dummyZkAddress, formPath(CLUSTER_FOUR)));
+  }
+
+  private void verifyHelixAdminMsdsEndpoint(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+
+    HelixAdmin firstHelixAdmin = new ZKHelixAdmin.Builder().build();
+    HelixAdmin secondHelixAdmin =
+        new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+
+    try {
+      verifyMsdsZkRealm(CLUSTER_ONE, true,
+          () -> firstHelixAdmin.enableCluster(CLUSTER_ONE, true));
+      verifyMsdsZkRealm(CLUSTER_FOUR, false,
+          () -> firstHelixAdmin.enableCluster(CLUSTER_FOUR, true));
+
+      verifyMsdsZkRealm(CLUSTER_FOUR, true,
+          () -> secondHelixAdmin.enableCluster(CLUSTER_FOUR, true));
+      verifyMsdsZkRealm(CLUSTER_ONE, false,
+          () -> secondHelixAdmin.enableCluster(CLUSTER_ONE, true));
+    } finally {
+      firstHelixAdmin.close();
+      secondHelixAdmin.close();
+    }
+  }
+
+  private void verifyConfigAccessorMsdsEndpoint(
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    System.out.println("Start " + TestHelper.getTestMethodName());
+
+    ConfigAccessor firstConfigAccessor = new ConfigAccessor.Builder().build();
+    ConfigAccessor secondConfigAccessor =
+        new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
+
+    try {
+      verifyMsdsZkRealm(CLUSTER_ONE, true,
+          () -> firstConfigAccessor.getClusterConfig(CLUSTER_ONE));
+      verifyMsdsZkRealm(CLUSTER_FOUR, false,
+          () -> firstConfigAccessor.getClusterConfig(CLUSTER_FOUR));
+
+      verifyMsdsZkRealm(CLUSTER_FOUR, true,
+          () -> secondConfigAccessor.getClusterConfig(CLUSTER_FOUR));
+      verifyMsdsZkRealm(CLUSTER_ONE, false,
+          () -> secondConfigAccessor.getClusterConfig(CLUSTER_ONE));
+    } finally {
+      firstConfigAccessor.close();
+      secondConfigAccessor.close();
+    }
+  }
+
+  private interface Operation {
+    void run();
+  }
+
+  private void verifyMsdsZkRealm(String cluster, boolean shouldSucceed, Operation operation) {
+    try {
+      operation.run();
+      if (!shouldSucceed) {
+        Assert.fail("Should not connect to the MSDS that has /" + cluster);
+      }
+    } catch (NoSuchElementException e) {
+      if (shouldSucceed) {
+        Assert.fail("ZK Realm should be found for /" + cluster);
+      } else {
+        Assert.assertTrue(
+            e.getMessage().startsWith("Cannot find ZK realm for the path: /" + cluster));
+      }
+    } catch (IllegalArgumentException e) {
+      if (shouldSucceed) {
+        Assert.fail(formPath(cluster) + " should be a valid sharding key.");
+      } else {
+        String messageOne = "Given path: /" + cluster + " does not have a "
+            + "valid sharding key or its ZK sharding key is not found in the cached routing data";
+        String messageTwo = "Given path: /" + cluster + "'s ZK sharding key: /" + cluster
+            + " does not match the ZK sharding key";
+        Assert.assertTrue(
+            e.getMessage().startsWith(messageOne) || e.getMessage().startsWith(messageTwo));
+      }
+    } catch (HelixException e) {
+      // NoSuchElementException: "ZK Realm not found!" is swallowed in ZKUtil.isClusterSetup()
+      // Instead, HelixException is thrown.
+      if (shouldSucceed) {
+        Assert.fail("Cluster: " + cluster + " should have been setup.");
+      } else {
+        Assert.assertEquals("fail to get config. cluster: " + cluster + " is NOT setup.",
+            e.getMessage());
+      }
+    }
+  }
+
+  private String formPath(String... pathNames) {
+    StringBuilder sb = new StringBuilder();
+    for (String name : pathNames) {
+      sb.append('/').append(name);
+    }
+    return sb.toString();
   }
 }

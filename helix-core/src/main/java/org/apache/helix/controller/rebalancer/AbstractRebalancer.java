@@ -32,7 +32,6 @@ import java.util.Set;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
@@ -46,6 +45,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -416,5 +416,24 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
 
       return p1.compareTo(p2);
     }
+  }
+
+  // This is for a backward compatible workaround to fix
+  // https://github.com/apache/helix/issues/940.
+  // TODO: remove the workaround once we are able to apply the simple fix without majorly
+  // TODO: impacting user's clusters.
+  protected List<String> getStablePartitionList(ResourceControllerDataProvider clusterData,
+      IdealState currentIdealState) {
+    List<String> partitions =
+        clusterData.getStablePartitionList(currentIdealState.getResourceName());
+    if (partitions == null) {
+      Set<String> currentPartitionSet = currentIdealState.getPartitionSet();
+      // In theory, the cached stable partition list must have contains all items in the current
+      // partition set. Add one more check to avoid any intermediate change that modifies the list.
+      LOG.warn("The current partition set {} has not been cached in the stable partition list. "
+              + "Use the IdealState partition set directly.", currentPartitionSet.toString());
+      partitions = new ArrayList<>(currentPartitionSet);
+    }
+    return partitions;
   }
 }

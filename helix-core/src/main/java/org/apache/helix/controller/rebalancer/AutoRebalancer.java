@@ -28,13 +28,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataPro
 
     LOG.info("Computing IdealState for " + resourceName);
 
-    List<String> partitions = new ArrayList<>(currentIdealState.getPartitionSet());
+    List<String> partitions = getStablePartitionList(clusterData, currentIdealState);
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
     if (stateModelDef == null) {

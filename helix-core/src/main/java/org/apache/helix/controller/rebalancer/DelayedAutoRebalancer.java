@@ -66,7 +66,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
 
     LOG.info("Computing IdealState for " + resourceName);
 
-    List<String> allPartitions = new ArrayList<>(currentIdealState.getPartitionSet());
+    List<String> allPartitions = getStablePartitionList(clusterData, currentIdealState);
     if (allPartitions.size() == 0) {
       LOG.info("Partition count is 0 for resource " + resourceName
           + ", stop calculate ideal mapping for the resource.");

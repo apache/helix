@@ -19,24 +19,26 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +69,15 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
 
   // Maintain a set of all ChangeTypes for change detection
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
+
+  // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
+  // previous seen partition lists. If the members in a list are not modified, the old list will be
+  // used in the algorithm to ensure it calculates the same result.
+  // Refer to https://github.com/apache/helix/issues/940.
+  // TODO: Sorting the partition list in CrushEd strategy instead of using the cache to reduce
+  // TODO: dependency. Note that this will change the cluster partition assignment and potentially
+  // TODO: cause shuffling. So it is not backward compatible.
+  private final Map<String, List<String>> _stablePartitionListCache = new HashMap<>();
 
   public ResourceControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -132,6 +143,13 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // Refresh resource controller specific property caches
     refreshExternalViews(accessor);
     refreshTargetExternalViews(accessor);
+
+    // This is part of the backward compatible workaround to fix
+    // https://github.com/apache/helix/issues/940.
+    // TODO: remove the workaround once we are able to apply the simple fix without majorly
+    // TODO: impacting user's clusters.
+    refreshStablePartitionList(getIdealStates());
+
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: ResourceControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
         getClusterName(), startTime, System.currentTimeMillis() - startTime, getPipelineName()));
@@ -293,5 +311,34 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void clearMonitoringRecords() {
     _missingTopStateMap.clear();
     _lastTopStateLocationMap.clear();
+  }
+
+  /**
+   * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
+   *
+   * @param resourceName
+   * @return the cached stable partition list of the specified resource. If no such cached item,
+   * return null.
+   */
+  public List<String> getStablePartitionList(String resourceName) {
+    return _stablePartitionListCache.get(resourceName);
+  }
+
+  /**
+   * Refresh the stable partition list cache items and remove the non-exist resources' cache.
+   * This is for a backward compatible workaround to fix https://github.com/apache/helix/issues/940.
+   *
+   * @param idealStateMap
+   */
+  final void refreshStablePartitionList(Map<String, IdealState> idealStateMap) {
+    _stablePartitionListCache.keySet().retainAll(idealStateMap.keySet());
+    for (String resourceName : idealStateMap.keySet()) {
+      Set<String> newPartitionSet = idealStateMap.get(resourceName).getPartitionSet();
+      List<String> cachedPartitionList = getStablePartitionList(resourceName);
+      if (cachedPartitionList == null || cachedPartitionList.size() != newPartitionSet.size()
+          || !newPartitionSet.containsAll(cachedPartitionList)) {
+        _stablePartitionListCache.put(resourceName, new ArrayList<>(newPartitionSet));
+      }
+    }
   }
 }

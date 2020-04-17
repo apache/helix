@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -41,6 +42,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
@@ -168,10 +170,10 @@ public class TestResourceAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Stop all controllers because this test case creates external views; the external views will
     // be deleted by the controllers if controllers are not stopped and cause test failures
-    stopClustersControllers();
 
     String clusterName = "TestCluster_1";
     String resourceName = clusterName + "_db_0";
+    enableCluster(clusterName, false);
 
     // Use mock numbers for testing
     Map<String, String> idealStateParams = new HashMap<>();
@@ -212,7 +214,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get("p2"), "UNHEALTHY");
     System.out.println("End test :" + TestHelper.getTestMethodName());
     // Restart the stopped controllers
-    startClustersControllers();
+    enableCluster(clusterName, true);
   }
 
   @Test(dependsOnMethods = "testPartitionHealth")
@@ -220,7 +222,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Stop all controllers because this test case creates external views; the external views will
     // be deleted by the controllers if controllers are not stopped and cause test failures
-    stopClustersControllers();
+//    stopClustersControllers();
 
     String clusterName = "TestCluster_1";
     Map<String, String> idealStateParams = new HashMap<>();
@@ -229,6 +231,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     idealStateParams.put("MaxPartitionsPerInstance", "3");
     idealStateParams.put("Replicas", "3");
     idealStateParams.put("NumPartitions", "3");
+    enableCluster(clusterName, false);
 
     // Create a healthy resource
     String resourceNameHealthy = clusterName + "_db_0";
@@ -300,7 +303,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get(resourceNameUnhealthy), "UNHEALTHY");
     System.out.println("End test :" + TestHelper.getTestMethodName());
     // Restart the stopped controllers
-    startClustersControllers();
+    enableCluster(clusterName, true);
   }
 
   /**
@@ -665,11 +668,9 @@ public class TestResourceAccessor extends AbstractTestClass {
     }
   }
 
-  private void startClustersControllers() {
-    for (ClusterControllerManager cm : _clusterControllerManagers) {
-      if (cm != null && cm.isConnected()) {
-        cm.syncStart();
-      }
-    }
+  private void enableCluster(String clusterName, boolean enable) {
+    HelixAdmin helixAdmin = new ZKHelixAdmin(_gZkClient);
+    helixAdmin.enableCluster(clusterName, enable);
   }
+
 }

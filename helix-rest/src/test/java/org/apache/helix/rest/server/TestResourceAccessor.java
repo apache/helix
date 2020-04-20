@@ -172,7 +172,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     String resourceName = clusterName + "_db_0";
 
     // Disable the cluster to prevent external view from being removed
-    enableCluster(clusterName, false);
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, false);
 
     // Use mock numbers for testing
     Map<String, String> idealStateParams = new HashMap<>();
@@ -214,7 +214,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
 
     // Re-enable the cluster
-    enableCluster(clusterName, true);
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
   }
 
   @Test(dependsOnMethods = "testPartitionHealth")
@@ -230,7 +230,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     idealStateParams.put("NumPartitions", "3");
 
     // Disable the cluster to prevent external view from being removed
-    enableCluster(clusterName, false);
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, false);
 
     // Create a healthy resource
     String resourceNameHealthy = clusterName + "_db_0";
@@ -303,7 +303,7 @@ public class TestResourceAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
 
     // Re-enable the cluster
-    enableCluster(clusterName, true);
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
   }
 
   /**
@@ -659,10 +659,4 @@ public class TestResourceAccessor extends AbstractTestClass {
         externalView);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
-
-  private void enableCluster(String clusterName, boolean enable) {
-    HelixAdmin helixAdmin = new ZKHelixAdmin(_gZkClient);
-    helixAdmin.enableCluster(clusterName, enable);
-  }
-
 }

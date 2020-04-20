@@ -34,14 +34,12 @@ import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;

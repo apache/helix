@@ -40,7 +40,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
@@ -166,12 +165,12 @@ public class TestResourceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testExternalView")
   public void testPartitionHealth() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    // Stop all controllers because this test case creates external views; the external views will
-    // be deleted by the controllers if controllers are not stopped and cause test failures
-    stopClustersControllers();
 
     String clusterName = "TestCluster_1";
     String resourceName = clusterName + "_db_0";
+
+    // Disable the cluster to prevent external view from being removed
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, false);
 
     // Use mock numbers for testing
     Map<String, String> idealStateParams = new HashMap<>();
@@ -211,16 +210,14 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get("p1"), "PARTIAL_HEALTHY");
     Assert.assertEquals(healthStatus.get("p2"), "UNHEALTHY");
     System.out.println("End test :" + TestHelper.getTestMethodName());
-    // Restart the stopped controllers
-    startClustersControllers();
+
+    // Re-enable the cluster
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
   }
 
   @Test(dependsOnMethods = "testPartitionHealth")
   public void testResourceHealth() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    // Stop all controllers because this test case creates external views; the external views will
-    // be deleted by the controllers if controllers are not stopped and cause test failures
-    stopClustersControllers();
 
     String clusterName = "TestCluster_1";
     Map<String, String> idealStateParams = new HashMap<>();
@@ -229,6 +226,9 @@ public class TestResourceAccessor extends AbstractTestClass {
     idealStateParams.put("MaxPartitionsPerInstance", "3");
     idealStateParams.put("Replicas", "3");
     idealStateParams.put("NumPartitions", "3");
+
+    // Disable the cluster to prevent external view from being removed
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, false);
 
     // Create a healthy resource
     String resourceNameHealthy = clusterName + "_db_0";
@@ -299,8 +299,9 @@ public class TestResourceAccessor extends AbstractTestClass {
     Assert.assertEquals(healthStatus.get(resourceNamePartiallyHealthy), "PARTIAL_HEALTHY");
     Assert.assertEquals(healthStatus.get(resourceNameUnhealthy), "UNHEALTHY");
     System.out.println("End test :" + TestHelper.getTestMethodName());
-    // Restart the stopped controllers
-    startClustersControllers();
+
+    // Re-enable the cluster
+    _gSetupTool.getClusterManagementTool().enableCluster(clusterName, true);
   }
 
   /**
@@ -655,21 +656,5 @@ public class TestResourceAccessor extends AbstractTestClass {
     helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().externalView(resourceName),
         externalView);
     System.out.println("End test :" + TestHelper.getTestMethodName());
-  }
-
-  private void stopClustersControllers() {
-    for (ClusterControllerManager cm : _clusterControllerManagers) {
-      if (cm != null && cm.isConnected()) {
-        cm.syncStop();
-      }
-    }
-  }
-
-  private void startClustersControllers() {
-    for (ClusterControllerManager cm : _clusterControllerManagers) {
-      if (cm != null && cm.isConnected()) {
-        cm.syncStart();
-      }
-    }
   }
 }

@@ -21,15 +21,15 @@ package org.apache.helix.lock.helix;
 
 import java.util.Date;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.lock.DistributedLock;
 import org.apache.helix.lock.LockInfo;
 import org.apache.helix.lock.LockScope;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 
 
@@ -80,7 +80,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
   }
 
   @Override
-  public boolean acquireLock() {
+  public boolean tryLock() {
 
     // Set lock information fields
     long deadline;
@@ -96,7 +96,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
 
   //TODO: update release lock logic so it would not leave empty znodes after the lock is released
   @Override
-  public boolean releaseLock() {
+  public boolean unlock() {
     // Initialize the lock updater with a default lock info represents the state of a unlocked lock
     LockUpdater updater = new LockUpdater(LockInfo.defaultLockInfo);
     return _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);

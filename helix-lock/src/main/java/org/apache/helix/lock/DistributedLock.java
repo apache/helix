@@ -24,18 +24,18 @@ package org.apache.helix.lock;
  */
 public interface DistributedLock {
   /**
-   * Blocking call to acquire a lock
+   * Blocking call to acquire a lock if it is free at the time of request
    * @return true if the lock was successfully acquired,
    * false if the lock could not be acquired
    */
-  boolean acquireLock();
+  boolean tryLock();
 
   /**
    * Blocking call to release a lock
    * @return true if the lock was successfully released or if the locked is not currently locked,
    * false if the lock is not locked by the user or the release operation failed
    */
-  boolean releaseLock();
+  boolean unlock();
 
   /**
    * Retrieve the information of the current lock on the resource this lock object specifies, e.g. lock timeout, lock message, etc.

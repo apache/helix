@@ -19,7 +19,7 @@
 
 package org.apache.helix.lock;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 /**

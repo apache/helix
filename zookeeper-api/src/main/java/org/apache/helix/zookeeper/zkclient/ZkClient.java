@@ -27,7 +27,10 @@ import javax.management.JMException;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallMonitorContext;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryCallContext;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryThread;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
@@ -90,6 +93,7 @@ public class ZkClient implements Watcher {
 
   private boolean _shutdownTriggered;
   private ZkEventThread _eventThread;
+  private final ZkAsyncRetryThread _asyncCallRetryThread;
   // TODO PVo remove this later
   private Thread _zookeeperEventThread;
   private volatile boolean _closed;
@@ -182,6 +186,9 @@ public class ZkClient implements Watcher {
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
     _isNewSessionEventFired = false;
+
+    _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
+    _asyncCallRetryThread.start();
 
     connect(connectionTimeout, this);
 
@@ -1736,15 +1743,23 @@ public class ZkClient implements Watcher {
       data = (datat == null ? null : serialize(datat, path));
     } catch (ZkMarshallingError e) {
       cb.processResult(KeeperException.Code.MARSHALLINGERROR.intValue(), path,
-          new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false), null);
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
+    doAsyncCreate(path, data, mode, startT, cb);
+  }
+
+  private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
+      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb) {
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper()
-          .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE,
-              // Arrays.asList(DEFAULT_ACL),
-              mode, cb, new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
-                  data == null ? 0 : data.length, false));
+          .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
+              new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, false) {
+                @Override
+                protected void doRetry() {
+                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb);
+                }
+              });
       return null;
     });
   }
@@ -1758,50 +1773,66 @@ public class ZkClient implements Watcher {
       data = serialize(datat, path);
     } catch (ZkMarshallingError e) {
       cb.processResult(KeeperException.Code.MARSHALLINGERROR.intValue(), path,
-          new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false), null);
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
+    doAsyncSetData(path, data, version, startT, cb);
+  }
+
+  private void doAsyncSetData(final String path, byte[] data, final int version, final long startT,
+      final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
-          new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT,
-              data == null ? 0 : data.length, false));
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT,
+              data == null ? 0 : data.length, false) {
+            @Override
+            protected void doRetry() {
+              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb);
+            }
+          });
       return null;
     });
   }
 
   public void asyncGetData(final String path, final ZkAsyncCallbacks.GetDataCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
-    retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        ((ZkConnection) getConnection()).getZookeeper().getData(path, null, cb,
-            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
-        return null;
-      }
+    retryUntilConnected(() -> {
+      ((ZkConnection) getConnection()).getZookeeper().getData(path, null, cb,
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, true) {
+            @Override
+            protected void doRetry() {
+              asyncGetData(path, cb);
+            }
+          });
+      return null;
     });
   }
 
   public void asyncExists(final String path, final ZkAsyncCallbacks.ExistsCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
-    retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        ((ZkConnection) getConnection()).getZookeeper().exists(path, null, cb,
-            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, true));
-        return null;
-      }
+    retryUntilConnected(() -> {
+      ((ZkConnection) getConnection()).getZookeeper().exists(path, null, cb,
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, true) {
+            @Override
+            protected void doRetry() {
+              asyncExists(path, cb);
+            }
+          });
+      return null;
     });
   }
 
   public void asyncDelete(final String path, final ZkAsyncCallbacks.DeleteCallbackHandler cb) {
     final long startT = System.currentTimeMillis();
-    retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        ((ZkConnection) getConnection()).getZookeeper().delete(path, -1, cb,
-            new ZkAsyncCallbacks.ZkAsyncCallContext(_monitor, startT, 0, false));
-        return null;
-      }
+    retryUntilConnected(() -> {
+      ((ZkConnection) getConnection()).getZookeeper().delete(path, -1, cb,
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, false) {
+            @Override
+            protected void doRetry() {
+              asyncDelete(path, cb);
+            }
+          });
+      return null;
     });
   }
 
@@ -1955,6 +1986,10 @@ public class ZkClient implements Watcher {
         return;
       }
       setShutdownTrigger(true);
+      if (_asyncCallRetryThread != null) {
+        _asyncCallRetryThread.interrupt();
+        _asyncCallRetryThread.join(1000);
+      }
       _eventThread.interrupt();
       _eventThread.join(2000);
       if (isManagingZkConnection()) {

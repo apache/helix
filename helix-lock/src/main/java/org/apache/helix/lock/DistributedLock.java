@@ -31,9 +31,9 @@ public interface DistributedLock {
   boolean tryLock();
 
   /**
-   * Blocking call to release a lock
+   * Blocking call to unlock a lock
    * @return true if the lock was successfully released or if the locked is not currently locked,
-   * false if the lock is not locked by the user or the release operation failed
+   * false if the lock is not locked by the user or the unlock operation failed
    */
   boolean unlock();
 

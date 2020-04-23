@@ -30,6 +30,12 @@ public class ZkAsyncRetryThread extends Thread {
     } catch (InterruptedException e) {
       LOG.info("ZkClient AsyncCallback retry thread is interrupted.");
     }
+
+    // Notify to all the callers waiting for the result.
+    for (ZkAsyncRetryCallContext context : _retryContexts) {
+      context.cancel();
+    }
+
     LOG.info("Terminate ZkClient AsyncCallback retry thread.");
   }
 

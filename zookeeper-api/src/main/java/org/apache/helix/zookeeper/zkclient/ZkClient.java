@@ -1754,7 +1754,7 @@ public class ZkClient implements Watcher {
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper()
           .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
-              new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, false) {
+              new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
                 @Override
                 protected void doRetry() {
                   doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb);
@@ -1783,7 +1783,7 @@ public class ZkClient implements Watcher {
       final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT,
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
               data == null ? 0 : data.length, false) {
             @Override
             protected void doRetry() {
@@ -1798,7 +1798,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper().getData(path, null, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, true) {
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, true) {
             @Override
             protected void doRetry() {
               asyncGetData(path, cb);
@@ -1812,7 +1812,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper().exists(path, null, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, true) {
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, true) {
             @Override
             protected void doRetry() {
               asyncExists(path, cb);
@@ -1826,7 +1826,7 @@ public class ZkClient implements Watcher {
     final long startT = System.currentTimeMillis();
     retryUntilConnected(() -> {
       ((ZkConnection) getConnection()).getZookeeper().delete(path, -1, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, _monitor, startT, 0, false) {
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
             @Override
             protected void doRetry() {
               asyncDelete(path, cb);
@@ -1988,7 +1988,7 @@ public class ZkClient implements Watcher {
       setShutdownTrigger(true);
       if (_asyncCallRetryThread != null) {
         _asyncCallRetryThread.interrupt();
-        _asyncCallRetryThread.join(1000);
+        _asyncCallRetryThread.join(2000);
       }
       _eventThread.interrupt();
       _eventThread.join(2000);

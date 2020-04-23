@@ -123,7 +123,7 @@ public class ZkAsyncCallbacks {
   /**
    * Default callback for zookeeper async api.
    */
-  public static abstract class DefaultCallback {
+  public static abstract class DefaultCallback implements CancellableZkAsyncCallback {
     AtomicBoolean _lock = new AtomicBoolean(false);
     int _rc = UNKNOWN_RET_CODE;
 
@@ -166,10 +166,7 @@ public class ZkAsyncCallbacks {
       try {
         handle();
       } finally {
-        synchronized (_lock) {
-          _lock.set(true);
-          _lock.notifyAll();
-        }
+        notifyCallers();
       }
     }
 
@@ -197,6 +194,13 @@ public class ZkAsyncCallbacks {
      * Additional callback handling.
      */
     abstract public void handle();
+
+    public void notifyCallers() {
+      synchronized (_lock) {
+        _lock.set(true);
+        _lock.notifyAll();
+      }
+    }
 
     /**
      * @param rc the return code

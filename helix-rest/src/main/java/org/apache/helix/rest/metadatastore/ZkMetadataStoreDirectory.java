@@ -175,9 +175,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           "Failed to set routing data: Namespace " + namespace + " is not found!");
     }
     synchronized (this) {
-      boolean result = _routingDataWriterMap.get(namespace).setRoutingData(routingData);
+      if (!_routingDataWriterMap.get(namespace).setRoutingData(routingData)) {
+        return false;
+      }
       refreshRoutingData(namespace);
-      return result;
+      return true;
     }
   }
 
@@ -232,9 +234,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           "Failed to add metadata store realm: Namespace " + namespace + " is not found!");
     }
     synchronized (this) {
-      boolean result = _routingDataWriterMap.get(namespace).addMetadataStoreRealm(realm);
+      if (!_routingDataWriterMap.get(namespace).addMetadataStoreRealm(realm)) {
+        return false;
+      }
       refreshRoutingData(namespace);
-      return result;
+      return true;
     }
   }
 
@@ -247,9 +251,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           "Failed to delete metadata store realm: Namespace " + namespace + " is not found!");
     }
     synchronized (this) {
-      boolean result = _routingDataWriterMap.get(namespace).deleteMetadataStoreRealm(realm);
+      if (!_routingDataWriterMap.get(namespace).deleteMetadataStoreRealm(realm)) {
+        return false;
+      }
       refreshRoutingData(namespace);
-      return result;
+      return true;
     }
   }
 
@@ -272,9 +278,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
             "Failed to add sharding key: Adding sharding key " + shardingKey
                 + " makes routing data invalid!");
       }
-      boolean result = _routingDataWriterMap.get(namespace).addShardingKey(realm, shardingKey);
+      if (!_routingDataWriterMap.get(namespace).addShardingKey(realm, shardingKey)) {
+        return false;
+      }
       refreshRoutingData(namespace);
-      return result;
+      return true;
     }
   }
 
@@ -287,9 +295,11 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
           "Failed to delete sharding key: Namespace " + namespace + " is not found!");
     }
     synchronized (this) {
-      boolean result = _routingDataWriterMap.get(namespace).deleteShardingKey(realm, shardingKey);
+      if (!_routingDataWriterMap.get(namespace).deleteShardingKey(realm, shardingKey)) {
+        return false;
+      }
       refreshRoutingData(namespace);
-      return result;
+      return true;
     }
   }
 
@@ -304,16 +314,6 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
    */
   @Override
   public void refreshRoutingData(String namespace) {
-    // Safe to ignore the callback if any of the maps are null.
-    // If routingDataMap is null, then it will be populated by the constructor anyway
-    // If routingDataMap is not null, then it's safe for the callback function to update it
-    if (_routingZkAddressMap == null || _realmToShardingKeysMap == null
-        || _routingDataReaderMap == null || _routingDataWriterMap == null) {
-      LOG.warn(
-          "refreshRoutingData callback called before ZKMetadataStoreDirectory was fully initialized. Skipping refresh!");
-      return;
-    }
-
     // Check if namespace exists; otherwise, return as a NOP and log it
     if (!_routingZkAddressMap.containsKey(namespace)) {
       LOG.error(
@@ -321,25 +321,26 @@ public class ZkMetadataStoreDirectory implements MetadataStoreDirectory, Routing
       return;
     }
 
-    // Remove the raw data first in case of failure on creation
-    _realmToShardingKeysMap.remove(namespace);
-    // Remove routing data first in case of failure on creation
-    _routingDataMap.remove(namespace);
-
     Map<String, List<String>> rawRoutingData;
     try {
       rawRoutingData = _routingDataReaderMap.get(namespace).getRoutingData();
-      _realmToShardingKeysMap.put(namespace, rawRoutingData);
     } catch (InvalidRoutingDataException e) {
       LOG.error("Failed to refresh cached routing data for namespace {}", namespace, e);
+      _realmToShardingKeysMap.put(namespace, Collections.emptyMap());
+      _routingDataMap.remove(namespace);
       return;
     }
+    _realmToShardingKeysMap.put(namespace, rawRoutingData);
 
+    TrieRoutingData trieRoutingData;
     try {
-      _routingDataMap.put(namespace, new TrieRoutingData(rawRoutingData));
+      trieRoutingData = new TrieRoutingData(rawRoutingData);
     } catch (InvalidRoutingDataException e) {
       LOG.warn("TrieRoutingData is not created for namespace {}", namespace, e);
+      _routingDataMap.remove(namespace);
+      return;
     }
+    _routingDataMap.put(namespace, trieRoutingData);
   }
 
   @Override

@@ -174,9 +174,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     try {
       clusterSetup.deleteCluster(clusterId);
     } catch (HelixException ex) {
-      LOG
-          .info("Failed to delete cluster {}, cluster is still in use. Exception: {}.", clusterId,
-              ex);
+      LOG.info("Failed to delete cluster {}, cluster is still in use. Exception: {}.", clusterId,
+          ex);
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
       LOG.error("Failed to delete cluster {}. Exception: {}.", clusterId, ex);

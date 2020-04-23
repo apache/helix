@@ -170,7 +170,7 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     routingDataMap.put(TEST_REALM_2, TEST_SHARDING_KEYS_1);
 
     for (String namespace : _routingZkAddrMap.keySet()) {
-      _metadataStoreDirectory.setNamespaceRoutingData(namespace, routingDataMap);
+      Assert.assertTrue(_metadataStoreDirectory.setNamespaceRoutingData(namespace, routingDataMap));
       Assert
           .assertEquals(_metadataStoreDirectory.getNamespaceRoutingData(namespace), routingDataMap);
     }
@@ -181,7 +181,8 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     originalRoutingDataMap.put(TEST_REALM_2, TEST_SHARDING_KEYS_2);
 
     for (String namespace : _routingZkAddrMap.keySet()) {
-      _metadataStoreDirectory.setNamespaceRoutingData(namespace, originalRoutingDataMap);
+      Assert.assertTrue(
+          _metadataStoreDirectory.setNamespaceRoutingData(namespace, originalRoutingDataMap));
       Assert.assertEquals(_metadataStoreDirectory.getNamespaceRoutingData(namespace),
           originalRoutingDataMap);
     }
@@ -337,12 +338,14 @@ public class TestZkMetadataStoreDirectory extends AbstractTestClass {
     Assert.assertTrue(TestHelper.verify(() -> {
       for (String namespace : _routingZkAddrMap.keySet()) {
         try {
-          _metadataStoreDirectory.getMetadataStoreRealm(namespace, "anyKey");
+          _metadataStoreDirectory.getMetadataStoreRealm(namespace, TEST_SHARDING_KEYS_1.get(0));
+          // Metadata store realm is not yet refreshed. Retry.
           return false;
         } catch (IllegalStateException e) {
+          // If other IllegalStateException, it is unexpected and this test should fail.
           if (!e.getMessage().equals("Failed to get metadata store realm: Namespace " + namespace
               + " contains either empty or invalid routing data!")) {
-            return false;
+            throw e;
           }
         }
       }

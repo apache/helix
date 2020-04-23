@@ -22,7 +22,6 @@ package org.apache.helix.lock.helix;
 import java.util.List;
 
 import org.apache.helix.lock.LockScope;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.util.StringTemplate;
 
 

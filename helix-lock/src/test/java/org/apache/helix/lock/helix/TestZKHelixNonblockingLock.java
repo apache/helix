@@ -27,9 +27,9 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.lock.LockInfo;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -75,7 +75,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
   public void testAcquireLock() {
 
     // Acquire lock
-    _lock.acquireLock();
+    _lock.tryLock();
     Assert.assertTrue(_gZkClient.exists(_lockPath));
 
     // Get lock information
@@ -87,7 +87,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertTrue(_lock.isCurrentOwner());
 
     // Release lock
-    _lock.releaseLock();
+    _lock.unlock();
     Assert.assertFalse(_lock.isCurrentOwner());
   }
 
@@ -106,11 +106,11 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertFalse(_lock.isCurrentOwner());
 
     // Acquire lock
-    Assert.assertFalse(_lock.acquireLock());
+    Assert.assertFalse(_lock.tryLock());
     Assert.assertFalse(_lock.isCurrentOwner());
 
     // Release lock
-    Assert.assertFalse(_lock.releaseLock());
+    Assert.assertFalse(_lock.unlock());
   }
 
   @Test
@@ -125,11 +125,11 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     _gZkClient.create(_lockPath, fakeRecord, CreateMode.PERSISTENT);
 
     // Acquire lock
-    Assert.assertTrue(_lock.acquireLock());
+    Assert.assertTrue(_lock.tryLock());
     Assert.assertTrue(_lock.isCurrentOwner());
 
     // Release lock
-    Assert.assertTrue(_lock.releaseLock());
+    Assert.assertTrue(_lock.unlock());
     Assert.assertFalse(_lock.isCurrentOwner());
   }
 
@@ -156,7 +156,7 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     @Override
     public Boolean call() throws Exception {
-      return _lock.acquireLock();
+      return _lock.tryLock();
     }
   }
 }

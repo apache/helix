@@ -112,13 +112,13 @@ public final class ZKUtil {
     for (int i = 0; i < ret.length; i++) {
       if (!ret[i]) {
         isValid = false;
-        errorMsg.append("Invalid cluster setup, missing znode path: ").append(requiredPaths.get(i))
-            .append("\n");
+        errorMsg.append("Invalid cluster setup for cluster: ").append(clusterName)
+            .append(", missing znode path: ").append(requiredPaths.get(i)).append("\n");
       }
     }
 
     if (!isValid) {
-      logger.debug(errorMsg.toString());
+      logger.warn(errorMsg.toString());
     }
 
     return isValid;

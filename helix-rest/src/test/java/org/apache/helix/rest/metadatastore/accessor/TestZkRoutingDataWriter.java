@@ -30,7 +30,6 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.AbstractTestClass;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -43,7 +42,6 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   private static final String DUMMY_SHARDING_KEY = "/DUMMY/SHARDING/KEY";
 
   private MetadataStoreRoutingDataWriter _zkRoutingDataWriter;
-  private ZkClient _zkClient;
 
   // MockWriter is used for testing request forwarding features in non-leader situations
   class MockWriter extends ZkRoutingDataWriter {
@@ -63,7 +61,6 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _zkClient = ZK_SERVER_MAP.get(_zkAddrTestNS).getZkClient();
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_HOSTNAME_KEY,
         getBaseUri().getHost());
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_PORT_KEY,
@@ -83,23 +80,23 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   @Test
   public void testAddMetadataStoreRealm() {
     _zkRoutingDataWriter.addMetadataStoreRealm(DUMMY_REALM);
-    ZNRecord znRecord =
-        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
+    ZNRecord znRecord = _gZkClientTestNS
+        .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
     Assert.assertNotNull(znRecord);
   }
 
   @Test(dependsOnMethods = "testAddMetadataStoreRealm")
   public void testDeleteMetadataStoreRealm() {
     _zkRoutingDataWriter.deleteMetadataStoreRealm(DUMMY_REALM);
-    Assert.assertFalse(
-        _zkClient.exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM));
+    Assert.assertFalse(_gZkClientTestNS
+        .exists(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM));
   }
 
   @Test(dependsOnMethods = "testDeleteMetadataStoreRealm")
   public void testAddShardingKey() {
     _zkRoutingDataWriter.addShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
-    ZNRecord znRecord =
-        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
+    ZNRecord znRecord = _gZkClientTestNS
+        .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
     Assert.assertNotNull(znRecord);
     Assert.assertTrue(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
         .contains(DUMMY_SHARDING_KEY));
@@ -108,8 +105,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
   @Test(dependsOnMethods = "testAddShardingKey")
   public void testDeleteShardingKey() {
     _zkRoutingDataWriter.deleteShardingKey(DUMMY_REALM, DUMMY_SHARDING_KEY);
-    ZNRecord znRecord =
-        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
+    ZNRecord znRecord = _gZkClientTestNS
+        .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
     Assert.assertNotNull(znRecord);
     Assert.assertFalse(znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
         .contains(DUMMY_SHARDING_KEY));
@@ -120,8 +117,8 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
     Map<String, List<String>> testRoutingDataMap =
         ImmutableMap.of(DUMMY_REALM, Collections.singletonList(DUMMY_SHARDING_KEY));
     _zkRoutingDataWriter.setRoutingData(testRoutingDataMap);
-    ZNRecord znRecord =
-        _zkClient.readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
+    ZNRecord znRecord = _gZkClientTestNS
+        .readData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + DUMMY_REALM);
     Assert.assertNotNull(znRecord);
     Assert.assertEquals(
         znRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY).size(), 1);
@@ -212,12 +209,13 @@ public class TestZkRoutingDataWriter extends AbstractTestClass {
 
   private void clearRoutingDataPath() throws Exception {
     Assert.assertTrue(TestHelper.verify(() -> {
-      for (String zkRealm : _zkClient
+      for (String zkRealm : _gZkClientTestNS
           .getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
-        _zkClient.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
+        _gZkClientTestNS.delete(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm);
       }
 
-      return _zkClient.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH).isEmpty();
+      return _gZkClientTestNS.getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)
+          .isEmpty();
     }, TestHelper.WAIT_DURATION), "Routing data path should be deleted after the tests.");
   }
 }

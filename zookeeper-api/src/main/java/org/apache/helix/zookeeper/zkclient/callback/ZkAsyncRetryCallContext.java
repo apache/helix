@@ -1,8 +1,11 @@
 package org.apache.helix.zookeeper.zkclient.callback;
 
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ZkAsyncRetryCallContext extends ZkAsyncCallMonitorContext {
+  private static Logger LOG = LoggerFactory.getLogger(ZkAsyncRetryCallContext.class);
   private final ZkAsyncRetryThread _retryThread;
   private final CancellableZkAsyncCallback _cancellableCallback;
 
@@ -36,11 +39,12 @@ public abstract class ZkAsyncRetryCallContext extends ZkAsyncCallMonitorContext 
    * Notify the pending callback that retry has been cancelled.
    */
   void cancel() {
+    LOG.warn("The callback {} has been cancelled.", _cancellableCallback);
     _cancellableCallback.notifyCallers();
   }
 
   /**
    * The actual retry operation logic.
    */
-  protected abstract void doRetry();
+  protected abstract void doRetry() throws Exception;
 }

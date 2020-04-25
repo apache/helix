@@ -93,12 +93,15 @@ public class ZkClient implements Watcher {
 
   private boolean _shutdownTriggered;
   private ZkEventThread _eventThread;
-  private final ZkAsyncRetryThread _asyncCallRetryThread;
   // TODO PVo remove this later
   private Thread _zookeeperEventThread;
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+
+  // To automatically retry the async operation, we need a separate thread other than the
+  // ZkEventThread. Otherwise the retry request might block the normal event processing.
+  protected final ZkAsyncRetryThread _asyncCallRetryThread;
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;

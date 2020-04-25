@@ -124,7 +124,7 @@ public class ZkAsyncCallbacks {
    * Default callback for zookeeper async api.
    */
   public static abstract class DefaultCallback implements CancellableZkAsyncCallback {
-    AtomicBoolean _lock = new AtomicBoolean(false);
+    AtomicBoolean _isOperationDone = new AtomicBoolean(false);
     int _rc = UNKNOWN_RET_CODE;
 
     public void callback(int rc, String path, Object ctx) {
@@ -135,6 +135,8 @@ public class ZkAsyncCallbacks {
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
         ((ZkAsyncCallMonitorContext) ctx).recordAccess(path);
       }
+
+      _rc = rc;
 
       // If retry is requested by passing the retry callback context, do retry if necessary.
       if (needRetry(rc)) {
@@ -159,10 +161,7 @@ public class ZkAsyncCallbacks {
         }
       }
 
-      // If operation is done successfully or no retry needed, update the return code and notify
-      // the caller(s).
-      _rc = rc;
-
+      // If operation is done successfully or no retry needed, notify the caller(s).
       try {
         handle();
       } finally {
@@ -170,14 +169,18 @@ public class ZkAsyncCallbacks {
       }
     }
 
+    public boolean isOperationDone() {
+      return _isOperationDone.get();
+    }
+
     /**
      * The blocking call that return true once the operation has been completed without retrying.
      */
     public boolean waitForSuccess() {
       try {
-        synchronized (_lock) {
-          while (!_lock.get()) {
-            _lock.wait();
+        synchronized (_isOperationDone) {
+          while (!_isOperationDone.get()) {
+            _isOperationDone.wait();
           }
         }
       } catch (InterruptedException e) {
@@ -196,9 +199,9 @@ public class ZkAsyncCallbacks {
     abstract public void handle();
 
     public void notifyCallers() {
-      synchronized (_lock) {
-        _lock.set(true);
-        _lock.notifyAll();
+      synchronized (_isOperationDone) {
+        _isOperationDone.set(true);
+        _isOperationDone.notifyAll();
       }
     }
 
@@ -211,8 +214,6 @@ public class ZkAsyncCallbacks {
         switch (Code.get(rc)) {
         /** Connection to the server has been lost */
         case CONNECTIONLOSS:
-          /** Operation timeout */
-        case OPERATIONTIMEOUT:
           /** The session has been expired by the server */
         case SESSIONEXPIRED:
           /** Session moved to another server, so operation is ignored */

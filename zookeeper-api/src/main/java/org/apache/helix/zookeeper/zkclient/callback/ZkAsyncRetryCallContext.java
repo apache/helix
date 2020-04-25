@@ -39,7 +39,6 @@ public abstract class ZkAsyncRetryCallContext extends ZkAsyncCallMonitorContext 
    * Notify the pending callback that retry has been cancelled.
    */
   void cancel() {
-    LOG.warn("The callback {} has been cancelled.", _cancellableCallback);
     _cancellableCallback.notifyCallers();
   }
 

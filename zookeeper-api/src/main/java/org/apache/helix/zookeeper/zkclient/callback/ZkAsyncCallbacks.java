@@ -165,7 +165,7 @@ public class ZkAsyncCallbacks {
       try {
         handle();
       } finally {
-        notifyCallers();
+        markOperationDone();
       }
     }
 
@@ -193,12 +193,18 @@ public class ZkAsyncCallbacks {
       return _rc;
     }
 
+    @Override
+    public void notifyCallers() {
+      LOG.warn("The callback {} has been cancelled.", this);
+      markOperationDone();
+    }
+
     /**
      * Additional callback handling.
      */
     abstract public void handle();
 
-    public void notifyCallers() {
+    private void markOperationDone() {
       synchronized (_isOperationDone) {
         _isOperationDone.set(true);
         _isOperationDone.notifyAll();

@@ -94,7 +94,8 @@ public class CriteriaEvaluator {
     List<ZNRecordRow> allRows = ZNRecordRow.flatten(HelixProperty.convertToList(properties));
 
     // save the matches
-    Set<String> liveParticipants = accessor.getChildValuesMap(keyBuilder.liveInstances()).keySet();
+    Set<String> liveParticipants =
+        accessor.getChildValuesMap(keyBuilder.liveInstances(), true).keySet();
     List<ZNRecordRow> result = Lists.newArrayList();
     for (ZNRecordRow row : allRows) {
       // The participant instance name is stored in the return value of either getRecordId() or
@@ -181,7 +182,7 @@ public class CriteriaEvaluator {
       PropertyKey propertyKeys, PropertyKey propertyKey, String dataType) {
     List<HelixProperty> properties;
     if (Strings.isNullOrEmpty(dataSpec) || dataSpec.equals(MATCH_ALL_SYM)) {
-      properties = accessor.getChildValues(propertyKeys);
+      properties = accessor.getChildValues(propertyKeys, true);
     } else {
       HelixProperty data = accessor.getProperty(propertyKey);
       if (data == null) {

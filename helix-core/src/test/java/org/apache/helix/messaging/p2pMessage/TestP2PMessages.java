@@ -307,7 +307,7 @@ public class TestP2PMessages extends BaseStageTest {
    */
   private void handleMessage(String instance, String resource) {
     PropertyKey propertyKey = new PropertyKey.Builder(_clusterName).messages(instance);
-    List<Message> messages = accessor.getChildValues(propertyKey);
+    List<Message> messages = accessor.getChildValues(propertyKey, true);
     String session = _dataCache.getLiveInstances().get(instance).getEphemeralOwner();
 
     for (Message m : messages) {
@@ -392,7 +392,7 @@ public class TestP2PMessages extends BaseStageTest {
 
   private void cleanMessages(String instance) {
     PropertyKey propertyKey = new PropertyKey.Builder(_clusterName).messages(instance);
-    List<Message> messages = accessor.getChildValues(propertyKey);
+    List<Message> messages = accessor.getChildValues(propertyKey, true);
     for (Message m : messages) {
       accessor
           .removeProperty(new PropertyKey.Builder(_clusterName).message(instance, m.getMsgId()));
@@ -400,7 +400,7 @@ public class TestP2PMessages extends BaseStageTest {
   }
 
   List<Message> getMessages(String instance) {
-    return accessor.getChildValues(new PropertyKey.Builder(_clusterName).messages(instance));
+    return accessor.getChildValues(new PropertyKey.Builder(_clusterName).messages(instance), true);
   }
 
   private String getTopStateInstance(Map<String, String> instanceStateMap, String topState) {

@@ -108,7 +108,7 @@ public class ZkCopy {
       readPaths.add(concatenate(srcRootPath, path));
     }
     List<Stat> stats = new ArrayList<Stat>();
-    List<Object> readData = srcAccessor.get(readPaths, stats, 0);
+    List<Object> readData = srcAccessor.get(readPaths, stats, 0, true);
 
     List<String> writePaths = new ArrayList<String>();
     List<Object> writeData = new ArrayList<Object>();

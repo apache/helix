@@ -719,7 +719,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
 
-    List<Message> newMessages = accessor.getProperty(keys);
+    List<Message> newMessages = accessor.getProperty(keys, true);
     // Message may be removed before get read, clean up null messages.
     Iterator<Message> messageIterator = newMessages.iterator();
     while(messageIterator.hasNext()) {
@@ -836,7 +836,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           LOG.info(String.format("Controller received PARTICIPANT_SESSION_CHANGE msg from src: %s",
               message.getMsgSrc()));
           PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
-          List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
+          List<LiveInstance> liveInstances =
+              manager.getHelixDataAccessor().getChildValues(key, true);
           _controller.onLiveInstanceChange(liveInstances, changeContext);
           reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.COMPLETED);
           continue;

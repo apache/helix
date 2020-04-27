@@ -203,8 +203,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertTrue(TestHelper.verify(() -> {
       allMsgs.clear();
       for (LiveInstance liveInstance : liveInstances) {
-        allMsgs
-            .addAll(accessor.getChildValues(keyBuilder.messages(liveInstance.getInstanceName())));
+        allMsgs.addAll(accessor.getChildValues(keyBuilder.messages(liveInstance.getInstanceName()),
+            true));
       }
       if (allMsgs.size() != 1 || !allMsgs.get(0).getToState().equals("MASTER") || !allMsgs.get(0)
           .getFromState().equals("SLAVE")) {
@@ -311,7 +311,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     // message, make sure controller should not send O->DROPPED until O->S is done
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, resourceName);
-    List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates());
+    List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates(), true);
     cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);

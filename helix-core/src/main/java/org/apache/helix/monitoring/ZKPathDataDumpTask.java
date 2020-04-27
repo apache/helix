@@ -139,7 +139,7 @@ public class ZKPathDataDumpTask extends TimerTask {
 
     if (!dumpPaths.isEmpty()) {
       LOG.info("Dump statusUpdates and errors records for paths: " + dumpPaths);
-      List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0);
+      List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0, true);
       for (ZNRecord record : dumpRecords) {
         if (record != null) {
           LOG.info(new String(_jsonSerializer.serialize(record)));

@@ -96,10 +96,10 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     // Assure there is no customized view got updated when running the stage again
     List<CustomizedView> oldCustomizedViews =
-        accessor.getChildValues(accessor.keyBuilder().customizedViews());
+        accessor.getChildValues(accessor.keyBuilder().customizedViews(), true);
     runStage(event, customizedViewComputeStage);
     List<CustomizedView> newCustomizedViews =
-        accessor.getChildValues(accessor.keyBuilder().customizedViews());
+        accessor.getChildValues(accessor.keyBuilder().customizedViews(), true);
     Assert.assertEquals(oldCustomizedViews, newCustomizedViews);
     for (int i = 0; i < oldCustomizedViews.size(); i++) {
       Assert.assertEquals(oldCustomizedViews.get(i).getStat().getVersion(),

@@ -172,8 +172,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
         messages =
             generateMessagesForParticipant(recipientCriteria, message, targetDataAccessor);
       }
-      messagesToSendMap.put(instanceType, messages);
-      return messagesToSendMap;
+    messagesToSendMap.put(instanceType, messages);
+    return messagesToSendMap;
   }
 
   private List<Message> generateMessagesForParticipant(Criteria recipientCriteria, Message message,
@@ -186,7 +186,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
       Map<String, String> sessionIdMap = new HashMap<String, String>();
       if (recipientCriteria.isSessionSpecific()) {
         Builder keyBuilder = targetDataAccessor.keyBuilder();
-        List<LiveInstance> liveInstances = targetDataAccessor.getChildValues(keyBuilder.liveInstances());
+        List<LiveInstance> liveInstances =
+            targetDataAccessor.getChildValues(keyBuilder.liveInstances(), true);
 
         for (LiveInstance liveInstance : liveInstances) {
           sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());

@@ -53,7 +53,6 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
@@ -349,16 +348,18 @@ public class ParticipantManager {
         continue;
       }
 
+      // Ignore if any current states in the previous folder cannot be read.
       List<CurrentState> lastCurStates =
-          _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session));
+          _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session), false);
 
       for (CurrentState lastCurState : lastCurStates) {
         LOG.info("Carrying over old session: " + session + ", resource: " + lastCurState.getId()
             + " to current session: " + _sessionId);
         String stateModelDefRef = lastCurState.getStateModelDefRef();
         if (stateModelDefRef == null) {
-          LOG.error("skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
-              + lastCurState);
+          LOG.error(
+              "skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
+                  + lastCurState);
           continue;
         }
         StateModelDefinition stateModel =

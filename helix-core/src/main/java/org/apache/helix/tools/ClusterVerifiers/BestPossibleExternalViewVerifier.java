@@ -246,12 +246,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
         Set<String> actualLiveNodes = _dataProvider.getLiveInstances().keySet();
         if (!_expectLiveInstances.equals(actualLiveNodes)) {
-          LOG.warn("Live instances are not as expected. Actual live nodes: " + actualLiveNodes.toString());
+          LOG.warn("Live instances are not as expected. Actual live nodes: " + actualLiveNodes
+              .toString());
           return false;
         }
       }
 
-      Map<String, ExternalView> extViews = _accessor.getChildValuesMap(keyBuilder.externalViews());
+      Map<String, ExternalView> extViews =
+          _accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null) {
         extViews = Collections.emptyMap();
       }

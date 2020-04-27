@@ -139,6 +139,7 @@ public interface BaseDataAccessor<T> {
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return List of record data stored at each ZNode
    */
+  @Deprecated
   List<T> get(List<String> paths, List<Stat> stats, int options);
 
   /**
@@ -166,6 +167,7 @@ public interface BaseDataAccessor<T> {
    * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return A list of children of the parent ZNode
    */
+  @Deprecated
   List<T> getChildren(String parentPath, List<Stat> stats, int options);
 
   /**

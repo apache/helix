@@ -42,8 +42,6 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Stage;
@@ -58,13 +56,15 @@ import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
@@ -212,7 +212,8 @@ public class ClusterStateVerifier {
           }
         }
 
-        Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+        Map<String, ExternalView> extViews =
+            accessor.getChildValuesMap(keyBuilder.externalViews(), true);
         if (extViews == null) {
           extViews = Collections.emptyMap();
         }
@@ -470,13 +471,15 @@ public class ClusterStateVerifier {
     private boolean verifyMasterNbInExtView(HelixDataAccessor accessor) {
       Builder keyBuilder = accessor.keyBuilder();
 
-      Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+      Map<String, IdealState> idealStates =
+          accessor.getChildValuesMap(keyBuilder.idealStates(), true);
       if (idealStates == null || idealStates.size() == 0) {
         LOG.info("No resource idealState");
         return true;
       }
 
-      Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+      Map<String, ExternalView> extViews =
+          accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null || extViews.size() < idealStates.size()) {
         LOG.info("No externalViews | externalView.size() < idealState.size()");
         return false;

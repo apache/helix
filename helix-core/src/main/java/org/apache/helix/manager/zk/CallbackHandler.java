@@ -41,6 +41,7 @@ import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.BatchMode;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
@@ -525,7 +526,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private <T extends HelixProperty> List<T> preFetch(PropertyKey key) {
     if (_preFetchEnabled) {
-      return _accessor.getChildValues(key);
+      return _accessor.getChildValues(key, true);
     } else {
       return Collections.emptyList();
     }
@@ -600,7 +601,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             case TARGET_EXTERNAL_VIEW: {
               // check if bucketized
               BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-              List<ZNRecord> records = baseAccessor.getChildren(path, null, 0);
+              List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 1, 0);
               for (ZNRecord record : records) {
                 HelixProperty property = new HelixProperty(record);
                 String childPath = path + "/" + record.getId();
@@ -637,7 +638,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               break;
             }
           }
-        } catch (ZkNoNodeException e) {
+        } catch (ZkNoNodeException | HelixMetaDataAccessException e) {
           logger.warn(
               "fail to subscribe child/data change. path: " + path + ", listener: " + _listener, e);
         }

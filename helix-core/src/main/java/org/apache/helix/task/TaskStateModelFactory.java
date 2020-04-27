@@ -27,11 +27,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Factory class for {@link TaskStateModel}.
@@ -44,11 +49,11 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private final ScheduledExecutorService _taskExecutor;
   private final ScheduledExecutorService _timerTaskExecutor;
   private ThreadPoolExecutorMonitor _monitor;
-  public final static int TASK_THREADPOOL_SIZE = 40;
+  public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
 
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
     this(manager, taskFactoryRegistry,
-        Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
+        Executors.newScheduledThreadPool(_getTaskThreadPoolSize(manager), new ThreadFactory() {
           private AtomicInteger threadId = new AtomicInteger(0);
 
           @Override
@@ -101,5 +106,41 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
 
   public boolean isTerminated() {
     return _taskExecutor.isTerminated();
+  }
+
+  /*
+   * Get target thread pool size from InstanceConfig first; if that fails, get it from
+   * ClusterConfig; if that fails, fall back to the default value.
+   */
+  private static int _getTaskThreadPoolSize(HelixManager manager) {
+    ConfigAccessor configAccessor = manager.getConfigAccessor();
+    // Check instance config first for thread pool size
+    try {
+      InstanceConfig instanceConfig =
+          configAccessor.getInstanceConfig(manager.getClusterName(), manager.getInstanceName());
+      int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
+      if (_verifyTargetThreadPoolSize(targetTaskThreadPoolSize)) {
+        return targetTaskThreadPoolSize;
+      }
+    } catch (HelixException e) {
+      // Pass if InstanceConfig doesn't exist.
+    }
+
+    // Fallback to cluster config since instance config doesn't provide the value
+    try {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(manager.getClusterName());
+      int targetTaskThreadPoolSize = clusterConfig.getTargetTaskThreadPoolSize();
+      if (_verifyTargetThreadPoolSize(targetTaskThreadPoolSize)) {
+        return targetTaskThreadPoolSize;
+      }
+    } catch (HelixException e) {
+      // Pass if ClusterConfig doesn't exist.
+    }
+
+    return DEFAULT_TASK_THREAD_POOL_SIZE;
+  }
+
+  private static boolean _verifyTargetThreadPoolSize(int targetTaskThreadPoolSize) {
+    return targetTaskThreadPoolSize > 0;
   }
 }

@@ -56,11 +56,13 @@ public class InstanceConfig extends HelixProperty {
     DOMAIN,
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK,
-    INSTANCE_CAPACITY_MAP
+    INSTANCE_CAPACITY_MAP,
+    TARGET_TASK_THREAD_POOL_SIZE
   }
 
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
+  public static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -504,6 +506,16 @@ public class InstanceConfig extends HelixProperty {
 
   public void setMaxConcurrentTask(int maxConcurrentTask) {
     _record.setIntField(InstanceConfigProperty.MAX_CONCURRENT_TASK.name(), maxConcurrentTask);
+  }
+
+  /**
+   * Get the target size of task thread pool
+   * @return the target size of task thread pool
+   */
+  public int getTargetTaskThreadPoolSize() {
+    return _record
+        .getIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
+            TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
   }
 
   /**

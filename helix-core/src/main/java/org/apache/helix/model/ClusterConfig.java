@@ -109,7 +109,10 @@ public class ClusterConfig extends HelixProperty {
     // https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer#rebalance-coordinator
     //
     // Default to be true.
-    GLOBAL_REBALANCE_ASYNC_MODE
+    GLOBAL_REBALANCE_ASYNC_MODE,
+
+    // The target size of task thread pools for each participant.
+    TARGET_TASK_THREAD_POOL_SIZE
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -137,6 +140,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
+  public static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -707,6 +711,17 @@ public class ClusterConfig extends HelixProperty {
       throw new IllegalArgumentException("The input instance capacity key list is empty.");
     }
     _record.setListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
+  }
+
+  /**
+   * Get the target size of task thread pools. This values applies to participants and is
+   * overwritten by participants' own values if they also have this setting in their InstanceConfigs
+   * @return the target size of task thread pool
+   */
+  public int getTargetTaskThreadPoolSize() {
+    return _record
+        .getIntField(ClusterConfig.ClusterConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
+            TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
   }
 
   /**

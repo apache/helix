@@ -725,6 +725,20 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
+   * Set the target size of task thread pools.
+   * @param targetTaskThreadPoolSize - the new target task thread pool size
+   * @throws IllegalArgumentException - when the provided new thread pool size is not greater than 0
+   */
+  public void setTargetTaskThreadPoolSize(int targetTaskThreadPoolSize)
+      throws IllegalArgumentException {
+    if (targetTaskThreadPoolSize <= 0) {
+      throw new IllegalArgumentException("targetTaskThreadPoolSize must be greater than 0!");
+    }
+    _record.setIntField(ClusterConfig.ClusterConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
+        targetTaskThreadPoolSize);
+  }
+
+  /**
    * @return The required Instance Capacity Keys. If not configured, return an empty list.
    */
   public List<String> getInstanceCapacityKeys() {

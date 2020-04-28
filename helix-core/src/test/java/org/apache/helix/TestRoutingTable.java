@@ -80,8 +80,6 @@ public class TestRoutingTable {
               }
               return Collections.emptyList();
             }
-
-            ;
           };
         }
         return _mockAccessor;

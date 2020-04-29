@@ -143,11 +143,10 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     boolean isMasterSwitchedToCorrectInstance = TestHelper.verify(() -> {
       ExternalView externalView = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
       Map <String, String> stateMap = externalView.getStateMap(DATABASE + "_0");
-      String state = stateMap.getOrDefault(PARTICIPANT_PREFIX + "_" + (_startPort + 1), null);
-      if (state == null) {
+      if (!stateMap.containsKey(PARTICIPANT_PREFIX + "_" + (_startPort + 1))) {
         return false;
       }
-      return (state.equals("MASTER"));
+      return stateMap.get(PARTICIPANT_PREFIX + "_" + (_startPort + 1)).equals("MASTER");
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isMasterSwitchedToCorrectInstance);
 

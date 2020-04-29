@@ -120,7 +120,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
   private Map<String, Map<String, String>> createPartitionConfig(List<String> taskStates,
       List<String> expectedTaskEndingStates) throws Exception {
     Map<String, Map<String, String>> targetPartitionConfigs = new HashMap<>();
-    // Make sure external view is has been created to the resource
+    // Make sure external view is has been created for the resource
     boolean isExternalViewCreated = TestHelper.verify(() -> {
       ExternalView externalView =
           _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);

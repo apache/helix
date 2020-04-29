@@ -45,7 +45,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestZNRecordSizeLimit.class);
 
   private static final String ASSERTION_MESSAGE =
-      "Should succeed because compressed data is smaller than 1M";
+      "Should succeed because compressed data is smaller than 1M. Caused by: ";
 
   @Test
   public void testZNRecordSizeLimitUseZNRecordSerializer() {
@@ -90,7 +90,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     try {
       _gZkClient.writeData(path2, largeRecord);
     } catch (ZkMarshallingError e) {
-      Assert.fail(ASSERTION_MESSAGE);
+      Assert.fail(ASSERTION_MESSAGE + e);
     }
     record = _gZkClient.readData(path2);
     Assert.assertNotNull(record);
@@ -100,7 +100,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     try {
       _gZkClient.writeData(path1, largeRecord);
     } catch (ZkMarshallingError e) {
-      Assert.fail(ASSERTION_MESSAGE);
+      Assert.fail(ASSERTION_MESSAGE + e);
     }
     ZNRecord recordNew = _gZkClient.readData(path1);
     try {
@@ -108,7 +108,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       byte[] arrNew = serializer.serialize(recordNew);
       Assert.assertFalse(Arrays.equals(arr, arrNew));
     } catch (ZkMarshallingError e) {
-      Assert.fail(ASSERTION_MESSAGE);
+      Assert.fail(ASSERTION_MESSAGE + e);
     }
 
     // test ZkDataAccessor
@@ -151,7 +151,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     try {
       Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
     } catch (ZkMarshallingError e) {
-      Assert.fail(ASSERTION_MESSAGE);
+      Assert.fail(ASSERTION_MESSAGE + e);
     }
 
     // oversized data should not update existing data on zk
@@ -171,7 +171,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       byte[] arrNew = serializer.serialize(recordNew);
       Assert.assertFalse(Arrays.equals(arr, arrNew));
     } catch (ZkMarshallingError e) {
-      Assert.fail(ASSERTION_MESSAGE);
+      Assert.fail(ASSERTION_MESSAGE + e);
     }
 
     System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at " + new Date(
@@ -214,7 +214,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       try {
         Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
       } catch (ZkMarshallingError e) {
-        Assert.fail(ASSERTION_MESSAGE);
+        Assert.fail(ASSERTION_MESSAGE + e);
       }
 
       // oversized data doesn't create any data on zk
@@ -229,7 +229,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       try {
         zkClient.writeData(path2, largeRecord);
       } catch (ZkMarshallingError e) {
-        Assert.fail(ASSERTION_MESSAGE);
+        Assert.fail(ASSERTION_MESSAGE + e);
       }
       record = zkClient.readData(path2);
       Assert.assertNotNull(record);
@@ -239,7 +239,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       try {
         zkClient.writeData(path1, largeRecord);
       } catch (ZkMarshallingError e) {
-        Assert.fail(ASSERTION_MESSAGE);
+        Assert.fail(ASSERTION_MESSAGE + e);
       }
       ZNRecord recordNew = zkClient.readData(path1);
       try {
@@ -247,7 +247,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         byte[] arrNew = serializer.serialize(recordNew);
         Assert.assertFalse(Arrays.equals(arr, arrNew));
       } catch (ZkMarshallingError e) {
-        Assert.fail(ASSERTION_MESSAGE);
+        Assert.fail(ASSERTION_MESSAGE + e);
       }
 
       // test ZkDataAccessor
@@ -306,8 +306,8 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         byte[] arr = serializer.serialize(record);
         byte[] arrNew = serializer.serialize(recordNew);
         Assert.assertFalse(Arrays.equals(arr, arrNew));
-      } catch (ZkMarshallingError ex) {
-        Assert.fail(ASSERTION_MESSAGE);
+      } catch (ZkMarshallingError e) {
+        Assert.fail(ASSERTION_MESSAGE + e);
       }
     } finally {
       zkClient.close();

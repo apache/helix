@@ -147,9 +147,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
         return false;
       }
       Map<String, String> stateMap = externalView.getStateMap(DATABASE + "_0");
-      if (!stateMap.containsKey(PARTICIPANT_PREFIX + "_" + (_startPort + 1))) {
-        return false;
-      }
       return "MASTER".equals(stateMap.get(PARTICIPANT_PREFIX + "_" + (_startPort + 1)));
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isMasterSwitchedToCorrectInstance);

@@ -269,6 +269,9 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
       HashSet<String> masterInstances = new HashSet<>();
       ExternalView externalView =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
+      if (externalView == null) {
+        return false;
+      }
       Map<String, String> stateMap0 = externalView.getStateMap(DATABASE + "_0");
       Map<String, String> stateMap1 = externalView.getStateMap(DATABASE + "_1");
       for (Map.Entry<String, String> entry : stateMap0.entrySet()) {

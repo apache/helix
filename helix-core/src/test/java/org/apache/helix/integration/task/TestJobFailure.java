@@ -124,7 +124,7 @@ public final class TestJobFailure extends TaskSynchronizedTestBase {
     Assert.assertTrue(TestHelper.verify(() -> {
       ExternalView externalView =
           _manager.getClusterManagmentTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);
-      return (externalView != null);
+      return externalView != null;
     }, TestHelper.WAIT_DURATION));
 
     ExternalView externalView =

@@ -264,16 +264,21 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
             .setResources(Sets.newHashSet(DATABASE)).build();
     Assert.assertTrue(clusterVerifier.verify(10 * 1000));
 
-    // Wait until master is switched to new instance and two masters existed on two different instance
+    // Wait until master is switched to new instance and two masters exist on two different instances
     boolean isMasterOnTwoDifferentNodes = TestHelper.verify(() -> {
-      HashSet<String> masterInstances = new HashSet<>();
+      Set<String> masterInstances = new HashSet<>();
       ExternalView externalView =
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
       if (externalView == null) {
         return false;
       }
+
       Map<String, String> stateMap0 = externalView.getStateMap(DATABASE + "_0");
       Map<String, String> stateMap1 = externalView.getStateMap(DATABASE + "_1");
+      if (stateMap0 == null || stateMap1 == null) {
+        return false;
+      }
+
       for (Map.Entry<String, String> entry : stateMap0.entrySet()) {
         if (entry.getValue().equals("MASTER")) {
           masterInstances.add(entry.getKey());
@@ -284,7 +289,7 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
           masterInstances.add(entry.getKey());
         }
       }
-      return (masterInstances.size() == 2);
+      return masterInstances.size() == 2;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isMasterOnTwoDifferentNodes);
 

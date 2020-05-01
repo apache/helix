@@ -36,6 +36,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
@@ -137,6 +138,21 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("JOB0", jobBuilder0);
+
+    // Make sure master has been correctly switched to Participant1
+    boolean isMasterSwitchedToCorrectInstance = TestHelper.verify(() -> {
+      ExternalView externalView =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
+      if (externalView == null) {
+        return false;
+      }
+      Map<String, String> stateMap = externalView.getStateMap(DATABASE + "_0");
+      if (stateMap == null) {
+        return false;
+      }
+      return "MASTER".equals(stateMap.get(PARTICIPANT_PREFIX + "_" + (_startPort + 1)));
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isMasterSwitchedToCorrectInstance);
 
     _driver.start(jobQueue.build());
 

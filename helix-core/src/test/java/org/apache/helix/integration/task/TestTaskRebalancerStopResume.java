@@ -503,7 +503,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     builder.addJob(job2Name, job2);
 
     _driver.start(builder.build());
-    Thread.sleep(1000);
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, job1Name), TaskState.IN_PROGRESS);
     _driver.stop(workflowName);
     _driver.pollForWorkflowState(workflowName, TaskState.STOPPING);
 

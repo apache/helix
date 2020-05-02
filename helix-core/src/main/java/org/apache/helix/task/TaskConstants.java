@@ -49,4 +49,10 @@ public class TaskConstants {
   public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   public static final boolean DEFAULT_TASK_ENABLE_COMPRESSION = false;
+
+  /**
+   * The default task thread pool size that will be used if thread pool sizes are not defined in
+   * InstanceConfig or ClusterConfig
+   */
+  public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
 }

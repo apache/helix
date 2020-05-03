@@ -55,7 +55,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
             "incompatible participant. pipeline will not continue. " + "controller: "
                 + manager.getInstanceName() + ", controllerVersion: " + properties.getVersion()
                 + ", minimumSupportedParticipantVersion: "
-                + properties.getProperty("miminum_supported_version.participant")
+                + properties.getProperty("minimum_supported_version.participant")
                 + ", participant: " + liveInstance.getInstanceName() + ", participantVersion: "
                 + participantVersion;
         LogUtil.logError(LOG, event.getEventId(), errorMsg);

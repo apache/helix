@@ -116,6 +116,8 @@ public class HelixManagerProperties {
 
         if (versionNum1 < versionNum2) {
           return false;
+        } else if (versionNum1 > versionNum2) {
+          break;
         }
       } catch (Exception e) {
         // ignore non-numerical strings and strings after non-numerical strings

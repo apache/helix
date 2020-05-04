@@ -82,7 +82,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
 
   @Test
   public void testCompatible() {
-    prepare("0.4.0", "0.4.0");
+    prepare("1.0.0", "1.0.0", "0.4");
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);

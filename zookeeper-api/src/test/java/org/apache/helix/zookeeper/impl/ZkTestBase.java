@@ -58,7 +58,7 @@ public class ZkTestBase {
    * Multiple ZK references
    */
   // The following maps hold ZK connect string as keys
-  protected static final Map<String, ZkServer> _zkServerMap = new HashMap<>();
+  protected final Map<String, ZkServer> _zkServerMap = new HashMap<>();
   protected static int _numZk = 1; // Initial value
 
   @BeforeSuite

@@ -59,7 +59,7 @@ public class TestTaskRebalancer extends TaskTestBase {
   @Test
   public void testExpiry() throws Exception {
     String jobName = "Expiry";
-    long expiry = 1000;
+    long expiry = 1000L;
     Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
@@ -83,12 +83,16 @@ public class TestTaskRebalancer extends TaskTestBase {
 
     // Wait for job to finish and expire
     _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
-    Thread.sleep(expiry + 100);
+    long finishTime = _driver.getWorkflowContext(jobName).getFinishTime();
 
     // Ensure workflow config and context were cleaned up by now
-    Assert.assertFalse(
-        _manager.getHelixPropertyStore().exists(workflowPropStoreKey, AccessOption.PERSISTENT));
-    Assert.assertNull(accessor.getProperty(workflowCfgKey));
+    Assert.assertTrue(TestHelper.verify(
+        () -> (!_manager.getHelixPropertyStore().exists(workflowPropStoreKey,
+            AccessOption.PERSISTENT) && accessor.getProperty(workflowCfgKey) == null),
+        TestHelper.WAIT_DURATION));
+
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - finishTime >= expiry);
   }
 
   private void basic(long jobCompletionTime) throws Exception {

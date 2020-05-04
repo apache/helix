@@ -70,6 +70,30 @@ public class TestClusterConfig {
   }
 
   @Test
+  public void testGetDefaultTargetTaskThreadPoolSize() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.getRecord().setIntField(
+        ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE.name(), 100);
+
+    Assert.assertEquals(testConfig.getDefaultTargetTaskThreadPoolSize(), 100);
+  }
+
+  @Test
+  public void testSetDefaultTargetTaskThreadPoolSize() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setDefaultTargetTaskThreadPoolSize(100);
+
+    Assert.assertEquals(testConfig.getRecord().getIntField(
+        ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testSetDefaultTargetTaskThreadPoolSizeIllegalArgument() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setDefaultTargetTaskThreadPoolSize(0);
+  }
+
+  @Test
   public void testGetRebalancePreference() {
     Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
     preference.put(EVENNESS, 5);

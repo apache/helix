@@ -25,7 +25,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             anyParticipantManager.getInstanceName(), instanceConfig);
 
     ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
-    clusterConfig.setTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE + 1);
+    clusterConfig.setDefaultTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE + 1);
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 
@@ -46,7 +46,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             anyParticipantManager.getInstanceName(), instanceConfig);
 
     ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
-    clusterConfig.setTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    clusterConfig.setDefaultTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 

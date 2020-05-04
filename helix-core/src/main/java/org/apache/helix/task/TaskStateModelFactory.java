@@ -120,7 +120,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // Fallback to cluster config since instance config doesn't provide the value
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(_manager.getClusterName());
     if (clusterConfig != null) {
-      int targetTaskThreadPoolSize = clusterConfig.getTargetTaskThreadPoolSize();
+      int targetTaskThreadPoolSize = clusterConfig.getDefaultTargetTaskThreadPoolSize();
       if (verifyTargetThreadPoolSize(targetTaskThreadPoolSize)) {
         return targetTaskThreadPoolSize;
       }

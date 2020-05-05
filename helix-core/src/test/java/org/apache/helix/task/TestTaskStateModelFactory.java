@@ -2,10 +2,12 @@ package org.apache.helix.task;
 
 import java.util.Collections;
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -31,7 +33,12 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    Assert.assertEquals(taskStateModelFactory.getTaskThreadPoolSize(),
+    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
+
+    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
+    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
+        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
+    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
         TEST_TARGET_TASK_THREAD_POOL_SIZE);
   }
 
@@ -52,7 +59,12 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    Assert.assertEquals(taskStateModelFactory.getTaskThreadPoolSize(),
+    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
+
+    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
+    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
+        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
+    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
         TEST_TARGET_TASK_THREAD_POOL_SIZE);
   }
 
@@ -72,7 +84,12 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    Assert.assertEquals(taskStateModelFactory.getTaskThreadPoolSize(),
+    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
+
+    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
+    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
+        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
+    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
         TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
   }
 }

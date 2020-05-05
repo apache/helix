@@ -28,9 +28,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.slf4j.Logger;
@@ -53,6 +55,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     this(manager, taskFactoryRegistry, null);
   }
 
+  // This constructor is only for internal usage. Do not use!
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
     _manager = manager;
@@ -77,7 +80,10 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   @Override
   public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
     if (_taskExecutor == null) {
-      initializeTaskExecutorAndTaskMonitor();
+      int taskThreadPoolSize = getTaskThreadPoolSize();
+      updateLiveInstanceWithThreadPoolSize(taskThreadPoolSize);
+      initializeTaskExecutor(taskThreadPoolSize);
+      initializeTaskMonitor();
     }
     return new TaskStateModel(_manager, _taskFactoryRegistry, _taskExecutor, _timerTaskExecutor);
   }
@@ -105,7 +111,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
    * Get target thread pool size from InstanceConfig first; if that fails, get it from
    * ClusterConfig; if that fails, fall back to the default value.
    */
-  protected int getTaskThreadPoolSize() {
+  private int getTaskThreadPoolSize() {
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
     // Check instance config first for thread pool size
     InstanceConfig instanceConfig =
@@ -129,12 +135,27 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     return TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE;
   }
 
+  /*
+   * Checks against the default values of -1 when pool sizes are not defined; we don't want -1's
+   */
   private static boolean verifyTargetThreadPoolSize(int targetTaskThreadPoolSize) {
     return targetTaskThreadPoolSize > 0;
   }
 
-  private void initializeTaskExecutorAndTaskMonitor() {
-    _taskExecutor = Executors.newScheduledThreadPool(getTaskThreadPoolSize(), new ThreadFactory() {
+  /*
+   * Update LiveInstance with the current used thread pool size
+   */
+  private void updateLiveInstanceWithThreadPoolSize(int taskThreadPoolSize) {
+    HelixDataAccessor zkHelixDataAccessor = _manager.getHelixDataAccessor();
+    LiveInstance liveInstance = zkHelixDataAccessor
+        .getProperty(zkHelixDataAccessor.keyBuilder().liveInstance(_manager.getInstanceName()));
+    liveInstance.setCurrentTaskThreadPoolSize(taskThreadPoolSize);
+    zkHelixDataAccessor
+        .setProperty(zkHelixDataAccessor.keyBuilder().liveInstance(_manager.getInstanceName()), liveInstance);
+  }
+
+  private void initializeTaskExecutor(int taskThreadPoolSize) {
+    _taskExecutor = Executors.newScheduledThreadPool(taskThreadPoolSize, new ThreadFactory() {
       private AtomicInteger threadId = new AtomicInteger(0);
 
       @Override
@@ -142,6 +163,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
         return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
       }
     });
+  }
+
+  private void initializeTaskMonitor() {
     if (_taskExecutor instanceof ThreadPoolExecutor) {
       try {
         _monitor = new ThreadPoolExecutorMonitor(TaskConstants.STATE_MODEL_NAME,

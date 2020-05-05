@@ -38,7 +38,8 @@ public class LiveInstance extends HelixProperty {
     HELIX_VERSION,
     LIVE_INSTANCE,
     ZKPROPERTYTRANSFERURL,
-    RESOURCE_CAPACITY
+    RESOURCE_CAPACITY,
+    CURRENT_TASK_THREAD_POOL_SIZE
   }
 
   /**
@@ -48,6 +49,7 @@ public class LiveInstance extends HelixProperty {
     TASK_EXEC_THREAD
   }
 
+  public static final int CURRENT_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final Logger _logger = LoggerFactory.getLogger(LiveInstance.class.getName());
 
   /**
@@ -188,6 +190,24 @@ public class LiveInstance extends HelixProperty {
    */
   public void setWebserviceUrl(String url) {
     _record.setSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString(), url);
+  }
+
+  /**
+   * Get the current task thread pool size of the instance
+   * @return the current task thread pool size
+   */
+  public int getCurrentTaskThreadPoolSize() {
+    return _record.getIntField(LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(),
+        CURRENT_TASK_THREAD_POOL_SIZE_NOT_SET);
+  }
+
+  /**
+   * Set the current task thread pool size of the instance
+   * @param currentTaskThreadPoolSize the current task thread pool size
+   */
+  public void setCurrentTaskThreadPoolSize(int currentTaskThreadPoolSize) {
+    _record.setIntField(LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(),
+        currentTaskThreadPoolSize);
   }
 
   @Override

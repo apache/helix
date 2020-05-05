@@ -36,13 +36,42 @@ Release Notes for Apache Helix 1.0.0
 
 * Key Note for Helix Release
 
-** Major Feature Support
+** ZooScalability
 
-*** ZooScalability
+   Project ZooScalability includes initiatives and newly-added components to achieve horizontal scalability of ZooKeeper. Some Helix applications have been experiencing performance loss due to increased traffic to ZooKeeper.
 
-*** Helix Cloud Support
+** Helix Cloud Support
 
-*** Weight Aware Global Even Distribute Rebalancer
+    Helix new features for customers in a cloud environment, e.g. Azure, AWS, or GCP, etc. This version implements the function of participant auto registration to a Helix cluster, using Azure cloud provider as an example. With this feature, after a Helix cluster is created, the participant can auto register itself to the cluster when the participant comes online. Users do not need to manually populate any information, even the fault domain information, which can be dynamically retrieved from the cloud provider by the participant. We provide interface and Azure implementation for participant auto registration. Users may implement the auto registration function for their own cloud provider, or even for on premise environment.
+
+    Detailed wiki page: {{https://github.com/apache/helix/wiki/Helix-Cloud-Support}}
+
+** Customized View Aggregation
+
+    A new feature for customers to define their own per partition state and provides aggregated view for the customized states. The customized state is updated by customers on demand and stored under each participant’s customized state path. Depending on a new cluster level config, called customized state config, Helix generic controller decides whether it will do aggregation across all participants on the state or not. If aggregation on a certain state is turned on, the output will be on a znode under the cluster, called customized view. The routing table provider will listen on customized view znode, and customers may get the snapshot of the routing table to retrieve customized view.
+
+    For details: {{https://github.com/apache/helix/wiki/Customized-View-Aggregation}}
+
+** Distributed Lock Support
+
+    An exclusive distributed lock based on ZooKeeper for Helix users to coordinate their work on the same resource. Currently we support:
+
+    * Synchronized lock: Acquires the lock if it is available immediately returns true, and lock path znode is updated with the new lock data (owner id, timeout stamp, etc.). If the user is already the lock owner, returns true. If the lock is not available then immediately return false.
+
+    * Synchronized unlock: Lock owner can unlock the lock and set the lock path znode data to default data (empty owner id, empty message, etc).
+
+    * Lock timeout: User provides an expiration time for the lock while acquiring it. The lock automatically becomes available after this timestamp. Any user can query the lock information and check when the lock will be expired.
+
+    * Lock message: Lock owner can provide a message for other users to know the purpose of current lock. Lock messages can be retrieved when users query the lock information.
+
+    * Lock owner recognition: Users can check if they are the current lock owner of a certain path.
+
+** Weight Aware Global Even Distribute Rebalancer
+
+    A new weight-aware globally-even distribute Rebalancer to better meet the applications’ requirement.
+
+    Please refer to {{https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer.}}
+
 
 []
 

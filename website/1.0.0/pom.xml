@@ -26,9 +26,9 @@ under the License.
     <version>0.9.2-SNAPSHOT</version>
   </parent>
 
-  <artifactId>0.9.1-docs</artifactId>
+  <artifactId>1.0.0-docs</artifactId>
   <packaging>bundle</packaging>
-  <name>Apache Helix :: Website :: 0.9.1</name>
+  <name>Apache Helix :: Website :: 1.0.0</name>
 
   <properties>
   </properties>

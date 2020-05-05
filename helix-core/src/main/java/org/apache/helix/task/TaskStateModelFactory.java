@@ -136,7 +136,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   /*
-   * Checks against the default values of -1 when pool sizes are not defined; we don't want -1's
+   * Only accepts positive numbers. This guards against the default values of -1 when pool sizes
+   * are not defined
    */
   private static boolean verifyTargetThreadPoolSize(int targetTaskThreadPoolSize) {
     return targetTaskThreadPoolSize > 0;

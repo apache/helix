@@ -90,6 +90,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     } else {
       System.setProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY, prevMsdsServerEndpoint);
     }
+    msds.stopServer();
   }
 
   @Test(dependsOnMethods = "testConfigAccessorCreationMultiZk")

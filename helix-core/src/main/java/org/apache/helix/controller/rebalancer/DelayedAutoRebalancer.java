@@ -357,7 +357,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
           .subList(0, subListSize <= instanceToAdd.size() ? subListSize : instanceToAdd.size()));
     }
 
-    // Make all intial state instance not in preference list to be dropped.
+    // Make all initial state instance not in preference list to be dropped.
     Map<String, String> currentMapWithPreferenceList = new HashMap<>(currentStateMap);
     currentMapWithPreferenceList.keySet().retainAll(preferenceList);
 

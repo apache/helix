@@ -49,12 +49,12 @@ public class TestAbstractRebalancer {
           .setCurrentState("test", partition, instance, currentStateMap.get(instance));
     }
     Map<String, String> bestPossibleMap = rebalancer
-        .computeBestPossibleStateForPartition(new HashSet<String>(liveInstances),
+        .computeBestPossibleStateForPartition(new HashSet<>(liveInstances),
             BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
-            preferenceList, currentStateOutput, new HashSet<String>(disabledInstancesForPartition),
+            preferenceList, currentStateOutput, new HashSet<>(disabledInstancesForPartition),
             new IdealState("test"), new ClusterConfig("TestCluster"), partition);
 
-    Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
+    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
   }
 
   @DataProvider(name = "TestComputeBestPossibleStateInput")

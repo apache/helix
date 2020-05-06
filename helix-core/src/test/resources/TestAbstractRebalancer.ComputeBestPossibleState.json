@@ -171,5 +171,32 @@
       "node_2": "SLAVE",
       "node_3": "SLAVE"
     }
+  },
+  {
+    "comment": "Rebalancer switched master to a new instance. Before the new instance ready, keep the master at the original node to avoid extra mastership handoff.",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3",
+      "node_4"
+    ],
+    "preferenceList": [
+      "node_4",
+      "node_2",
+      "node_1"
+    ],
+    "currentStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "DROPPED",
+      "node_4": "SLAVE"
+    }
   }
 ]

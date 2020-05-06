@@ -97,14 +97,6 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     return _taskExecutor.isTerminated();
   }
 
-  /*
-   * Only accepts positive numbers. This guards against the default values of -1 when pool sizes
-   * are not defined
-   */
-  private static boolean verifyTargetThreadPoolSize(int targetTaskThreadPoolSize) {
-    return targetTaskThreadPoolSize > 0;
-  }
-
   private ScheduledExecutorService createTaskExecutor(int taskThreadPoolSize) {
     return Executors.newScheduledThreadPool(taskThreadPoolSize, new ThreadFactory() {
       private AtomicInteger threadId = new AtomicInteger(0);
@@ -136,15 +128,17 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
   }
 
+  /*
+   * Create a config accessor to get the thread pool size
+   */
   protected ConfigAccessor createConfigAccessor() {
-    String clusterName = _manager.getClusterName();
-    String shardingKey = clusterName.charAt(0) == '/' ? clusterName : "/" + clusterName;
-    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkRealmShardingKey(shardingKey).build();
-
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+      String clusterName = _manager.getClusterName();
+      String shardingKey = clusterName.charAt(0) == '/' ? clusterName : "/" + clusterName;
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+              .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+              .setZkRealmShardingKey(shardingKey).build();
       return new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
     }
 

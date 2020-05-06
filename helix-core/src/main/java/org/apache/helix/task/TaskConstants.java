@@ -51,8 +51,9 @@ public class TaskConstants {
   public static final boolean DEFAULT_TASK_ENABLE_COMPRESSION = false;
 
   /**
-   * The default task thread pool size that will be used if thread pool sizes are not defined in
-   * InstanceConfig or ClusterConfig
+   * The default task thread pool size that will be used to create thread pools if target thread
+   * pool sizes are not defined in InstanceConfig or ClusterConfig; also used as the current thread
+   * pool size default value if the current thread pool size is not defined in LiveInstance
    */
   public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
 }

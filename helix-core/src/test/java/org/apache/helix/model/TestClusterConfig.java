@@ -70,27 +70,27 @@ public class TestClusterConfig {
   }
 
   @Test
-  public void testGetDefaultTargetTaskThreadPoolSize() {
+  public void testGetGlobalTargetTaskThreadPoolSize() {
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.getRecord().setIntField(
-        ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE.name(), 100);
+        ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(), 100);
 
-    Assert.assertEquals(testConfig.getDefaultTargetTaskThreadPoolSize(), 100);
+    Assert.assertEquals(testConfig.getGlobalTargetTaskThreadPoolSize(), 100);
   }
 
   @Test
-  public void testSetDefaultTargetTaskThreadPoolSize() {
+  public void testSetGlobalTargetTaskThreadPoolSize() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setDefaultTargetTaskThreadPoolSize(100);
+    testConfig.setGlobalTargetTaskThreadPoolSize(100);
 
     Assert.assertEquals(testConfig.getRecord().getIntField(
-        ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
+        ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
-  public void testSetDefaultTargetTaskThreadPoolSizeIllegalArgument() {
+  public void testSetGlobalTargetTaskThreadPoolSizeIllegalArgument() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setDefaultTargetTaskThreadPoolSize(0);
+    testConfig.setGlobalTargetTaskThreadPoolSize(0);
   }
 
   @Test

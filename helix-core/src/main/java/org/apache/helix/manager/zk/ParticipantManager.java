@@ -52,6 +52,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -254,6 +255,8 @@ public class ParticipantManager {
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_manager.getVersion());
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
+    liveInstance.setCurrentTaskThreadPoolSize(
+        TaskUtil.getTargetThreadPoolSize(_configAccessor, _clusterName, _instanceName));
 
     // LiveInstanceInfoProvider liveInstanceInfoProvider = _manager._liveInstanceInfoProvider;
     if (_liveInstanceInfoProvider != null) {

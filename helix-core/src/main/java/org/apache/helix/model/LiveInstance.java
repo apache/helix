@@ -22,6 +22,7 @@ package org.apache.helix.model;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,6 @@ public class LiveInstance extends HelixProperty {
     TASK_EXEC_THREAD
   }
 
-  public static final int CURRENT_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final Logger _logger = LoggerFactory.getLogger(LiveInstance.class.getName());
 
   /**
@@ -193,12 +193,13 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Get the current task thread pool size of the instance
+   * Get the current task thread pool size of the instance. For backward compatibility, return
+   * DEFAULT_TASK_THREAD_POOL_SIZE if it's not defined
    * @return the current task thread pool size
    */
   public int getCurrentTaskThreadPoolSize() {
     return _record.getIntField(LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(),
-        CURRENT_TASK_THREAD_POOL_SIZE_NOT_SET);
+        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
   }
 
   /**

@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import org.apache.helix.task.TaskConstants;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -33,7 +34,14 @@ public class TestLiveInstance {
     Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), 100);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSize")
+  public void testGetCurrentTaskThreadPoolSizeDefault() {
+    LiveInstance testLiveInstance = new LiveInstance("testId");
+
+    Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSizeDefault")
   public void testSetCurrentTaskThreadPoolSize() {
     LiveInstance testLiveInstance = new LiveInstance("testId");
     testLiveInstance.setCurrentTaskThreadPoolSize(100);

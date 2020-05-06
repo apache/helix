@@ -19,23 +19,29 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
 public class TestTaskStateModelFactory extends TaskTestBase {
-  private static final int TEST_TARGET_TASK_THREAD_POOL_SIZE = 50;
+  // This value has to be different from the default value to verify correctness
+  private static final int TEST_TARGET_TASK_THREAD_POOL_SIZE =
+      TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
 
   @Test
-  public void testGetTaskThreadPoolSizeWithInstanceConfig() {
+  public void testConfigAccessorCreationMultiZk() throws Exception {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     InstanceConfig instanceConfig =
@@ -45,70 +51,68 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         .setInstanceConfig(anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName(), instanceConfig);
 
-    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
-    clusterConfig.setDefaultTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE + 1);
-    anyParticipantManager.getConfigAccessor()
-        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+    // Start a msds server
+    final String msdsHostName = "localhost";
+    final int msdsPort = 11117;
+    final String msdsNamespace = "testTaskStateModelFactory";
+    Map<String, Collection<String>> routingData = new HashMap<>();
+    routingData
+        .put(ZK_ADDR, Collections.singletonList("/" + anyParticipantManager.getClusterName()));
+    MockMetadataStoreDirectoryServer msds =
+        new MockMetadataStoreDirectoryServer(msdsHostName, msdsPort, msdsNamespace, routingData);
+    msds.startServer();
+
+    // Save previously-set system configs
+    String prevMultiZkEnabled = System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+    String prevMsdsServerEndpoint =
+        System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
+    // Turn on multiZk mode in System config
+    System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
+    // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/testTaskStateModelFactory
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
+        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
 
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
+    ConfigAccessor configAccessor = taskStateModelFactory.createConfigAccessor();
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(configAccessor, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
 
-    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
-    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
-        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
-    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
-        TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    // Restore system properties
+    if (prevMultiZkEnabled == null) {
+      System.clearProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+    } else {
+      System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
+    }
+    if (prevMsdsServerEndpoint == null) {
+      System.clearProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY);
+    } else {
+      System.setProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY, prevMsdsServerEndpoint);
+    }
   }
 
-  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeWithInstanceConfig")
-  public void testGetTaskThreadPoolSizeInstanceConfigUndefined() {
+  @Test(dependsOnMethods = "testConfigAccessorCreationMultiZk")
+  public void testConfigAccessorCreationSingleZk() {
     MockParticipantManager anyParticipantManager = _participants[0];
 
-    InstanceConfig instanceConfig =
-        InstanceConfig.toInstanceConfig(anyParticipantManager.getInstanceName());
-    anyParticipantManager.getConfigAccessor()
-        .setInstanceConfig(anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName(), instanceConfig);
-
-    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
-    clusterConfig.setDefaultTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
-    anyParticipantManager.getConfigAccessor()
-        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+    // Save previously-set system configs
+    String prevMultiZkEnabled = System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+    // Turn on multiZk mode in System config
+    System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
 
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
+    ConfigAccessor configAccessor = taskStateModelFactory.createConfigAccessor();
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(configAccessor, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
 
-    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
-    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
-        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
-    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
-        TEST_TARGET_TASK_THREAD_POOL_SIZE);
-  }
-
-  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeInstanceConfigUndefined")
-  public void testGetTaskThreadPoolSizeClusterConfigUndefined() {
-    MockParticipantManager anyParticipantManager = _participants[0];
-
-    InstanceConfig instanceConfig =
-        InstanceConfig.toInstanceConfig(anyParticipantManager.getInstanceName());
-    anyParticipantManager.getConfigAccessor()
-        .setInstanceConfig(anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName(), instanceConfig);
-
-    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
-    anyParticipantManager.getConfigAccessor()
-        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
-
-    TaskStateModelFactory taskStateModelFactory =
-        new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    taskStateModelFactory.createNewStateModel("TestResource", "TestKey");
-
-    HelixDataAccessor zkHelixDataAccessor = anyParticipantManager.getHelixDataAccessor();
-    LiveInstance liveInstance = zkHelixDataAccessor.getProperty(
-        zkHelixDataAccessor.keyBuilder().liveInstance(anyParticipantManager.getInstanceName()));
-    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(),
-        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+    // Restore system properties
+    if (prevMultiZkEnabled == null) {
+      System.clearProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
+    } else {
+      System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
+    }
   }
 }

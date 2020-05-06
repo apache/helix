@@ -30,11 +30,14 @@ import java.util.Set;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.helix.AccessOption;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -1044,5 +1047,55 @@ public class TaskUtil {
     if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
       rebalanceScheduler.scheduleRebalance(manager, workflow, nextPurgeTime);
     }
+  }
+
+  /**
+   * Get target thread pool size from InstanceConfig first; if that fails, get it from
+   * ClusterConfig; if that fails, fall back to the default value.
+   * @param configAccessor - accessor used for the configs
+   * @param clusterName - the cluster name for InstanceConfig and ClusterConfig
+   * @param instanceName - the instance name for InstanceConfig
+   * @return target thread pool size
+   */
+  public static int getTargetThreadPoolSize(ConfigAccessor configAccessor, String clusterName,
+      String instanceName) {
+    // Check instance config first for thread pool size
+    try {
+      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
+      if (instanceConfig != null) {
+        int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
+        if (targetTaskThreadPoolSize > 0) {
+          return targetTaskThreadPoolSize;
+        }
+      } else {
+        LOG.warn(
+            "Got null as InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. ",
+            instanceName, clusterName);
+      }
+    } catch (HelixException e) {
+      LOG.warn(
+          "Encountered an exception while fetching InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. Exception: ",
+          instanceName, clusterName, e);
+    }
+
+    // Fallback to cluster config since instance config doesn't provide the value
+    try {
+      ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+      if (clusterConfig != null) {
+        int globalTargetTaskThreadPoolSize = clusterConfig.getGlobalTargetTaskThreadPoolSize();
+        if (globalTargetTaskThreadPoolSize > 0) {
+          return globalTargetTaskThreadPoolSize;
+        }
+      } else {
+        LOG.warn("Got null as ClusterConfig for cluster {}. Returning default value. ",
+            clusterName);
+      }
+    } catch (HelixException e) {
+      LOG.warn(
+          "Encountered an exception while fetching ClusterConfig in cluster {}. Returning default value. Exception: ",
+          clusterName, e);
+    }
+
+    return TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE;
   }
 }

@@ -62,7 +62,7 @@ public class InstanceConfig extends HelixProperty {
 
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
-  public static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 

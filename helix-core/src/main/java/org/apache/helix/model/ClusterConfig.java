@@ -111,9 +111,9 @@ public class ClusterConfig extends HelixProperty {
     // Default to be true.
     GLOBAL_REBALANCE_ASYNC_MODE,
 
-    // The target size of task thread pools for each participant. This is the "default" value
-    //that's used when participants don't specify their individual pool sizes.
-    DEFAULT_TARGET_TASK_THREAD_POOL_SIZE
+    // The target size of task thread pools for each participant. This is the global value
+    // that's used when participants don't specify their individual pool sizes.
+    GLOBAL_TARGET_TASK_THREAD_POOL_SIZE
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -141,7 +141,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
-  public static final int DEFAULT_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -715,29 +715,30 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Get the default target size of task thread pools. This values applies to participants and is
+   * Get the global target size of task thread pools. This values applies to participants and is
    * overwritten by participants' own values if they specified individual pool sizes in
    * InstanceConfigs
-   * @return the target size of task thread pool
+   * @return the global target size of task thread pool
    */
-  public int getDefaultTargetTaskThreadPoolSize() {
-    return _record.getIntField(
-        ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE.name(),
-        DEFAULT_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
+  public int getGlobalTargetTaskThreadPoolSize() {
+    return _record
+        .getIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),
+            GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
   }
 
   /**
-   * Set the default target size of task thread pools for this cluster.
-   * @param defaultTargetTaskThreadPoolSize - the new target task thread pool size
+   * Set the global target size of task thread pools for this cluster.
+   * @param globalTargetTaskThreadPoolSize - the new global target task thread pool size
    * @throws IllegalArgumentException - when the provided new thread pool size is not greater than 0
    */
-  public void setDefaultTargetTaskThreadPoolSize(int defaultTargetTaskThreadPoolSize)
+  public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize)
       throws IllegalArgumentException {
-    if (defaultTargetTaskThreadPoolSize <= 0) {
-      throw new IllegalArgumentException("targetTaskThreadPoolSize must be greater than 0!");
+    if (globalTargetTaskThreadPoolSize <= 0) {
+      throw new IllegalArgumentException("globalTargetTaskThreadPoolSize must be greater than 0!");
     }
-    _record.setIntField(ClusterConfig.ClusterConfigProperty.DEFAULT_TARGET_TASK_THREAD_POOL_SIZE
-        .name(), defaultTargetTaskThreadPoolSize);
+    _record
+        .setIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),
+            globalTargetTaskThreadPoolSize);
   }
 
   /**

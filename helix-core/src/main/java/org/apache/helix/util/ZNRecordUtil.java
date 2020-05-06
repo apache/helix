@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,5 +106,40 @@ public final class ZNRecordUtil {
       list.add(t);
     }
     return list;
+  }
+
+  /**
+   * Checks whether or not a serialized ZNRecord bytes should be compressed before being written to
+   * Zookeeper.
+   *
+   * @param record raw ZNRecord before being serialized
+   * @param serializedLength length of the serialized bytes array
+   * @return
+   */
+  public static boolean shouldCompress(ZNRecord record, int serializedLength) {
+    if (record.getBooleanField(ZNRecord.ENABLE_COMPRESSION_BOOLEAN_FIELD, false)) {
+      return true;
+    }
+
+    boolean autoCompressEnabled = Boolean.parseBoolean(System
+        .getProperty(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
+            ZNRecord.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_DEFAULT));
+
+    return autoCompressEnabled && serializedLength > getSerializerWriteSizeLimit();
+  }
+
+  /**
+   * Returns ZNRecord serializer write size limit in bytes. If size limit is configured to be less
+   * than or equal to 0, the default value will be used instead.
+   */
+  public static int getSerializerWriteSizeLimit() {
+    Integer writeSizeLimit =
+        Integer.getInteger(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+
+    if (writeSizeLimit == null || writeSizeLimit <= 0) {
+      return ZNRecord.SIZE_LIMIT;
+    }
+
+    return writeSizeLimit;
   }
 }

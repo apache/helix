@@ -169,7 +169,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   @Deprecated
   @Override
   public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options) {
-    return getChildren(parentPath, stats, options, 1, 0);
+    return getChildren(parentPath, stats, options, 0, 0);
   }
 
   @Override

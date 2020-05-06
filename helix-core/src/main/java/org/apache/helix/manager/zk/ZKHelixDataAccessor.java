@@ -313,7 +313,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
           property.getRecord().getMapFields().clear();
           property.getRecord().getListFields().clear();
 
-          List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options, 1, 0);
+          List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options, 0, 0);
           ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
 
           // merge with parent node value

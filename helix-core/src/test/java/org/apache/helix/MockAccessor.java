@@ -202,7 +202,7 @@ public class MockAccessor implements HelixDataAccessor {
   @Override
   public <T extends HelixProperty> List<T> getChildValues(PropertyKey key, boolean throwException) {
     String path = key.getPath(); // PropertyPathConfig.getPath(type,
-    List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0, 1, 0);
+    List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0, 0, 0);
     return (List<T>) HelixProperty.convertToTypedList(key.getTypeClass(), children);
   }
 

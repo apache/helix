@@ -601,7 +601,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             case TARGET_EXTERNAL_VIEW: {
               // check if bucketized
               BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-              List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 1, 0);
+              List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 0, 0);
               for (ZNRecord record : records) {
                 HelixProperty property = new HelixProperty(record);
                 String childPath = path + "/" + record.getId();

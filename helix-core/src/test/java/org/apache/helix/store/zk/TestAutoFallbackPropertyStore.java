@@ -628,7 +628,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       Assert.assertTrue(childs.contains(child));
     }
 
-    List<ZNRecord> records = store.getChildren("/", null, 0, 1, 0);
+    List<ZNRecord> records = store.getChildren("/", null, 0, 0, 0);
     Assert.assertNotNull(records);
     Assert.assertEquals(records.size(), 20);
     for (int i = 0; i < 20; i++) {

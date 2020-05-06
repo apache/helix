@@ -172,8 +172,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
         messages =
             generateMessagesForParticipant(recipientCriteria, message, targetDataAccessor);
       }
-    messagesToSendMap.put(instanceType, messages);
-    return messagesToSendMap;
+      messagesToSendMap.put(instanceType, messages);
+      return messagesToSendMap;
   }
 
   private List<Message> generateMessagesForParticipant(Criteria recipientCriteria, Message message,

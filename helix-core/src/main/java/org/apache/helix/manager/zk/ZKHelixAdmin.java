@@ -1761,7 +1761,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<String> instances = new ArrayList<>();
     String path = PropertyPathBuilder.instanceConfig(clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 1, 0);
+    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
     for (ZNRecord record : znRecords) {
       if (record != null) {
         InstanceConfig instanceConfig = new InstanceConfig(record);

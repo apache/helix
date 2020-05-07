@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.SystemPropertyKeys;
@@ -146,7 +147,7 @@ public class TestZNRecordSerializeWriteSizeLimit {
 
       Assert.assertEquals(bytes.length >= limit, exceptionExpected);
       Assert.assertFalse(exceptionExpected);
-    } catch (HelixException ex) {
+    } catch (ZkMarshallingError ex) {
       Assert.assertTrue(exceptionExpected, "Should not throw ZkClientException.");
       Assert.assertTrue(ex.getMessage().contains(" is greater than " + limit + " bytes"));
       // No need to verify following asserts as bytes data is not returned.

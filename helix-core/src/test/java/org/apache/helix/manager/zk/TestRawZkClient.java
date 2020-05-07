@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.zookeeper.ZkConnection;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
@@ -40,6 +43,7 @@ import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -342,6 +346,70 @@ public class TestRawZkClient extends ZkUnitTestBase {
       zkClient.close();
     } finally {
       zkServer.shutdown();
+    }
+  }
+
+  @Test
+  public void testAsyncWriteOperations() {
+    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    String originSizeLimit =
+        System.getProperty(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+    System.setProperty(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES, "2000");
+    try {
+      zkClient.setZkSerializer(new ZNRecordSerializer());
+
+      ZNRecord oversizeZNRecord = new ZNRecord("Oversize");
+      StringBuilder sb = new StringBuilder(1204);
+      Random ran = new Random();
+      for (int i = 0; i < 1024; i++) {
+        sb.append(ran.nextInt(26) + 'a');
+      }
+      String buf = sb.toString();
+      for (int i = 0; i < 1024; i++) {
+        oversizeZNRecord.setSimpleField(Integer.toString(i), buf);
+      }
+
+      // ensure /tmp exists for the test
+      if (!zkClient.exists("/tmp")) {
+        zkClient.create("/tmp", null, CreateMode.PERSISTENT);
+      }
+
+      ZkAsyncCallbacks.CreateCallbackHandler
+          createCallback = new ZkAsyncCallbacks.CreateCallbackHandler();
+      zkClient.asyncCreate("/tmp/async", null, CreateMode.PERSISTENT, createCallback);
+      createCallback.waitForSuccess();
+      Assert.assertEquals(createCallback.getRc(), 0);
+      Assert.assertTrue(zkClient.exists("/tmp/async"));
+
+      // try to create oversize node, should fail
+      zkClient.asyncCreate("/tmp/asyncOversize", oversizeZNRecord, CreateMode.PERSISTENT,
+          createCallback);
+      createCallback.waitForSuccess();
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertFalse(zkClient.exists("/tmp/asyncOversize"));
+
+      ZNRecord normalZNRecord = new ZNRecord("normal");
+      normalZNRecord.setSimpleField("key", buf);
+
+      ZkAsyncCallbacks.SetDataCallbackHandler
+          setDataCallbackHandler = new ZkAsyncCallbacks.SetDataCallbackHandler();
+      zkClient.asyncSetData("/tmp/async", normalZNRecord, -1, setDataCallbackHandler);
+      setDataCallbackHandler.waitForSuccess();
+      Assert.assertEquals(setDataCallbackHandler.getRc(), 0);
+
+      zkClient.asyncSetData("/tmp/async", oversizeZNRecord, -1, setDataCallbackHandler);
+      setDataCallbackHandler.waitForSuccess();
+      Assert.assertEquals(setDataCallbackHandler.getRc(), KeeperException.Code.MarshallingError);
+      Assert.assertEquals(zkClient.readData("/tmp/async"), normalZNRecord);
+    } finally {
+      if (originSizeLimit == null) {
+        System.clearProperty(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+      } else {
+        System.setProperty(SystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+            originSizeLimit);
+      }
+      zkClient.delete("/tmp/async");
+      zkClient.delete("/tmp/asyncOversize");
     }
   }
 }

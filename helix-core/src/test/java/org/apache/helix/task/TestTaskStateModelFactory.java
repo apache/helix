@@ -31,6 +31,7 @@ import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
+import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -52,9 +53,12 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             anyParticipantManager.getInstanceName(), instanceConfig);
 
     // Start a msds server
+    // TODO: TestMultiZkHelixJavaApis already defined MSDS_SERVER_ENDPOINT, which goes into
+    // HttpRoutingDataReader and is recorded as final. As a result this test case has to use the
+    // same endpoint. There's no workaround at this moment.
     final String msdsHostName = "localhost";
     final int msdsPort = 11117;
-    final String msdsNamespace = "testTaskStateModelFactory";
+    final String msdsNamespace = "multiZkTest";
     Map<String, Collection<String>> routingData = new HashMap<>();
     routingData
         .put(ZK_ADDR, Collections.singletonList("/" + anyParticipantManager.getClusterName()));
@@ -72,6 +76,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
         "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
 
+    HttpRoutingDataReader.reset();
     TaskStateModelFactory taskStateModelFactory =
         new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
     ConfigAccessor configAccessor = taskStateModelFactory.createConfigAccessor();

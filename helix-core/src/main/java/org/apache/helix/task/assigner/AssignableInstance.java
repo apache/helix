@@ -113,7 +113,7 @@ public class AssignableInstance {
     if (resourceCapacity == null) {
       resourceCapacity = new HashMap<>();
       resourceCapacity.put(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name(),
-          Integer.toString(TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE));
+          Integer.toString(_liveInstance.getCurrentTaskThreadPoolSize()));
       logger.debug("No resource capacity provided in LiveInstance {}, assuming default capacity: {}",
           _instanceConfig.getInstanceName(), resourceCapacity);
     }

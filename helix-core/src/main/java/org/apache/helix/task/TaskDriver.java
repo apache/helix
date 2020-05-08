@@ -41,7 +41,10 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
@@ -1136,5 +1139,88 @@ public class TaskDriver {
       throw new HelixException(
           "Cannot create more workflows or jobs because there are already too many items created in the path CONFIGS.");
     }
+  }
+
+  /**
+   * Get the target task thread pool size of an instance, which is used to construct a task thread
+   * pool. This value is specified by users.
+   * @param instanceName - name of the instance
+   * @return the target task thread pool size of the instance
+   */
+  public int getTargetTaskThreadPoolSize(String instanceName) {
+    InstanceConfig instanceConfig =
+        _accessor.getProperty(_accessor.keyBuilder().instanceConfig(instanceName));
+    if (instanceConfig == null) {
+      throw new IllegalArgumentException(
+          "Failed to find InstanceConfig with provided instance name " + instanceName);
+    }
+
+    return instanceConfig.getTargetTaskThreadPoolSize();
+  }
+
+  /**
+   * Set the target task thread pool size of an instance, which is used to construct a task thread
+   * pool. The value is applied on per-instance level towards InstanceConfig. The construction of
+   * thread pool requires JVM restart.
+   * @param instanceName - name of the instance
+   * @param targetTaskThreadPoolSize - the target task thread pool size of the instance
+   */
+  public void setTargetTaskThreadPoolSize(String instanceName, int targetTaskThreadPoolSize) {
+    InstanceConfig instanceConfig =
+        _accessor.getProperty(_accessor.keyBuilder().instanceConfig(instanceName));
+    if (instanceConfig == null) {
+      throw new IllegalArgumentException(
+          "Failed to find InstanceConfig with provided instance name " + instanceName + "!");
+    }
+
+    instanceConfig.setTargetTaskThreadPoolSize(targetTaskThreadPoolSize);
+  }
+
+  /**
+   * Get the global target task thread pool size of the cluster; the global value is used to
+   * construct task thread pools if the per-instance level target thread pool size is not defined in
+   * InstanceConfigs. This value is specified by users.
+   * @return the global target task thread pool size of the cluster
+   */
+  public int getGlobalTargetTaskThreadPoolSize() {
+    ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
+    if (clusterConfig == null) {
+      throw new IllegalStateException("Failed to find ClusterConfig!");
+    }
+
+    return clusterConfig.getGlobalTargetTaskThreadPoolSize();
+  }
+
+  /**
+   * Set the global target task thread pool size of the cluster; the global value is used to
+   * construct task thread pools if the per-instance level target thread pool size is not defined in
+   * InstanceConfigs. The construction of thread pools requires JVM restart.
+   * @param globalTargetTaskThreadPoolSize - the global target task thread pool size of the cluster
+   */
+  public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize) {
+    ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
+    if (clusterConfig == null) {
+      throw new IllegalStateException("Failed to find ClusterConfig!");
+    }
+
+    clusterConfig.setGlobalTargetTaskThreadPoolSize(globalTargetTaskThreadPoolSize);
+  }
+
+  /**
+   * Get the current target task thread pool size of an instance. This value reflects the current
+   * task thread pool size that's already created on the instance, and may be different from the
+   * target thread pool size.
+   * @param instanceName - name of the instance
+   * @return the current task thread pool size of the instance
+   */
+  public int getCurrentTaskThreadPoolSize(String instanceName) {
+    LiveInstance liveInstance =
+        _accessor.getProperty(_accessor.keyBuilder().liveInstance(instanceName));
+    if (liveInstance == null) {
+      throw new IllegalArgumentException(
+          "Failed to find LiveInstance with provided instance name " + instanceName + "!");
+    }
+
+    return liveInstance.getCurrentTaskThreadPoolSize();
   }
 }

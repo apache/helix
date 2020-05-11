@@ -146,8 +146,13 @@ public class RuntimeJobDag extends JobDag {
     }
     // Add finished job's successors to ready-list
     if (_isJobQueue) {
-      if (_lastJob != null && _parentsToChildren.containsKey(_lastJob)) {
-        _readyJobList.offer(_parentsToChildren.get(_lastJob).iterator().next());
+      while (_lastJob != null && _parentsToChildren.containsKey(_lastJob)) {
+        String nextJob = _parentsToChildren.get(_lastJob).iterator().next();
+        if (!_readyJobList.contains(nextJob)) {
+          _readyJobList.offer(nextJob);
+          break;
+        }
+        _lastJob = nextJob;
       }
     } else if (_successorMap.containsKey(job)) {
         for (String successor : _successorMap.get(job)) {

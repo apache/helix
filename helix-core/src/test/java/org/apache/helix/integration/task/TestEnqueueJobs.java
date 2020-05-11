@@ -1,12 +1,18 @@
 package org.apache.helix.integration.task;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.helix.TestHelper;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -95,5 +101,61 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.start(builder.build());
 
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+  }
+
+  @Test
+  public void testQueueParallelJobs() throws InterruptedException {
+    String queueName = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
+        .setWorkflowId(queueName).setParallelJobs(3).setAllowOverlapJobAssignment(true);
+    _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
+            .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "10000"));
+
+    // Add 4 jobs to the queue
+    for (int i = 0; i <= 3; i++) {
+      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+    }
+
+    // Wait until all of the enqueued jobs (Job0 to Job3) are finished
+    for (int i = 0; i <= 3; i++) {
+      _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
+          TaskState.COMPLETED);
+    }
+
+    // Stop the Controller
+    _controller.syncStop();
+
+    // Add 3 more jobs to the queue which should run in parallel after the Controller is started
+    for (int i = 4; i <= 6; i++) {
+      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+    }
+
+    // Start the Controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
+    // Wait until all of the newly added jobs (Job4 to Job6) are finished
+    for (int i = 4; i <= 6; i++) {
+      _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
+          TaskState.COMPLETED);
+    }
+
+    // Make sure the jobs have been running in parallel by checking the jobs start time and finish
+    // time
+    Set<Long> startTimes = new HashSet<>();
+    Set<Long> endTime = new HashSet<>();
+
+    for (int i = 4; i <= 6; i++) {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(queueName, "JOB" + i));
+      startTimes.add(jobContext.getStartTime());
+      endTime.add(jobContext.getFinishTime());
+    }
+    Assert.assertTrue(Collections.min(endTime) > Collections.max(startTimes));
   }
 }

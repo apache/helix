@@ -32,6 +32,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,7 +143,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   protected ConfigAccessor createConfigAccessor() {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
       String clusterName = _manager.getClusterName();
-      String shardingKey = clusterName.charAt(0) == '/' ? clusterName : "/" + clusterName;
+      String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
           new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
               .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)

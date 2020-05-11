@@ -1331,7 +1331,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * ZkConnections.
    */
   private RealmAwareZkClient createSingleRealmZkClient() {
-    final String shardingKey = buildShardingKey();
+    final String shardingKey = HelixUtil.clusterNameToShardingKey(_clusterName);
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
 
@@ -1389,9 +1389,5 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
             .setSessionTimeout(connectionConfig.getSessionTimeout());
 
     return zkClientFactory.buildZkClient(helixZkConnectionConfig, helixZkClientConfig);
-  }
-
-  private String buildShardingKey() {
-    return _clusterName.charAt(0) == '/' ? _clusterName : "/" + _clusterName;
   }
 }

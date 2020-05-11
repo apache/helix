@@ -1064,6 +1064,9 @@ public class TaskUtil {
       InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
       if (instanceConfig != null) {
         int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
+        // Reject negative values. The pool size is only negative when it's not set in
+        // InstanceConfig, or when the users bypassed the setter logic in InstanceConfig. We treat
+        // negative values as the value is not set, and continue with ClusterConfig.
         if (targetTaskThreadPoolSize >= 0) {
           return targetTaskThreadPoolSize;
         }
@@ -1083,6 +1086,9 @@ public class TaskUtil {
       ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
       if (clusterConfig != null) {
         int globalTargetTaskThreadPoolSize = clusterConfig.getGlobalTargetTaskThreadPoolSize();
+        // Reject negative values. The pool size is only negative when it's not set in
+        // ClusterConfig, or when the users bypassed the setter logic in ClusterConfig. We treat
+        // negative values as the value is not set, and continue with the default value.
         if (globalTargetTaskThreadPoolSize >= 0) {
           return globalTargetTaskThreadPoolSize;
         }

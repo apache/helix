@@ -18,7 +18,7 @@ under the License.
 -->
 
 <head>
-  <title>Helix 0.9.5 Documentation</title>
+  <title>Helix 0.9.7 Documentation</title>
 </head>
 
 ### Get Helix
@@ -27,7 +27,7 @@ under the License.
 
 [Building](./Building.html)
 
-[Release Notes](./releasenotes/release-0.9.5.html)
+[Release Notes](./releasenotes/release-0.9.7.html)
 
 ### Hands-On
 
@@ -35,7 +35,7 @@ under the License.
 
 [Tutorial](./Tutorial.html)
 
-[Javadocs](http://helix.apache.org/javadocs/0.9.5/index.html)
+[Javadocs](http://helix.apache.org/javadocs/0.9.7/index.html)
 
 ### Recipes
 

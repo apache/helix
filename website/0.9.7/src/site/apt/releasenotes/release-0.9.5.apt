@@ -1,5 +1,5 @@
  -----
- Release Notes for Apache Helix 0.9.5
+ Release Notes for Apache Helix 0.9.7
  -----
 
 ~~ Licensed to the Apache Software Foundation (ASF) under one
@@ -22,11 +22,11 @@
 ~~ NOTE: For help with the syntax of this file, see:
 ~~ http://maven.apache.org/guides/mini/guide-apt-format.html
 
-Release Notes for Apache Helix 0.9.5
+Release Notes for Apache Helix 0.9.7
 
-  The Apache Helix team would like to announce the release of Apache Helix 0.9.5.
+  The Apache Helix team would like to announce the release of Apache Helix 0.9.7.
 
-  This is the eighteenth release under the Apache umbrella, and the eleventh as a top-level project.
+  This is the twenty second release under the Apache umbrella, and the fifteenth as a top-level project.
 
   Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
 
@@ -46,23 +46,13 @@ Release Notes for Apache Helix 0.9.5
 
 ** Bug Fixes
 
-    * ZooKeeper and ZNode fixes.
-
-    * Task Framework fixes for task numAttempts, force-delete of workflows and jobs, proper update of JobContexts, etc.
-
-    * Fix a bug in CustomRebalancer's assignment computation.
-
-    * Filter out zero-weight instances for partition assignments.
-
-    * Fix a NPE in Helix Participant's StateModel.reset().
+    * Async write operation should not throw Exception for serializing error (#845)
 
 ** Improvements
 
-    * Make the metric reservoir's sliding window length configurable.
+    * Downgrade the log level to INFO when isInstanceSetup() fails. (#870)
 
-    * Add a new code style file for IntelliJ.
-
-    * Fix the typo for the DataPropagationLatencyGuage metric name.
+    * Add system property options to config write size limit for ZNRecord Serializer (#809)
 
 []
 

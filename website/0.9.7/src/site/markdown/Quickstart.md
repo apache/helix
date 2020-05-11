@@ -34,7 +34,7 @@ First, let\'s get Helix. Either build it, or download it.
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.9.5
+git checkout tags/helix-0.9.7
 mvn install package -DskipTests
 cd helix-core/target/helix-core-pkg/bin # This folder contains all the scripts used in following sections
 chmod +x *
@@ -42,7 +42,7 @@ chmod +x *
 
 ### Download
 
-Download the 0.9.5 release package [here](./download.html)
+Download the 0.9.7 release package [here](./download.html)
 
 Overview
 --------

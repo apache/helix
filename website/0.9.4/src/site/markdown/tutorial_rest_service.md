@@ -871,7 +871,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         },
         "JobContext":{
     	"START_TIME":"1491005863291",
-            "FINISH_TIME":"149100.9.5612",
+            "FINISH_TIME":"149101.0.0612",
             "Tasks":[
                  {
                      "id":"0",
@@ -924,7 +924,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     {
        "id":"JobContext":
        "START_TIME":"1491005863291",
-       "FINISH_TIME":"149100.9.5612",
+       "FINISH_TIME":"149101.0.0612",
        "Tasks":[
                  {
                      "id":"0",

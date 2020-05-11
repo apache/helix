@@ -77,19 +77,19 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has a new release:
 
-* [0.9.1](./0.9.1-docs/index.html) - A release containing critical bug fixes.
+* [1.0.0](./1.0.0-docs/index.html) - A release containing multiple major features such as ZooScalability, Cloud Support, Customized View, WAGED Rebalancer and Distributed Lock
 
-    [\[Quick Start\]](./0.9.1-docs/Quickstart.html) [\[Release Notes\]](./0.9.1-docs/releasenotes/release-0.9.1.html)
+    [\[Quick Start\]](./1.0.0-docs/Quickstart.html) [\[Release Notes\]](./1.0.0-docs/releasenotes/release-1.0.0.html)
 
-* [0.7.1 (beta)](./0.7.1-docs/index.html) - A release that includes YARN integration, ad-hoc task management, and performant IPC.
+* [0.9.4](./0.9.4-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 
-    [\[Quick Start\]](./0.7.1-docs/Quickstart.html) [\[Release Notes\]](./0.7.1-docs/releasenotes/release-0.7.1.html)
+    [\[Quick Start\]](./0.9.4-docs/Quickstart.html) [\[Release Notes\]](./0.9.4-docs/releasenotes/release-0.9.4.html)
 
 ### Download
 
-<a href="./0.9.1-docs/download.html" class="btn btn-primary btn-small">0.9.1</a>
+<a href="./1.0.0-docs/download.html" class="btn btn-primary btn-small">1.0.0</a>
 
-<a href="./0.7.1-docs/download.html" class="btn btn-primary btn-small">0.7.1 (beta)</a>
+<a href="./0.9.4-docs/download.html" class="btn btn-primary btn-small">0.9.4</a>
 
 ### Maven Dependency
 
@@ -97,7 +97,7 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.9.1</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
@@ -108,6 +108,6 @@ Requirements: JDK 1.8+, Maven 3.5.0+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.9.1
+git checkout helix-1.0.0
 mvn install package -DskipTests
 ```

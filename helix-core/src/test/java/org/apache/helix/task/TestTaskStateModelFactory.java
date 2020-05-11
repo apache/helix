@@ -53,9 +53,13 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             anyParticipantManager.getInstanceName(), instanceConfig);
 
     // Start a msds server
-    // TODO: TestMultiZkHelixJavaApis already defined MSDS_SERVER_ENDPOINT, which goes into
-    // HttpRoutingDataReader and is recorded as final. As a result this test case has to use the
-    // same endpoint. There's no workaround at this moment.
+    // TODO: Refactor all MSDS_SERVER_ENDPOINT creation in system property to one place.
+    // Any test that modifies MSDS_SERVER_ENDPOINT system property and accesses
+    // HttpRoutingDataReader (ex. TestMultiZkHelixJavaApis and this test) will cause the
+    // MSDS_SERVER_ENDPOINT system property to be recorded as final in HttpRoutingDataReader; that
+    // means any test class that satisfies the aforementioned condition and is executed first gets
+    // to "decide" the default msds endpoint. The only workaround is for all these test classes to
+    // use the same default msds endpoint.
     final String msdsHostName = "localhost";
     final int msdsPort = 11117;
     final String msdsNamespace = "multiZkTest";
@@ -104,7 +108,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     // Save previously-set system configs
     String prevMultiZkEnabled = System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED);
-    // Turn on multiZk mode in System config
+    // Turn off multiZk mode in System config
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
 
     TaskStateModelFactory taskStateModelFactory =

@@ -145,6 +145,6 @@ public class TestInstanceConfig {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testSetTargetTaskThreadPoolSizeIllegalArgument() {
     InstanceConfig testConfig = new InstanceConfig("testConfig");
-    testConfig.setTargetTaskThreadPoolSize(0);
+    testConfig.setTargetTaskThreadPoolSize(-1);
   }
 }

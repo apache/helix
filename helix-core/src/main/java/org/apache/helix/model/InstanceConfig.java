@@ -521,12 +521,12 @@ public class InstanceConfig extends HelixProperty {
   /**
    * Set the target size of task thread pool.
    * @param targetTaskThreadPoolSize - the new target task thread pool size
-   * @throws IllegalArgumentException - when the provided new thread pool size is not greater than 0
+   * @throws IllegalArgumentException - when the provided new thread pool size is negative
    */
   public void setTargetTaskThreadPoolSize(int targetTaskThreadPoolSize)
       throws IllegalArgumentException {
-    if (targetTaskThreadPoolSize <= 0) {
-      throw new IllegalArgumentException("targetTaskThreadPoolSize must be greater than 0!");
+    if (targetTaskThreadPoolSize < 0) {
+      throw new IllegalArgumentException("targetTaskThreadPoolSize must be non-negative!");
     }
     _record.setIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
         targetTaskThreadPoolSize);

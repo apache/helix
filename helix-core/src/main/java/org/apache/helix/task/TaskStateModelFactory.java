@@ -52,7 +52,12 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
     _manager = manager;
     _taskFactoryRegistry = taskFactoryRegistry;
-    // TODO: revisit the logic here; we are creating a connection although we already have a manager
+    // TODO: revisit the logic here - we are creating a connection although we already have a
+    // manager. We cannot use the connection within manager because some users connect the manager
+    // after registering the state model factory (in which case we cannot use manager's connection),
+    // and some connect the manager before registering the state model factory (in which case we
+    //can use manager's connection). We need to think about the right order and determine if we
+    //want to enforce it, which may cause backward incompatibility.
     ConfigAccessor configAccessor = createConfigAccessor();
     int threadPoolSize = TaskUtil.getTargetThreadPoolSize(configAccessor, _manager.getClusterName(),
         _manager.getInstanceName());
@@ -63,7 +68,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   // FIXME: DO NOT USE! This size of provided thread pool will not be reflected to controller
-  // properly, the controller may over schedule tasks to this participant.
+  // properly, the controller may over schedule tasks to this participant. Task Framework needs to
+  // have full control of the thread pool unlike the state transition thread pool.
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
     _manager = manager;
@@ -109,6 +115,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   private ScheduledExecutorService createTimerTaskExecutor() {
+    // TODO: Hunter: I'm not sure why this needs to be a single thread executor. We could certainly
+    // use more threads for timer tasks.
     return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
       @Override
       public Thread newThread(Runnable r) {
@@ -123,7 +131,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
         _monitor = new ThreadPoolExecutorMonitor(TaskConstants.STATE_MODEL_NAME,
             (ThreadPoolExecutor) _taskExecutor);
       } catch (JMException e) {
-        LOG.warn("Error in creating ThreadPoolExecutorMonitor for TaskStateModelFactory.");
+        LOG.warn("Error in creating ThreadPoolExecutorMonitor for TaskStateModelFactory.", e);
       }
     }
   }

@@ -111,8 +111,11 @@ public class ClusterConfig extends HelixProperty {
     // Default to be true.
     GLOBAL_REBALANCE_ASYNC_MODE,
 
-    // The target size of task thread pools for each participant. This is the global value
-    // that's used when participants don't specify their individual pool sizes.
+    // The target size of task thread pools for each participant. If participants specify their
+    // individual pool sizes in their InstanceConfig's, this value will NOT be used; if participants
+    // don't specify their individual pool sizes, this value will be used for all participants; if
+    // none of participants or the cluster define pool sizes,
+    // TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
     GLOBAL_TARGET_TASK_THREAD_POOL_SIZE
   }
 
@@ -715,9 +718,10 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Get the global target size of task thread pools. This values applies to participants and is
-   * overwritten by participants' own values if they specified individual pool sizes in
-   * InstanceConfigs
+   * Get the global target size of task thread pools. This values applies to all participants in
+   * the cluster; it's only used if participants don't specify their individual pool sizes in their
+   * InstanceConfig's. If none of participants or the cluster define pool sizes,
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
    * @return the global target size of task thread pool
    */
   public int getGlobalTargetTaskThreadPoolSize() {
@@ -727,14 +731,17 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Set the global target size of task thread pools for this cluster.
+   * Set the global target size of task thread pools for this cluster. This values applies to all
+   * participants in the cluster; it's only used if participants don't specify their individual
+   * pool sizes in their InstanceConfig's. If none of participants or the cluster define pool sizes,
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
    * @param globalTargetTaskThreadPoolSize - the new global target task thread pool size
-   * @throws IllegalArgumentException - when the provided new thread pool size is not greater than 0
+   * @throws IllegalArgumentException - when the provided new thread pool size is negative
    */
   public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize)
       throws IllegalArgumentException {
-    if (globalTargetTaskThreadPoolSize <= 0) {
-      throw new IllegalArgumentException("globalTargetTaskThreadPoolSize must be greater than 0!");
+    if (globalTargetTaskThreadPoolSize < 0) {
+      throw new IllegalArgumentException("globalTargetTaskThreadPoolSize must be non-negative!");
     }
     _record
         .setIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),

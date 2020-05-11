@@ -1064,7 +1064,7 @@ public class TaskUtil {
       InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
       if (instanceConfig != null) {
         int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
-        if (targetTaskThreadPoolSize > 0) {
+        if (targetTaskThreadPoolSize >= 0) {
           return targetTaskThreadPoolSize;
         }
       } else {
@@ -1074,7 +1074,7 @@ public class TaskUtil {
       }
     } catch (HelixException e) {
       LOG.warn(
-          "Encountered an exception while fetching InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. Exception: ",
+          "Encountered an exception while fetching InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. ",
           instanceName, clusterName, e);
     }
 
@@ -1083,17 +1083,17 @@ public class TaskUtil {
       ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
       if (clusterConfig != null) {
         int globalTargetTaskThreadPoolSize = clusterConfig.getGlobalTargetTaskThreadPoolSize();
-        if (globalTargetTaskThreadPoolSize > 0) {
+        if (globalTargetTaskThreadPoolSize >= 0) {
           return globalTargetTaskThreadPoolSize;
         }
       } else {
-        LOG.warn("Got null as ClusterConfig for cluster {}. Returning default value. ",
-            clusterName);
+        LOG.warn("Got null as ClusterConfig for cluster {}. Returning default value: {}. ",
+            clusterName, TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
       }
     } catch (HelixException e) {
       LOG.warn(
-          "Encountered an exception while fetching ClusterConfig in cluster {}. Returning default value. Exception: ",
-          clusterName, e);
+          "Encountered an exception while fetching ClusterConfig in cluster {}. Returning default value: {}. ",
+          clusterName, TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE, e);
     }
 
     return TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE;

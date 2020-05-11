@@ -90,7 +90,7 @@ public class TestClusterConfig {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testSetGlobalTargetTaskThreadPoolSizeIllegalArgument() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setGlobalTargetTaskThreadPoolSize(0);
+    testConfig.setGlobalTargetTaskThreadPoolSize(-1);
   }
 
   @Test

@@ -256,7 +256,7 @@ public class ParticipantManager {
     liveInstance.setHelixVersion(_manager.getVersion());
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
     liveInstance.setCurrentTaskThreadPoolSize(
-        TaskUtil.getTargetThreadPoolSize(_configAccessor, _clusterName, _instanceName));
+        TaskUtil.getTargetThreadPoolSize(_zkclient, _clusterName, _instanceName));
 
     // LiveInstanceInfoProvider liveInstanceInfoProvider = _manager._liveInstanceInfoProvider;
     if (_liveInstanceInfoProvider != null) {

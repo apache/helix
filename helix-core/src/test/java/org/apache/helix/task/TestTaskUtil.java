@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
@@ -49,7 +50,7 @@ public class TestTaskUtil extends TaskTestBase {
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 
-    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getConfigAccessor(),
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
         anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
         TEST_TARGET_TASK_THREAD_POOL_SIZE);
   }
@@ -69,7 +70,7 @@ public class TestTaskUtil extends TaskTestBase {
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 
-    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getConfigAccessor(),
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
         anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
         TEST_TARGET_TASK_THREAD_POOL_SIZE);
   }
@@ -87,7 +88,7 @@ public class TestTaskUtil extends TaskTestBase {
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 
-    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getConfigAccessor(),
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
         anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
         TEST_TARGET_TASK_THREAD_POOL_SIZE);
   }
@@ -100,20 +101,18 @@ public class TestTaskUtil extends TaskTestBase {
     anyParticipantManager.getConfigAccessor()
         .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
 
-    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getConfigAccessor(),
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
         anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
         TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
   }
 
-  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeClusterConfigUndefined")
+  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeClusterConfigUndefined", expectedExceptions = HelixException.class)
   public void testGetTaskThreadPoolSizeClusterConfigDoesNotExist() {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     HelixDataAccessor helixDataAccessor = anyParticipantManager.getHelixDataAccessor();
     helixDataAccessor.removeProperty(helixDataAccessor.keyBuilder().clusterConfig());
-
-    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getConfigAccessor(),
-        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
-        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+    TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName());
   }
 }

@@ -24,13 +24,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -81,11 +81,9 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
 
     HttpRoutingDataReader.reset();
-    TaskStateModelFactory taskStateModelFactory =
-        new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    ConfigAccessor configAccessor = taskStateModelFactory.createConfigAccessor();
+    RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
     Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(configAccessor, anyParticipantManager.getClusterName(),
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
 
     // Restore system properties
@@ -111,11 +109,9 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     // Turn off multiZk mode in System config
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
 
-    TaskStateModelFactory taskStateModelFactory =
-        new TaskStateModelFactory(anyParticipantManager, Collections.emptyMap());
-    ConfigAccessor configAccessor = taskStateModelFactory.createConfigAccessor();
+    RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
     Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(configAccessor, anyParticipantManager.getClusterName(),
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
 
     // Restore system properties

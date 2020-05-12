@@ -150,6 +150,8 @@ public class TestMultiZkHelixJavaApis {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
         "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
 
+    // HttpRoutingDataReader's routing data may be set by other tests using the same endpoint;
+    // reset() for good measure
     HttpRoutingDataReader.reset();
     // Create a FederatedZkClient for admin work
     _zkClient =

@@ -69,9 +69,10 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }));
   }
 
-  // FIXME: DO NOT USE! This size of provided thread pool will not be reflected to controller
+  // DO NOT USE! This size of provided thread pool will not be reflected to controller
   // properly, the controller may over schedule tasks to this participant. Task Framework needs to
   // have full control of the thread pool unlike the state transition thread pool.
+  @Deprecated
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
     _manager = manager;

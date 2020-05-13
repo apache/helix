@@ -87,6 +87,16 @@ public final class HelixUtil {
     return path.substring(path.lastIndexOf('/') + 1);
   }
 
+  /**
+   * Convert a cluster name to a sharding key for routing purpose by adding a "/" to the front.
+   * Check if the cluster name already has a "/" at the front; if so just return it.
+   * @param clusterName - cluster name
+   * @return the sharding key corresponding the cluster name
+   */
+  public static String clusterNameToShardingKey(String clusterName) {
+    return clusterName.charAt(0) == '/' ? clusterName : "/" + clusterName;
+  }
+
   public static String serializeByComma(List<String> objects) {
     return Joiner.on(",").join(objects);
   }

@@ -100,7 +100,7 @@ public class TestAssignableInstance extends AssignerTestBase {
     // Initialize AssignableInstance with only quota type provided
     AssignableInstance ai =
         new AssignableInstance(createClusterConfig(testQuotaTypes, testQuotaRatio, false),
-            new InstanceConfig(testInstanceName), createLiveInstance(null, null));
+            new InstanceConfig(testInstanceName), liveInstance);
 
     Assert.assertEquals(ai.getTotalCapacity().size(), 1);
     Assert.assertEquals(ai.getUsedCapacity().size(), 1);
@@ -182,7 +182,7 @@ public class TestAssignableInstance extends AssignerTestBase {
     liveInstance.setCurrentTaskThreadPoolSize(testCurrentTaskThreadPoolSize);
 
     AssignableInstance ai = new AssignableInstance(createClusterConfig(null, null, true),
-        new InstanceConfig(testInstanceName), createLiveInstance(null, null));
+        new InstanceConfig(testInstanceName), liveInstance);
 
     // When nothing is configured, we should use default quota type to assign
     Map<String, TaskAssignResult> results = new HashMap<>();

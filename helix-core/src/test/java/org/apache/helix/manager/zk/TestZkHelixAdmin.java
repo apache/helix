@@ -560,6 +560,93 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         2);
   }
 
+  @Test
+  public void testResetPartition() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String instanceName = "TestInstance";
+    String testResource = "TestResource";
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addInstance(clusterName, new InstanceConfig(instanceName));
+    admin.enableInstance(clusterName, instanceName, true);
+
+    InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
+
+    // Test the sanity check for resetPartition.
+    // resetPartition is expected to throw an exception when provided with a non-exist instance.
+    try {
+      admin.resetPartition(clusterName, "WrongTestInstance", testResource,
+          Arrays.asList("1", "2"));
+      Assert.fail("Should throw HelixException");
+    } catch (HelixException expected) {
+      // This exception is expected because the instance name is made up.
+      Assert.assertEquals(expected.getMessage(),
+          "Can't reset state for " + testResource  + "/[1, 2] on WrongTestInstance," +
+              " because WrongTestInstance never existed in cluster " + clusterName);
+    }
+
+    // resetPartition is expected to throw an exception when provided with a non-alive instance.
+    try {
+      admin.resetPartition(clusterName, instanceName, testResource,
+          Arrays.asList("1", "2"));
+      Assert.fail("Should throw HelixException");
+    } catch (HelixException expected) {
+      // This exception is expected because the instance is not alive.
+      Assert.assertEquals(expected.getMessage(),
+          "Can't reset state for " + testResource  + "/[1, 2] on " + instanceName
+              + ", because " + instanceName + " is not alive in cluster " + clusterName + " anymore");
+    }
+
+    HelixManager manager = initializeHelixManager(clusterName, instanceConfig.getInstanceName());
+    try {
+      manager.connect();
+    } catch (Exception e) {
+      Assert.fail("HelixManager failed connecting");
+    }
+
+    // resetPartition is expected to throw an exception when provided with a non-exist resource.
+    try {
+      admin.resetPartition(clusterName, instanceName, testResource,
+          Arrays.asList("1", "2"));
+      Assert.fail("Should throw HelixException");
+    } catch (HelixException expected) {
+      // This exception is expected because the resource is not added.
+      Assert.assertEquals(expected.getMessage(),
+          "Can't reset state for " + testResource + "/[1, 2] on " + instanceName
+              + ", because " + testResource + " is not added");
+    }
+
+    IdealState idealState = new IdealState(testResource);
+    idealState.setNumPartitions(3);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    admin.addResource(clusterName, testResource, idealState);
+
+    admin.enableResource(clusterName, testResource, true);
+    try {
+      admin.resetPartition(clusterName, instanceName, testResource,
+          Arrays.asList("1", "2"));
+      Assert.fail("Should throw HelixException");
+    } catch (HelixException expected) {
+      // This exception is expected because partitions do not exist.
+      Assert.assertEquals(expected.getMessage(), "Can't reset state for " + testResource
+          + "/[1, 2] on "+ instanceName + ", because not all [1, 2] exist");
+    }
+
+    // clean up
+    try {
+      manager.disconnect();
+    } catch (Exception e) {
+      Assert.fail("HelixManager failed disconnecting");
+    }
+    admin.dropCluster(clusterName);
+  }
+
+
   /**
    * Test addResourceWithWeight() and validateResourcesForWagedRebalance() by trying to add a resource with incomplete ResourceConfig.
    */

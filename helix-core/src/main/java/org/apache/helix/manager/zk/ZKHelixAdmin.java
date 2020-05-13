@@ -573,9 +573,17 @@ public class ZKHelixAdmin implements HelixAdmin {
     // check the instance is alive
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
     if (liveInstance == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + instanceName + " is not alive");
+      // check if the instance has ever exist in the cluster
+      String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
+      if (!_zkClient.exists(instancePath)) {
+        throw new HelixException(
+            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
+            + ", because " + instanceName + " never existed in cluster " + clusterName);
+      } else {
+        throw new HelixException(
+            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
+            + ", because " + instanceName + " is not alive in cluster " + clusterName + " anymore");
+      }
     }
 
     // check resource group exists
@@ -588,20 +596,16 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // check partition exists in resource group
     Set<String> resetPartitionNames = new HashSet<String>(partitionNames);
+    Set<String> partitions;
     if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-      Set<String> partitions = new HashSet<String>(idealState.getRecord().getMapFields().keySet());
-      if (!partitions.containsAll(resetPartitionNames)) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " exist");
-      }
+       partitions = new HashSet<String>(idealState.getRecord().getMapFields().keySet());
     } else {
-      Set<String> partitions = new HashSet<String>(idealState.getRecord().getListFields().keySet());
-      if (!partitions.containsAll(resetPartitionNames)) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " exist");
-      }
+      partitions = new HashSet<String>(idealState.getRecord().getListFields().keySet());
+    }
+    if (!partitions.containsAll(resetPartitionNames)) {
+      throw new HelixException(
+          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
+              + ", because not all " + partitionNames + " exist");
     }
 
     // check partition is in ERROR state

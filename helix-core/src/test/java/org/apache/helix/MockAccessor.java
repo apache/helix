@@ -245,8 +245,7 @@ public class MockAccessor implements HelixDataAccessor {
   @Override
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
-    // TODO Auto-generated method stub
-    throw new HelixException("Method not implemented!");
+    return _baseDataAccessor.updateChildren(paths, updaters, options);
   }
 
   @Override

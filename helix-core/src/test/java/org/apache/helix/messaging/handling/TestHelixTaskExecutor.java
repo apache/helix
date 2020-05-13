@@ -19,6 +19,8 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -794,5 +796,48 @@ public class TestHelixTaskExecutor {
     AssertJUnit.assertEquals(nMsgs1, factory._processedMsgIds.size());
     // After all messages are processed, _knownMessageIds should be empty.
     Assert.assertTrue(executor._knownMessageIds.isEmpty());
+  }
+
+  @Test
+  public void testNoWriteReadStateForRemovedMessage()
+      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+
+    for (String type : factory.getMessageTypes()) {
+      executor.registerMessageHandlerFactory(type, factory);
+    }
+
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    String instanceName = "someInstance";
+
+    List<String> messageIds = new ArrayList<>();
+    List<Message> messages = new ArrayList<>();
+    int nMsgs1 = 5;
+    for (int i = 0; i < nMsgs1; i++) {
+      Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+      msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setCorrelationId(UUID.randomUUID().toString());
+      accessor.setProperty(keyBuilder.message(instanceName, msg.getId()), msg);
+      messageIds.add(msg.getId());
+      messages.add(msg);
+    }
+
+    Method updateMessageState = HelixTaskExecutor.class
+        .getDeclaredMethod("updateMessageState", List.class, HelixDataAccessor.class, String.class);
+    updateMessageState.setAccessible(true);
+
+    updateMessageState.invoke(executor, messages, accessor, instanceName);
+    Assert.assertEquals(accessor.getChildNames(keyBuilder.messages(instanceName)).size(), nMsgs1);
+
+    accessor.removeProperty(keyBuilder.message(instanceName, messageIds.get(0)));
+    System.out.println(accessor.getChildNames(keyBuilder.messages(instanceName)).size());
+    updateMessageState.invoke(executor, messages, accessor, instanceName);
+    Assert
+        .assertEquals(accessor.getChildNames(keyBuilder.messages(instanceName)).size(), nMsgs1 - 1);
   }
 }

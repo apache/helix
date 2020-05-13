@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -69,6 +70,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -524,12 +527,26 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private void updateMessageState(List<Message> readMsgs, HelixDataAccessor accessor,
       String instanceName) {
     Builder keyBuilder = accessor.keyBuilder();
-    List<PropertyKey> readMsgKeys = new ArrayList<>();
+    List<String> readMsgPaths = new ArrayList<>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
     for (Message msg : readMsgs) {
-      readMsgKeys.add(msg.getKey(keyBuilder, instanceName));
+      readMsgPaths.add(msg.getKey(keyBuilder, instanceName).getPath());
       _knownMessageIds.add(msg.getId());
+      /**
+       * We use the updater to avoid race condition between writing message to zk as READ state and removing message after ST is done
+       * If there is no message at this path, meaning the message is removed so we do not write the message
+       */
+      updaters.add(new DataUpdater<ZNRecord>() {
+        @Override
+        public ZNRecord update(ZNRecord currentData) {
+          if (currentData == null) {
+            return null;
+          }
+          return msg.getRecord();
+        }
+      });
     }
-    accessor.setChildren(readMsgKeys, readMsgs);
+    accessor.updateChildren(readMsgPaths, updaters, AccessOption.PERSISTENT);
   }
 
   private void shutdownAndAwaitTermination(ExecutorService pool) {

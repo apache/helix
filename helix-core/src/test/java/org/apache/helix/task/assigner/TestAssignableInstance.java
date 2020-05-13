@@ -55,9 +55,9 @@ public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testInitializationWithQuotaUnset() {
-    int testCurrentTaskThreadPoolSize = 100;
+    int expectedCurrentTaskThreadPoolSize = 100;
     LiveInstance liveInstance = createLiveInstance(null, null);
-    liveInstance.setCurrentTaskThreadPoolSize(testCurrentTaskThreadPoolSize);
+    liveInstance.setCurrentTaskThreadPoolSize(expectedCurrentTaskThreadPoolSize);
 
     // Initialize AssignableInstance with neither resource capacity nor quota ratio provided
     AssignableInstance ai = new AssignableInstance(createClusterConfig(null, null, false),
@@ -68,7 +68,7 @@ public class TestAssignableInstance extends AssignerTestBase {
             .get(AssignableInstance.DEFAULT_QUOTA_TYPE), 0);
     Assert.assertEquals(
         (int) ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
-            .get(AssignableInstance.DEFAULT_QUOTA_TYPE), testCurrentTaskThreadPoolSize);
+            .get(AssignableInstance.DEFAULT_QUOTA_TYPE), expectedCurrentTaskThreadPoolSize);
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }
 
@@ -93,9 +93,9 @@ public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testInitializationWithOnlyQuotaType() {
-    int testCurrentTaskThreadPoolSize = 100;
+    int expectedCurrentTaskThreadPoolSize = 100;
     LiveInstance liveInstance = createLiveInstance(null, null);
-    liveInstance.setCurrentTaskThreadPoolSize(testCurrentTaskThreadPoolSize);
+    liveInstance.setCurrentTaskThreadPoolSize(expectedCurrentTaskThreadPoolSize);
 
     // Initialize AssignableInstance with only quota type provided
     AssignableInstance ai =
@@ -112,7 +112,7 @@ public class TestAssignableInstance extends AssignerTestBase {
         testQuotaTypes.length);
     Assert.assertEquals(
         ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()),
-        calculateExpectedQuotaPerType(testCurrentTaskThreadPoolSize, testQuotaTypes,
+        calculateExpectedQuotaPerType(expectedCurrentTaskThreadPoolSize, testQuotaTypes,
             testQuotaRatio));
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }

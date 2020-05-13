@@ -25,8 +25,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
@@ -73,7 +73,8 @@ public class TestTaskThreadLeak extends TaskTestBase {
     int threadCountAfter = getThreadCount("TaskStateModelFactory");
 
     Assert.assertTrue(
-        (threadCountAfter - _threadCountBefore) <= TaskStateModelFactory.TASK_THREADPOOL_SIZE + 1);
+        (threadCountAfter - _threadCountBefore) <= TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE
+            + 1);
   }
 
 

@@ -160,6 +160,8 @@ public class TestMultiZkHelixJavaApis {
     // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, _msdsEndpoint);
 
+    // Routing data may be set by other tests using the same endpoint; reset() for good measure
+    RoutingDataManager.getInstance().reset();
     // Create a FederatedZkClient for admin work
     _zkClient =
         new FederatedZkClient(new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),

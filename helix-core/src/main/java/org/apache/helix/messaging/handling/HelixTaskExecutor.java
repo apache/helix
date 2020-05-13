@@ -540,6 +540,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         @Override
         public ZNRecord update(ZNRecord currentData) {
           if (currentData == null) {
+            LOG.warn("Message {} targets at {} has already been removed before it is set as READ on instance {}", msg.getId(), msg.getTgtName(), instanceName);
             return null;
           }
           return msg.getRecord();

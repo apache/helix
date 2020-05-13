@@ -26,7 +26,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.task.TaskConfig;
-import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.TaskConstants;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.collections.Maps;
@@ -66,7 +66,7 @@ public class TestAssignableInstance extends AssignerTestBase {
     Assert.assertEquals(
         (int) ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
             .get(AssignableInstance.DEFAULT_QUOTA_TYPE),
-        TaskStateModelFactory.TASK_THREADPOOL_SIZE);
+        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }
 
@@ -106,7 +106,7 @@ public class TestAssignableInstance extends AssignerTestBase {
         testQuotaTypes.length);
     Assert.assertEquals(
         ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()),
-        calculateExpectedQuotaPerType(TaskStateModelFactory.TASK_THREADPOOL_SIZE, testQuotaTypes,
+        calculateExpectedQuotaPerType(TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE, testQuotaTypes,
             testQuotaRatio));
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }
@@ -176,7 +176,7 @@ public class TestAssignableInstance extends AssignerTestBase {
 
     // When nothing is configured, we should use default quota type to assign
     Map<String, TaskAssignResult> results = new HashMap<>();
-    for (int i = 0; i < TaskStateModelFactory.TASK_THREADPOOL_SIZE; i++) {
+    for (int i = 0; i < TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE; i++) {
       String taskId = Integer.toString(i);
       TaskConfig task = new TaskConfig("", null, taskId, null);
       TaskAssignResult result = ai.tryAssign(task, AssignableInstance.DEFAULT_QUOTA_TYPE);

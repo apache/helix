@@ -186,8 +186,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
       Map<String, String> sessionIdMap = new HashMap<String, String>();
       if (recipientCriteria.isSessionSpecific()) {
         Builder keyBuilder = targetDataAccessor.keyBuilder();
+        // For backward compatibility, allow partial read for the live instances.
+        // Note that this may cause the pending message to be sent with null target session Id.
         List<LiveInstance> liveInstances =
-            targetDataAccessor.getChildValues(keyBuilder.liveInstances(), true);
+            targetDataAccessor.getChildValues(keyBuilder.liveInstances(), false);
 
         for (LiveInstance liveInstance : liveInstances) {
           sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getEphemeralOwner());

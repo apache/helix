@@ -139,7 +139,8 @@ public class ZKPathDataDumpTask extends TimerTask {
 
     if (!dumpPaths.isEmpty()) {
       LOG.info("Dump statusUpdates and errors records for paths: " + dumpPaths);
-      List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0, true);
+      // No need to fail the batch read operation even it is partial result becuase it is for cleaning up.
+      List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0, false);
       for (ZNRecord record : dumpRecords) {
         if (record != null) {
           LOG.info(new String(_jsonSerializer.serialize(record)));

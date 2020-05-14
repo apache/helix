@@ -33,6 +33,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
@@ -130,6 +131,11 @@ class CustomRestClientImpl implements CustomRestClient {
       LOG.info("Executing request: {}, headers: {}, entity: {}", postRequest.getRequestLine(),
           postRequest.getAllHeaders(), postRequest.getEntity());
       return _httpClient.execute(postRequest);
+    } catch (ConnectTimeoutException e) {
+      LOG.error(
+          "Failed to perform customized health check due to ConnectTimeoutException for endpoint {}.",
+          url, e);
+      throw e;
     } catch (IOException e) {
       LOG.error("Failed to perform customized health check. Is participant endpoint {} available?",
           url, e);

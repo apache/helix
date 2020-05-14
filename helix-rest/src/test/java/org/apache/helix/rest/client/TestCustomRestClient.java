@@ -7,12 +7,17 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.util.HelixUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Assert;
 import org.mockito.Mock;
@@ -145,6 +150,19 @@ public class TestCustomRestClient {
     Assert.assertEquals(json.get("data").asText(), "{}");
   }
 
+  @Test(expectedExceptions = ConnectTimeoutException.class)
+  public void testPostRequestSmallTimeout() throws IOException {
+    // Set 1 ms to cause timeout for requests
+    System.setProperty(SystemPropertyKeys.HTTP_REQUEST_TIMEOUT, "1");
+    // a popular echo server that echos all the inputs
+    final String echoServer = "http://httpbin.org/post";
+    CustomRestClient _customRestClient = MockCustomRestClientFactory.get();
+    _customRestClient.getInstanceStoppableCheck(echoServer, Collections.emptyMap());
+
+    // Reset the HTTP_REQUEST_TIMEOUT property back to its original value
+    System.setProperty(SystemPropertyKeys.HTTP_REQUEST_TIMEOUT, "60000");
+  }
+
   private class MockCustomRestClient extends CustomRestClientImpl {
     private String _jsonResponse = "";
 
@@ -159,6 +177,37 @@ public class TestCustomRestClient {
     @Override
     protected JsonNode getJsonObject(HttpResponse httpResponse) throws IOException {
       return new ObjectMapper().readTree(_jsonResponse);
+    }
+  }
+
+  /**
+   * This MockCustomRestClientFactory is necessary to have for testing because once an INSTANCE is
+   * initialized in CustomRestClientFactory while running "mvn test" , it will no re-initialize the
+   * INSTANCE with new HelixProperty. Hence this class makes sure that new CustomRestClient will be
+   * created with the timeout set to the new value.
+   */
+  private static class MockCustomRestClientFactory extends CustomRestClientFactory {
+    private static final int DEFAULT_HTTP_REQUEST_TIMEOUT = 60 * 1000;
+    private static final int _httpRequestTimeout = HelixUtil.getSystemPropertyAsInt(
+        SystemPropertyKeys.HTTP_REQUEST_TIMEOUT, DEFAULT_HTTP_REQUEST_TIMEOUT);
+
+    private MockCustomRestClientFactory() {
+      super();
+    }
+
+    public static CustomRestClient get() {
+      CustomRestClient INSTANCE = null;
+      try {
+        HttpClient httpClient;
+        RequestConfig config = RequestConfig.custom().setConnectTimeout(_httpRequestTimeout)
+            .setConnectionRequestTimeout(_httpRequestTimeout).setSocketTimeout(_httpRequestTimeout)
+            .build();
+        httpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
+        INSTANCE = new CustomRestClientImpl(httpClient);
+      } catch (Exception e) {
+        System.out.println("Exception happened while initializing MockCustomRestClientFactory");
+      }
+      return INSTANCE;
     }
   }
 }

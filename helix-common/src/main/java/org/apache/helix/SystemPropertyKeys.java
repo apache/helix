@@ -78,4 +78,7 @@ public class SystemPropertyKeys {
   // System Property Metadata Store Directory Server endpoint key
   public static final String MSDS_SERVER_ENDPOINT_KEY =
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
+
+  // System property for request timeout
+  public static final String HTTP_REQUEST_TIMEOUT = "http.request.timeout";
 }

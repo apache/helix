@@ -573,39 +573,41 @@ public class ZKHelixAdmin implements HelixAdmin {
     // check the instance is alive
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
     if (liveInstance == null) {
-      // check if the instance has ever exist in the cluster
+      // check if the instance has never exist in the cluster
       String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
+      String errMessage;
       if (!_zkClient.exists(instancePath)) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-            + ", because " + instanceName + " never existed in cluster " + clusterName);
+        errMessage = String.format(
+            "Can't reset state for %s.%s on %s, because %s has never existed" + " in cluster %s",
+            resourceName, partitionNames, instanceName, instanceName, clusterName);
       } else {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-            + ", because " + instanceName + " is not alive in cluster " + clusterName + " anymore");
+        errMessage = String.format("Can't reset state for %s.%s on %s, because %s does not live in"
+                + " cluster %s anymore", resourceName, partitionNames, instanceName, instanceName,
+            clusterName);
       }
+      throw new HelixException(errMessage);
     }
 
     // check resource group exists
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     if (idealState == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + resourceName + " is not added");
+      throw new HelixException(String
+          .format("Can't reset state for %s.%s on %s, because %s is not added", resourceName,
+              partitionNames, instanceName, resourceName));
     }
 
     // check partition exists in resource group
     Set<String> resetPartitionNames = new HashSet<String>(partitionNames);
     Set<String> partitions;
     if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-       partitions = new HashSet<String>(idealState.getRecord().getMapFields().keySet());
+      partitions = idealState.getRecord().getMapFields().keySet();
     } else {
-      partitions = new HashSet<String>(idealState.getRecord().getListFields().keySet());
+      partitions = idealState.getRecord().getListFields().keySet();
     }
     if (!partitions.containsAll(resetPartitionNames)) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because not all " + partitionNames + " exist");
+      throw new HelixException(String
+          .format("Can't reset state for %s.%s on %s, because not all %s exist", resourceName,
+              partitionNames, instanceName, partitionNames));
     }
 
     // check partition is in ERROR state
@@ -614,9 +616,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
     for (String partitionName : resetPartitionNames) {
       if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString())) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " are in ERROR state");
+        throw new HelixException(String
+            .format("Can't reset state for %s.%s on %s, because not all %s are in ERROR state",
+                resourceName, partitionNames, partitionNames));
       }
     }
 
@@ -624,9 +626,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     String stateModelDef = idealState.getStateModelDefRef();
     StateModelDefinition stateModel = accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
     if (stateModel == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + stateModelDef + " is NOT found");
+      throw new HelixException(String
+          .format("Can't reset state for %s.%s on %s, because %s is NOT found", resourceName,
+              partitionNames, stateModelDef));
     }
 
     // check there is no pending messages for the partitions exist
@@ -638,9 +640,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         continue;
       }
 
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because a pending message exists: " + message);
+      throw new HelixException(String
+          .format("Can't reset state for %s.%s on %s, because a pending message exists: %s",
+              resourceName, partitionNames, message));
     }
 
     String adminName = null;

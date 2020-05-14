@@ -561,7 +561,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
   }
 
   @Test
-  public void testResetPartition() {
+  public void testResetPartition() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -576,47 +576,40 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
 
     // Test the sanity check for resetPartition.
-    // resetPartition is expected to throw an exception when provided with a non-exist instance.
+    // resetPartition is expected to throw an exception when provided with a nonexist instance.
     try {
-      admin.resetPartition(clusterName, "WrongTestInstance", testResource,
-          Arrays.asList("1", "2"));
+      admin.resetPartition(clusterName, "WrongTestInstance", testResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the instance name is made up.
-      Assert.assertEquals(expected.getMessage(),
-          "Can't reset state for " + testResource  + "/[1, 2] on WrongTestInstance," +
-              " because WrongTestInstance never existed in cluster " + clusterName);
+      Assert.assertEquals(expected.getMessage(), String.format(
+          "Can't reset state for %s.[1, 2] on WrongTestInstance, because WrongTestInstance"
+              + " has never existed in cluster %s", testResource, clusterName));
     }
 
-    // resetPartition is expected to throw an exception when provided with a non-alive instance.
+    // resetPartition is expected to throw an exception when provided with a non-live instance.
     try {
-      admin.resetPartition(clusterName, instanceName, testResource,
-          Arrays.asList("1", "2"));
+      admin.resetPartition(clusterName, instanceName, testResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the instance is not alive.
-      Assert.assertEquals(expected.getMessage(),
-          "Can't reset state for " + testResource  + "/[1, 2] on " + instanceName
-              + ", because " + instanceName + " is not alive in cluster " + clusterName + " anymore");
+      Assert.assertEquals(expected.getMessage(), String.format(
+          "Can't reset state for %s.[1, 2] on %s, because %s does not live in cluster %s anymore",
+          testResource, instanceName, instanceName, clusterName));
     }
 
     HelixManager manager = initializeHelixManager(clusterName, instanceConfig.getInstanceName());
-    try {
-      manager.connect();
-    } catch (Exception e) {
-      Assert.fail("HelixManager failed connecting");
-    }
+    manager.connect();
 
     // resetPartition is expected to throw an exception when provided with a non-exist resource.
     try {
-      admin.resetPartition(clusterName, instanceName, testResource,
-          Arrays.asList("1", "2"));
+      admin.resetPartition(clusterName, instanceName, testResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the resource is not added.
-      Assert.assertEquals(expected.getMessage(),
-          "Can't reset state for " + testResource + "/[1, 2] on " + instanceName
-              + ", because " + testResource + " is not added");
+      Assert.assertEquals(expected.getMessage(), String
+          .format("Can't reset state for %s.[1, 2] on %s, because %s is not added", testResource,
+              instanceName, testResource));
     }
 
     IdealState idealState = new IdealState(testResource);
@@ -628,21 +621,17 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     admin.enableResource(clusterName, testResource, true);
     try {
-      admin.resetPartition(clusterName, instanceName, testResource,
-          Arrays.asList("1", "2"));
+      admin.resetPartition(clusterName, instanceName, testResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because partitions do not exist.
-      Assert.assertEquals(expected.getMessage(), "Can't reset state for " + testResource
-          + "/[1, 2] on "+ instanceName + ", because not all [1, 2] exist");
+      Assert.assertEquals(expected.getMessage(), String
+          .format("Can't reset state for %s.[1, 2] on %s, because not all [1, 2] exist",
+              testResource, instanceName));
     }
 
     // clean up
-    try {
-      manager.disconnect();
-    } catch (Exception e) {
-      Assert.fail("HelixManager failed disconnecting");
-    }
+    manager.disconnect();
     admin.dropCluster(clusterName);
   }
 

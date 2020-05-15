@@ -132,7 +132,7 @@ public class StatusUpdateUtil {
       Builder keyBuilder = accessor.keyBuilder();
 
       List<ZNRecord> instances =
-          HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
+          HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs(), true));
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
       for (ZNRecord znRecord : instances) {
         String instanceName = znRecord.getId();

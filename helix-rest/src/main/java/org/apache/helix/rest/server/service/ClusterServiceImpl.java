@@ -29,7 +29,7 @@ public class ClusterServiceImpl implements ClusterService {
     String zoneField = _configAccessor.getClusterConfig(cluster).getFaultZoneType();
     PropertyKey.Builder keyBuilder = _dataAccessor.keyBuilder();
     List<InstanceConfig> instanceConfigs =
-        _dataAccessor.getChildValues(keyBuilder.instanceConfigs());
+        _dataAccessor.getChildValues(keyBuilder.instanceConfigs(), true);
     Map<String, List<ClusterTopology.Instance>> instanceMapByZone = new HashMap<>();
     if (instanceConfigs != null && !instanceConfigs.isEmpty()) {
       for (InstanceConfig instanceConfig : instanceConfigs) {

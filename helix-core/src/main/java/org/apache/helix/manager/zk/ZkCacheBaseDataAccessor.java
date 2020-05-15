@@ -564,6 +564,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     return _baseAccessor.remove(serverPaths, options);
   }
 
+  @Deprecated
   @Override
   public List<T> get(List<String> paths, List<Stat> stats, int options) {
     return get(paths, stats, options, false);
@@ -674,8 +675,20 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     return _baseAccessor.getChildNames(serverParentPath, options);
   }
 
+  @Deprecated
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options) {
+    return getChildren(parentPath, stats, options, false);
+  }
+
+  @Override
+  public List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
+      int retryInterval) throws HelixException {
+    // TODO add retry logic according to retryCount and retryInterval input
+    return getChildren(parentPath, stats, options, true);
+  }
+
+  private List<T> getChildren(String parentPath, List<Stat> stats, int options, boolean throwException) {
     List<String> childNames = getChildNames(parentPath, options);
     if (childNames == null) {
       return null;
@@ -687,13 +700,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       paths.add(path);
     }
 
-    return get(paths, stats, options);
-  }
-
-  @Override
-  public List<T> getChildren(String parentPath, List<Stat> stats, int options, int retryCount,
-      int retryInterval) throws HelixException {
-    return getChildren(parentPath, stats, options);
+    return get(paths, stats, options, throwException);
   }
 
   @Override

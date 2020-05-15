@@ -93,7 +93,7 @@ public class TestMessageThrottle extends ZkTestBase {
             throws Exception {
           if (currentChilds != null && currentChilds.size() > 1) {
             List<ZNRecord> records =
-                accessor.getBaseDataAccessor().getChildren(parentPath, null, 0);
+                accessor.getBaseDataAccessor().getChildren(parentPath, null, 0, 0, 0);
             int transitionMsgCount = 0;
             for (ZNRecord record : records) {
               Message msg = new Message(record);

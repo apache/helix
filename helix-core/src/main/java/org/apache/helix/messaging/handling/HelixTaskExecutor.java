@@ -700,7 +700,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
 
-    List<Message> newMessages = accessor.getProperty(keys);
+    /**
+     * Do not throw exception on partial message read.
+     * 1. There is no way to resolve the error on the participant side. And once it fails here, we
+     * are running the risk of ignoring the message change event. And the participant might be stuck.
+     * 2. Even this is a partial read, we have another chance to retry in the business logic since
+     * as long as the participant processes messages, it will touch the message folder and triggers
+     * another message event.
+     */
+    List<Message> newMessages = accessor.getProperty(keys, false);
     // Message may be removed before get read, clean up null messages.
     Iterator<Message> messageIterator = newMessages.iterator();
     while(messageIterator.hasNext()) {
@@ -817,7 +825,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           LOG.info(String.format("Controller received PARTICIPANT_SESSION_CHANGE msg from src: %s",
               message.getMsgSrc()));
           PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
-          List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
+          List<LiveInstance> liveInstances =
+              manager.getHelixDataAccessor().getChildValues(key, true);
           _controller.onLiveInstanceChange(liveInstances, changeContext);
           reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.COMPLETED);
           continue;

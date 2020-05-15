@@ -177,8 +177,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // Controller has timeout > 1sec, so after 1s, controller should not have GCed message
     Thread.sleep(1000);
-    Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_0")).size(), 1);
-    Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_1")).size(), 1);
+    Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_0"), true).size(), 1);
+    Assert.assertEquals(accessor.getChildValues(keyBuilder.messages("localhost_1"), true).size(), 1);
 
     // After another purge delay, controller should cleanup messages and continue to rebalance
     Thread.sleep(msgPurgeDelay);
@@ -187,8 +187,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
     Thread.sleep(1000);
 
-    List<Message> host0Msg = accessor.getChildValues(keyBuilder.messages("localhost_0"));
-    List<Message> host1Msg = accessor.getChildValues(keyBuilder.messages("localhost_1"));
+    List<Message> host0Msg = accessor.getChildValues(keyBuilder.messages("localhost_0"), true);
+    List<Message> host1Msg = accessor.getChildValues(keyBuilder.messages("localhost_1"), true);
     List<Message> allMsgs = new ArrayList<>(host0Msg);
     allMsgs.addAll(host1Msg);
     Assert.assertEquals(allMsgs.size(), 1);
@@ -299,7 +299,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     // message, make sure controller should not send O->DROPPED until O->S is done
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, resourceName);
-    List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates());
+    List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates(), true);
     cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);

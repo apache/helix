@@ -446,7 +446,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     // test multi-get
-    List<ZNRecord> records = store.get(paths, null, 0);
+    List<ZNRecord> records = store.get(paths, null, 0, true);
     Assert.assertNotNull(records);
     Assert.assertEquals(records.size(), 10);
     for (int i = 0; i < 10; i++) {
@@ -554,7 +554,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     }
 
     // test multi-get
-    List<ZNRecord> records = store.get(paths, null, 0);
+    List<ZNRecord> records = store.get(paths, null, 0, true);
     Assert.assertNotNull(records);
     Assert.assertEquals(records.size(), 20);
     for (int i = 0; i < 20; i++) {
@@ -627,7 +627,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
       Assert.assertTrue(childs.contains(child));
     }
 
-    List<ZNRecord> records = store.getChildren("/", null, 0);
+    List<ZNRecord> records = store.getChildren("/", null, 0, 0, 0);
     Assert.assertNotNull(records);
     Assert.assertEquals(records.size(), 20);
     for (int i = 0; i < 20; i++) {

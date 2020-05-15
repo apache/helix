@@ -562,7 +562,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check there is no pending messages for the partitions exist
-    List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
+    List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName), true);
     for (Message message : messages) {
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType()) || !sessionId
           .equals(message.getTgtSessionId()) || !resourceName.equals(message.getResourceName())
@@ -621,9 +621,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info("Reset instances {} in cluster {}.",
         instanceNames == null ? "NULL" : HelixUtil.serializeByComma(instanceNames), clusterName);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews(), true);
 
     Set<String> resetInstanceNames = new HashSet<String>(instanceNames);
     for (String instanceName : resetInstanceNames) {
@@ -649,9 +649,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     logger.info("Reset resources {} in cluster {}.",
         resourceNames == null ? "NULL" : HelixUtil.serializeByComma(resourceNames), clusterName);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews(), true);
 
     Set<String> resetResourceNames = new HashSet<String>(resourceNames);
     for (ExternalView extView : extViews) {
@@ -1559,7 +1559,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<String> instances = new ArrayList<>();
     String path = PropertyPathBuilder.instanceConfig(clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0);
+    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
     for (ZNRecord record : znRecords) {
       if (record != null) {
         InstanceConfig instanceConfig = new InstanceConfig(record);

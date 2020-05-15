@@ -275,16 +275,18 @@ public class ParticipantManager {
         continue;
       }
 
+      // Ignore if any current states in the previous folder cannot be read.
       List<CurrentState> lastCurStates =
-          _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session));
+          _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session), false);
 
       for (CurrentState lastCurState : lastCurStates) {
         LOG.info("Carrying over old session: " + session + ", resource: " + lastCurState.getId()
             + " to current session: " + _sessionId);
         String stateModelDefRef = lastCurState.getStateModelDefRef();
         if (stateModelDefRef == null) {
-          LOG.error("skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
-              + lastCurState);
+          LOG.error(
+              "skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
+                  + lastCurState);
           continue;
         }
         StateModelDefinition stateModel =

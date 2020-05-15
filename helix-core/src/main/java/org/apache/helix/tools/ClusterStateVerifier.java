@@ -211,7 +211,8 @@ public class ClusterStateVerifier {
           }
         }
 
-        Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+        Map<String, ExternalView> extViews =
+            accessor.getChildValuesMap(keyBuilder.externalViews(), true);
         if (extViews == null) {
           extViews = Collections.emptyMap();
         }
@@ -469,13 +470,15 @@ public class ClusterStateVerifier {
     private boolean verifyMasterNbInExtView(HelixDataAccessor accessor) {
       Builder keyBuilder = accessor.keyBuilder();
 
-      Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+      Map<String, IdealState> idealStates =
+          accessor.getChildValuesMap(keyBuilder.idealStates(), true);
       if (idealStates == null || idealStates.size() == 0) {
         LOG.info("No resource idealState");
         return true;
       }
 
-      Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+      Map<String, ExternalView> extViews =
+          accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null || extViews.size() < idealStates.size()) {
         LOG.info("No externalViews | externalView.size() < idealState.size()");
         return false;

@@ -30,7 +30,7 @@ public class TestClusterService {
 
     Mock mock = new Mock();
     when(mock.dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor.getChildValues(any(PropertyKey.class))).thenReturn(instanceConfigs);
+    when(mock.dataAccessor.getChildValues(any(PropertyKey.class), anyBoolean())).thenReturn(instanceConfigs);
 
     ClusterTopology clusterTopology = mock.clusterService.getClusterTopology(TEST_CLUSTER);
 
@@ -46,7 +46,8 @@ public class TestClusterService {
 
     Mock mock = new Mock();
     when(mock.dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor.getChildValues(any(PropertyKey.class))).thenReturn(instanceConfigs);
+    when(mock.dataAccessor.getChildValues(any(PropertyKey.class), anyBoolean()))
+        .thenReturn(instanceConfigs);
 
     ClusterTopology clusterTopology = mock.clusterService.getClusterTopology(TEST_CLUSTER);
 
@@ -64,7 +65,8 @@ public class TestClusterService {
 
     Mock mock = new Mock();
     when(mock.dataAccessor.keyBuilder()).thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
-    when(mock.dataAccessor.getChildValues(any(PropertyKey.class))).thenReturn(instanceConfigs);
+    when(mock.dataAccessor.getChildValues(any(PropertyKey.class), anyBoolean()))
+        .thenReturn(instanceConfigs);
 
     ClusterTopology clusterTopology = mock.clusterService.getClusterTopology(TEST_CLUSTER);
 

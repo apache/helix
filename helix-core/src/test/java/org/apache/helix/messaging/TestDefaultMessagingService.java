@@ -62,7 +62,8 @@ public class TestDefaultMessagingService {
       }
 
       @Override
-      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key) {
+      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
+          boolean throwException) {
         PropertyType type = key.getType();
         List<T> result = new ArrayList<T>();
         Class<? extends HelixProperty> clazz = key.getTypeClass();

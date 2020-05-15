@@ -89,7 +89,8 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     if (liveInstance != null) {
       String sessionId = liveInstance.getEphemeralOwner();
       List<CurrentState> currentStates = _accessor.getChildValues(
-          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId));
+          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId),
+          true);
       for (CurrentState currentState : currentStates) {
         for (Map.Entry<String, String> partitionState : currentState.getPartitionStateMap()
             .entrySet()) {
@@ -143,7 +144,8 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     if (liveInstance != null) {
       String sessionId = liveInstance.getEphemeralOwner();
       List<CurrentState> currentStates = _accessor.getChildValues(
-          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId));
+          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId),
+          true);
       for (CurrentState currentState : currentStates) {
         for (Map.Entry<String, String> partitionState : currentState.getPartitionStateMap()
             .entrySet()) {
@@ -202,7 +204,8 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     if (liveInstance != null) {
       String sessionId = liveInstance.getEphemeralOwner();
       List<CurrentState> currentStates = _accessor.getChildValues(
-          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId));
+          _accessor.keyBuilder().currentStates(_participants[0].getInstanceName(), sessionId),
+          true);
       for (CurrentState currentState : currentStates) {
         for (Map.Entry<String, String> partitionState : currentState.getPartitionStateMap()
             .entrySet()) {

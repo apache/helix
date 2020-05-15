@@ -184,26 +184,29 @@ public class MockAccessor implements HelixDataAccessor {
   }
 
   @SuppressWarnings("unchecked")
-  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
-    String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
-    List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0);
-    return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), children);
-  }
-
-  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
-      boolean throwException) {
-    return getChildValues(key);
+  @Deprecated
+  @Override
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
+    return getChildValues(propertyKey, false);
   }
 
   @Override
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey key, boolean throwException) {
+    String path = key.getPath(); // PropertyPathConfig.getPath(type,
+    List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0, 0, 0);
+    return (List<T>) HelixProperty.convertToTypedList(key.getTypeClass(), children);
+  }
+
+  @Deprecated
+  @Override
   public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
-    List<T> list = getChildValues(key);
-    return HelixProperty.convertListToMap(list);
+    return getChildValuesMap(key, false);
   }
 
   @Override public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key,
       boolean throwException) {
-    return getChildValuesMap(key);
+    List<T> list = getChildValues(key, throwException);
+    return HelixProperty.convertListToMap(list);
   }
 
   @Override
@@ -238,8 +241,15 @@ public class MockAccessor implements HelixDataAccessor {
     throw new HelixException("Method not implemented!");
   }
 
+  @Deprecated
   @Override
   public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys) {
+    return getProperty(keys, false);
+  }
+
+  @Override
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
+      boolean throwException) {
     List<T> list = new ArrayList<T>();
     for (PropertyKey key : keys) {
       @SuppressWarnings("unchecked")
@@ -247,10 +257,5 @@ public class MockAccessor implements HelixDataAccessor {
       list.add(t);
     }
     return list;
-  }
-
-  @Override public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys,
-      boolean throwException) {
-    return getProperty(keys);
   }
 }

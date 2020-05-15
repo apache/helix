@@ -246,15 +246,14 @@ public class GenericHelixController implements IdealStateChangeListener,
 
           HelixDataAccessor accessor = _manager.getHelixDataAccessor();
           PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-          Map<String, LiveInstance> liveInstanceMap =
-              accessor.getChildValuesMap(keyBuilder.liveInstances());
+          List<LiveInstance> liveInstances =
+              accessor.getChildValues(keyBuilder.liveInstances(), true);
 
-          if (liveInstanceMap != null && !liveInstanceMap.isEmpty()) {
+          if (liveInstances != null && !liveInstances.isEmpty()) {
             NotificationContext changeContext = new NotificationContext(_manager);
             changeContext.setType(NotificationContext.Type.CALLBACK);
             synchronized (_manager) {
-              checkLiveInstancesObservation(new ArrayList<>(liveInstanceMap.values()),
-                  changeContext);
+              checkLiveInstancesObservation(liveInstances, changeContext);
             }
           }
         }

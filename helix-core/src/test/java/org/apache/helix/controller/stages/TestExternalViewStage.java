@@ -66,14 +66,14 @@ public class TestExternalViewStage extends ZkUnitTestBase {
     runStage(event, new CurrentStateComputationStage());
     runStage(event, externalViewComputeStage);
     Assert.assertEquals(cache.getExternalViews().values(),
-        accessor.getChildValues(accessor.keyBuilder().externalViews()));
+        accessor.getChildValues(accessor.keyBuilder().externalViews(), true));
 
     // Assure there is no external got updated
     List<ExternalView> oldExternalViews =
-        accessor.getChildValues(accessor.keyBuilder().externalViews());
+        accessor.getChildValues(accessor.keyBuilder().externalViews(), true);
     runStage(event, externalViewComputeStage);
     List<ExternalView> newExternalViews =
-        accessor.getChildValues(accessor.keyBuilder().externalViews());
+        accessor.getChildValues(accessor.keyBuilder().externalViews(), true);
     Assert.assertEquals(oldExternalViews, newExternalViews);
     for (int i = 0; i < oldExternalViews.size(); i++) {
       Assert.assertEquals(oldExternalViews.get(i).getStat().getVersion(),

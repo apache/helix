@@ -155,7 +155,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
     BestPossibleStateOutput bestPossbileStates = calculateBestPossibleState(cache);
     Map<String, ExternalView> externalViews =
-        _accessor.getChildValuesMap(_keyBuilder.externalViews());
+        _accessor.getChildValuesMap(_keyBuilder.externalViews(), true);
 
     // TODO all ideal-states should be included in external-views
 

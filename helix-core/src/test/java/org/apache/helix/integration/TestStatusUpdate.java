@@ -40,7 +40,7 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase {
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews(), true);
     Assert.assertNotNull(extViews);
 
     for (ExternalView extView : extViews) {

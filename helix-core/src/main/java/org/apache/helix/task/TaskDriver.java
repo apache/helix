@@ -851,7 +851,7 @@ public class TaskDriver {
   public Map<String, WorkflowConfig> getWorkflows() {
     Map<String, WorkflowConfig> workflowConfigMap = new HashMap<>();
     Map<String, ResourceConfig> resourceConfigMap =
-        _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs());
+        _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs(), true);
 
     for (Map.Entry<String, ResourceConfig> resource : resourceConfigMap.entrySet()) {
       try {

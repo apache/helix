@@ -193,9 +193,9 @@ public class TaskDataCache extends AbstractDataCache {
       }
     }
 
-    List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0);
+    List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0, true);
     List<ZNRecord> prevAssignments =
-        accessor.getBaseDataAccessor().get(prevAssignmentPaths, null, 0);
+        accessor.getBaseDataAccessor().get(prevAssignmentPaths, null, 0, true);
 
     for (int i = 0; i < contexts.size(); i++) {
       ZNRecord context = contexts.get(i);

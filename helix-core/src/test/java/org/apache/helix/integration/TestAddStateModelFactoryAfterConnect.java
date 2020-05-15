@@ -96,7 +96,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkTestBase {
       totalMsgs = 0;
       for (int i = 0; i < n; i++) {
         List<Message> msgs =
-            accessor.getChildValues(keyBuilder.messages(participants[i].getInstanceName()));
+            accessor.getChildValues(keyBuilder.messages(participants[i].getInstanceName()), true);
         totalMsgs += msgs.size();
       }
 

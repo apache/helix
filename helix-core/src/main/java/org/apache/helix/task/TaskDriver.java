@@ -1148,32 +1148,30 @@ public class TaskDriver {
    * @return the target task thread pool size of the instance
    */
   public int getTargetTaskThreadPoolSize(String instanceName) {
-    InstanceConfig instanceConfig =
-        _accessor.getProperty(_accessor.keyBuilder().instanceConfig(instanceName));
-    if (instanceConfig == null) {
-      throw new IllegalArgumentException(
-          "Failed to find InstanceConfig with provided instance name " + instanceName);
-    }
-
+    InstanceConfig instanceConfig = getInstanceConfig(instanceName);
     return instanceConfig.getTargetTaskThreadPoolSize();
   }
 
   /**
    * Set the target task thread pool size of an instance. The target task thread pool size goes to
-   * InstanceConfig, and is used to construct the task thread pool. The construction of thread pool
-   * requires JVM restart after the target value has been set.
+   * InstanceConfig, and is used to construct the task thread pool. The newly-set target task
+   * thread pool size will take effect upon a JVM restart.
    * @param instanceName - name of the instance
    * @param targetTaskThreadPoolSize - the target task thread pool size of the instance
    */
   public void setTargetTaskThreadPoolSize(String instanceName, int targetTaskThreadPoolSize) {
+    InstanceConfig instanceConfig = getInstanceConfig(instanceName);
+    instanceConfig.setTargetTaskThreadPoolSize(targetTaskThreadPoolSize);
+  }
+
+  private InstanceConfig getInstanceConfig(String instanceName) {
     InstanceConfig instanceConfig =
         _accessor.getProperty(_accessor.keyBuilder().instanceConfig(instanceName));
     if (instanceConfig == null) {
       throw new IllegalArgumentException(
           "Failed to find InstanceConfig with provided instance name " + instanceName + "!");
     }
-
-    instanceConfig.setTargetTaskThreadPoolSize(targetTaskThreadPoolSize);
+    return instanceConfig;
   }
 
   /**
@@ -1182,11 +1180,7 @@ public class TaskDriver {
    * @return the global target task thread pool size of the cluster
    */
   public int getGlobalTargetTaskThreadPoolSize() {
-    ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
-    if (clusterConfig == null) {
-      throw new IllegalStateException("Failed to find ClusterConfig!");
-    }
-
+    ClusterConfig clusterConfig = getClusterConfig();
     return clusterConfig.getGlobalTargetTaskThreadPoolSize();
   }
 
@@ -1194,18 +1188,23 @@ public class TaskDriver {
    * Set the global target task thread pool size of the cluster. The global target task thread pool
    * size goes to ClusterConfig, and is applied to all instances of the cluster. If an instance
    * doesn't specify its target thread pool size in InstanceConfig, then this value in ClusterConfig
-   * will be used to construct its task thread pool. The construction of thread pools requires JVM
-   * restart. If none of the global and per-instance target thread pool sizes are set, a default
-   * size will be used.
+   * will be used to construct its task thread pool. The newly-set target task thread pool size will
+   * take effect upon a JVM restart. If none of the global and per-instance target thread pool sizes
+   * are set, a default size will be used.
    * @param globalTargetTaskThreadPoolSize - the global target task thread pool size of the cluster
    */
   public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize) {
+    ClusterConfig clusterConfig = getClusterConfig();
+    clusterConfig.setGlobalTargetTaskThreadPoolSize(globalTargetTaskThreadPoolSize);
+  }
+
+  private ClusterConfig getClusterConfig() {
     ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
     if (clusterConfig == null) {
-      throw new IllegalStateException("Failed to find ClusterConfig!");
+      throw new IllegalStateException(
+          "Failed to find ClusterConfig for cluster " + _clusterName + "!");
     }
-
-    clusterConfig.setGlobalTargetTaskThreadPoolSize(globalTargetTaskThreadPoolSize);
+    return clusterConfig;
   }
 
   /**

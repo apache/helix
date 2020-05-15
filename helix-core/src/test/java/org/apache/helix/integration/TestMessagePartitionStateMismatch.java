@@ -45,7 +45,7 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
     Map<String, LiveInstance> liveinstanceMap =
-        accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
+        accessor.getChildValuesMap(accessor.keyBuilder().liveInstances(), true);
 
     for (String instanceName : liveinstanceMap.keySet()) {
       String sessionid = liveinstanceMap.get(instanceName).getEphemeralOwner();

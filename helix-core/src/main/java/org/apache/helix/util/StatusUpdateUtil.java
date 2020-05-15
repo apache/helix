@@ -39,11 +39,11 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +133,7 @@ public class StatusUpdateUtil {
       Builder keyBuilder = accessor.keyBuilder();
 
       List<ZNRecord> instances =
-          HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
+          HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs(), true));
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
       for (ZNRecord znRecord : instances) {
         String instanceName = znRecord.getId();

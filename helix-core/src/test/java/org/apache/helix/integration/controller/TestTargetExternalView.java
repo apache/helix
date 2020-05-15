@@ -68,8 +68,9 @@ public class TestTargetExternalView extends TaskTestBase {
         _accessor.getChildNames(_accessor.keyBuilder().targetExternalViews()).size(), 3);
 
     List<ExternalView> targetExternalViews =
-        _accessor.getChildValues(_accessor.keyBuilder().externalViews());
-    List<IdealState> idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates());
+        _accessor.getChildValues(_accessor.keyBuilder().externalViews(), true);
+    List<IdealState> idealStates =
+        _accessor.getChildValues(_accessor.keyBuilder().idealStates(), true);
 
     for (int i = 0; i < idealStates.size(); i++) {
       Assert.assertEquals(targetExternalViews.get(i).getRecord().getMapFields(),
@@ -84,8 +85,8 @@ public class TestTargetExternalView extends TaskTestBase {
 
     Assert.assertTrue(verifier.verifyByPolling());
     Thread.sleep(1000);
-    targetExternalViews = _accessor.getChildValues(_accessor.keyBuilder().externalViews());
-    idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates());
+    targetExternalViews = _accessor.getChildValues(_accessor.keyBuilder().externalViews(), true);
+    idealStates = _accessor.getChildValues(_accessor.keyBuilder().idealStates(), true);
 
     for (int i = 0; i < idealStates.size(); i++) {
       Assert.assertEquals(targetExternalViews.get(i).getRecord().getMapFields(),

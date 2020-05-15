@@ -368,14 +368,14 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
       paths.add(path);
     }
 
-    records = accessor.get(paths, null, 0);
+    records = accessor.get(paths, null, 0, true);
     for (int i = 0; i < 10; i++) {
       Assert.assertEquals(records.get(i).getId(), "TestDB" + i);
     }
 
     // getChildren
     records.clear();
-    records = accessor.getChildren(extViewPath, null, 0);
+    records = accessor.getChildren(extViewPath, null, 0, 0, 0);
     for (int i = 0; i < 10; i++) {
       Assert.assertEquals(records.get(i).getId(), "TestDB" + i);
     }

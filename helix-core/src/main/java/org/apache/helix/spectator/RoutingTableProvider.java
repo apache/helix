@@ -623,8 +623,8 @@ public class RoutingTableProvider
       String keyReference = generateReferenceKey(PropertyType.EXTERNALVIEW.name(),  DEFAULT_STATE_TYPE);
       HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
-      List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
+      List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs(), true);
+      List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances(), true);
       refreshExternalView(externalViewList, configList, liveInstances, keyReference);
     } else {
       ClusterEventType eventType;

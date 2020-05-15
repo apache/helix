@@ -142,7 +142,7 @@ public class AutoFallbackPropertyStore<T> extends ZkHelixPropertyStore<T> {
 
       if (fallbackMap.size() > 0) {
         List<String> fallbackPaths = new ArrayList<String>(fallbackMap.keySet());
-        List<T> fallbackValues = _fallbackStore.get(fallbackPaths, null, options);
+        List<T> fallbackValues = _fallbackStore.get(fallbackPaths, null, options, true);
         boolean createSucceed[] =
             super.createChildren(fallbackPaths, fallbackValues, AccessOption.PERSISTENT);
 
@@ -217,24 +217,23 @@ public class AutoFallbackPropertyStore<T> extends ZkHelixPropertyStore<T> {
   }
 
   @Override
-  public List<T> get(List<String> paths, List<Stat> stats, int options) {
+  public List<T> get(List<String> paths, List<Stat> stats, int options, boolean throwException) {
     if (_fallbackStore == null) {
-      return super.get(paths, stats, options);
+      return super.get(paths, stats, options, throwException);
     } else {
-      List<T> values = super.get(paths, stats, options);
-
-      Map<String, Integer> fallbackMap = new HashMap<String, Integer>();
+      List<T> values = super.get(paths, stats, options, throwException);
+      Map<String, Integer> fallbackMap = new HashMap<>();
       for (int i = 0; i < paths.size(); i++) {
         T value = values.get(i);
         if (value == null) {
           fallbackMap.put(paths.get(i), i);
         }
       }
-
       if (fallbackMap.size() > 0) {
-        List<String> fallbackPaths = new ArrayList<String>(fallbackMap.keySet());
-        List<Stat> fallbackStats = new ArrayList<Stat>();
-        List<T> fallbackValues = _fallbackStore.get(fallbackPaths, fallbackStats, options);
+        List<String> fallbackPaths = new ArrayList<>(fallbackMap.keySet());
+        List<Stat> fallbackStats = new ArrayList<>();
+        List<T> fallbackValues =
+            _fallbackStore.get(fallbackPaths, fallbackStats, options, throwException);
         for (int i = 0; i < fallbackPaths.size(); i++) {
           String fallbackPath = fallbackPaths.get(i);
           int j = fallbackMap.get(fallbackPath);
@@ -244,7 +243,6 @@ public class AutoFallbackPropertyStore<T> extends ZkHelixPropertyStore<T> {
           }
         }
       }
-
       return values;
     }
   }

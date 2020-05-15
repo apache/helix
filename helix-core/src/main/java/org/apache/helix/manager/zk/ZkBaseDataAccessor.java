@@ -482,6 +482,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   /**
    * async get
    */
+  @Deprecated
   @Override
   public List<T> get(List<String> paths, List<Stat> stats, int options) {
     boolean[] needRead = new boolean[paths.size()];
@@ -584,6 +585,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * The retryCount and retryInterval will be ignored.
    */
   // TODO: Change the behavior of getChildren when Helix starts migrating API.
+  @Deprecated
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options) {
     return getChildren(parentPath, stats, options, false);

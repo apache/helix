@@ -62,12 +62,12 @@ public class TestRoutingTable {
           _mockAccessor = new MockAccessor() {
             @SuppressWarnings("unchecked")
             @Override
-            public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
-            {
+            public <T extends HelixProperty> List<T> getChildValues(PropertyKey key,
+                boolean throwException) {
               PropertyType type = key.getType();
               String[] keys = key.getParams();
-              if (type == PropertyType.CONFIGS && keys != null && keys.length > 1
-                  && keys[1].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString())) {
+              if (type == PropertyType.CONFIGS && keys != null && keys.length > 1 && keys[1]
+                  .equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString())) {
                 List<InstanceConfig> configs = new ArrayList<InstanceConfig>();
                 for (String instanceName : array) {
                   InstanceConfig config = new InstanceConfig(instanceName);
@@ -79,7 +79,7 @@ public class TestRoutingTable {
                 return (List<T>) configs;
               }
               return Collections.emptyList();
-            };
+            }
           };
         }
         return _mockAccessor;

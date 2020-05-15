@@ -491,7 +491,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Map<String, HelixProperty> resourceConfigMap =
-        accessor.getChildValuesMap(keyBuilder.resourceConfigs());
+        accessor.getChildValuesMap(keyBuilder.resourceConfigs(), true);
     if (!resourceConfigMap.containsKey(origWorkflowName)) {
       LOG.error("No such workflow named " + origWorkflowName);
       return null;

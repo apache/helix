@@ -348,7 +348,8 @@ public class TestHelixTaskExecutor {
     }
 
     AssertJUnit
-        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), nMsgs);
+        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+            nMsgs);
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(instanceName, msgList, changeContext);
@@ -356,7 +357,8 @@ public class TestHelixTaskExecutor {
     Thread.sleep(200);
 
     // only 1 message is left over - state transition takes 1sec
-    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+        1);
 
     // While a state transition message is going on, another state transition message for same
     // resource / partition comes in, it should be discarded by message handler
@@ -366,10 +368,12 @@ public class TestHelixTaskExecutor {
     dataAccessor.setProperty(msgList.get(2).getKey(keyBuilder, instanceName), msgList.get(2));
     executor.onMessage(instanceName, Arrays.asList(msgList.get(2)), changeContext);
     Thread.sleep(200);
-    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 1);
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+        1);
 
     Thread.sleep(1000);
-    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName)).size(), 0);
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+        0);
     System.out.println("END TestHelixTaskExecutor.testDuplicatedMessage()");
   }
 

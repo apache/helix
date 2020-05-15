@@ -343,7 +343,7 @@ public class TaskTestUtil {
 
     long startTime = System.currentTimeMillis();
     while (true) {
-      List<Message> messages = accessor.getChildValues(propertyKey);
+      List<Message> messages = accessor.getChildValues(propertyKey, true);
       if (allTasksBlock(messages, numTask)) {
         return true;
       } else if (startTime + timeout < System.currentTimeMillis()) {

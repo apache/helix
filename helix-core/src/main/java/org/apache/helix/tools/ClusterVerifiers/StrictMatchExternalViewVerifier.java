@@ -227,7 +227,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
-      Map<String, ExternalView> extViews = _accessor.getChildValuesMap(keyBuilder.externalViews());
+      Map<String, ExternalView> extViews =
+          _accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null) {
         extViews = Collections.emptyMap();
       }

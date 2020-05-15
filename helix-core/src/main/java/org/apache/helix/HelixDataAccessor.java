@@ -90,6 +90,7 @@ public interface HelixDataAccessor {
    * @param keys
    * @return
    */
+  @Deprecated
   <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys);
 
   /**
@@ -141,6 +142,7 @@ public interface HelixDataAccessor {
    * @param key
    * @return subPropertyValues
    */
+  @Deprecated
   <T extends HelixProperty> List<T> getChildValues(PropertyKey key);
 
   /**
@@ -161,7 +163,7 @@ public interface HelixDataAccessor {
    * @param key
    * @return a map of property identifiers to typed properties
    */
-
+  @Deprecated
   <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key);
 
   /**

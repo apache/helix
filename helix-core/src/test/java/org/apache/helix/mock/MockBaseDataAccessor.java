@@ -149,6 +149,7 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
     return zNode != null ? zNode.getRecord() : null;
   }
 
+  @Deprecated
   @Override
   public List<ZNRecord> get(List<String> paths, List<Stat> stats, int options) {
     return get(paths, stats, options, false);
@@ -165,8 +166,15 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
     return records;
   }
 
+  @Deprecated
   @Override
   public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options) {
+    return getChildren(parentPath, stats, options, 0, 0);
+  }
+
+  @Override
+  public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options,
+      int retryCount, int retryInterval) throws HelixException {
     List<ZNRecord> children = new ArrayList<>();
     for (String key : _recordMap.keySet()) {
       if (key.startsWith(parentPath)) {
@@ -185,12 +193,6 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
       }
     }
     return children;
-  }
-
-  @Override
-  public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options,
-      int retryCount, int retryInterval) throws HelixException {
-    return getChildren(parentPath, stats, options);
   }
 
   @Override

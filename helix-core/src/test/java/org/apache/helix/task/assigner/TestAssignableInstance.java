@@ -55,18 +55,20 @@ public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testInitializationWithQuotaUnset() {
+    int expectedCurrentTaskThreadPoolSize = 100;
+    LiveInstance liveInstance = createLiveInstance(null, null);
+    liveInstance.setCurrentTaskThreadPoolSize(expectedCurrentTaskThreadPoolSize);
+
     // Initialize AssignableInstance with neither resource capacity nor quota ratio provided
     AssignableInstance ai = new AssignableInstance(createClusterConfig(null, null, false),
-        new InstanceConfig(testInstanceName), createLiveInstance(null, null));
+        new InstanceConfig(testInstanceName), liveInstance);
     Assert.assertEquals(ai.getUsedCapacity().size(), 1);
     Assert.assertEquals(
         (int) ai.getUsedCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
-            .get(AssignableInstance.DEFAULT_QUOTA_TYPE),
-        0);
+            .get(AssignableInstance.DEFAULT_QUOTA_TYPE), 0);
     Assert.assertEquals(
         (int) ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name())
-            .get(AssignableInstance.DEFAULT_QUOTA_TYPE),
-        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+            .get(AssignableInstance.DEFAULT_QUOTA_TYPE), expectedCurrentTaskThreadPoolSize);
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }
 
@@ -91,10 +93,14 @@ public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testInitializationWithOnlyQuotaType() {
+    int expectedCurrentTaskThreadPoolSize = 100;
+    LiveInstance liveInstance = createLiveInstance(null, null);
+    liveInstance.setCurrentTaskThreadPoolSize(expectedCurrentTaskThreadPoolSize);
+
     // Initialize AssignableInstance with only quota type provided
     AssignableInstance ai =
         new AssignableInstance(createClusterConfig(testQuotaTypes, testQuotaRatio, false),
-            new InstanceConfig(testInstanceName), createLiveInstance(null, null));
+            new InstanceConfig(testInstanceName), liveInstance);
 
     Assert.assertEquals(ai.getTotalCapacity().size(), 1);
     Assert.assertEquals(ai.getUsedCapacity().size(), 1);
@@ -106,7 +112,7 @@ public class TestAssignableInstance extends AssignerTestBase {
         testQuotaTypes.length);
     Assert.assertEquals(
         ai.getTotalCapacity().get(LiveInstance.InstanceResourceType.TASK_EXEC_THREAD.name()),
-        calculateExpectedQuotaPerType(TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE, testQuotaTypes,
+        calculateExpectedQuotaPerType(expectedCurrentTaskThreadPoolSize, testQuotaTypes,
             testQuotaRatio));
     Assert.assertEquals(ai.getCurrentAssignments().size(), 0);
   }
@@ -171,12 +177,16 @@ public class TestAssignableInstance extends AssignerTestBase {
 
   @Test
   public void testNormalTryAssign() {
+    int testCurrentTaskThreadPoolSize = 100;
+    LiveInstance liveInstance = createLiveInstance(null, null);
+    liveInstance.setCurrentTaskThreadPoolSize(testCurrentTaskThreadPoolSize);
+
     AssignableInstance ai = new AssignableInstance(createClusterConfig(null, null, true),
-        new InstanceConfig(testInstanceName), createLiveInstance(null, null));
+        new InstanceConfig(testInstanceName), liveInstance);
 
     // When nothing is configured, we should use default quota type to assign
     Map<String, TaskAssignResult> results = new HashMap<>();
-    for (int i = 0; i < TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE; i++) {
+    for (int i = 0; i < testCurrentTaskThreadPoolSize; i++) {
       String taskId = Integer.toString(i);
       TaskConfig task = new TaskConfig("", null, taskId, null);
       TaskAssignResult result = ai.tryAssign(task, AssignableInstance.DEFAULT_QUOTA_TYPE);

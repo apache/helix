@@ -105,10 +105,13 @@ public class TestEnqueueJobs extends TaskTestBase {
 
   @Test
   public void testQueueParallelJobs() throws InterruptedException {
+    final int parallelJobs = 3;
+    final int numberOfJobsAddedBeforeControllerSwitch = 4;
+    final int totalNumberOfJobs = 7;
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
-        .setWorkflowId(queueName).setParallelJobs(3).setAllowOverlapJobAssignment(true);
+        .setWorkflowId(queueName).setParallelJobs(parallelJobs).setAllowOverlapJobAssignment(true);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -116,12 +119,12 @@ public class TestEnqueueJobs extends TaskTestBase {
             .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "10000"));
 
     // Add 4 jobs to the queue
-    for (int i = 0; i <= 3; i++) {
+    for (int i = 0; i < numberOfJobsAddedBeforeControllerSwitch; i++) {
       _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
     }
 
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
-    for (int i = 0; i <= 3; i++) {
+    for (int i = 0; i < numberOfJobsAddedBeforeControllerSwitch; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
           TaskState.COMPLETED);
     }
@@ -130,7 +133,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     _controller.syncStop();
 
     // Add 3 more jobs to the queue which should run in parallel after the Controller is started
-    for (int i = 4; i <= 6; i++) {
+    for (int i = numberOfJobsAddedBeforeControllerSwitch; i < totalNumberOfJobs; i++) {
       _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
     }
 
@@ -140,22 +143,22 @@ public class TestEnqueueJobs extends TaskTestBase {
     _controller.syncStart();
 
     // Wait until all of the newly added jobs (Job4 to Job6) are finished
-    for (int i = 4; i <= 6; i++) {
+    for (int i = numberOfJobsAddedBeforeControllerSwitch; i < totalNumberOfJobs; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
           TaskState.COMPLETED);
     }
 
     // Make sure the jobs have been running in parallel by checking the jobs start time and finish
     // time
-    Set<Long> startTimes = new HashSet<>();
-    Set<Long> endTime = new HashSet<>();
+    long maxStartTime = Long.MIN_VALUE;
+    long minFinishTime = Long.MAX_VALUE;
 
-    for (int i = 4; i <= 6; i++) {
+    for (int i = numberOfJobsAddedBeforeControllerSwitch; i < totalNumberOfJobs; i++) {
       JobContext jobContext =
           _driver.getJobContext(TaskUtil.getNamespacedJobName(queueName, "JOB" + i));
-      startTimes.add(jobContext.getStartTime());
-      endTime.add(jobContext.getFinishTime());
+      maxStartTime = Long.max(maxStartTime, jobContext.getStartTime());
+      minFinishTime = Long.min(minFinishTime, jobContext.getFinishTime());
     }
-    Assert.assertTrue(Collections.min(endTime) > Collections.max(startTimes));
+    Assert.assertTrue(minFinishTime > maxStartTime);
   }
 }

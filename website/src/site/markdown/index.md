@@ -81,15 +81,15 @@ Apache Helix has a new release:
 
     [\[Quick Start\]](./1.0.0-docs/Quickstart.html) [\[Release Notes\]](./1.0.0-docs/releasenotes/release-1.0.0.html)
 
-* [0.9.4](./0.9.4-docs/index.html) - A release with several critical bug fixing for 0.9 series release
+* [0.9.7](./0.9.7-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 
-    [\[Quick Start\]](./0.9.4-docs/Quickstart.html) [\[Release Notes\]](./0.9.4-docs/releasenotes/release-0.9.4.html)
+    [\[Quick Start\]](./0.9.7-docs/Quickstart.html) [\[Release Notes\]](./0.9.7-docs/releasenotes/release-0.9.4.html)
 
 ### Download
 
 <a href="./1.0.0-docs/download.html" class="btn btn-primary btn-small">1.0.0</a>
 
-<a href="./0.9.4-docs/download.html" class="btn btn-primary btn-small">0.9.4</a>
+<a href="./0.9.7-docs/download.html" class="btn btn-primary btn-small">0.9.7</a>
 
 ### Maven Dependency
 

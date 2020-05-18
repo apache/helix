@@ -118,7 +118,7 @@ public class ZkConnectionManager extends ZkClient {
 
   protected synchronized void close(boolean skipIfWatched) {
     cleanupInactiveWatchers();
-    if (_sharedWatchers.size() > 0) {
+    if (_sharedWatchers != null && _sharedWatchers.size() > 0) {
       if (skipIfWatched) {
         LOG.debug("Skip closing ZkConnection due to existing watchers. Watcher count {}.",
             _sharedWatchers.size());
@@ -134,12 +134,15 @@ public class ZkConnectionManager extends ZkClient {
 
   protected void cleanupInactiveWatchers() {
     Set<Watcher> closedWatchers = new HashSet<>();
-    for (Watcher watcher : _sharedWatchers) {
-      // TODO ideally, we shall have a ClosableWatcher interface so as to check accordingly. -- JJ
-      if (watcher instanceof SharedZkClient && ((SharedZkClient) watcher).isClosed()) {
-        closedWatchers.add(watcher);
+    // Null check needed because close() might get invoked before initialization
+    if (_sharedWatchers != null) {
+      for (Watcher watcher : _sharedWatchers) {
+        // TODO ideally, we shall have a ClosableWatcher interface so as to check accordingly. -- JJ
+        if (watcher instanceof SharedZkClient && ((SharedZkClient) watcher).isClosed()) {
+          closedWatchers.add(watcher);
+        }
       }
+      _sharedWatchers.removeAll(closedWatchers);
     }
-    _sharedWatchers.removeAll(closedWatchers);
   }
 }

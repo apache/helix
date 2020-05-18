@@ -1,8 +1,6 @@
 package org.apache.helix.integration.task;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.JobConfig;

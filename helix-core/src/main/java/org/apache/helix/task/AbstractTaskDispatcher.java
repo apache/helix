@@ -107,7 +107,7 @@ public abstract class AbstractTaskDispatcher {
         pSet.removeAll(tasksToDrop.get(instance));
       }
 
-      // Used to keep track of partitions that are in one the INIT or DROPPED states.
+      // Used to keep track of partitions that are in either INIT or DROPPED states
       Set<Integer> donePartitions = new TreeSet<>();
       for (int pId : pSet) {
         final String pName = pName(jobResource, pId);
@@ -401,9 +401,10 @@ public abstract class AbstractTaskDispatcher {
   private void updatePartitionInformationInJobContext(CurrentStateOutput currentStateOutput,
       String jobResource, TaskPartitionState currentState, JobContext jobCtx, Integer pId,
       String pName, String instance) {
-    // The assigned participant needs to be updated regardless of the current state and context
-    // information because it will prevent controller to stuck in race condition while there is two
-    // current states. In the updatePreviousAssignedTasksStatus, we check
+    // The assignedParticipant field needs to be updated regardless of the current state and context
+    // information because it will prevent controller to assign the task to the wrong participant
+    // for targeted tasks when two CurrentStates exist for one task.
+    // In the updatePreviousAssignedTasksStatus, we check
     // instance.equals(jobCtx.getAssignedParticipant(pId)) and bypass the assignment if instance is
     // not equal to job context's AssignedParticipant for this pId.
     jobCtx.setAssignedParticipant(pId, instance);
@@ -411,6 +412,7 @@ public abstract class AbstractTaskDispatcher {
     // This check is necessary because we are relying on current state and we do not want to update
     // context as long as current state existed. We just want to update context information
     // (specially finish time) once.
+    // This condition checks whether jobContext's state is out of date or not.
     if (!currentState.equals(jobCtx.getPartitionState(pId))) {
       jobCtx.setPartitionState(pId, currentState);
       String taskMsg = currentStateOutput.getInfo(jobResource, new Partition(pName), instance);

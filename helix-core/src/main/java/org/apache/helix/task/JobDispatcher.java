@@ -395,8 +395,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     // Generate currentInstanceToTaskAssignment with CurrentStateOutput as source of truth
     // Add all pIds existing in CurrentStateOutput
-    // We need to add these pIds here and make decision about the existing tasks with current state
-    // in updatePreviousAssignedTasksStatus method
+    // We need to add these pIds to result and update their states in JobContext in
+    // updatePreviousAssignedTasksStatus method.
     Map<Partition, Map<String, String>> partitions = currStateOutput.getCurrentStateMap(jobName);
     for (Map.Entry<Partition, Map<String, String>> entry : partitions.entrySet()) {
       // Get all (instance -> currentState) mappings
@@ -407,10 +407,11 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         int pId = TaskUtil.getPartitionId(entry.getKey().getPartitionName());
 
         if (result.containsKey(instance)) {
-          // We must add all pIds back here
           result.get(instance).add(pId);
           // Check if this task needs to be dropped. If so, we need to add to tasksToDrop no matter
-          // what its current state is so that it will be dropped.
+          // what its current state is so that it will be dropped
+          // This is trying to drop tasks on a reconnected instance with a new sessionId that have
+          // all of their requestedState == DROPPED
           if (requestedState != null && requestedState.equals(TaskPartitionState.DROPPED.name())) {
             if (!tasksToDrop.containsKey(instance)) {
               tasksToDrop.put(instance, new HashSet<>());
@@ -427,7 +428,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    * If partition is missing from prevInstanceToTaskAssignments (e.g. previous assignment is
    * deleted) it is added from context. Otherwise, the context won't be updated.
    * @param jobCtx Job Context
-   * @param currentInstanceToTaskAssignments instance -> partitionIds from current assignment
+   * @param currentInstanceToTaskAssignments instance -> partitionIds from CurrentStateOutput
    */
   protected void updateInstanceToTaskAssignmentsFromContext(JobContext jobCtx,
       Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments) {

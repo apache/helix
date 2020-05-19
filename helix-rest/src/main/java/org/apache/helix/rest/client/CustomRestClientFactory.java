@@ -20,6 +20,7 @@ package org.apache.helix.rest.client;
  */
 
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.rest.common.RestSystemPropertyKeys;
 import org.apache.helix.rest.server.HelixRestServer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.http.client.HttpClient;
@@ -36,10 +37,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CustomRestClientFactory {
   private static final Logger LOG = LoggerFactory.getLogger(CustomRestClientFactory.class);
-  private static final int DEFAULT_HTTP_REQUEST_TIMEOUT = 60 * 1000;
-  private static final int _httpRequestTimeout = HelixUtil.getSystemPropertyAsInt(
-      SystemPropertyKeys.HTTP_REQUEST_TIMEOUT, DEFAULT_HTTP_REQUEST_TIMEOUT);
-
   private static CustomRestClient INSTANCE = null;
 
   protected CustomRestClientFactory() {
@@ -50,10 +47,14 @@ public class CustomRestClientFactory {
       synchronized (CustomRestClientFactory.class) {
         if (INSTANCE == null) {
           try {
+            // Here int has been used for timeout value because setConnectTimeout,
+            // setConnectionRequestTimeout and setSocketTimeout are getting int as input
+            final int httpRequestTimeout =
+                HelixUtil.getSystemPropertyAsInt(RestSystemPropertyKeys.HTTP_TIMEOUT_MS, 60 * 1000);
             HttpClient httpClient;
-            RequestConfig config = RequestConfig.custom().setConnectTimeout(_httpRequestTimeout)
-                .setConnectionRequestTimeout(_httpRequestTimeout)
-                .setSocketTimeout(_httpRequestTimeout).build();
+            RequestConfig config = RequestConfig.custom().setConnectTimeout(httpRequestTimeout)
+                .setConnectionRequestTimeout(httpRequestTimeout)
+                .setSocketTimeout(httpRequestTimeout).build();
             if (HelixRestServer.REST_SERVER_SSL_CONTEXT != null) {
               httpClient =
                   HttpClients.custom().setSSLContext(HelixRestServer.REST_SERVER_SSL_CONTEXT)

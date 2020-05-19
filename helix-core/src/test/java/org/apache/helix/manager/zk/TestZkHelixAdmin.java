@@ -568,15 +568,27 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String instanceName = "TestInstance";
     String testResource = "TestResource";
     String wrongTestInstance = "WrongTestInstance";
+    String wrongTestResource = "WrongTestResource";
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName, true);
     admin.addInstance(clusterName, new InstanceConfig(instanceName));
     admin.enableInstance(clusterName, instanceName, true);
-
     InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
 
-    // Test the sanity check for resetPartition.
+    IdealState idealState = new IdealState(testResource);
+    idealState.setNumPartitions(3);
+    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    admin.addResource(clusterName, testResource, idealState);
+    admin.enableResource(clusterName, testResource, true);
+
+    /*
+     * This is an unit test for sanity check in resetPartition().
+     * There is no running controller in this test. We have end-to-end tests for resetPartition()
+     * under webapp/TestResetPartitionState and integration/TestResetPartitionState.
+     */
     // resetPartition is expected to throw an exception when provided with a nonexistent instance.
     try {
       admin.resetPartition(clusterName, wrongTestInstance, testResource, Arrays.asList("1", "2"));
@@ -584,7 +596,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException expected) {
       // This exception is expected because the instance name is made up.
       Assert.assertEquals(expected.getMessage(), String.format(
-          "Can't reset state for %s.[1, 2] on WrongTestInstance, because %s has never existed in cluster %s",
+          "Can't reset state for %s.[1, 2] on WrongTestInstance, because %s does not exist in cluster %s",
           testResource, wrongTestInstance, clusterName));
     }
 
@@ -595,7 +607,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException expected) {
       // This exception is expected because the instance is not alive.
       Assert.assertEquals(expected.getMessage(), String.format(
-          "Can't reset state for %s.[1, 2] on %s, because %s is not live in cluster %s anymore",
+          "Can't reset state for %s.[1, 2] on %s, because %s is not alive in cluster %s",
           testResource, instanceName, instanceName, clusterName));
     }
 
@@ -604,23 +616,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     // resetPartition is expected to throw an exception when provided with a nonexistent resource.
     try {
-      admin.resetPartition(clusterName, instanceName, testResource, Arrays.asList("1", "2"));
+      admin.resetPartition(clusterName, instanceName, wrongTestResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the resource is not added.
       Assert.assertEquals(expected.getMessage(), String
-          .format("Can't reset state for %s.[1, 2] on %s, because resource %s is not added", testResource,
-              instanceName, testResource));
+          .format("Can't reset state for %s.[1, 2] on %s, because resource %s is not added", wrongTestResource,
+              instanceName, wrongTestResource));
     }
 
-    IdealState idealState = new IdealState(testResource);
-    idealState.setNumPartitions(3);
-    admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
-    idealState.setStateModelDefRef("MasterSlave");
-    idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
-    admin.addResource(clusterName, testResource, idealState);
-
-    admin.enableResource(clusterName, testResource, true);
     try {
       admin.resetPartition(clusterName, instanceName, testResource, Arrays.asList("1", "2"));
       Assert.fail("Should throw HelixException");

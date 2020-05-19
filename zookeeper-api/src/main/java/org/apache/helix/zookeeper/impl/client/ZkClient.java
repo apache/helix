@@ -62,7 +62,10 @@ public class ZkClient extends org.apache.helix.zookeeper.zkclient.ZkClient imple
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
   public static final int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
-  public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
+  // Four times of DEFAULT_SESSION_TIMEOUT would give less 1/125 chance of initial connection
+  // to Zookeeper failure assuming one observer in the 5 observer Zookeeper Quorum is down
+  // with one DNS name configured as connection string with 3.4.13+ Zookeeper client version
+  public static final int DEFAULT_CONNECTION_TIMEOUT = 120 * 1000;
   public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
   /**

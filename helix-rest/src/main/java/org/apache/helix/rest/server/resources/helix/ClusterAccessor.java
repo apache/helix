@@ -59,6 +59,7 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -83,7 +84,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     clusters,
     maintenanceSignal,
     maintenanceHistory,
-    clusterName
+    clusterName,
+    globalTargetTaskThreadPoolSize
   }
 
   @GET
@@ -279,14 +281,9 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/configs")
   public Response getClusterConfig(@PathParam("clusterId") String clusterId) {
-    ConfigAccessor accessor = getConfigAccessor();
-    ClusterConfig config = null;
+    ClusterConfig config;
     try {
-      config = accessor.getClusterConfig(clusterId);
-    } catch (HelixException ex) {
-      // cluster not found.
-      LOG.info("Failed to get cluster config for cluster {}, cluster not found. Exception: {}.",
-          clusterId, ex);
+      config = getClusterConfigWithConfigAccessor(clusterId);
     } catch (Exception ex) {
       LOG.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
       return serverError(ex);
@@ -886,6 +883,91 @@ public class ClusterAccessor extends AbstractHelixResource {
       return serverError(ex);
     }
     return OK();
+  }
+
+  /**
+   * Get the global target task thread pool size of the cluster, a value that's used to construct
+   * task thread pools for the cluster's instances and is created by users. This value is used
+   * only if the instances don't specify their own target thread pool sizes in their
+   * InstanceConfigs; if this value needs to be used but is not specified, a default value -
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used instead.
+   * @param clusterId - the cluster id of which the global target thread pool size belongs to
+   */
+  @GET
+  @Path("{clusterId}/global-target-task-thread-pool-size")
+  public Response getGlobalTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId) {
+    ClusterConfig config;
+    try {
+      config = getClusterConfigWithConfigAccessor(clusterId);
+    } catch (Exception ex) {
+      LOG.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    int threadPoolSize = config.getGlobalTargetTaskThreadPoolSize();
+    if (threadPoolSize == TaskConstants.TARGET_TASK_THREAD_POOL_SIZE_NOT_SET) {
+      return notFound();
+    }
+    Map<String, Integer> resultMap = new HashMap<>();
+    resultMap.put(ClusterProperties.globalTargetTaskThreadPoolSize.name(), threadPoolSize);
+    return JSONRepresentation(resultMap);
+  }
+
+  /**
+   * Update the global target task thread pool size of the cluster. The global target task thread
+   * pool size goes to ClusterConfig, and is applied to all instances of the cluster for task thread
+   * pool construction. If an instance doesn't specify its target thread pool size in
+   * InstanceConfig, then this value in ClusterConfig will be used to construct its task thread
+   * pool. The newly-set target task thread pool size will take effect upon a JVM restart. If none
+   * of the global and per-instance target thread pool sizes are set, a default value -
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used.
+   * @param clusterId - the cluster id of which the global target thread pool size is set to
+   * @param threadPoolSize - the thread pool size to be set
+   */
+  @POST
+  @Path("{clusterId}/global-target-task-thread-pool-size/{threadPoolSize}")
+  public Response updateGlobalTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
+      @PathParam("threadPoolSize") int threadPoolSize) {
+    ConfigAccessor accessor = getConfigAccessor();
+    ClusterConfig config;
+    try {
+      config = getClusterConfigWithConfigAccessor(clusterId);
+    } catch (Exception ex) {
+      LOG.error("Failed to get cluster config for cluster {}. Exception: {}", clusterId, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    try {
+      config.setGlobalTargetTaskThreadPoolSize(threadPoolSize);
+    } catch (IllegalArgumentException ex) {
+      return badRequest(ex.getMessage());
+    }
+    try {
+      accessor.updateClusterConfig(clusterId, config);
+    } catch (Exception ex) {
+      LOG.error("Failed to update cluster config for cluster {}. Exception: {}", clusterId, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  /*
+   * Get ClusterConfig by using config accessor. Logs HelixException.
+   */
+  private ClusterConfig getClusterConfigWithConfigAccessor(String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    try {
+      return accessor.getClusterConfig(clusterId);
+    } catch (HelixException ex) {
+      LOG.info("Failed to get cluster config for cluster {}.", clusterId, ex);
+    }
+
+    return null;
   }
 
   /**

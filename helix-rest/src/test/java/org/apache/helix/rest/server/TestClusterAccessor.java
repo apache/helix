@@ -1149,6 +1149,75 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test(dependsOnMethods = "testDeleteCustomizedConfig")
+  public void testGetGlobalTaskThreadPoolSizeNotDefined() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    get("clusters/" + cluster + "/global-target-task-thread-pool-size", null,
+        Response.Status.NOT_FOUND.getStatusCode(), true);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetGlobalTaskThreadPoolSizeNotDefined")
+  public void testGetGlobalTaskThreadPoolSize() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int testThreadPoolSize = 100;
+
+    String cluster = _clusters.iterator().next();
+    ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
+    clusterConfigZk.setGlobalTargetTaskThreadPoolSize(testThreadPoolSize);
+    _configAccessor.setClusterConfig(cluster, clusterConfigZk);
+
+    String body = get("clusters/" + cluster + "/global-target-task-thread-pool-size", null,
+        Response.Status.OK.getStatusCode(), true);
+    @SuppressWarnings("unchecked")
+    Map<String, Integer> resultMap = OBJECT_MAPPER.readValue(body, Map.class);
+
+    Assert.assertEquals((int) resultMap
+            .get(ClusterAccessor.ClusterProperties.globalTargetTaskThreadPoolSize.name()),
+        testThreadPoolSize);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetGlobalTaskThreadPoolSize")
+  public void testGetGlobalTaskThreadPoolSizeNoCluster() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    get("clusters/NON_EXISTENT_CLUSTER/global-target-task-thread-pool-size", null,
+        Response.Status.NOT_FOUND.getStatusCode(), true);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetGlobalTaskThreadPoolSizeNoCluster")
+  public void testUpdateGlobalTaskThreadPoolSize() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int testThreadPoolSize = 101;
+
+    String cluster = _clusters.iterator().next();
+    post("clusters/" + cluster + "/global-target-task-thread-pool-size/" + testThreadPoolSize, null,
+        null, Response.Status.OK.getStatusCode());
+    ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
+
+    Assert.assertEquals(clusterConfigZk.getGlobalTargetTaskThreadPoolSize(), testThreadPoolSize);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateGlobalTaskThreadPoolSize")
+  public void testUpdateGlobalTaskThreadPoolSizeNoCluster() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    post("clusters/NON_EXISTENT_CLUSTER/global-target-task-thread-pool-size/100", null, null,
+        Response.Status.NOT_FOUND.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateGlobalTaskThreadPoolSizeNoCluster")
+  public void testUpdateGlobalTaskThreadPoolSizeBadRequest() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    post("clusters/" + cluster + "/global-target-task-thread-pool-size/-1", null,
+        null, Response.Status.BAD_REQUEST.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
     String body = get("clusters/" + cluster + "/configs", null, Response.Status.OK.getStatusCode(), true);
 

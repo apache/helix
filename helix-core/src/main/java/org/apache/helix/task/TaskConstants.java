@@ -56,4 +56,11 @@ public class TaskConstants {
    * pool size default value if the current thread pool size is not defined in LiveInstance
    */
   public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
+
+  /**
+   * This value is used in InstanceConfig and ClusterConfig. When target task thread pool sizes are
+   * not defined, this value is returned. Due to the non-negative check in
+   * TaskUtil.getTargetThreadPoolSize(), this value must be negative.
+   */
+  public final static int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 }

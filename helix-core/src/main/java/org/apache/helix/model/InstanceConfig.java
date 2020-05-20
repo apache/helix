@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Splitter;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -62,7 +63,6 @@ public class InstanceConfig extends HelixProperty {
 
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
-  private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -515,7 +515,7 @@ public class InstanceConfig extends HelixProperty {
   public int getTargetTaskThreadPoolSize() {
     return _record
         .getIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
-            TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
+            TaskConstants.TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
   }
 
   /**

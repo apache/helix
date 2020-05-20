@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
@@ -463,5 +464,90 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+  }
+
+  @Test(dependsOnMethods = "checkUpdateFails")
+  public void testGetTargetTaskThreadPoolSize() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int testTargetTaskThreadPoolSize = 100;
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME);
+    instanceConfig.setTargetTaskThreadPoolSize(testTargetTaskThreadPoolSize);
+    _configAccessor.setInstanceConfig(CLUSTER_NAME, INSTANCE_NAME, instanceConfig);
+
+    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
+        + "/target-task-thread-pool-size", null, Response.Status.OK.getStatusCode(), true);
+    @SuppressWarnings("unchecked")
+    Map<String, Integer> resultMap = OBJECT_MAPPER.readValue(body, Map.class);
+    Assert.assertEquals((int) resultMap
+            .get(PerInstanceAccessor.PerInstanceProperties.targetTaskThreadPoolSize.name()),
+        testTargetTaskThreadPoolSize);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSize")
+  public void testGetTargetTaskThreadPoolSizeNotFound() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    get("clusters/" + CLUSTER_NAME + "/instances/NON_EXISTENT_INSTACE/target-task-thread-pool-size",
+        null, Response.Status.NOT_FOUND.getStatusCode(), true);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSizeNotFound")
+  public void testUpdateTargetTaskThreadPoolSize() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int testTargetTaskThreadPoolSize = 101;
+    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
+            + "/target-task-thread-pool-size/" + testTargetTaskThreadPoolSize, null, null,
+        Response.Status.OK.getStatusCode());
+    Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME)
+        .getTargetTaskThreadPoolSize(), testTargetTaskThreadPoolSize);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateTargetTaskThreadPoolSize")
+  public void testUpdateTargetTaskThreadPoolSizeNotFound() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    post("clusters/" + CLUSTER_NAME
+            + "/instances/NON_EXISTENT_INSTACE/target-task-thread-pool-size/100", null, null,
+        Response.Status.NOT_FOUND.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateTargetTaskThreadPoolSizeNotFound")
+  public void testUpdateTargetTaskThreadPoolSizeBadRequest() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
+            + "/target-task-thread-pool-size/-1", null, null,
+        Response.Status.BAD_REQUEST.getStatusCode());
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testUpdateTargetTaskThreadPoolSizeBadRequest")
+  public void testGetCurrentTaskThreadPoolSize() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    int testCurrentTaskThreadPoolSize = 100;
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    LiveInstance liveInstance =
+        helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().liveInstance(INSTANCE_NAME));
+    liveInstance.setCurrentTaskThreadPoolSize(testCurrentTaskThreadPoolSize);
+    helixDataAccessor
+        .setProperty(helixDataAccessor.keyBuilder().liveInstance(INSTANCE_NAME), liveInstance);
+    String body = get("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
+        + "/current-task-thread-pool-size", null, Response.Status.OK.getStatusCode(), true);
+    @SuppressWarnings("unchecked")
+    Map<String, Integer> resultMap = OBJECT_MAPPER.readValue(body, Map.class);
+    Assert.assertEquals((int) resultMap
+            .get(PerInstanceAccessor.PerInstanceProperties.currentTaskThreadPoolSize.name()),
+        testCurrentTaskThreadPoolSize);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSize")
+  public void testGetCurrentTaskThreadPoolSizeNotFound() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    get("clusters/" + CLUSTER_NAME
+            + "/instances/NON_EXISTENT_INSTACE/current-task-thread-pool-size/", null,
+        Response.Status.NOT_FOUND.getStatusCode(), true);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.Consumes;
@@ -41,6 +42,8 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
@@ -80,7 +83,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     total_message_count,
     read_message_count,
     healthreports,
-    instanceTags
+    instanceTags,
+    targetTaskThreadPoolSize,
+    currentTaskThreadPoolSize
   }
 
   @GET
@@ -537,6 +542,123 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
 
     return notFound();
+  }
+
+  /**
+   * Get the target task thread pool size of an instance, a value that's used to construct the task
+   * thread pool and is created by users. If this value is not defined, then the global target task
+   * thread pool size defined in the ClusterConfig will be used instead; if the global target task
+   * thread pool size is also not defined, a default value -
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used.
+   * @param clusterId - the cluster id of which the instance belongs to
+   * @param instanceName - the instance name
+   */
+  @GET
+  @Path("target-task-thread-pool-size")
+  public Response getTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName) {
+    InstanceConfig config;
+    try {
+      config = getInstanceConfigWithConfigAccessor(clusterId, instanceName);
+    } catch (Exception ex) {
+      LOG.error("Failed to get instance config for cluster {} and instance {}. ", clusterId,
+          instanceName, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    int threadPoolSize = config.getTargetTaskThreadPoolSize();
+    if (threadPoolSize == TaskConstants.TARGET_TASK_THREAD_POOL_SIZE_NOT_SET) {
+      return notFound();
+    }
+    Map<String, Integer> resultMap = new HashMap<>();
+    resultMap.put(PerInstanceProperties.targetTaskThreadPoolSize.name(), threadPoolSize);
+    return JSONRepresentation(resultMap);
+  }
+
+  /**
+   * Update the target task thread pool size of the cluster. The target task thread pool size goes
+   * to InstanceConfig, and is used for task thread pool construction. If this value is not defined,
+   * then the global target task thread pool size defined in the ClusterConfig will be used instead
+   * to construct its task thread pool. The newly-set target task thread pool size will take effect
+   * upon a JVM restart. If none of the per-instance and global target thread pool sizes are set, a
+   * default value - TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used.
+   * @param clusterId - the cluster id of which the instance belongs to
+   * @param instanceName - the instance name
+   * @param threadPoolSize - the thread pool size to be set
+   */
+  @POST
+  @Path("target-task-thread-pool-size/{threadPoolSize}")
+  public Response updateTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName,
+      @PathParam("threadPoolSize") int threadPoolSize) {
+    ConfigAccessor accessor = getConfigAccessor();
+    InstanceConfig config;
+    try {
+      config = getInstanceConfigWithConfigAccessor(clusterId, instanceName);
+    } catch (Exception ex) {
+      LOG.error("Failed to get instance config for cluster {} and instance {}. ", clusterId,
+          instanceName, ex);
+      return serverError(ex);
+    }
+    if (config == null) {
+      return notFound();
+    }
+    try {
+      config.setTargetTaskThreadPoolSize(threadPoolSize);
+    } catch (IllegalArgumentException ex) {
+      return badRequest(ex.getMessage());
+    }
+    try {
+      accessor.updateInstanceConfig(clusterId, instanceName, config);
+    } catch (Exception ex) {
+      LOG.error("Failed to update instance config for cluster {} and instance {}. Exception: {}",
+          clusterId, instanceName, ex);
+      return serverError(ex);
+    }
+
+    return OK();
+  }
+
+  /**
+   * Get the current task thread pool size of an instance, which reflects the size of the task
+   * thread pool on this instance. It's possible for the value to not exist, in which case the
+   * default value will be returned; the default value is
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE
+   * @param clusterId - the cluster id of which the instance belongs to
+   * @param instanceName - the instance name
+   */
+  @GET
+  @Path("current-task-thread-pool-size")
+  public Response getCurrentTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName) {
+    HelixDataAccessor accessor = getDataAccssor(clusterId);
+    LiveInstance liveInstance =
+        accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
+    if (liveInstance == null) {
+      return notFound();
+    }
+    Map<String, Integer> resultMap = new HashMap<>();
+    resultMap.put(PerInstanceProperties.currentTaskThreadPoolSize.name(),
+        liveInstance.getCurrentTaskThreadPoolSize());
+    return JSONRepresentation(resultMap);
+  }
+
+  /*
+   * Get InstanceConfig by using config accessor. Logs HelixException.
+   */
+  private InstanceConfig getInstanceConfigWithConfigAccessor(String clusterId,
+      String instanceName) {
+    ConfigAccessor accessor = getConfigAccessor();
+    try {
+      return accessor.getInstanceConfig(clusterId, instanceName);
+    } catch (HelixException ex) {
+      LOG.info("Failed to get instance config for cluster {} and instance {}. ", clusterId,
+          instanceName, ex);
+    }
+
+    return null;
   }
 
   private boolean validInstance(JsonNode node, String instanceName) {

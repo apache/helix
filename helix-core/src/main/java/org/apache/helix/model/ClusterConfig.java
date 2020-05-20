@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
@@ -144,7 +145,6 @@ public class ClusterConfig extends HelixProperty {
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
-  private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -727,7 +727,7 @@ public class ClusterConfig extends HelixProperty {
   public int getGlobalTargetTaskThreadPoolSize() {
     return _record
         .getIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),
-            GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
+            TaskConstants.TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
   }
 
   /**

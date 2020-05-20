@@ -497,7 +497,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     int testTargetTaskThreadPoolSize = 101;
     post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
-            + "/target-task-thread-pool-size/" + testTargetTaskThreadPoolSize, null, null,
+            + "/target-task-thread-pool-size",
+        ImmutableMap.of("threadPoolSize", Integer.toString(testTargetTaskThreadPoolSize)), null,
         Response.Status.OK.getStatusCode());
     Assert.assertEquals(_configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME)
         .getTargetTaskThreadPoolSize(), testTargetTaskThreadPoolSize);
@@ -507,9 +508,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testUpdateTargetTaskThreadPoolSize")
   public void testUpdateTargetTaskThreadPoolSizeNotFound() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    post("clusters/" + CLUSTER_NAME
-            + "/instances/NON_EXISTENT_INSTACE/target-task-thread-pool-size/100", null, null,
-        Response.Status.NOT_FOUND.getStatusCode());
+    post(
+        "clusters/" + CLUSTER_NAME + "/instances/NON_EXISTENT_INSTACE/target-task-thread-pool-size",
+        ImmutableMap.of("threadPoolSize", "100"), null, Response.Status.NOT_FOUND.getStatusCode());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -517,7 +518,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   public void testUpdateTargetTaskThreadPoolSizeBadRequest() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     post("clusters/" + CLUSTER_NAME + "/instances/" + INSTANCE_NAME
-            + "/target-task-thread-pool-size/-1", null, null,
+            + "/target-task-thread-pool-size", ImmutableMap.of("threadPoolSize", "-1"), null,
         Response.Status.BAD_REQUEST.getStatusCode());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }

@@ -1193,8 +1193,9 @@ public class TestClusterAccessor extends AbstractTestClass {
     int testThreadPoolSize = 101;
 
     String cluster = _clusters.iterator().next();
-    post("clusters/" + cluster + "/global-target-task-thread-pool-size/" + testThreadPoolSize, null,
-        null, Response.Status.OK.getStatusCode());
+    post("clusters/" + cluster + "/global-target-task-thread-pool-size",
+        ImmutableMap.of("threadPoolSize", Integer.toString(testThreadPoolSize)), null,
+        Response.Status.OK.getStatusCode());
     ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
 
     Assert.assertEquals(clusterConfigZk.getGlobalTargetTaskThreadPoolSize(), testThreadPoolSize);
@@ -1204,8 +1205,8 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testUpdateGlobalTaskThreadPoolSize")
   public void testUpdateGlobalTaskThreadPoolSizeNoCluster() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    post("clusters/NON_EXISTENT_CLUSTER/global-target-task-thread-pool-size/100", null, null,
-        Response.Status.NOT_FOUND.getStatusCode());
+    post("clusters/NON_EXISTENT_CLUSTER/global-target-task-thread-pool-size",
+        ImmutableMap.of("threadPoolSize", "100"), null, Response.Status.NOT_FOUND.getStatusCode());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -1213,8 +1214,8 @@ public class TestClusterAccessor extends AbstractTestClass {
   public void testUpdateGlobalTaskThreadPoolSizeBadRequest() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
-    post("clusters/" + cluster + "/global-target-task-thread-pool-size/-1", null,
-        null, Response.Status.BAD_REQUEST.getStatusCode());
+    post("clusters/" + cluster + "/global-target-task-thread-pool-size",
+        ImmutableMap.of("threadPoolSize", "-1"), null, Response.Status.BAD_REQUEST.getStatusCode());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

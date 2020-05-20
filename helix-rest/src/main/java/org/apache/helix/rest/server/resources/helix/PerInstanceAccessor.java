@@ -589,10 +589,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
    * @param threadPoolSize - the thread pool size to be set
    */
   @POST
-  @Path("target-task-thread-pool-size/{threadPoolSize}")
+  @Path("target-task-thread-pool-size")
   public Response updateTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
-      @PathParam("threadPoolSize") int threadPoolSize) {
+      @QueryParam("threadPoolSize") int threadPoolSize) {
     ConfigAccessor accessor = getConfigAccessor();
     InstanceConfig config;
     try {

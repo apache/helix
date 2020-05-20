@@ -927,9 +927,9 @@ public class ClusterAccessor extends AbstractHelixResource {
    * @param threadPoolSize - the thread pool size to be set
    */
   @POST
-  @Path("{clusterId}/global-target-task-thread-pool-size/{threadPoolSize}")
+  @Path("{clusterId}/global-target-task-thread-pool-size")
   public Response updateGlobalTargetTaskThreadPoolSize(@PathParam("clusterId") String clusterId,
-      @PathParam("threadPoolSize") int threadPoolSize) {
+      @QueryParam("threadPoolSize") int threadPoolSize) {
     ConfigAccessor accessor = getConfigAccessor();
     ClusterConfig config;
     try {

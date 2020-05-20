@@ -157,15 +157,15 @@ public class TestCustomRestClient {
 
     // Set 1 ms to cause timeout for http requests
     System.setProperty(RestSystemPropertyKeys.HTTP_TIMEOUT_MS, "1");
-    // Use a non-routable local address to cause timeout for http requests
-    final String nonRoutableServer = "http://127.0.0.0/post";
+    // a popular echo server that echos all the inputs
+    // TODO: add a mock rest server
+    final String echoServer = "http://httpbin.org/post";
     CustomRestClient _customRestClient = CustomRestClientFactory.get();
     boolean timeoutExceptionHappened = false;
     try {
-      _customRestClient.getInstanceStoppableCheck(nonRoutableServer, Collections.emptyMap());
+      _customRestClient.getInstanceStoppableCheck(echoServer, Collections.emptyMap());
     } catch (ConnectTimeoutException e) {
-      // Since the address is non-routable, the getInstanceStoppableCheck produces
-      // ConnectTimeoutException
+      // Since the timeout is so small, we are expecting to get ConnectTimeoutException
       timeoutExceptionHappened = true;
     }
     // Reset the HTTP_REQUEST_TIMEOUT property back to the default value

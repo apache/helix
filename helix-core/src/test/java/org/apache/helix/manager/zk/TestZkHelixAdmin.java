@@ -585,7 +585,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.enableResource(clusterName, testResource, true);
 
     /*
-     * This is an unit test for sanity check in resetPartition().
+     * This is a unit test for sanity check in resetPartition().
      * There is no running controller in this test. We have end-to-end tests for resetPartition()
      * under webapp/TestResetPartitionState and integration/TestResetPartitionState.
      */

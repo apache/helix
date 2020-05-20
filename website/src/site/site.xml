@@ -63,8 +63,8 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="1.0.0 (stable)" href="./1.0.0-docs/index.html"/>
-      <item name="0.9.7" href="./0.9.7-docs/index.html"/>
+      <item name="1.0.0 (deprecated)" href="./1.0.0-docs/index.html"/>
+      <item name="0.9.7 (stable)" href="./0.9.7-docs/index.html"/>
       <item name="0.9.4" href="./0.9.4-docs/index.html"/>
       <item name="0.9.1" href="./0.9.1-docs/index.html"/>
       <item name="0.9.0" href="./0.9.0-docs/index.html"/>

@@ -70,7 +70,7 @@ Release Notes for Apache Helix 1.0.0
 
     A new weight-aware globally-even distribute Rebalancer to better meet the applications’ requirement.
 
-    Please refer to {{https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer.}}
+    Please refer to {{https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer}}
 
 
 []

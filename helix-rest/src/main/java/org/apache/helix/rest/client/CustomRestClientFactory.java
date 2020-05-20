@@ -20,6 +20,7 @@ package org.apache.helix.rest.client;
  */
 
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.common.RestSystemPropertyKeys;
 import org.apache.helix.rest.server.HelixRestServer;
 import org.apache.helix.util.HelixUtil;
@@ -49,8 +50,8 @@ public class CustomRestClientFactory {
           try {
             // Here int has been used for timeout value because setConnectTimeout,
             // setConnectionRequestTimeout and setSocketTimeout are getting int as input
-            final int httpRequestTimeout =
-                HelixUtil.getSystemPropertyAsInt(RestSystemPropertyKeys.HTTP_TIMEOUT_MS, 60 * 1000);
+            final int httpRequestTimeout = HelixUtil.getSystemPropertyAsInt(
+                RestSystemPropertyKeys.HTTP_TIMEOUT_MS, HttpConstants.DEFAULT_HTTP_REQUEST_TIMEOUT);
             HttpClient httpClient;
             RequestConfig config = RequestConfig.custom().setConnectTimeout(httpRequestTimeout)
                 .setConnectionRequestTimeout(httpRequestTimeout)

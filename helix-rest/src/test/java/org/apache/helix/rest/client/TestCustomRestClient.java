@@ -147,7 +147,7 @@ public class TestCustomRestClient {
   }
 
   @Test
-  public void testGetPartitionStoppableCheck_when_timeout() throws IOException {
+  public void testGetPartitionStoppableCheckWhenTimeout() throws IOException {
     MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
 
     HttpResponse httpResponse = mock(HttpResponse.class);

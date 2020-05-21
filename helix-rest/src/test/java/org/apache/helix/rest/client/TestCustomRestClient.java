@@ -1,14 +1,12 @@
 package org.apache.helix.rest.client;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import org.apache.helix.rest.common.RestSystemPropertyKeys;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -149,31 +147,24 @@ public class TestCustomRestClient {
   }
 
   @Test
-  public void testGetInstanceStoppableCheckSmallTimeout() throws Exception {
-    // Reset the INSTANCE in CustomRestClientFactory to create new one with new TimeOut
-    Field instance = CustomRestClientFactory.class.getDeclaredField("INSTANCE");
-    instance.setAccessible(true);
-    instance.set(null, null);
+  public void testGetPartitionStoppableCheck_when_timeout() throws IOException {
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
 
-    // Set 1 ms to cause timeout for http requests
-    System.setProperty(RestSystemPropertyKeys.HTTP_TIMEOUT_MS, "1");
-    // a popular echo server that echos all the inputs
-    // TODO: add a mock rest server
-    final String echoServer = "http://httpbin.org/post";
-    CustomRestClient _customRestClient = CustomRestClientFactory.get();
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    when(_httpClient.execute(any(HttpPost.class)))
+        .thenThrow(new ConnectTimeoutException("Timeout Exception Happened!"));
+
     boolean timeoutExceptionHappened = false;
     try {
-      _customRestClient.getInstanceStoppableCheck(echoServer, Collections.emptyMap());
+      customRestClient.getPartitionStoppableCheck(HTTP_LOCALHOST, ImmutableList.of("db0", "db1"),
+          Collections.emptyMap());
     } catch (ConnectTimeoutException e) {
-      // Since the timeout is so small, we are expecting to get ConnectTimeoutException
       timeoutExceptionHappened = true;
     }
-    // Reset the HTTP_REQUEST_TIMEOUT property back to the default value
-    System.setProperty(RestSystemPropertyKeys.HTTP_TIMEOUT_MS, "60000");
-
-    // Reset the instance in the CustomRestClientFactory
-    instance.set(null, null);
-
     Assert.assertTrue(timeoutExceptionHappened);
   }
 

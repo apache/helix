@@ -606,9 +606,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the instance is not alive.
-      Assert.assertEquals(expected.getMessage(), String.format(
-          "Can't reset state for %s.[1, 2] on %s, because %s is not alive in cluster %s",
-          testResource, instanceName, instanceName, clusterName));
+      Assert.assertEquals(expected.getMessage(), String
+          .format("Can't reset state for %s.[1, 2] on %s, because %s is not alive in cluster %s",
+              testResource, instanceName, instanceName, clusterName));
     }
 
     HelixManager manager = initializeHelixManager(clusterName, instanceConfig.getInstanceName());
@@ -620,9 +620,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because the resource is not added.
-      Assert.assertEquals(expected.getMessage(), String
-          .format("Can't reset state for %s.[1, 2] on %s, because resource %s is not added", wrongTestResource,
-              instanceName, wrongTestResource));
+      Assert.assertEquals(expected.getMessage(), String.format(
+          "Can't reset state for %s.[1, 2] on %s, because resource %s is not added to cluster %s",
+          wrongTestResource, instanceName, wrongTestResource, clusterName));
     }
 
     try {
@@ -630,9 +630,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       Assert.fail("Should throw HelixException");
     } catch (HelixException expected) {
       // This exception is expected because partitions do not exist.
-      Assert.assertEquals(expected.getMessage(), String
-          .format("Can't reset state for %s.[1, 2] on %s, because not all [1, 2] exist",
-              testResource, instanceName));
+      Assert.assertEquals(expected.getMessage(), String.format(
+          "Can't reset state for %s.[1, 2] on %s, because not all [1, 2] exist in cluster %s",
+          testResource, instanceName, clusterName));
     }
 
     // clean up

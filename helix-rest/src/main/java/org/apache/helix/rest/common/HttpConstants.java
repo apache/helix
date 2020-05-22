@@ -28,4 +28,5 @@ public class HttpConstants {
   }
 
   public static final String HTTP_PROTOCOL_PREFIX = "http://";
+  public static final int DEFAULT_HTTP_REQUEST_TIMEOUT = 60 * 1000;
 }

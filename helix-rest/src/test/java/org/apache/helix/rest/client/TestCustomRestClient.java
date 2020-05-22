@@ -13,6 +13,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Assert;
 import org.mockito.Mock;
@@ -143,6 +144,28 @@ public class TestCustomRestClient {
     Assert.assertEquals(response.getStatusLine().getStatusCode(), HttpStatus.SC_OK);
     Assert.assertEquals(json.get("headers").get("Accept").asText(), "application/json");
     Assert.assertEquals(json.get("data").asText(), "{}");
+  }
+
+  @Test
+  public void testGetPartitionStoppableCheckWhenTimeout() throws IOException {
+    MockCustomRestClient customRestClient = new MockCustomRestClient(_httpClient);
+
+    HttpResponse httpResponse = mock(HttpResponse.class);
+    StatusLine statusLine = mock(StatusLine.class);
+
+    when(statusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    when(httpResponse.getStatusLine()).thenReturn(statusLine);
+    when(_httpClient.execute(any(HttpPost.class)))
+        .thenThrow(new ConnectTimeoutException("Timeout Exception Happened!"));
+
+    boolean timeoutExceptionHappened = false;
+    try {
+      customRestClient.getPartitionStoppableCheck(HTTP_LOCALHOST, ImmutableList.of("db0", "db1"),
+          Collections.emptyMap());
+    } catch (ConnectTimeoutException e) {
+      timeoutExceptionHappened = true;
+    }
+    Assert.assertTrue(timeoutExceptionHappened);
   }
 
   private class MockCustomRestClient extends CustomRestClientImpl {

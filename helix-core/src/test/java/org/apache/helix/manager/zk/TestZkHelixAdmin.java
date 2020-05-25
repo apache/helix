@@ -638,6 +638,24 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // clean up
     manager.disconnect();
     admin.dropCluster(clusterName);
+
+    // verify the cluster has been removed successfully
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<>(_gZkClient));
+    try {
+      Assert.assertTrue(TestHelper.verify(() -> dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()).isEmpty(), 1000));
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("There're live instances not cleaned up yet");
+      assert false;
+    }
+
+    try {
+      Assert.assertTrue(TestHelper.verify(() -> dataAccessor.getChildNames(dataAccessor.keyBuilder().clusterConfig()).isEmpty(), 1000));
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("The cluster is not cleaned up yet");
+      assert false;
+    }
   }
 
   /**

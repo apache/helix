@@ -246,7 +246,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, null, -1);
+    this(manager, client, propertyKey, listener, eventTypes, changeType, null, VALUE_NOT_SET);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
@@ -259,7 +259,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType,
       HelixCallbackMonitor monitor) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, -1);
+    this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, VALUE_NOT_SET);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,

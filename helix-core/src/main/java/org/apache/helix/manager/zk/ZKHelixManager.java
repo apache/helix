@@ -411,7 +411,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
       EventType[] eventType) {
-    addListener(listener, propertyKey, changeType, eventType, -1);
+    addListener(listener, propertyKey, changeType, eventType, VALUE_NOT_SET);
   }
 
   void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,

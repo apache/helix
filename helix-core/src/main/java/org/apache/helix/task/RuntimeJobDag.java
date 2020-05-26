@@ -145,9 +145,21 @@ public class RuntimeJobDag extends JobDag {
           String.format("Job: %s has either finished already, never been scheduled, or been removed from DAG", job));
     }
     // Add finished job's successors to ready-list
+
     if (_isJobQueue) {
-      if (_lastJob != null && _parentsToChildren.containsKey(_lastJob)) {
-        _readyJobList.offer(_parentsToChildren.get(_lastJob).iterator().next());
+      // If it is a jobQueue, there should be a check to make sure that the a job has not been added
+      // to the _readyJobList multiple times. This check is necessary because once the controller
+      // switch happens, the _readyJobList and _inflightJobList will be created from scratch. In this
+      // case, since there might be many jobs that have been finished before, we do not want to have a
+      // job several times to the _readyJobList. If _readyJobList has multiple instances of the same
+      // job, it can compromise the functionality of the parallel jobs.
+      while (_lastJob != null && _parentsToChildren.containsKey(_lastJob)) {
+        String nextJob = _parentsToChildren.get(_lastJob).iterator().next();
+        if (!_readyJobList.contains(nextJob)) {
+          _readyJobList.offer(nextJob);
+          break;
+        }
+        _lastJob = nextJob;
       }
     } else if (_successorMap.containsKey(job)) {
         for (String successor : _successorMap.get(job)) {

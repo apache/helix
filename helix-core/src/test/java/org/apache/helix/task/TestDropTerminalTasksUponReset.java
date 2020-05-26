@@ -90,8 +90,7 @@ public class TestDropTerminalTasksUponReset {
     Map<String, Set<Integer>> tasksToDrop = new HashMap<>();
 
     // Call the static method we are testing
-    JobDispatcher.getPrevInstanceToTaskAssignments(liveInstances, prevAssignment, allTaskPartitions,
-        currentStateOutput, jobName, tasksToDrop);
+    JobDispatcher.getCurrentInstanceToTaskAssignments(liveInstances, currentStateOutput, jobName, tasksToDrop);
 
     // Check that tasksToDrop has (numTasks / 2) partitions as we intended regardless of what the
     // current states of the tasks were

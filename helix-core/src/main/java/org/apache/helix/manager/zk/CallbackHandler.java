@@ -28,6 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -111,9 +115,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * define the next possible notification types
    */
   private static Map<Type, List<Type>> nextNotificationType = new HashMap<>();
+
   static {
-    nextNotificationType.put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
-    nextNotificationType.put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
+    nextNotificationType
+        .put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE, Type.PERIODIC_REFRESH));
+    nextNotificationType
+        .put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE, Type.PERIODIC_REFRESH));
     nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT));
   }
 
@@ -132,6 +139,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _batchModeEnabled = false;
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
+  private final long _periodicRefreshInterval;
+  private ScheduledExecutorService _periodicRefreshExecutor;
+  private volatile long _lastEventTime;
+  private ScheduledFuture<?> _scheduledRefreshFuture;
+  private static final long VALUE_NOT_SET = -1;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -203,6 +215,29 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
+  class RefreshTask implements Runnable {
+    @Override
+    public void run() {
+      try {
+        long currentTime = System.currentTimeMillis();
+        if (_lastEventTime + _periodicRefreshInterval <= currentTime) {
+          NotificationContext changeContext = new NotificationContext(_manager);
+          changeContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
+          changeContext.setChangeType(_changeType);
+          enqueueTask(changeContext);
+        } else {
+          long remainingTime = _lastEventTime + _periodicRefreshInterval - currentTime;
+          _scheduledRefreshFuture.cancel(false);
+          _scheduledRefreshFuture = _periodicRefreshExecutor
+              .scheduleWithFixedDelay(this, remainingTime, _periodicRefreshInterval,
+                  TimeUnit.MILLISECONDS);
+        }
+      } catch (Exception e) {
+        logger.warn("Exception caught in periodic refresh task.", e);
+      }
+    }
+  }
+
   /**
    * maintain the expected notification types
    * this is fix for HELIX-195: race condition between FINALIZE callbacks and Zk callbacks
@@ -211,12 +246,25 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, null);
+    this(manager, client, propertyKey, listener, eventTypes, changeType, null, -1);
+  }
+
+  public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
+      Object listener, EventType[] eventTypes, ChangeType changeType,
+      long periodicRefreshInterval) {
+    this(manager, client, propertyKey, listener, eventTypes, changeType, null,
+        periodicRefreshInterval);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType,
       HelixCallbackMonitor monitor) {
+    this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, -1);
+  }
+
+  public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
+      Object listener, EventType[] eventTypes, ChangeType changeType, HelixCallbackMonitor monitor,
+      long periodicRefreshInterval) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }
@@ -246,6 +294,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     parseListenerProperties();
 
     init();
+
+    /**
+     * Async batch read was designed that if an exception is thrown, the operation fails and returns a partial result.
+     * The issue is separately addressed by checking read result in batch read calls [https://github.com/apache/helix/pull/974]
+     * and retry batch read for ZK connectivity issues [https://github.com/apache/helix/pull/970].
+     * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
+     */
+    _periodicRefreshInterval = periodicRefreshInterval;
+    if (_periodicRefreshInterval != VALUE_NOT_SET) {
+      initRefreshTask();
+    }
   }
 
   private void parseListenerProperties() {
@@ -394,16 +453,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.warn("Callback handler received event in wrong order. Listener: {}, path: {}, "
             + "expected types: {}, but was {}", _listener, _path, _expectTypes, type);
         return;
-
       }
       _expectTypes = nextNotificationType.get(type);
 
-      if (type == Type.INIT || type == Type.FINALIZE) {
+      if (type == Type.INIT || type == Type.FINALIZE || type == Type.PERIODIC_REFRESH) {
         subscribeForChanges(changeContext.getType(), _path, _watchChild);
       } else {
         // put SubscribeForChange run in async thread to reduce the latency of zk callback handling.
         subscribeForChangesAsyn(changeContext.getType(), _path, _watchChild);
       }
+
+      _lastEventTime = System.currentTimeMillis();
 
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
@@ -814,8 +874,15 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           if (isShutdown) {
             _batchCallbackProcessor.shutdown();
             _batchCallbackProcessor = null;
+            if (_periodicRefreshExecutor != null) {
+              _periodicRefreshExecutor.shutdownNow();
+            }
           } else {
             _batchCallbackProcessor.resetEventQueue();
+            if (_periodicRefreshExecutor != null) {
+              _periodicRefreshExecutor.shutdownNow();
+              initRefreshTask();
+            }
           }
         }
       }
@@ -850,5 +917,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         + _preFetchEnabled + ", _batchModeEnabled=" + _batchModeEnabled + ", _path='" + _path + '\''
         + ", _listener=" + _listener + ", _changeType=" + _changeType + ", _manager=" + _manager
         + ", _zkClient=" + _zkClient + '}';
+  }
+
+  private void initRefreshTask() {
+    _lastEventTime = System.currentTimeMillis();
+    _periodicRefreshExecutor = Executors.newSingleThreadScheduledExecutor();
+    _scheduledRefreshFuture = _periodicRefreshExecutor
+        .scheduleWithFixedDelay(new RefreshTask(), _periodicRefreshInterval,
+            _periodicRefreshInterval, TimeUnit.MILLISECONDS);
   }
 }

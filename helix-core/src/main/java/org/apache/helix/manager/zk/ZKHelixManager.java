@@ -172,6 +172,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<>();
 
+  private static final long VALUE_NOT_SET = -1;
+  private long _messageRefreshInterval;
+
   /**
    * status dump timer-task
    */
@@ -293,6 +296,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .getSystemPropertyAsInt(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY,
             ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
 
+    _messageRefreshInterval =  HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.MESSAGE_REFRESH_INTERVAL, VALUE_NOT_SET);
+
     MonitorLevel configuredMonitorLevel;
     try {
       configuredMonitorLevel = MonitorLevel.valueOf(
@@ -406,6 +411,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
       EventType[] eventType) {
+    addListener(listener, propertyKey, changeType, eventType, -1);
+  }
+
+  void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
+      EventType[] eventType, long periodicRefreshInterval) {
     checkConnected(_waitForConnectedTimeout);
 
     PropertyType type = propertyKey.getType();
@@ -424,7 +434,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       CallbackHandler newHandler =
           new CallbackHandler(this, _zkclient, propertyKey, listener, eventType, changeType,
-              _callbackMonitors.get(changeType));
+              _callbackMonitors.get(changeType), periodicRefreshInterval);
 
       _handlers.add(newHandler);
       LOG.info("Added listener: " + listener + " for type: " + type + " to path: "
@@ -549,14 +559,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void addMessageListener(MessageListener listener, String instanceName) {
     addListener(listener, new Builder(_clusterName).messages(instanceName), ChangeType.MESSAGE,
-        new EventType[] { EventType.NodeChildrenChanged });
+        new EventType[] { EventType.NodeChildrenChanged }, _messageRefreshInterval);
   }
 
   @Deprecated
   @Override
   public void addMessageListener(org.apache.helix.MessageListener listener, String instanceName) {
     addListener(listener, new Builder(_clusterName).messages(instanceName), ChangeType.MESSAGE,
-        new EventType[] { EventType.NodeChildrenChanged });
+        new EventType[] { EventType.NodeChildrenChanged }, _messageRefreshInterval);
   }
 
   @Override

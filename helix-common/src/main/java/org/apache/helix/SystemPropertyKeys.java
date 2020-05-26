@@ -82,4 +82,7 @@ public class SystemPropertyKeys {
   // System Property Metadata Store Directory Server endpoint key
   public static final String MSDS_SERVER_ENDPOINT_KEY =
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
+
+  // Periodic message refresh interval, must be > 0
+  public static final String MESSAGE_REFRESH_INTERVAL = "helix.manager.messageRefreshInterval.ms";
 }

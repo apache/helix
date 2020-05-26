@@ -518,13 +518,12 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   private void checkIfPathContainsShardingKey(String path) {
-    // TODO: replace with the singleton MetadataStoreRoutingData
     try {
       String zkRealmForPath = _metadataStoreRoutingData.getMetadataStoreRealm(path);
       if (!_zkRealmAddress.equals(zkRealmForPath)) {
         throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
             + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
-            + _zkRealmShardingKey + " for this DedicatedZkClient!");
+            + _zkRealmShardingKey + " for this SharedZkClient!");
       }
     } catch (NoSuchElementException e) {
       throw new IllegalArgumentException(

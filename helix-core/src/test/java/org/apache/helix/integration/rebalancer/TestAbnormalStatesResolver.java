@@ -19,16 +19,32 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.Criteria;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.constraint.ExcessiveTopStateResolver;
 import org.apache.helix.controller.rebalancer.constraint.MockAbnormalStateResolver;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.model.Message;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -63,5 +79,102 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setAbnormalStateResolverMap(Collections.emptyMap());
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+  }
+
+  @Test(dependsOnMethods = "testConfigureResolver")
+  public void testExcessiveTopStateResolver() {
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier.verify(5000));
+
+    // 1. Find a partition with a MASTER replica and a SLAVE replica
+    HelixAdmin admin = new ZKHelixAdmin.Builder().setZkAddress(ZK_ADDR).build();
+    ExternalView ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
+    String targetPartition = ev.getPartitionSet().iterator().next();
+    Map<String, String> partitionAssignment = ev.getStateMap(targetPartition);
+    String slaveHost =
+        partitionAssignment.entrySet().stream().filter(entry -> entry.getValue().equals("SLAVE"))
+            .findAny().get().getKey();
+    long previousMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+
+    // Build SLAVE to MASTER message
+    String msgId = new UUID(123, 456).toString();
+    Message msg =
+        createMessage(Message.MessageType.STATE_TRANSITION, msgId, "SLAVE", "MASTER", TEST_DB,
+            slaveHost);
+    msg.setStateModelDef(MasterSlaveSMD.name);
+
+    Criteria cr = new Criteria();
+    cr.setInstanceName(slaveHost);
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(true);
+    cr.setPartition(targetPartition);
+    cr.setResource(TEST_DB);
+    cr.setClusterName(CLUSTER_NAME);
+
+    AsyncCallback callback = new AsyncCallback() {
+      @Override
+      public void onTimeOut() {
+        Assert.fail("The test state transition timeout.");
+      }
+
+      @Override
+      public void onReplyMessage(Message message) {
+        Assert.assertEquals(message.getMsgState(), Message.MessageState.READ);
+      }
+    };
+
+    // 2. Send the SLAVE to MASTER message to the SLAVE host to make abnormal partition states.
+
+    // 2.A. Without resolver, the fixing is not completely done by the default rebalancer logic.
+    _controller.getMessagingService().sendAndWait(cr, msg, callback, 3000);
+    // Wait until the partition status is fixed, verify if the result is as expected
+    verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+    Assert.assertTrue(verifier.verify(5000));
+    ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
+    Assert.assertEquals(
+        ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
+            .count(), 1);
+    // Since the resolver is not used in the auto default fix process, there is no update on the
+    // original master. So if there is any data issue, it was not fixed.
+    long currentMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+    Assert.assertFalse(currentMasterUpdateTime > previousMasterUpdateTime);
+
+    // 2.B. with resolver configured, the fixing is complete.
+    ConfigAccessor configAccessor = new ConfigAccessor.Builder().setZkAddress(ZK_ADDR).build();
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setAbnormalStateResolverMap(
+        ImmutableMap.of(MasterSlaveSMD.name, ExcessiveTopStateResolver.class.getName()));
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+    _controller.getMessagingService().sendAndWait(cr, msg, callback, 3000);
+    // Wait until the partition status is fixed, verify if the result is as expected
+    Assert.assertTrue(verifier.verify(5000));
+    ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
+    Assert.assertEquals(
+        ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
+            .count(), 1);
+    // Now the resolver is used in the auto fix process, the original master has also been refreshed.
+    // The potential data issue has been fixed in this process.
+    currentMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+    Assert.assertTrue(currentMasterUpdateTime > previousMasterUpdateTime);
+
+    // Reset the resolver map
+    clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setAbnormalStateResolverMap(Collections.emptyMap());
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+  }
+
+  private long getTopStateUpdateTime(ExternalView ev, String partition, String state) {
+    String topStateHost = ev.getStateMap(partition).entrySet().stream()
+        .filter(entry -> entry.getValue().equals(state)).findFirst().get().getKey();
+    MockParticipantManager participant = Arrays.stream(_participants)
+        .filter(instance -> instance.getInstanceName().equals(topStateHost)).findFirst().get();
+
+    HelixDataAccessor accessor = _controller.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    CurrentState currentState = accessor.getProperty(keyBuilder
+        .currentState(participant.getInstanceName(), participant.getSessionId(), ev.getResourceName()));
+    return currentState.getEndTime(partition);
   }
 }

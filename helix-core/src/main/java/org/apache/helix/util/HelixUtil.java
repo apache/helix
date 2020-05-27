@@ -28,22 +28,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
+import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
+import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
+import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public final class HelixUtil {
   static private Logger LOG = LoggerFactory.getLogger(HelixUtil.class);
@@ -138,6 +158,81 @@ public final class HelixUtil {
         throw ex;
       }
     }
+  }
+
+  /**
+   * Returns the expected ideal ResourceAssignments for the given resources in the cluster
+   * calculated using the read-only WAGED rebalancer.
+   * @param metadataStoreAddress
+   * @param clusterConfig
+   * @param instanceConfigs
+   * @param liveInstances
+   * @param newIdealStates
+   * @param newResourceConfigs
+   * @return
+   */
+  public static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAuto(
+      String metadataStoreAddress, ClusterConfig clusterConfig,
+      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> newIdealStates, List<ResourceConfig> newResourceConfigs) {
+    // Prepare a data accessor for a dataProvider (cache) refresh
+    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
+    HelixDataAccessor helixDataAccessor =
+        new ZKHelixDataAccessor(clusterConfig.getClusterName(), baseDataAccessor);
+
+    // Obtain a refreshed dataProvider (cache) and overwrite cluster parameters with the given parameters
+    ResourceControllerDataProvider dataProvider =
+        new ResourceControllerDataProvider(clusterConfig.getClusterName());
+    dataProvider.requireFullRefresh();
+    dataProvider.refresh(helixDataAccessor);
+    dataProvider.setClusterConfig(clusterConfig);
+    dataProvider.setInstanceConfigMap(instanceConfigs.stream()
+        .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
+    dataProvider.setLiveInstances(
+        liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
+    dataProvider.setIdealStates(newIdealStates);
+    dataProvider.setResourceConfigMap(newResourceConfigs.stream()
+        .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
+
+    // Create an instance of read-only WAGED rebalancer
+    ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
+        new ReadOnlyWagedRebalancer(metadataStoreAddress, clusterConfig.getClusterName(),
+            clusterConfig.getGlobalRebalancePreference());
+
+    // Use a dummy event to run the required stages for BestPossibleState calculation
+    // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage
+    ClusterEvent event = new ClusterEvent(clusterConfig.getClusterName(), ClusterEventType.Unknown);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
+    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
+
+    try {
+      // Run the required stages to obtain the BestPossibleOutput
+      RebalanceUtil.runStage(event, new ResourceComputationStage());
+      RebalanceUtil.runStage(event, new CurrentStateComputationStage());
+      RebalanceUtil.runStage(event, new BestPossibleStateCalcStage());
+    } catch (Exception e) {
+      LOG.error("getIdealAssignmentForWagedFullAuto(): Failed to compute ResourceAssignments!", e);
+    } finally {
+      // Close all ZK connections
+      baseDataAccessor.close();
+      readOnlyWagedRebalancer.close();
+    }
+
+    // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>
+    Map<String, ResourceAssignment> result = new HashMap<>();
+    BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+    for (Resource resource : resourceMap.values()) {
+      String resourceName = resource.getResourceName();
+      PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
+      ResourceAssignment resourceAssignment = new ResourceAssignment(resourceName);
+      for (Partition partition : resource.getPartitions()) {
+        resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
+      }
+      result.put(resourceName, resourceAssignment);
+    }
+    return result;
   }
 
   /**

@@ -601,6 +601,14 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _resourceConfigCache.getPropertyMap();
   }
 
+  /**
+   * Sets the resource config map
+   * @param resourceConfigMap
+   */
+  public void setResourceConfigMap(Map<String, ResourceConfig> resourceConfigMap) {
+    _resourceConfigCache.setPropertyMap(resourceConfigMap);
+  }
+
   public ResourceConfig getResourceConfig(String resource) {
     return _resourceConfigCache.getPropertyByName(resource);
   }

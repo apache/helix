@@ -741,7 +741,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       return;
     }
     Map<String, String> resolverMap = clusterConfig.getAbnormalStateResolverMap();
-    logger.debug("Start loading the abnormal state resolvers with configuration {}", resolverMap);
+    logger.info("Start loading the abnormal state resolvers with configuration {}", resolverMap);
     // Remove any resolver configuration that does not exist anymore.
     _abnormalStateResolverMap.keySet().retainAll(resolverMap.keySet());
     // Reload the resolver classes into cache based on the configuration.
@@ -763,7 +763,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         }
       } // else, nothing to update since the same resolver class has been loaded.
     }
-    logger.debug("Finish loading the abnormal state resolvers {}", _abnormalStateResolverMap);
+    logger.info("Finish loading the abnormal state resolvers {}", _abnormalStateResolverMap);
   }
 
   public boolean isMaintenanceModeEnabled() {

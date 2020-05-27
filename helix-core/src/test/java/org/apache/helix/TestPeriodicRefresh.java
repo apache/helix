@@ -20,7 +20,10 @@ package org.apache.helix;
  */
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -52,6 +55,8 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
 
   public class MockManager extends ZKHelixManager {
 
+    public Map<TestMessageListener, MockCallbackHandler> _testHandlers = new HashMap<>();
+
     public MockManager(String clusterName, String instanceName, InstanceType instanceType,
         String zkAddress) {
       super(clusterName, instanceName, instanceType, zkAddress);
@@ -61,8 +66,9 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
       return _zkclient;
     }
 
-    void addListener(Object listener, PropertyKey propertyKey, HelixConstants.ChangeType changeType,
-        Watcher.Event.EventType[] eventType, long periodicRefreshInterval) {
+    void addListener(TestMessageListener listener, PropertyKey propertyKey,
+        HelixConstants.ChangeType changeType, Watcher.Event.EventType[] eventType,
+        long periodicRefreshInterval) {
       synchronized (this) {
         for (CallbackHandler handler : _handlers) {
           if (handler.getPath().equals(propertyKey.getPath()) && handler.getListener()
@@ -75,13 +81,13 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
         CallbackHandler newHandler =
             new MockCallbackHandler(this, _zkclient, propertyKey, listener, eventType, changeType,
                 periodicRefreshInterval);
-
+        _testHandlers.put(listener, (MockCallbackHandler) newHandler);
         _handlers.add(newHandler);
       }
     }
 
     // Use this method to bypass getting messageRefreshInterval from system property to add listener
-    public void addMessageListener(MessageListener listener, String instanceName,
+    public void addMessageListener(TestMessageListener listener, String instanceName,
         String clusterName, long messageRefreshInterval) {
       addListener(listener, new PropertyKey.Builder(clusterName).messages(instanceName),
           HelixConstants.ChangeType.MESSAGE,
@@ -92,12 +98,11 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
 
   class MockCallbackHandler extends CallbackHandler {
 
-    // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0), -1 means not doing refresh
     public MockCallbackHandler(HelixManager manager, RealmAwareZkClient client,
         PropertyKey propertyKey, Object listener, Watcher.Event.EventType[] eventTypes,
         HelixConstants.ChangeType changeType, long periodicRefreshInterval) {
       super(manager, client, propertyKey, listener, eventTypes, changeType,
-          periodicRefreshInterval == -1 ? -1 : 1);
+          periodicRefreshInterval);
     }
 
     public void invoke(NotificationContext changeContext) {
@@ -143,7 +148,8 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   @Test
   public void testWithRefresh() throws Exception {
     TestMessageListener listener0 = new TestMessageListener();
-    _manager.addMessageListener(listener0, instanceName, clusterName, 20);
+    // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0), -1 means not doing refresh
+    _manager.addMessageListener(listener0, instanceName, clusterName, 1);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {
@@ -164,5 +170,24 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertFalse(result);
+  }
+
+  @Test
+  public void testWithLateRefresh() throws Exception {
+    TestMessageListener listener2 = new TestMessageListener();
+    _manager.addMessageListener(listener2, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
+    CallbackHandler mockHandler = _manager._testHandlers.get(listener2);
+    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
+    lastEventTimeField.setAccessible(true);
+    lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
+    // Make sue when the first refresh is executed, interval (wait_duration/8) + lastEventTime (current time + wait_duration/8) > current time
+    // So it will cancel the current task and schedule another refresh for after wait_duration/4
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener2.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
   }
 }

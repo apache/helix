@@ -219,14 +219,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     public void run() {
       try {
         long currentTime = System.currentTimeMillis();
-        if (_lastEventTime + _periodicRefreshInterval <= currentTime) {
+        long remainingTime = _lastEventTime + _periodicRefreshInterval - currentTime;
+        if (remainingTime <= 0) {
           NotificationContext changeContext = new NotificationContext(_manager);
           changeContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
           changeContext.setChangeType(_changeType);
           enqueueTask(changeContext);
         } else {
-          long remainingTime = _lastEventTime + _periodicRefreshInterval - currentTime;
-          Thread.sleep(remainingTime);
+          _scheduledRefreshFuture.cancel(false);
+          // remaining time must > 0, otherwise exception will be thrown and the schedule fails
+          _periodicRefreshExecutor
+              .scheduleWithFixedDelay(this, remainingTime, _periodicRefreshInterval,
+                  TimeUnit.MILLISECONDS);
         }
       } catch (Exception e) {
         logger.warn("Exception caught in periodic refresh task.", e);
@@ -918,7 +922,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     _lastEventTime = System.currentTimeMillis();
     _periodicRefreshExecutor = new ScheduledThreadPoolExecutor(1);
     // When cancelling the task future, it removes the task from the queue
-    // so we won't have a memory leakage when we reset the callback handler
+    // so we won't have a memory leakage when we cancel scheduled task
     _periodicRefreshExecutor.setRemoveOnCancelPolicy(true);
     _scheduledRefreshFuture = _periodicRefreshExecutor
         .scheduleWithFixedDelay(new RefreshTask(), _periodicRefreshInterval,

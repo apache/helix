@@ -591,8 +591,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
       String instanceName) throws Exception {
-    addListener(listener, new Builder(_clusterName).customizedStatesRoot(instanceName),
-        ChangeType.CUSTOMIZED_STATE_ROOT, new EventType[]{EventType.NodeChildrenChanged});
+    PropertyKey propertyKey = _dataAccessor.keyBuilder().customizedStatesRoot(instanceName);
+    if (_zkclient.exists(propertyKey.getPath())) {
+      addListener(listener, new Builder(_clusterName).customizedStatesRoot(instanceName),
+          ChangeType.CUSTOMIZED_STATE_ROOT, new EventType[]{EventType.NodeChildrenChanged});
+    }
   }
 
   @Override

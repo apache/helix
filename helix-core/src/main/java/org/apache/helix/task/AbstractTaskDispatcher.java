@@ -66,9 +66,9 @@ public abstract class AbstractTaskDispatcher {
   // Job Update related methods
 
   public void updatePreviousAssignedTasksStatus(
-      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments, Set<String> excludedInstances,
-      String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx, JobConfig jobCfg,
-      ResourceAssignment prevTaskToInstanceStateAssignment, TaskState jobState,
+      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments,
+      Set<String> excludedInstances, String jobResource, CurrentStateOutput currStateOutput,
+      JobContext jobCtx, JobConfig jobCfg, TaskState jobState,
       Map<String, Set<Integer>> assignedPartitions, Set<Integer> partitionsToDropFromIs,
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
       Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache,
@@ -130,8 +130,8 @@ public abstract class AbstractTaskDispatcher {
           // If there is a pending message whose destination state is different from the current
           // state, just make the same assignment as the pending message. This is essentially
           // "waiting" until this state transition is complete
-          processTaskWithPendingMessage(prevTaskToInstanceStateAssignment, pId, pName, instance,
-              pendingMessage, jobState, currState, paMap, assignedPartitions);
+          processTaskWithPendingMessage(pId, pName, instance, pendingMessage, jobState, currState,
+              paMap, assignedPartitions);
           continue;
         }
 
@@ -439,7 +439,6 @@ public abstract class AbstractTaskDispatcher {
   /**
    * Create an assignment based on an already-existing pending message. This effectively lets the
    * Controller to "wait" until the pending state transition has been processed.
-   * @param prevAssignment
    * @param pId
    * @param pName
    * @param instance
@@ -449,43 +448,31 @@ public abstract class AbstractTaskDispatcher {
    * @param paMap
    * @param assignedPartitions
    */
-  private void processTaskWithPendingMessage(ResourceAssignment prevAssignment, Integer pId,
-      String pName, String instance, Message pendingMessage, TaskState jobState,
-      TaskPartitionState currState, Map<Integer, PartitionAssignment> paMap,
-      Map<String, Set<Integer>> assignedPartitions) {
+  private void processTaskWithPendingMessage(Integer pId, String pName, String instance,
+      Message pendingMessage, TaskState jobState, TaskPartitionState currState,
+      Map<Integer, PartitionAssignment> paMap, Map<String, Set<Integer>> assignedPartitions) {
 
-    // stateMap is a mapping of Instance -> TaskPartitionState (String)
-    Map<String, String> stateMap = prevAssignment.getReplicaMap(new Partition(pName));
-    if (stateMap != null) {
-      String prevState = stateMap.get(instance);
-      if (!pendingMessage.getToState().equals(prevState)) {
-        LOG.warn(String.format(
-            "Task pending to-state is %s while previous assigned state is %s. This should not"
-                + "happen.",
-            pendingMessage.getToState(), prevState));
+    if (jobState == TaskState.TIMING_OUT && currState == TaskPartitionState.INIT
+        && pendingMessage.getToState().equals(TaskPartitionState.RUNNING.name())) {
+      // While job is timing out, if the task is pending on INIT->RUNNING, set it back to INIT,
+      // so that Helix will cancel the transition.
+      paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
+      assignedPartitions.get(instance).add(pId);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String.format(
+            "Task partition %s has a pending state transition on instance %s INIT->RUNNING. CurrentState is %s "
+                + "Setting it back to INIT so that Helix can cancel the transition(if enabled).",
+            pName, instance, currState.name()));
       }
-      if (jobState == TaskState.TIMING_OUT && currState == TaskPartitionState.INIT
-          && prevState.equals(TaskPartitionState.RUNNING.name())) {
-        // While job is timing out, if the task is pending on INIT->RUNNING, set it back to INIT,
-        // so that Helix will cancel the transition.
-        paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
-        assignedPartitions.get(instance).add(pId);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String.format(
-              "Task partition %s has a pending state transition on instance %s INIT->RUNNING. Previous state %s"
-                  + "Setting it back to INIT so that Helix can cancel the transition(if enabled).",
-              pName, instance, prevState));
-        }
-      } else {
-        // Otherwise, Just copy forward
-        // the state assignment from the previous ideal state.
-        paMap.put(pId, new PartitionAssignment(instance, prevState));
-        assignedPartitions.get(instance).add(pId);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String.format(
-              "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
-              pName, instance, prevState));
-        }
+    } else {
+      // Otherwise, Just copy forward
+      // the state assignment from the pending message
+      paMap.put(pId, new PartitionAssignment(instance, pendingMessage.getToState()));
+      assignedPartitions.get(instance).add(pId);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(String.format(
+            "Task partition %s has a pending state transition on instance %s. Using the pending message ToState which was %s.",
+            pName, instance, pendingMessage.getToState()));
       }
     }
   }

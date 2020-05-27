@@ -135,9 +135,9 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
 
   @AfterSuite
   public void afterSuite() throws IOException {
-    super.afterSuite();
     _manager.disconnect();
     _gSetupTool.deleteCluster(clusterName);
+    super.afterSuite();
   }
 
   @Test

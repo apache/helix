@@ -28,9 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -140,9 +139,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicRefreshInterval;
-  private ScheduledExecutorService _periodicRefreshExecutor;
-  private volatile long _lastEventTime;
+  private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
   private ScheduledFuture<?> _scheduledRefreshFuture;
+  private volatile long _lastEventTime;
   private static final long VALUE_NOT_SET = -1;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
@@ -227,10 +226,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           enqueueTask(changeContext);
         } else {
           long remainingTime = _lastEventTime + _periodicRefreshInterval - currentTime;
-          _scheduledRefreshFuture.cancel(false);
-          _scheduledRefreshFuture = _periodicRefreshExecutor
-              .scheduleWithFixedDelay(this, remainingTime, _periodicRefreshInterval,
-                  TimeUnit.MILLISECONDS);
+          Thread.sleep(remainingTime);
         }
       } catch (Exception e) {
         logger.warn("Exception caught in periodic refresh task.", e);
@@ -879,9 +875,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             }
           } else {
             _batchCallbackProcessor.resetEventQueue();
-            if (_periodicRefreshExecutor != null) {
-              _periodicRefreshExecutor.shutdownNow();
-              initRefreshTask();
+            if (_scheduledRefreshFuture != null) {
+              _scheduledRefreshFuture.cancel(true);
             }
           }
         }
@@ -921,7 +916,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private void initRefreshTask() {
     _lastEventTime = System.currentTimeMillis();
-    _periodicRefreshExecutor = Executors.newSingleThreadScheduledExecutor();
+    _periodicRefreshExecutor = new ScheduledThreadPoolExecutor(1);
+    // When cancelling the task future, it removes the task from the queue
+    // so we won't have a memory leakage when we reset the callback handler
+    _periodicRefreshExecutor.setRemoveOnCancelPolicy(true);
     _scheduledRefreshFuture = _periodicRefreshExecutor
         .scheduleWithFixedDelay(new RefreshTask(), _periodicRefreshInterval,
             _periodicRefreshInterval, TimeUnit.MILLISECONDS);

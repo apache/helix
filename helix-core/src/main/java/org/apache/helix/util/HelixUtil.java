@@ -180,20 +180,6 @@ public final class HelixUtil {
     HelixDataAccessor helixDataAccessor =
         new ZKHelixDataAccessor(clusterConfig.getClusterName(), baseDataAccessor);
 
-    // Obtain a refreshed dataProvider (cache) and overwrite cluster parameters with the given parameters
-    ResourceControllerDataProvider dataProvider =
-        new ResourceControllerDataProvider(clusterConfig.getClusterName());
-    dataProvider.requireFullRefresh();
-    dataProvider.refresh(helixDataAccessor);
-    dataProvider.setClusterConfig(clusterConfig);
-    dataProvider.setInstanceConfigMap(instanceConfigs.stream()
-        .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
-    dataProvider.setLiveInstances(
-        liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
-    dataProvider.setIdealStates(newIdealStates);
-    dataProvider.setResourceConfigMap(newResourceConfigs.stream()
-        .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
-
     // Create an instance of read-only WAGED rebalancer
     ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
         new ReadOnlyWagedRebalancer(metadataStoreAddress, clusterConfig.getClusterName(),
@@ -202,10 +188,25 @@ public final class HelixUtil {
     // Use a dummy event to run the required stages for BestPossibleState calculation
     // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage
     ClusterEvent event = new ClusterEvent(clusterConfig.getClusterName(), ClusterEventType.Unknown);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
-    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
 
     try {
+      // Obtain a refreshed dataProvider (cache) and overwrite cluster parameters with the given parameters
+      ResourceControllerDataProvider dataProvider =
+          new ResourceControllerDataProvider(clusterConfig.getClusterName());
+      dataProvider.requireFullRefresh();
+      dataProvider.refresh(helixDataAccessor);
+      dataProvider.setClusterConfig(clusterConfig);
+      dataProvider.setInstanceConfigMap(instanceConfigs.stream()
+          .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
+      dataProvider.setLiveInstances(
+          liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
+      dataProvider.setIdealStates(newIdealStates);
+      dataProvider.setResourceConfigMap(newResourceConfigs.stream()
+          .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
+
+      event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
+      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
+
       // Run the required stages to obtain the BestPossibleOutput
       RebalanceUtil.runStage(event, new ResourceComputationStage());
       RebalanceUtil.runStage(event, new CurrentStateComputationStage());

@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -36,14 +37,18 @@ import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -145,7 +150,52 @@ public class TestWagedRebalance extends ZkTestBase {
     }
   }
 
+  /**
+   * Use HelixUtil.getIdealAssignmentForWagedFullAuto() to compute the cluster-wide assignment and
+   * verify that it matches with the result from the original WAGED rebalancer's algorithm result.
+   */
   @Test(dependsOnMethods = "test")
+  public void testRebalanceTool() throws InterruptedException {
+    // Create resources for testing
+    int i = 0;
+    for (String stateModel : _testModels) {
+      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+      _allDBs.add(db);
+    }
+    Thread.sleep(300);
+
+    validate(_replica);
+
+    // Read cluster parameters from ZK
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    ClusterConfig clusterConfig =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+    List<InstanceConfig> instanceConfigs =
+        dataAccessor.getChildValues(dataAccessor.keyBuilder().instanceConfigs(), true);
+    List<String> liveInstances =
+        dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
+    List<IdealState> idealStates =
+        dataAccessor.getChildValues(dataAccessor.keyBuilder().idealStates(), true);
+    List<ResourceConfig> resourceConfigs =
+        dataAccessor.getChildValues(dataAccessor.keyBuilder().resourceConfigs(), true);
+
+    // Verify that utilResult contains the assignment for the resources added
+    Map<String, ResourceAssignment> utilResult = HelixUtil
+        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+            idealStates, resourceConfigs);
+    Assert.assertNotNull(utilResult);
+    Assert.assertEquals(utilResult.size(), _allDBs.size());
+    for (IdealState idealState : idealStates) {
+      Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
+      Assert.assertEquals(utilResult.get(idealState.getResourceName()).getRecord().getMapFields(),
+          idealState.getRecord().getMapFields());
+    }
+  }
+
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testWithInstanceTag() throws Exception {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 3;
@@ -164,7 +214,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testChangeIdealState() throws InterruptedException {
     String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
@@ -198,7 +248,7 @@ public class TestWagedRebalance extends ZkTestBase {
     Assert.assertEquals(ev.getPartitionSet().size(), PARTITIONS + 1);
   }
 
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testDisableInstance() throws InterruptedException {
     String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
@@ -322,7 +372,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testMixedRebalancerUsage() throws InterruptedException {
     int i = 0;
     for (String stateModel : _testModels) {
@@ -345,7 +395,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testMaxPartitionLimitation() throws Exception {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -412,7 +462,7 @@ public class TestWagedRebalance extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testNewInstances() throws InterruptedException {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -479,7 +529,7 @@ public class TestWagedRebalance extends ZkTestBase {
    * This test is to verify if the reset has been done and the rebalancer has forgotten any previous
    * status after leadership switched.
    */
-  @Test(dependsOnMethods = "test")
+  @Test(dependsOnMethods = "testRebalanceTool")
   public void testRebalancerReset() throws Exception {
     // Configure the rebalance preference so as to trigger more partition movements for evenness.
     // This is to ensure the controller will try to move something if the rebalancer has been reset.

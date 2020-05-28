@@ -561,12 +561,12 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   private enum ResetPartitionFailureReason {
-    INSTANCE_NOTALIVE("%s is not alive in cluster %s"),
-    INSTANCE_NONEXISTENT("%s does not exist in cluster %s"),
-    RESOURCE_NONEXISTENT("resource %s is not added to cluster %s"),
-    PARTITION_NONEXISTENT("not all %s exist in cluster %s"),
+    INSTANCE_NOT_ALIVE("%s is not alive in cluster %s"),
+    INSTANCE_NON_EXISTENT("%s does not exist in cluster %s"),
+    RESOURCE_NON_EXISTENT("resource %s is not added to cluster %s"),
+    PARTITION_NON_EXISTENT("not all %s exist in cluster %s"),
     PARTITION_NOT_ERROR("%s is NOT found in cluster %s"),
-    STATE_MODEL_NONEXISTENT("%s is NOT found in cluster %s"),
+    STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s"),
     PENDING_MSG("a pending message %s exists for resource %s");
 
     private String message;
@@ -576,9 +576,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     public String getMessage(String resourceName, List<String> partitionNames, String instanceName,
-        String arg1, String arg2) {
+        String errorStateEntity, String clusterName) {
       return String.format("Can't reset state for %s.%s on %s, because " + message, resourceName,
-          partitionNames, instanceName, arg1, arg2);
+          partitionNames, instanceName, errorStateEntity, clusterName);
     }
   }
 
@@ -598,9 +598,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       // check if the instance exists in the cluster
       String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
       throw new HelixException(String.format(
-          _zkClient.exists(instanceConfigPath) ? ResetPartitionFailureReason.INSTANCE_NOTALIVE
+          _zkClient.exists(instanceConfigPath) ? ResetPartitionFailureReason.INSTANCE_NOT_ALIVE
               .getMessage(resourceName, partitionNames, instanceName, instanceName, clusterName)
-              : ResetPartitionFailureReason.INSTANCE_NONEXISTENT
+              : ResetPartitionFailureReason.INSTANCE_NON_EXISTENT
                   .getMessage(resourceName, partitionNames, instanceName, instanceName,
                       clusterName)));
     }
@@ -608,7 +608,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     // check resource group exists
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     if (idealState == null) {
-      throw new HelixException(String.format(ResetPartitionFailureReason.RESOURCE_NONEXISTENT
+      throw new HelixException(String.format(ResetPartitionFailureReason.RESOURCE_NON_EXISTENT
           .getMessage(resourceName, partitionNames, instanceName, resourceName, clusterName)));
     }
 
@@ -618,7 +618,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) ? idealState.getRecord()
             .getMapFields().keySet() : idealState.getRecord().getListFields().keySet();
     if (!partitions.containsAll(resetPartitionNames)) {
-      throw new HelixException(String.format(ResetPartitionFailureReason.PARTITION_NONEXISTENT
+      throw new HelixException(String.format(ResetPartitionFailureReason.PARTITION_NON_EXISTENT
           .getMessage(resourceName, partitionNames, instanceName, partitionNames.toString(),
               clusterName)));
     }
@@ -639,7 +639,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     String stateModelDef = idealState.getStateModelDefRef();
     StateModelDefinition stateModel = accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
     if (stateModel == null) {
-      throw new HelixException(String.format(ResetPartitionFailureReason.STATE_MODEL_NONEXISTENT
+      throw new HelixException(String.format(ResetPartitionFailureReason.STATE_MODEL_NON_EXISTENT
           .getMessage(resourceName, partitionNames, instanceName, stateModelDef, clusterName)));
     }
 

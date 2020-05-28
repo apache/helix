@@ -148,7 +148,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   @Test
   public void testWithRefresh() throws Exception {
     TestMessageListener listener0 = new TestMessageListener();
-    // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0), -1 means not doing refresh
+    // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
     _manager.addMessageListener(listener0, instanceName, clusterName, 1);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
@@ -162,7 +162,8 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   @Test
   public void testWithoutRefresh() throws Exception {
     TestMessageListener listener1 = new TestMessageListener();
-    _manager.addMessageListener(listener1, instanceName, clusterName, -1);
+    // Not doing refresh
+    _manager.addMessageListener(listener1, instanceName, clusterName, SystemPropertyKeys.PROPERTY_NOT_SET);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {

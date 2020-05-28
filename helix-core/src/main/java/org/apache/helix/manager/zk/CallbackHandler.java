@@ -120,7 +120,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         .put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE, Type.PERIODIC_REFRESH));
     nextNotificationType
         .put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE, Type.PERIODIC_REFRESH));
-    nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT));
+    nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT, Type.PERIODIC_REFRESH));
   }
 
   // processor to handle async zk event resubscription.
@@ -142,7 +142,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
   private ScheduledFuture<?> _scheduledRefreshFuture;
   private volatile long _lastEventTime;
-  private static final long VALUE_NOT_SET = -1;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -246,7 +245,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, null, VALUE_NOT_SET);
+    this(manager, client, propertyKey, listener, eventTypes, changeType, null, SystemPropertyKeys.PROPERTY_NOT_SET);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
@@ -259,7 +258,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType,
       HelixCallbackMonitor monitor) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, VALUE_NOT_SET);
+    this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, SystemPropertyKeys.PROPERTY_NOT_SET);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
@@ -302,7 +301,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
      * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
      */
     _periodicRefreshInterval = periodicRefreshInterval;
-    if (_periodicRefreshInterval != VALUE_NOT_SET) {
+    if (_periodicRefreshInterval != SystemPropertyKeys.PROPERTY_NOT_SET) {
       initRefreshTask();
     }
   }
@@ -454,7 +453,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             + "expected types: {}, but was {}", _listener, _path, _expectTypes, type);
         return;
       }
-      _expectTypes = nextNotificationType.get(type);
+      if (type != Type.PERIODIC_REFRESH) {
+        _expectTypes = nextNotificationType.get(type);
+      }
 
       if (type == Type.INIT || type == Type.FINALIZE || type == Type.PERIODIC_REFRESH) {
         subscribeForChanges(changeContext.getType(), _path, _watchChild);

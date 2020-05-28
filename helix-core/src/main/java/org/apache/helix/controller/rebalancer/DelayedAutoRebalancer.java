@@ -27,10 +27,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -263,7 +265,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
       Map<String, String> bestStateForPartition =
           computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList,
               currentStateOutput, disabledInstancesForPartition, idealState, clusterConfig,
-              partition);
+              partition, cache.getAbnormalStateResolver(stateModelDefName));
 
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
@@ -276,39 +278,20 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
     return partitionMapping;
   }
 
-  /**
-   * compute best state for resource in AUTO ideal state mode
-   * @param liveInstances
-   * @param stateModelDef
-   * @param preferenceList
-   * @param currentStateOutput
-   *          : instance->state for each partition
-   * @param disabledInstancesForPartition
-   * @param idealState
-   * @param  clusterConfig
-   * @param  partition
-   * @return
-   */
   @Override
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
-      IdealState idealState, ClusterConfig clusterConfig, Partition partition) {
-
+      IdealState idealState, ClusterConfig clusterConfig, Partition partition,
+      AbnormalStateResolver resolver) {
+    Optional<Map<String, String>> optionalOverwrittenStates =
+        computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
+            idealState, partition, resolver);
+    if (optionalOverwrittenStates.isPresent()) {
+      return optionalOverwrittenStates.get();
+    }
     Map<String, String> currentStateMap = new HashMap<>(
         currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
-
-    // (1) If the partition is removed from IS or the IS is deleted.
-    // Transit to DROPPED no matter the instance is disabled or not.
-    if (preferenceList == null) {
-      return computeBestPossibleMapForDroppedResource(currentStateMap);
-    }
-
-    // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
-    if (!idealState.isEnabled()) {
-      return computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef);
-    }
-
     // Instances not in preference list but still have active replica, retain to avoid zero replica during movement
     List<String> currentInstances = new ArrayList<>(currentStateMap.keySet());
     Collections.sort(currentInstances);
@@ -331,7 +314,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer<ResourceController
         instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
       }
     }
-
 
     // Sort the instancesToMove by their current partition state.
     // Reason: because the states are assigned to instances in the order appeared in preferenceList, if we have

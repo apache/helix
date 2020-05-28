@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.controller.rebalancer.constraint.MockAbnormalStateResolver;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -255,5 +256,20 @@ public class TestClusterConfig {
     Assert.assertEquals(testConfig.getRecord()
         .getBooleanField(ClusterConfig.ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
             false), true);
+  }
+
+  @Test
+  public void testAbnormalStatesResolverConfig() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    // Default value is empty
+    Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), Collections.EMPTY_MAP);
+    // Test set
+    Map<String, String> resolverMap = ImmutableMap.of(MasterSlaveSMD.name,
+        MockAbnormalStateResolver.class.getName());
+    testConfig.setAbnormalStateResolverMap(resolverMap);
+    Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), resolverMap);
+    // Test empty the map
+    testConfig.setAbnormalStateResolverMap(Collections.emptyMap());
+    Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), Collections.EMPTY_MAP);
   }
 }

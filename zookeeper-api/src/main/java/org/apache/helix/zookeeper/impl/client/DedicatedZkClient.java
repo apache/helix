@@ -122,6 +122,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public List<String> subscribeChildChanges(String path, IZkChildListener listener,
+      boolean skipWatchingNodeNotExist) {
+    return _rawZkClient.subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
+  }
+
+  @Override
   public void unsubscribeChildChanges(String path, IZkChildListener listener) {
     checkIfPathContainsShardingKey(path);
     _rawZkClient.unsubscribeChildChanges(path, listener);
@@ -131,6 +137,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     checkIfPathContainsShardingKey(path);
     _rawZkClient.subscribeDataChanges(path, listener);
+  }
+
+  @Override
+  public void subscribeDataChanges(String path, IZkDataListener listener,
+      boolean skipWatchingNodeNotExist) {
+    _rawZkClient.subscribeDataChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override

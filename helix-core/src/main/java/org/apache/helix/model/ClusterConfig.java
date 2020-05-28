@@ -30,10 +30,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Cluster configurations
@@ -109,7 +109,13 @@ public class ClusterConfig extends HelixProperty {
     // https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer#rebalance-coordinator
     //
     // Default to be true.
-    GLOBAL_REBALANCE_ASYNC_MODE
+    GLOBAL_REBALANCE_ASYNC_MODE,
+
+    /**
+     * Configure the abnormal partition states resolver classes for the corresponding state model.
+     * <State Model Def Name, Full Path of the Resolver Class Name>
+     */
+    ABNORMAL_STATES_RESOLVER_MAP
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -849,6 +855,24 @@ public class ClusterConfig extends HelixProperty {
   public boolean isGlobalRebalanceAsyncModeEnabled() {
     return _record.getBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
         DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
+  }
+
+  /**
+   * Set the abnormal state resolver class map.
+   */
+  public void setAbnormalStateResolverMap(Map<String, String> resolverMap) {
+    if (resolverMap.values().stream()
+        .anyMatch(className -> className == null || className.isEmpty())) {
+      throw new IllegalArgumentException(
+          "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
+    }
+    _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
+  }
+
+  public Map<String, String> getAbnormalStateResolverMap() {
+    Map<String, String> resolverMap =
+        _record.getMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name());
+    return resolverMap == null ? Collections.EMPTY_MAP : resolverMap;
   }
 
   /**

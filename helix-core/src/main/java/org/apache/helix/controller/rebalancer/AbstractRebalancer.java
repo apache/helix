@@ -27,11 +27,13 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
@@ -102,7 +104,8 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
       Map<String, String> bestStateForPartition =
           computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef,
               preferenceList, currentStateOutput, disabledInstancesForPartition, idealState,
-              cache.getClusterConfig(), partition);
+              cache.getClusterConfig(), partition,
+              cache.getAbnormalStateResolver(stateModelDefName));
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -179,44 +182,97 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     return rebalanceStrategy;
   }
 
+  /**
+   * Compute best state for partition in AUTO ideal state mode.
+   * @param liveInstances
+   * @param stateModelDef
+   * @param preferenceList
+   * @param currentStateOutput instance->state for each partition
+   * @param disabledInstancesForPartition
+   * @param idealState
+   * @param clusterConfig
+   * @param partition
+   * @param resolver
+   * @return
+   */
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
-      IdealState idealState, ClusterConfig clusterConfig, Partition partition) {
-
-    Map<String, String> currentStateMap =
-        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition);
-
-    if (currentStateMap == null) {
-      currentStateMap = Collections.emptyMap();
+      IdealState idealState, ClusterConfig clusterConfig, Partition partition,
+      AbnormalStateResolver resolver) {
+    Optional<Map<String, String>> optionalOverwrittenStates =
+        computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
+            idealState, partition, resolver);
+    if (optionalOverwrittenStates.isPresent()) {
+      return optionalOverwrittenStates.get();
     }
 
-    // (1) If the partition is removed from IS or the IS is deleted.
-    // Transit to DROPPED no matter the instance is disabled or not.
-    if (preferenceList == null) {
-      return computeBestPossibleMapForDroppedResource(currentStateMap);
-    }
-
-    // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
-    if (!idealState.isEnabled()) {
-      return computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef);
-    }
-
+    Map<String, String> currentStateMap = new HashMap<>(
+        currentStateOutput.getCurrentStateMap(idealState.getResourceName(), partition));
     return computeBestPossibleMap(preferenceList, stateModelDef, currentStateMap, liveInstances,
         disabledInstancesForPartition);
   }
 
-  protected Map<String, String> computeBestPossibleMapForDroppedResource(Map<String, String> currentStateMap) {
-    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+  /**
+   * Compute if an overwritten is necessary for the partition assignment in case that the proposed
+   * assignment is not valid or empty.
+   * @param stateModelDef
+   * @param preferenceList
+   * @param currentStateOutput
+   * @param idealState
+   * @param partition
+   * @param resolver
+   * @return An optional object which contains the assignment map if overwritten is necessary.
+   * Otherwise return Optional.empty().
+   */
+  protected Optional<Map<String, String>> computeStatesOverwriteForPartition(
+      final StateModelDefinition stateModelDef, final List<String> preferenceList,
+      final CurrentStateOutput currentStateOutput, IdealState idealState, final Partition partition,
+      final AbnormalStateResolver resolver) {
+    String resourceName = idealState.getResourceName();
+    Map<String, String> currentStateMap =
+        currentStateOutput.getCurrentStateMap(resourceName, partition);
+
+    // (1) If the partition is removed from IS or the IS is deleted.
+    // Transit to DROPPED no matter the instance is disabled or not.
+    if (preferenceList == null) {
+      return Optional.of(computeBestPossibleMapForDroppedResource(currentStateMap));
+    }
+
+    // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
+    if (!idealState.isEnabled()) {
+      return Optional.of(computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef));
+    }
+
+    // (3) If the current states are not valid, fix the invalid part first.
+    if (!resolver.isCurrentStatesValid(currentStateOutput, resourceName, partition, stateModelDef)) {
+      Map<String, String> recoveryAssignment = resolver
+          .computeRecoveryAssignment(currentStateOutput, resourceName, partition, stateModelDef,
+              preferenceList);
+      if (recoveryAssignment == null || !recoveryAssignment.keySet()
+          .equals(currentStateMap.keySet())) {
+        throw new HelixException(String.format(
+            "Invalid recovery assignment %s since it changed the current partition placement %s",
+            recoveryAssignment, currentStateMap));
+      }
+      return Optional.of(recoveryAssignment);
+    }
+
+    return Optional.empty();
+  }
+
+  protected Map<String, String> computeBestPossibleMapForDroppedResource(
+      final Map<String, String> currentStateMap) {
+    Map<String, String> bestPossibleStateMap = new HashMap<>();
     for (String instance : currentStateMap.keySet()) {
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
     }
     return bestPossibleStateMap;
   }
 
-  protected Map<String, String> computeBestPossibleMapForDisabledResource(Map<String, String> currentStateMap
-      , StateModelDefinition stateModelDef) {
-    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+  protected Map<String, String> computeBestPossibleMapForDisabledResource(
+      final Map<String, String> currentStateMap, StateModelDefinition stateModelDef) {
+    Map<String, String> bestPossibleStateMap = new HashMap<>();
     for (String instance : currentStateMap.keySet()) {
       if (!HelixDefinedState.ERROR.name().equals(currentStateMap.get(instance))) {
         bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
@@ -267,7 +323,6 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    */
   protected Map<String, String> computeBestPossibleMap(List<String> preferenceList, StateModelDefinition stateModelDef,
       Map<String, String> currentStateMap, Set<String> liveInstances, Set<String> disabledInstancesForPartition) {
-
     Map<String, String> bestPossibleStateMap = new HashMap<>();
 
     // (1) Instances that have current state but not in preference list, drop, no matter it's disabled or not.

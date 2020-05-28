@@ -115,6 +115,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public List<String> subscribeChildChanges(String path, IZkChildListener listener,
+      boolean skipWatchingNodeNotExist) {
+    return getZkClient(path).subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
+  }
+
+  @Override
   public void unsubscribeChildChanges(String path, IZkChildListener listener) {
     getZkClient(path).unsubscribeChildChanges(path, listener);
   }
@@ -122,6 +128,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     getZkClient(path).subscribeDataChanges(path, listener);
+  }
+
+  @Override
+  public void subscribeDataChanges(String path, IZkDataListener listener,
+      boolean skipWatchingNodeNotExist) {
+    getZkClient(path).subscribeDataChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override

@@ -539,7 +539,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug("{} subscribes child-change. path: {} , listener: {}",
             _manager.getInstanceName(), path, _listener );
       }
-      _zkClient.subscribeChildChanges(path, this);
+      if (callbackType == Type.INIT) {
+        _zkClient.subscribeChildChanges(path, this);
+      } else {
+        _zkClient.subscribeChildChanges(path, this, true);
+      }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("{} unsubscribe child-change. path: {}, listener: {}", _manager.getInstanceName(),
           path, _listener);
@@ -555,7 +559,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug("{} subscribe data-change. path: {}, listener: {}", _manager.getInstanceName(),
             path, _listener);
       }
-      _zkClient.subscribeDataChanges(path, this);
+      _zkClient.subscribeDataChanges(path, this, true);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("{} unsubscribe data-change. path: {}, listener: {}",
           _manager.getInstanceName(), path, _listener);
@@ -760,6 +764,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           changeContext.setType(NotificationContext.Type.CALLBACK);
           changeContext.setPathChanged(parentPath);
           changeContext.setChangeType(_changeType);
+          if (!isReady()) {
+            // avoid leaking CallbackHandler
+            return;
+          }
           subscribeForChanges(changeContext.getType(), _path, _watchChild);
           enqueueTask(changeContext);
         }

@@ -71,9 +71,13 @@ public interface RealmAwareZkClient {
   // listener subscription
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
 
+  List<String> subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist);
+
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
   void subscribeDataChanges(String path, IZkDataListener listener);
+
+  void subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 

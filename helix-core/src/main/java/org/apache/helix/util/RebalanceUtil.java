@@ -28,6 +28,9 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.controller.pipeline.Stage;
+import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
@@ -163,5 +166,26 @@ public class RebalanceUtil {
       LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
           clusterName);
     }
+  }
+
+  /**
+   * runStage allows the run of individual stages. It can be used to mock a part of the Controller
+   * pipeline run.
+   *
+   * An example usage is as follows:
+   *       runStage(event, new ResourceComputationStage());
+   *       runStage(event, new CurrentStateComputationStage());
+   *       runStage(event, new BestPossibleStateCalcStage());
+   * By running these stages, we are able to obtain BestPossibleStateOutput in the event object.
+   * @param event
+   * @param stage
+   * @throws Exception
+   */
+  public static void runStage(ClusterEvent event, Stage stage) throws Exception {
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    stage.process(event);
+    stage.postProcess();
   }
 }

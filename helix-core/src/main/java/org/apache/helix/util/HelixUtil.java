@@ -167,14 +167,14 @@ public final class HelixUtil {
    * @param clusterConfig
    * @param instanceConfigs
    * @param liveInstances
-   * @param newIdealStates
-   * @param newResourceConfigs
+   * @param idealStates
+   * @param resourceConfigs
    * @return
    */
   public static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAuto(
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
-      List<IdealState> newIdealStates, List<ResourceConfig> newResourceConfigs) {
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
     // Prepare a data accessor for a dataProvider (cache) refresh
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
     HelixDataAccessor helixDataAccessor =
@@ -200,8 +200,8 @@ public final class HelixUtil {
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
       dataProvider.setLiveInstances(
           liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
-      dataProvider.setIdealStates(newIdealStates);
-      dataProvider.setResourceConfigMap(newResourceConfigs.stream()
+      dataProvider.setIdealStates(idealStates);
+      dataProvider.setResourceConfigMap(resourceConfigs.stream()
           .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
 
       event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);

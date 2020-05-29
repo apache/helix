@@ -195,7 +195,7 @@ public class TestWagedRebalance extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testWithInstanceTag() throws Exception {
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 3;
@@ -214,7 +214,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testChangeIdealState() throws InterruptedException {
     String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
@@ -248,7 +248,7 @@ public class TestWagedRebalance extends ZkTestBase {
     Assert.assertEquals(ev.getPartitionSet().size(), PARTITIONS + 1);
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testDisableInstance() throws InterruptedException {
     String dbName = "Test-DB-" + TestHelper.getTestMethodName();
     createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
@@ -372,7 +372,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testMixedRebalancerUsage() throws InterruptedException {
     int i = 0;
     for (String stateModel : _testModels) {
@@ -395,7 +395,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testMaxPartitionLimitation() throws Exception {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -462,7 +462,7 @@ public class TestWagedRebalance extends ZkTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testNewInstances() throws InterruptedException {
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -529,7 +529,7 @@ public class TestWagedRebalance extends ZkTestBase {
    * This test is to verify if the reset has been done and the rebalancer has forgotten any previous
    * status after leadership switched.
    */
-  @Test(dependsOnMethods = "testRebalanceTool")
+  @Test(dependsOnMethods = "test")
   public void testRebalancerReset() throws Exception {
     // Configure the rebalance preference so as to trigger more partition movements for evenness.
     // This is to ensure the controller will try to move something if the rebalancer has been reset.

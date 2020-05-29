@@ -1111,6 +1111,12 @@ public class ZkClient implements Watcher {
     } catch (ZkNoNodeException e) {
       LOG.debug("getstat() invoked path: " + path + " null" + " useGetData:" + useGetData);
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
+      // Note, exists() path with useGetData false would never throw ZkNoNodeException.
+      // thus, only useGetData true, we may get here. In this case, we eat the exception, return
+      // null. This is what we wanted. In essence, we simulate exists() in term never throw
+      // ZkNoNodeException. But when node does not exists in ZooKeeper server, we would not install
+      // watch. The side effect is in the case that node exists, this would return payload of
+      // the node data that we don't need. This is the place for further improvement.
       return null;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);

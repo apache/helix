@@ -216,12 +216,6 @@ public class ZkClient implements Watcher {
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist) {
-    List<String> children = watchForChilds(path, skipWatchingNodeNotExist);
-    if (children == null && skipWatchingNodeNotExist) {
-      LOG.info("watchForChilds failed to install no-existing watch and add listener. Path:" + path);
-      return children;
-    }
-
     synchronized (_childListener) {
       Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners == null) {
@@ -230,6 +224,14 @@ public class ZkClient implements Watcher {
       }
       listeners.add(listener);
     }
+
+    List<String> children = watchForChilds(path, skipWatchingNodeNotExist);
+    if (children == null && skipWatchingNodeNotExist) {
+      unsubscribeChildChanges(path, listener);
+      LOG.info("watchForChilds failed to install no-existing watch and add listener. Path:" + path);
+      return children;
+    }
+
     return children;
   }
 
@@ -242,20 +244,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Subscribe the path and the listener will handle data events of the path
-   * WARNING: if the path is created after deletion, users need to re-subscribe the path
-   * @param path The zookeeper path
-   * @param listener Instance of {@link IZkDataListener}
-   * @param skipWatchingNodeNotExist if znode does not exist for path, not install any watch
-   */
   public void subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist) {
-    boolean watchInstalled = watchForData(path, skipWatchingNodeNotExist);
-    if (!watchInstalled) {
-      LOG.info("watchForData failed to install no-existing path and thus add listener. Path:" + path);
-      return;
-    }
-
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
       listenerEntries = _dataListener.get(path);
@@ -273,6 +262,14 @@ public class ZkClient implements Watcher {
               + ", prefetch data: " + prefetchEnabled);
         }
       }
+    }
+
+    boolean watchInstalled = watchForData(path, skipWatchingNodeNotExist);
+    if (!watchInstalled) {
+      // Now let us remove this handler.
+      unsubscribeDataChanges(path, listener);
+      LOG.info("watchForData failed to install no-existing path and thus add listener. Path:" + path);
+      return;
     }
 
     if (LOG.isDebugEnabled()) {
@@ -1081,42 +1078,39 @@ public class ZkClient implements Watcher {
   }
 
   private Stat getStat(final String path, final boolean watch) {
-    long startT = System.currentTimeMillis();
-    try {
-      Stat stat = retryUntilConnected(
-          () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
-      record(path, null, startT, ZkClientMonitor.AccessType.READ);
-      return stat;
-    } catch (ZkNoNodeException e) {
-      record(path, null, startT, ZkClientMonitor.AccessType.READ);
-      throw e;
-    } catch (Exception e) {
-      recordFailure(path, ZkClientMonitor.AccessType.READ);
-      throw e;
-    } finally {
-      long endT = System.currentTimeMillis();
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
-      }
-    }
+    return getStat(path, watch, false);
   }
 
   /*
    * Install watch if there is such node and return the stat
-   * Don't install watch if there is no such node and return null
    *
-   * Use ZooKeeper native api getData() as underlying method
+   * If useGetData false, use exist(). @param watch would determine if adding watch
+   * to ZooKeeper server or not.
+   * Note, if @param path does not exist in ZooKeeper server, watch would still be installed
+   * if @param watch is true.
+   *
+   * If useGetData true, use getData() to add watch. ignore @param watch in this case.
+   * Note, if @param path does not exist in ZooKeeper server, no watch would be added.
    */
-  private Stat getStat2(final String path) {
+  private Stat getStat(final String path, final boolean watch, final boolean useGetData) {
     long startT = System.currentTimeMillis();
+    Stat stat = null;
     try {
-      Stat stat = new Stat();
-      retryUntilConnected(
-          ()->((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
-      LOG.info("getstat2() invoked path: " + path);  // todo: make this trace
+      if (!useGetData) {
+        stat = retryUntilConnected(
+            () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
+      } else {
+        stat = new Stat();
+        Stat finalStat = stat;
+        retryUntilConnected(
+            () -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, finalStat));
+        LOG.debug("getstat() invoked with useGetData() with path: " + path);
+      }
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
     } catch (ZkNoNodeException e) {
-      LOG.info("getstat2() invoked path: " + path + " null"); // todo: make this debug
+      LOG.debug("getstat() invoked path: " + path + " null" + " useGetData:" + useGetData);
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return null;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
@@ -1326,7 +1320,7 @@ public class ZkClient implements Watcher {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;
     if (EventType.NodeDeleted == event.getType()) {
-      LOG.info("event delelete:" + event.getPath());
+      LOG.debug("event delelete:" + event.getPath());
     }
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
@@ -1365,7 +1359,7 @@ public class ZkClient implements Watcher {
               if (!pathExists) {
                 pathStatRecord.recordPathStat(getStat(path, false), notificationTime);
               } else {
-                pathStatRecord.recordPathStat(getStat2(path), notificationTime);
+                pathStatRecord.recordPathStat(getStat(path, true, true), notificationTime);
               }
             }
             if (!pathStatRecord.pathExists()) {
@@ -1406,7 +1400,7 @@ public class ZkClient implements Watcher {
               if (!pathExists) {
                 pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && pathExists), OptionalLong.empty());
               } else {
-                pathStatRecord.recordPathStat(getStat2(path), OptionalLong.empty());
+                pathStatRecord.recordPathStat(getStat(path, true, true), OptionalLong.empty());
               }
             }
             List<String> children = null;
@@ -1914,13 +1908,7 @@ public class ZkClient implements Watcher {
   }
 
   public void watchForData(final String path) {
-    retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        getConnection().exists(path, true);
-        return null;
-      }
-    });
+    watchForData(path, false);
   }
 
   private boolean watchForData(final String path, boolean skipWatchingNodeNotExist) {

@@ -35,7 +35,7 @@ public interface AbnormalStateResolver {
    * This is a dummy class that does not really functional.
    */
   AbnormalStateResolver DUMMY_STATE_RESOLVER = new AbnormalStateResolver() {
-    public boolean isCurrentStatesValid(final CurrentStateOutput currentStateOutput,
+    public boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
         final String resourceName, final Partition partition,
         final StateModelDefinition stateModelDef) {
       // By default, all current states are valid.
@@ -56,7 +56,7 @@ public interface AbnormalStateResolver {
    * @param stateModelDef
    * @return true if the current states of the specified partition is valid.
    */
-  boolean isCurrentStatesValid(final CurrentStateOutput currentStateOutput,
+  boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
       final String resourceName, final Partition partition,
       final StateModelDefinition stateModelDef);
 

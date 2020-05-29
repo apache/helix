@@ -33,7 +33,7 @@ import org.apache.helix.model.StateModelDefinition;
  */
 public class MockAbnormalStateResolver implements AbnormalStateResolver {
   @Override
-  public boolean isCurrentStatesValid(final CurrentStateOutput currentStateOutput,
+  public boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
       final String resourceName, final Partition partition,
       final StateModelDefinition stateModelDef) {
     // By default, all current states are valid.

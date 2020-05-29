@@ -31,14 +31,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The abnormal state resolver that graceful fixes double-topstates issue for the single topstate
- * state model.
- * Note the regular Helix rebalance pipeline will also remove the excessive top state replica.
- * However, the default rebalancer logic cannot guarantee a clean resolution. For example, if the
- * double-topstates situation has already impact the data of the top state replicas, then the
- * controller should reset both of them, then bring back one top state replica on the right
- * allocation. For the application which has such a requirement, they should use this resolver or
- * a more advanced resolver which check the application data to ensure the resolution is complete.
+ * The abnormal state resolver that gracefully fixes the abnormality of excessive top states for
+ * single-topstate state model. For example, two replcias of a MasterSlave partition are assigned
+ * with the Master state at the same time. This could be caused by a network partitioning or the
+ * other unexpected issues.
+ *
+ * The resolver checks for the abnormality and computes recovery assignment which triggers the
+ * rebalancer to eventually reset all the top state replias for once. After the resets, only one
+ * replica will be assigned the top state.
+ *
+ * Note that without using this resolver, the regular Helix rebalance pipeline also removes the
+ * excessive top state replicas. However, the default logic does not force resetting ALL the top
+ * state replicas. Since the multiple top states situation may break application data, the default
+ * resolution won't be enough to fix the potential problem.
  */
 public class ExcessiveTopStateResolver implements AbnormalStateResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ExcessiveTopStateResolver.class);
@@ -48,7 +53,7 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
    * state state model.
    */
   @Override
-  public boolean isCurrentStatesValid(final CurrentStateOutput currentStateOutput,
+  public boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
       final String resourceName, final Partition partition, StateModelDefinition stateModelDef) {
     if (!stateModelDef.isSingleTopStateModel()) {
       return true;
@@ -66,7 +71,7 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
       List<String> preferenceList) {
     Map<String, String> currentStateMap =
         currentStateOutput.getCurrentStateMap(resourceName, partition);
-    if (isCurrentStatesValid(currentStateOutput, resourceName, partition, stateModelDef)) {
+    if (checkCurrentStates(currentStateOutput, resourceName, partition, stateModelDef)) {
       // This method should not be triggered when the mapping is valid.
       // Log the warning for debug purposes.
       LOG.warn("The input current state map {} is valid, return the original current state.",

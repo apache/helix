@@ -31,6 +31,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.ExcessiveTopStateResolver;
@@ -85,7 +86,7 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
   public void testExcessiveTopStateResolver() {
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(verifier.verify(5000));
+    Assert.assertTrue(verifier.verify());
 
     // 1. Find a partition with a MASTER replica and a SLAVE replica
     HelixAdmin admin = new ZKHelixAdmin.Builder().setZkAddress(ZK_ADDR).build();
@@ -127,11 +128,12 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     // 2. Send the SLAVE to MASTER message to the SLAVE host to make abnormal partition states.
 
     // 2.A. Without resolver, the fixing is not completely done by the default rebalancer logic.
-    _controller.getMessagingService().sendAndWait(cr, msg, callback, 3000);
+    _controller.getMessagingService()
+        .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
     // Wait until the partition status is fixed, verify if the result is as expected
     verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(verifier.verify(5000));
+    Assert.assertTrue(verifier.verify());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
     Assert.assertEquals(
         ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
@@ -147,9 +149,10 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     clusterConfig.setAbnormalStateResolverMap(
         ImmutableMap.of(MasterSlaveSMD.name, ExcessiveTopStateResolver.class.getName()));
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-    _controller.getMessagingService().sendAndWait(cr, msg, callback, 3000);
+    _controller.getMessagingService()
+        .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
     // Wait until the partition status is fixed, verify if the result is as expected
-    Assert.assertTrue(verifier.verify(5000));
+    Assert.assertTrue(verifier.verify());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
     Assert.assertEquals(
         ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
@@ -174,7 +177,8 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     HelixDataAccessor accessor = _controller.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     CurrentState currentState = accessor.getProperty(keyBuilder
-        .currentState(participant.getInstanceName(), participant.getSessionId(), ev.getResourceName()));
+        .currentState(participant.getInstanceName(), participant.getSessionId(),
+            ev.getResourceName()));
     return currentState.getEndTime(partition);
   }
 }

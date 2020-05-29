@@ -69,14 +69,42 @@ public interface RealmAwareZkClient {
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
   // listener subscription
+  /**
+   * Subscribe the path and the listener will handle child events of the path.
+   * Add exists watch to path if the path does not exist in ZooKeeper server.
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
 
+  /**
+   * Subscribe the path and the listener will handle child events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   * @param skipWatchingNodeNotExist Ture means not installing any watch if path does not exist.
+   */
   List<String> subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist);
 
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * Add the exists watch to Zookeeper server even if the path does not exists in zookeeper server
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
   void subscribeDataChanges(String path, IZkDataListener listener);
 
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   * @param skipWatchingNodeNotExist Ture means not installing any watch if path does not exist.
+   */
   void subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);

@@ -22,9 +22,9 @@ package org.apache.helix.controller.rebalancer.topology;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,16 +55,9 @@ public class Topology {
   private final List<String> _liveInstances;
   private final Map<String, InstanceConfig> _instanceConfigMap;
   private final ClusterConfig _clusterConfig;
-  private final boolean _topologyAwareEnabled;
 
   private String _faultZoneType;
   private String _endNodeType;
-  private boolean _useDefaultTopologyDef;
-  private LinkedHashSet<String> _types;
-
-  /* default names for domain paths, if value is not specified for a domain path, the default one is used */
-  // TODO: default values can be defined in clusterConfig.
-  private Map<String, String> _defaultDomainPathValues = new HashMap<>();
 
   public Topology(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
@@ -81,62 +74,42 @@ public class Topology {
       throw new HelixException(String.format("Config for instances %s is not found!",
           _allInstances.removeAll(_instanceConfigMap.keySet())));
     }
-
     _clusterConfig = clusterConfig;
-    _types = new LinkedHashSet<>();
-    _topologyAwareEnabled = clusterConfig.isTopologyAwareEnabled();
 
-    if (_topologyAwareEnabled) {
+    if (clusterConfig.isTopologyAwareEnabled()) {
       String topologyDef = _clusterConfig.getTopology();
       if (topologyDef != null) {
         // Customized cluster topology definition is configured.
-        String[] types = topologyDef.trim().split("/");
-        for (int i = 0; i < types.length; i++) {
-          if (types[i].length() != 0) {
-            _types.add(types[i]);
+        String[] topologyStr = topologyDef.trim().split("/");
+        int lastValidTypeIdx = topologyStr.length - 1;
+        for (; lastValidTypeIdx >= 0; --lastValidTypeIdx) {
+          if (topologyStr[lastValidTypeIdx].length() != 0) {
+            break;
           }
         }
-        if (_types.size() == 0) {
-          logger.error("Invalid cluster topology definition " + topologyDef);
+        if (lastValidTypeIdx < 0) {
           throw new HelixException("Invalid cluster topology definition " + topologyDef);
-        } else {
-          String lastType = null;
-          for (String type : _types) {
-            _defaultDomainPathValues.put(type, "Helix_default_" + type);
-            lastType = type;
-          }
-          _endNodeType = lastType;
-          _faultZoneType = clusterConfig.getFaultZoneType();
-          if (_faultZoneType == null) {
-            _faultZoneType = _endNodeType;
-          }
-          if (!_types.contains(_faultZoneType)) {
-            throw new HelixException(String
-                .format("Invalid fault zone type %s, not present in topology definition %s.",
-                    _faultZoneType, topologyDef));
-          }
-          _useDefaultTopologyDef = false;
+        }
+        _endNodeType = topologyStr[lastValidTypeIdx];
+        _faultZoneType = clusterConfig.getFaultZoneType();
+        if (_faultZoneType == null) {
+          _faultZoneType = _endNodeType;
+        }
+        if (Arrays.stream(topologyStr).noneMatch(type -> type.equals(_faultZoneType))) {
+          throw new HelixException(String
+              .format("Invalid fault zone type %s, not present in topology definition %s.",
+                  _faultZoneType, topologyDef));
         }
       } else {
         // Use default cluster topology definition, i,e. /root/zone/instance
-        _types.add(Types.ZONE.name());
-        _types.add(Types.INSTANCE.name());
         _endNodeType = Types.INSTANCE.name();
         _faultZoneType = Types.ZONE.name();
-        _useDefaultTopologyDef = true;
-      }
-
-      if (_useDefaultTopologyDef) {
-        _root = createClusterTreeWithDefaultTopologyDef();
-      } else {
-        _root = createClusterTreeWithCustomizedTopology();
       }
     } else {
-      _types.add(Types.INSTANCE.name());
       _endNodeType = Types.INSTANCE.name();
       _faultZoneType = Types.INSTANCE.name();
-      _root = createClusterTreeWithDefaultTopologyDef();
     }
+    _root = createClusterTree();
   }
 
   public String getEndNodeType() {
@@ -212,123 +185,104 @@ public class Topology {
     return newRoot;
   }
 
-  /**
-   * Creates a tree representing the cluster structure using default cluster topology definition
-   * (i,e no topology definition given and no domain id set).
-   */
-  private Node createClusterTreeWithDefaultTopologyDef() {
+  private Node createClusterTree() {
     // root
     Node root = new Node();
     root.setName("root");
     root.setId(computeId("root"));
     root.setType(Types.ROOT.name());
 
-    for (String ins : _allInstances) {
-      InstanceConfig config = _instanceConfigMap.get(ins);
-      Map<String, String> pathValueMap = new HashMap<>();
-      if (_topologyAwareEnabled) {
-        String zone = config.getZoneId();
+    for (String instance : _allInstances) {
+      InstanceConfig insConfig = _instanceConfigMap.get(instance);
+      LinkedHashMap<String, String> instanceTopologyMap = new LinkedHashMap<>();
+      if (computeInstanceTopologyMap(_clusterConfig, instance, insConfig, instanceTopologyMap)) {
+        int weight = insConfig.getWeight();
+        if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
+          weight = DEFAULT_NODE_WEIGHT;
+        }
+        addEndNode(root, instance, instanceTopologyMap, weight, _liveInstances);
+      }
+    }
+    return root;
+  }
+
+  private boolean computeInstanceTopologyMap(ClusterConfig clusterConfig, String instance,
+      InstanceConfig instanceConfig, LinkedHashMap<String, String> instanceTopologyMap) {
+    if (clusterConfig.isTopologyAwareEnabled()) {
+      String topologyDef = clusterConfig.getTopology();
+      if (topologyDef == null) {
+        // Return a map using default cluster topology definition, i,e. /root/zone/instance
+        String zone = instanceConfig.getZoneId();
         if (zone == null) {
           // we have the hierarchy style of domain id for instance.
-          if (config.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
-              || !_clusterConfig.getDisabledInstances().containsKey(ins))) {
+          if (instanceConfig.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
+              || !clusterConfig.getDisabledInstances().containsKey(instance))) {
             // if enabled instance missing ZONE_ID information, fails the rebalance.
             throw new HelixException(String
-                .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
-                    ins));
+                .format("ZONE_ID for instance %s is not set, fail the topology-aware placement!",
+                    instance));
           } else {
             // if the disabled instance missing ZONE setting, ignore it should be fine.
             logger.warn(String
-                .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
-                    ins));
-            continue;
+                .format("ZONE_ID for instance %s is not set, ignore the instance!", instance));
+            return false;
           }
-
         }
-        pathValueMap.put(Types.ZONE.name(), zone);
-      }
-      pathValueMap.put(Types.INSTANCE.name(), ins);
-      int weight = config.getWeight();
-      if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
-        weight = DEFAULT_NODE_WEIGHT;
-      }
-      root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
-    }
-    return root;
-  }
-
-  /**
-   * Creates a tree representing the cluster structure using default cluster topology definition
-   * (i,e no topology definition given and no domain id set).
-   */
-  private Node createClusterTreeWithCustomizedTopology() {
-    // root
-    Node root = new Node();
-    root.setName("root");
-    root.setId(computeId("root"));
-    root.setType(Types.ROOT.name());
-
-    for (String ins : _allInstances) {
-      InstanceConfig insConfig = _instanceConfigMap.get(ins);
-      String domain = insConfig.getDomainAsString();
-      if (domain == null) {
-        if (insConfig.getInstanceEnabled() && (_clusterConfig.getDisabledInstances() == null
-            || !_clusterConfig.getDisabledInstances().containsKey(ins))) {
-          // if enabled instance missing domain information, fails the rebalance.
-          throw new HelixException(String
-              .format("Domain for instance %s is not set, failed the topology-aware placement!",
-                  ins));
-        } else {
-          // if the disabled instance missing domain setting, ignore it should be fine.
-          logger
-              .warn(String.format("Domain for instance %s is not set, ignore the instance!", ins));
-          continue;
+        instanceTopologyMap.put(Types.ZONE.name(), zone);
+        instanceTopologyMap.put(Types.INSTANCE.name(), instance);
+      } else {
+        /*
+         * Return a map representing the cluster structure using cluster topology defined in
+         * TOPOLOGY in ClusterConfig.
+         */
+        String domain = instanceConfig.getDomainAsString();
+        if (domain == null || domain.isEmpty()) {
+          if (instanceConfig.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
+              || !clusterConfig.getDisabledInstances().containsKey(instance))) {
+            // if enabled instance missing domain information, fails the rebalance.
+            throw new HelixException(String
+                .format("Domain for instance %s is not set, fail the topology-aware placement!",
+                    instance));
+          } else {
+            // if the disabled instance missing domain setting, ignore it should be fine.
+            logger.warn(
+                String.format("Domain for instance %s is not set, ignore the instance!", instance));
+            return false;
+          }
         }
-      }
-
-      String[] pathPairs = domain.trim().split(",");
-      Map<String, String> pathValueMap = new HashMap<>();
-      for (String pair : pathPairs) {
-        String[] values = pair.trim().split("=");
-        if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
+        Map<String, String> domainAsMap;
+        try {
+          domainAsMap = instanceConfig.getDomainAsMap();
+        } catch (IllegalArgumentException e) {
           throw new HelixException(String.format(
-              "Domain-Value pair %s for instance %s is not valid, failed the topology-aware placement!",
-              pair, ins));
+              "Domain %s for instance %s is not valid, fail the topology-aware placement!",
+              domain, instance));
         }
-        String type = values[0];
-        String value = values[1];
-
-        if (!_types.contains(type)) {
-          logger.warn(String
-              .format("Path %s defined in domain of instance %s not recognized, ignored!", pair,
-                  ins));
-          continue;
+        String[] topologyKeys = topologyDef.trim().split("/");
+        for (String key : topologyKeys) {
+          if (!key.isEmpty()) {
+            // if a key does not exist in the instance domain config, apply the default domain value.
+            instanceTopologyMap.put(key, domainAsMap.getOrDefault(key, "Helix_default_" + key));
+          }
         }
-        pathValueMap.put(type, value);
       }
-
-      int weight = insConfig.getWeight();
-      if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
-        weight = DEFAULT_NODE_WEIGHT;
-      }
-      root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
+    } else {
+      instanceTopologyMap.put(Types.INSTANCE.name(), instance);
     }
-    return root;
+    return true;
   }
-
 
   /**
    * Add an end node to the tree, create all the paths to the leaf node if not present.
    */
-  private Node addEndNode(Node root, String instanceName, Map<String, String> pathNameMap,
+  private void addEndNode(Node root, String instanceName, LinkedHashMap<String, String> pathNameMap,
       int instanceWeight, List<String> liveInstances) {
     Node current = root;
     List<Node> pathNodes = new ArrayList<>();
-    for (String path : _types) {
-      String pathValue = pathNameMap.get(path);
-      if (pathValue == null || pathValue.isEmpty()) {
-        pathValue = _defaultDomainPathValues.get(path);
-      }
+    for (Map.Entry<String, String> entry : pathNameMap.entrySet()) {
+      String pathValue = entry.getValue();
+      String path = entry.getKey();
+
       pathNodes.add(current);
       if (!current.hasChild(pathValue)) {
         buildNewNode(pathValue, path, current, instanceName, instanceWeight,
@@ -340,7 +294,6 @@ public class Topology {
       }
       current = current.getChild(pathValue);
     }
-    return root;
   }
 
   private Node buildNewNode(String name, String type, Node parent, String instanceName,

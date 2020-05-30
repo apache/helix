@@ -84,7 +84,8 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
         .getNextStateForTransition(stateModelDef.getTopState(), stateModelDef.getInitialState());
 
     // 1. We have to reset the expected top state replica host if it is hosting the top state
-    // replica. Otherwise, the potential data issue will never be fixed there.
+    // replica. Otherwise, the old master replica with the possible stale data will never be reset
+    // there.
     if (preferenceList != null && !preferenceList.isEmpty()) {
       String expectedTopStateHost = preferenceList.get(0);
       if (recoverMap.get(expectedTopStateHost).equals(stateModelDef.getTopState())) {
@@ -94,24 +95,26 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
 
     // 2. To minimize the impact of the resolution, we want to reserve one top state replica even
     // during the recovery process.
-    boolean hasReservedTheTopState = false;
+    boolean hasReservedTopState = false;
     for (String instance : recoverMap.keySet()) {
       if (recoverMap.get(instance).equals(stateModelDef.getTopState())) {
-        if (hasReservedTheTopState) {
+        if (hasReservedTopState) {
           recoverMap.put(instance, recoveryState);
         } else {
-          hasReservedTheTopState = true;
+          hasReservedTopState = true;
         }
       }
     }
     // Here's what we expect to happen next:
-    // 1. The partition assignment is changed to the proposed recovery state. Or it may be halfway
-    // there.
-    // 2. If the new current state is still invalid, then continue fixing it with the same logic.
-    // 3. If the new current state contains only one top state replica, then we will hand it over
-    // to the regular rebalancer logic. The rebalancer will trigger state transition to bring the
-    // top state back to the expected allocation.
-    // And the potential data issue will be fixed by then.
+    // 1. The ideal partition assignment is changed to the proposed recovery state. Then the current
+    // rebalance pipeline proceeds. State transition messages will be sent accordingly.
+    // 2. When the next rebalance pipeline starts, the new current state may still contain
+    // abnormality if the participants have not finished state transition yet. Then the resolver
+    // continues to fix the states with the same logic.
+    // 3. Otherwise, if the new current state contains only one top state replica, then we will hand
+    // it over to the regular rebalancer logic. The rebalancer will trigger the state transition to
+    // bring the top state back in the expected allocation.
+    // And the masters with potential stale data will be all reset by then.
     return recoverMap;
   }
 }

@@ -68,6 +68,11 @@ public interface RealmAwareZkClient {
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
+  class ChildrenSubscribeResult {
+    public List<String> children;
+    public boolean isInstalled;
+  }
+
   // listener subscription
   /**
    * Subscribe the path and the listener will handle child events of the path.
@@ -75,6 +80,8 @@ public interface RealmAwareZkClient {
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
+   * The method return null if the path does not exists. Otherwise, return a list of children
+   * under the path. The list can be empty if there is no children.
    */
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
 
@@ -83,9 +90,11 @@ public interface RealmAwareZkClient {
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
-   * @param skipWatchingNodeNotExist Ture means not installing any watch if path does not exist.
+   * @param skipWatchingNodeNotExist True means not installing any watch if path does not exist.
+   * The method return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
+   * is false. Otherwise, it is true and list of children are returned.
    */
-  List<String> subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist);
+  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist);
 
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
@@ -103,9 +112,10 @@ public interface RealmAwareZkClient {
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
-   * @param skipWatchingNodeNotExist Ture means not installing any watch if path does not exist.
+   * @param skipWatchingNodeNotExist True means not installing any watch if path does not exist.
+   * return True if installation of watch succeed. Otherwise, return false.
    */
-  void subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist);
+  boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 

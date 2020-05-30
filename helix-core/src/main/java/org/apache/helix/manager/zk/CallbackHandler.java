@@ -539,6 +539,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug(_manager.getInstanceName() + " subscribes child-change. path: " + path
             + ", listener: " + _listener);
       }
+      // In the lifecycle of CallbackHandler, INIT is the first stage of registration of watch.
+      // For some usage case such as current state, the path can be created later. Thus we would
+      // install watch anyway event the path is not yet created.
+      // Later, CALLBACK type, the CallbackHandler already registered the watch and knows the
+      // path was created. Here, to avoid leaking path in ZooKeeper server, we would not let
+      // CallbackHandler to install exists watch, namely watch for path not existing.
+      // Note when path is removed, the CallbackHanler would remove itself from ZkHelixManager too
+      // to avoid leaking a CallbackHandler.
       if (callbackType == Type.INIT) {
         _zkClient.subscribeChildChanges(path, this);
       } else {
@@ -752,14 +760,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           // removeListener will call handler.reset(), which in turn call invoke() on FINALIZE type
           _manager.removeListener(_propertyKey, _listener);
         } else {
-          NotificationContext changeContext = new NotificationContext(_manager);
-          changeContext.setType(NotificationContext.Type.CALLBACK);
-          changeContext.setPathChanged(parentPath);
-          changeContext.setChangeType(_changeType);
           if (!isReady()) {
             // avoid leaking CallbackHandler
             return;
           }
+          NotificationContext changeContext = new NotificationContext(_manager);
+          changeContext.setType(NotificationContext.Type.CALLBACK);
+          changeContext.setPathChanged(parentPath);
+          changeContext.setChangeType(_changeType);
           subscribeForChanges(changeContext.getType(), _path, _watchChild);
           enqueueTask(changeContext);
         }

@@ -125,7 +125,7 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener,
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
       boolean skipWatchingNodeNotExist) {
     return _innerSharedZkClient.subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
   }
@@ -143,9 +143,9 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public void subscribeDataChanges(String path, IZkDataListener listener,
+  public boolean subscribeDataChanges(String path, IZkDataListener listener,
       boolean skipWatchingNodeNotExist) {
-    _innerSharedZkClient.subscribeDataChanges(path, listener, skipWatchingNodeNotExist);
+    return _innerSharedZkClient.subscribeDataChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override

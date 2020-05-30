@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -212,10 +213,11 @@ public class ZkClient implements Watcher {
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
-    return subscribeChildChanges(path, listener, false);
+    RealmAwareZkClient.ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
+    return result.children;
   }
 
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist) {
+  public RealmAwareZkClient.ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist) {
     synchronized (_childListener) {
       Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners == null) {
@@ -226,13 +228,17 @@ public class ZkClient implements Watcher {
     }
 
     List<String> children = watchForChilds(path, skipWatchingNodeNotExist);
+    RealmAwareZkClient.ChildrenSubscribeResult result = new RealmAwareZkClient.ChildrenSubscribeResult();
+    result.children = children;
     if (children == null && skipWatchingNodeNotExist) {
       unsubscribeChildChanges(path, listener);
       LOG.info("watchForChilds failed to install no-existing watch and add listener. Path:" + path);
-      return children;
+      result.isInstalled = false;
+      return result;
     }
 
-    return children;
+    result.isInstalled = true;
+    return result;
   }
 
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
@@ -244,7 +250,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  public void subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist) {
+  public boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist) {
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
       listenerEntries = _dataListener.get(path);
@@ -269,12 +275,13 @@ public class ZkClient implements Watcher {
       // Now let us remove this handler.
       unsubscribeDataChanges(path, listener);
       LOG.info("watchForData failed to install no-existing path and thus add listener. Path:" + path);
-      return;
+      return false;
     }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Subscribed data changes for " + path);
     }
+    return true;
   }
 
    /**
@@ -1101,23 +1108,24 @@ public class ZkClient implements Watcher {
             () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
       } else {
         stat = new Stat();
-        Stat finalStat = stat;
-        retryUntilConnected(
-            () -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, finalStat));
-        LOG.debug("getstat() invoked with useGetData() with path: " + path);
+        try {
+          LOG.debug("getstat() invoked with useGetData() with path: " + path);
+          Stat finalStat = stat;
+          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, finalStat));
+        } catch (ZkNoNodeException e) {
+          LOG.debug("getstat() invoked path: " + path + " null" + " useGetData:" + useGetData);
+          record(path, null, startT, ZkClientMonitor.AccessType.READ);
+          // Note, exists() path with useGetData false would never throw ZkNoNodeException.
+          // thus, only useGetData true, we may get here. In this case, we eat the exception, return
+          // null. This is what we wanted. In essence, we simulate exists() in term never throw
+          // ZkNoNodeException. But when node does not exists in ZooKeeper server, we would not install
+          // watch. The side effect is in the case that node exists, this would return payload of
+          // the node data that we don't need. This is the place for further improvement.
+          return null;
+        }
       }
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
-    } catch (ZkNoNodeException e) {
-      LOG.debug("getstat() invoked path: " + path + " null" + " useGetData:" + useGetData);
-      record(path, null, startT, ZkClientMonitor.AccessType.READ);
-      // Note, exists() path with useGetData false would never throw ZkNoNodeException.
-      // thus, only useGetData true, we may get here. In this case, we eat the exception, return
-      // null. This is what we wanted. In essence, we simulate exists() in term never throw
-      // ZkNoNodeException. But when node does not exists in ZooKeeper server, we would not install
-      // watch. The side effect is in the case that node exists, this would return payload of
-      // the node data that we don't need. This is the place for further improvement.
-      return null;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;
@@ -1361,12 +1369,13 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
-              // getStat will re-install watcher only when the path exists
+              Stat stat = null;
               if (!pathExists) {
-                pathStatRecord.recordPathStat(getStat(path, false), notificationTime);
+                stat = getStat(path, false);
               } else {
-                pathStatRecord.recordPathStat(getStat(path, true, true), notificationTime);
+                stat = getStat(path, true, true);
               }
+              pathStatRecord.recordPathStat(stat, notificationTime);
             }
             if (!pathStatRecord.pathExists()) {
               listener.getDataListener().handleDataDeleted(path);
@@ -1403,11 +1412,15 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
-              if (!pathExists) {
-                pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && pathExists), OptionalLong.empty());
+              Stat stat = null;
+              if (!pathExists || !hasListeners(path)) {
+                // will not install listener using exists call
+                stat = getStat(path, false);
               } else {
-                pathStatRecord.recordPathStat(getStat(path, true, true), OptionalLong.empty());
+                // will install listener using getData() call; if node not there, install nothing
+                stat = getStat(path, true, true);
               }
+              pathStatRecord.recordPathStat(stat, OptionalLong.empty());
             }
             List<String> children = null;
             if (pathStatRecord.pathExists()) {

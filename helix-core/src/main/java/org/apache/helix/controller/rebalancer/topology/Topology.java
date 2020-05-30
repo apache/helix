@@ -55,6 +55,7 @@ public class Topology {
   private final List<String> _liveInstances;
   private final Map<String, InstanceConfig> _instanceConfigMap;
   private final ClusterConfig _clusterConfig;
+  private static final String DEFAULT_PATH_PREFIX = "Helix_default_";
 
   private String _faultZoneType;
   private String _endNodeType;
@@ -223,8 +224,7 @@ public class Topology {
                     instance));
           } else {
             // if the disabled instance missing ZONE setting, ignore it should be fine.
-            logger.warn(String
-                .format("ZONE_ID for instance %s is not set, ignore the instance!", instance));
+            logger.warn("ZONE_ID for instance {} is not set, ignore the instance!", instance);
             return false;
           }
         }
@@ -245,8 +245,7 @@ public class Topology {
                     instance));
           } else {
             // if the disabled instance missing domain setting, ignore it should be fine.
-            logger.warn(
-                String.format("Domain for instance %s is not set, ignore the instance!", instance));
+            logger.warn("Domain for instance {} is not set, ignore the instance!", instance);
             return false;
           }
         }
@@ -262,7 +261,11 @@ public class Topology {
         for (String key : topologyKeys) {
           if (!key.isEmpty()) {
             // if a key does not exist in the instance domain config, apply the default domain value.
-            instanceTopologyMap.put(key, domainAsMap.getOrDefault(key, "Helix_default_" + key));
+            String value = domainAsMap.get(key);
+            if (value == null || value.length()==0) {
+              value = DEFAULT_PATH_PREFIX + key;
+            }
+            instanceTopologyMap.put(key, value);
           }
         }
       }
@@ -274,8 +277,10 @@ public class Topology {
 
   /**
    * Add an end node to the tree, create all the paths to the leaf node if not present.
+   * Input param 'pathNameMap' must have a certain order where the order of the keys is
+   * the same as the path order in ClusterConfig.topology.
    */
-  private void addEndNode(Node root, String instanceName, LinkedHashMap<String, String> pathNameMap,
+  private void addEndNode(Node root, String instanceName, Map<String, String> pathNameMap,
       int instanceWeight, List<String> liveInstances) {
     Node current = root;
     List<Node> pathNodes = new ArrayList<>();

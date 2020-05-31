@@ -73,7 +73,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
@@ -639,8 +638,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             }
           }
         } catch (ZkNoNodeException | HelixMetaDataAccessException e) {
-          logger.warn(
-              "fail to subscribe child/data change. path: " + path + ", listener: " + _listener, e);
+          if (_changeType == CUSTOMIZED_STATE_ROOT) {
+            logger.warn(
+                "fail to subscribe child/data change. path: " + path + ", listener: " + _listener);
+          } else {
+            logger.warn(
+                "fail to subscribe child/data change. path: " + path + ", listener: " + _listener, e);
+          }
         }
       }
     }

@@ -46,6 +46,7 @@ public class TestUpdatePreviousAssignedTaskStatusWithPendingMessage {
   private static final String INSTANCE_NAME = "TestInstance";
   private static final String JOB_NAME = "TestJob";
   private static final String PARTITION_NAME = "0";
+  private static final String TARGET_RESOURCES = "TestDB";
   private static final int PARTITION_ID = 0;
 
   /**
@@ -128,7 +129,7 @@ public class TestUpdatePreviousAssignedTaskStatusWithPendingMessage {
     jobContext.setName(JOB_NAME);
     jobContext.setStartTime(0L);
     jobContext.setPartitionState(PARTITION_ID, taskPartitionState);
-    jobContext.setPartitionTarget(PARTITION_ID, INSTANCE_NAME);
+    jobContext.setPartitionTarget(PARTITION_ID, TARGET_RESOURCES + "_0");
     return jobContext;
   }
 

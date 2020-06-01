@@ -300,6 +300,9 @@ public abstract class AbstractTaskDispatcher {
             // In this case, tasks' IdealState will be removed, and they will be sent to DROPPED
             partitionsToDropFromIs.add(pId);
 
+            assignedPartitions.get(instance).add(pId);
+            paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+
             // Also release resources for these tasks
             assignableInstanceManager.release(instance, taskConfig, quotaType);
             break;

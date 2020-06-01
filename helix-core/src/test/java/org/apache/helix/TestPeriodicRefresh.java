@@ -163,7 +163,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   public void testWithoutRefresh() throws Exception {
     TestMessageListener listener1 = new TestMessageListener();
     // Not doing refresh
-    _manager.addMessageListener(listener1, instanceName, clusterName, SystemPropertyKeys.PROPERTY_NOT_SET);
+    _manager.addMessageListener(listener1, instanceName, clusterName, -1);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {
@@ -174,15 +174,16 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   }
 
   @Test
-  public void testWithLateRefresh() throws Exception {
+  public void testWithPostponedRefresh() throws Exception {
     TestMessageListener listener2 = new TestMessageListener();
     _manager.addMessageListener(listener2, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
     CallbackHandler mockHandler = _manager._testHandlers.get(listener2);
     Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
     lastEventTimeField.setAccessible(true);
+    // t1
     lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
-    // Make sue when the first refresh is executed, interval (wait_duration/8) + lastEventTime (current time + wait_duration/8) > current time
-    // So it will cancel the current task and schedule another refresh for after wait_duration/4
+    // Make sue when the first refresh is executed (t0), interval (wait_duration/8) + lastEventTime (t1 (very close to t0) + wait_duration/8) > t0
+    // So it will sleep and do the refresh after another interval passes which is at t1 + wait_duration/4
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {

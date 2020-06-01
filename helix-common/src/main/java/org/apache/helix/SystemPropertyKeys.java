@@ -84,8 +84,6 @@ public class SystemPropertyKeys {
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
 
   // Periodic message refresh interval, must be > 0
-  public static final String MESSAGE_REFRESH_INTERVAL = "helix.manager.messageRefreshInterval.ms";
-
-  // When system property is not set, use this as the value for getProperty
-  public static final int PROPERTY_NOT_SET = -1;
+  public static final String MESSAGE_REFRESH_TRIGGER_INTERVAL =
+      "helix.manager.messageRefreshTriggerInterval.ms";
 }

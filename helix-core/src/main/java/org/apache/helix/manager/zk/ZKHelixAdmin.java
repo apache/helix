@@ -566,8 +566,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     RESOURCE_NON_EXISTENT("resource %s is not added to cluster %s"),
     PARTITION_NON_EXISTENT("not all %s exist in cluster %s"),
     PARTITION_NOT_ERROR("%s is NOT found in cluster %s"),
-    STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s"),
-    PENDING_MSG("a pending message %s exists for resource %s");
+    STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s");
 
     private String message;
 
@@ -652,9 +651,10 @@ public class ZKHelixAdmin implements HelixAdmin {
         continue;
       }
 
-      throw new HelixException(String.format(ResetPartitionFailureReason.PENDING_MSG
-          .getMessage(resourceName, partitionNames, instanceName, message.toString(),
-              message.getResourceName())));
+      throw new HelixException(String.format(
+          "Can't reset state for %s.%s on %s, because a pending message %s exists for resource %s",
+          resourceName, partitionNames, instanceName, message.toString(),
+          message.getResourceName()));
     }
 
     String adminName = null;

@@ -20,10 +20,7 @@ package org.apache.helix.examples;
  */
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixManager;
@@ -46,7 +43,7 @@ public class Quickstart {
   private static String CLUSTER_NAME = "HELIX_QUICKSTART";
   private static int NUM_NODES = 2;
   private static final String RESOURCE_NAME = "MyResource";
-  private static final int NUM_PARTITIONS = 6;
+  private static final int NUM_PARTITIONS = 8;
   private static final int NUM_REPLICAS = 2;
 
   private static final String STATE_MODEL_NAME = "MyStateModel";
@@ -71,7 +68,6 @@ public class Quickstart {
       instanceConfig.setInstanceEnabled(true);
       INSTANCE_CONFIG_LIST.add(instanceConfig);
     }
-
   }
 
   public static void setup() {
@@ -165,6 +161,18 @@ public class Quickstart {
     System.out.println(obj);
   }
 
+  private static void waitForInput() {
+    Scanner scanner = new Scanner(System.in);
+    System.out.println("Waiting for user input...");
+    while(!scanner.hasNextLine()) {
+    }
+    String line = scanner.nextLine();
+    if (line.equals("exit")) {
+      System.exit(0);
+    }
+//    scanner.close();
+  }
+
   public static void main(String[] args) throws Exception {
     startZookeeper();
     setup();
@@ -172,14 +180,21 @@ public class Quickstart {
     startController();
     Thread.sleep(5000);
     printState("After starting 2 nodes");
+//    waitForInput();
     addNode();
-    Thread.sleep(5000);
+    Thread.sleep(25000);
     printState("After adding a third node");
+    waitForInput();
+    printState("");
     stopNode();
     Thread.sleep(5000);
     printState("After the 3rd node stops/crashes");
-    Thread.currentThread().join();
-    System.exit(0);
+//    Thread.currentThread().join();
+//    System.exit(0);
+    while(true) {
+      waitForInput();
+      printState("");
+    }
   }
 
   private static void addNode() throws Exception {
@@ -252,6 +267,7 @@ public class Quickstart {
       StateMachineEngine stateMach = manager.getStateMachineEngine();
       stateMach.registerStateModelFactory(STATE_MODEL_NAME, stateModelFactory);
       manager.connect();
+
     }
 
     public void stop() {

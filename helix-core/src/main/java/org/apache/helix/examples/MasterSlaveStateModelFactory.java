@@ -95,21 +95,34 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
       System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
+      System.out.println(_instanceName + " sleeping for 10s for " + partitionName);
+      try {
+        Thread.sleep(10000);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      System.out.println(_instanceName + " transitioned from " + message.getFromState() + " to "
+              + message.getToState() + " for " + partitionName);
     }
 
     public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
       System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
+      System.out.println(_instanceName + " sleeping for 11s for " + partitionName);
+      try {
+        Thread.sleep(11000);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      System.out.println(_instanceName + " transitioned from " + message.getFromState() + " to "
+              + message.getToState() + " for " + partitionName);
     }
 
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
       System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();
-
     }
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {

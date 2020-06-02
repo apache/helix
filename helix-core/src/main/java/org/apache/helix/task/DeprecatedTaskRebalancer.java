@@ -99,7 +99,6 @@ public abstract class DeprecatedTaskRebalancer
   /**
    * Compute an assignment of tasks to instances
    * @param currStateOutput the current state of the instances
-   * @param prevAssignment the previous task partition assignment
    * @param instances the instances
    * @param jobCfg the task configuration
    * @param jobContext the task context
@@ -110,10 +109,9 @@ public abstract class DeprecatedTaskRebalancer
    * @return map of instances to set of partition numbers
    */
   public abstract Map<String, SortedSet<Integer>> getTaskAssignment(
-      CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
-      Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
-      WorkflowControllerDataProvider cache);
+      CurrentStateOutput currStateOutput, Collection<String> instances, JobConfig jobCfg,
+      JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      Set<Integer> partitionSet, WorkflowControllerDataProvider cache);
 
   @Override
   public void init(HelixManager manager) {
@@ -529,7 +527,7 @@ public abstract class DeprecatedTaskRebalancer
       excludeSet.addAll(getNonReadyPartitions(jobCtx, currentTime));
       // Get instance->[partition, ...] mappings for the target resource.
       Map<String, SortedSet<Integer>> tgtPartitionAssignments =
-          getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,
+          getTaskAssignment(currStateOutput, liveInstances, jobCfg, jobCtx,
               workflowConfig, workflowCtx, allPartitions, cache);
       for (Map.Entry<String, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
         String instance = entry.getKey();

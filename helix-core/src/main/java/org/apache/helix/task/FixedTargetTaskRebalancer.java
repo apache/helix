@@ -48,13 +48,11 @@ public class FixedTargetTaskRebalancer extends DeprecatedTaskRebalancer {
   }
 
   @Override
-  public Map<String, SortedSet<Integer>> getTaskAssignment(
-      CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
+  public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
       Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
       WorkflowControllerDataProvider cache) {
-    return taskAssignmentCalculator
-        .getTaskAssignment(currStateOutput, prevAssignment, instances, jobCfg, jobContext,
-            workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());
+    return taskAssignmentCalculator.getTaskAssignment(currStateOutput, instances, jobCfg,
+        jobContext, workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());
   }
 }

@@ -65,9 +65,9 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
 
   @Override
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
-      ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
-      final JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
-      Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
+      Collection<String> instances, JobConfig jobCfg, final JobContext jobContext,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
+      Map<String, IdealState> idealStateMap) {
 
     if (jobCfg.getTargetResource() != null) {
       LOG.error(

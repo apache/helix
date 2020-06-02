@@ -27,7 +27,6 @@ public abstract class TaskAssignmentCalculator {
   /**
    * Compute an assignment of tasks to instances
    * @param currStateOutput the current state of the instances
-   * @param prevAssignment the previous task partition assignment
    * @param instances the instances
    * @param jobCfg the task configuration
    * @param jobContext the task context
@@ -38,10 +37,9 @@ public abstract class TaskAssignmentCalculator {
    * @return map of instances to set of partition numbers
    */
   public abstract Map<String, SortedSet<Integer>> getTaskAssignment(
-      CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
-      Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
-      Map<String, IdealState> idealStateMap);
+      CurrentStateOutput currStateOutput, Collection<String> instances, JobConfig jobCfg,
+      JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      Set<Integer> partitionSet, Map<String, IdealState> idealStateMap);
 
   /**
    * Returns the correct type for this job. Note that if the parent workflow has a type, then all of

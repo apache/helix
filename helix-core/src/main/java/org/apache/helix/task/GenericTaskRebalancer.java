@@ -40,18 +40,18 @@ public class GenericTaskRebalancer extends DeprecatedTaskRebalancer {
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, WorkflowControllerDataProvider cache) {
-    return taskAssignmentCalculator
-        .getAllTaskPartitions(jobCfg, jobCtx, workflowCfg, workflowCtx, cache.getIdealStates());
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      WorkflowControllerDataProvider cache) {
+    return taskAssignmentCalculator.getAllTaskPartitions(jobCfg, jobCtx, workflowCfg, workflowCtx,
+        cache.getIdealStates());
   }
 
   @Override
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
-      ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
-      final JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
-      Set<Integer> partitionSet, WorkflowControllerDataProvider cache) {
-    return taskAssignmentCalculator
-        .getTaskAssignment(currStateOutput, prevAssignment, instances, jobCfg, jobContext,
-            workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());
+      Collection<String> instances, JobConfig jobCfg, final JobContext jobContext,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
+      WorkflowControllerDataProvider cache) {
+    return taskAssignmentCalculator.getTaskAssignment(currStateOutput, instances, jobCfg,
+        jobContext, workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());
   }
 }

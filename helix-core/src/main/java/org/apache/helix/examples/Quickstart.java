@@ -28,10 +28,10 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.messaging.handling.HelixTaskExecutor;
+import org.apache.helix.model.*;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.model.builder.SemiAutoModeISBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
@@ -78,12 +78,16 @@ public class Quickstart {
     echo("Creating cluster: " + CLUSTER_NAME);
     admin.addCluster(CLUSTER_NAME, true);
 
-    // Add nodes to the cluster
-    echo("Adding " + NUM_NODES + " participants to the cluster");
-    for (int i = 0; i < NUM_NODES; i++) {
-      admin.addInstance(CLUSTER_NAME, INSTANCE_CONFIG_LIST.get(i));
-      echo("\t Added participant: " + INSTANCE_CONFIG_LIST.get(i).getInstanceName());
-    }
+    // Enable nodes auto join
+    final HelixConfigScope scope = new HelixConfigScopeBuilder(
+      HelixConfigScope.ConfigScopeProperty.CLUSTER
+    ).forCluster(CLUSTER_NAME).build();
+
+    final Map<String, String> props = new HashMap<>();
+    props.put(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, String.valueOf(true));
+    props.put(Message.MessageType.STATE_TRANSITION + "." + HelixTaskExecutor.MAX_THREADS, String.valueOf(100));
+
+    admin.setConfig(scope, props);
 
     // Add a state model
     StateModelDefinition myStateModel = defineStateModel();
@@ -92,11 +96,7 @@ public class Quickstart {
 
     // Add a resource with 6 partitions and 2 replicas
     echo("Adding a resource MyResource: " + "with 6 partitions and 2 replicas");
-//    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, "AUTO");
     admin.addResource(CLUSTER_NAME, RESOURCE_NAME, buildCustomIdealStateFor(RESOURCE_NAME, NUM_PARTITIONS, NUM_NODES));
-    // this will set up the ideal state, it calculates the preference list for
-    // each partition similar to consistent hashing
-//    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
   }
 
   public static IdealState buildCustomIdealStateFor(String topicName,
@@ -125,7 +125,6 @@ public class Quickstart {
     // Add states and their rank to indicate priority. Lower the rank higher the
     // priority
     builder.addState(MASTER, 1);
-//    builder.addState(SLAVE, 2);
     builder.addState(OFFLINE, 2);
     builder.addState(DROPPED);
     // Set the initial state when the node starts
@@ -139,9 +138,6 @@ public class Quickstart {
     // set constraints on states.
     // static constraint
     builder.upperBound(MASTER, 1);
-    // dynamic constraint, R means it should be derived based on the replication
-    // factor.
-//    builder.dynamicUpperBound(SLAVE, "R");
 
     StateModelDefinition statemodelDefinition = builder.build();
     return statemodelDefinition;
@@ -192,7 +188,6 @@ public class Quickstart {
     if (line.equals("exit")) {
       System.exit(0);
     }
-//    scanner.close();
   }
 
   public static void main(String[] args) throws Exception {
@@ -202,17 +197,12 @@ public class Quickstart {
     startController();
     Thread.sleep(8000);
     printState("After starting 2 nodes");
-//    waitForInput();
     addNode();
     Thread.sleep(15000);
     printState("After adding a third node");
-//    waitForInput();
-//    printState("");
     stopNode();
     Thread.sleep(14000);
     printState("After the 3rd node stops/crashes");
-//    Thread.currentThread().join();
-//    System.exit(0);
 
     while(true) {
       waitForInput();
@@ -230,11 +220,9 @@ public class Quickstart {
     instanceConfig.setInstanceEnabled(true);
     echo("ADDING NEW NODE :" + instanceConfig.getInstanceName()
         + ". Partitions will move from old nodes to the new node.");
-    admin.addInstance(CLUSTER_NAME, instanceConfig);
     INSTANCE_CONFIG_LIST.add(instanceConfig);
     MyProcess process = new MyProcess(instanceConfig.getInstanceName());
     PROCESS_LIST.add(process);
-//    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, 1);
     admin.setResourceIdealState(
       CLUSTER_NAME, RESOURCE_NAME, buildCustomIdealStateFor(RESOURCE_NAME, NUM_PARTITIONS, NUM_NODES)
     );

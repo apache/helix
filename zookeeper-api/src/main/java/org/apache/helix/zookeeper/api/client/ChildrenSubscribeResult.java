@@ -9,7 +9,11 @@ public class ChildrenSubscribeResult {
   private boolean _isInstalled;
 
   public ChildrenSubscribeResult(List<String> children, boolean isInstalled) {
-    _children = Collections.unmodifiableList(children);
+    if (children != null) {
+      _children = Collections.unmodifiableList(children);
+    } else {
+      _children = null;
+    }
     _isInstalled = isInstalled;
   }
 

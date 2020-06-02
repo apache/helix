@@ -70,7 +70,7 @@ public class MockParticipantManager extends ClusterManager {
   public void setTransition(MockTransition transition) {
     _msModelFactory.setTrasition(transition);
   }
-  
+
   /**
    * This method should be called before syncStart() called after syncStop()
    */

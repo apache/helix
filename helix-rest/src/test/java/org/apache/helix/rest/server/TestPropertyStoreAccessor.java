@@ -20,13 +20,18 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.TestHelper;
+import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.http.HttpStatus;
@@ -53,14 +58,12 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   public void init() {
     _customDataAccessor = new ZkBaseDataAccessor<>(ZK_ADDR, new ZkSerializer() {
       @Override
-      public byte[] serialize(Object o)
-          throws ZkMarshallingError {
+      public byte[] serialize(Object o) throws ZkMarshallingError {
         return o.toString().getBytes();
       }
 
       @Override
-      public Object deserialize(byte[] bytes)
-          throws ZkMarshallingError {
+      public Object deserialize(byte[] bytes) throws ZkMarshallingError {
         return new String(bytes);
       }
     });
@@ -78,8 +81,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testGetPropertyStoreWithZNRecordData()
-      throws IOException {
+  public void testGetPropertyStoreWithZNRecordData() throws IOException {
     String data =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/ZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
@@ -113,5 +115,37 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path).format(TEST_CLUSTER)
             .getResponse(this);
     Assert.assertEquals(response.getStatus(), HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void testPutPropertyStore() throws IOException {
+    String path = "/writePath/content";
+
+    // First, try to write byte array
+    String content = TestHelper.getTestMethodName();
+    put("clusters/" + TEST_CLUSTER + "/propertyStore" + path,
+        ImmutableMap.of("isZNRecord", "false"),
+        Entity.entity(OBJECT_MAPPER.writeValueAsBytes(content), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Verify
+    ZkBaseDataAccessor<byte[]> byteAccessor =
+        new ZkBaseDataAccessor(ZK_ADDR, new ByteArraySerializer());
+    byte[] data = byteAccessor
+        .get(PropertyPathBuilder.propertyStore(TEST_CLUSTER) + path, null, AccessOption.PERSISTENT);
+    byteAccessor.close();
+    Assert.assertEquals(content, OBJECT_MAPPER.readValue(data, String.class));
+
+    // Second, try to write a ZNRecord
+    ZNRecord contentRecord = new ZNRecord(TestHelper.getTestMethodName());
+    contentRecord.setSimpleField("testField", TestHelper.getTestMethodName());
+    put("clusters/" + TEST_CLUSTER + "/propertyStore" + path, null, Entity
+            .entity(OBJECT_MAPPER.writeValueAsBytes(contentRecord), MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Verify
+    ZNRecord record = _baseAccessor
+        .get(PropertyPathBuilder.propertyStore(TEST_CLUSTER) + path, null, AccessOption.PERSISTENT);
+    Assert.assertEquals(contentRecord, record);
   }
 }

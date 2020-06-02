@@ -31,6 +31,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -231,19 +232,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_byteArrayZkBaseDataAccessor == null) {
       synchronized (this) {
         if (_byteArrayZkBaseDataAccessor == null) {
-
-          _byteArrayZkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkAddr, new ZkSerializer() {
-            @Override
-            public byte[] serialize(Object o) throws ZkMarshallingError {
-              // TODO: Support serialize for write methods if necessary
-              throw new UnsupportedOperationException("serialize() is not supported.");
-            }
-
-            @Override
-            public Object deserialize(byte[] bytes) throws ZkMarshallingError {
-              return bytes;
-            }
-          });
+          _byteArrayZkBaseDataAccessor =
+              new ZkBaseDataAccessor<>(_zkAddr, new ByteArraySerializer());
         }
       }
     }

@@ -98,6 +98,11 @@ public class AbstractResource {
     return Response.serverError().build();
   }
 
+  protected Response serverError(String errorMsg) {
+    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errorMsgToJson(errorMsg))
+        .build();
+  }
+
   protected Response serverError(Exception ex) {
     addExceptionToAuditLog(ex);
     return Response.serverError().entity(errorMsgToJson(ex.getMessage())).build();

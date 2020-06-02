@@ -210,6 +210,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.warn("Exception in callback processing thread. Skipping callback", e);
       }
     }
+
+    public boolean queueIsEmpty() {
+      return _eventQueue.isEmpty();
+    }
   }
 
   class RefreshTask implements Runnable {
@@ -220,10 +224,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           long currentTime = System.currentTimeMillis();
           long remainingTime = _lastEventTime + _periodicRefreshTriggerInterval - currentTime;
           if (remainingTime <= 0) {
-            NotificationContext changeContext = new NotificationContext(_manager);
-            changeContext.setType(Type.CALLBACK);
-            changeContext.setChangeType(_changeType);
-            enqueueTask(changeContext);
+            // If there is no event in the queue, meaning this long idle time could be due to lack of events
+            // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
+            if (_batchCallbackProcessor == null || _batchCallbackProcessor.queueIsEmpty()) {
+              NotificationContext changeContext = new NotificationContext(_manager);
+              changeContext.setType(Type.CALLBACK);
+              changeContext.setChangeType(_changeType);
+              enqueueTask(changeContext);
+            }
             break;
           } else {
             Thread.sleep(remainingTime);

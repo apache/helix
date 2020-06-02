@@ -32,7 +32,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -191,5 +190,43 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
+  }
+
+  @Test
+  public void testWithoutRefreshInBatchMode() throws Exception {
+    System.setProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED, String.valueOf(true));
+    TestMessageListener listener1 = new TestMessageListener();
+    // Not doing refresh
+    _manager.addMessageListener(listener1, instanceName, clusterName, -1);
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener1.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(result);
+    System.clearProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
+  }
+
+  @Test
+  public void testWithPostponedRefreshInBatchMode() throws Exception {
+    System.setProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED, String.valueOf(true));
+    TestMessageListener listener2 = new TestMessageListener();
+    _manager.addMessageListener(listener2, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
+    CallbackHandler mockHandler = _manager._testHandlers.get(listener2);
+    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
+    lastEventTimeField.setAccessible(true);
+    // t1
+    lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
+    // Make sue when the first refresh is executed (t0), interval (wait_duration/8) + lastEventTime (t1 (very close to t0) + wait_duration/8) > t0
+    // So it will sleep and do the refresh after another interval passes which is at t1 + wait_duration/4
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener2.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+    System.clearProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
   }
 }

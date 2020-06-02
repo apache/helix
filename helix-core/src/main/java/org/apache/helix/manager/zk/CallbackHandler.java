@@ -563,7 +563,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug(_manager.getInstanceName() + " subscribe data-change. path: " + path
             + ", listener: " + _listener);
       }
-      _zkClient.subscribeDataChanges(path, this, true);
+      _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " + path
           + ", listener: " + _listener);

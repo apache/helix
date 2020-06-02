@@ -597,11 +597,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       // check if the instance exists in the cluster
       String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
       throw new HelixException(String.format(
-          _zkClient.exists(instanceConfigPath) ? ResetPartitionFailureReason.INSTANCE_NOT_ALIVE
-              .getMessage(resourceName, partitionNames, instanceName, instanceName, clusterName)
-              : ResetPartitionFailureReason.INSTANCE_NON_EXISTENT
-                  .getMessage(resourceName, partitionNames, instanceName, instanceName,
-                      clusterName)));
+          (_zkClient.exists(instanceConfigPath) ? ResetPartitionFailureReason.INSTANCE_NOT_ALIVE
+              : ResetPartitionFailureReason.INSTANCE_NON_EXISTENT)
+              .getMessage(resourceName, partitionNames, instanceName, instanceName, clusterName)));
     }
 
     // check resource group exists

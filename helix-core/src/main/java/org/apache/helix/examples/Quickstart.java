@@ -29,8 +29,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.SemiAutoModeISBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.zookeeper.zkclient.IDefaultNameSpace;
 import org.apache.helix.zookeeper.zkclient.ZkClient;
@@ -44,7 +46,7 @@ public class Quickstart {
   private static int NUM_NODES = 2;
   private static final String RESOURCE_NAME = "MyResource";
   private static final int NUM_PARTITIONS = 8;
-  private static final int NUM_REPLICAS = 2;
+  private static final int NUM_REPLICAS = 1;
 
   private static final String STATE_MODEL_NAME = "MyStateModel";
 
@@ -90,10 +92,32 @@ public class Quickstart {
 
     // Add a resource with 6 partitions and 2 replicas
     echo("Adding a resource MyResource: " + "with 6 partitions and 2 replicas");
-    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, "AUTO");
+//    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, "AUTO");
+    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, buildCustomIdealStateFor(RESOURCE_NAME, NUM_PARTITIONS, NUM_NODES));
     // this will set up the ideal state, it calculates the preference list for
     // each partition similar to consistent hashing
-    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
+//    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
+  }
+
+  public static IdealState buildCustomIdealStateFor(String topicName,
+                                                    int numTopicPartitions,
+                                                    int numNodes) {
+
+    final SemiAutoModeISBuilder customModeIdealStateBuilder = new SemiAutoModeISBuilder(topicName);
+
+    customModeIdealStateBuilder
+            .setStateModel(STATE_MODEL_NAME)
+            .setNumPartitions(numTopicPartitions)
+            .setNumReplica(1)
+            .setMaxPartitionsPerNode(numTopicPartitions);
+
+    for (int i = 0; i < numTopicPartitions; ++i) {
+      customModeIdealStateBuilder.assignPreferenceList(
+        Integer.toString(i),
+        INSTANCE_CONFIG_LIST.get(i % numNodes).getInstanceName()
+      );
+    }
+    return customModeIdealStateBuilder.build();
   }
 
   private static StateModelDefinition defineStateModel() {
@@ -101,17 +125,15 @@ public class Quickstart {
     // Add states and their rank to indicate priority. Lower the rank higher the
     // priority
     builder.addState(MASTER, 1);
-    builder.addState(SLAVE, 2);
-    builder.addState(OFFLINE);
+//    builder.addState(SLAVE, 2);
+    builder.addState(OFFLINE, 2);
     builder.addState(DROPPED);
     // Set the initial state when the node starts
     builder.initialState(OFFLINE);
 
     // Add transitions between the states.
-    builder.addTransition(OFFLINE, SLAVE);
-    builder.addTransition(SLAVE, OFFLINE);
-    builder.addTransition(SLAVE, MASTER);
-    builder.addTransition(MASTER, SLAVE);
+    builder.addTransition(MASTER, OFFLINE);
+    builder.addTransition(OFFLINE, MASTER);
     builder.addTransition(OFFLINE, DROPPED);
 
     // set constraints on states.
@@ -119,7 +141,7 @@ public class Quickstart {
     builder.upperBound(MASTER, 1);
     // dynamic constraint, R means it should be derived based on the replication
     // factor.
-    builder.dynamicUpperBound(SLAVE, "R");
+//    builder.dynamicUpperBound(SLAVE, "R");
 
     StateModelDefinition statemodelDefinition = builder.build();
     return statemodelDefinition;
@@ -178,19 +200,20 @@ public class Quickstart {
     setup();
     startNodes();
     startController();
-    Thread.sleep(5000);
+    Thread.sleep(8000);
     printState("After starting 2 nodes");
 //    waitForInput();
     addNode();
-    Thread.sleep(25000);
+    Thread.sleep(15000);
     printState("After adding a third node");
-    waitForInput();
-    printState("");
+//    waitForInput();
+//    printState("");
     stopNode();
-    Thread.sleep(5000);
+    Thread.sleep(14000);
     printState("After the 3rd node stops/crashes");
 //    Thread.currentThread().join();
 //    System.exit(0);
+
     while(true) {
       waitForInput();
       printState("");
@@ -211,15 +234,25 @@ public class Quickstart {
     INSTANCE_CONFIG_LIST.add(instanceConfig);
     MyProcess process = new MyProcess(instanceConfig.getInstanceName());
     PROCESS_LIST.add(process);
-    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, 3);
+//    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, 1);
+    admin.setResourceIdealState(
+      CLUSTER_NAME, RESOURCE_NAME, buildCustomIdealStateFor(RESOURCE_NAME, NUM_PARTITIONS, NUM_NODES)
+    );
     process.start();
   }
 
   private static void stopNode() {
     int nodeId = NUM_NODES - 1;
+    NUM_NODES -= 1;
     echo("STOPPING " + INSTANCE_CONFIG_LIST.get(nodeId).getInstanceName()
         + ". Mastership will be transferred to the remaining nodes");
     PROCESS_LIST.get(nodeId).stop();
+    PROCESS_LIST.remove(PROCESS_LIST.size() - 1);
+    admin.dropInstance(CLUSTER_NAME, INSTANCE_CONFIG_LIST.get(nodeId));
+    INSTANCE_CONFIG_LIST.remove(INSTANCE_CONFIG_LIST.size() - 1);
+    admin.setResourceIdealState(
+      CLUSTER_NAME, RESOURCE_NAME, buildCustomIdealStateFor(RESOURCE_NAME, NUM_PARTITIONS, NUM_NODES)
+    );
   }
 
   private static void printState(String msg) {

@@ -31,11 +31,10 @@ import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
@@ -107,7 +106,6 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-
     try {
       if (Boolean.parseBoolean(isZNRecord)) {
         try {

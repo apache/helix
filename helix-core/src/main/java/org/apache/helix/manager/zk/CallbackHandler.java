@@ -547,11 +547,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       // CallbackHandler to install exists watch, namely watch for path not existing.
       // Note when path is removed, the CallbackHanler would remove itself from ZkHelixManager too
       // to avoid leaking a CallbackHandler.
-      if (callbackType == Type.INIT) {
-        _zkClient.subscribeChildChanges(path, this);
-      } else {
-        _zkClient.subscribeChildChanges(path, this, true);
-      }
+      _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("{} unsubscribe child-change. path: {}, listener: {}", _manager.getInstanceName(),
           path, _listener);

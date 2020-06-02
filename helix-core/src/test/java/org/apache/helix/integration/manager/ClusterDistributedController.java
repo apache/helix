@@ -32,35 +32,11 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterDistributedController extends ZKHelixManager implements Runnable,
-    ZkTestManager {
+public class ClusterDistributedController extends ClusterManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterDistributedController.class);
 
-  private final CountDownLatch _startCountDown = new CountDownLatch(1);
-  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
-  private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
-
   public ClusterDistributedController(String zkAddr, String clusterName, String controllerName) {
-    super(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, zkAddr);
-  }
-
-  public void syncStop() {
-    _stopCountDown.countDown();
-    try {
-      _waitStopFinishCountDown.await();
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted waiting for finish", e);
-    }
-  }
-
-  public void syncStart() {
-    // TODO: prevent start multiple times
-    new Thread(this).start();
-    try {
-      _startCountDown.await();
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted waiting for start", e);
-    }
+    super(zkAddr, clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT);
   }
 
   @Override
@@ -81,15 +57,5 @@ public class ClusterDistributedController extends ZKHelixManager implements Runn
       disconnect();
       _waitStopFinishCountDown.countDown();
     }
-  }
-
-  @Override
-  public RealmAwareZkClient getZkClient() {
-    return _zkclient;
-  }
-
-  @Override
-  public List<CallbackHandler> getHandlers() {
-    return _handlers;
   }
 }

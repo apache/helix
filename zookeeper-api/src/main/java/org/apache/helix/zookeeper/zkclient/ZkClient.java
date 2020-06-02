@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -213,11 +214,11 @@ public class ZkClient implements Watcher {
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
-    RealmAwareZkClient.ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
-    return result.children;
+    ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
+    return result.getChildren();
   }
 
-  public RealmAwareZkClient.ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist) {
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist) {
     synchronized (_childListener) {
       Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners == null) {
@@ -228,17 +229,13 @@ public class ZkClient implements Watcher {
     }
 
     List<String> children = watchForChilds(path, skipWatchingNodeNotExist);
-    RealmAwareZkClient.ChildrenSubscribeResult result = new RealmAwareZkClient.ChildrenSubscribeResult();
-    result.children = children;
     if (children == null && skipWatchingNodeNotExist) {
       unsubscribeChildChanges(path, listener);
       LOG.info("watchForChilds failed to install no-existing watch and add listener. Path:" + path);
-      result.isInstalled = false;
-      return result;
+      return new ChildrenSubscribeResult(children, false);
     }
 
-    result.isInstalled = true;
-    return result;
+    return new ChildrenSubscribeResult(children, true);
   }
 
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {

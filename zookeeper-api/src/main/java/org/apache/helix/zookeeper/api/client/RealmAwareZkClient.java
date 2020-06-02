@@ -68,11 +68,6 @@ public interface RealmAwareZkClient {
   int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
-  class ChildrenSubscribeResult {
-    public List<String> children;
-    public boolean isInstalled;
-  }
-
   // listener subscription
   /**
    * Subscribe the path and the listener will handle child events of the path.

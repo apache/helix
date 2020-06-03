@@ -151,7 +151,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             event.handler.subscribeForChanges(event.callbackType, event.path, event.watchChild);
           } else {
             logger.info("CallbackHandler is not ready, stop subscribing changes listener to "
-                    + "path:{} for listener: {} watchChild: {}", event.path, event.listener,
+                    + "path: {} for listener: {} watchChild: {}", event.path, event.listener,
                 event.listener);
           }
         } catch (Exception e) {
@@ -384,7 +384,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     synchronized (_manager) {
       if (logger.isInfoEnabled()) {
         logger
-            .info("{} START:INVOKE {} listener: {} type; {}", Thread.currentThread().getId(), _path,
+            .info("{} START:INVOKE {} listener: {} type: {}", Thread.currentThread().getId(), _path,
                 _listener, type);
       }
 
@@ -664,7 +664,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * exists
    */
   public void init() {
-    logger.info("initializing CallbackHandler: {}, content:{} ", this.toString(), getContent());
+    logger.info("initializing CallbackHandler: {}, content: {} ", this.toString(), getContent());
 
     if (_batchModeEnabled) {
       synchronized (this) {

@@ -560,6 +560,27 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
+  private enum ResetPartitionFailureReason {
+    INSTANCE_NOT_ALIVE("%s is not alive in cluster %s"),
+    INSTANCE_NON_EXISTENT("%s does not exist in cluster %s"),
+    RESOURCE_NON_EXISTENT("resource %s is not added to cluster %s"),
+    PARTITION_NON_EXISTENT("not all %s exist in cluster %s"),
+    PARTITION_NOT_ERROR("%s is NOT found in cluster %s"),
+    STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s");
+
+    private String message;
+
+    ResetPartitionFailureReason(String message) {
+      this.message = message;
+    }
+
+    public String getMessage(String resourceName, List<String> partitionNames, String instanceName,
+        String errorStateEntity, String clusterName) {
+      return String.format("Can't reset state for %s.%s on %s, because " + message, resourceName,
+          partitionNames, instanceName, errorStateEntity, clusterName);
+    }
+  }
+
   @Override
   public void resetPartition(String clusterName, String instanceName, String resourceName,
       List<String> partitionNames) {
@@ -573,35 +594,30 @@ public class ZKHelixAdmin implements HelixAdmin {
     // check the instance is alive
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
     if (liveInstance == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + instanceName + " is not alive");
+      // check if the instance exists in the cluster
+      String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+      throw new HelixException(String.format(
+          (_zkClient.exists(instanceConfigPath) ? ResetPartitionFailureReason.INSTANCE_NOT_ALIVE
+              : ResetPartitionFailureReason.INSTANCE_NON_EXISTENT)
+              .getMessage(resourceName, partitionNames, instanceName, instanceName, clusterName)));
     }
 
     // check resource group exists
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     if (idealState == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + resourceName + " is not added");
+      throw new HelixException(String.format(ResetPartitionFailureReason.RESOURCE_NON_EXISTENT
+          .getMessage(resourceName, partitionNames, instanceName, resourceName, clusterName)));
     }
 
     // check partition exists in resource group
     Set<String> resetPartitionNames = new HashSet<String>(partitionNames);
-    if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-      Set<String> partitions = new HashSet<String>(idealState.getRecord().getMapFields().keySet());
-      if (!partitions.containsAll(resetPartitionNames)) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " exist");
-      }
-    } else {
-      Set<String> partitions = new HashSet<String>(idealState.getRecord().getListFields().keySet());
-      if (!partitions.containsAll(resetPartitionNames)) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " exist");
-      }
+    Set<String> partitions =
+        (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) ? idealState.getRecord()
+            .getMapFields().keySet() : idealState.getRecord().getListFields().keySet();
+    if (!partitions.containsAll(resetPartitionNames)) {
+      throw new HelixException(String.format(ResetPartitionFailureReason.PARTITION_NON_EXISTENT
+          .getMessage(resourceName, partitionNames, instanceName, partitionNames.toString(),
+              clusterName)));
     }
 
     // check partition is in ERROR state
@@ -610,9 +626,9 @@ public class ZKHelixAdmin implements HelixAdmin {
         accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
     for (String partitionName : resetPartitionNames) {
       if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString())) {
-        throw new HelixException(
-            "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-                + ", because not all " + partitionNames + " are in ERROR state");
+        throw new HelixException(String.format(ResetPartitionFailureReason.PARTITION_NOT_ERROR
+            .getMessage(resourceName, partitionNames, instanceName, partitionNames.toString(),
+                clusterName)));
       }
     }
 
@@ -620,9 +636,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     String stateModelDef = idealState.getStateModelDefRef();
     StateModelDefinition stateModel = accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
     if (stateModel == null) {
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because " + stateModelDef + " is NOT found");
+      throw new HelixException(String.format(ResetPartitionFailureReason.STATE_MODEL_NON_EXISTENT
+          .getMessage(resourceName, partitionNames, instanceName, stateModelDef, clusterName)));
     }
 
     // check there is no pending messages for the partitions exist
@@ -634,9 +649,10 @@ public class ZKHelixAdmin implements HelixAdmin {
         continue;
       }
 
-      throw new HelixException(
-          "Can't reset state for " + resourceName + "/" + partitionNames + " on " + instanceName
-              + ", because a pending message exists: " + message);
+      throw new HelixException(String.format(
+          "Can't reset state for %s.%s on %s, because a pending message %s exists for resource %s",
+          resourceName, partitionNames, instanceName, message.toString(),
+          message.getResourceName()));
     }
 
     String adminName = null;

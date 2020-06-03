@@ -172,7 +172,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<>();
 
+  /** Set this variable to negative can disable the message periodic refresh feature */
   private long _messageRefreshTriggerInterval;
+  private final long DEFAULT_MESSAGE_REFRESH_TRIGGER_INTERVAL = 2 * 60 * 1000; //2 minutes
 
   /**
    * status dump timer-task
@@ -295,8 +297,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .getSystemPropertyAsInt(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY,
             ParticipantHealthReportTask.DEFAULT_REPORT_LATENCY);
 
-    _messageRefreshTriggerInterval =
-        HelixUtil.getSystemPropertyAsLong(SystemPropertyKeys.MESSAGE_REFRESH_TRIGGER_INTERVAL, -1);
+    _messageRefreshTriggerInterval = HelixUtil
+        .getSystemPropertyAsLong(SystemPropertyKeys.MESSAGE_REFRESH_TRIGGER_INTERVAL,
+            DEFAULT_MESSAGE_REFRESH_TRIGGER_INTERVAL);
 
     MonitorLevel configuredMonitorLevel;
     try {

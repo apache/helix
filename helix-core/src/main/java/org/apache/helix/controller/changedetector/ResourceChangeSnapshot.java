@@ -19,7 +19,6 @@ package org.apache.helix.controller.changedetector;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +26,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixConstants;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.controller.changedetector.trimmer.ClusterConfigTrimmer;
+import org.apache.helix.controller.changedetector.trimmer.IdealStateTrimmer;
+import org.apache.helix.controller.changedetector.trimmer.InstanceConfigTrimmer;
+import org.apache.helix.controller.changedetector.trimmer.ResourceConfigTrimmer;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -70,24 +72,34 @@ class ResourceChangeSnapshot {
    * Constructor using controller cache (ResourceControllerDataProvider).
    *
    * @param dataProvider
-   * @param ignoreControllerGeneratedFields if true, the snapshot won't record any changes that is
-   *                                        being modified by the controller.
+   * @param ignoreNonTopologyChange if true, the snapshot won't record any trivial changes that
+   *                                 do not impact the fundamental structure of the cluster.
+   *                                 For example, instance disabled or not, rebalance throttling
+   *                                 configurations, resource disabled or not, etc.
    */
   ResourceChangeSnapshot(ResourceControllerDataProvider dataProvider,
-      boolean ignoreControllerGeneratedFields) {
+      boolean ignoreNonTopologyChange) {
     _changedTypes = new HashSet<>(dataProvider.getRefreshedChangeTypes());
-    _instanceConfigMap = new HashMap<>(dataProvider.getInstanceConfigMap());
-    _idealStateMap = new HashMap<>(dataProvider.getIdealStates());
-    if (ignoreControllerGeneratedFields && (
-        dataProvider.getClusterConfig().isPersistBestPossibleAssignment() || dataProvider
-            .getClusterConfig().isPersistIntermediateAssignment())) {
-      for (String resourceName : _idealStateMap.keySet()) {
-        _idealStateMap.put(resourceName, trimIdealState(_idealStateMap.get(resourceName)));
-      }
-    }
-    _resourceConfigMap = new HashMap<>(dataProvider.getResourceConfigMap());
+
+    _instanceConfigMap = ignoreNonTopologyChange ?
+        dataProvider.getInstanceConfigMap().entrySet().parallelStream().collect(Collectors
+            .toMap(e -> e.getKey(),
+                e -> InstanceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
+        new HashMap<>(dataProvider.getInstanceConfigMap());
+    _idealStateMap = ignoreNonTopologyChange ?
+        dataProvider.getIdealStates().entrySet().parallelStream().collect(Collectors
+            .toMap(e -> e.getKey(),
+                e -> IdealStateTrimmer.getInstance().trimProperty(e.getValue()))) :
+        new HashMap<>(dataProvider.getIdealStates());
+    _resourceConfigMap = ignoreNonTopologyChange ?
+        dataProvider.getResourceConfigMap().entrySet().parallelStream().collect(Collectors
+            .toMap(e -> e.getKey(),
+                e -> ResourceConfigTrimmer.getInstance().trimProperty(e.getValue()))) :
+        new HashMap<>(dataProvider.getResourceConfigMap());
+    _clusterConfig = ignoreNonTopologyChange ?
+        ClusterConfigTrimmer.getInstance().trimProperty(dataProvider.getClusterConfig()) :
+        dataProvider.getClusterConfig();
     _liveInstances = new HashMap<>(dataProvider.getLiveInstances());
-    _clusterConfig = dataProvider.getClusterConfig();
   }
 
   /**
@@ -125,33 +137,5 @@ class ResourceChangeSnapshot {
 
   ClusterConfig getClusterConfig() {
     return _clusterConfig;
-  }
-
-  // Trim the IdealState to exclude any controller modified information.
-  private IdealState trimIdealState(IdealState originalIdealState) {
-    // Clone the IdealState to avoid modifying the objects in the Cluster Data Cache, which might
-    // be used by the other stages in the pipeline.
-    IdealState trimmedIdealState = new IdealState(originalIdealState.getRecord());
-    ZNRecord trimmedIdealStateRecord = trimmedIdealState.getRecord();
-    switch (originalIdealState.getRebalanceMode()) {
-      // WARNING: the IdealState copy constructor is not really deep copy. So we should not modify
-      // the values directly or the cached values will be changed.
-      case FULL_AUTO:
-        // For FULL_AUTO resources, both map fields and list fields are not considered as data input
-        // for the controller. The controller will write to these two types of fields for persisting
-        // the assignment mapping.
-        trimmedIdealStateRecord.setListFields(trimmedIdealStateRecord.getListFields().keySet().stream().collect(
-            Collectors.toMap(partition -> partition, partition -> Collections.emptyList())));
-        // Continue to clean up map fields in the SEMI_AUTO case.
-      case SEMI_AUTO:
-        // For SEMI_AUTO resources, map fields are not considered as data input for the controller.
-        // The controller will write to the map fields for persisting the assignment mapping.
-        trimmedIdealStateRecord.setMapFields(trimmedIdealStateRecord.getMapFields().keySet().stream().collect(
-            Collectors.toMap(partition -> partition, partition -> Collections.emptyMap())));
-        break;
-      default:
-        break;
-    }
-    return trimmedIdealState;
   }
 }

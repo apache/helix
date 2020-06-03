@@ -410,6 +410,14 @@ public class TestClusterSetup extends ZkUnitTestBase {
       // Have to close the dedicated zkclient in accessor to avoid zkclient leakage.
       accessor.getBaseDataAccessor().close();
       TestHelper.dropCluster(clusterName, _gZkClient);
+
+      // Verify the cluster has been dropped.
+      Assert.assertTrue(TestHelper.verify(() -> {
+        if (_gZkClient.exists("/" + clusterName)) {
+          TestHelper.dropCluster(clusterName, _gZkClient);
+        }
+        return true;
+      }, TestHelper.WAIT_DURATION));
     }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

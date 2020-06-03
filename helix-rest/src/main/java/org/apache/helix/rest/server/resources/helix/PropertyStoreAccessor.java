@@ -19,18 +19,23 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
+import java.io.IOException;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +81,57 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The property store path %s doesn't exist", recordPath)).build());
+    }
+  }
+
+  /**
+   * Sample HTTP URLs:
+   *  http://<HOST>/clusters/{clusterId}/propertyStore/<PATH>
+   * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
+   * @param clusterId The cluster Id
+   * @param path path parameter is like "abc/abc/abc" in the URL
+   * @param isZNRecord true if the content represents a ZNRecord. false means byte array.
+   * @param content
+   * @return Response
+   */
+  @PUT
+  @Path("{path: .+}")
+  public Response putPropertyByPath(@PathParam("clusterId") String clusterId,
+      @PathParam("path") String path,
+      @QueryParam("isZNRecord") @DefaultValue("true") String isZNRecord, String content) {
+    path = "/" + path;
+    if (!ZkValidationUtil.isPathValid(path)) {
+      LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
+      return badRequest(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
+    }
+    final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
+    try {
+      if (Boolean.parseBoolean(isZNRecord)) {
+        try {
+          ZNRecord record = toZNRecord(content);
+          BaseDataAccessor<ZNRecord> propertyStoreDataAccessor =
+              getDataAccssor(clusterId).getBaseDataAccessor();
+          if (!propertyStoreDataAccessor.set(recordPath, record, AccessOption.PERSISTENT)) {
+            return serverError(
+                "Failed to set content: " + content + " in PropertyStore path: " + path);
+          }
+        } catch (IOException e) {
+          LOG.error("Failed to deserialize content " + content + " into a ZNRecord!", e);
+          return badRequest(
+              "Failed to write to path: " + recordPath + "! Content is not a valid ZNRecord!");
+        }
+      } else {
+        ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+        if (!propertyStoreDataAccessor
+            .set(recordPath, content.getBytes(), AccessOption.PERSISTENT)) {
+          return serverError(
+              "Failed to set content: " + content + " in PropertyStore path: " + path);
+        }
+      }
+      return OK();
+    } catch (Exception e) {
+      return serverError(e);
     }
   }
 }

@@ -1259,10 +1259,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
             try {
               manager.addCustomizedStateRootChangeListener(this, instance);
               logger.info(manager.getInstanceName() + " added root path listener for customized "
-                  + "state change for" + " " + instance + ", listener: " + this);
+                  + "state change for " + instance + ", listener: " + this);
             } catch (Exception e) {
               logger.error(
-                  "Fail to add root path listener for customized state change" + "for instance: "
+                  "Fail to add root path listener for customized state change for instance: "
                       + instance, e);
             }
         }

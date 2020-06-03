@@ -1331,7 +1331,7 @@ public class ZkClient implements Watcher {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;
     if (EventType.NodeDeleted == event.getType()) {
-      LOG.debug("event delelete:" + event.getPath());
+      LOG.debug("event delelete: {}", event.getPath());
     }
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated

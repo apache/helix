@@ -372,7 +372,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
       LiveInstance liveInstance = new LiveInstance(instanceName);
       liveInstance.setSessionId("session_0");
       liveInstance.setHelixVersion("version_0");
-      accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+      Assert.assertTrue(accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance));
 
       // Drop instance without stopping the live instance, should throw HelixException
       try {

@@ -652,7 +652,7 @@ public abstract class AbstractTaskDispatcher {
             // This means this is the very first task scheduled for this job
             jobCtx.setExecutionStartTime(currentTimestamp);
             reportSubmissionToScheduleDelay(cache, _clusterStatusMonitor, workflowConfig, jobCfg,
-                currentTimestamp);
+                currentTimestamp, _manager);
           }
           // Increment the task attempt count at schedule time
           jobCtx.incrementNumAttempts(pId);
@@ -866,7 +866,7 @@ public abstract class AbstractTaskDispatcher {
     JobConfig jobConfig = jobConfigMap.get(jobName);
     if (jobConfig != null) {
       reportControllerInducedDelay(dataProvider, _clusterStatusMonitor, workflowConfig, jobConfig,
-          currentTime);
+          currentTime, _manager);
     }
   }
 
@@ -1240,16 +1240,18 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on submissionToProcessDelay to the dynamic metric.
+   * Computes and passes on submissionToProcessDelay to the dynamic metric; syncs the metric to
+   * ZooKeeper
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig
    * @param jobConfig
    * @param currentTimestamp
+   * @param helixManager
    */
   protected static void reportSubmissionToProcessDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
-      final JobConfig jobConfig, final long currentTimestamp) {
+      final JobConfig jobConfig, final long currentTimestamp, final HelixManager helixManager) {
     AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       // Asynchronously update the appropriate JobMonitor
       JobMonitor jobMonitor = clusterStatusMonitor
@@ -1261,22 +1263,26 @@ public abstract class AbstractTaskDispatcher {
       // Compute SubmissionToProcessDelay
       long submissionToProcessDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
       jobMonitor.updateSubmissionToProcessDelayGauge(submissionToProcessDelay);
+      jobMonitor.syncSubmissionToProcessDelayToZk(
+          helixManager.getHelixDataAccessor().getBaseDataAccessor());
       return null;
     });
   }
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on submissionToScheduleDelay to the dynamic metric.
+   * Computes and passes on submissionToScheduleDelay to the dynamic metric; syncs the metric to
+   * ZooKeeper
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig
    * @param jobConfig
    * @param currentTimestamp
+   * @param helixManager
    */
   private static void reportSubmissionToScheduleDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
-      final JobConfig jobConfig, final long currentTimestamp) {
+      final JobConfig jobConfig, final long currentTimestamp, final HelixManager helixManager) {
     AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       // Asynchronously update the appropriate JobMonitor
       JobMonitor jobMonitor = clusterStatusMonitor
@@ -1288,22 +1294,26 @@ public abstract class AbstractTaskDispatcher {
       // Compute SubmissionToScheduleDelay
       long submissionToStartDelay = currentTimestamp - jobConfig.getStat().getCreationTime();
       jobMonitor.updateSubmissionToScheduleDelayGauge(submissionToStartDelay);
+      jobMonitor.syncSubmissionToScheduleDelayToZk(
+          helixManager.getHelixDataAccessor().getBaseDataAccessor());
       return null;
     });
   }
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on controllerInducedDelay to the dynamic metric.
+   * Computes and passes on controllerInducedDelay to the dynamic metric; syncs the metric to
+   * ZooKeeper
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig
    * @param jobConfig
    * @param currentTimestamp
+   * @param helixManager
    */
   private static void reportControllerInducedDelay(BaseControllerDataProvider dataProvider,
       final ClusterStatusMonitor clusterStatusMonitor, final WorkflowConfig workflowConfig,
-      final JobConfig jobConfig, final long currentTimestamp) {
+      final JobConfig jobConfig, final long currentTimestamp, final HelixManager helixManager) {
     AbstractBaseStage.asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       // Asynchronously update the appropriate JobMonitor
       JobMonitor jobMonitor = clusterStatusMonitor
@@ -1325,6 +1335,8 @@ public abstract class AbstractTaskDispatcher {
         long controllerInducedDelay =
             currentTimestamp - jobConfig.getStat().getCreationTime() - taskDuration;
         jobMonitor.updateControllerInducedDelayGauge(controllerInducedDelay);
+        jobMonitor.syncControllerInducedDelayToZk(
+            helixManager.getHelixDataAccessor().getBaseDataAccessor());
       }
       return null;
     });

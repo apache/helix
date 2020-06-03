@@ -40,6 +40,7 @@ public abstract class DynamicMetric<O, T> {
 
   private final Set<MBeanAttributeInfo> _attributeInfoSet;
   private O _metricObject;
+  private final String _metricName;
 
   /**
    * Instantiates a new Dynamic metric.
@@ -51,9 +52,17 @@ public abstract class DynamicMetric<O, T> {
     if (metricName == null || metricObject == null) {
       throw new MetricException("Failed to construct metric due to missing argument.");
     }
+    _metricName = metricName;
     _metricObject = metricObject;
     _attributeInfoSet =
         Collections.unmodifiableSet(generateAttributeInfos(metricName, metricObject));
+  }
+
+  /**
+   * @return the metric name
+   */
+  public String getMetricName() {
+    return _metricName;
   }
 
   /**

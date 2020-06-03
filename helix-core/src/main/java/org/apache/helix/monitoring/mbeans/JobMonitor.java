@@ -27,11 +27,15 @@ import javax.management.ObjectName;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
+import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixManager;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +44,12 @@ public class JobMonitor extends DynamicMBeanProvider {
   private static final String JOB_KEY = "Job";
   private static final Logger LOG = LoggerFactory.getLogger(JobMonitor.class);
   private static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+  // The root path of ZNodes that are used to sync certain metrics to ZooKeeper. This path is the
+  // first level, and its children nodes will represent each job type. Since the metrics are
+  // aggregated by job types, the metric values will be recorded in each ZNode belonging to a job
+  // type as simple fields.
+  private static final String SYNC_ZK_ROOT_PATH = "/JOB_MONITOR_METRICS";
 
   // For registering dynamic metrics
   private final ObjectName _initObjectName;
@@ -67,6 +77,12 @@ public class JobMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _submissionToProcessDelayGauge;
   private HistogramDynamicMetric _submissionToScheduleDelayGauge;
   private HistogramDynamicMetric _controllerInducedDelayGauge;
+
+  public enum JobMonitorMetricZnodeField {
+    SUBMISSION_TO_PROCESS_DELAY,
+    SUBMISSION_TO_SCHEDULE_DELAY,
+    CONTROLLER_INDUCED_PROCESS_DELAY
+  }
 
   public JobMonitor(String clusterName, String jobType, ObjectName objectName) {
     _clusterName = clusterName;
@@ -180,6 +196,59 @@ public class JobMonitor extends DynamicMBeanProvider {
    */
   public void updateControllerInducedDelayGauge(long delay) {
     _controllerInducedDelayGauge.updateValue(delay);
+  }
+
+  /**
+   * Sync the current SubmissionToProcessDelay to ZooKeeper
+   * @param baseDataAccessor
+   */
+  public void syncSubmissionToProcessDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    syncMetricMeanValueToZk(baseDataAccessor,
+        JobMonitorMetricZnodeField.SUBMISSION_TO_PROCESS_DELAY, _submissionToProcessDelayGauge);
+  }
+
+  /**
+   * Sync the current SubmissionToScheduleDelay to ZooKeeper
+   * @param baseDataAccessor
+   */
+  public void syncSubmissionToScheduleDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    syncMetricMeanValueToZk(baseDataAccessor,
+        JobMonitorMetricZnodeField.SUBMISSION_TO_SCHEDULE_DELAY, _submissionToScheduleDelayGauge);
+  }
+
+  /**
+   * Sync the current ControllerInducedDelay to ZooKeeper
+   * @param baseDataAccessor
+   */
+  public void syncControllerInducedDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    syncMetricMeanValueToZk(baseDataAccessor,
+        JobMonitorMetricZnodeField.CONTROLLER_INDUCED_PROCESS_DELAY, _controllerInducedDelayGauge);
+  }
+
+  private void syncMetricMeanValueToZk(BaseDataAccessor<ZNRecord> baseDataAccessor,
+      JobMonitorMetricZnodeField field, HistogramDynamicMetric metric) {
+    String zkPath = buildZkPathForJobMonitorMetric(_jobType);
+
+    if (!baseDataAccessor.update(zkPath, currentData -> {
+      if (currentData == null) {
+        currentData = new ZNRecord(_jobType);
+      }
+      currentData.setSimpleField(field.name(), metric.getMeanValue().toString());
+      return currentData;
+    }, AccessOption.PERSISTENT)) {
+      LOG.error(
+          "Sync metric to ZK failed. Job type: " + _jobType + " Metric: " + metric.getMetricName());
+    }
+  }
+
+  /**
+   * Compute the zk path for job monitor metrics syncing.
+   * @param jobType - the job type of the metric that needs to be synced
+   * @return the zk path towards the ZNode that represents this job type. Since metrics are
+   * aggregated by job types, all metric values of one job type should go into one ZNode.
+   */
+  public static String buildZkPathForJobMonitorMetric(String jobType) {
+    return String.format("%s/%s", SYNC_ZK_ROOT_PATH, jobType);
   }
 
   /**

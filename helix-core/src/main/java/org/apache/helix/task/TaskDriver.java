@@ -47,12 +47,15 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.monitoring.mbeans.JobMonitor;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1238,5 +1241,67 @@ public class TaskDriver {
     }
 
     return liveInstance.getCurrentTaskThreadPoolSize();
+  }
+
+  /**
+   * Get the latest "submission to process delay" mean value emitted by controller. This value is
+   * aggregated by job types, and is computed with a sliding window; the size of the sliding window
+   * is determined by DynamicMBeanProvider.getResetIntervalInMs(). Note: the metric value returned
+   * by this endpoint is recorded when the controller last reports a value to the metric; if the
+   * controller doesn't report any value, this metric value will not be updated.
+   * @param jobType - the job type associated to the metric
+   * @return the latest "submission to process delay" mean value emitted by controller
+   */
+  public long getSubmissionToProcessDelay(String jobType) {
+    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
+    return Long.parseLong(znRecord
+        .getSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_PROCESS_DELAY.name()));
+  }
+
+  /**
+   * Get the latest "submission to schedule delay" mean value emitted by controller. This value is
+   * aggregated by job types, and is computed with a sliding window; the size of the sliding window
+   * is determined by DynamicMBeanProvider.getResetIntervalInMs(). Note: the metric value returned
+   * by this endpoint is recorded when the controller last reports a value to the metric; if the
+   * controller doesn't report any value, this metric value will not be updated.
+   * @param jobType - the job type associated to the metric
+   * @return the latest "submission to schedule delay" mean value emitted by controller
+   */
+  public long getSubmissionToScheduleDelay(String jobType) {
+    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
+    return Long.parseLong(znRecord
+        .getSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_SCHEDULE_DELAY.name()));
+  }
+
+  /**
+   * Get the latest "controller induced delay" mean value emitted by controller. This value is
+   * aggregated by job types, and is computed with a sliding window; the size of the sliding window
+   * is determined by DynamicMBeanProvider.getResetIntervalInMs(). Note: the metric value returned
+   * by this endpoint is recorded when the controller last reports a value to the metric; if the
+   * controller doesn't report any value, this metric value will not be updated.
+   * @param jobType - the job type associated to the metric
+   * @return the latest "controller induced delay" mean value emitted by controller
+   */
+  public long getControllerInducedDelay(String jobType) {
+    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
+    return Long.parseLong(znRecord.getSimpleField(
+        JobMonitor.JobMonitorMetricZnodeField.CONTROLLER_INDUCED_PROCESS_DELAY.name()));
+  }
+
+  private ZNRecord getJobMonitorMetricNodeByJobType(String jobType) {
+    ZNRecord znRecord = null;
+    try {
+      znRecord = _accessor.getBaseDataAccessor()
+          .get(JobMonitor.buildZkPathForJobMonitorMetric(jobType), new Stat(),
+              AccessOption.PERSISTENT);
+    } catch (ZkNoNodeException ignored) {
+      // Ignore the exception and move on
+    }
+    if (znRecord == null) {
+      throw new IllegalArgumentException(
+          "Failed to find the ZNode corresponding to job type " + jobType + "!");
+    }
+
+    return znRecord;
   }
 }

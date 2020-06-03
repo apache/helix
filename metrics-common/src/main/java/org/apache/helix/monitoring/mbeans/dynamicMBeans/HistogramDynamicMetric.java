@@ -102,6 +102,20 @@ public class HistogramDynamicMetric extends DynamicMetric<Histogram, Long> {
     return null;
   }
 
+  public Number getMeanValue() {
+    try {
+      Method getMethod = Snapshot.class.getMethod(SnapshotAttribute.Mean._getMethodName);
+      Snapshot snapshot = getMetricObject().getSnapshot();
+      if (snapshot != null) {
+        return (Number) getMethod.invoke(snapshot);
+      }
+    } catch (Exception ex) {
+      _logger.error(String.format("Failed to get Snapshot value for attribute: %s",
+          getSnapshotAttributeName(getMetricName(), SnapshotAttribute.Mean.name())), ex);
+    }
+    return null;
+  }
+
   @Override
   public void updateValue(Long value) {
     getMetricObject().update(value);

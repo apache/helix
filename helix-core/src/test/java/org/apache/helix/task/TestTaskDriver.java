@@ -19,10 +19,14 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.monitoring.mbeans.JobMonitor;
+import org.apache.helix.task.assigner.AssignableInstance;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -32,6 +36,7 @@ public class TestTaskDriver extends TaskTestBase {
   // Use a thread pool size that's different from the default value for test
   private static final int TEST_THREAD_POOL_SIZE = TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
   private static final String NON_EXISTENT_INSTANCE_NAME = "NON_EXISTENT_INSTANCE_NAME";
+  private static final String TEST_JOB_TYPE = AssignableInstance.DEFAULT_QUOTA_TYPE;
 
   private TaskDriver _taskDriver;
   private ConfigAccessor _configAccessor;
@@ -104,5 +109,68 @@ public class TestTaskDriver extends TaskTestBase {
   @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSize", expectedExceptions = IllegalArgumentException.class)
   public void testGetCurrentTaskThreadPoolSizeWrongInstanceName() {
     _taskDriver.getCurrentTaskThreadPoolSize(NON_EXISTENT_INSTANCE_NAME);
+  }
+
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSizeWrongInstanceName")
+  public void testGetSubmissionToProcessDelay() {
+    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
+    _baseAccessor.update(zkPath, currentData -> {
+      if (currentData == null) {
+        currentData = new ZNRecord(TEST_JOB_TYPE);
+      }
+      currentData
+          .setSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_PROCESS_DELAY.name(),
+              Long.toString(100L));
+      return currentData;
+    }, AccessOption.PERSISTENT);
+
+    Assert.assertEquals(_taskDriver.getSubmissionToProcessDelay(TEST_JOB_TYPE), 100L);
+  }
+
+  @Test(dependsOnMethods = "testGetSubmissionToProcessDelay", expectedExceptions = IllegalArgumentException.class)
+  public void testGetSubmissionToProcessDelayIllegalArgument() {
+    _taskDriver.getSubmissionToProcessDelay("ILLEGAL_JOB_TYPE");
+  }
+
+  @Test(dependsOnMethods = "testGetSubmissionToProcessDelayIllegalArgument")
+  public void testGetSubmissionToScheduleDelay() {
+    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
+    _baseAccessor.update(zkPath, currentData -> {
+      if (currentData == null) {
+        currentData = new ZNRecord(TEST_JOB_TYPE);
+      }
+      currentData
+          .setSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_SCHEDULE_DELAY.name(),
+              Long.toString(100L));
+      return currentData;
+    }, AccessOption.PERSISTENT);
+
+    Assert.assertEquals(_taskDriver.getSubmissionToScheduleDelay(TEST_JOB_TYPE), 100L);
+  }
+
+  @Test(dependsOnMethods = "testGetSubmissionToScheduleDelay", expectedExceptions = IllegalArgumentException.class)
+  public void testGetSubmissionToScheduleDelayIllegalArgument() {
+    _taskDriver.getSubmissionToScheduleDelay("ILLEGAL_JOB_TYPE");
+  }
+
+  @Test(dependsOnMethods = "testGetSubmissionToScheduleDelayIllegalArgument")
+  public void testControllerInducedDelay() {
+    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
+    _baseAccessor.update(zkPath, currentData -> {
+      if (currentData == null) {
+        currentData = new ZNRecord(TEST_JOB_TYPE);
+      }
+      currentData.setSimpleField(
+          JobMonitor.JobMonitorMetricZnodeField.CONTROLLER_INDUCED_PROCESS_DELAY.name(),
+          Long.toString(100L));
+      return currentData;
+    }, AccessOption.PERSISTENT);
+
+    Assert.assertEquals(_taskDriver.getControllerInducedDelay(TEST_JOB_TYPE), 100L);
+  }
+
+  @Test(dependsOnMethods = "testControllerInducedDelay", expectedExceptions = IllegalArgumentException.class)
+  public void testControllerInducedDelayIllegalArgument() {
+    _taskDriver.getControllerInducedDelay("ILLEGAL_JOB_TYPE");
   }
 }

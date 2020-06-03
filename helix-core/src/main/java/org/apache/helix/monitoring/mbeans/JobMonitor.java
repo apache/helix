@@ -199,7 +199,7 @@ public class JobMonitor extends DynamicMBeanProvider {
   }
 
   /**
-   * Sync the current SubmissionToProcessDelay to ZooKeeper
+   * Sync the current SubmissionToProcessDelay mean to ZooKeeper
    * @param baseDataAccessor
    */
   public void syncSubmissionToProcessDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {
@@ -208,7 +208,7 @@ public class JobMonitor extends DynamicMBeanProvider {
   }
 
   /**
-   * Sync the current SubmissionToScheduleDelay to ZooKeeper
+   * Sync the current SubmissionToScheduleDelay mean to ZooKeeper
    * @param baseDataAccessor
    */
   public void syncSubmissionToScheduleDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {
@@ -217,7 +217,7 @@ public class JobMonitor extends DynamicMBeanProvider {
   }
 
   /**
-   * Sync the current ControllerInducedDelay to ZooKeeper
+   * Sync the current ControllerInducedDelay mean to ZooKeeper
    * @param baseDataAccessor
    */
   public void syncControllerInducedDelayToZk(BaseDataAccessor<ZNRecord> baseDataAccessor) {

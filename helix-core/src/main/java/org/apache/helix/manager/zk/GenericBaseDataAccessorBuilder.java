@@ -99,8 +99,6 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
         break;
 
       case SINGLE_REALM:
-        // Create a HelixZkClient: Use a SharedZkClient because ZkBaseDataAccessor does not need to
-        // do ephemeral operations.
         if (_zkClientType == ZkClientType.DEDICATED) {
           // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
           // operations
@@ -108,6 +106,8 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
               .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
                   clientConfig.createHelixZkClientConfig());
         } else {
+          // if SHARED: Use a SharedZkClient because ZkBaseDataAccessor does not need to
+          // do ephemeral operations.
           zkClient = SharedZkClientFactory.getInstance()
               .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
                   clientConfig.createHelixZkClientConfig());

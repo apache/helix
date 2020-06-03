@@ -32,6 +32,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.cloud.azure.AzureConstants;
@@ -51,6 +52,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
 
 public class TestClusterSetup extends ZkUnitTestBase {
   protected static final String CLUSTER_NAME = "TestClusterSetup";
@@ -343,6 +345,8 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
+    String instanceAddress = "localhost:12918";
+    String instanceName = "localhost_12918";
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -356,51 +360,57 @@ public class TestClusterSetup extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     // add fake liveInstance
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR));
-    Builder keyBuilder = new Builder(clusterName);
-    LiveInstance liveInstance = new LiveInstance("localhost_12918");
-    liveInstance.setSessionId("session_0");
-    liveInstance.setHelixVersion("version_0");
-    accessor.setProperty(keyBuilder.liveInstance("localhost_12918"), liveInstance);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName,
+        new ZkBaseDataAccessor.Builder<ZNRecord>()
+            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+            .setZkClientType(ZkBaseDataAccessor.ZkClientType.DEDICATED)
+            .setZkAddress(ZK_ADDR)
+            .build());
 
-    // drop without stop the process, should throw exception
     try {
-      ClusterSetup.processCommandLineArgs(new String[] {
-          "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
-      });
-      Assert.fail("Should throw exception since localhost_12918 is still in LIVEINSTANCES/");
-    } catch (Exception e) {
-      // OK
+      Builder keyBuilder = new Builder(clusterName);
+      LiveInstance liveInstance = new LiveInstance(instanceName);
+      liveInstance.setSessionId("session_0");
+      liveInstance.setHelixVersion("version_0");
+      accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+
+      // Drop instance without stopping the live instance, should throw HelixException
+      try {
+        ClusterSetup.processCommandLineArgs(
+            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+        Assert.fail("Should throw exception since localhost_12918 is still in LIVEINSTANCES/");
+      } catch (HelixException expected) {
+        Assert.assertEquals(expected.getMessage(),
+            "Cannot drop instance " + instanceName + " as it is still live. Please stop it first");
+      }
+      accessor.removeProperty(keyBuilder.liveInstance(instanceName));
+
+      // drop without disable, should throw exception
+      try {
+        ClusterSetup.processCommandLineArgs(
+            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+        Assert.fail("Should throw exception since " + instanceName + " is enabled");
+      } catch (HelixException expected) {
+        Assert.assertEquals(expected.getMessage(),
+            "Node " + instanceName + " is enabled, cannot drop");
+      }
+
+      // Disable the instance
+      ClusterSetup.processCommandLineArgs(
+          new String[]{"--zkSvr", ZK_ADDR, "--enableInstance", clusterName, instanceName, "false"});
+      // Drop the instance
+      ClusterSetup.processCommandLineArgs(
+          new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+
+      Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig(instanceName)),
+          "Instance config should be dropped");
+      Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.instance(clusterName, instanceName)),
+          "Instance/host should be dropped");
+    } finally {
+      // Have to close the dedicated zkclient in accessor to avoid zkclient leakage.
+      accessor.getBaseDataAccessor().close();
+      TestHelper.dropCluster(clusterName, _gZkClient);
     }
-    accessor.removeProperty(keyBuilder.liveInstance("localhost_12918"));
-
-    // drop without disable, should throw exception
-    try {
-      ClusterSetup.processCommandLineArgs(new String[] {
-          "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
-      });
-      Assert.fail("Should throw exception since localhost_12918 is enabled");
-    } catch (Exception e) {
-      // e.printStackTrace();
-      // OK
-    }
-
-    // drop it
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableInstance", clusterName, "localhost_12918", "false"
-    });
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
-    });
-
-    Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig("localhost_12918")),
-        "Instance config should be dropped");
-    Assert.assertFalse(
-        _gZkClient.exists(PropertyPathBuilder.instance(clusterName, "localhost_12918")),
-        "Instance/host should be dropped");
-
-    TestHelper.dropCluster(clusterName, _gZkClient);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -439,7 +449,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-
   @Test(expectedExceptions = HelixException.class)
   public void testAddClusterWithInvalidCloudConfig() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -454,7 +463,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     cloudConfigInitBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
 
     CloudConfig cloudConfigInit = cloudConfigInitBuilder.build();
-
 
     // Since setCloudInfoProcessorName is missing, this add cluster call will throw an exception
     _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
@@ -489,7 +497,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertEquals(cloudConfigFromZk.getCloudInfoProcessorName(), "TestProcessorName");
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.CUSTOMIZED.name());
   }
-
 
   @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testAddClusterAzureProvider() throws Exception {

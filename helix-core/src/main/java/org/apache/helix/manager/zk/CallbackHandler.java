@@ -115,10 +115,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    */
   private static Map<Type, List<Type>> nextNotificationType = new HashMap<>();
   static {
-    nextNotificationType
-        .put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
-    nextNotificationType
-        .put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
+    nextNotificationType.put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
+    nextNotificationType.put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
     nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT));
   }
 
@@ -137,7 +135,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _batchModeEnabled = false;
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
-  private final long _periodicRefreshTriggerInterval;
+  private final long _periodicTriggerInterval;
   private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
   private ScheduledFuture<?> _scheduledRefreshFuture;
   private volatile long _lastEventTime;
@@ -216,13 +214,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
+  /**
+   * This class represents each periodic refresh task
+   * If the deadline passed, enqueue an event to do a refresh
+   * If the deadline has not passed (some events happened in between so don't need to do a refresh),
+   * wait until reaching the interval and check again
+   */
   class RefreshTask implements Runnable {
     @Override
     public void run() {
       try {
         while (true) {
           long currentTime = System.currentTimeMillis();
-          long remainingTime = _lastEventTime + _periodicRefreshTriggerInterval - currentTime;
+          long remainingTime = _lastEventTime + _periodicTriggerInterval - currentTime;
           if (remainingTime <= 0) {
             // If there is no event in the queue, meaning this long idle time could be due to lack of events
             // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
@@ -234,7 +238,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             }
             break;
           } else {
-            Thread.sleep(remainingTime);
+            wait(remainingTime);
           }
         }
       } catch (Exception e) {
@@ -256,20 +260,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType,
-      long periodicRefreshTriggerInterval) {
-    this(manager, client, propertyKey, listener, eventTypes, changeType, null,
-        periodicRefreshTriggerInterval);
-  }
-
-  public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
-      Object listener, EventType[] eventTypes, ChangeType changeType,
       HelixCallbackMonitor monitor) {
     this(manager, client, propertyKey, listener, eventTypes, changeType, monitor, -1);
   }
 
   public CallbackHandler(HelixManager manager, RealmAwareZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType, HelixCallbackMonitor monitor,
-      long periodicRefreshTriggerInterval) {
+      long periodicTriggerInterval) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }
@@ -306,8 +303,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
      * and retry batch read for ZK connectivity issues [https://github.com/apache/helix/pull/970].
      * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
      */
-    _periodicRefreshTriggerInterval = periodicRefreshTriggerInterval;
-    if (_periodicRefreshTriggerInterval > 0) {
+    _periodicTriggerInterval = periodicTriggerInterval;
+    if (_periodicTriggerInterval > 0) {
       initRefreshTask();
     }
   }
@@ -785,15 +782,15 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     try {
       updateNotificationTime(System.nanoTime());
       if (dataPath != null && dataPath.startsWith(_path)) {
-      NotificationContext changeContext = new NotificationContext(_manager);
-      changeContext.setType(NotificationContext.Type.CALLBACK);
-      changeContext.setPathChanged(dataPath);
-      changeContext.setChangeType(_changeType);
-      enqueueTask(changeContext);
-    }
-  } catch (Exception e) {
-    String msg =
-        "exception in handling data-change. path: " + dataPath + ", listener: " + _listener;
+        NotificationContext changeContext = new NotificationContext(_manager);
+        changeContext.setType(NotificationContext.Type.CALLBACK);
+        changeContext.setPathChanged(dataPath);
+        changeContext.setChangeType(_changeType);
+        enqueueTask(changeContext);
+      }
+    } catch (Exception e) {
+      String msg =
+          "exception in handling data-change. path: " + dataPath + ", listener: " + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
@@ -924,6 +921,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         + ", _zkClient=" + _zkClient + '}';
   }
 
+  /**
+   * Used to initialize a periodic refresh task, schedule tasks in a task executor with fixed intervals
+   */
   private void initRefreshTask() {
     _lastEventTime = System.currentTimeMillis();
     _periodicRefreshExecutor = new ScheduledThreadPoolExecutor(1);
@@ -931,7 +931,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     // so we won't have a memory leakage when we cancel scheduled task
     _periodicRefreshExecutor.setRemoveOnCancelPolicy(true);
     _scheduledRefreshFuture = _periodicRefreshExecutor
-        .scheduleWithFixedDelay(new RefreshTask(), _periodicRefreshTriggerInterval,
-            _periodicRefreshTriggerInterval, TimeUnit.MILLISECONDS);
+        .scheduleWithFixedDelay(new RefreshTask(), _periodicTriggerInterval,
+            _periodicTriggerInterval, TimeUnit.MILLISECONDS);
   }
 }

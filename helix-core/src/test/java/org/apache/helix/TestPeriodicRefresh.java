@@ -40,7 +40,8 @@ import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 
 
 /**
- * This class tests that if there are no incoming events, the onMessage method in message listener will be called by message periodic refresh
+ * This class tests that if there are no incoming events, the onMessage method in message listener
+ * will be called by message periodic refresh in callback handler
  */
 public class TestPeriodicRefresh extends ZkUnitTestBase {
   private MockManager _manager;
@@ -100,7 +101,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     public MockCallbackHandler(HelixManager manager, RealmAwareZkClient client,
         PropertyKey propertyKey, Object listener, Watcher.Event.EventType[] eventTypes,
         HelixConstants.ChangeType changeType, long periodicRefreshInterval) {
-      super(manager, client, propertyKey, listener, eventTypes, changeType,
+      super(manager, client, propertyKey, listener, eventTypes, changeType, null,
           periodicRefreshInterval);
     }
 
@@ -193,27 +194,27 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   }
 
   @Test
-  public void testWithoutRefreshInBatchMode() throws Exception {
+  public void testWithRefreshInBatchMode() throws Exception {
     System.setProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED, String.valueOf(true));
-    TestMessageListener listener1 = new TestMessageListener();
-    // Not doing refresh
-    _manager.addMessageListener(listener1, instanceName, clusterName, -1);
+    TestMessageListener listener3 = new TestMessageListener();
+    // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
+    _manager.addMessageListener(listener3, instanceName, clusterName, 1);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {
-        return listener1.messageEventReceived;
+        return listener3.messageEventReceived;
       }
     }, TestHelper.WAIT_DURATION);
-    Assert.assertFalse(result);
+    Assert.assertTrue(result);
     System.clearProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
   }
 
   @Test
   public void testWithPostponedRefreshInBatchMode() throws Exception {
     System.setProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED, String.valueOf(true));
-    TestMessageListener listener2 = new TestMessageListener();
-    _manager.addMessageListener(listener2, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
-    CallbackHandler mockHandler = _manager._testHandlers.get(listener2);
+    TestMessageListener listener4 = new TestMessageListener();
+    _manager.addMessageListener(listener4, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
+    CallbackHandler mockHandler = _manager._testHandlers.get(listener4);
     Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
     lastEventTimeField.setAccessible(true);
     // t1
@@ -223,7 +224,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {
-        return listener2.messageEventReceived;
+        return listener4.messageEventReceived;
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);

@@ -33,9 +33,9 @@ import java.util.Set;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -192,17 +192,17 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @param idealState
    * @param clusterConfig
    * @param partition
-   * @param resolver
+   * @param monitoredResolver
    * @return
    */
   protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
       StateModelDefinition stateModelDef, List<String> preferenceList,
       CurrentStateOutput currentStateOutput, Set<String> disabledInstancesForPartition,
       IdealState idealState, ClusterConfig clusterConfig, Partition partition,
-      AbnormalStateResolver resolver) {
+      MonitoredAbnormalResolver monitoredResolver) {
     Optional<Map<String, String>> optionalOverwrittenStates =
         computeStatesOverwriteForPartition(stateModelDef, preferenceList, currentStateOutput,
-            idealState, partition, resolver);
+            idealState, partition, monitoredResolver);
     if (optionalOverwrittenStates.isPresent()) {
       return optionalOverwrittenStates.get();
     }
@@ -221,14 +221,14 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
    * @param currentStateOutput
    * @param idealState
    * @param partition
-   * @param resolver
+   * @param monitoredResolver
    * @return An optional object which contains the assignment map if overwritten is necessary.
    * Otherwise return Optional.empty().
    */
   protected Optional<Map<String, String>> computeStatesOverwriteForPartition(
       final StateModelDefinition stateModelDef, final List<String> preferenceList,
       final CurrentStateOutput currentStateOutput, IdealState idealState, final Partition partition,
-      final AbnormalStateResolver resolver) {
+      final MonitoredAbnormalResolver monitoredResolver) {
     String resourceName = idealState.getResourceName();
     Map<String, String> currentStateMap =
         currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -245,8 +245,10 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     }
 
     // (3) If the current states are not valid, fix the invalid part first.
-    if (!resolver.checkCurrentStates(currentStateOutput, resourceName, partition, stateModelDef)) {
-      Map<String, String> recoveryAssignment = resolver
+    if (!monitoredResolver
+        .checkCurrentStates(currentStateOutput, resourceName, partition, stateModelDef)) {
+      monitoredResolver.recordAbnormalState();
+      Map<String, String> recoveryAssignment = monitoredResolver
           .computeRecoveryAssignment(currentStateOutput, resourceName, partition, stateModelDef,
               preferenceList);
       if (recoveryAssignment == null || !recoveryAssignment.keySet()
@@ -255,6 +257,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
             "Invalid recovery assignment %s since it changed the current partition placement %s",
             recoveryAssignment, currentStateMap));
       }
+      monitoredResolver.recordRecoveryAttempt();
       return Optional.of(recoveryAssignment);
     }
 

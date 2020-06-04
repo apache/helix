@@ -29,9 +29,9 @@ import com.google.common.collect.Maps;
 public class StoppableCheck {
   // Category to differentiate which step the check fails
   public enum Category {
-    HELIX_OWN_CHECK("Helix:"),
-    CUSTOM_INSTANCE_CHECK("CustomInstance:"),
-    CUSTOM_PARTITION_CHECK("CustomPartition:");
+    HELIX_OWN_CHECK("HELIX:"),
+    CUSTOM_INSTANCE_CHECK("CUSTOM_INSTANCE_HEALTH_FAILURE:"),
+    CUSTOM_PARTITION_CHECK("CUSTOM_PARTITION_HEALTH_FAILURE:");
 
     String prefix;
 

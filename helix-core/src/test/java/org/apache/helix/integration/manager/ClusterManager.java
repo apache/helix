@@ -39,12 +39,8 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
 
   protected boolean _started = false;
 
-  public ClusterManager(String zkAddr, String clusterName, InstanceType type) {
-    this(zkAddr, clusterName, "role", type);
-  }
-
-  public ClusterManager(String zkAddr, String clusterName, String roleName, InstanceType type) {
-    super(clusterName, roleName, type, zkAddr);
+  protected ClusterManager(String zkAddr, String clusterName, String instanceName, InstanceType type) {
+    super(clusterName, instanceName, type, zkAddr);
   }
 
   public void syncStop() {

@@ -78,6 +78,7 @@ public interface RealmAwareZkClient {
    * The method return null if the path does not exists. Otherwise, return a list of children
    * under the path. The list can be empty if there is no children.
    */
+  @Deprecated
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
 
   /**
@@ -85,11 +86,11 @@ public interface RealmAwareZkClient {
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
-   * @param skipWatchingNodeNotExist True means not installing any watch if path does not exist.
-   * The method return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
+   * @param skipWatchingNonExistNode True means not installing any watch if path does not exist.
+   * @return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
    * is false. Otherwise, it is true and list of children are returned.
    */
-  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNodeNotExist);
+  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode);
 
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
@@ -100,6 +101,7 @@ public interface RealmAwareZkClient {
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
    */
+  @Deprecated
   void subscribeDataChanges(String path, IZkDataListener listener);
 
   /**

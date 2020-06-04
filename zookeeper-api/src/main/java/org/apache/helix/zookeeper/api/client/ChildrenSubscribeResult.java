@@ -21,10 +21,19 @@ package org.apache.helix.zookeeper.api.client;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.helix.zookeeper.zkclient.IZkChildListener;
+
+
+/** Represents return type of {@link org.apache.helix.zookeeper.api.client.RealmAwareZkClient#subscribeChildChanges(String, IZkChildListener, boolean)}
+ *  The returned value would signal if watch installation to ZooKeeper server succeeded
+ *  or not using field _isInstalled. The _children field would contains the list of child names
+ *  of the watched path. It would be null if the parent path does not exist at the time of watch
+ *  installation.
+ */
 
 public class ChildrenSubscribeResult {
-  private List<String> _children;
-  private boolean _isInstalled;
+  private final List<String> _children;
+  private final boolean _isInstalled;
 
   public ChildrenSubscribeResult(List<String> children, boolean isInstalled) {
     if (children != null) {

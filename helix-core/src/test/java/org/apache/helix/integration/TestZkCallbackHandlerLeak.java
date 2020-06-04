@@ -324,6 +324,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
+
   @Test
   public void testDanglingCallbackHanlderFix() throws Exception {
     String className = TestHelper.getTestClassName();

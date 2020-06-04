@@ -251,10 +251,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     }
 
     // Release resource for tasks in terminal state
-    updatePreviousAssignedTasksStatus(currentInstanceToTaskAssignments, excludedInstances, jobResource,
-        currStateOutput, jobCtx, jobCfg, prevTaskToInstanceStateAssignment, jobState,
-        assignedPartitions, partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache,
-        tasksToDrop);
+    updatePreviousAssignedTasksStatus(currentInstanceToTaskAssignments, excludedInstances,
+        jobResource, currStateOutput, jobCtx, jobCfg, jobState, assignedPartitions,
+        partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache, tasksToDrop);
 
     addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
 

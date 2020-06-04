@@ -1365,6 +1365,13 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
+              // getStat() wrapp two ways to install data watch by using exists() or getData().
+              // getData() aka useGetData (true) would not install the watch if the node not ]
+              // existing. Exists() aka useGetData (false) would install (leak) the watch if the
+              // node not existing.
+              // Here the goal is to avoid leaking watch. Thus, if we know path not exists, we use
+              // the exists() useGetData (false) route to check stat. Otherwise, we use getData()
+              // to install watch.
               Stat stat = null;
               if (!pathExists) {
                 stat = getStat(path, false);
@@ -1929,8 +1936,7 @@ public class ZkClient implements Watcher {
   private boolean watchForData(final String path, boolean skipWatchingNodeNotExist) {
     try {
       if (skipWatchingNodeNotExist) {
-        Stat stat = new Stat();
-        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat)));
+        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, new Stat())));
       } else {
         retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
       }

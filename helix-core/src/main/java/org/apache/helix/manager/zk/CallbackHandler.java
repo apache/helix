@@ -73,6 +73,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -547,7 +548,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       // CallbackHandler to install exists watch, namely watch for path not existing.
       // Note when path is removed, the CallbackHanler would remove itself from ZkHelixManager too
       // to avoid leaking a CallbackHandler.
-      _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
+      ChildrenSubscribeResult childrenSubscribeResult = _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
+      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path,
+          childrenSubscribeResult.isInstalled());
+      if (!childrenSubscribeResult.isInstalled()) {
+        logger.info("CallbackHandler {} subscribe data path {} failed!", this, path);
+      }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " + path
           + ", listener: " + _listener);
@@ -563,7 +569,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug(_manager.getInstanceName() + " subscribe data-change. path: " + path
             + ", listener: " + _listener);
       }
-      _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
+      boolean rt = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
+      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path, rt);
+      if (!rt) {
+        logger.info("CallbackHandler {} subscribe data path {} failed!", this, path);
+      }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " + path
           + ", listener: " + _listener);
@@ -758,6 +768,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         } else {
           if (!isReady()) {
             // avoid leaking CallbackHandler
+            logger.info("Callbackhandler {} with path {} end of life as not ready to avoid leak",
+                this, parentPath);
             return;
           }
           NotificationContext changeContext = new NotificationContext(_manager);

@@ -245,7 +245,7 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     }
 
     // (3) If the current states are not valid, fix the invalid part first.
-    if (!resolver.isCurrentStatesValid(currentStateOutput, resourceName, partition, stateModelDef)) {
+    if (!resolver.checkCurrentStates(currentStateOutput, resourceName, partition, stateModelDef)) {
       Map<String, String> recoveryAssignment = resolver
           .computeRecoveryAssignment(currentStateOutput, resourceName, partition, stateModelDef,
               preferenceList);

@@ -49,7 +49,7 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ExcessiveTopStateResolver.class);
 
   /**
-   * The current states are not valid if there are more than 2 top state replicas for a single top
+   * The current states are not valid if there are more than one top state replicas for a single top
    * state state model.
    */
   @Override
@@ -58,6 +58,9 @@ public class ExcessiveTopStateResolver implements AbnormalStateResolver {
     if (!stateModelDef.isSingleTopStateModel()) {
       return true;
     }
+    // TODO: Cache top state count in the ResourceControllerDataProvider and avoid repeated counting
+    // TODO: here. It would be premature to do it now. But with more use case, we can improve the
+    // TODO: ResourceControllerDataProvider to calculate by default.
     if (currentStateOutput.getCurrentStateMap(resourceName, partition).values().stream()
         .filter(state -> state.equals(stateModelDef.getTopState())).count() > 1) {
       return false;

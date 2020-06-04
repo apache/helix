@@ -330,35 +330,35 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 3;
-    final String zkAddr = ZK_ADDR;
+
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, zkAddr, 12918, "localhost", "TestDB", 1, // resource
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, // resource
         32, // partitions
         n, // nodes
         2, // replicas
         "MasterSlave", true);
 
     final ClusterControllerManager controller =
-        new ClusterControllerManager(zkAddr, clusterName, "controller_0");
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(zkAddr, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    Boolean result =
+    boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(zkAddr,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                 clusterName));
     Assert.assertTrue(result);
 
-    //HelixManager rpManager  = HelixManagerFactory
-    //    .getZKHelixManager(clusterName, "", InstanceType.SPECTATOR, ZK_ADDR);
-    //rpManager.connect();
+    // Routing provider is a spectator in Helix. Currentstate based RP listens on all the
+    // currentstate changes of all the clusters. They are a source of leaking of watch in
+    // Zookeeper server.
     ClusterSpectatorManager rpManager  = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
     rpManager.syncStart();
     RoutingTableProvider rp = new RoutingTableProvider(rpManager, PropertyType.CURRENTSTATES);
@@ -449,7 +449,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     cs.setStateModelDefRef(db0.getStateModelDefRef());
 
     LOG.info("add job");
-    boolean rtJob = jobAccesor.setProperty(jobKey, cs);
+    boolean rtJob = false;
     for (int i = 0; i < mJobUpdateCnt; i++) {
       rtJob = jobAccesor.setProperty(jobKey, cs);
     }

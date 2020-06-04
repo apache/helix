@@ -1098,7 +1098,7 @@ public class ZkClient implements Watcher {
    */
   private Stat getStat(final String path, final boolean watch, final boolean useGetData) {
     long startT = System.currentTimeMillis();
-    Stat stat = null;
+    final Stat stat;
     try {
       if (!useGetData) {
         stat = retryUntilConnected(
@@ -1106,11 +1106,10 @@ public class ZkClient implements Watcher {
       } else {
         stat = new Stat();
         try {
-          LOG.debug("getstat() invoked with useGetData() with path: " + path);
-          Stat finalStat = stat;
-          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, finalStat));
+          LOG.debug("getstat() invoked with useGetData() with path: {} ", path);
+          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
         } catch (ZkNoNodeException e) {
-          LOG.debug("getstat() invoked path: " + path + " null" + " useGetData:" + useGetData);
+          LOG.debug("getstat() invoked path: {}  null  useGetData: {}", path, useGetData);
           record(path, null, startT, ZkClientMonitor.AccessType.READ);
           // Note, exists() path with useGetData false would never throw ZkNoNodeException.
           // thus, only useGetData true, we may get here. In this case, we eat the exception, return
@@ -1331,7 +1330,7 @@ public class ZkClient implements Watcher {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;
     if (EventType.NodeDeleted == event.getType()) {
-      LOG.debug("event delelete: {}", event.getPath());
+      LOG.debug("Event NodeDeleted: {}", event.getPath());
     }
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated

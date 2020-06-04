@@ -403,6 +403,14 @@ public class TaskDriver {
       }
     }
 
+    // Fail the operation if adding new jobs will cause the queue to reach its capacity limit
+    workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
+    if (workflowConfig.getJobDag().size() + jobs.size() >= capacity) {
+      throw new IllegalStateException(
+          String.format("Queue %s already reaches its max capacity %d, failed to add %s", queue,
+              capacity, jobs.toString()));
+    }
+
     validateZKNodeLimitation(1);
     final List<JobConfig> jobConfigs = new ArrayList<>();
     final List<String> namespacedJobNames = new ArrayList<>();

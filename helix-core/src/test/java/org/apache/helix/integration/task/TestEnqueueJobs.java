@@ -159,4 +159,47 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     Assert.assertTrue(minFinishTime > maxStartTime);
   }
+
+  @Test
+  public void testQueueJobsMaxCapacity() throws InterruptedException {
+    final int numberOfJobsAddedInitially = 4;
+    final int queueCapacity = 5;
+    final String newJobName = "NewJob";
+    String queueName = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
+    WorkflowConfig.Builder workflowCfgBuilder =
+        new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1)
+            .setAllowOverlapJobAssignment(true).setCapacity(queueCapacity);
+    _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
+            .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "1000"));
+
+    // Add 4 jobs to the queue
+    for (int i = 0; i < numberOfJobsAddedInitially; i++) {
+      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+    }
+
+    // Wait until all of the enqueued jobs (Job0 to Job3) are finished
+    for (int i = 0; i < numberOfJobsAddedInitially; i++) {
+      _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
+          TaskState.COMPLETED);
+    }
+
+    boolean exceptionHappenedWhileAddingNewJob = false;
+    try {
+      // This call will produce the exception because 4 jobs have been already added
+      // By adding the new job the queue will hit its capacity limit
+      _driver.enqueueJob(queueName, newJobName, jobBuilder);
+    } catch (Exception e) {
+      exceptionHappenedWhileAddingNewJob = true;
+    }
+    Assert.assertTrue(exceptionHappenedWhileAddingNewJob);
+
+    // Make sure that jobConfig has not been created
+    JobConfig jobConfig =
+        _driver.getJobConfig(TaskUtil.getNamespacedJobName(queueName, newJobName));
+    Assert.assertNull(jobConfig);
+  }
 }

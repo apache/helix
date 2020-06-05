@@ -450,6 +450,13 @@ public class TaskDriver {
           .fromJson(currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
       Set<String> allNodes = jobDag.getAllNodes();
       if (capacity > 0 && allNodes.size() + jobConfigs.size() >= capacity) {
+        // Remove previously added jobConfigs if adding new jobs will cause exceeding capacity
+        // limit. Removing the job configs is necessary to avoid multiple threads adding jobs at the
+        // same time and cause overcapacity queue
+        for (String job : jobs) {
+          String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
+          TaskUtil.removeJobConfig(_accessor, namespacedJobName);
+        }
         throw new IllegalStateException(
             String.format("Queue %s already reaches its max capacity %d, failed to add %s", queue,
                 capacity, jobs.toString()));

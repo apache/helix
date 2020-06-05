@@ -466,7 +466,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         subscribeForChangesAsyn(changeContext.getType(), _path, _watchChild);
       }
 
-      _lastEventTime = System.currentTimeMillis();
+      if (_periodicTriggerInterval > 0) {
+        _lastEventTime = System.currentTimeMillis();
+      }
 
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
@@ -883,7 +885,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           } else {
             _batchCallbackProcessor.resetEventQueue();
             if (_scheduledRefreshFuture != null) {
-              _scheduledRefreshFuture.cancel(true);
+              _periodicRefreshExecutor.shutdownNow();
+              initRefreshTask();
             }
           }
         }

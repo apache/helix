@@ -30,7 +30,6 @@ import org.apache.helix.zookeeper.zkclient.IZkChildListener;
  *  of the watched path. It would be null if the parent path does not exist at the time of watch
  *  installation.
  */
-
 public class ChildrenSubscribeResult {
   private final List<String> _children;
   private final boolean _isInstalled;

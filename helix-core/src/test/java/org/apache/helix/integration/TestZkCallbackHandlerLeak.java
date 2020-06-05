@@ -351,19 +351,19 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // Routing provider is a spectator in Helix. Currentstate based RP listens on all the
     // currentstate changes of all the clusters. They are a source of leaking of watch in
     // Zookeeper server.
-    ClusterSpectatorManager rpManager  = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
+    ClusterSpectatorManager rpManager = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
     rpManager.syncStart();
     RoutingTableProvider rp = new RoutingTableProvider(rpManager, PropertyType.CURRENTSTATES);
 
+    //TODO: The following three sleep() is not the best practice. On the other hand, we don't have the testing
+    // facilities to avoid them yet. We will enhance later.
     Thread.sleep(5000);
 
     // expire RoutingProvider would create dangling CB
@@ -378,16 +378,16 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     // expire participant session; leaked callback handler used to be not reset() and be removed from ZkClient
-    LOG.info(
-        "Expire participant: " + participantToExpire.getInstanceName() + ", session: "
-            + participantToExpire.getSessionId());
+    LOG.info("Expire participant: " + participantToExpire.getInstanceName() + ", session: "
+        + participantToExpire.getSessionId());
     ZkTestHelper.expireSession(participantToExpire.getZkClient());
     String newSessionId = participantToExpire.getSessionId();
     LOG.info(participantToExpire.getInstanceName() + " oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
     Thread.sleep(5000);
-    Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(rpManager.getZkClient());
+    Map<String, Set<IZkChildListener>> childListeners =
+        ZkTestHelper.getZkChildListener(rpManager.getZkClient());
     for (String path : childListeners.keySet()) {
       Assert.assertTrue(childListeners.get(path).size() <= 1);
     }
@@ -425,15 +425,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    Boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(zkAddr,
-                clusterName));
+    Boolean result = ClusterStateVerifier.verifyByZkCallback(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(zkAddr, clusterName));
     Assert.assertTrue(result);
 
-    // HelixManager rpManager  = HelixManagerFactory.getZKHelixManager(clusterName, "", InstanceType.SPECTATOR, ZK_ADDR);
-    // rpManager.connect();
-    ClusterSpectatorManager rpManager  = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
+    ClusterSpectatorManager rpManager = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
     rpManager.syncStart();
     RoutingTableProvider rp = new RoutingTableProvider(rpManager, PropertyType.CURRENTSTATES);
 
@@ -442,9 +438,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String jobSessionId = jobParticipant.getSessionId();
     HelixDataAccessor jobAccesor = jobParticipant.getHelixDataAccessor();
     PropertyKey.Builder jobKeyBuilder = new PropertyKey.Builder(clusterName);
-    PropertyKey db0key = jobKeyBuilder.currentState(jobParticipant.getInstanceName(), jobSessionId, "TestDB0");
+    PropertyKey db0key =
+        jobKeyBuilder.currentState(jobParticipant.getInstanceName(), jobSessionId, "TestDB0");
     CurrentState db0 = jobAccesor.getProperty(db0key);
-    PropertyKey jobKey = jobKeyBuilder.currentState(jobParticipant.getInstanceName(), jobSessionId, "BackupQueue");
+    PropertyKey jobKey =
+        jobKeyBuilder.currentState(jobParticipant.getInstanceName(), jobSessionId, "BackupQueue");
     CurrentState cs = new CurrentState("BackupQueue");
     cs.setSessionId(jobSessionId);
     cs.setStateModelDefRef(db0.getStateModelDefRef());
@@ -456,7 +454,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     }
 
     LOG.info("remove job");
-    rtJob =jobParticipant.getZkClient().delete(jobKey.getPath());
+    rtJob = jobParticipant.getZkClient().delete(jobKey.getPath());
 
     // validate the job watch is not leaked.
     Thread.sleep(5000);

@@ -39,6 +39,7 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.controller.ControllerLeaderSession;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -424,6 +425,19 @@ public interface HelixManager {
    * @return true if this is a controller and a leader of the cluster
    */
   boolean isLeader();
+
+  /**
+   * Checks if the cluster manager is leader and sets its ZK session in
+   * {@link ControllerLeaderSession}.
+   *
+   * @param controllerLeaderSession To include ZK session of the cluster manager in return
+   *
+   * @return true if this is a controller and a leader of the cluster. Zk session of the cluster
+   * manager is set in controllerLeaderSession
+   */
+  default boolean isLeader(ControllerLeaderSession controllerLeaderSession) {
+    throw new UnsupportedOperationException("Checking leader with session is not supported.");
+  }
 
   /**
    * start timer tasks when becomes leader

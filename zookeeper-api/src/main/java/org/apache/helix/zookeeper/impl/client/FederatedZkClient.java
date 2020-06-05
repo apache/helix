@@ -369,6 +369,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode,
+      ZkAsyncCallbacks.CreateCallbackHandler cb, String expectedSessionId) {
+    throwUnsupportedOperationException();
+  }
+
+  @Override
   public void asyncSetData(String path, Object data, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     getZkClient(path).asyncSetData(path, data, version, cb);

@@ -244,7 +244,21 @@ public interface RealmAwareZkClient {
   void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb);
 
-  void asyncSetData(final String path, Object datat, final int version,
+  /**
+   * Async creates znode under an expected ZK session.
+   *
+   * @param path
+   * @param datat
+   * @param mode
+   * @param cb
+   * @param expectedSessionId
+   */
+  default void asyncCreate(final String path, Object datat, final CreateMode mode,
+      final ZkAsyncCallbacks.CreateCallbackHandler cb, final String expectedSessionId) {
+    throw new UnsupportedOperationException("Async create with expected session is not supported.");
+  }
+
+  void asyncSetData(final String path, Object data, final int version,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb);
 
   void asyncGetData(final String path, final ZkAsyncCallbacks.GetDataCallbackHandler cb);

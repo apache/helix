@@ -70,6 +70,7 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.controller.ControllerLeaderSession;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -402,6 +403,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       throw new HelixException(
           "HelixManager is not connected within retry timeout for cluster " + _clusterName);
     }
+
+    _sessionId = ZKUtil.toHexSessionId(_zkclient.getSessionId());
   }
 
   void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,
@@ -971,6 +974,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public boolean isLeader() {
+    return isLeader(null);
+  }
+
+  @Override
+  public boolean isLeader(ControllerLeaderSession controllerLeaderSession) {
     String warnLogPrefix = String
         .format("Instance %s is not leader of cluster %s due to", _instanceName, _clusterName);
     if (_instanceType != InstanceType.CONTROLLER
@@ -993,6 +1001,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         String sessionId = leader.getEphemeralOwner();
         if (leaderName != null && leaderName.equals(_instanceName) && sessionId
             .equals(_sessionId)) {
+          // Ensure the same leader session is set and returned. If we get _session from helix
+          // manager, _session might change after the check. This guarantees the session is
+          // leader's session we checked.
+          if (controllerLeaderSession != null) {
+            controllerLeaderSession.setSession(sessionId);
+          }
           return true;
         }
         LOG.warn(String

@@ -689,41 +689,8 @@ public class ZkClient implements Watcher {
       final byte[] dataBytes = dataObject == null ? null : serialize(dataObject, path);
       checkDataSizeLimit(dataBytes);
 
-      final String actualPath = retryUntilConnected(() -> {
-        ZooKeeper zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
-
-        /*
-         * 1. If operation is session aware, we have to check whether or not the
-         * passed-in(expected) session id matches actual session's id.
-         * If not, ephemeral node creation is failed. This validation is
-         * critical to guarantee the ephemeral node created by the expected ZK session.
-         *
-         * 2. Otherwise, the operation is NOT session aware.
-         * In this case, we will use the actual zookeeper session to create the node.
-         */
-        if (isSessionAwareOperation(expectedSessionId, mode)) {
-          acquireEventLock();
-          try {
-            final String actualSessionId = Long.toHexString(zooKeeper.getSessionId());
-            if (!actualSessionId.equals(expectedSessionId)) {
-              throw new ZkSessionMismatchedException(
-                  "Failed to create ephemeral node! There is a session id mismatch. Expected: "
-                      + expectedSessionId + ". Actual: " + actualSessionId);
-            }
-
-            /*
-             * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
-             * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
-             * may cause potential performance issue.
-             */
-            zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
-          } finally {
-            getEventLock().unlock();
-          }
-        }
-
-        return zooKeeper.create(path, dataBytes, acl, mode);
-      });
+      final String actualPath = retryUntilConnected(
+          () -> getExpectedZookeeper(expectedSessionId, mode).create(path, dataBytes, acl, mode));
 
       record(path, dataBytes, startT, ZkClientMonitor.AccessType.WRITE);
       return actualPath;
@@ -1816,33 +1783,76 @@ public class ZkClient implements Watcher {
     return writeDataReturnStat(path, datat, expectedVersion);
   }
 
-  public void asyncCreate(final String path, Object datat, final CreateMode mode,
+  public void asyncCreate(final String path, Object data, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    asyncCreate(path, data, mode, cb, null);
+  }
+
+  public void asyncCreate(final String path, Object data, final CreateMode mode,
+      final ZkAsyncCallbacks.CreateCallbackHandler cb, final String expectedSessionId) {
     final long startT = System.currentTimeMillis();
-    final byte[] data;
+    final byte[] dataBytes;
     try {
-      data = (datat == null ? null : serialize(datat, path));
+      dataBytes = (data == null ? null : serialize(data, path));
     } catch (ZkMarshallingError e) {
       cb.processResult(KeeperException.Code.MARSHALLINGERROR.intValue(), path,
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncCreate(path, data, mode, startT, cb);
+    doAsyncCreate(path, dataBytes, mode, startT, cb, expectedSessionId);
   }
 
   private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
-      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb) {
+      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb,
+      final String expectedSessionId) {
     retryUntilConnected(() -> {
-      ((ZkConnection) getConnection()).getZookeeper()
+      getExpectedZookeeper(expectedSessionId, mode)
           .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
               new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
                 @Override
                 protected void doRetry() {
-                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb);
+                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb,
+                      expectedSessionId);
                 }
               });
       return null;
     });
+  }
+
+  private ZooKeeper getExpectedZookeeper(final String expectedSessionId, final CreateMode mode) {
+    ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
+
+    /*
+     * 1. If operation is session aware, we have to check whether or not the
+     * passed-in(expected) session id matches actual session's id.
+     * If not, ephemeral node creation is failed. This validation is
+     * critical to guarantee the ephemeral node created by the expected ZK session.
+     *
+     * 2. Otherwise, the operation is NOT session aware.
+     * In this case, we will use the actual zookeeper session to create the node.
+     */
+    if (isSessionAwareOperation(expectedSessionId, mode)) {
+      acquireEventLock();
+      try {
+        final String actualSessionId = Long.toHexString(zk.getSessionId());
+        if (!actualSessionId.equals(expectedSessionId)) {
+          throw new ZkSessionMismatchedException(
+              "Failed to create ephemeral node! There is a session id mismatch. Expected: "
+                  + expectedSessionId + ". Actual: " + actualSessionId);
+        }
+
+        /*
+         * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
+         * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
+         * may cause potential performance issue.
+         */
+        zk = ((ZkConnection) getConnection()).getZookeeper();
+      } finally {
+        getEventLock().unlock();
+      }
+    }
+
+    return zk;
   }
 
   // Async Data Accessors
@@ -2239,8 +2249,7 @@ public class ZkClient implements Watcher {
    * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
    */
   private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
-    return expectedSessionId != null && !expectedSessionId.isEmpty() && (
-        mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
+    return expectedSessionId != null && !expectedSessionId.isEmpty() && (mode.isEphemeral());
   }
 
   // operations to update monitor's counters

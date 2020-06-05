@@ -695,11 +695,17 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
         _rebalancerRef.getRebalancer(manager));
 
-    if (!manager.isLeader()) {
+    final ControllerLeaderSession leaderSession = new ControllerLeaderSession();
+    if (!manager.isLeader(leaderSession)) {
       logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader for " + manager
           .getClusterName() + ". Pipeline will not be invoked");
       return;
     }
+
+    // Add controller leader's ZK session to the event so that we could check necessary ZK writes
+    // with this expected ZK session. Eg. if controller loses leadership, it should not send out
+    // messages. We achieve this by checking this expected ZK session.
+    event.addAttribute(AttributeName.CONTROLLER_LEADER_SESSION.name(), leaderSession.getSession());
 
     _helixManager = manager;
 

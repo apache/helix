@@ -78,7 +78,13 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
 
-    List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
+    String expectedSession = event.getAttribute(AttributeName.CONTROLLER_LEADER_SESSION.name());
+    // An early check for expected leader session. If the sessions don't match, it means the
+    // controller lost leadership, then messages should not be sent. This potentially avoid
+    // double masters for a single partition.
+    List<Message> messagesSent = manager.getSessionId().equals(expectedSession)
+        ? sendMessages(dataAccessor, outputMessages, expectedSession) : Collections.emptyList();
+
     // TODO: Need also count messages from task rebalancer
     if (!(cache instanceof WorkflowControllerDataProvider)) {
       ClusterStatusMonitor clusterStatusMonitor =
@@ -137,7 +143,8 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
   }
 
   // return the messages actually sent
-  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
+  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages,
+      String expectedSession) {
     List<Message> messageSent = new ArrayList<>();
     if (messages == null || messages.isEmpty()) {
       return messageSent;
@@ -168,7 +175,8 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }
 
-    boolean[] results = dataAccessor.createChildren(keys, new ArrayList<>(messages));
+    boolean[] results =
+        dataAccessor.createChildren(keys, new ArrayList<>(messages), expectedSession);
     for (int i = 0; i < results.length; i++) {
       if (!results[i]) {
         LogUtil.logError(logger, _eventId, "Failed to send message: " + keys.get(i));

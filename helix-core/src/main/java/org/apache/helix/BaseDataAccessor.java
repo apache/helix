@@ -96,6 +96,24 @@ public interface BaseDataAccessor<T> {
   boolean[] createChildren(List<String> paths, List<T> records, int options);
 
   /**
+   * Use it when creating children under a parent node with an expected ZK session.
+   * <p>
+   * This will use async api for better performance. If the children already exist it will return
+   * false.
+   *
+   * @param paths the paths to the children ZNodes
+   * @param records List of data to write to each of the path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
+   * @param expectedSession The expected ZK session to create children
+   * @return For each child: true if creation succeeded, false otherwise (e.g. if the child exists)
+   */
+  default boolean[] createChildren(List<String> paths, List<T> records, int options,
+      String expectedSession) {
+    throw new UnsupportedOperationException(
+        "Create children with expected ZK session is not supported");
+  }
+
+  /**
    * can set multiple children under a parent node. This will use async api for better
    * performance. If this child does not exist it will create it.
    * @param paths the paths to the children ZNodes

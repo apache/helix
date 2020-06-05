@@ -386,6 +386,12 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode,
+      ZkAsyncCallbacks.CreateCallbackHandler cb, String expectedSessionId) {
+    _rawZkClient.asyncCreate(path, datat, mode, cb, expectedSessionId);
+  }
+
+  @Override
   public void asyncSetData(String path, Object datat, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     checkIfPathContainsShardingKey(path);

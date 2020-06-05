@@ -189,6 +189,22 @@ public interface HelixDataAccessor {
   <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys, List<T> children);
 
   /**
+   * Adds multiple children to a parent. If successful, the children will be created by the expected
+   * ZK session. If current ZK session does not match expected session, the creation operation will
+   * fail.
+   *
+   * @param keys property keys
+   * @param children list of children znodes to be created
+   * @param expectedSession expected ZK session to create the children znodes
+   * @return array where true means the child was added and false means it was not
+   */
+  default <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys, List<T> children,
+      String expectedSession) {
+    throw new UnsupportedOperationException(
+        "Creating children with expected ZK session is not supported.");
+  }
+
+  /**
    * Sets multiple children under one parent
    * @param keys
    * @param children

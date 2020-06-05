@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.controller;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.controller.stages;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,29 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  RESOURCES_TO_REBALANCE,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  CUSTOMIZED_STATE,
-  INTERMEDIATE_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  EVENT_CREATE_TIME,
-  helixmanager,
-  clusterStatusMonitor,
-  changeContext,
-  instanceName,
-  eventData,
-  AsyncFIFOWorkerPool,
-  PipelineType,
-  LastRebalanceFinishTimeStamp,
-  ControllerDataProvider,
-  STATEFUL_REBALANCER,
+/**
+ * A thin wrapper to include a ZK session. This is created for controller leader to retrieve ZK
+ * session from Helix Manager in the mean time when checking leadership.
+ */
+public class ControllerLeaderSession {
+  private String session;
 
-  /** Event should be processed by the expected session. */
-  EVENT_SESSION
+  public String getSession() {
+    return session;
+  }
+
+  public void setSession(String session) {
+    this.session = session;
+  }
 }

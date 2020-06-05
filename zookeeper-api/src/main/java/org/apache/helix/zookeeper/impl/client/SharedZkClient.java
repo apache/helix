@@ -421,6 +421,14 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode,
+      ZkAsyncCallbacks.CreateCallbackHandler cb, String expectedSessionId) {
+    throw new UnsupportedOperationException(
+        "Async creating nodes under expected session using " + SharedZkClient.class.getSimpleName()
+            + " is not supported.");
+  }
+
+  @Override
   public void asyncSetData(String path, Object datat, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     checkIfPathContainsShardingKey(path);

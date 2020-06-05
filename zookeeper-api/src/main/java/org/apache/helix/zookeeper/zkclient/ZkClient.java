@@ -231,7 +231,7 @@ public class ZkClient implements Watcher {
     List<String> children = watchForChilds(path, skipWatchingNodeNotExist);
     if (children == null && skipWatchingNodeNotExist) {
       unsubscribeChildChanges(path, listener);
-      LOG.info("watchForChilds failed to install no-existing watch and add listener. Path:" + path);
+      LOG.info("watchForChilds failed to install no-existing watch and add listener. Path: {}", path);
       return new ChildrenSubscribeResult(children, false);
     }
 
@@ -1958,6 +1958,31 @@ public class ZkClient implements Watcher {
     return watchForChilds(path, false);
   }
 
+  /**
+   *  The following captures about how we reason Zookeeper watch leakage issue based on various
+   *  comments in review
+   *  1. Removal of a parent zk path (such as currentstate/sessionid) is async to all threads in
+   *  Helix router or controller which watches the path. Thus, if we install a watch to a path
+   *  expected to be created, we always have the risk of leaking if the path changed.
+   *
+   *  2. Current the CallbackHandler life cycle is like this:
+   *  CallbackHandler for currentstate and some others can be created before the parent path is
+   *  created. Thus, we still needs exists() call. This corresponds to INIT change type of
+   *  CallbackHanlder. This is the time eventually watchForChilds() with be called with
+   *  skipWatchingNodeNotExist as false.
+   *  Aside from creation time, CallbackHandler normal cycle would see CALLBACK change type. This
+   *  time we should normally expected the parent path is created. Thus, the subscription from
+   *  CallbackHandler would use skipWatchingNodeNotExist false. Avoid leaking path.
+   *  Note, if the path is removed, CallbackHandler would see children of parent path as null. THis
+   *  would end the CallbackHanlder' life.
+   *
+   *  From the above life cycle of Callbackhandler, we know the only place that can leak is that
+   *  INIT change type time, participant expires the session more than twice in a row before the
+   *  watchForChild(skipWatchingNodeNotExist=false) issue exists() call.
+   *
+   *  THe chance of this sequence is slim though.
+   *
+   */
   private List<String> watchForChilds(final String path, boolean skipWatchingNodeNotExist) {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
@@ -1972,7 +1997,8 @@ public class ZkClient implements Watcher {
           return getChildren(path, true);
         } catch (ZkNoNodeException e) {
           // ignore, the "exists" watch will listen for the parent node to appear
-          LOG.info("watchForChilds path not existing:" + path + " skipWatchingNodeNoteExist:" + skipWatchingNodeNotExist);
+          LOG.info("watchForChilds path not existing:{} skipWatchingNodeNoteExist: {}",
+              path, skipWatchingNodeNotExist);
         }
         return null;
       }

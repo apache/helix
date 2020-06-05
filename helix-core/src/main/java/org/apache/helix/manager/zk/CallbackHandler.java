@@ -569,9 +569,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug(_manager.getInstanceName() + " subscribe data-change. path: " + path
             + ", listener: " + _listener);
       }
-      boolean rt = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
-      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path, rt);
-      if (!rt) {
+      boolean subStatus = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
+      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path, subStatus);
+      if (!subStatus) {
         logger.info("CallbackHandler {} subscribe data path {} failed!", this, path);
       }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
@@ -768,7 +768,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         } else {
           if (!isReady()) {
             // avoid leaking CallbackHandler
-            logger.info("Callbackhandler {} with path {} end of life as not ready to avoid leak",
+            logger.info("Callbackhandler {} with path {} is in reset state. Stop subscription to ZK client to avoid leaking",
                 this, parentPath);
             return;
           }

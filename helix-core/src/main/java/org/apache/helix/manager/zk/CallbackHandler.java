@@ -639,11 +639,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             }
           }
         } catch (ZkNoNodeException | HelixMetaDataAccessException e) {
-          logger.warn("Failed to subscribe child/data change. path: {}, listener: {}", path,
-              _listener);
-          // TODO: avoid calling getChildren for path that does not exist
-          if (_changeType != CUSTOMIZED_STATE_ROOT) {
-            logger.warn("", e);
+          //TODO: avoid calling getChildren for path that does not exist
+          if (_changeType == CUSTOMIZED_STATE_ROOT) {
+            logger.warn(
+                "Failed to subscribe child/data change on path: {}, listener: {}. Instance "
+                    + "does not support Customized State!", path, _listener);
+          } else {
+            logger.warn("Failed to subscribe child/data change. path: {}, listener: {}", path,
+                _listener, e);
           }
         }
       }

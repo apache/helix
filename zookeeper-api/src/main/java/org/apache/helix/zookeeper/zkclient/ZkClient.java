@@ -1124,7 +1124,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
+        LOG.trace("getData (installWatchOnlyPathExist), path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }

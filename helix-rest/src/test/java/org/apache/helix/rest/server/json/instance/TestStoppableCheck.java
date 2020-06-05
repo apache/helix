@@ -36,7 +36,7 @@ public class TestStoppableCheck {
     ObjectMapper mapper = new ObjectMapper();
     String result = mapper.writeValueAsString(stoppableCheck);
 
-    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"Helix:check\"]}");
+    Assert.assertEquals(result, "{\"stoppable\":false,\"failedChecks\":[\"HELIX:check\"]}");
   }
 
   @Test
@@ -45,6 +45,6 @@ public class TestStoppableCheck {
         new StoppableCheck(ImmutableMap.of("a", true, "c", false, "b", false),
             StoppableCheck.Category.HELIX_OWN_CHECK);
     Assert.assertFalse(stoppableCheck.isStoppable());
-    Assert.assertEquals(stoppableCheck.getFailedChecks(), ImmutableList.of("Helix:b", "Helix:c"));
+    Assert.assertEquals(stoppableCheck.getFailedChecks(), ImmutableList.of("HELIX:b", "HELIX:c"));
   }
 }

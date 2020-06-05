@@ -63,7 +63,7 @@ public class InstancesAccessor extends AbstractHelixResource {
   // This type does not belongs to real HealthCheck failed reason. Also if we add this type
   // to HealthCheck enum, it could introduce more unnecessary check step since the InstanceServiceImpl
   // loops all the types to do corresponding checks.
-  private final static String INSTANCE_NOT_EXIST = "Helix:INSTANCE_NOT_EXIST";
+  private final static String INSTANCE_NOT_EXIST = "HELIX:INSTANCE_NOT_EXIST";
   public enum InstancesProperties {
     instances,
     online,

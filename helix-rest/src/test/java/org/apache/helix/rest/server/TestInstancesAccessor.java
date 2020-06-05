@@ -67,19 +67,19 @@ public class TestInstancesAccessor extends AbstractTestClass {
     JsonNode nonStoppableInstances = jsonNode
         .get(InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
     Assert.assertEquals(getStringSet(nonStoppableInstances, "instance0"),
-        ImmutableSet.of("Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "instance1"),
-        ImmutableSet.of("Helix:EMPTY_RESOURCE_ASSIGNMENT", "Helix:INSTANCE_NOT_ENABLED",
-            "Helix:INSTANCE_NOT_STABLE"));
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "instance2"),
-        ImmutableSet.of("Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+        ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "instance3"),
-        ImmutableSet.of("Helix:HAS_DISABLED_PARTITION", "Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+        ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION", "HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "instance4"),
-        ImmutableSet.of("Helix:EMPTY_RESOURCE_ASSIGNMENT", "Helix:INSTANCE_NOT_ALIVE",
-            "Helix:INSTANCE_NOT_STABLE"));
+        ImmutableSet.of("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ALIVE",
+            "HELIX:INSTANCE_NOT_STABLE"));
     Assert.assertEquals(getStringSet(nonStoppableInstances, "invalidInstance"),
-        ImmutableSet.of("Helix:INSTANCE_NOT_EXIST"));
+        ImmutableSet.of("HELIX:INSTANCE_NOT_EXIST"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -103,7 +103,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     JsonNode jsonResult = OBJECT_MAPPER.readTree(response.readEntity(String.class));
     Assert.assertFalse(jsonResult.get("stoppable").asBoolean());
     Assert.assertEquals(getStringSet(jsonResult, "failedChecks"),
-            ImmutableSet.of("Helix:HAS_DISABLED_PARTITION","Helix:INSTANCE_NOT_ENABLED","Helix:INSTANCE_NOT_STABLE","Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+            ImmutableSet.of("HELIX:HAS_DISABLED_PARTITION","HELIX:INSTANCE_NOT_ENABLED","HELIX:INSTANCE_NOT_STABLE","HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
 
     // Reenable instance0, it should passed the check
     instanceConfig.setInstanceEnabled(true);
@@ -117,7 +117,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     jsonResult = OBJECT_MAPPER.readTree(response.readEntity(String.class));
 
     Assert.assertFalse(jsonResult.get("stoppable").asBoolean());
-    Assert.assertEquals(getStringSet(jsonResult, "failedChecks"), ImmutableSet.of("Helix:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
+    Assert.assertEquals(getStringSet(jsonResult, "failedChecks"), ImmutableSet.of("HELIX:MIN_ACTIVE_REPLICA_CHECK_FAILED"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

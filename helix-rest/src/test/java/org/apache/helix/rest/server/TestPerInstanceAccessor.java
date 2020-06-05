@@ -63,7 +63,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, "instance1").post(this, entity);
     String stoppableCheckResult = response.readEntity(String.class);
     Assert.assertEquals(stoppableCheckResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"Helix:EMPTY_RESOURCE_ASSIGNMENT\",\"Helix:INSTANCE_NOT_ENABLED\",\"Helix:INSTANCE_NOT_STABLE\"]}");
+        "{\"stoppable\":false,\"failedChecks\":[\"HELIX:EMPTY_RESOURCE_ASSIGNMENT\",\"HELIX:INSTANCE_NOT_ENABLED\",\"HELIX:INSTANCE_NOT_STABLE\"]}");
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -220,7 +220,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
                 generateCancellationMessageForPendingMessage(desiredState, currentState, nextState, pendingMessage,
                     manager, resource, partition, sessionIdMap, instanceName, stateModelDef,
                     cancellationMessage, isCancellationEnabled);
-          } else {
+          }
+          if (pendingMessage == null || currentState.equalsIgnoreCase(pendingMessage.getToState())) {
             // Create new state transition message
             message = createStateTransitionMessage(manager, resource, partition.getPartitionName(),
                 instanceName, currentState, nextState, sessionIdMap.get(instanceName),

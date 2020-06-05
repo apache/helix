@@ -109,10 +109,10 @@ public interface RealmAwareZkClient {
    * WARNING: if the path is created after deletion, users need to re-subscribe the path
    * @param path The zookeeper path
    * @param listener Instance of {@link IZkDataListener}
-   * @param skipWatchingNodeNotExist True means not installing any watch if path does not exist.
+   * @param skipWatchingNonExistNode True means not installing any watch if path does not exist.
    * return True if installation of watch succeed. Otherwise, return false.
    */
-  boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNodeNotExist);
+  boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNonExistNode);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 

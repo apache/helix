@@ -1129,54 +1129,6 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /*
-   * Install watch if there is such node and return the stat
-   *
-   * If useGetData false, use exist(). @param watch would determine if adding watch
-   * to ZooKeeper server or not.
-   * Note, if @param path does not exist in ZooKeeper server, watch would still be installed
-   * if @param watch is true.
-   *
-   * If useGetData true, use getData() to add watch. ignore @param watch in this case.
-   * Note, if @param path does not exist in ZooKeeper server, no watch would be added.
-   */
-  private Stat getStat(final String path, final boolean watch, final boolean useGetData) {
-    long startT = System.currentTimeMillis();
-    final Stat stat;
-    try {
-      if (!useGetData) {
-        stat = retryUntilConnected(
-            () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
-      } else {
-        stat = new Stat();
-        try {
-          LOG.debug("getstat() invoked with useGetData() with path: {} ", path);
-          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
-        } catch (ZkNoNodeException e) {
-          LOG.debug("getstat() invoked path: {}  null  useGetData: {}", path, useGetData);
-          record(path, null, startT, ZkClientMonitor.AccessType.READ);
-          // Note, exists() path with useGetData false would never throw ZkNoNodeException.
-          // thus, only useGetData true, we may get here. In this case, we eat the exception, return
-          // null. This is what we wanted. In essence, we simulate exists() in term never throw
-          // ZkNoNodeException. But when node does not exists in ZooKeeper server, we would not install
-          // watch. The side effect is in the case that node exists, this would return payload of
-          // the node data that we don't need. This is the place for further improvement.
-          return null;
-        }
-      }
-      record(path, null, startT, ZkClientMonitor.AccessType.READ);
-      return stat;
-    } catch (Exception e) {
-      recordFailure(path, ZkClientMonitor.AccessType.READ);
-      throw e;
-    } finally {
-      long endT = System.currentTimeMillis();
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
-      }
-    }
-  }
-
   protected void processStateChanged(WatchedEvent event) {
     LOG.info("zookeeper state changed (" + event.getState() + ")");
     setCurrentState(event.getState());

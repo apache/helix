@@ -24,6 +24,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -212,6 +214,11 @@ public class ZkClient implements Watcher {
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
+    ChildrenSubscribeResult result = subscribeChildChanges(path, listener, false);
+    return result.getChildren();
+  }
+
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode) {
     synchronized (_childListener) {
       Set<IZkChildListener> listeners = _childListener.get(path);
       if (listeners == null) {
@@ -220,7 +227,15 @@ public class ZkClient implements Watcher {
       }
       listeners.add(listener);
     }
-    return watchForChilds(path);
+
+    List<String> children = watchForChilds(path, skipWatchingNonExistNode);
+    if (children == null && skipWatchingNonExistNode) {
+      unsubscribeChildChanges(path, listener);
+      LOG.info("watchForChilds failed to install no-existing watch and add listener. Path: {}", path);
+      return new ChildrenSubscribeResult(children, false);
+    }
+
+    return new ChildrenSubscribeResult(children, true);
   }
 
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
@@ -232,13 +247,7 @@ public class ZkClient implements Watcher {
     }
   }
 
-  /**
-   * Subscribe the path and the listener will handle data events of the path
-   * WARNING: if the path is created after deletion, users need to re-subscribe the path
-   * @param path The zookeeper path
-   * @param listener Instance of {@link IZkDataListener}
-   */
-  public void subscribeDataChanges(String path, IZkDataListener listener) {
+  public boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNonExistNode) {
     Set<IZkDataListenerEntry> listenerEntries;
     synchronized (_dataListener) {
       listenerEntries = _dataListener.get(path);
@@ -257,10 +266,29 @@ public class ZkClient implements Watcher {
         }
       }
     }
-    watchForData(path);
+
+    boolean watchInstalled = watchForData(path, skipWatchingNonExistNode);
+    if (!watchInstalled) {
+      // Now let us remove this handler.
+      unsubscribeDataChanges(path, listener);
+      LOG.info("watchForData failed to install no-existing path and thus add listener. Path:" + path);
+      return false;
+    }
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("Subscribed data changes for " + path);
     }
+    return true;
+  }
+
+   /**
+    * Subscribe the path and the listener will handle data events of the path
+    * WARNING: if the path is created after deletion, users need to re-subscribe the path
+    * @param path The zookeeper path
+    * @param listener Instance of {@link IZkDataListener}
+    */
+  public void subscribeDataChanges(String path, IZkDataListener listener) {
+    subscribeDataChanges(path, listener, false);
   }
 
   private boolean isPrefetchEnabled(IZkDataListener dataListener) {
@@ -1056,14 +1084,12 @@ public class ZkClient implements Watcher {
 
   private Stat getStat(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
+    final Stat stat;
     try {
-      Stat stat = retryUntilConnected(
+      stat = retryUntilConnected(
           () -> ((ZkConnection) getConnection()).getZookeeper().exists(path, watch));
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
       return stat;
-    } catch (ZkNoNodeException e) {
-      record(path, null, startT, ZkClientMonitor.AccessType.READ);
-      throw e;
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.READ);
       throw e;
@@ -1071,6 +1097,35 @@ public class ZkClient implements Watcher {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
         LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ms");
+      }
+    }
+  }
+
+  /*
+   * This one installs watch only if path is there. Meant to avoid leaking watch in Zk server.
+   */
+  private Stat installWatchOnlyPathExist(final String path) {
+    long startT = System.currentTimeMillis();
+    final Stat stat;
+    try {
+        stat = new Stat();
+        try {
+          LOG.debug("installWatchOnlyPathExist with path: {} ", path);
+          retryUntilConnected(() -> ((ZkConnection) getConnection()).getZookeeper().getData(path, true, stat));
+        } catch (ZkNoNodeException e) {
+          LOG.debug("installWatchOnlyPathExist path not existing: {}", path);
+          record(path, null, startT, ZkClientMonitor.AccessType.READ);
+          return null;
+        }
+      record(path, null, startT, ZkClientMonitor.AccessType.READ);
+      return stat;
+    } catch (Exception e) {
+      recordFailure(path, ZkClientMonitor.AccessType.READ);
+      throw e;
+    } finally {
+      long endT = System.currentTimeMillis();
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("getData (installWatchOnlyPathExist), path: " + path + ", time: " + (endT - startT) + " ms");
       }
     }
   }
@@ -1271,6 +1326,9 @@ public class ZkClient implements Watcher {
   private void processDataOrChildChange(WatchedEvent event, long notificationTime) {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;
+    if (EventType.NodeDeleted == event.getType()) {
+      LOG.debug("Event NodeDeleted: {}", event.getPath());
+    }
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
         || event.getType() == EventType.NodeDeleted) {
@@ -1304,8 +1362,20 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
-              // getStat will re-install watcher only when the path exists
-              pathStatRecord.recordPathStat(getStat(path, pathExists), notificationTime);
+              // getStat() wrapp two ways to install data watch by using exists() or getData().
+              // getData() aka useGetData (true) would not install the watch if the node not ]
+              // existing. Exists() aka useGetData (false) would install (leak) the watch if the
+              // node not existing.
+              // Here the goal is to avoid leaking watch. Thus, if we know path not exists, we use
+              // the exists() useGetData (false) route to check stat. Otherwise, we use getData()
+              // to install watch.
+              Stat stat = null;
+              if (!pathExists) {
+                stat = getStat(path, false);
+              } else {
+                stat = installWatchOnlyPathExist(path);
+              }
+              pathStatRecord.recordPathStat(stat, notificationTime);
             }
             if (!pathStatRecord.pathExists()) {
               listener.getDataListener().handleDataDeleted(path);
@@ -1342,8 +1412,15 @@ public class ZkClient implements Watcher {
           @Override
           public void run() throws Exception {
             if (!pathStatRecord.pathChecked()) {
-              pathStatRecord.recordPathStat(getStat(path, hasListeners(path) && pathExists),
-                  OptionalLong.empty());
+              Stat stat = null;
+              if (!pathExists || !hasListeners(path)) {
+                // will not install listener using exists call
+                stat = getStat(path, false);
+              } else {
+                // will install listener using getData() call; if node not there, install nothing
+                stat = installWatchOnlyPathExist(path);
+              }
+              pathStatRecord.recordPathStat(stat, OptionalLong.empty());
             }
             List<String> children = null;
             if (pathStatRecord.pathExists()) {
@@ -1850,13 +1927,22 @@ public class ZkClient implements Watcher {
   }
 
   public void watchForData(final String path) {
-    retryUntilConnected(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        getConnection().exists(path, true);
-        return null;
+    watchForData(path, false);
+  }
+
+  private boolean watchForData(final String path, boolean skipWatchingNonExistNode) {
+    try {
+      if (skipWatchingNonExistNode) {
+        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().getData(path, true, new Stat())));
+      } else {
+        retryUntilConnected(() -> (((ZkConnection) getConnection()).getZookeeper().exists(path, true)));
       }
-    });
+    } catch (ZkNoNodeException e) {
+      // Do nothing, this is what we want as this is not going to leak watch in ZooKeeepr server.
+      LOG.info("watchForData path not existing: " + path);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -1866,17 +1952,50 @@ public class ZkClient implements Watcher {
    *         exist.
    */
   public List<String> watchForChilds(final String path) {
+    return watchForChilds(path, false);
+  }
+
+  /**
+   *  The following captures about how we reason Zookeeper watch leakage issue based on various
+   *  comments in review
+   *  1. Removal of a parent zk path (such as currentstate/sessionid) is async to all threads in
+   *  Helix router or controller which watches the path. Thus, if we install a watch to a path
+   *  expected to be created, we always have the risk of leaking if the path changed.
+   *
+   *  2. Current the CallbackHandler life cycle is like this:
+   *  CallbackHandler for currentstate and some others can be created before the parent path is
+   *  created. Thus, we still needs exists() call. This corresponds to INIT change type of
+   *  CallbackHanlder. This is the time eventually watchForChilds() with be called with
+   *  skipWatchingNonExistNode as false.
+   *  Aside from creation time, CallbackHandler normal cycle would see CALLBACK change type. This
+   *  time we should normally expected the parent path is created. Thus, the subscription from
+   *  CallbackHandler would use skipWatchingNonExistNode false. Avoid leaking path.
+   *  Note, if the path is removed, CallbackHandler would see children of parent path as null. THis
+   *  would end the CallbackHanlder' life.
+   *
+   *  From the above life cycle of Callbackhandler, we know the only place that can leak is that
+   *  INIT change type time, participant expires the session more than twice in a row before the
+   *  watchForChild(skipWatchingNonExistNode=false) issue exists() call.
+   *
+   *  THe chance of this sequence is slim though.
+   *
+   */
+  private List<String> watchForChilds(final String path, boolean skipWatchingNonExistNode) {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
     return retryUntilConnected(new Callable<List<String>>() {
       @Override
       public List<String> call() throws Exception {
-        exists(path, true);
+        if (!skipWatchingNonExistNode) {
+          exists(path, true);
+        }
         try {
           return getChildren(path, true);
         } catch (ZkNoNodeException e) {
           // ignore, the "exists" watch will listen for the parent node to appear
+          LOG.info("watchForChilds path not existing:{} skipWatchingNodeNoteExist: {}",
+              path, skipWatchingNonExistNode);
         }
         return null;
       }

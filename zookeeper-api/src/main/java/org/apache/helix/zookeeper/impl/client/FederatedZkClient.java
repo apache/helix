@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
@@ -115,6 +116,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+      boolean skipWatchingNodeNotExist) {
+    return getZkClient(path).subscribeChildChanges(path, listener, skipWatchingNodeNotExist);
+  }
+
+  @Override
   public void unsubscribeChildChanges(String path, IZkChildListener listener) {
     getZkClient(path).unsubscribeChildChanges(path, listener);
   }
@@ -122,6 +129,12 @@ public class FederatedZkClient implements RealmAwareZkClient {
   @Override
   public void subscribeDataChanges(String path, IZkDataListener listener) {
     getZkClient(path).subscribeDataChanges(path, listener);
+  }
+
+  @Override
+  public boolean subscribeDataChanges(String path, IZkDataListener listener,
+      boolean skipWatchingNodeNotExist) {
+    return getZkClient(path).subscribeDataChanges(path, listener, skipWatchingNodeNotExist);
   }
 
   @Override

@@ -23,7 +23,7 @@ package org.apache.helix.controller;
  * A thin wrapper to include a ZK session. This is created for controller leader to retrieve ZK
  * session from Helix Manager in the mean time when checking leadership.
  */
-public class ControllerLeaderSession {
+public class InstanceLeaderSession {
   private String session;
 
   public String getSession() {

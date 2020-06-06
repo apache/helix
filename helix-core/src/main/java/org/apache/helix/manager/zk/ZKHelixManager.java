@@ -70,7 +70,7 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.controller.ControllerLeaderSession;
+import org.apache.helix.controller.InstanceLeaderSession;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -974,11 +974,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public boolean isLeader() {
-    return isLeader(null);
+    return isInstanceLeader(null);
   }
 
   @Override
-  public boolean isLeader(ControllerLeaderSession controllerLeaderSession) {
+  public boolean isInstanceLeader(InstanceLeaderSession instanceLeaderSession) {
     String warnLogPrefix = String
         .format("Instance %s is not leader of cluster %s due to", _instanceName, _clusterName);
     if (_instanceType != InstanceType.CONTROLLER
@@ -1004,8 +1004,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           // Ensure the same leader session is set and returned. If we get _session from helix
           // manager, _session might change after the check. This guarantees the session is
           // leader's session we checked.
-          if (controllerLeaderSession != null) {
-            controllerLeaderSession.setSession(sessionId);
+          if (instanceLeaderSession != null) {
+            instanceLeaderSession.setSession(sessionId);
           }
           return true;
         }

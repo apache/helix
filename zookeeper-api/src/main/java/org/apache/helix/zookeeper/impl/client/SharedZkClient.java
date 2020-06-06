@@ -544,7 +544,7 @@ public class SharedZkClient implements RealmAwareZkClient {
       if (!_zkRealmAddress.equals(zkRealmForPath)) {
         throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
             + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
-            + _zkRealmShardingKey + " for this SharedZkClient!");
+            + _zkRealmShardingKey + " for this " + SharedZkClient.class.getSimpleName());
       }
     } catch (NoSuchElementException e) {
       throw new IllegalArgumentException(

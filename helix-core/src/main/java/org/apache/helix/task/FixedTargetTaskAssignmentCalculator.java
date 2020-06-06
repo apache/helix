@@ -255,7 +255,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
             String prevAssignedInstance = jobContext.getAssignedParticipant(targetPartitionId);
             TaskPartitionState taskState = jobContext.getPartitionState(targetPartitionId);
 
-            if (prevAssignedInstance != null && (taskState != null)
+            if (prevAssignedInstance != null && taskState != null
                 && (taskState.equals(TaskPartitionState.INIT)
                     || taskState.equals(TaskPartitionState.RUNNING))) {
               // If the task is in active state and old and new assignments are different, we need

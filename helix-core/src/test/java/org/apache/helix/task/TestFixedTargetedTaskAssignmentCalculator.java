@@ -42,7 +42,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * This unit test check whether FixedTargetedTaskAssignmentCalculator makes correct decision for
+ * This unit test makes sure that FixedTargetedTaskAssignmentCalculator makes correct decision for
  * targeted jobs
  */
 public class TestFixedTargetedTaskAssignmentCalculator {

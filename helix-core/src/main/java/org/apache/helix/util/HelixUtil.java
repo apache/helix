@@ -175,27 +175,34 @@ public final class HelixUtil {
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    // Copy the cluster config and make globalRebalance happen synchronously
+    // Otherwise, globalRebalance may not complete and this util might end up returning
+    // an empty assignment.
+    ClusterConfig globalSyncClusterConfig = new ClusterConfig(clusterConfig.getRecord());
+    globalSyncClusterConfig.setGlobalRebalanceAsyncMode(false);
+
     // Prepare a data accessor for a dataProvider (cache) refresh
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
     HelixDataAccessor helixDataAccessor =
-        new ZKHelixDataAccessor(clusterConfig.getClusterName(), baseDataAccessor);
+        new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
     // Create an instance of read-only WAGED rebalancer
     ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
-        new ReadOnlyWagedRebalancer(metadataStoreAddress, clusterConfig.getClusterName(),
-            clusterConfig.getGlobalRebalancePreference());
+        new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
+            globalSyncClusterConfig.getGlobalRebalancePreference());
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
     // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage
-    ClusterEvent event = new ClusterEvent(clusterConfig.getClusterName(), ClusterEventType.Unknown);
+    ClusterEvent event =
+        new ClusterEvent(globalSyncClusterConfig.getClusterName(), ClusterEventType.Unknown);
 
     try {
       // Obtain a refreshed dataProvider (cache) and overwrite cluster parameters with the given parameters
       ResourceControllerDataProvider dataProvider =
-          new ResourceControllerDataProvider(clusterConfig.getClusterName());
+          new ResourceControllerDataProvider(globalSyncClusterConfig.getClusterName());
       dataProvider.requireFullRefresh();
       dataProvider.refresh(helixDataAccessor);
-      dataProvider.setClusterConfig(clusterConfig);
+      dataProvider.setClusterConfig(globalSyncClusterConfig);
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
       dataProvider.setLiveInstances(

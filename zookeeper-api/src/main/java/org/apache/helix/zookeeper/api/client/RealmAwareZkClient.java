@@ -69,11 +69,50 @@ public interface RealmAwareZkClient {
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
   // listener subscription
+  /**
+   * Subscribe the path and the listener will handle child events of the path.
+   * Add exists watch to path if the path does not exist in ZooKeeper server.
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   * The method return null if the path does not exists. Otherwise, return a list of children
+   * under the path. The list can be empty if there is no children.
+   */
+  @Deprecated
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
+
+  /**
+   * Subscribe the path and the listener will handle child events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   * @param skipWatchingNonExistNode True means not installing any watch if path does not exist.
+   * @return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
+   * is false. Otherwise, it is true and list of children are returned.
+   */
+  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode);
 
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * Add the exists watch to Zookeeper server even if the path does not exists in zookeeper server
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   */
+  @Deprecated
   void subscribeDataChanges(String path, IZkDataListener listener);
+
+  /**
+   * Subscribe the path and the listener will handle data events of the path
+   * WARNING: if the path is created after deletion, users need to re-subscribe the path
+   * @param path The zookeeper path
+   * @param listener Instance of {@link IZkDataListener}
+   * @param skipWatchingNonExistNode True means not installing any watch if path does not exist.
+   * return True if installation of watch succeed. Otherwise, return false.
+   */
+  boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNonExistNode);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 

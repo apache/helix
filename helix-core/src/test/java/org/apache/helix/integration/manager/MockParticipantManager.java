@@ -38,12 +38,8 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
+public class MockParticipantManager extends ClusterManager {
   private static Logger LOG = LoggerFactory.getLogger(MockParticipantManager.class);
-
-  protected CountDownLatch _startCountDown = new CountDownLatch(1);
-  protected CountDownLatch _stopCountDown = new CountDownLatch(1);
-  protected CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
 
   protected int _transDelay = 10;
 
@@ -63,7 +59,7 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName,
       int transDelay, HelixCloudProperty helixCloudProperty) {
-    super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
+    super(zkAddr, clusterName, instanceName, InstanceType.PARTICIPANT);
     _transDelay = transDelay;
     _msModelFactory = new MockMSModelFactory(null);
     _lsModelFactory = new DummyLeaderStandbyStateModelFactory(_transDelay);
@@ -75,24 +71,6 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
     _msModelFactory.setTrasition(transition);
   }
 
-  public void syncStop() {
-    _stopCountDown.countDown();
-    try {
-      _waitStopCompleteCountDown.await();
-    } catch (InterruptedException e) {
-      LOG.error("exception in syncStop participant-manager", e);
-    }
-  }
-
-  public void syncStart() {
-    try {
-      new Thread(this).start();
-      _startCountDown.await();
-    } catch (InterruptedException e) {
-      LOG.error("exception in syncStart participant-manager", e);
-    }
-  }
-
   /**
    * This method should be called before syncStart() called after syncStop()
    */
@@ -100,7 +78,7 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
     syncStop();
     _startCountDown = new CountDownLatch(1);
     _stopCountDown = new CountDownLatch(1);
-    _waitStopCompleteCountDown = new CountDownLatch(1);
+    _waitStopFinishCountDown = new CountDownLatch(1);
   }
 
   @Override
@@ -132,7 +110,7 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
       _startCountDown.countDown();
 
       disconnect();
-      _waitStopCompleteCountDown.countDown();
+      _waitStopFinishCountDown.countDown();
     }
   }
 

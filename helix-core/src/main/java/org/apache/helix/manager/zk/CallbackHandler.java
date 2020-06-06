@@ -73,6 +73,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
+import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
@@ -539,7 +541,20 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug("{} subscribes child-change. path: {} , listener: {}",
             _manager.getInstanceName(), path, _listener );
       }
-      _zkClient.subscribeChildChanges(path, this);
+      // In the lifecycle of CallbackHandler, INIT is the first stage of registration of watch.
+      // For some usage case such as current state, the path can be created later. Thus we would
+      // install watch anyway event the path is not yet created.
+      // Later, CALLBACK type, the CallbackHandler already registered the watch and knows the
+      // path was created. Here, to avoid leaking path in ZooKeeper server, we would not let
+      // CallbackHandler to install exists watch, namely watch for path not existing.
+      // Note when path is removed, the CallbackHanler would remove itself from ZkHelixManager too
+      // to avoid leaking a CallbackHandler.
+      ChildrenSubscribeResult childrenSubscribeResult = _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
+      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path,
+          childrenSubscribeResult.isInstalled());
+      if (!childrenSubscribeResult.isInstalled()) {
+        logger.info("CallbackHandler {} subscribe data path {} failed!", this, path);
+      }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("{} unsubscribe child-change. path: {}, listener: {}", _manager.getInstanceName(),
           path, _listener);
@@ -555,7 +570,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.debug("{} subscribe data-change. path: {}, listener: {}", _manager.getInstanceName(),
             path, _listener);
       }
-      _zkClient.subscribeDataChanges(path, this);
+      boolean subStatus = _zkClient.subscribeDataChanges(path, this, callbackType != Type.INIT);
+      logger.debug("CallbackHandler {} subscribe data path {} result {}", this, path, subStatus);
+      if (!subStatus) {
+        logger.info("CallbackHandler {} subscribe data path {} failed!", this, path);
+      }
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("{} unsubscribe data-change. path: {}, listener: {}",
           _manager.getInstanceName(), path, _listener);
@@ -756,6 +775,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           // removeListener will call handler.reset(), which in turn call invoke() on FINALIZE type
           _manager.removeListener(_propertyKey, _listener);
         } else {
+          if (!isReady()) {
+            // avoid leaking CallbackHandler
+            logger.info("Callbackhandler {} with path {} is in reset state. Stop subscription to ZK client to avoid leaking",
+                this, parentPath);
+            return;
+          }
           NotificationContext changeContext = new NotificationContext(_manager);
           changeContext.setType(NotificationContext.Type.CALLBACK);
           changeContext.setPathChanged(parentPath);

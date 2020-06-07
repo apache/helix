@@ -1,4 +1,4 @@
-package org.apache.helix.manager.zk;
+package org.apache.helix.zookeeper.impl.client;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,23 +34,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.helix.HelixException;
-import org.apache.helix.TestHelper;
-import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
-import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
-import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.impl.TestHelper;
+import org.apache.helix.zookeeper.impl.ZkTestBase;
+import org.apache.helix.zookeeper.impl.ZkTestHelper;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
+import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
+import org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -65,7 +66,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestRawZkClient extends ZkUnitTestBase {
+public class TestRawZkClient extends ZkTestBase {
   private final String TEST_TAG = "test_monitor";
   private final String TEST_ROOT = "/my_cluster/IDEALSTATES";
 
@@ -73,7 +74,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
   @BeforeClass
   public void beforeClass() {
-    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
   }
 
   @AfterClass
@@ -265,7 +266,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       throws Exception {
     final String TEST_KEY = "testZkClientMonitor";
     ZkClient.Builder builder = new ZkClient.Builder();
-    builder.setZkServer(ZK_ADDR).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
+    builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
         .setMonitorRootPathOnly(false);
     ZkClient zkClient = builder.build();
 
@@ -452,7 +453,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
     final int zkPort = TestHelper.getRandomPort();
     final String zkAddr = String.format("localhost:%d", zkPort);
-    final ZkServer zkServer = TestHelper.startZkServer(zkAddr);
+    final ZkServer zkServer = startZkServer(zkAddr);
 
     try {
       ZkClient.Builder builder = new ZkClient.Builder();
@@ -492,21 +493,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
   @Test
   public void testCreateEphemeralWithValidSession()
       throws Exception {
-    final String className = TestHelper.getTestClassName();
-    final String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-
-    final String originalSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());
-    final String path = "/" + methodName;
+    final String originalSessionId = ZkClient.toHexSessionId(_zkClient.getSessionId());
+    final String path = "/testCreateEphemeralWithValidSession";
     final String data = "Hello Helix";
 
     // Verify the node is not existed yet.
@@ -531,7 +520,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     Assert.assertEquals(nodeData, data, "Data is not correct.");
     Assert.assertTrue(stat.getEphemeralOwner() != 0L,
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
-    Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), originalSessionId,
+    Assert.assertEquals(ZkClient.toHexSessionId(stat.getEphemeralOwner()), originalSessionId,
         "Ephemeral node is created by an unexpected session");
 
     // Delete the node to clean up, otherwise, the ephemeral node would be existed
@@ -555,17 +544,8 @@ public class TestRawZkClient extends ZkUnitTestBase {
     final String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-
     final long originalSessionId = _zkClient.getSessionId();
-    final String originalHexSessionId = ZKUtil.toHexSessionId(originalSessionId);
+    final String originalHexSessionId = ZkClient.toHexSessionId(originalSessionId);
     final String path = "/" + methodName;
 
     // Verify the node is not existed.
@@ -579,7 +559,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
       try {
         // New session id should not equal to expired session id.
         return _zkClient.getSessionId() != originalSessionId;
-      } catch (HelixException ex) {
+      } catch (ZkClientException ex) {
         return false;
       }
     }, 1000L));
@@ -612,17 +592,17 @@ public class TestRawZkClient extends ZkUnitTestBase {
     final String methodName = TestHelper.getTestMethodName();
 
     final ZkClient zkClient =
-        new ZkClient.Builder().setZkServer(ZK_ADDR).setOperationRetryTimeout(3000L) // 3 seconds
+        new ZkClient.Builder().setZkServer(ZkTestBase.ZK_ADDR).setOperationRetryTimeout(3000L) // 3 seconds
             .build();
 
-    final String expectedSessionId = ZKUtil.toHexSessionId(zkClient.getSessionId());
+    final String expectedSessionId = ZkClient.toHexSessionId(zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 
     Assert.assertFalse(zkClient.exists(path));
 
     // Shutdown zk server so zk operations will fail due to disconnection.
-    TestHelper.stopZkServer(_zkServer);
+    TestHelper.stopZkServer(_zkServerMap.get(ZK_ADDR));
 
     try {
       final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -655,7 +635,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     } finally {
       zkClient.close();
       // Recover zk server.
-      _zkServer.start();
+      _zkServerMap.get(ZK_ADDR).start();
     }
   }
 
@@ -675,14 +655,14 @@ public class TestRawZkClient extends ZkUnitTestBase {
       throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
-    final String expectedSessionId = ZKUtil.toHexSessionId(_zkClient.getSessionId());
+    final String expectedSessionId = ZkClient.toHexSessionId(_zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 
     Assert.assertFalse(_zkClient.exists(path));
 
     // Shutdown zk server so zk operations will fail due to disconnection.
-    TestHelper.stopZkServer(_zkServer);
+    TestHelper.stopZkServer(_zkServerMap.get(ZK_ADDR));
 
     final CountDownLatch countDownLatch = new CountDownLatch(1);
     final AtomicBoolean running = new AtomicBoolean(true);
@@ -704,7 +684,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     TimeUnit.SECONDS.sleep(10);
 
     System.out.println("Restarting zk server...");
-    _zkServer.start();
+    _zkServerMap.get(ZK_ADDR).start();
 
     // Wait for creating ephemeral node successfully.
     final boolean creationThreadTerminated = countDownLatch.await(10, TimeUnit.SECONDS);
@@ -722,7 +702,7 @@ public class TestRawZkClient extends ZkUnitTestBase {
     Assert.assertEquals(nodeData, data, "Data is not correct.");
     Assert.assertTrue(stat.getEphemeralOwner() != 0L,
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
-    Assert.assertEquals(ZKUtil.toHexSessionId(stat.getEphemeralOwner()), expectedSessionId,
+    Assert.assertEquals(ZkClient.toHexSessionId(stat.getEphemeralOwner()), expectedSessionId,
         "Ephemeral node is created by an unexpected session");
 
     // Delete the node to clean up, otherwise, the ephemeral node would be existed until the session
@@ -732,9 +712,9 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
   @Test
   public void testWaitForEstablishedSession() {
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
     Assert.assertTrue(zkClient.waitForEstablishedSession(1, TimeUnit.SECONDS) != 0L);
-    TestHelper.stopZkServer(_zkServer);
+    TestHelper.stopZkServer(_zkServerMap.get(ZK_ADDR));
     Assert.assertTrue(zkClient.waitForKeeperState(KeeperState.Disconnected, 1, TimeUnit.SECONDS));
 
     try {
@@ -747,12 +727,12 @@ public class TestRawZkClient extends ZkUnitTestBase {
 
     zkClient.close();
     // Recover zk server for later tests.
-    _zkServer.start();
+    _zkServerMap.get(ZK_ADDR).start();
   }
 
   @Test
   public void testAsyncWriteOperations() {
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
     String originSizeLimit =
         System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
     System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES, "2000");

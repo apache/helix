@@ -2223,7 +2223,7 @@ public class ZkClient implements Watcher {
    *
    * @return String representation of session id in hexadecimal notation.
    */
-  private static String toHexSessionId(long sessionId) {
+  public static String toHexSessionId(long sessionId) {
     return Long.toHexString(sessionId);
   }
 }

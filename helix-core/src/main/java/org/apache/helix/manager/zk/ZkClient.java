@@ -19,20 +19,14 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
-import org.apache.helix.zookeeper.zkclient.ZkConnection;
-import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
-import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 /**
- * Raw ZkClient that wraps {@link org.apache.helix.manager.zk.zookeeper.ZkClient},
- * with additional constructors and builder.
+ * This class has been deprecated! It has been moved to zookeeper-api module.
+ * Raw ZkClient that extends {@link org.apache.helix.zookeeper.impl.client.ZkClient} for backward-compatibility.
  *
  * Note that, instead of directly constructing a raw ZkClient, applications should always use
  * HelixZkClientFactory to build shared or dedicated HelixZkClient instances.
@@ -55,33 +49,26 @@ import org.slf4j.LoggerFactory;
  * TODO Completely replace usage of the raw ZkClient within helix-core. Instead, using HelixZkClient. --JJ
  */
 
-public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient implements HelixZkClient {
-  private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
-
-  public static final int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
-  public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
-  public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
-
+@Deprecated
+public class ZkClient extends org.apache.helix.zookeeper.impl.client.ZkClient {
   /**
-   *
-   * @param zkConnection
+   *  @param zkConnection
    *            The Zookeeper connection
    * @param connectionTimeout
    *            The connection timeout in milli seconds
-   * @param zkSerializer
-   *            The Zookeeper data serializer
    * @param operationRetryTimeout
    *            Most operations are retried in cases like connection loss with the Zookeeper servers. During such failures, this
    *            <code>operationRetryTimeout</code> decides the maximum amount of time, in milli seconds, each
    *            operation is retried. A value lesser than 0 is considered as
    *            "retry forever until a connection has been reestablished".
+   * @param zkSerializer
+   *            The Zookeeper data serializer
    * @param monitorType
    * @param monitorKey
    * @param monitorInstanceName
-   *            These 3 inputs are used to name JMX monitor bean name for this ZkClient.
+   *            These 3 inputs are used to name JMX monitor bean name for this RealmAwareZkClient.
    *            The JMX bean name will be: HelixZkClient.monitorType.monitorKey.monitorInstanceName.
    * @param monitorRootPathOnly
-   *            Should only stat of access to root path be reported to JMX bean or path-specific stat be reported too.
    */
   public ZkClient(IZkConnection zkConnection, int connectionTimeout, long operationRetryTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
@@ -93,179 +80,70 @@ public class ZkClient extends org.apache.helix.manager.zk.zookeeper.ZkClient imp
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey,
       long operationRetryTimeout) {
-    this(connection, connectionTimeout, operationRetryTimeout, zkSerializer, monitorType,
-        monitorKey, null, true);
+    super(connection, connectionTimeout, zkSerializer, monitorType, monitorKey,
+        operationRetryTimeout);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
-    this(connection, connectionTimeout, zkSerializer, monitorType, monitorKey, DEFAULT_OPERATION_TIMEOUT);
+    super(connection, connectionTimeout, zkSerializer, monitorType, monitorKey);
   }
 
   public ZkClient(String zkServers, String monitorType, String monitorKey) {
-    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), Integer.MAX_VALUE,
-        new BasicZkSerializer(new SerializableSerializer()), monitorType, monitorKey);
+    super(zkServers, monitorType, monitorKey);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
       PathBasedZkSerializer zkSerializer, String monitorType, String monitorKey) {
-    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer, monitorType,
-        monitorKey);
+    super(zkServers, sessionTimeout, connectionTimeout, zkSerializer, monitorType, monitorKey);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
       PathBasedZkSerializer zkSerializer) {
-    this(connection, connectionTimeout, zkSerializer, null, null);
+    super(connection, connectionTimeout, zkSerializer);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout, ZkSerializer zkSerializer) {
-    this(connection, connectionTimeout, new BasicZkSerializer(zkSerializer));
+    super(connection, connectionTimeout, zkSerializer);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout) {
-    this(connection, connectionTimeout, new SerializableSerializer());
+    super(connection, connectionTimeout);
   }
 
   public ZkClient(IZkConnection connection) {
-    this(connection, Integer.MAX_VALUE, new SerializableSerializer());
+    super(connection);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
       ZkSerializer zkSerializer) {
-    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+    super(zkServers, sessionTimeout, connectionTimeout, zkSerializer);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
       PathBasedZkSerializer zkSerializer) {
-    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+    super(zkServers, sessionTimeout, connectionTimeout, zkSerializer);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout) {
-    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout,
-        new SerializableSerializer());
+    super(zkServers, sessionTimeout, connectionTimeout);
   }
 
   public ZkClient(String zkServers, int connectionTimeout) {
-    this(new ZkConnection(zkServers, DEFAULT_SESSION_TIMEOUT), connectionTimeout,
-        new SerializableSerializer());
+    super(zkServers, connectionTimeout);
   }
 
   public ZkClient(String zkServers) {
-    this(zkServers, null, null);
+    super(zkServers);
   }
 
-  public ZkClient(final String zkServers, final int sessionTimeout, final int connectionTimeout,
-      final ZkSerializer zkSerializer, final long operationRetryTimeout) {
-    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer,
-        operationRetryTimeout);
+  public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
+      ZkSerializer zkSerializer, long operationRetryTimeout) {
+    super(zkServers, sessionTimeout, connectionTimeout, zkSerializer, operationRetryTimeout);
   }
 
-  public ZkClient(final IZkConnection zkConnection, final int connectionTimeout,
-      final ZkSerializer zkSerializer, final long operationRetryTimeout) {
-    this(zkConnection, connectionTimeout, operationRetryTimeout,
-        new BasicZkSerializer(zkSerializer), null, null, null, false);
-  }
-
-  public static class Builder {
-    IZkConnection _connection;
-    String _zkServer;
-
-    PathBasedZkSerializer _zkSerializer;
-
-    long _operationRetryTimeout = DEFAULT_OPERATION_TIMEOUT;
-    int _connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
-    int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
-
-    String _monitorType;
-    String _monitorKey;
-    String _monitorInstanceName = null;
-    boolean _monitorRootPathOnly = true;
-
-    public Builder setConnection(IZkConnection connection) {
-      this._connection = connection;
-      return this;
-    }
-
-    public Builder setConnectionTimeout(Integer connectionTimeout) {
-      this._connectionTimeout = connectionTimeout;
-      return this;
-    }
-
-    public Builder setZkSerializer(
-        PathBasedZkSerializer zkSerializer) {
-      this._zkSerializer = zkSerializer;
-      return this;
-    }
-
-    public Builder setZkSerializer(ZkSerializer zkSerializer) {
-      this._zkSerializer = new BasicZkSerializer(zkSerializer);
-      return this;
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
-     * @param monitorType
-     */
-    public Builder setMonitorType(String monitorType) {
-      this._monitorType = monitorType;
-      return this;
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is required for enabling monitoring.
-     * @param monitorKey
-     */
-    public Builder setMonitorKey(String monitorKey) {
-      this._monitorKey = monitorKey;
-      return this;
-    }
-
-    /**
-     * Used as part of the MBean ObjectName. This item is optional.
-     * @param instanceName
-     */
-    public Builder setMonitorInstanceName(String instanceName) {
-      this._monitorInstanceName = instanceName;
-      return this;
-    }
-
-
-    public Builder setMonitorRootPathOnly(Boolean monitorRootPathOnly) {
-      this._monitorRootPathOnly = monitorRootPathOnly;
-      return this;
-    }
-
-    public Builder setZkServer(String zkServer) {
-      this._zkServer = zkServer;
-      return this;
-    }
-
-    public Builder setSessionTimeout(Integer sessionTimeout) {
-      this._sessionTimeout = sessionTimeout;
-      return this;
-    }
-
-    public Builder setOperationRetryTimeout(Long operationRetryTimeout) {
-      this._operationRetryTimeout = operationRetryTimeout;
-      return this;
-    }
-
-    public ZkClient build() {
-      if (_connection == null) {
-        if (_zkServer == null) {
-          throw new HelixException(
-              "Failed to build ZkClient since no connection or ZK server address is specified.");
-        } else {
-          _connection = new ZkConnection(_zkServer, _sessionTimeout);
-        }
-      }
-
-      if (_zkSerializer == null) {
-        _zkSerializer = new BasicZkSerializer(new SerializableSerializer());
-      }
-
-      return new ZkClient(_connection, _connectionTimeout, _operationRetryTimeout, _zkSerializer,
-          _monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly);
-    }
+  public ZkClient(IZkConnection zkConnection, int connectionTimeout, ZkSerializer zkSerializer,
+      long operationRetryTimeout) {
+    super(zkConnection, connectionTimeout, zkSerializer, operationRetryTimeout);
   }
 }

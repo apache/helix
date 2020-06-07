@@ -495,7 +495,7 @@ public class TestRawZkClient extends ZkTestBase {
       throws Exception {
 
     final String originalSessionId = ZkClient.toHexSessionId(_zkClient.getSessionId());
-    final String path = "/testCreateEphemeralWithValidSession";
+    final String path = "/" + TestHelper.getTestMethodName();
     final String data = "Hello Helix";
 
     // Verify the node is not existed yet.

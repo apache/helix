@@ -59,9 +59,6 @@ public class TaskDataCache extends AbstractDataCache {
   // TODO: context and previous assignment should be wrapped into a class. Otherwise, int the future,
   // concurrency will be hard to handle.
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
-  private Map<String, ZNRecord> _prevAssignmentMap = new HashMap<>();
-  private Set<String> _prevAssignmentToUpdate = new HashSet<>();
-  private Set<String> _prevAssignmentToRemove = new HashSet<>();
   private Set<String> _contextToUpdate = new HashSet<>();
   private Set<String> _contextToRemove = new HashSet<>();
   // The following fields have been added for quota-based task scheduling
@@ -72,8 +69,7 @@ public class TaskDataCache extends AbstractDataCache {
   private Set<String> _dispatchedJobs = new HashSet<>();
 
   private enum TaskDataType {
-    CONTEXT,
-    PREV_ASSIGNMENT
+    CONTEXT
   }
 
 
@@ -99,7 +95,7 @@ public class TaskDataCache extends AbstractDataCache {
    */
   public synchronized boolean refresh(HelixDataAccessor accessor,
       Map<String, ResourceConfig> resourceConfigMap) {
-    refreshContextsAndPreviousAssignments(accessor);
+    refreshContexts(accessor);
     // update workflow and job configs.
     _workflowConfigMap.clear();
     Map<String, JobConfig> newJobConfigs = new HashMap<>();
@@ -169,11 +165,10 @@ public class TaskDataCache extends AbstractDataCache {
     return true;
   }
 
-  private void refreshContextsAndPreviousAssignments(HelixDataAccessor accessor) {
+  private void refreshContexts(HelixDataAccessor accessor) {
     // TODO: Need an optimize for reading context only if the refresh is needed.
     long start = System.currentTimeMillis();
     _contextMap.clear();
-    _prevAssignmentMap.clear();
     if (_controlContextProvider.getClusterName() == null || _controlContextProvider.getClusterName()
         .equalsIgnoreCase(UNKNOWN_CLUSTER)) {
       return;
@@ -181,22 +176,15 @@ public class TaskDataCache extends AbstractDataCache {
     String path = String.format("/%s/%s%s", _controlContextProvider.getClusterName(),
         PropertyType.PROPERTYSTORE.name(), TaskConstants.REBALANCER_CONTEXT_ROOT);
     List<String> contextPaths = new ArrayList<>();
-    List<String> prevAssignmentPaths = new ArrayList<>();
     List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
     if (childNames == null) {
       return;
     }
     for (String resourceName : childNames) {
       contextPaths.add(getTaskDataPath(resourceName, TaskDataType.CONTEXT));
-      //Workflow does not have previous assignment
-      if (!_workflowConfigMap.containsKey(resourceName)) {
-        prevAssignmentPaths.add(getTaskDataPath(resourceName, TaskDataType.PREV_ASSIGNMENT));
-      }
     }
 
     List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0);
-    List<ZNRecord> prevAssignments =
-        accessor.getBaseDataAccessor().get(prevAssignmentPaths, null, 0);
 
     for (int i = 0; i < contexts.size(); i++) {
       ZNRecord context = contexts.get(i);
@@ -206,12 +194,6 @@ public class TaskDataCache extends AbstractDataCache {
         _contextMap.put(childNames.get(i), context);
         LogUtil.logDebug(LOG, genEventInfo(),
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
-      }
-    }
-
-    for (ZNRecord prevAssignment : prevAssignments) {
-      if (prevAssignment != null) {
-        _prevAssignmentMap.put(prevAssignment.getId(), prevAssignment);
       }
     }
 
@@ -319,13 +301,6 @@ public class TaskDataCache extends AbstractDataCache {
         TaskDataType.CONTEXT);
     batchDeleteData(accessor, new ArrayList<>(_contextToRemove), TaskDataType.CONTEXT);
     _contextToRemove.clear();
-
-    _prevAssignmentToUpdate.removeAll(_prevAssignmentToRemove);
-    batchUpdateData(accessor, new ArrayList<>(_prevAssignmentToUpdate), _prevAssignmentMap,
-        _prevAssignmentToUpdate, TaskDataType.PREV_ASSIGNMENT);
-    batchDeleteData(accessor, new ArrayList<>(_prevAssignmentToRemove),
-        TaskDataType.PREV_ASSIGNMENT);
-    _prevAssignmentToRemove.clear();
   }
 
   private void batchUpdateData(HelixDataAccessor accessor, List<String> dataUpdateNames,
@@ -421,8 +396,6 @@ public class TaskDataCache extends AbstractDataCache {
     switch (taskDataType) {
     case CONTEXT:
       return String.format("%s/%s", prevFix, TaskConstants.CONTEXT_NODE);
-    case PREV_ASSIGNMENT:
-      return String.format("%s/%s", prevFix, TaskConstants.PREV_RA_NODE);
     }
     return null;
   }
@@ -444,20 +417,5 @@ public class TaskDataCache extends AbstractDataCache {
       return _runtimeJobDagMap.get(workflowName);
     }
     return null;
-  }
-
-  public ResourceAssignment getPreviousAssignment(String resourceName) {
-    return _prevAssignmentMap.get(resourceName) != null ? new ResourceAssignment(
-        _prevAssignmentMap.get(resourceName)) : null;
-  }
-
-  public void setPreviousAssignment(String resourceName, ResourceAssignment prevAssignment) {
-    _prevAssignmentMap.put(resourceName, prevAssignment.getRecord());
-    _prevAssignmentToUpdate.add(resourceName);
-  }
-
-  public void removePrevAssignment(String resourceName) {
-    _prevAssignmentMap.remove(resourceName);
-    _prevAssignmentToRemove.add(resourceName);
   }
 }

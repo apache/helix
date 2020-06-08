@@ -133,17 +133,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       scheduleRebalanceForTimeout(jobCfg.getJobId(), jobCtx.getStartTime(), jobCfg.getTimeout());
     }
 
-    // Grab the old assignment, or an empty one if it doesn't exist
-    ResourceAssignment prevAssignment =
-        _dataProvider.getTaskDataCache().getPreviousAssignment(jobName);
-    if (prevAssignment == null) {
-      prevAssignment = new ResourceAssignment(jobName);
-    }
-
     // Will contain the list of partitions that must be explicitly dropped from the ideal state that
     // is stored in zk.
-    // Fetch the previous resource assignment from the property store. This is required because of
-    // HELIX-230.
     Set<String> liveInstances =
         jobCfg.getInstanceGroupTag() == null ? _dataProvider.getEnabledLiveInstances()
             : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
@@ -191,7 +182,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Update Workflow and Job context in data cache and ZK.
     _dataProvider.updateJobContext(jobName, jobCtx);
     _dataProvider.updateWorkflowContext(workflowResource, workflowCtx);
-    _dataProvider.getTaskDataCache().setPreviousAssignment(jobName, newAssignment);
 
     LOG.debug("Job " + jobName + " new assignment "
         + Arrays.toString(newAssignment.getMappedPartitions().toArray()));
@@ -382,7 +372,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    *          are accounted for
    * @param jobName job name
    * @param tasksToDrop instance -> pId's, to gather all pIds that need to be dropped
-   * @return instance -> partitionIds from previous assignment, if the instance is still live
+   * @return instance -> partitionIds from currentState, if the instance is still live
    */
   protected static Map<String, SortedSet<Integer>> getCurrentInstanceToTaskAssignments(
       Iterable<String> liveInstances, CurrentStateOutput currStateOutput, String jobName,
@@ -424,8 +414,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
   }
 
   /**
-   * If partition is missing from prevInstanceToTaskAssignments (e.g. previous assignment is
-   * deleted) it is added from context. Otherwise, the context won't be updated.
+   * If partition is missing from prevInstanceToTaskAssignments it is added from context. Otherwise,
+   * the context won't be updated.
    * @param jobCtx Job Context
    * @param currentInstanceToTaskAssignments instance -> partitionIds from CurrentStateOutput
    */

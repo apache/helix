@@ -1,8 +1,13 @@
 package org.apache.helix.controller.stages;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
@@ -126,6 +131,18 @@ public class TestTaskStage extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testPersistContextData")
   public void testPartialDataPurge() throws Exception {
+    DedupEventProcessor<String, Runnable> worker =
+        new DedupEventProcessor<String, Runnable>(CLUSTER_NAME, AsyncWorkerType.TaskJobPurgeWorker.name()) {
+          @Override
+          protected void handleEvent(Runnable event) {
+            event.run();
+          }
+        };
+    worker.start();
+    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> workerPool = new HashMap<>();
+    workerPool.put(AsyncWorkerType.TaskJobPurgeWorker, worker);
+    _event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), workerPool);
+
     // Manually delete JobConfig
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "0");
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "1");
@@ -140,6 +157,8 @@ public class TestTaskStage extends TaskTestBase {
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "0");
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "1");
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "2");
+
+    worker.shutdown();
   }
 
   private void deleteJobConfigs(String workflowName, String jobName) {

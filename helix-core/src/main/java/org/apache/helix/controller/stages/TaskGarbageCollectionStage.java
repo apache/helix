@@ -30,7 +30,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
 
     if (dataProvider == null || manager == null) {
       LOG.warn(
-          "ResourceControllerDataProvider or HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
+          "HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
           event.getEventId(), event.getEventType(), event.getClusterName());
       return;
     }
@@ -41,13 +41,17 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
       // clean up the expired jobs if it is a queue.
       if (workflowConfig != null && (!workflowConfig.isTerminable() || workflowConfig
           .isJobQueue())) {
-        try {
-          TaskUtil.purgeExpiredJobs(workflowConfig.getWorkflowId(), workflowConfig,
-              dataProvider.getWorkflowContext(workflowConfig.getWorkflowId()), manager,
-              _rebalanceScheduler);
-        } catch (Exception e) {
-          LOG.warn(String.format("Failed to purge job for workflow %s with reason %s",
-              workflowConfig.getWorkflowId(), e.toString()));
+        String workflowId = workflowConfig.getWorkflowId();
+        if (resourceContextMap.get(workflowId) != null) {
+          try {
+            TaskUtil.purgeExpiredJobs(workflowId, workflowConfig,
+                new WorkflowContext(resourceContextMap.get(workflowId)), manager,
+                _rebalanceScheduler);
+          } catch (Exception e) {
+            LOG.warn("Failed to purge job for workflow {}!", workflowId, e);
+          }
+        } else {
+          LOG.warn("Workflow {} context does not exist!", workflowId);
         }
       }
     }

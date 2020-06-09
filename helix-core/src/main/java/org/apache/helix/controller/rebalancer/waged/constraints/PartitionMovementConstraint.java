@@ -40,31 +40,53 @@ import org.apache.helix.model.ResourceAssignment;
 class PartitionMovementConstraint extends SoftConstraint {
   private static final double MAX_SCORE = 1f;
   private static final double MIN_SCORE = 0f;
-  //TODO: these factors will be tuned based on user's preference
-  // This factor indicates the default score that is evaluated if only partition allocation matches
-  // (states are different).
-  private static final double ALLOCATION_MATCH_FACTOR = 0.5;
+  // The scale factor to adjust score when the proposed allocation partially matches the assignment
+  // plan but will require a state transition (with partition movement).
+  // TODO: these factors will be tuned based on user's preference
+  private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
+  private static final double MOVEMENT_COST_FACTOR = 0.25;
 
   PartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
+  /**
+   * @return 1 if the proposed assignment completely matches the previous best possible assignment
+   *         (or baseline assignment if the replica is newly added).
+   *         STATE_TRANSITION_COST_FACTOR if the proposed assignment's allocation matches the
+   *         previous Best Possible assignment (or baseline assignment if the replica is newly
+   *         added) but state does not match.
+   *         MOVEMENT_COST_FACTOR if the proposed assignment's allocation matches the baseline
+   *         assignment only, but not matches the previous best possible assignment.
+   *         0 if the proposed assignment is a pure random movement.
+   */
   @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    // Prioritize the previous Best Possible assignment
     Map<String, String> bestPossibleAssignment =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    if (!bestPossibleAssignment.isEmpty()) {
-      return calculateAssignmentScale(node, replica, bestPossibleAssignment);
-    }
-    // else, compare the baseline only if the best possible assignment does not contain the replica
     Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-    if (!baselineAssignment.isEmpty()) {
-      return calculateAssignmentScale(node, replica, baselineAssignment);
+    String nodeName = node.getInstanceName();
+    String state = replica.getReplicaState();
+
+    if (bestPossibleAssignment.isEmpty()) {
+      // If bestPossibleAssignment of the replica is empty, indicating this is a new replica.
+      // Then the baseline is the only reference.
+      return calculateAssignmentScore(nodeName, state, baselineAssignment);
+    } else {
+      // Else, for minimizing partition movements or state transitions, prioritize the proposed
+      // assignment that matches the previous Best Possible assignment.
+      double score = calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
+      // If no Best Possible assignment matches, check the baseline assignment.
+      if (score == 0 && baselineAssignment.containsKey(nodeName)) {
+        // Although not desired, the proposed assignment that matches the baseline is still better
+        // than a random movement. So try to evaluate the score with the MOVEMENT_COST_FACTOR
+        // punishment.
+        score = MOVEMENT_COST_FACTOR;
+      }
+      return score;
     }
-    return 0;
   }
 
   private Map<String, String> getStateMap(AssignableReplica replica,
@@ -77,15 +99,16 @@ class PartitionMovementConstraint extends SoftConstraint {
     return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
-  private double calculateAssignmentScale(AssignableNode node, AssignableReplica replica,
+  private double calculateAssignmentScore(String nodeName, String state,
       Map<String, String> instanceToStateMap) {
-    String instanceName = node.getInstanceName();
-    if (!instanceToStateMap.containsKey(instanceName)) {
-      return 0;
-    } else {
-      return (instanceToStateMap.get(instanceName).equals(replica.getReplicaState()) ? 1 :
-          ALLOCATION_MATCH_FACTOR);
+    if (instanceToStateMap.containsKey(nodeName)) {
+      return state.equals(instanceToStateMap.get(nodeName)) ?
+          // if state matches, no state transition required for the proposed assignment
+          1 :
+          // if state does not match, then the proposed assignment requires state transition
+          STATE_TRANSITION_COST_FACTOR;
     }
+    return 0;
   }
 
   @Override

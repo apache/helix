@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -133,5 +134,29 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     } catch (Exception e) {
       return serverError(e);
     }
+  }
+
+  /**
+   * Recursively deletes the PropertyStore path. If the node does not exist, it returns OK().
+   * @param clusterId
+   * @param path
+   * @return
+   */
+  @DELETE
+  @Path("{path: .+}")
+  public Response deletePropertyByPath(@PathParam("clusterId") String clusterId,
+      @PathParam("path") String path) {
+    path = "/" + path;
+    if (!ZkValidationUtil.isPathValid(path)) {
+      LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
+      return badRequest(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
+    }
+    final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
+    ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+    if (!propertyStoreDataAccessor.remove(recordPath, AccessOption.PERSISTENT)) {
+      return serverError("Failed to delete PropertyStore record in path: " + path);
+    }
+    return OK();
   }
 }

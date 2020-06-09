@@ -19,6 +19,7 @@
 
 package org.apache.helix.lock.helix;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.apache.helix.lock.LockInfo;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -48,7 +50,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-
     System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
@@ -61,8 +62,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
     _lockPath = _participantScope.getPath();
-    _lock = new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
-        _userId);
+    _lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+            _userId);
   }
 
   @BeforeMethod
@@ -71,9 +73,14 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertFalse(_gZkClient.exists(_lockPath));
   }
 
+  @AfterSuite
+  public void afterSuite() throws IOException {
+    _lock.close();
+    super.afterSuite();
+  }
+
   @Test
   public void testAcquireLock() {
-
     // Acquire lock
     _lock.tryLock();
     Assert.assertTrue(_gZkClient.exists(_lockPath));
@@ -93,7 +100,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @Test
   public void testAcquireLockWhenExistingLockNotExpired() {
-
     // Fake condition when the lock owner is not current user
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
@@ -115,7 +121,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @Test
   public void testAcquireLockWhenExistingLockExpired() {
-
     // Fake condition when the current lock already expired
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);

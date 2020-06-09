@@ -37,7 +37,6 @@ import org.apache.log4j.Logger;
  * Helix nonblocking lock implementation based on Zookeeper
  */
 public class ZKDistributedNonblockingLock implements DistributedLock {
-
   private static final Logger LOG = Logger.getLogger(ZKDistributedNonblockingLock.class);
 
   private final String _lockPath;
@@ -54,8 +53,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long timeout, String lockMsg,
-      String userId) {
+  public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long timeout,
+      String lockMsg, String userId) {
     this(scope.getPath(), zkAddress, timeout, lockMsg, userId);
   }
 
@@ -67,8 +66,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  private ZKDistributedNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg,
-      String userId) {
+  private ZKDistributedNonblockingLock(String lockPath, String zkAddress, Long timeout,
+      String lockMsg, String userId) {
     _lockPath = lockPath;
     if (timeout < 0) {
       throw new IllegalArgumentException("The expiration time cannot be negative.");
@@ -81,7 +80,6 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
 
   @Override
   public boolean tryLock() {
-
     // Set lock information fields
     long deadline;
     // Prevent value overflow
@@ -113,6 +111,11 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
     LockInfo lockInfo = getCurrentLockInfo();
     return lockInfo.getOwner().equals(_userId) && (System.currentTimeMillis() < lockInfo
         .getTimeout());
+  }
+
+  @Override
+  public void close() {
+    _baseDataAccessor.close();
   }
 
   /**

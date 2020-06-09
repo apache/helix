@@ -49,4 +49,9 @@ public interface DistributedLock {
    * false if the user is not the lock owner or the lock doesn't have a owner
    */
   boolean isCurrentOwner();
+
+  /**
+   * Close the lock and release resources
+   */
+  void close();
 }

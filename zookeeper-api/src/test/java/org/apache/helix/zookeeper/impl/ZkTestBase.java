@@ -53,6 +53,7 @@ public class ZkTestBase {
 
   public static final String ZK_PREFIX = TestConstants.ZK_PREFIX;
   public static final int ZK_START_PORT = TestConstants.ZK_START_PORT;
+  public static final String ZK_ADDR = ZK_PREFIX + ZK_START_PORT;
 
   /*
    * Multiple ZK references

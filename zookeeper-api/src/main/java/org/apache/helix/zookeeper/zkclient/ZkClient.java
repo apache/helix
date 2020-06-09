@@ -676,7 +676,7 @@ public class ZkClient implements Watcher {
         if (isSessionAwareOperation(expectedSessionId, mode)) {
           acquireEventLock();
           try {
-            final String actualSessionId = toHexSessionId(zooKeeper.getSessionId());
+            final String actualSessionId = Long.toHexString(zooKeeper.getSessionId());
             if (!actualSessionId.equals(expectedSessionId)) {
               throw new ZkSessionMismatchedException(
                   "Failed to create ephemeral node! There is a session id mismatch. Expected: "
@@ -2110,7 +2110,7 @@ public class ZkClient implements Watcher {
    * Ex. 1000a5ceb930004 is returned.
    */
   private String getHexSessionId() {
-    return toHexSessionId(getSessionId());
+    return Long.toHexString(getSessionId());
   }
 
   /*
@@ -2215,15 +2215,5 @@ public class ZkClient implements Watcher {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
     }
-  }
-
-  /**
-   * Converts a session id in hexadecimal notation from a long type session id.
-   * Ex. 1000a5ceb930004 is returned.
-   *
-   * @return String representation of session id in hexadecimal notation.
-   */
-  private static String toHexSessionId(long sessionId) {
-    return Long.toHexString(sessionId);
   }
 }

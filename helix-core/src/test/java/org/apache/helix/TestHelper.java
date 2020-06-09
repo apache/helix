@@ -785,7 +785,7 @@ public class TestHelper {
     return sb.toString();
   }
 
-  public static interface Verifier {
+  public interface Verifier {
     boolean verify() throws Exception;
   }
 

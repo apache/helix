@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class ResourceChangeDetector implements ChangeDetector {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceChangeDetector.class.getName());
 
-  private final boolean _ignoreControllerGeneratedFields;
+  private final boolean _ignoreNonTopologyChange;
   private ResourceChangeSnapshot _oldSnapshot; // snapshot for previous pipeline run
   private ResourceChangeSnapshot _newSnapshot; // snapshot for this pipeline run
 
@@ -53,9 +53,9 @@ public class ResourceChangeDetector implements ChangeDetector {
   private Map<HelixConstants.ChangeType, Collection<String>> _addedItems = new HashMap<>();
   private Map<HelixConstants.ChangeType, Collection<String>> _removedItems = new HashMap<>();
 
-  public ResourceChangeDetector(boolean ignoreControllerGeneratedFields) {
+  public ResourceChangeDetector(boolean ignoreNonTopologyChange) {
     _newSnapshot = new ResourceChangeSnapshot();
-    _ignoreControllerGeneratedFields = ignoreControllerGeneratedFields;
+    _ignoreNonTopologyChange = ignoreNonTopologyChange;
   }
 
   public ResourceChangeDetector() {
@@ -143,7 +143,7 @@ public class ResourceChangeDetector implements ChangeDetector {
   public synchronized void updateSnapshots(ResourceControllerDataProvider dataProvider) {
     // If there are changes, update internal states
     _oldSnapshot = new ResourceChangeSnapshot(_newSnapshot);
-    _newSnapshot = new ResourceChangeSnapshot(dataProvider, _ignoreControllerGeneratedFields);
+    _newSnapshot = new ResourceChangeSnapshot(dataProvider, _ignoreNonTopologyChange);
     dataProvider.clearRefreshedChangeTypes();
 
     // Invalidate cached computation

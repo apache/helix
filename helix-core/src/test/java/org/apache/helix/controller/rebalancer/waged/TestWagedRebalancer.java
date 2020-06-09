@@ -35,6 +35,7 @@ import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.constraints.MockRebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AbstractTestClusterModel;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -366,7 +367,13 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     when(clusterData.getRefreshedChangeTypes())
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
     // Update the config so the cluster config will be marked as changed.
-    clusterData.getClusterConfig().getRecord().setSimpleField("foo", "bar");
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    Map<String, Integer> defaultCapacityMap =
+        new HashMap<>(clusterConfig.getDefaultInstanceCapacityMap());
+    defaultCapacityMap.put("foobar", 0);
+    clusterConfig.setDefaultInstanceCapacityMap(defaultCapacityMap);
+    clusterData.setClusterConfig(clusterConfig);
+
     Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
         .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
           Resource resource = new Resource(entry.getKey());
@@ -374,6 +381,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
               .forEach(partition -> resource.addPartition(partition));
           return resource;
         }));
+
     Map<String, IdealState> newIdealStates =
         rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
     Map<String, ResourceAssignment> algorithmResult = _algorithm.getRebalanceResult();
@@ -392,7 +400,10 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
         .thenReturn(Collections.singleton(HelixConstants.ChangeType.RESOURCE_CONFIG));
     ResourceConfig config = new ResourceConfig(clusterData.getResourceConfig(changedResourceName).getRecord());
     // Update the config so the resource will be marked as changed.
-    config.putSimpleConfig("foo", "bar");
+    Map<String, Map<String, Integer>> capacityMap = config.getPartitionCapacityMap();
+    capacityMap.get(ResourceConfig.DEFAULT_PARTITION_KEY).put("foobar", 0);
+    config.setPartitionCapacityMap(capacityMap);
+
     when(clusterData.getResourceConfig(changedResourceName)).thenReturn(config);
     clusterData.getResourceConfigMap().put(changedResourceName, config);
 

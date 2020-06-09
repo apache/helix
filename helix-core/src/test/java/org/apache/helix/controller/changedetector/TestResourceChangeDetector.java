@@ -19,9 +19,11 @@ package org.apache.helix.controller.changedetector;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixConstants.ChangeType;
@@ -37,6 +39,8 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -276,8 +280,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
    * Remove an instance completely and see if detector detects.
    */
   @Test(dependsOnMethods = "testDisconnectReconnectInstance")
-  public void testRemoveInstance()
-      throws Exception {
+  public void testRemoveInstance() throws Exception {
+    String instanceName = _participants[0].getInstanceName();
     _participants[0].syncStop();
     InstanceConfig instanceConfig =
         _dataAccessor.getProperty(_keyBuilder.instanceConfig(_participants[0].getInstanceName()));
@@ -301,6 +305,11 @@ public class TestResourceChangeDetector extends ZkTestBase {
         checkDetectionCounts(type, 0, 0, 0);
       }
     }
+
+    // recovery the environment
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName);
+    _participants[0] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+    _participants[0].syncStart();
   }
 
   /**
@@ -351,7 +360,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
    * Modify IdealState mapping fields for a FULL_AUTO resource and see if detector detects.
    */
   @Test(dependsOnMethods = "testNoChange")
-  public void testIgnoreControllerGeneratedFields() {
+  public void testIgnoreNonTopologyChanges() {
     // Modify cluster config and IdealState to ensure the mapping field of the IdealState will be
     // considered as the fields that are modified by Helix logic.
     ClusterConfig clusterConfig = _dataAccessor.getProperty(_keyBuilder.clusterConfig());
@@ -366,14 +375,16 @@ public class TestResourceChangeDetector extends ZkTestBase {
     idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
     idealState.getRecord().getMapFields().put("Partition1", new HashMap<>());
     _dataAccessor.updateProperty(_keyBuilder.idealStates(resourceName), idealState);
-    _dataProvider.notifyDataChange(ChangeType.CLUSTER_CONFIG);
-    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
+    Arrays.stream(ChangeType.values()).forEach(type -> {
+      _dataProvider.notifyDataChange(type);
+    });
     _dataProvider.refresh(_dataAccessor);
 
     // Test with ignore option to be true
     ResourceChangeDetector changeDetector = new ResourceChangeDetector(true);
     changeDetector.updateSnapshots(_dataProvider);
-    // Now, modify the field
+
+    // 1. Modify ideal state map fields of a FULL_AUTO resource
     idealState.getRecord().getMapFields().put("Partition1", Collections.singletonMap("foo", "bar"));
     _dataAccessor.updateProperty(_keyBuilder.idealStates(resourceName), idealState);
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
@@ -385,10 +396,40 @@ public class TestResourceChangeDetector extends ZkTestBase {
         changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
             .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
             .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
+
+    // 2. Modify an instance "enabled" state
+    String instanceName = _participants[0].getInstanceName();
+    InstanceConfig instanceConfig =
+        _dataAccessor.getProperty(_keyBuilder.instanceConfig(instanceName));
+    Assert.assertTrue(instanceConfig.getInstanceEnabled());
+    try {
+      instanceConfig.setInstanceEnabled(false);
+      _dataAccessor.updateProperty(_keyBuilder.instanceConfig(instanceName), instanceConfig);
+      _dataProvider.notifyDataChange(ChangeType.INSTANCE_CONFIG);
+      _dataProvider.refresh(_dataAccessor);
+      changeDetector.updateSnapshots(_dataProvider);
+      Assert.assertEquals(changeDetector.getChangeTypes(),
+          Collections.singleton(ChangeType.INSTANCE_CONFIG));
+      Assert.assertEquals(
+          changeDetector.getAdditionsByType(ChangeType.INSTANCE_CONFIG).size() + changeDetector
+              .getChangesByType(ChangeType.INSTANCE_CONFIG).size() + changeDetector
+              .getRemovalsByType(ChangeType.INSTANCE_CONFIG).size(), 0);
+    } finally {
+      instanceConfig.setInstanceEnabled(true);
+      _dataAccessor.updateProperty(_keyBuilder.instanceConfig(instanceName), instanceConfig);
+    }
   }
 
-  @Test(dependsOnMethods = "testIgnoreControllerGeneratedFields")
+  @Test(dependsOnMethods = "testIgnoreNonTopologyChanges")
   public void testResetSnapshots() {
+    // ensure the cluster converged before the test to ensure IS is not modified unexpectedly
+    HelixClusterVerifier _clusterVerifier =
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddress(ZK_ADDR)
+            .setDeactivatedNodeAwareness(true)
+            .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))
+            .build();
+    Assert.assertTrue(_clusterVerifier.verify());
+
     // Initialize a new detector with the existing data
     ResourceChangeDetector changeDetector = new ResourceChangeDetector();
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
@@ -399,7 +440,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
             .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
             .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 2);
 
-    // Update the detector with old data, since nothing changed, the result will be empty.
+    // Update the detector with old data, since nothing changed, the result shall be empty.
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
     _dataProvider.refresh(_dataAccessor);
     changeDetector.updateSnapshots(_dataProvider);

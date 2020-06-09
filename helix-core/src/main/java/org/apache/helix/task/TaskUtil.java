@@ -1054,9 +1054,8 @@ public class TaskUtil {
     Set<String> toBeDeletedWorkflows = new HashSet<>();
     for (String entry : existingContexts) {
       WorkflowConfig cfg = workflowConfigMap.get(entry);
-      if (resourceContextMap.containsKey(entry) && resourceContextMap.get(entry) != null
-          && resourceContextMap.get(entry).getId().equals(TaskUtil.WORKFLOW_CONTEXT_KW)
-          && cfg == null) {
+      if (resourceContextMap.get(entry) != null && resourceContextMap.get(entry).getId()
+          .equals(TaskUtil.WORKFLOW_CONTEXT_KW) && cfg == null) {
         toBeDeletedWorkflows.add(entry);
       }
     }
@@ -1065,21 +1064,18 @@ public class TaskUtil {
     HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
     for (String workflowName : toBeDeletedWorkflows) {
-      LOG.warn(String.format(
-          "WorkflowContext exists for workflow %s. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
-          workflowName));
+      LOG.warn(
+          "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
+          workflowName);
 
       if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
-        LOG.warn(String.format(
-            "Error occurred while trying to remove workflow idealstate/externalview for %s.",
-            workflowName));
+        LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
+            workflowName);
         continue;
       }
 
       if (!removeWorkflowContext(propertyStore, workflowName)) {
-        LOG.warn(String.format("Error occurred while trying to remove workflow context for %s.",
-            workflowName));
-        continue;
+        LOG.warn("Error occurred while trying to remove workflow context for {}.", workflowName);
       }
     }
   }

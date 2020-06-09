@@ -138,7 +138,6 @@ public class TestWorkflowContextWithoutConfig extends TaskTestBase {
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(workflowExpired);
 
-
     _controller.syncStop();
 
     // Write workflow context to ZooKeeper

@@ -171,11 +171,7 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
       verifyP2PEnabled(startTime);
     }
 
-    double ratio = ((double) p2pTrigged) / ((double) total);
-    Assert.assertTrue(ratio == 1, String
-       .format("Only %d out of %d percent transitions to Master were triggered by expected host!",
-           p2pTrigged, total));
-
+    Assert.assertEquals(p2pTrigged, total);
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,
         "There are duplicated transition messages sent while participant is handling the state-transition!");
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessages, 0,

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.lock.LockInfo;
@@ -163,6 +164,34 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     public Boolean call() throws Exception {
       return _lock.tryLock();
     }
+  }
+
+  @Test
+  public void testCloseLockedLock() {
+    _lock.tryLock();
+    Assert.assertTrue(_lock.isCurrentOwner());
+    try {
+      _lock.close();
+      Assert.fail("Should throw exception here.");
+    } catch (HelixException e) {
+      Assert.assertEquals(e.getMessage(), "Please unlock the lock before closing it.");
+    }
+    Assert.assertTrue(_lock.isCurrentOwner());
+  }
+
+  @Test
+  public void testCloseUnlockedLock() {
+    Assert.assertFalse(_lock.isCurrentOwner());
+    try {
+      _lock.close();
+      _lock.getCurrentLockInfo();
+      Assert.fail("Should throw exception here");
+    } catch (IllegalStateException e) {
+      Assert.assertEquals(e.getMessage(), "ZkClient already closed!");
+    }
+    _lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+            _userId);
   }
 }
 

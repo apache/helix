@@ -125,7 +125,7 @@ public class TestTaskStage extends TaskTestBase {
    * async job purge will try to delete it again.
    */
   @Test(dependsOnMethods = "testPersistContextData")
-  public void testPartialDataPurge() {
+  public void testPartialDataPurge() throws Exception {
     // Manually delete JobConfig
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "0");
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "1");
@@ -133,7 +133,7 @@ public class TestTaskStage extends TaskTestBase {
 
     // Then purge jobs
     TaskGarbageCollectionStage garbageCollectionStage = new TaskGarbageCollectionStage();
-    garbageCollectionStage.execute(_event);
+    garbageCollectionStage.process(_event);
 
     // Check that IS and contexts have been purged for the 2 jobs in both old and new ZNode paths
     // IdealState check
@@ -150,16 +150,15 @@ public class TestTaskStage extends TaskTestBase {
     _baseAccessor.remove(newPath, AccessOption.PERSISTENT);
   }
 
-  private void checkForIdealStateAndContextRemoval(String workflow, String job) {
-    // IdealState
-    Assert.assertFalse(
-        _baseAccessor.exists(_keyBuilder.idealStates(job).getPath(), AccessOption.PERSISTENT));
-
+  private void checkForIdealStateAndContextRemoval(String workflow, String job) throws Exception {
     // JobContexts in old ZNode path
     String oldPath =
         String.format("/%s/PROPERTYSTORE/TaskRebalancer/%s/Context", CLUSTER_NAME, job);
     String newPath = _keyBuilder.jobContextZNode(workflow, job).getPath();
-    Assert.assertFalse(_baseAccessor.exists(oldPath, AccessOption.PERSISTENT));
-    Assert.assertFalse(_baseAccessor.exists(newPath, AccessOption.PERSISTENT));
+
+    Assert.assertTrue(TestHelper.verify(
+        () -> !_baseAccessor.exists(_keyBuilder.idealStates(job).getPath(), AccessOption.PERSISTENT)
+            && !_baseAccessor.exists(oldPath, AccessOption.PERSISTENT) && !_baseAccessor
+            .exists(newPath, AccessOption.PERSISTENT), 120000));
   }
 }

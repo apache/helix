@@ -20,6 +20,7 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -32,7 +33,6 @@ import javax.ws.rs.core.Response;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -67,7 +67,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
     if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
       byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
       ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
@@ -122,7 +122,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
               "Failed to write to path: " + recordPath + "! Content is not a valid ZNRecord!");
         }
       } else {
-        ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+        BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
         if (!propertyStoreDataAccessor
             .set(recordPath, content.getBytes(), AccessOption.PERSISTENT)) {
           return serverError(
@@ -133,5 +133,29 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     } catch (Exception e) {
       return serverError(e);
     }
+  }
+
+  /**
+   * Recursively deletes the PropertyStore path. If the node does not exist, it returns OK().
+   * @param clusterId
+   * @param path
+   * @return
+   */
+  @DELETE
+  @Path("{path: .+}")
+  public Response deletePropertyByPath(@PathParam("clusterId") String clusterId,
+      @PathParam("path") String path) {
+    path = "/" + path;
+    if (!ZkValidationUtil.isPathValid(path)) {
+      LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
+      return badRequest(
+          "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
+    }
+    final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
+    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+    if (!propertyStoreDataAccessor.remove(recordPath, AccessOption.PERSISTENT)) {
+      return serverError("Failed to delete PropertyStore record in path: " + path);
+    }
+    return OK();
   }
 }

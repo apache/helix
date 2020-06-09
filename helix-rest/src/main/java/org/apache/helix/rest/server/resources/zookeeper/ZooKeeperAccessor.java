@@ -31,11 +31,11 @@ import javax.ws.rs.core.Response;
 import com.google.common.base.Enums;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +47,10 @@ import org.slf4j.LoggerFactory;
 @Path("/zookeeper")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
-  private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
   public enum ZooKeeperCommand {
-    exists,
-    getBinaryData,
-    getStringData,
-    getChildren
+    exists, getBinaryData, getStringData, getChildren
   }
 
   @GET
@@ -101,7 +98,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return true if a ZNode exists, false otherwise
    */
-  private Response exists(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private Response exists(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     Map<String, Boolean> result = ImmutableMap.of(ZooKeeperCommand.exists.name(),
         zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT));
     return JSONRepresentation(result);
@@ -113,7 +110,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return
    */
-  private Response getBinaryData(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private Response getBinaryData(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
     Map<String, byte[]> binaryResult =
         ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
@@ -129,7 +126,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return
    */
-  private Response getStringData(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private Response getStringData(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
     Map<String, String> stringResult =
         ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
@@ -142,7 +139,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return
    */
-  private byte[] readBinaryDataFromZK(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private byte[] readBinaryDataFromZK(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       return zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
     } else {
@@ -157,7 +154,7 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return list of child ZNodes
    */
-  private Response getChildren(ZkBaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private Response getChildren(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
     if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
       Map<String, List<String>> result = ImmutableMap.of(ZooKeeperCommand.getChildren.name(),
           zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT));

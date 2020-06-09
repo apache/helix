@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -51,8 +52,6 @@ import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
-import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
-import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,7 +227,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
    * Returns a lazily-instantiated ZkBaseDataAccessor for the byte array type.
    * @return
    */
-  public ZkBaseDataAccessor<byte[]> getByteArrayZkBaseDataAccessor() {
+  public BaseDataAccessor<byte[]> getByteArrayZkBaseDataAccessor() {
     if (_byteArrayZkBaseDataAccessor == null) {
       synchronized (this) {
         if (_byteArrayZkBaseDataAccessor == null) {

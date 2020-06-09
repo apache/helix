@@ -130,7 +130,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
 
     // Verify
     ZkBaseDataAccessor<byte[]> byteAccessor =
-        new ZkBaseDataAccessor(ZK_ADDR, new ByteArraySerializer());
+        new ZkBaseDataAccessor<>(ZK_ADDR, new ByteArraySerializer());
     byte[] data = byteAccessor
         .get(PropertyPathBuilder.propertyStore(TEST_CLUSTER) + path, null, AccessOption.PERSISTENT);
     byteAccessor.close();
@@ -147,5 +147,15 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     ZNRecord record = _baseAccessor
         .get(PropertyPathBuilder.propertyStore(TEST_CLUSTER) + path, null, AccessOption.PERSISTENT);
     Assert.assertEquals(contentRecord, record);
+  }
+
+  @Test(dependsOnMethods = "testPutPropertyStore")
+  public void testDeletePropertyStore() {
+    String path = "/writePath/content";
+    delete("clusters/" + TEST_CLUSTER + "/propertyStore" + path,
+        Response.Status.OK.getStatusCode());
+
+    Assert.assertFalse(_baseAccessor
+        .exists(PropertyPathBuilder.propertyStore(TEST_CLUSTER) + path, AccessOption.PERSISTENT));
   }
 }

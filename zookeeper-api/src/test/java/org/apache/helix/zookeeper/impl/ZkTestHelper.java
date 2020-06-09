@@ -87,7 +87,6 @@ public class ZkTestHelper {
    * @param client
    * @throws Exception
    */
-
   public static void disconnectSession(HelixZkClient client)
       throws Exception {
     final ZkClient zkClient = (ZkClient) client;
@@ -268,7 +267,7 @@ public class ZkTestHelper {
   public static Map<String, Set<String>> getListenersByZkPath(String zkAddr)
       throws Exception {
     String splits[] = zkAddr.split(":");
-    Map<String, Set<String>> listenerMap = new TreeMap<String, Set<String>>();
+    Map<String, Set<String>> listenerMap = new TreeMap<>();
     Socket sock = null;
     int retry = 5;
 

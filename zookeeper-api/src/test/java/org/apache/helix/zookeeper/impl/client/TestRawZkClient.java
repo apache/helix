@@ -494,7 +494,7 @@ public class TestRawZkClient extends ZkTestBase {
   public void testCreateEphemeralWithValidSession()
       throws Exception {
 
-    final String originalSessionId = ZkClient.toHexSessionId(_zkClient.getSessionId());
+    final String originalSessionId = Long.toHexString(_zkClient.getSessionId());
     final String path = "/" + TestHelper.getTestMethodName();
     final String data = "Hello Helix";
 
@@ -520,7 +520,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals(nodeData, data, "Data is not correct.");
     Assert.assertTrue(stat.getEphemeralOwner() != 0L,
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
-    Assert.assertEquals(ZkClient.toHexSessionId(stat.getEphemeralOwner()), originalSessionId,
+    Assert.assertEquals(Long.toHexString(stat.getEphemeralOwner()), originalSessionId,
         "Ephemeral node is created by an unexpected session");
 
     // Delete the node to clean up, otherwise, the ephemeral node would be existed
@@ -545,7 +545,7 @@ public class TestRawZkClient extends ZkTestBase {
     final String clusterName = className + "_" + methodName;
 
     final long originalSessionId = _zkClient.getSessionId();
-    final String originalHexSessionId = ZkClient.toHexSessionId(originalSessionId);
+    final String originalHexSessionId = Long.toHexString(originalSessionId);
     final String path = "/" + methodName;
 
     // Verify the node is not existed.
@@ -595,7 +595,7 @@ public class TestRawZkClient extends ZkTestBase {
         new ZkClient.Builder().setZkServer(ZkTestBase.ZK_ADDR).setOperationRetryTimeout(3000L) // 3 seconds
             .build();
 
-    final String expectedSessionId = ZkClient.toHexSessionId(zkClient.getSessionId());
+    final String expectedSessionId = Long.toHexString(zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 
@@ -655,7 +655,7 @@ public class TestRawZkClient extends ZkTestBase {
       throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
-    final String expectedSessionId = ZkClient.toHexSessionId(_zkClient.getSessionId());
+    final String expectedSessionId = Long.toHexString(_zkClient.getSessionId());
     final String path = "/" + methodName;
     final String data = "data";
 
@@ -702,7 +702,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals(nodeData, data, "Data is not correct.");
     Assert.assertTrue(stat.getEphemeralOwner() != 0L,
         "Ephemeral owner should NOT be zero because the node is an ephemeral node.");
-    Assert.assertEquals(ZkClient.toHexSessionId(stat.getEphemeralOwner()), expectedSessionId,
+    Assert.assertEquals(Long.toHexString(stat.getEphemeralOwner()), expectedSessionId,
         "Ephemeral node is created by an unexpected session");
 
     // Delete the node to clean up, otherwise, the ephemeral node would be existed until the session

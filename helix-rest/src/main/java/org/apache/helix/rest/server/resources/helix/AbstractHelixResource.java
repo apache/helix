@@ -21,10 +21,10 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -77,7 +77,7 @@ public class AbstractHelixResource extends AbstractResource {
     return serverContext.getDataAccessor(clusterName);
   }
 
-  protected ZkBaseDataAccessor<byte[]> getByteArrayDataAccessor() {
+  protected BaseDataAccessor<byte[]> getByteArrayDataAccessor() {
     return getServerContext().getByteArrayZkBaseDataAccessor();
   }
 

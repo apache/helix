@@ -33,7 +33,6 @@ import javax.ws.rs.core.Response;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -68,7 +67,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
     if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
       byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
       ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
@@ -123,7 +122,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
               "Failed to write to path: " + recordPath + "! Content is not a valid ZNRecord!");
         }
       } else {
-        ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+        BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
         if (!propertyStoreDataAccessor
             .set(recordPath, content.getBytes(), AccessOption.PERSISTENT)) {
           return serverError(
@@ -153,7 +152,7 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    ZkBaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
     if (!propertyStoreDataAccessor.remove(recordPath, AccessOption.PERSISTENT)) {
       return serverError("Failed to delete PropertyStore record in path: " + path);
     }

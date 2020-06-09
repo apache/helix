@@ -58,11 +58,13 @@ public class DummyClusterManager implements HelixManager {
   HelixDataAccessor _accessor;
   String _clusterName;
   String _sessionId;
+  private String _instanceName;
 
   public DummyClusterManager(String clusterName, HelixDataAccessor accessor) {
     _clusterName = clusterName;
     _accessor = accessor;
     _sessionId = "session_" + clusterName;
+    _instanceName = "DummyInstance_" + clusterName;
   }
 
   @Override
@@ -199,7 +201,7 @@ public class DummyClusterManager implements HelixManager {
   @Override
   public String getInstanceName() {
     // TODO Auto-generated method stub
-    return null;
+    return _instanceName;
   }
 
   @Override
@@ -375,4 +377,7 @@ public class DummyClusterManager implements HelixManager {
     return 0L;
   }
 
+  protected void setSessionId(String sessionId) {
+    _sessionId = sessionId;
+  }
 }

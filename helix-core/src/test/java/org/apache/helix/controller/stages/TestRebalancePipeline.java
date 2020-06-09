@@ -32,6 +32,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.Pipeline;
+import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -51,7 +52,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   private final String _className = getShortClassName();
 
   @Test
-  public void testDuplicateMsg() {
+  public void testDuplicateMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_dup";
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -249,7 +250,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   }
 
   @Test
-  public void testChangeIdealStateWithPendingMsg() {
+  public void testChangeIdealStateWithPendingMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_pending";
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -345,7 +346,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   }
 
   @Test
-  public void testMasterXfer() {
+  public void testMasterXfer() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_xfer";
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -423,7 +424,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   }
 
   @Test
-  public void testNoDuplicatedMaster() {
+  public void testNoDuplicatedMaster() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_no_duplicated_master";
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -486,6 +487,89 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(message.getFromState(), "MASTER");
     Assert.assertEquals(message.getToState(), "SLAVE");
     Assert.assertEquals(message.getTgtName(), "localhost_1");
+
+    deleteLiveInstances(clusterName);
+    deleteCluster(clusterName);
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testControllerLosesLeadership() throws Exception {
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = _className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    final String resourceName = "testResource_" + methodName;
+    final String partitionName = resourceName + "_0";
+    String[] resourceGroups = new String[] {
+        resourceName
+    };
+
+    // ideal state: localhost_0 is MASTER
+    // replica=1 means 1 master
+    setupIdealState(clusterName, new int[] {
+        0
+    }, resourceGroups, 1, 1);
+    List<LiveInstance> liveInstances = setupLiveInstances(clusterName, new int[] {
+        0
+    });
+    setupStateModel(clusterName);
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    DummyClusterManager manager = new DummyClusterManager(clusterName, accessor);
+    ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.OnDemandRebalance);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+    event.addAttribute(AttributeName.CONTROLLER_LEADER_SESSION.name(), manager.getSessionId());
+    refreshClusterConfig(clusterName, accessor);
+
+    // cluster data cache refresh pipeline
+    Pipeline dataRefresh = new Pipeline();
+    dataRefresh.addStage(new ReadClusterDataStage());
+
+    // rebalance pipeline
+    Pipeline rebalancePipeline = new Pipeline();
+    rebalancePipeline.addStage(new ResourceComputationStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
+    rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
+    rebalancePipeline.addStage(new ResourceMessageDispatchStage());
+
+    // set node0 currentState to SLAVE, node1 currentState to MASTER
+    // Helix will try to switch the state of the instance, so it should transit S->M
+    setCurrentState(clusterName, "localhost_0", resourceName, partitionName,
+        liveInstances.get(0).getEphemeralOwner(), "SLAVE");
+
+    runPipeline(event, dataRefresh);
+
+    // After data refresh, controller loses leadership and its session id changes.
+    manager.setSessionId(manager.getSessionId() + "_new");
+
+    try {
+      // Because leader loses leadership, StageException should be thrown and message is not sent.
+      runPipeline(event, rebalancePipeline, true);
+      Assert.fail("StageException should be thrown because controller leader session changed.");
+    } catch (StageException e) {
+      Assert.assertTrue(
+          e.getMessage().matches("Controller: .* lost leadership! Expected session: .*"));
+    }
+
+    // Verify the ST message is what expected to transit the replica SLAVE->MASTER
+    MessageOutput msgThrottleOutput = event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
+    List<Message> messages =
+        msgThrottleOutput.getMessages(resourceName, new Partition(partitionName));
+    Assert.assertEquals(messages.size(), 1,
+        "Should output 1 message: SLAVE->MASTER for localhost_0");
+    Message message = messages.get(0);
+    Assert.assertEquals(message.getFromState(), "SLAVE");
+    Assert.assertEquals(message.getToState(), "MASTER");
+    Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);

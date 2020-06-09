@@ -33,4 +33,9 @@ public class InstanceLeaderSession {
   public void setSession(String session) {
     this.session = session;
   }
+
+  @Override
+  public String toString() {
+    return "InstanceLeaderSession{" + "session='" + session + '\'' + '}';
+  }
 }

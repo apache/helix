@@ -51,7 +51,8 @@ public interface DistributedLock {
   boolean isCurrentOwner();
 
   /**
-   * Close the lock and release resources
+   * Call this method to close the lock's zookeeper connection
+   * The lock has to be unlocked or expired before this method can be called
    */
   void close();
 }

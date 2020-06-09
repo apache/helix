@@ -49,7 +49,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * Initialize the lock with user provided information, e.g.,cluster, scope, etc.
    * @param scope the scope to lock
    * @param zkAddress the zk address the cluster connects to
-   * @param timeout the timeout period of the lcok
+   * @param timeout the timeout period of the lock
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
@@ -62,7 +62,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * Initialize the lock with user provided information, e.g., lock path under zookeeper, etc.
    * @param lockPath the path of the lock under Zookeeper
    * @param zkAddress the zk address of the cluster
-   * @param timeout the timeout period of the lcok
+   * @param timeout the timeout period of the lock
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
@@ -115,6 +115,9 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
 
   @Override
   public void close() {
+    if (isCurrentOwner()) {
+      throw new HelixException("Please unlock the lock before closing it.");
+    }
     _baseDataAccessor.close();
   }
 

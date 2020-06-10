@@ -48,15 +48,6 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
         ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());
   }
 
-  @Override
-  protected Map<String, ResourceAssignment> computeBestPossibleAssignment(
-      ResourceControllerDataProvider clusterData, Map<String, Resource> resourceMap,
-      Set<String> activeNodes, CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
-      throws HelixRebalanceException {
-    return getBestPossibleAssignment(getAssignmentMetadataStore(), currentStateOutput,
-        resourceMap.keySet());
-  }
-
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
     ReadOnlyAssignmentMetadataStore(String metadataStoreAddress, String clusterName) {
       super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName);

@@ -28,12 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -175,31 +177,57 @@ public final class HelixUtil {
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    // Copy the cluster config and make globalRebalance happen synchronously
+    // Otherwise, globalRebalance may not complete and this util might end up returning
+    // an empty assignment.
+    ClusterConfig globalSyncClusterConfig = new ClusterConfig(clusterConfig.getRecord());
+    globalSyncClusterConfig.setGlobalRebalanceAsyncMode(false);
+
     // Prepare a data accessor for a dataProvider (cache) refresh
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
     HelixDataAccessor helixDataAccessor =
-        new ZKHelixDataAccessor(clusterConfig.getClusterName(), baseDataAccessor);
+        new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
     // Create an instance of read-only WAGED rebalancer
     ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
-        new ReadOnlyWagedRebalancer(metadataStoreAddress, clusterConfig.getClusterName(),
-            clusterConfig.getGlobalRebalancePreference());
+        new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
+            globalSyncClusterConfig.getGlobalRebalancePreference());
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
     // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage
-    ClusterEvent event = new ClusterEvent(clusterConfig.getClusterName(), ClusterEventType.Unknown);
+    ClusterEvent event =
+        new ClusterEvent(globalSyncClusterConfig.getClusterName(), ClusterEventType.Unknown);
 
     try {
       // Obtain a refreshed dataProvider (cache) and overwrite cluster parameters with the given parameters
       ResourceControllerDataProvider dataProvider =
-          new ResourceControllerDataProvider(clusterConfig.getClusterName());
+          new ResourceControllerDataProvider(globalSyncClusterConfig.getClusterName());
       dataProvider.requireFullRefresh();
       dataProvider.refresh(helixDataAccessor);
-      dataProvider.setClusterConfig(clusterConfig);
+      dataProvider.setClusterConfig(globalSyncClusterConfig);
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
-      dataProvider.setLiveInstances(
-          liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
+      // For LiveInstances, we must preserve the existing session IDs
+      // So read LiveInstance objects from the cluster and do a "retainAll" on them
+      // liveInstanceMap is an unmodifiableMap instances, so we filter using a stream
+      Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+      List<LiveInstance> filteredLiveInstances = liveInstanceMap.entrySet().stream()
+          .filter(entry -> liveInstances.contains(entry.getKey())).map(Map.Entry::getValue)
+          .collect(Collectors.toList());
+      // Synthetically create LiveInstance objects that are passed in as the parameter
+      // First, determine which new LiveInstance objects need to be created
+      List<String> liveInstanceList = new ArrayList<>(liveInstances);
+      liveInstanceList.removeAll(filteredLiveInstances.stream().map(LiveInstance::getInstanceName)
+          .collect(Collectors.toList()));
+      liveInstanceList.forEach(liveInstanceName -> {
+        // Create a new LiveInstance object and give it a random UUID as a session ID
+        LiveInstance newLiveInstanceObj = new LiveInstance(liveInstanceName);
+        newLiveInstanceObj.getRecord()
+            .setSimpleField(LiveInstance.LiveInstanceProperty.SESSION_ID.name(),
+                UUID.randomUUID().toString().replace("-", ""));
+        filteredLiveInstances.add(newLiveInstanceObj);
+      });
+      dataProvider.setLiveInstances(new ArrayList<>(filteredLiveInstances));
       dataProvider.setIdealStates(idealStates);
       dataProvider.setResourceConfigMap(resourceConfigs.stream()
           .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
@@ -222,8 +250,16 @@ public final class HelixUtil {
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>
     Map<String, ResourceAssignment> result = new HashMap<>();
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+    if (output == null) {
+      throw new HelixException(
+          "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+    }
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+    if (resourceMap == null) {
+      throw new HelixException(
+          "getIdealAssignmentForWagedFullAuto(): Calculation failed: RESOURCES_TO_REBALANCE is null!");
+    }
     for (Resource resource : resourceMap.values()) {
       String resourceName = resource.getResourceName();
       PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);

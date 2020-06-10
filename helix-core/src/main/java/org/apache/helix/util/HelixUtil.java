@@ -39,7 +39,7 @@ import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
+import org.apache.helix.controller.rebalancer.waged.DryrunWagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -187,8 +187,8 @@ public final class HelixUtil {
         new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
     // Create an instance of read-only WAGED rebalancer
-    ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
-        new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
+    DryrunWagedRebalancer dryrunWagedRebalancer =
+        new DryrunWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
             globalSyncClusterConfig.getGlobalRebalancePreference());
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
@@ -205,14 +205,16 @@ public final class HelixUtil {
       dataProvider.setClusterConfig(globalSyncClusterConfig);
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
-      dataProvider.setLiveInstances(
-          liveInstances.stream().map(LiveInstance::new).collect(Collectors.toList()));
+      // For LiveInstances, we must preserve the existing session IDs
+      Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+      liveInstanceMap.keySet().retainAll(liveInstances);
+      dataProvider.setLiveInstances(new ArrayList<>(liveInstanceMap.values()));
       dataProvider.setIdealStates(idealStates);
       dataProvider.setResourceConfigMap(resourceConfigs.stream()
           .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
 
       event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
-      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
+      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
 
       // Run the required stages to obtain the BestPossibleOutput
       RebalanceUtil.runStage(event, new ResourceComputationStage());
@@ -223,7 +225,7 @@ public final class HelixUtil {
     } finally {
       // Close all ZK connections
       baseDataAccessor.close();
-      readOnlyWagedRebalancer.close();
+      dryrunWagedRebalancer.close();
     }
 
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>

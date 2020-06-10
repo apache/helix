@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
@@ -193,6 +195,30 @@ public class TestWagedRebalance extends ZkTestBase {
       Assert.assertEquals(utilResult.get(idealState.getResourceName()).getRecord().getMapFields(),
           idealState.getRecord().getMapFields());
     }
+
+    // Try to add a few extra instances
+    String instance_0 = "instance_0";
+    String instance_1 = "instance_1";
+    Set<String> newInstances = new HashSet<>();
+    newInstances.add(instance_0);
+    newInstances.add(instance_1);
+    liveInstances.addAll(newInstances);
+    for (String instance : newInstances) {
+      InstanceConfig instanceConfig = new InstanceConfig(instance);
+      instanceConfigs.add(instanceConfig);
+    }
+
+    utilResult = HelixUtil
+        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+            idealStates, resourceConfigs);
+
+    Set<String> instancesWithAssignments = new HashSet<>();
+    utilResult.values().forEach(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
+            .forEach(entry -> instancesWithAssignments.addAll(entry.keySet())));
+    // The newly added instances should contain some partitions
+    Assert.assertTrue(instancesWithAssignments.contains(instance_0));
+    Assert.assertTrue(instancesWithAssignments.contains(instance_1));
   }
 
   @Test(dependsOnMethods = "test")

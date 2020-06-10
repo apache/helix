@@ -216,9 +216,10 @@ public final class HelixUtil {
           .collect(Collectors.toList());
       // Synthetically create LiveInstance objects that are passed in as the parameter
       // First, determine which new LiveInstance objects need to be created
-      liveInstances.removeAll(filteredLiveInstances.stream().map(LiveInstance::getInstanceName)
+      List<String> liveInstanceList = new ArrayList<>(liveInstances);
+      liveInstanceList.removeAll(filteredLiveInstances.stream().map(LiveInstance::getInstanceName)
           .collect(Collectors.toList()));
-      liveInstances.forEach(liveInstanceName -> {
+      liveInstanceList.forEach(liveInstanceName -> {
         // Create a new LiveInstance object and give it a random UUID as a session ID
         LiveInstance newLiveInstanceObj = new LiveInstance(liveInstanceName);
         newLiveInstanceObj.getRecord()

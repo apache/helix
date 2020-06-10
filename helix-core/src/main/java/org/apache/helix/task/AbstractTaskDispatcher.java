@@ -539,11 +539,10 @@ public abstract class AbstractTaskDispatcher {
   // Compute real assignment from theoretical calculation with applied throttling
   // This is the actual assigning part
   protected void handleAdditionalTaskAssignment(
-      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments, Set<String> excludedInstances,
-      String jobResource, CurrentStateOutput currStateOutput, JobContext jobCtx,
-      final JobConfig jobCfg, final WorkflowConfig workflowConfig, WorkflowContext workflowCtx,
-      final WorkflowControllerDataProvider cache,
-      ResourceAssignment prevTaskToInstanceStateAssignment,
+      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments,
+      Set<String> excludedInstances, String jobResource, CurrentStateOutput currStateOutput,
+      JobContext jobCtx, final JobConfig jobCfg, final WorkflowConfig workflowConfig,
+      WorkflowContext workflowCtx, final WorkflowControllerDataProvider cache,
       Map<String, Set<Integer>> assignedPartitions, Map<Integer, PartitionAssignment> paMap,
       Set<Integer> skippedPartitions, TaskAssignmentCalculator taskAssignmentCal,
       Set<Integer> allPartitions, final long currentTime, Collection<String> liveInstances) {
@@ -599,9 +598,9 @@ public abstract class AbstractTaskDispatcher {
 
     // The actual assignment is computed here
     // Get instance->[partition, ...] mappings for the target resource.
-    Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal.getTaskAssignment(
-        currStateOutput, prevTaskToInstanceStateAssignment, liveInstances, jobCfg, jobCtx,
-        workflowConfig, workflowCtx, filteredTaskPartitionNumbers, cache.getIdealStates());
+    Map<String, SortedSet<Integer>> tgtPartitionAssignments =
+        taskAssignmentCal.getTaskAssignment(currStateOutput, liveInstances, jobCfg, jobCtx,
+            workflowConfig, workflowCtx, filteredTaskPartitionNumbers, cache.getIdealStates());
 
     if (!TaskUtil.isGenericTaskJob(jobCfg) && jobCfg.isRebalanceRunningTask()) {
       // TODO: Revisit the logic for isRebalanceRunningTask() and valid use cases for it

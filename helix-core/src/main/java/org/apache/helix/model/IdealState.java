@@ -20,7 +20,9 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,8 +33,6 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.model.ResourceConfig.ResourceConfigProperty;
-import org.apache.helix.task.FixedTargetTaskRebalancer;
-import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowRebalancer;
@@ -74,6 +74,9 @@ public class IdealState extends HelixProperty {
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
+  public static final Set<String> LEGACY_TASK_REBALANCERS =
+      new HashSet<>(Arrays.asList("org.apache.helix.task.GenericTaskRebalancer",
+          "org.apache.helix.task.FixedTargetTaskRebalancer"));
 
   /**
    * Deprecated, use ResourceConfig.ResourceConfigConstants instead
@@ -721,11 +724,16 @@ public class IdealState extends HelixProperty {
       String rebalancerName = getRebalancerClassName();
       if (rebalancerName != null) {
         if (rebalancerName.equals(JobRebalancer.class.getName())
-            || rebalancerName.equals(WorkflowRebalancer.class.getName())
-            || rebalancerName.equals(GenericTaskRebalancer.class.getName())
-            || rebalancerName.equals(FixedTargetTaskRebalancer.class.getName())) {
+            || rebalancerName.equals(WorkflowRebalancer.class.getName())) {
           property = RebalanceMode.TASK;
         } else {
+          if (LEGACY_TASK_REBALANCERS.contains(rebalancerName)) {
+            // Print a warning message if legacy TASK rebalancer is used
+            // Since legacy rebalancers have been removed, it is not safe just running legacy jobs and jobs/workflows
+            //with current task assignment strategy.
+            logger.warn("The rebalancer {} is not supported anymore. Setting rebalance mode to USER_DEFINED.",
+                rebalancerName);
+          }
           property = RebalanceMode.USER_DEFINED;
         }
       } else {

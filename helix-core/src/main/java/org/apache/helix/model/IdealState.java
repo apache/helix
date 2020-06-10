@@ -20,7 +20,9 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +74,9 @@ public class IdealState extends HelixProperty {
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
+  public static final Set<String> LEGACY_TASK_REBALANCERS =
+      new HashSet<>(Arrays.asList("org.apache.helix.task.GenericTaskRebalancer",
+          "org.apache.helix.task.FixedTargetTaskRebalancer"));
 
   /**
    * Deprecated, use ResourceConfig.ResourceConfigConstants instead
@@ -721,6 +726,14 @@ public class IdealState extends HelixProperty {
         if (rebalancerName.equals(JobRebalancer.class.getName())
             || rebalancerName.equals(WorkflowRebalancer.class.getName())) {
           property = RebalanceMode.TASK;
+        } else if (LEGACY_TASK_REBALANCERS.contains(rebalancerName)) {
+          // Print a warning message if legacy TASK rebalancer is used
+          // Since legacy rebalancers have been removed, it is not safe just running legacy jobs and jobs/workflows
+          //with current task assignment strategy.
+          logger.warn(
+              "The rebalancer {} is not supported anymore. Setting rebalance mode to USER_DEFINED.",
+              rebalancerName);
+          property = RebalanceMode.USER_DEFINED;
         } else {
           property = RebalanceMode.USER_DEFINED;
         }

@@ -178,7 +178,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     TestMessageListener listener2 = new TestMessageListener();
     _manager.addMessageListener(listener2, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
     CallbackHandler mockHandler = _manager._testHandlers.get(listener2);
-    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
+    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastInvokeTime");
     lastEventTimeField.setAccessible(true);
     // t1
     lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
@@ -215,7 +215,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     TestMessageListener listener4 = new TestMessageListener();
     _manager.addMessageListener(listener4, instanceName, clusterName, TestHelper.WAIT_DURATION / 8);
     CallbackHandler mockHandler = _manager._testHandlers.get(listener4);
-    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastEventTime");
+    Field lastEventTimeField = CallbackHandler.class.getDeclaredField("_lastInvokeTime");
     lastEventTimeField.setAccessible(true);
     // t1
     lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);

@@ -136,9 +136,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicTriggerInterval;
-  private ScheduledThreadPoolExecutor _periodicRefreshExecutor;
-  private ScheduledFuture<?> _scheduledRefreshFuture;
-  private volatile long _lastEventTime;
+  private ScheduledThreadPoolExecutor _periodicTriggerExecutor;
+  private ScheduledFuture<?> _scheduledTriggerFuture;
+  private volatile long _lastInvokeTime;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -220,13 +220,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * If the deadline has not passed (some events happened in between so don't need to do a refresh),
    * wait until reaching the interval and check again
    */
-  class RefreshTask implements Runnable {
+  class TriggerTask implements Runnable {
     @Override
     public void run() {
       try {
         while (true) {
           long currentTime = System.currentTimeMillis();
-          long remainingTime = _lastEventTime + _periodicTriggerInterval - currentTime;
+          long remainingTime = _lastInvokeTime + _periodicTriggerInterval - currentTime;
           if (remainingTime <= 0) {
             // If there is no event in the queue, meaning this long idle time could be due to lack of events
             // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
@@ -241,8 +241,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             wait(remainingTime);
           }
         }
-      } catch (Exception e) {
-        logger.warn("Exception during execute refresh task. Error: ", e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (Exception e1) {
+        logger.warn("Exception during execute refresh task. Error: ", e1);
       }
     }
   }
@@ -304,9 +306,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
      * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
      */
     _periodicTriggerInterval = periodicTriggerInterval;
-    if (_periodicTriggerInterval > 0) {
-      initRefreshTask();
-    }
+    initOrResetTriggerTask();
   }
 
   private void parseListenerProperties() {
@@ -466,8 +466,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         subscribeForChangesAsyn(changeContext.getType(), _path, _watchChild);
       }
 
-      if (_periodicTriggerInterval > 0) {
-        _lastEventTime = System.currentTimeMillis();
+      if (_periodicTriggerExecutor != null) {
+        _lastInvokeTime = System.currentTimeMillis();
       }
 
       if (_changeType == IDEAL_STATE) {
@@ -879,14 +879,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           if (isShutdown) {
             _batchCallbackProcessor.shutdown();
             _batchCallbackProcessor = null;
-            if (_periodicRefreshExecutor != null) {
-              _periodicRefreshExecutor.shutdownNow();
+            if (_periodicTriggerExecutor != null) {
+              _periodicTriggerExecutor.shutdownNow();
             }
           } else {
             _batchCallbackProcessor.resetEventQueue();
-            if (_scheduledRefreshFuture != null) {
-              _periodicRefreshExecutor.shutdownNow();
-              initRefreshTask();
+            if (_periodicTriggerExecutor != null) {
+              initOrResetTriggerTask();
             }
           }
         }
@@ -925,16 +924,25 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   /**
-   * Used to initialize a periodic refresh task, schedule tasks in a task executor with fixed intervals
+   * Used to initialize or reset a periodic refresh task
+   * Schedule tasks in a task executor with fixed intervals
    */
-  private void initRefreshTask() {
-    _lastEventTime = System.currentTimeMillis();
-    _periodicRefreshExecutor = new ScheduledThreadPoolExecutor(1);
+  private void initOrResetTriggerTask() {
+    if (_periodicTriggerInterval <= 0) {
+      return;
+    }
+    _lastInvokeTime = System.currentTimeMillis();
+    if (_periodicTriggerExecutor == null) {
+      _periodicTriggerExecutor = new ScheduledThreadPoolExecutor(1);
+    }
     // When cancelling the task future, it removes the task from the queue
     // so we won't have a memory leakage when we cancel scheduled task
-    _periodicRefreshExecutor.setRemoveOnCancelPolicy(true);
-    _scheduledRefreshFuture = _periodicRefreshExecutor
-        .scheduleWithFixedDelay(new RefreshTask(), _periodicTriggerInterval,
+    _periodicTriggerExecutor.setRemoveOnCancelPolicy(true);
+    if (_scheduledTriggerFuture != null) {
+      _scheduledTriggerFuture.cancel(true);
+    }
+    _scheduledTriggerFuture = _periodicTriggerExecutor
+        .scheduleWithFixedDelay(new TriggerTask(), _periodicTriggerInterval,
             _periodicTriggerInterval, TimeUnit.MILLISECONDS);
   }
 }

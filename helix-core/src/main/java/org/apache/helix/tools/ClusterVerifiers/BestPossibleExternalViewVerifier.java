@@ -412,14 +412,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
     RebalanceUtil.runStage(event, new CurrentStateComputationStage());
     // Note the readOnlyWagedRebalancer is just for one time usage
-    DryrunWagedRebalancer readOnlyWagedRebalancer =
+    DryrunWagedRebalancer dryrunWagedRebalancer =
         new DryrunWagedRebalancer(_zkClient.getServers(), cache.getClusterName(),
             cache.getClusterConfig().getGlobalRebalancePreference());
-    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
+    event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
     try {
       RebalanceUtil.runStage(event, new BestPossibleStateCalcStage());
     } finally {
-      readOnlyWagedRebalancer.close();
+      dryrunWagedRebalancer.close();
     }
 
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
@@ -433,7 +433,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
   }
 
-  private class DryrunWagedRebalancer extends org.apache.helix.controller.rebalancer.waged.DryrunWagedRebalancer {
+  private class DryrunWagedRebalancer extends org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer {
     public DryrunWagedRebalancer(String metadataStoreAddress, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
       super(metadataStoreAddress, clusterName, preferences);

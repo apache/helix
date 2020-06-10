@@ -41,7 +41,7 @@ import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.controller.rebalancer.waged.DryrunWagedRebalancer;
+import org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -189,8 +189,8 @@ public final class HelixUtil {
         new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
     // Create an instance of read-only WAGED rebalancer
-    DryrunWagedRebalancer dryrunWagedRebalancer =
-        new DryrunWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
+    ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
+        new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
             globalSyncClusterConfig.getGlobalRebalancePreference());
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
@@ -232,7 +232,7 @@ public final class HelixUtil {
           .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
 
       event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
-      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), dryrunWagedRebalancer);
+      event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(), readOnlyWagedRebalancer);
 
       // Run the required stages to obtain the BestPossibleOutput
       RebalanceUtil.runStage(event, new ResourceComputationStage());
@@ -243,7 +243,7 @@ public final class HelixUtil {
     } finally {
       // Close all ZK connections
       baseDataAccessor.close();
-      dryrunWagedRebalancer.close();
+      readOnlyWagedRebalancer.close();
     }
 
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>

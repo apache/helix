@@ -41,8 +41,8 @@ import org.apache.helix.model.ResourceAssignment;
  *
  * This class is to be used in the cluster verifiers, tests, or util methods.
  */
-public class DryrunWagedRebalancer extends WagedRebalancer {
-  public DryrunWagedRebalancer(String metadataStoreAddress, String clusterName,
+public class ReadOnlyWagedRebalancer extends WagedRebalancer {
+  public ReadOnlyWagedRebalancer(String metadataStoreAddress, String clusterName,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
     super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddress, clusterName),
         ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());

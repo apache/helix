@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Joiner;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -206,9 +207,13 @@ public final class HelixUtil {
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));
       // For LiveInstances, we must preserve the existing session IDs
+      // So read LiveInstance objects from the cluster and do a "retainAll" on them
+      // liveInstanceMap is an unmodifiableMap instances, so we filter using a stream
       Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
-      liveInstanceMap.keySet().retainAll(liveInstances);
-      dataProvider.setLiveInstances(new ArrayList<>(liveInstanceMap.values()));
+      List<LiveInstance> filteredLiveInstances = liveInstanceMap.entrySet().stream()
+          .filter(entry -> liveInstances.contains(entry.getKey())).map(Map.Entry::getValue)
+          .collect(Collectors.toList());
+      dataProvider.setLiveInstances(new ArrayList<>(filteredLiveInstances));
       dataProvider.setIdealStates(idealStates);
       dataProvider.setResourceConfigMap(resourceConfigs.stream()
           .collect(Collectors.toMap(ResourceConfig::getResourceName, Function.identity())));
@@ -231,8 +236,16 @@ public final class HelixUtil {
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>
     Map<String, ResourceAssignment> result = new HashMap<>();
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+    if (output == null) {
+      throw new HelixException(
+          "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+    }
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+    if (resourceMap == null) {
+      throw new HelixException(
+          "getIdealAssignmentForWagedFullAuto(): Calculation failed: RESOURCES_TO_REBALANCE is null!");
+    }
     for (Resource resource : resourceMap.values()) {
       String resourceName = resource.getResourceName();
       PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);

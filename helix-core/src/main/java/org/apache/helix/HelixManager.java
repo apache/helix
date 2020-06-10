@@ -433,7 +433,7 @@ public interface HelixManager {
    * @param instanceLeaderSession To include ZK session ID of the cluster manager in return
    *
    * @return true if the instance is a leader of the cluster and Zk session of the cluster
-   * manager is return in param {@link InstanceLeaderSession}
+   * manager is returned in param {@link InstanceLeaderSession}
    */
   default boolean isInstanceLeader(InstanceLeaderSession instanceLeaderSession) {
     throw new UnsupportedOperationException(

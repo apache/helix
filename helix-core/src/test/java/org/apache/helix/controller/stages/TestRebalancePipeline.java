@@ -493,8 +493,15 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  /*
+   * Tests if controller loses leadership when pipeline is still running, messages should not be
+   * sent to participants. No message sent on leadership loss prevents double masters issue.
+   * This test simulates that controller leader's zk session changes after ReadClusterDataStage
+   * and so state transition messages are not sent out and stage exception is thrown to terminate
+   * the pipeline.
+   */
   @Test
-  public void testControllerLosesLeadership() throws Exception {
+  public void testNoMessageSentOnControllerLosesLeadership() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = _className + "_" + methodName;
 
@@ -560,7 +567,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
           e.getMessage().matches("Controller: .* lost leadership! Expected session: .*"));
     }
 
-    // Verify the ST message is what expected to transit the replica SLAVE->MASTER
+    // Verify the ST message not being sent out is the expected one to
+    // transit the replica SLAVE->MASTER
     MessageOutput msgThrottleOutput = event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     List<Message> messages =
         msgThrottleOutput.getMessages(resourceName, new Partition(partitionName));

@@ -726,15 +726,14 @@ public class IdealState extends HelixProperty {
         if (rebalancerName.equals(JobRebalancer.class.getName())
             || rebalancerName.equals(WorkflowRebalancer.class.getName())) {
           property = RebalanceMode.TASK;
-        } else if (LEGACY_TASK_REBALANCERS.contains(rebalancerName)) {
-          // Print a warning message if legacy TASK rebalancer is used
-          // Since legacy rebalancers have been removed, it is not safe just running legacy jobs and jobs/workflows
-          //with current task assignment strategy.
-          logger.warn(
-              "The rebalancer {} is not supported anymore. Setting rebalance mode to USER_DEFINED.",
-              rebalancerName);
-          property = RebalanceMode.USER_DEFINED;
         } else {
+          if (LEGACY_TASK_REBALANCERS.contains(rebalancerName)) {
+            // Print a warning message if legacy TASK rebalancer is used
+            // Since legacy rebalancers have been removed, it is not safe just running legacy jobs and jobs/workflows
+            //with current task assignment strategy.
+            logger.warn("The rebalancer {} is not supported anymore. Setting rebalance mode to USER_DEFINED.",
+                rebalancerName);
+          }
           property = RebalanceMode.USER_DEFINED;
         }
       } else {

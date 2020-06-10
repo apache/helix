@@ -77,12 +77,22 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
   }
 
   @Override
+  @Deprecated
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
-    return computeAssignmentAndChargeResource(currStateOutput, prevAssignment, instances,
-        workflowCfg, jobCfg, jobContext, partitionSet, idealStateMap);
+    return getTaskAssignment(currStateOutput, instances, jobCfg, jobContext, workflowCfg,
+        workflowCtx, partitionSet, idealStateMap);
+  }
+
+  @Override
+  public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
+      Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
+      Map<String, IdealState> idealStateMap) {
+    return computeAssignmentAndChargeResource(currStateOutput, instances, workflowCfg, jobCfg,
+        jobContext, partitionSet, idealStateMap);
   }
 
   /**
@@ -175,7 +185,6 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
    * Calculate the assignment for given tasks. This assignment also charges resources for each task
    * and takes resource/quota availability into account while assigning.
    * @param currStateOutput
-   * @param prevAssignment
    * @param liveInstances
    * @param jobCfg
    * @param jobContext
@@ -184,9 +193,9 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
    * @return instance -> set of task partition numbers
    */
   private Map<String, SortedSet<Integer>> computeAssignmentAndChargeResource(
-      CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
-      Collection<String> liveInstances, WorkflowConfig workflowCfg, JobConfig jobCfg,
-      JobContext jobContext, Set<Integer> taskPartitionSet, Map<String, IdealState> idealStateMap) {
+      CurrentStateOutput currStateOutput, Collection<String> liveInstances,
+      WorkflowConfig workflowCfg, JobConfig jobCfg, JobContext jobContext,
+      Set<Integer> taskPartitionSet, Map<String, IdealState> idealStateMap) {
 
     // Note: targeted jobs also take up capacity in quota-based scheduling
     // "Charge" resources for the tasks
@@ -250,23 +259,27 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
             // the new assignment differs from prevAssignment, release. If the assigned instances
             // from old and new assignments are the same, then do nothing and let it keep running
             // The following checks if two assignments (old and new) differ
-            Map<String, String> instanceMap = prevAssignment.getReplicaMap(new Partition(pName));
-            Iterator<String> itr = instanceMap.keySet().iterator();
+
             // First, check if this taskPartition has been ever assigned before by checking
-            // prevAssignment
-            if (itr.hasNext()) {
-              String prevInstance = itr.next();
-              if (!prevInstance.equals(instance)) {
-                // Old and new assignments are different. We need to release from prevInstance, and
-                // this task will be assigned to a different instance
+            // jobContext's AssignedParticipant field
+            String prevAssignedInstance = jobContext.getAssignedParticipant(targetPartitionId);
+            TaskPartitionState taskState = jobContext.getPartitionState(targetPartitionId);
+
+            if (prevAssignedInstance != null && taskState != null
+                && (taskState.equals(TaskPartitionState.INIT)
+                    || taskState.equals(TaskPartitionState.RUNNING))) {
+              // If the task is in active state and old and new assignments are different, we need
+              // to release from prevInstance, and this task will be assigned to a different
+              // instance
+              if (!prevAssignedInstance.equals(instance)) {
                 if (_assignableInstanceManager.getAssignableInstanceNames()
-                    .contains(prevInstance)) {
-                  _assignableInstanceManager.release(prevInstance, taskConfig, quotaType);
+                    .contains(prevAssignedInstance)) {
+                  _assignableInstanceManager.release(prevAssignedInstance, taskConfig, quotaType);
                 } else {
                   // This instance must be no longer live
                   LOG.warn(
                       "Task {} was reassigned from old instance: {} to new instance: {}. However, old instance: {} is not found in AssignableInstanceMap. The old instance is possibly no longer a LiveInstance. This task will not be released.",
-                      pName, prevAssignment, instance);
+                      pName, prevAssignedInstance, instance, prevAssignedInstance);
                 }
               } else {
                 // Old and new assignments are the same, so just skip assignment for this

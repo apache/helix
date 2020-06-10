@@ -114,6 +114,14 @@ public class TestHelper {
     return fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
   }
 
+  public static void resetSystemProperty(String key, String originValue) {
+    if (originValue == null) {
+      System.clearProperty(key);
+    } else {
+      System.setProperty(key, originValue);
+    }
+  }
+
   public interface Verifier {
     boolean verify()
         throws Exception;

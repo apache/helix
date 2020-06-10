@@ -50,7 +50,7 @@ public class ZNRecordUtil {
 
   /**
    * Returns ZNRecord serializer write size limit in bytes. If size limit is configured to be less
-   * than or equal to 0, the default value will be used instead.
+   * than or equal to 0, the default value {@link ZNRecord#SIZE_LIMIT} will be used instead.
    */
   public static int getSerializerWriteSizeLimit() {
     Integer writeSizeLimit =

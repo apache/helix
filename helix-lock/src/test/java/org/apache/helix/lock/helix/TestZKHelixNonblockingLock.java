@@ -19,6 +19,7 @@
 
 package org.apache.helix.lock.helix;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -26,12 +27,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.lock.LockInfo;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.CreateMode;
 import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -48,7 +51,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-
     System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
@@ -61,8 +63,9 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
     _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
     _lockPath = _participantScope.getPath();
-    _lock = new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
-        _userId);
+    _lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+            _userId);
   }
 
   @BeforeMethod
@@ -71,9 +74,14 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     Assert.assertFalse(_gZkClient.exists(_lockPath));
   }
 
+  @AfterSuite
+  public void afterSuite() throws IOException {
+    _lock.close();
+    super.afterSuite();
+  }
+
   @Test
   public void testAcquireLock() {
-
     // Acquire lock
     _lock.tryLock();
     Assert.assertTrue(_gZkClient.exists(_lockPath));
@@ -93,7 +101,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @Test
   public void testAcquireLockWhenExistingLockNotExpired() {
-
     // Fake condition when the lock owner is not current user
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
@@ -115,7 +122,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @Test
   public void testAcquireLockWhenExistingLockExpired() {
-
     // Fake condition when the current lock already expired
     String fakeUserID = UUID.randomUUID().toString();
     ZNRecord fakeRecord = new ZNRecord(fakeUserID);
@@ -158,6 +164,34 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
     public Boolean call() throws Exception {
       return _lock.tryLock();
     }
+  }
+
+  @Test
+  public void testCloseLockedLock() {
+    _lock.tryLock();
+    Assert.assertTrue(_lock.isCurrentOwner());
+    try {
+      _lock.close();
+      Assert.fail("Should throw exception here.");
+    } catch (HelixException e) {
+      Assert.assertEquals(e.getMessage(), "Please unlock the lock before closing it.");
+    }
+    Assert.assertTrue(_lock.isCurrentOwner());
+  }
+
+  @Test
+  public void testCloseUnlockedLock() {
+    Assert.assertFalse(_lock.isCurrentOwner());
+    try {
+      _lock.close();
+      _lock.getCurrentLockInfo();
+      Assert.fail("Should throw exception here");
+    } catch (IllegalStateException e) {
+      Assert.assertEquals(e.getMessage(), "ZkClient already closed!");
+    }
+    _lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, Long.MAX_VALUE, _lockMessage,
+            _userId);
   }
 }
 

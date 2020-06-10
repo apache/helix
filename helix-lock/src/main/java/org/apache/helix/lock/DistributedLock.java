@@ -49,4 +49,10 @@ public interface DistributedLock {
    * false if the user is not the lock owner or the lock doesn't have a owner
    */
   boolean isCurrentOwner();
+
+  /**
+   * Call this method to close the lock's zookeeper connection
+   * The lock has to be unlocked or expired before this method can be called
+   */
+  void close();
 }

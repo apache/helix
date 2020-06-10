@@ -45,7 +45,7 @@
     "express-session": "^1.15.6",
     "hammerjs": "^2.0.8",
     "ldapjs": "^1.0.2",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.12",
     "moment": "^2.22.2",
     "morgan": "^1.8.2",
     "ngx-clipboard": "^9.0.0",

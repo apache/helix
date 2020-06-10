@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -213,6 +214,18 @@ public final class HelixUtil {
       List<LiveInstance> filteredLiveInstances = liveInstanceMap.entrySet().stream()
           .filter(entry -> liveInstances.contains(entry.getKey())).map(Map.Entry::getValue)
           .collect(Collectors.toList());
+      // Synthetically create LiveInstance objects that are passed in as the parameter
+      // First, determine which new LiveInstance objects need to be created
+      liveInstances.removeAll(filteredLiveInstances.stream().map(LiveInstance::getInstanceName)
+          .collect(Collectors.toList()));
+      liveInstances.forEach(liveInstanceName -> {
+        // Create a new LiveInstance object and give it a random UUID as a session ID
+        LiveInstance newLiveInstanceObj = new LiveInstance(liveInstanceName);
+        newLiveInstanceObj.getRecord()
+            .setSimpleField(LiveInstance.LiveInstanceProperty.SESSION_ID.name(),
+                UUID.randomUUID().toString().replace("-", ""));
+        filteredLiveInstances.add(newLiveInstanceObj);
+      });
       dataProvider.setLiveInstances(new ArrayList<>(filteredLiveInstances));
       dataProvider.setIdealStates(idealStates);
       dataProvider.setResourceConfigMap(resourceConfigs.stream()

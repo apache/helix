@@ -530,7 +530,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
-    event.addAttribute(AttributeName.CONTROLLER_LEADER_SESSION.name(), manager.getSessionId());
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     refreshClusterConfig(clusterName, accessor);
 
     // cluster data cache refresh pipeline

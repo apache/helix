@@ -20,6 +20,7 @@ package org.apache.helix;
  */
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
@@ -39,7 +40,6 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.controller.InstanceLeaderSession;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -421,24 +421,21 @@ public interface HelixManager {
   Long getSessionStartTime();
 
   /**
+   * Checks whether the cluster manager is leader and returns the session ID associated to the
+   * connection of cluster data store, if and only if it is leader.
+   *
+   * @return {@code Optional<String>} session ID is present inside the {@code Optional} object
+   * if the cluster manager is leader. Otherwise, returns an empty {@code Optional} object.
+   */
+  default Optional<String> getSessionIdIfLeader() {
+    throw new UnsupportedOperationException("Not implemented");
+  }
+
+  /**
    * Check if the cluster manager is the leader
    * @return true if this is a controller and a leader of the cluster
    */
   boolean isLeader();
-
-  /**
-   * Checks whether the cluster manager is leader and sets its ZK session in param
-   * {@link InstanceLeaderSession} if and only if it is leader.
-   *
-   * @param instanceLeaderSession To include ZK session ID of the cluster manager in return
-   *
-   * @return true if the instance is a leader of the cluster and Zk session of the cluster
-   * manager is returned in param {@link InstanceLeaderSession}
-   */
-  default boolean isInstanceLeader(InstanceLeaderSession instanceLeaderSession) {
-    throw new UnsupportedOperationException(
-        "Checking leader and returning session is not supported.");
-  }
 
   /**
    * start timer tasks when becomes leader

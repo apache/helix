@@ -695,17 +695,18 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
         _rebalancerRef.getRebalancer(manager));
 
-    final InstanceLeaderSession leaderSession = new InstanceLeaderSession();
-    if (!manager.isInstanceLeader(leaderSession)) {
-      logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader for " + manager
-          .getClusterName() + ". Pipeline will not be invoked");
+    Optional<String> leaderSession = manager.getSessionIdIfLeader();
+    // If session is not present, this cluster manager is not leader for the cluster.
+    if (!leaderSession.isPresent()) {
+      logger.error("Cluster manager: {} is not leader for {}. Pipeline will not be invoked",
+          manager.getInstanceName(), manager.getClusterName());
       return;
     }
 
-    // Add controller leader's ZK session to the event so that we could check necessary ZK writes
-    // with this expected ZK session. Eg. if controller loses leadership, it should not send out
-    // messages. We achieve this by checking this expected ZK session.
-    event.addAttribute(AttributeName.CONTROLLER_LEADER_SESSION.name(), leaderSession.getSession());
+    // Add controller leader's session ID to the event so that we could check necessary writes
+    // with this expected session ID. Eg. if controller loses leadership, its session ID won't
+    // match this expected session ID. So it should not send out messages.
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
 
     _helixManager = manager;
 
@@ -763,9 +764,9 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
 
-    logger.info(String.format("START: Invoking %s controller pipeline for cluster %s event: %s  %s",
-        manager.getClusterName(), dataProvider.getPipelineName(), event.getEventType(),
-        event.getEventId()));
+    logger.info("START: Invoking {} controller pipeline for cluster: {}. Event type: {}, ID: {}. "
+            + "Event session ID: {}", manager.getClusterName(), dataProvider.getPipelineName(),
+        event.getEventType(), event.getEventId(), leaderSession.get());
 
     long startTime = System.currentTimeMillis();
     boolean rebalanceFail = false;

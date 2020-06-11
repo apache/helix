@@ -96,7 +96,7 @@ public interface BaseDataAccessor<T> {
   boolean[] createChildren(List<String> paths, List<T> records, int options);
 
   /**
-   * Use it when creating children under a parent node with an expected ZK session.
+   * Use it when creating children under a parent node with an expected session ID.
    * <p>
    * This will use async api for better performance. If the children already exist it will return
    * false.
@@ -110,7 +110,7 @@ public interface BaseDataAccessor<T> {
   default boolean[] createChildren(List<String> paths, List<T> records, int options,
       String expectedSession) {
     throw new UnsupportedOperationException(
-        "Create children with expected ZK session is not supported");
+        "Create children with expected ZK session is not implemented");
   }
 
   /**

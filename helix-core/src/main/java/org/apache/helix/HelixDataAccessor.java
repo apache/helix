@@ -27,8 +27,8 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 
 /**
@@ -190,7 +190,7 @@ public interface HelixDataAccessor {
 
   /**
    * Adds multiple children to a parent. If successful, the children will be created by the expected
-   * ZK session. If current ZK session does not match expected session, the creation operation will
+   * ZK session. If current session ID does not match expected session, the creation operation will
    * fail.
    *
    * @param keys property keys
@@ -198,10 +198,9 @@ public interface HelixDataAccessor {
    * @param expectedSession expected ZK session to create the children znodes
    * @return array where true means the child was added and false means it was not
    */
-  default <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys, List<T> children,
-      String expectedSession) {
-    throw new UnsupportedOperationException(
-        "Creating children with expected ZK session is not supported.");
+  default <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
+      List<T> children, String expectedSession) {
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   /**

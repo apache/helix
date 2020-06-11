@@ -695,7 +695,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
         _rebalancerRef.getRebalancer(manager));
 
-    Optional<String> leaderSession = manager.getSessionIdIfLeader();
+    Optional<String> leaderSession = manager.getSessionIdIfLead();
     // If session is not present, this cluster manager is not leader for the cluster.
     if (!leaderSession.isPresent()) {
       logger.error("Cluster manager: {} is not leader for {}. Pipeline will not be invoked",

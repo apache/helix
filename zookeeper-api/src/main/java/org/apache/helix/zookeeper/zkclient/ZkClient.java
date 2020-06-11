@@ -1819,42 +1819,6 @@ public class ZkClient implements Watcher {
     });
   }
 
-  private ZooKeeper getExpectedZookeeper(final String expectedSessionId, final CreateMode mode) {
-    ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
-
-    /*
-     * 1. If operation is session aware, we have to check whether or not the
-     * passed-in(expected) session id matches actual session's id.
-     * If not, ephemeral node creation is failed. This validation is
-     * critical to guarantee the ephemeral node created by the expected ZK session.
-     *
-     * 2. Otherwise, the operation is NOT session aware.
-     * In this case, we will use the actual zookeeper session to create the node.
-     */
-    if (isSessionAwareOperation(expectedSessionId, mode)) {
-      acquireEventLock();
-      try {
-        final String actualSessionId = Long.toHexString(zk.getSessionId());
-        if (!actualSessionId.equals(expectedSessionId)) {
-          throw new ZkSessionMismatchedException(
-              "Failed to create ephemeral node! There is a session id mismatch. Expected: "
-                  + expectedSessionId + ". Actual: " + actualSessionId);
-        }
-
-        /*
-         * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
-         * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
-         * may cause potential performance issue.
-         */
-        zk = ((ZkConnection) getConnection()).getZookeeper();
-      } finally {
-        getEventLock().unlock();
-      }
-    }
-
-    return zk;
-  }
-
   // Async Data Accessors
   public void asyncSetData(final String path, Object datat, final int version,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
@@ -2244,22 +2208,21 @@ public class ZkClient implements Watcher {
   }
 
   /*
-   * Session aware operation needs below requirements:
-   * 1. the session id is NOT null or empty
-   * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
+   * Gets the zookeeper instance that ensures its session ID matches the expected session ID.
+   * It is used for write operations that suppose the znode to be created by the expected session.
    */
-  private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
-    return expectedSessionId != null && !expectedSessionId.isEmpty() && mode.isEphemeral();
-  }
-
   private ZooKeeper getExpectedZookeeper(final String expectedSessionId) {
     ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
+
+    if (expectedSessionId == null || expectedSessionId.isEmpty()) {
+      return zk;
+    }
 
     /*
      * 1. If operation is session aware, we have to check whether or not the
      * passed-in(expected) session id matches actual session's id.
-     * If not, ephemeral node creation is failed. This validation is
-     * critical to guarantee the ephemeral node created by the expected ZK session.
+     * If not, znode creation is failed. This validation is
+     * critical to guarantee the znode is created by the expected ZK session.
      *
      * 2. Otherwise, the operation is NOT session aware.
      * In this case, we will use the actual zookeeper session to create the node.
@@ -2269,8 +2232,8 @@ public class ZkClient implements Watcher {
       final String actualSessionId = Long.toHexString(zk.getSessionId());
       if (!actualSessionId.equals(expectedSessionId)) {
         throw new ZkSessionMismatchedException(
-            "There is a session id mismatch. Expected: " + expectedSessionId + ". Actual: "
-                + actualSessionId);
+            "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
+                + expectedSessionId + ". Actual: " + actualSessionId);
       }
 
       /*
@@ -2278,12 +2241,10 @@ public class ZkClient implements Watcher {
        * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
        * may cause potential performance issue.
        */
-      zk = ((ZkConnection) getConnection()).getZookeeper();
+      return ((ZkConnection) getConnection()).getZookeeper();
     } finally {
       getEventLock().unlock();
     }
-
-    return zk;
   }
 
   // operations to update monitor's counters

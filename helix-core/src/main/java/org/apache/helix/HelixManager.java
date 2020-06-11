@@ -427,7 +427,7 @@ public interface HelixManager {
    * @return {@code Optional<String>} session ID is present inside the {@code Optional} object
    * if the cluster manager is leader. Otherwise, returns an empty {@code Optional} object.
    */
-  default Optional<String> getSessionIdIfLeader() {
+  default Optional<String> getSessionIdIfLead() {
     throw new UnsupportedOperationException("Not implemented");
   }
 

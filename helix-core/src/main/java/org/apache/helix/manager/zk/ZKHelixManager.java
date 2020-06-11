@@ -974,11 +974,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public boolean isLeader() {
-    return getSessionIdIfLeader().isPresent();
+    return getSessionIdIfLead().isPresent();
   }
 
   @Override
-  public Optional<String> getSessionIdIfLeader() {
+  public Optional<String> getSessionIdIfLead() {
     String warnLogPrefix = String
         .format("Instance %s is not leader of cluster %s due to", _instanceName, _clusterName);
     if (_instanceType != InstanceType.CONTROLLER

@@ -1,4 +1,4 @@
-package org.apache.helix.manager.zk;
+package org.apache.helix.zookeeper.datamodel.serializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,8 +24,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-
 
 public class ChainedPathZkSerializer implements PathBasedZkSerializer {
 

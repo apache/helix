@@ -761,8 +761,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
     }
 
-    resetTriggerTask();
-
+    initTriggerTask();
     updateNotificationTime(System.nanoTime());
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -884,23 +883,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             _batchCallbackProcessor.resetEventQueue();
           }
         }
-
-        NotificationContext changeContext = new NotificationContext(_manager);
-        changeContext.setType(NotificationContext.Type.FINALIZE);
-        changeContext.setChangeType(_changeType);
-        invoke(changeContext);
-
-        if (_periodicTriggerExecutor != null) {
-          if (isShutdown) {
-            _periodicTriggerExecutor.shutdownNow();
-            if (!_scheduledTriggerFuture.isCancelled()) {
-              _scheduledTriggerFuture.cancel(true);
-            }
-          } else {
-            resetTriggerTask();
-          }
-        }
+        shutDownTriggerTask(isShutdown);
       }
+      NotificationContext changeContext = new NotificationContext(_manager);
+      changeContext.setType(NotificationContext.Type.FINALIZE);
+      changeContext.setChangeType(_changeType);
+      invoke(changeContext);
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
@@ -931,22 +919,33 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   /**
-   * Used to initialize or reset a periodic refresh task
+   * Used to shut down a periodic triggered task
+   */
+  private void shutDownTriggerTask(boolean isShutdown) {
+    if (_scheduledTriggerFuture != null) {
+      _scheduledTriggerFuture.cancel(true);
+    }
+    if (_periodicTriggerExecutor != null && isShutdown) {
+      _periodicTriggerExecutor.shutdownNow();
+      _periodicTriggerExecutor = null;
+    }
+  }
+
+  /**
+   * Used to initialize a periodic triggered task
    * Schedule tasks in a task executor with fixed intervals
    */
-  private void resetTriggerTask() {
+  private void initTriggerTask() {
     if (_periodicTriggerInterval <= 0) {
       return;
     }
+    shutDownTriggerTask(false);
     _lastInvokeTime = System.currentTimeMillis();
     if (_periodicTriggerExecutor == null) {
       _periodicTriggerExecutor = new ScheduledThreadPoolExecutor(1);
       // When cancelling the task future, it removes the task from the queue
       // so we won't have a memory leakage when we cancel scheduled task
       _periodicTriggerExecutor.setRemoveOnCancelPolicy(true);
-    }
-    if (_scheduledTriggerFuture != null) {
-      _scheduledTriggerFuture.cancel(true);
     }
     _scheduledTriggerFuture = _periodicTriggerExecutor
         .scheduleWithFixedDelay(new TriggerTask(), _periodicTriggerInterval,

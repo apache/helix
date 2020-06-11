@@ -168,7 +168,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     Method resetMethod = CallbackHandler.class.getDeclaredMethod("reset", boolean.class);
     resetMethod.setAccessible(true);
 
-    // Reset(false): reset only
+    // Reset(false)
     resetMethod.invoke(mockHandler, false);
     listener0.messageEventReceived = false;
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -177,9 +177,21 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
         return listener0.messageEventReceived;
       }
     }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(result);
+
+    // Reinit
+    Method initMethod = CallbackHandler.class.getDeclaredMethod("init");
+    initMethod.setAccessible(true);
+    initMethod.invoke(mockHandler);
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener0.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
-    // Reset(true): shut down
+    //Reset(true): shut down
     resetMethod.invoke(mockHandler, true);
     listener0.messageEventReceived = false;
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -244,10 +256,21 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     Method resetMethod = CallbackHandler.class.getDeclaredMethod("reset", boolean.class);
     resetMethod.setAccessible(true);
 
-    // Reset(false): reset only
+    // Reset(false): reset
     resetMethod.invoke(mockHandler, false);
-    System.out.println("Reset bool");
     listener3.messageEventReceived = false;
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener3.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(result);
+
+    // Reinit
+    Method initMethod = CallbackHandler.class.getDeclaredMethod("init");
+    initMethod.setAccessible(true);
+    initMethod.invoke(mockHandler);
     result = TestHelper.verify(new TestHelper.Verifier() {
       @Override
       public boolean verify() throws Exception {
@@ -256,7 +279,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
-    // Reset(true): shut down
+    //Reset(true): shut down
     resetMethod.invoke(mockHandler, true);
     listener3.messageEventReceived = false;
     result = TestHelper.verify(new TestHelper.Verifier() {

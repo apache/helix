@@ -28,9 +28,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -136,8 +136,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicTriggerInterval;
-  private ScheduledThreadPoolExecutor _periodicTriggerExecutor;
-  private ScheduledFuture<?> _scheduledTriggerFuture;
+  private ExecutorService _periodicTriggerExecutor;
+  private Future<?> _periodicTriggerFuture;
   private volatile long _lastInvokeTime;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
@@ -221,12 +221,18 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * wait until reaching the interval and check again
    */
   class TriggerTask implements Runnable {
+    private final long _triggerInterval;
+
+    public TriggerTask(long triggerInterval) {
+      this._triggerInterval = triggerInterval;
+    }
+
     @Override
     public void run() {
-      try {
-        while (true) {
+      while (!Thread.currentThread().isInterrupted()) {
+        try {
           long currentTime = System.currentTimeMillis();
-          long remainingTime = _lastInvokeTime + _periodicTriggerInterval - currentTime;
+          long remainingTime = _lastInvokeTime + _triggerInterval - currentTime;
           if (remainingTime <= 0) {
             // If there is no event in the queue, meaning this long idle time could be due to lack of events
             // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
@@ -235,16 +241,20 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               changeContext.setType(Type.CALLBACK);
               changeContext.setChangeType(_changeType);
               enqueueTask(changeContext);
+            } else {
+              // Event is already queued but not processed yet
+              wait(_triggerInterval);
             }
-            break;
           } else {
             wait(remainingTime);
           }
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        } catch (IllegalMonitorStateException e0) {
+          // Wait() time out, do nothing
+        } catch (Exception e1) {
+          logger.warn("Exception during execute refresh task. Error: ", e1);
         }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      } catch (Exception e1) {
-        logger.warn("Exception during execute refresh task. Error: ", e1);
       }
     }
   }
@@ -761,7 +771,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
     }
 
-    initTriggerTask();
+    initTriggerTask(_periodicTriggerInterval);
     updateNotificationTime(System.nanoTime());
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -922,8 +932,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * Used to shut down a periodic triggered task
    */
   private void shutDownTriggerTask(boolean isShutdown) {
-    if (_scheduledTriggerFuture != null) {
-      _scheduledTriggerFuture.cancel(true);
+    if (_periodicTriggerFuture != null) {
+      _periodicTriggerFuture.cancel(true);
     }
     if (_periodicTriggerExecutor != null && isShutdown) {
       _periodicTriggerExecutor.shutdownNow();
@@ -935,20 +945,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * Used to initialize a periodic triggered task
    * Schedule tasks in a task executor with fixed intervals
    */
-  private void initTriggerTask() {
-    if (_periodicTriggerInterval <= 0) {
+  private void initTriggerTask(long triggerInterval) {
+    if (triggerInterval <= 0) {
       return;
     }
     shutDownTriggerTask(false);
     _lastInvokeTime = System.currentTimeMillis();
     if (_periodicTriggerExecutor == null) {
-      _periodicTriggerExecutor = new ScheduledThreadPoolExecutor(1);
-      // When cancelling the task future, it removes the task from the queue
-      // so we won't have a memory leakage when we cancel scheduled task
-      _periodicTriggerExecutor.setRemoveOnCancelPolicy(true);
+      _periodicTriggerExecutor = Executors.newSingleThreadExecutor();
     }
-    _scheduledTriggerFuture = _periodicTriggerExecutor
-        .scheduleWithFixedDelay(new TriggerTask(), _periodicTriggerInterval,
-            _periodicTriggerInterval, TimeUnit.MILLISECONDS);
+    _periodicTriggerFuture = _periodicTriggerExecutor
+        .submit(new TriggerTask(triggerInterval));
   }
 }

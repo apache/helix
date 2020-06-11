@@ -155,12 +155,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     TestMessageListener listener0 = new TestMessageListener();
     // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
     _manager.addMessageListener(listener0, instanceName, clusterName, 1);
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener0.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    boolean result = TestHelper.verify(() -> listener0.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // Test reset method
@@ -171,12 +166,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     // Reset(false)
     resetMethod.invoke(mockHandler, false);
     listener0.messageEventReceived = false;
-    result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener0.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    result = TestHelper.verify(() -> listener0.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertFalse(result);
 
     // Reinit
@@ -208,12 +198,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     TestMessageListener listener1 = new TestMessageListener();
     // Not doing refresh
     _manager.addMessageListener(listener1, instanceName, clusterName, -1);
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener1.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    boolean result = TestHelper.verify(() -> listener1.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertFalse(result);
   }
 
@@ -228,12 +213,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
     // Make sue when the first refresh is executed (t0), interval (wait_duration/8) + lastEventTime (t1 (very close to t0) + wait_duration/8) > t0
     // So it will sleep and do the refresh after another interval passes which is at t1 + wait_duration/4
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener2.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    boolean result = TestHelper.verify(() -> listener2.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
   }
 
@@ -243,12 +223,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     TestMessageListener listener3 = new TestMessageListener();
     // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
     _manager.addMessageListener(listener3, instanceName, clusterName, 1);
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener3.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    boolean result = TestHelper.verify(() -> listener3.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // Test reset method
@@ -305,12 +280,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     lastEventTimeField.set(mockHandler, System.currentTimeMillis() + TestHelper.WAIT_DURATION / 8);
     // Make sue when the first refresh is executed (t0), interval (wait_duration/8) + lastEventTime (t1 (very close to t0) + wait_duration/8) > t0
     // So it will sleep and do the refresh after another interval passes which is at t1 + wait_duration/4
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() throws Exception {
-        return listener4.messageEventReceived;
-      }
-    }, TestHelper.WAIT_DURATION);
+    boolean result = TestHelper.verify(() -> listener4.messageEventReceived, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
     System.clearProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
   }

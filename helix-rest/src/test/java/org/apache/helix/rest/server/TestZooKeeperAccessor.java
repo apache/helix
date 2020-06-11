@@ -28,10 +28,12 @@ import java.util.Map;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -156,5 +158,23 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+  }
+
+  @Test
+  public void testGetStat() throws IOException {
+    String path = "/path/getStat";
+
+    // Create a test ZNode (ephemeral)
+    _testBaseDataAccessor.create(path, null, AccessOption.PERSISTENT);
+    Stat stat = _testBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    Map<String, String> expectedFields = ZKUtil.fromStatToMap(stat);
+    expectedFields.put("path", path);
+
+    // Verify with the REST endpoint
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
+        .isBodyReturnExpected(true).get(this);
+    Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
+
+    Assert.assertEquals(result, expectedFields);
   }
 }

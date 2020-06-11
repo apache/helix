@@ -32,10 +32,12 @@ import com.google.common.base.Enums;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +52,7 @@ public class ZooKeeperAccessor extends AbstractResource {
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
   public enum ZooKeeperCommand {
-    exists, getBinaryData, getStringData, getChildren
+    exists, getBinaryData, getStringData, getChildren, getStat
   }
 
   @GET
@@ -85,6 +87,8 @@ public class ZooKeeperAccessor extends AbstractResource {
         return getStringData(_zkBaseDataAccessor, path);
       case getChildren:
         return getChildren(_zkBaseDataAccessor, path);
+      case getStat:
+        return getStat(_zkBaseDataAccessor, path);
       default:
         String errMsg = "Unsupported command: " + commandStr;
         LOG.error(errMsg);
@@ -162,6 +166,24 @@ public class ZooKeeperAccessor extends AbstractResource {
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist", path)).build());
+    }
+  }
+
+  /**
+   * Returns the ZNode Stat object given the path.
+   * @param zkBaseDataAccessor
+   * @param path
+   * @return
+   */
+  private Response getStat(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+    if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
+      Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+      Map<String, String> result = ZKUtil.fromStatToMap(stat);
+      result.put("path", path);
+      return JSONRepresentation(result);
+    } else {
+      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
   }
 

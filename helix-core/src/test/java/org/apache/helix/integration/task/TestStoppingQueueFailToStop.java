@@ -21,8 +21,6 @@ package org.apache.helix.integration.task;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -41,10 +39,8 @@ import org.apache.helix.task.TaskUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-
 
 /**
  * Test to check if waitToStop method correctly throws an Exception if Queue stuck in STOPPING
@@ -52,8 +48,7 @@ import com.google.common.collect.Sets;
  */
 public class TestStoppingQueueFailToStop extends TaskTestBase {
   private static final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
-  protected HelixDataAccessor _accessor;
-  private boolean TASK_STOPPABLE = false;
+  private boolean _taskStoppable = false;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -104,13 +99,13 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
         TaskState.IN_PROGRESS);
     boolean exceptionHappened = false;
     try {
-      _driver.waitToStop(jobQueueName, 5000);
+      _driver.waitToStop(jobQueueName, 5000L);
     } catch (HelixException e) {
       exceptionHappened = true;
     }
     _driver.pollForWorkflowState(jobQueueName, TaskState.STOPPING);
     Assert.assertTrue(exceptionHappened);
-    TASK_STOPPABLE = true;
+    _taskStoppable = true;
   }
 
   /**
@@ -124,7 +119,7 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
 
     @Override
     public void cancel() {
-      while (!TASK_STOPPABLE) {
+      while (!_taskStoppable) {
         try {
           Thread.sleep(1000L);
         } catch (Exception e) {

@@ -295,10 +295,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       _watchChild = true;
     }
 
-    parseListenerProperties();
-
-    init();
-
     /**
      * Async batch read was designed that if an exception is thrown, the operation fails and returns a partial result.
      * The issue is separately addressed by checking read result in batch read calls [https://github.com/apache/helix/pull/974]
@@ -306,7 +302,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
      * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
      */
     _periodicTriggerInterval = periodicTriggerInterval;
-    initOrResetTriggerTask();
+
+    parseListenerProperties();
+
+    init();
   }
 
   private void parseListenerProperties() {
@@ -762,6 +761,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
     }
 
+    resetTriggerTask();
+
     updateNotificationTime(System.nanoTime());
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -879,21 +880,27 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           if (isShutdown) {
             _batchCallbackProcessor.shutdown();
             _batchCallbackProcessor = null;
-            if (_periodicTriggerExecutor != null) {
-              _periodicTriggerExecutor.shutdownNow();
-            }
           } else {
             _batchCallbackProcessor.resetEventQueue();
-            if (_periodicTriggerExecutor != null) {
-              initOrResetTriggerTask();
+          }
+        }
+
+        NotificationContext changeContext = new NotificationContext(_manager);
+        changeContext.setType(NotificationContext.Type.FINALIZE);
+        changeContext.setChangeType(_changeType);
+        invoke(changeContext);
+
+        if (_periodicTriggerExecutor != null) {
+          if (isShutdown) {
+            _periodicTriggerExecutor.shutdownNow();
+            if (!_scheduledTriggerFuture.isCancelled()) {
+              _scheduledTriggerFuture.cancel(true);
             }
+          } else {
+            resetTriggerTask();
           }
         }
       }
-      NotificationContext changeContext = new NotificationContext(_manager);
-      changeContext.setType(NotificationContext.Type.FINALIZE);
-      changeContext.setChangeType(_changeType);
-      invoke(changeContext);
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
@@ -927,17 +934,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * Used to initialize or reset a periodic refresh task
    * Schedule tasks in a task executor with fixed intervals
    */
-  private void initOrResetTriggerTask() {
+  private void resetTriggerTask() {
     if (_periodicTriggerInterval <= 0) {
       return;
     }
     _lastInvokeTime = System.currentTimeMillis();
     if (_periodicTriggerExecutor == null) {
       _periodicTriggerExecutor = new ScheduledThreadPoolExecutor(1);
+      // When cancelling the task future, it removes the task from the queue
+      // so we won't have a memory leakage when we cancel scheduled task
+      _periodicTriggerExecutor.setRemoveOnCancelPolicy(true);
     }
-    // When cancelling the task future, it removes the task from the queue
-    // so we won't have a memory leakage when we cancel scheduled task
-    _periodicTriggerExecutor.setRemoveOnCancelPolicy(true);
     if (_scheduledTriggerFuture != null) {
       _scheduledTriggerFuture.cancel(true);
     }

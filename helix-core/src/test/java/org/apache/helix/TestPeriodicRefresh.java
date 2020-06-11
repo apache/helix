@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +125,10 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     @Override
     public void onMessage(String instanceName, List<Message> messages,
         NotificationContext changeContext) {
+      if (changeContext.getType() == NotificationContext.Type.INIT
+          || changeContext.getType() == NotificationContext.Type.FINALIZE) {
+        return;
+      }
       messageEventReceived = true;
     }
   }
@@ -146,7 +151,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   }
 
   @Test
-  public void testWithRefresh() throws Exception {
+  public void testWithRefreshAndReset() throws Exception {
     TestMessageListener listener0 = new TestMessageListener();
     // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
     _manager.addMessageListener(listener0, instanceName, clusterName, 1);
@@ -157,6 +162,33 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
+
+    // Test reset method
+    CallbackHandler mockHandler = _manager._testHandlers.get(listener0);
+    Method resetMethod = CallbackHandler.class.getDeclaredMethod("reset", boolean.class);
+    resetMethod.setAccessible(true);
+
+    // Reset(false): reset only
+    resetMethod.invoke(mockHandler, false);
+    listener0.messageEventReceived = false;
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener0.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+
+    // Reset(true): shut down
+    resetMethod.invoke(mockHandler, true);
+    listener0.messageEventReceived = false;
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener0.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(result);
   }
 
   @Test
@@ -194,7 +226,7 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
   }
 
   @Test
-  public void testWithRefreshInBatchMode() throws Exception {
+  public void testWithRefreshAndResetInBatchMode() throws Exception {
     System.setProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED, String.valueOf(true));
     TestMessageListener listener3 = new TestMessageListener();
     // Set interval to 1 so interval + lastEventTime will always < current time (this value has to be > 0)
@@ -206,6 +238,35 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
+
+    // Test reset method
+    CallbackHandler mockHandler = _manager._testHandlers.get(listener3);
+    Method resetMethod = CallbackHandler.class.getDeclaredMethod("reset", boolean.class);
+    resetMethod.setAccessible(true);
+
+    // Reset(false): reset only
+    resetMethod.invoke(mockHandler, false);
+    System.out.println("Reset bool");
+    listener3.messageEventReceived = false;
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener3.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+
+    // Reset(true): shut down
+    resetMethod.invoke(mockHandler, true);
+    listener3.messageEventReceived = false;
+    result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        return listener3.messageEventReceived;
+      }
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertFalse(result);
+
     System.clearProperty(SystemPropertyKeys.LEGACY_ASYNC_BATCH_MODE_ENABLED);
   }
 

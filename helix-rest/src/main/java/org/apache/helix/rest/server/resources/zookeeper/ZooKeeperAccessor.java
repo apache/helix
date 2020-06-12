@@ -186,15 +186,14 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return
    */
   private Response getStat(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
-    if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
-      Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
-      Map<String, String> result = ZKUtil.fromStatToMap(stat);
-      result.put("path", path);
-      return JSONRepresentation(result);
-    } else {
+    Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    if (stat == null) {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
+    Map<String, String> result = ZKUtil.fromStatToMap(stat);
+    result.put("path", path);
+    return JSONRepresentation(result);
   }
 
   private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {

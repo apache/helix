@@ -171,6 +171,11 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   public void testGetStat() throws IOException {
     String path = "/path/getStat";
 
+    // Make sure it returns a NOT FOUND if there is no ZNode
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
+        .isBodyReturnExpected(false)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
+
     // Create a test ZNode (ephemeral)
     _testBaseDataAccessor.create(path, null, AccessOption.PERSISTENT);
     Stat stat = _testBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
@@ -178,7 +183,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     expectedFields.put("path", path);
 
     // Verify with the REST endpoint
-    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
+    data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
         .isBodyReturnExpected(true).get(this);
     Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
 

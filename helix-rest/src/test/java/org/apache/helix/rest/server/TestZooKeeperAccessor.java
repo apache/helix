@@ -107,25 +107,32 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
     // Now write data and test
     _testBaseDataAccessor.create(path, content.getBytes(), AccessOption.PERSISTENT);
+    // Get the stat object
+    Stat expectedStat = _testBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    String getStatKey = "getStat";
 
     // Test getStringData
     String getStringDataKey = "getStringData";
     data = new JerseyUriRequestBuilder("zookeeper{}?command=getStringData").format(path)
         .isBodyReturnExpected(true).get(this);
-    Map<String, String> stringResult = OBJECT_MAPPER.readValue(data, Map.class);
+    Map<String, Object> stringResult = OBJECT_MAPPER.readValue(data, Map.class);
     Assert.assertTrue(stringResult.containsKey(getStringDataKey));
     Assert.assertEquals(stringResult.get(getStringDataKey), content);
+    Assert.assertTrue(stringResult.containsKey(getStatKey));
+    Assert.assertEquals(stringResult.get(getStatKey), ZKUtil.fromStatToMap(expectedStat));
 
     // Test getBinaryData
     String getBinaryDataKey = "getBinaryData";
     data = new JerseyUriRequestBuilder("zookeeper{}?command=getBinaryData").format(path)
         .isBodyReturnExpected(true).get(this);
-    Map<String, String> binaryResult = OBJECT_MAPPER.readValue(data, Map.class);
+    Map<String, Object> binaryResult = OBJECT_MAPPER.readValue(data, Map.class);
     Assert.assertTrue(binaryResult.containsKey(getBinaryDataKey));
     // Note: The response's byte array is encoded into a String using Base64 (for safety),
     // so the user must decode with Base64 to get the original byte array back
-    byte[] decodedBytes = Base64.getDecoder().decode(binaryResult.get(getBinaryDataKey));
+    byte[] decodedBytes = Base64.getDecoder().decode((String) binaryResult.get(getBinaryDataKey));
     Assert.assertEquals(decodedBytes, content.getBytes());
+    Assert.assertTrue(binaryResult.containsKey(getStatKey));
+    Assert.assertEquals(binaryResult.get(getStatKey), ZKUtil.fromStatToMap(expectedStat));
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);

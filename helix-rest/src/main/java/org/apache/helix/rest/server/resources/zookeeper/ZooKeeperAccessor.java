@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.resources.zookeeper;
 
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -113,15 +114,17 @@ public class ZooKeeperAccessor extends AbstractResource {
   }
 
   /**
-   * Returns a response containing the binary data.
+   * Returns a response containing the binary data and Stat.
    * @param zkBaseDataAccessor
    * @param path
    * @return
    */
   private Response getBinaryData(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
-    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
-    Map<String, byte[]> binaryResult =
-        ImmutableMap.of(ZooKeeperCommand.getBinaryData.name(), bytes);
+    Stat stat = new Stat();
+    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path, stat);
+    Map<String, Object> binaryResult = ImmutableMap
+        .of(ZooKeeperCommand.getBinaryData.name(), bytes, ZooKeeperCommand.getStat.name(),
+            ZKUtil.fromStatToMap(stat));
     // Note: this serialization (using ObjectMapper) will convert this byte[] into
     // a Base64 String! The REST client (user) must convert the resulting String back into
     // a byte[] using Base64.
@@ -129,15 +132,17 @@ public class ZooKeeperAccessor extends AbstractResource {
   }
 
   /**
-   * Returns a response containing the string data.
+   * Returns a response containing the string data and Stat.
    * @param zkBaseDataAccessor
    * @param path
    * @return
    */
   private Response getStringData(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
-    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path);
-    Map<String, String> stringResult =
-        ImmutableMap.of(ZooKeeperCommand.getStringData.name(), new String(bytes));
+    Stat stat = new Stat();
+    byte[] bytes = readBinaryDataFromZK(zkBaseDataAccessor, path, stat);
+    Map<String, Object> stringResult = ImmutableMap
+        .of(ZooKeeperCommand.getStringData.name(), new String(bytes),
+            ZooKeeperCommand.getStat.name(), ZKUtil.fromStatToMap(stat));
     return JSONRepresentation(stringResult);
   }
 
@@ -147,9 +152,10 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @param path
    * @return
    */
-  private byte[] readBinaryDataFromZK(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path) {
+  private byte[] readBinaryDataFromZK(BaseDataAccessor<byte[]> zkBaseDataAccessor, String path,
+      Stat stat) {
     if (zkBaseDataAccessor.exists(path, AccessOption.PERSISTENT)) {
-      return zkBaseDataAccessor.get(path, null, AccessOption.PERSISTENT);
+      return zkBaseDataAccessor.get(path, stat, AccessOption.PERSISTENT);
     } else {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());

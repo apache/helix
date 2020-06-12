@@ -52,7 +52,11 @@ public class ZooKeeperAccessor extends AbstractResource {
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
   public enum ZooKeeperCommand {
-    exists, getBinaryData, getStringData, getChildren, getStat
+    exists,
+    getBinaryData,
+    getStringData,
+    getChildren,
+    getStat
   }
 
   @GET

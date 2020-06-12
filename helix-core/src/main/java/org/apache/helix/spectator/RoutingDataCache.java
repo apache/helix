@@ -142,11 +142,10 @@ class RoutingDataCache extends BasicClusterDataCache {
     if (LOG.isDebugEnabled()) {
       LOG.debug("CurrentStates: " + _currentStateCache);
       LOG.debug("TargetExternalViews: " + _targetExternalViewCache.getExternalViewMap());
-      if (_sourceDataTypeMap.containsKey(PropertyType.CUSTOMIZEDVIEW)) {
-        for (String customizedStateType : _sourceDataTypeMap.get(PropertyType.CUSTOMIZEDVIEW)) {
-          LOG.debug("CustomizedViews customizedStateType: " + customizedStateType + " "
-              + _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
-        }
+      for (String customizedStateType : _sourceDataTypeMap.getOrDefault(PropertyType.CUSTOMIZEDVIEW,
+          Collections.emptyList())) {
+        LOG.debug("CustomizedViews customizedStateType: " + customizedStateType + " "
+            + _customizedViewCaches.get(customizedStateType).getCustomizedViewMap());
       }
     }
   }

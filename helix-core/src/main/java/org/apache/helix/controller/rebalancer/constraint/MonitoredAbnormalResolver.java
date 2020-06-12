@@ -40,7 +40,7 @@ public class MonitoredAbnormalResolver implements AbnormalStateResolver {
    * A placeholder which will be used when the resolver is not specified.
    * This is a dummy class that does not really functional.
    */
-  public static MonitoredAbnormalResolver DUMMY_STATE_RESOLVER =
+  public final static MonitoredAbnormalResolver DUMMY_STATE_RESOLVER =
       new MonitoredAbnormalResolver(new AbnormalStateResolver() {
         public boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
             final String resourceName, final Partition partition,

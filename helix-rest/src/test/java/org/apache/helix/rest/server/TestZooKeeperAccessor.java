@@ -176,5 +176,8 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
 
     Assert.assertEquals(result, expectedFields);
+
+    // Clean up
+    _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
   }
 }

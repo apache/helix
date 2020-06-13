@@ -90,6 +90,7 @@ public class Topology {
         for (int i = 0; i < topologyKeys.length; i++) {
           if (topologyKeys[i].length() != 0) {
             _clusterTopologyKeys.add(topologyKeys[i]);
+            _defaultDomainPathValues.put(topologyKeys[i], DEFAULT_DOMAIN_PREFIX + topologyKeys[i]);
             lastValidTypeIdx = i;
           }
         }
@@ -201,11 +202,10 @@ public class Topology {
     // TODO: in relabalnce, maybe we should skip adding them to the tree for consistence.
     for (String instanceName : _allInstances) {
       InstanceConfig insConfig = _instanceConfigMap.get(instanceName);
-      LinkedHashMap<String, String> instanceTopologyMap;
       try {
-        instanceTopologyMap =
+        LinkedHashMap<String, String> instanceTopologyMap =
             computeInstanceTopologyMap(_clusterConfig.isTopologyAwareEnabled(), instanceName,
-                insConfig, _clusterTopologyKeys, _defaultDomainPathValues);
+                insConfig, _clusterTopologyKeys);
         int weight = insConfig.getWeight();
         if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
           weight = DEFAULT_NODE_WEIGHT;
@@ -239,11 +239,11 @@ public class Topology {
    * @return an LinkedHashMap object representing the topology path for the input instance.
    */
   private LinkedHashMap<String, String> computeInstanceTopologyMap(boolean isTopologyAwareEnabled,
-      String instanceName, InstanceConfig instanceConfig, LinkedHashSet<String> clusterTopologyKeys,
-      Map<String, String> defaultDomainPathValuesCache) throws IllegalArgumentException {
+      String instanceName, InstanceConfig instanceConfig, LinkedHashSet<String> clusterTopologyKeys)
+      throws IllegalArgumentException {
     LinkedHashMap<String, String> instanceTopologyMap = new LinkedHashMap<>();
     if (isTopologyAwareEnabled) {
-      if (clusterTopologyKeys == null || clusterTopologyKeys.size() == 0) {
+      if (clusterTopologyKeys.size() == 0) {
         // Return a ordered map using default cluster topology definition, i,e. /root/zone/instance
         String zone = instanceConfig.getZoneId();
         if (zone == null) {
@@ -258,27 +258,25 @@ public class Topology {
          * Return a ordered map representing the instance path. The topology order is defined in
          * ClusterConfig.topology.
          */
-        Map<String, String> domainAsMap;
-        try {
-          domainAsMap = instanceConfig.getDomainAsMap();
-        } catch (IllegalArgumentException e) {
-          throw new IllegalArgumentException(String
-              .format("Domain %s for instance %s is not valid, fail the topology-aware placement!",
-                  instanceConfig.getDomainAsString(), instanceName), e);
+        Map<String, String> domainAsMap = new HashMap<>();
+        String[] pathPairs = instanceConfig.getDomainAsString().trim().split(",");
+        for (String pair : pathPairs) {
+          String[] values = pair.trim().split("=");
+          if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
+            throw new IllegalArgumentException(String.format(
+                "Domain-Value pair %s for instance %s is not valid, failed the topology-aware placement!",
+                pair, instanceName));
+          }
+          domainAsMap.put(values[0], values[1]);
         }
 
-        if (domainAsMap == null || domainAsMap.isEmpty()) {
-          throw new IllegalArgumentException(String
-              .format("Domain for instance %s is not set, fail the topology-aware placement!",
-                  instanceName));
-        }
         int numOfMatchedKeys = 0;
         for (String key : clusterTopologyKeys) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
           if (value == null || value.length() == 0) {
-            value =
-                defaultDomainPathValuesCache.computeIfAbsent(key, k -> (DEFAULT_DOMAIN_PREFIX + key));
+            value = _defaultDomainPathValues.get(key);
+                //defaultDomainPathValuesCache.computeIfAbsent(key, k -> (DEFAULT_DOMAIN_PREFIX + key));
           } else {
             numOfMatchedKeys++;
           }
@@ -292,6 +290,7 @@ public class Topology {
         }
       }
     } else {
+      // TopologyAware rebalance is not enabled.
       instanceTopologyMap.put(Types.INSTANCE.name(), instanceName);
     }
     return instanceTopologyMap;

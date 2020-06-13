@@ -28,10 +28,12 @@ import java.util.Map;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -105,25 +107,32 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
     // Now write data and test
     _testBaseDataAccessor.create(path, content.getBytes(), AccessOption.PERSISTENT);
+    // Get the stat object
+    Stat expectedStat = _testBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    String getStatKey = "getStat";
 
     // Test getStringData
     String getStringDataKey = "getStringData";
     data = new JerseyUriRequestBuilder("zookeeper{}?command=getStringData").format(path)
         .isBodyReturnExpected(true).get(this);
-    Map<String, String> stringResult = OBJECT_MAPPER.readValue(data, Map.class);
+    Map<String, Object> stringResult = OBJECT_MAPPER.readValue(data, Map.class);
     Assert.assertTrue(stringResult.containsKey(getStringDataKey));
     Assert.assertEquals(stringResult.get(getStringDataKey), content);
+    Assert.assertTrue(stringResult.containsKey(getStatKey));
+    Assert.assertEquals(stringResult.get(getStatKey), ZKUtil.fromStatToMap(expectedStat));
 
     // Test getBinaryData
     String getBinaryDataKey = "getBinaryData";
     data = new JerseyUriRequestBuilder("zookeeper{}?command=getBinaryData").format(path)
         .isBodyReturnExpected(true).get(this);
-    Map<String, String> binaryResult = OBJECT_MAPPER.readValue(data, Map.class);
+    Map<String, Object> binaryResult = OBJECT_MAPPER.readValue(data, Map.class);
     Assert.assertTrue(binaryResult.containsKey(getBinaryDataKey));
     // Note: The response's byte array is encoded into a String using Base64 (for safety),
     // so the user must decode with Base64 to get the original byte array back
-    byte[] decodedBytes = Base64.getDecoder().decode(binaryResult.get(getBinaryDataKey));
+    byte[] decodedBytes = Base64.getDecoder().decode((String) binaryResult.get(getBinaryDataKey));
     Assert.assertEquals(decodedBytes, content.getBytes());
+    Assert.assertTrue(binaryResult.containsKey(getStatKey));
+    Assert.assertEquals(binaryResult.get(getStatKey), ZKUtil.fromStatToMap(expectedStat));
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
@@ -153,6 +162,32 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
     result.get(getChildrenKey).forEach(child -> {
       Assert.assertTrue(child.contains("children"));
     });
+
+    // Clean up
+    _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+  }
+
+  @Test
+  public void testGetStat() throws IOException {
+    String path = "/path/getStat";
+
+    // Make sure it returns a NOT FOUND if there is no ZNode
+    String data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
+        .isBodyReturnExpected(false)
+        .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).get(this);
+
+    // Create a test ZNode (ephemeral)
+    _testBaseDataAccessor.create(path, null, AccessOption.PERSISTENT);
+    Stat stat = _testBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    Map<String, String> expectedFields = ZKUtil.fromStatToMap(stat);
+    expectedFields.put("path", path);
+
+    // Verify with the REST endpoint
+    data = new JerseyUriRequestBuilder("zookeeper{}?command=getStat").format(path)
+        .isBodyReturnExpected(true).get(this);
+    Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
+
+    Assert.assertEquals(result, expectedFields);
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);

@@ -22,7 +22,9 @@ package org.apache.helix.manager.zk;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
@@ -631,5 +633,40 @@ public final class ZKUtil {
     clientConfig.setZkSerializer(new ZNRecordSerializer());
     return DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
+  }
+
+  /**
+   * Convert Stat fields into a Map.
+   *     private long czxid;
+   *     private long mzxid;
+   *     private long ctime;
+   *     private long mtime;
+   *     private int version;
+   *     private int cversion;
+   *     private int aversion;
+   *     private long ephemeralOwner;
+   *     private int dataLength;
+   *     private int numChildren;
+   *     private long pzxid;
+   * @param stat
+   * @return
+   */
+  public static Map<String, String> fromStatToMap(Stat stat) {
+    if (stat == null) {
+      throw new HelixException("Stat cannot be null!");
+    }
+    Map<String, String> statMap = new HashMap<>();
+    statMap.put("czxid", Long.toString(stat.getCzxid()));
+    statMap.put("mzxid", Long.toString(stat.getMzxid()));
+    statMap.put("ctime", Long.toString(stat.getCtime()));
+    statMap.put("mtime", Long.toString(stat.getMtime()));
+    statMap.put("version", Integer.toString(stat.getVersion()));
+    statMap.put("cversion", Integer.toString(stat.getCversion()));
+    statMap.put("aversion", Integer.toString(stat.getAversion()));
+    statMap.put("ephemeralOwner", Long.toString(stat.getEphemeralOwner()));
+    statMap.put("dataLength", Integer.toString(stat.getDataLength()));
+    statMap.put("numChildren", Integer.toString(stat.getNumChildren()));
+    statMap.put("pzxid", Long.toString(stat.getPzxid()));
+    return statMap;
   }
 }

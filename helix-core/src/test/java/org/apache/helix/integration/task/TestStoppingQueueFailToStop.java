@@ -21,6 +21,7 @@ package org.apache.helix.integration.task;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -48,7 +49,7 @@ import com.google.common.collect.Sets;
  */
 public class TestStoppingQueueFailToStop extends TaskTestBase {
   private static final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
-  private boolean _taskStoppable = false;
+  private CountDownLatch latch = new CountDownLatch(1);
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -105,7 +106,7 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
     }
     _driver.pollForWorkflowState(jobQueueName, TaskState.STOPPING);
     Assert.assertTrue(exceptionHappened);
-    _taskStoppable = true;
+    latch.countDown();
   }
 
   /**
@@ -119,12 +120,10 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
 
     @Override
     public void cancel() {
-      while (!_taskStoppable) {
-        try {
-          Thread.sleep(1000L);
-        } catch (Exception e) {
-          // Pass
-        }
+      try {
+        latch.await();
+      } catch (Exception e) {
+        // Pass
       }
       super.cancel();
     }

@@ -68,6 +68,11 @@ public class TaskDataCache extends AbstractDataCache {
   // JobDispatcher from RESOURCE_TO_BALANCE to reduce the redundant computation.
   private Set<String> _dispatchedJobs = new HashSet<>();
 
+  // Data storage used by the async thread of TaskGarbageCollectionStage. To avoid race conditions,
+  // other code should not intervene with them.
+  private Map<String, Set<String>> _expiredJobsByWorkflow = new HashMap<>();
+  private Set<String> _toBeDeletedWorkflows = new HashSet<>();
+
   private enum TaskDataType {
     CONTEXT
   }
@@ -417,5 +422,44 @@ public class TaskDataCache extends AbstractDataCache {
       return _runtimeJobDagMap.get(workflowName);
     }
     return null;
+  }
+
+  public ResourceAssignment getPreviousAssignment(String resourceName) {
+    return _prevAssignmentMap.get(resourceName) != null ? new ResourceAssignment(
+        _prevAssignmentMap.get(resourceName)) : null;
+  }
+
+  public void setPreviousAssignment(String resourceName, ResourceAssignment prevAssignment) {
+    _prevAssignmentMap.put(resourceName, prevAssignment.getRecord());
+    _prevAssignmentToUpdate.add(resourceName);
+  }
+
+  public void removePrevAssignment(String resourceName) {
+    _prevAssignmentMap.remove(resourceName);
+    _prevAssignmentToRemove.add(resourceName);
+  }
+
+  public Map<String, Set<String>> getExpiredJobsByWorkflow() {
+    return _expiredJobsByWorkflow;
+  }
+
+  public void setExpiredJobsForWorkflow(String workflowId, Set<String> expiredJobs) {
+    _expiredJobsByWorkflow.put(workflowId, expiredJobs);
+  }
+
+  public void clearExpiredJobsForWorkflow() {
+    _expiredJobsByWorkflow.clear();
+  }
+
+  public Set<String> getToBeDeletedWorkflows() {
+    return _toBeDeletedWorkflows;
+  }
+
+  public void addToBeDeletedWorkflow(String resourceName) {
+    _toBeDeletedWorkflows.add(resourceName);
+  }
+
+  public void clearToBeDeletedWorkflow() {
+    _toBeDeletedWorkflows.clear();
   }
 }

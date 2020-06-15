@@ -31,24 +31,6 @@ import org.apache.helix.model.StateModelDefinition;
  */
 public interface AbnormalStateResolver {
   /**
-   * A placeholder which will be used when the resolver is not specified.
-   * This is a dummy class that does not really functional.
-   */
-  AbnormalStateResolver DUMMY_STATE_RESOLVER = new AbnormalStateResolver() {
-    public boolean checkCurrentStates(final CurrentStateOutput currentStateOutput,
-        final String resourceName, final Partition partition,
-        final StateModelDefinition stateModelDef) {
-      // By default, all current states are valid.
-      return true;
-    }
-    public Map<String, String> computeRecoveryAssignment(final CurrentStateOutput currentStateOutput,
-        final String resourceName, final Partition partition,
-        final StateModelDefinition stateModelDef, final List<String> preferenceList) {
-      throw new UnsupportedOperationException("This resolver won't recover abnormal states.");
-    }
-  };
-
-  /**
    * Check if the current states of the specified partition is valid.
    * @param currentStateOutput
    * @param resourceName

@@ -32,10 +32,10 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.constraint.ExcessiveTopStateResolver;
 import org.apache.helix.controller.rebalancer.constraint.MockAbnormalStateResolver;
+import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -50,14 +50,18 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
+  // TODO: remove this wait time once we have a better way to determine if the rebalance has been
+  // TODO: done as a reaction of the test operations.
+  protected static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1000;
+
   @Test
   public void testConfigureResolver() {
     ResourceControllerDataProvider cache = new ResourceControllerDataProvider(CLUSTER_NAME);
     // Verify the initial setup.
     cache.refresh(_controller.getHelixDataAccessor());
     for (String stateModelDefName : cache.getStateModelDefMap().keySet()) {
-      Assert.assertEquals(cache.getAbnormalStateResolver(stateModelDefName).getClass(),
-          AbnormalStateResolver.DUMMY_STATE_RESOLVER.getClass());
+      Assert.assertEquals(cache.getAbnormalStateResolver(stateModelDefName).getResolverClass(),
+          MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER.getResolverClass());
     }
 
     // Update the resolver configuration for MasterSlave state model.
@@ -70,10 +74,10 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     cache.requireFullRefresh();
     cache.refresh(_controller.getHelixDataAccessor());
     for (String stateModelDefName : cache.getStateModelDefMap().keySet()) {
-      Assert.assertEquals(cache.getAbnormalStateResolver(stateModelDefName).getClass(),
+      Assert.assertEquals(cache.getAbnormalStateResolver(stateModelDefName).getResolverClass(),
           stateModelDefName.equals(MasterSlaveSMD.name) ?
               MockAbnormalStateResolver.class :
-              AbnormalStateResolver.DUMMY_STATE_RESOLVER.getClass());
+              MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER.getResolverClass());
     }
 
     // Reset the resolver map
@@ -83,7 +87,7 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
   }
 
   @Test(dependsOnMethods = "testConfigureResolver")
-  public void testExcessiveTopStateResolver() {
+  public void testExcessiveTopStateResolver() throws InterruptedException {
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verify());
@@ -93,16 +97,17 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     ExternalView ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
     String targetPartition = ev.getPartitionSet().iterator().next();
     Map<String, String> partitionAssignment = ev.getStateMap(targetPartition);
-    String slaveHost =
-        partitionAssignment.entrySet().stream().filter(entry -> entry.getValue().equals("SLAVE"))
-            .findAny().get().getKey();
-    long previousMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+    String slaveHost = partitionAssignment.entrySet().stream()
+        .filter(entry -> entry.getValue().equals(MasterSlaveSMD.States.SLAVE.name())).findAny()
+        .get().getKey();
+    long previousMasterUpdateTime =
+        getTopStateUpdateTime(ev, targetPartition, MasterSlaveSMD.States.MASTER.name());
 
     // Build SLAVE to MASTER message
     String msgId = new UUID(123, 456).toString();
-    Message msg =
-        createMessage(Message.MessageType.STATE_TRANSITION, msgId, "SLAVE", "MASTER", TEST_DB,
-            slaveHost);
+    Message msg = createMessage(Message.MessageType.STATE_TRANSITION, msgId,
+        MasterSlaveSMD.States.SLAVE.name(), MasterSlaveSMD.States.MASTER.name(), TEST_DB,
+        slaveHost);
     msg.setStateModelDef(MasterSlaveSMD.name);
 
     Criteria cr = new Criteria();
@@ -130,17 +135,18 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     // 2.A. Without resolver, the fixing is not completely done by the default rebalancer logic.
     _controller.getMessagingService()
         .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     // Wait until the partition status is fixed, verify if the result is as expected
     verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
-    Assert.assertEquals(
-        ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
-            .count(), 1);
+    Assert.assertEquals(ev.getStateMap(targetPartition).values().stream()
+        .filter(state -> state.equals(MasterSlaveSMD.States.MASTER.name())).count(), 1);
     // Since the resolver is not used in the auto default fix process, there is no update on the
     // original master. So if there is any data issue, it was not fixed.
-    long currentMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+    long currentMasterUpdateTime =
+        getTopStateUpdateTime(ev, targetPartition, MasterSlaveSMD.States.MASTER.name());
     Assert.assertFalse(currentMasterUpdateTime > previousMasterUpdateTime);
 
     // 2.B. with resolver configured, the fixing is complete.
@@ -149,17 +155,19 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     clusterConfig.setAbnormalStateResolverMap(
         ImmutableMap.of(MasterSlaveSMD.name, ExcessiveTopStateResolver.class.getName()));
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
     _controller.getMessagingService()
         .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
+    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     // Wait until the partition status is fixed, verify if the result is as expected
-    Assert.assertTrue(verifier.verify());
+    Assert.assertTrue(verifier.verifyByPolling());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
-    Assert.assertEquals(
-        ev.getStateMap(targetPartition).values().stream().filter(state -> state.equals("MASTER"))
-            .count(), 1);
+    Assert.assertEquals(ev.getStateMap(targetPartition).values().stream()
+        .filter(state -> state.equals(MasterSlaveSMD.States.MASTER.name())).count(), 1);
     // Now the resolver is used in the auto fix process, the original master has also been refreshed.
     // The potential data issue has been fixed in this process.
-    currentMasterUpdateTime = getTopStateUpdateTime(ev, targetPartition, "MASTER");
+    currentMasterUpdateTime =
+        getTopStateUpdateTime(ev, targetPartition, MasterSlaveSMD.States.MASTER.name());
     Assert.assertTrue(currentMasterUpdateTime > previousMasterUpdateTime);
 
     // Reset the resolver map

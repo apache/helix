@@ -41,8 +41,8 @@ import com.google.common.collect.Sets;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.rebalancer.constraint.AbnormalStateResolver;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -245,7 +245,7 @@ public class TestAutoRebalanceStrategy {
         Map<String, String> assignment = new AutoRebalancer()
             .computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), _stateModelDef,
                 preferenceList, currentStateOutput, disabled, is, clusterConfig, p,
-                AbnormalStateResolver.DUMMY_STATE_RESOLVER);
+                MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
         mapResult.put(partition, assignment);
       }
       return mapResult;

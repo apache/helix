@@ -145,7 +145,6 @@ public class TestRawZkClient extends ZkTestBase {
     }
   }
 
-
   /*
    * Tests state changes subscription for I0Itec's IZkStateListener.
    * This is a test for backward compatibility.
@@ -203,8 +202,7 @@ public class TestRawZkClient extends ZkTestBase {
    * TODO: remove this test when getting rid of I0Itec.
    */
   @Test
-  public void testSessionExpiryForI0IItecZkStateListener()
-      throws Exception {
+  public void testSessionExpiryForI0IItecZkStateListener() throws Exception {
     org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener listener =
         new org.apache.helix.zookeeper.zkclient.deprecated.IZkStateListener() {
 
@@ -245,8 +243,7 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   @Test
-  public void testZkClientMonitor()
-      throws Exception {
+  public void testZkClientMonitor() throws Exception {
     final String TEST_KEY = "testZkClientMonitor";
     ZkClient.Builder builder = new ZkClient.Builder();
     builder.setZkServer(ZkTestBase.ZK_ADDR).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
@@ -426,8 +423,7 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testZkClientMonitor")
-  void testPendingRequestGauge()
-      throws Exception {
+  void testPendingRequestGauge() throws Exception {
     final String TEST_KEY = "testPendingRequestGauge";
 
     final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
@@ -516,8 +512,7 @@ public class TestRawZkClient extends ZkTestBase {
    * This test checks that a valid session can successfully create an ephemeral node.
    */
   @Test
-  public void testCreateEphemeralWithValidSession()
-      throws Exception {
+  public void testCreateEphemeralWithValidSession() throws Exception {
 
     final String originalSessionId = Long.toHexString(_zkClient.getSessionId());
     final String path = "/" + TestHelper.getTestMethodName();
@@ -563,11 +558,8 @@ public class TestRawZkClient extends ZkTestBase {
    * 4. ZkSessionMismatchedException is expected for the creation and ephemeral node is not created
    */
   @Test
-  public void testCreateEphemeralWithMismatchedSession()
-      throws Exception {
-    final String className = TestHelper.getTestClassName();
+  public void testCreateEphemeralWithMismatchedSession() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName;
 
     final long originalSessionId = _zkClient.getSessionId();
     final String originalHexSessionId = Long.toHexString(originalSessionId);
@@ -612,13 +604,12 @@ public class TestRawZkClient extends ZkTestBase {
    * see if ConnectionLossException was thrown before retry.
    */
   @Test(timeOut = 5 * 60 * 1000L)
-  public void testConnectionLossWhileCreateEphemeral()
-      throws Exception {
+  public void testConnectionLossWhileCreateEphemeral() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
-    final ZkClient zkClient =
-        new ZkClient.Builder().setZkServer(ZkTestBase.ZK_ADDR).setOperationRetryTimeout(3000L) // 3 seconds
-            .build();
+    final ZkClient zkClient = new ZkClient.Builder().setZkServer(ZkTestBase.ZK_ADDR)
+        .setOperationRetryTimeout(3000L) // 3 seconds
+        .build();
 
     final String expectedSessionId = Long.toHexString(zkClient.getSessionId());
     final String path = "/" + methodName;
@@ -676,8 +667,7 @@ public class TestRawZkClient extends ZkTestBase {
    * 5. zk client reconnects successfully and creates an ephemeral node
    */
   @Test(timeOut = 5 * 60 * 1000L)
-  public void testRetryUntilConnectedAfterConnectionLoss()
-      throws Exception {
+  public void testRetryUntilConnectedAfterConnectionLoss() throws Exception {
     final String methodName = TestHelper.getTestMethodName();
 
     final String expectedSessionId = Long.toHexString(_zkClient.getSessionId());
@@ -822,6 +812,45 @@ public class TestRawZkClient extends ZkTestBase {
       }
       zkClient.delete("/tmp/async");
       zkClient.delete("/tmp/asyncOversize");
+      zkClient.close();
+    }
+  }
+
+  @Test
+  public void testAsyncCreateByExpectedSession() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    String sessionId = Long.toHexString(zkClient.getSessionId());
+    String path = "/" + TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
+    ZNRecord record = new ZNRecord("test");
+    ZkAsyncCallbacks.CreateCallbackHandler createCallback =
+        new ZkAsyncCallbacks.CreateCallbackHandler();
+
+    Assert.assertFalse(zkClient.exists(path));
+
+    zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback, sessionId);
+    createCallback.waitForSuccess();
+
+    Assert.assertEquals(createCallback.getRc(), 0);
+    Assert.assertTrue(zkClient.exists(path));
+
+    TestHelper.verify(() -> zkClient.delete(path), TestHelper.WAIT_DURATION);
+    zkClient.close();
+  }
+
+  @Test
+  public void testAsyncCreateByInvalidSession() {
+    String path = "/" + TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
+    ZkAsyncCallbacks.CreateCallbackHandler createCallback =
+        new ZkAsyncCallbacks.CreateCallbackHandler();
+
+    try {
+      // Should not create znode under invalid session.
+      _zkClient.asyncCreate(path, null, CreateMode.PERSISTENT, createCallback, "invalidSession");
+      Assert.fail("Should not succeed to create path under invalid session");
+    } catch (ZkSessionMismatchedException expected) {
+      Assert.assertTrue(expected.getMessage().startsWith(
+          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected:"));
     }
   }
 }

@@ -29,6 +29,10 @@ import org.apache.helix.monitoring.metrics.model.CountMetric;
 public class AbnormalStatesMetricCollector extends MetricCollector {
   private static final String ABNORMAL_STATES_ENTITY_NAME = "AbnormalStates";
 
+  /**
+   * This enum class contains all metric names defined for AbnormalStateResolver.
+   * Note that all enums are in camel case for readability.
+   */
   public enum AbnormalStatesMetricNames {
     // The counter of the partitions that contains abnormal state.
     AbnormalStatePartitionCounter,

@@ -37,32 +37,31 @@ import org.testng.annotations.Test;
 
 public class TestAbnormalStatesResolverMonitor {
   private static final MBeanServer MBEAN_SERVER = ManagementFactory.getPlatformMBeanServer();
+  private final String CLUSTER_NAME = "TestCluster";
 
   @Test
   public void testMonitorResolver()
       throws MalformedObjectNameException, AttributeNotFoundException, MBeanException,
       ReflectionException, InstanceNotFoundException {
-    final String clusterName = "TestCluster";
-
-    final String TEST_RESOLVER_MONITOR_MBEAN_NAME = String
-        .format("%s:%s=%s, %s=%s.%s", MonitorDomainNames.Rebalancer, "ClusterName", clusterName,
+    final String testResolverMonitorMbeanName = String
+        .format("%s:%s=%s, %s=%s.%s", MonitorDomainNames.Rebalancer, "ClusterName", CLUSTER_NAME,
             "EntityName", "AbnormalStates", MasterSlaveSMD.name);
-    final ObjectName TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME =
-        new ObjectName(TEST_RESOLVER_MONITOR_MBEAN_NAME);
+    final ObjectName testResolverMonitorMbeanObjectName =
+        new ObjectName(testResolverMonitorMbeanName);
 
-    Assert.assertFalse(MBEAN_SERVER.isRegistered(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME));
+    Assert.assertFalse(MBEAN_SERVER.isRegistered(testResolverMonitorMbeanObjectName));
 
     // Update the resolver configuration for MasterSlave state model.
     MonitoredAbnormalResolver monitoredAbnormalResolver =
-        new MonitoredAbnormalResolver(new MockAbnormalStateResolver(), clusterName,
+        new MonitoredAbnormalResolver(new MockAbnormalStateResolver(), CLUSTER_NAME,
             MasterSlaveSMD.name);
 
     // Validate if the MBean has been registered
-    Assert.assertTrue(MBEAN_SERVER.isRegistered(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME));
-    Assert.assertEquals(MBEAN_SERVER.getAttribute(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME,
-        AbnormalStatesMetricCollector.AbnormalStatesMetricNames.AbnormalStatePartitionCounter.name()),
-        0L);
-    Assert.assertEquals(MBEAN_SERVER.getAttribute(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME,
+    Assert.assertTrue(MBEAN_SERVER.isRegistered(testResolverMonitorMbeanObjectName));
+    Assert.assertEquals(MBEAN_SERVER.getAttribute(testResolverMonitorMbeanObjectName,
+        AbnormalStatesMetricCollector.AbnormalStatesMetricNames.AbnormalStatePartitionCounter
+            .name()), 0L);
+    Assert.assertEquals(MBEAN_SERVER.getAttribute(testResolverMonitorMbeanObjectName,
         AbnormalStatesMetricCollector.AbnormalStatesMetricNames.RecoveryAttemptCounter.name()), 0L);
     // Validate if the metrics recording methods work as expected
     Random ran = new Random(System.currentTimeMillis());
@@ -70,20 +69,20 @@ public class TestAbnormalStatesResolverMonitor {
     for (int i = 0; i < expectation; i++) {
       monitoredAbnormalResolver.recordAbnormalState();
     }
-    Assert.assertEquals(MBEAN_SERVER.getAttribute(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME,
-        AbnormalStatesMetricCollector.AbnormalStatesMetricNames.AbnormalStatePartitionCounter.name()),
-        expectation);
+    Assert.assertEquals(MBEAN_SERVER.getAttribute(testResolverMonitorMbeanObjectName,
+        AbnormalStatesMetricCollector.AbnormalStatesMetricNames.AbnormalStatePartitionCounter
+            .name()), expectation);
     expectation = 1L + ran.nextInt(10);
     for (int i = 0; i < expectation; i++) {
       monitoredAbnormalResolver.recordRecoveryAttempt();
     }
-    Assert.assertEquals(MBEAN_SERVER.getAttribute(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME,
+    Assert.assertEquals(MBEAN_SERVER.getAttribute(testResolverMonitorMbeanObjectName,
         AbnormalStatesMetricCollector.AbnormalStatesMetricNames.RecoveryAttemptCounter.name()),
         expectation);
 
     // Reset the resolver map
     monitoredAbnormalResolver.close();
     // Validate if the MBean has been unregistered
-    Assert.assertFalse(MBEAN_SERVER.isRegistered(TEST_RESOLVER_MONITOR_MBEAN_OBJECT_NAME));
+    Assert.assertFalse(MBEAN_SERVER.isRegistered(testResolverMonitorMbeanObjectName));
   }
 }

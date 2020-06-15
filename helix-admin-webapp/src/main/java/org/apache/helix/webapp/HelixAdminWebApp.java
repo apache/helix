@@ -19,8 +19,8 @@ package org.apache.helix.webapp;
  * under the License.
  */
 
-import org.apache.helix.manager.zk.ByteArraySerializer;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.zookeeper.datamodel.serializer.ByteArraySerializer;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.webapp.resources.ResourceUtil;
 import org.restlet.Component;

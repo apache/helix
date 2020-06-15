@@ -1,4 +1,4 @@
-package org.apache.helix.manager.zk;
+package org.apache.helix.zookeeper.datamodel.serializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,10 +19,19 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-/**
- * Deprecated - use the one in zookeeper-api instead.
- */
-@Deprecated
-public class ByteArraySerializer
-    extends org.apache.helix.zookeeper.datamodel.serializer.ByteArraySerializer {
+import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+
+
+public class ByteArraySerializer implements ZkSerializer {
+  @Override
+  public byte[] serialize(Object data) throws ZkMarshallingError {
+    return (byte[]) data;
+  }
+
+  @Override
+  public Object deserialize(byte[] bytes) throws ZkMarshallingError {
+    return bytes;
+  }
+
 }

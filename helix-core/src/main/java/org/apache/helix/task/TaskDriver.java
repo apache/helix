@@ -652,7 +652,7 @@ public class TaskDriver {
       WorkflowContext workflowContext = getWorkflowContext(workflow);
 
       if (workflowContext == null
-          || TaskState.IN_PROGRESS.equals(workflowContext.getWorkflowState())) {
+          || !TaskState.STOPPED.equals(workflowContext.getWorkflowState())) {
         Thread.sleep(1000);
       } else {
         // Successfully stopped

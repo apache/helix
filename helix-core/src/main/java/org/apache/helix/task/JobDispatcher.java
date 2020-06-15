@@ -126,7 +126,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       // Since this job has been processed for the first time, we report SubmissionToProcessDelay
       // here asynchronously
       reportSubmissionToProcessDelay(_dataProvider, _clusterStatusMonitor, workflowCfg, jobCfg,
-          currentTimestamp, _manager);
+          currentTimestamp);
     }
 
     if (!TaskState.TIMED_OUT.equals(workflowCtx.getJobState(jobName))) {

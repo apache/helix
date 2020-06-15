@@ -24,8 +24,6 @@ import java.util.Set;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.monitoring.mbeans.JobMonitor;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -44,13 +42,8 @@ public class ZkMetricPersister implements MetricPersister {
     CLUSTER_NAME
   }
 
-  public ZkMetricPersister(HelixManager helixManager) {
-    if (helixManager == null || !helixManager.isConnected()) {
-      throw new HelixException(
-          "Helix Manager is null or is not connected, cannot create ZkMetricPersister!");
-    }
-
-    _baseDataAccessor = helixManager.getHelixDataAccessor().getBaseDataAccessor();
+  public ZkMetricPersister(BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    _baseDataAccessor = baseDataAccessor;
   }
 
   public void persistMetricsMeanValues(Set<HistogramDynamicMetric> metrics,

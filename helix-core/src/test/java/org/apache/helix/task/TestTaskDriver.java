@@ -25,6 +25,8 @@ import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.JobMonitor;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.persister.ZkMetricPersister;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
@@ -113,16 +115,11 @@ public class TestTaskDriver extends TaskTestBase {
 
   @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSizeWrongInstanceName")
   public void testGetSubmissionToProcessDelay() {
-    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
-    _baseAccessor.update(zkPath, currentData -> {
-      if (currentData == null) {
-        currentData = new ZNRecord(TEST_JOB_TYPE);
-      }
-      currentData
-          .setSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_PROCESS_DELAY.name(),
-              Long.toString(100L));
-      return currentData;
-    }, AccessOption.PERSISTENT);
+    String zkPath = ZkMetricPersister.buildMetricPersistZkPath(CLUSTER_NAME, TEST_JOB_TYPE);
+    ZNRecord persistedMetrics = new ZNRecord(TEST_JOB_TYPE);
+    persistedMetrics
+        .setSimpleField(JobMonitor.SUBMISSION_TO_PROCESS_DELAY_GAUGE_NAME, Long.toString(100L));
+    _baseAccessor.set(zkPath, persistedMetrics, AccessOption.PERSISTENT);
 
     Assert.assertEquals(_taskDriver.getSubmissionToProcessDelay(TEST_JOB_TYPE), 100L);
   }
@@ -134,16 +131,11 @@ public class TestTaskDriver extends TaskTestBase {
 
   @Test(dependsOnMethods = "testGetSubmissionToProcessDelayIllegalArgument")
   public void testGetSubmissionToScheduleDelay() {
-    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
-    _baseAccessor.update(zkPath, currentData -> {
-      if (currentData == null) {
-        currentData = new ZNRecord(TEST_JOB_TYPE);
-      }
-      currentData
-          .setSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_SCHEDULE_DELAY.name(),
-              Long.toString(100L));
-      return currentData;
-    }, AccessOption.PERSISTENT);
+    String zkPath = ZkMetricPersister.buildMetricPersistZkPath(CLUSTER_NAME, TEST_JOB_TYPE);
+    ZNRecord persistedMetrics = new ZNRecord(TEST_JOB_TYPE);
+    persistedMetrics
+        .setSimpleField(JobMonitor.SUBMISSION_TO_SCHEDULE_DELAY_GAUGE_NAME, Long.toString(100L));
+    _baseAccessor.set(zkPath, persistedMetrics, AccessOption.PERSISTENT);
 
     Assert.assertEquals(_taskDriver.getSubmissionToScheduleDelay(TEST_JOB_TYPE), 100L);
   }
@@ -155,16 +147,11 @@ public class TestTaskDriver extends TaskTestBase {
 
   @Test(dependsOnMethods = "testGetSubmissionToScheduleDelayIllegalArgument")
   public void testControllerInducedDelay() {
-    String zkPath = JobMonitor.buildZkPathForJobMonitorMetric(TEST_JOB_TYPE);
-    _baseAccessor.update(zkPath, currentData -> {
-      if (currentData == null) {
-        currentData = new ZNRecord(TEST_JOB_TYPE);
-      }
-      currentData.setSimpleField(
-          JobMonitor.JobMonitorMetricZnodeField.CONTROLLER_INDUCED_PROCESS_DELAY.name(),
-          Long.toString(100L));
-      return currentData;
-    }, AccessOption.PERSISTENT);
+    String zkPath = ZkMetricPersister.buildMetricPersistZkPath(CLUSTER_NAME, TEST_JOB_TYPE);
+    ZNRecord persistedMetrics = new ZNRecord(TEST_JOB_TYPE);
+    persistedMetrics
+        .setSimpleField(JobMonitor.CONTROLLER_INDUCED_DELAY_GAUGE_NAME, Long.toString(100L));
+    _baseAccessor.set(zkPath, persistedMetrics, AccessOption.PERSISTENT);
 
     Assert.assertEquals(_taskDriver.getControllerInducedDelay(TEST_JOB_TYPE), 100L);
   }

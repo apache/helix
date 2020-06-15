@@ -1171,7 +1171,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _clusterStatusMonitor.setEnabled(!_paused);
       _clusterStatusMonitor.setPaused(_paused);
       _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
-      _clusterStatusMonitor.setMetricPersister(new ZkMetricPersister(manager));
+      _clusterStatusMonitor.setMetricPersister(
+          new ZkMetricPersister(manager.getHelixDataAccessor().getBaseDataAccessor()));
     } else {
       enableClusterStatusMonitor(false);
       // Note that onControllerChange is executed in parallel with the event processing thread. It

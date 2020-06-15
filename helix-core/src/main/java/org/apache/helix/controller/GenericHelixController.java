@@ -106,6 +106,8 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.persister.MetricPersister;
+import org.apache.helix.monitoring.persister.ZkMetricPersister;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1169,6 +1171,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _clusterStatusMonitor.setEnabled(!_paused);
       _clusterStatusMonitor.setPaused(_paused);
       _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
+      _clusterStatusMonitor.setMetricPersister(new ZkMetricPersister(manager));
     } else {
       enableClusterStatusMonitor(false);
       // Note that onControllerChange is executed in parallel with the event processing thread. It

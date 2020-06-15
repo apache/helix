@@ -60,13 +60,16 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     // Reset current INIT/RUNNING tasks on participants for throttling
     cache.resetActiveTaskCount(currentStateOutput);
 
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     buildQuotaBasedWorkflowPQsAndInitDispatchers(cache,
-        (HelixManager) event.getAttribute(AttributeName.helixmanager.name()),
-        (ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
+        (HelixManager) event.getAttribute(AttributeName.helixmanager.name()), clusterStatusMonitor);
 
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+
+    clusterStatusMonitor.persistJobMonitorGauges();
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

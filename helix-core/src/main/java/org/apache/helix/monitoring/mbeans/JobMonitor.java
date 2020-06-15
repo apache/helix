@@ -84,6 +84,10 @@ public class JobMonitor extends DynamicMBeanProvider {
     CONTROLLER_INDUCED_PROCESS_DELAY
   }
 
+  public final static String SUBMISSION_TO_PROCESS_DELAY_GAUGE_NAME = "SubmissionToProcessDelayGauge";
+  public final static String SUBMISSION_TO_SCHEDULE_DELAY_GAUGE_NAME = "SubmissionToScheduleDelayGauge";
+  public final static String CONTROLLER_INDUCED_DELAY_GAUGE_NAME = "ControllerInducedDelayGauge";
+
   public JobMonitor(String clusterName, String jobType, ObjectName objectName) {
     _clusterName = clusterName;
     _jobType = jobType;
@@ -103,13 +107,13 @@ public class JobMonitor extends DynamicMBeanProvider {
     // Instantiate histogram dynamic metrics
     _jobLatencyGauge = new HistogramDynamicMetric("JobLatencyGauge", new Histogram(
         new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
-    _submissionToProcessDelayGauge = new HistogramDynamicMetric("SubmissionToProcessDelayGauge",
+    _submissionToProcessDelayGauge = new HistogramDynamicMetric(SUBMISSION_TO_PROCESS_DELAY_GAUGE_NAME,
         new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
-    _submissionToScheduleDelayGauge = new HistogramDynamicMetric("SubmissionToScheduleDelayGauge",
+    _submissionToScheduleDelayGauge = new HistogramDynamicMetric(SUBMISSION_TO_SCHEDULE_DELAY_GAUGE_NAME,
         new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
-    _controllerInducedDelayGauge = new HistogramDynamicMetric("ControllerInducedDelayGauge",
+    _controllerInducedDelayGauge = new HistogramDynamicMetric(CONTROLLER_INDUCED_DELAY_GAUGE_NAME,
         new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
   }
@@ -239,6 +243,18 @@ public class JobMonitor extends DynamicMBeanProvider {
       LOG.error(
           "Sync metric to ZK failed. Job type: " + _jobType + " Metric: " + metric.getMetricName());
     }
+  }
+
+  public HistogramDynamicMetric getSubmissionToProcessDelayGauge() {
+    return _submissionToProcessDelayGauge;
+  }
+
+  public HistogramDynamicMetric getSubmissionToScheduleDelayGauge() {
+    return _submissionToScheduleDelayGauge;
+  }
+
+  public HistogramDynamicMetric getControllerInducedDelayGauge() {
+    return _controllerInducedDelayGauge;
   }
 
   /**

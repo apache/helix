@@ -48,6 +48,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.monitoring.mbeans.JobMonitor;
+import org.apache.helix.monitoring.persister.ZkMetricPersister;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
@@ -1253,9 +1254,9 @@ public class TaskDriver {
    * @return the latest "submission to process delay" mean value emitted by controller
    */
   public long getSubmissionToProcessDelay(String jobType) {
-    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
-    return Long.parseLong(znRecord
-        .getSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_PROCESS_DELAY.name()));
+    ZNRecord znRecord = getMetricNodeByJobType(jobType);
+    return Long
+        .parseLong(znRecord.getSimpleField(JobMonitor.SUBMISSION_TO_PROCESS_DELAY_GAUGE_NAME));
   }
 
   /**
@@ -1268,9 +1269,9 @@ public class TaskDriver {
    * @return the latest "submission to schedule delay" mean value emitted by controller
    */
   public long getSubmissionToScheduleDelay(String jobType) {
-    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
-    return Long.parseLong(znRecord
-        .getSimpleField(JobMonitor.JobMonitorMetricZnodeField.SUBMISSION_TO_SCHEDULE_DELAY.name()));
+    ZNRecord znRecord = getMetricNodeByJobType(jobType);
+    return Long
+        .parseLong(znRecord.getSimpleField(JobMonitor.SUBMISSION_TO_SCHEDULE_DELAY_GAUGE_NAME));
   }
 
   /**
@@ -1283,16 +1284,15 @@ public class TaskDriver {
    * @return the latest "controller induced delay" mean value emitted by controller
    */
   public long getControllerInducedDelay(String jobType) {
-    ZNRecord znRecord = getJobMonitorMetricNodeByJobType(jobType);
-    return Long.parseLong(znRecord.getSimpleField(
-        JobMonitor.JobMonitorMetricZnodeField.CONTROLLER_INDUCED_PROCESS_DELAY.name()));
+    ZNRecord znRecord = getMetricNodeByJobType(jobType);
+    return Long.parseLong(znRecord.getSimpleField(JobMonitor.CONTROLLER_INDUCED_DELAY_GAUGE_NAME));
   }
 
-  private ZNRecord getJobMonitorMetricNodeByJobType(String jobType) {
+  private ZNRecord getMetricNodeByJobType(String jobType) {
     ZNRecord znRecord = null;
     try {
       znRecord = _accessor.getBaseDataAccessor()
-          .get(JobMonitor.buildZkPathForJobMonitorMetric(jobType), new Stat(),
+          .get(ZkMetricPersister.buildMetricPersistZkPath(_clusterName, jobType), new Stat(),
               AccessOption.PERSISTENT);
     } catch (ZkNoNodeException ignored) {
       // Ignore the exception and move on

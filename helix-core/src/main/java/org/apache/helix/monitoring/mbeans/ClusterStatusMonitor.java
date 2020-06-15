@@ -39,6 +39,8 @@ import javax.management.ObjectName;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
@@ -48,6 +50,9 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.persister.MetricPersister;
+import org.apache.helix.monitoring.persister.ZkMetricPersister;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
@@ -104,6 +109,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final Map<String, WorkflowMonitor> _perTypeWorkflowMonitorMap = new ConcurrentHashMap<>();
 
   private final Map<String, JobMonitor> _perTypeJobMonitorMap = new ConcurrentHashMap<>();
+
+  private MetricPersister _metricPersister;
 
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
@@ -1042,5 +1049,24 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       total += entry.getValue().getNumPendingStateTransitionGauge();
     }
     return total;
+  }
+
+  public void setMetricPersister(MetricPersister metricPersister) {
+    _metricPersister = metricPersister;
+  }
+
+  public void persistJobMonitorGauges() {
+    for (JobMonitor jobMonitor : _perTypeJobMonitorMap.values()) {
+      Set<HistogramDynamicMetric> metricsToPersist = new HashSet<>();
+      metricsToPersist.add(jobMonitor.getSubmissionToProcessDelayGauge());
+      metricsToPersist.add(jobMonitor.getSubmissionToScheduleDelayGauge());
+      metricsToPersist.add(jobMonitor.getControllerInducedDelayGauge());
+
+      Map<String, String> persisterMetadata = new HashMap<>();
+      persisterMetadata.put(ZkMetricPersister.ZkMetricPersisterMetadataKey.ZNODE_NAME.name(), jobMonitor.getJobType());
+      persisterMetadata.put(ZkMetricPersister.ZkMetricPersisterMetadataKey.CLUSTER_NAME.name(), _clusterName);
+
+      _metricPersister.persistMetricsMeanValues(metricsToPersist, persisterMetadata);
+    }
   }
 }

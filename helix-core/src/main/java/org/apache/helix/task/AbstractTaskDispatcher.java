@@ -1240,7 +1240,7 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on submissionToProcessDelay to the dynamic metric
+   * Computes and passes on submissionToProcessDelay to the dynamic metric.
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig
@@ -1267,7 +1267,7 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on submissionToScheduleDelay to the dynamic metric
+   * Computes and passes on submissionToScheduleDelay to the dynamic metric.
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig
@@ -1294,7 +1294,7 @@ public abstract class AbstractTaskDispatcher {
 
   /**
    * TODO: Move this logic to Task Framework metrics class for refactoring.
-   * Computes and passes on controllerInducedDelay to the dynamic metric
+   * Computes and passes on controllerInducedDelay to the dynamic metric.
    * @param dataProvider
    * @param clusterStatusMonitor
    * @param workflowConfig

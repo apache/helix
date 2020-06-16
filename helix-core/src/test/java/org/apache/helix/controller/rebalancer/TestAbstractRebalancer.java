@@ -56,11 +56,11 @@ public class TestAbstractRebalancer {
             new IdealState("test"), new ClusterConfig("TestCluster"), partition,
             MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
 
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+    Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
   }
 
   @DataProvider(name = "TestComputeBestPossibleStateInput")
-  public Object[][] loadTestComputeBestPossibleStateInput() {
+  public Object[][] loadTestComputeBestPossiblqeStateInput() {
     final String[] params = {"comment", "stateModel", "liveInstances", "preferenceList", "currentStateMap",
         "disabledInstancesForPartition", "expectedBestPossibleStateMap"};
     return TestInputLoader.loadTestInputs("TestAbstractRebalancer.ComputeBestPossibleState.json", params);

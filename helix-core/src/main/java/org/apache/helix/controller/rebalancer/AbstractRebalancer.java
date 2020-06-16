@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -364,17 +365,20 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     liveAndEnabled.removeAll(disabledInstancesForPartition);
 
     // Sort the instances based on replicas' state priority in the current state
-    List<String> sortedPreferenceList = new ArrayList<>(preferenceList);
-    sortedPreferenceList.sort(new StatePriorityComparator(currentStateMap, stateModelDef));
+    List<String> currentStatePrioritizedList = new ArrayList<>(preferenceList);
+    currentStatePrioritizedList.retainAll(liveAndEnabled);
+    currentStatePrioritizedList.sort(new StatePriorityComparator(currentStateMap, stateModelDef));
+    Iterator<String> currentStatePrioritizedInstanceIter = currentStatePrioritizedList.iterator();
 
     // Assign the state to the instances that appear in the preference list.
     for (String state : statesPriorityList) {
       int stateCount =
           getStateCount(state, stateModelDef, liveAndEnabled.size(), preferenceList.size());
-      for (String instance : preferenceList) {
+      for (int i = 0; i < preferenceList.size(); i++) {
         if (stateCount <= 0) {
           break; // continue assigning for the next state
         }
+        String instance = preferenceList.get(i);
         if (assigned.contains(instance) || !liveAndEnabled.contains(instance)) {
           continue; // continue checking for the next available instance
         }
@@ -385,10 +389,19 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
           // If the desired state is the top state, but the instance cannot be transited to the
           // top state in one hop, try to keep the top state on current host or a host with a closer
           // state.
-          for (String currentStatePrioritizedInstance : sortedPreferenceList) {
-            if (!assigned.contains(currentStatePrioritizedInstance) && liveAndEnabled
-                .contains(currentStatePrioritizedInstance)) {
+          while (currentStatePrioritizedInstanceIter.hasNext()) {
+            // Note that it is safe to check the prioritized instance items only once here.
+            // Since the only possible condition when we don't use an instance in this list is that
+            // it has been assigned with some state. And this is not revertable in this method. So
+            // checking it one more time later will only waste time.
+            String currentStatePrioritizedInstance = currentStatePrioritizedInstanceIter.next();
+            if (!assigned.contains(currentStatePrioritizedInstance)) {
               proposedInstance = currentStatePrioritizedInstance;
+              // If we find a different instance for the partition placement, then we need to check
+              // the same instance again or it will not be assigned with any partitions.
+              if (!proposedInstance.equals(instance)) {
+                i--;
+              }
               break;
             }
           }

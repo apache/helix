@@ -33,8 +33,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /**
- * This test makes sure the workflow can be stopped if previousAssignment and currentState are
- * deleted.
+ * This test makes sure the workflow can be stopped if currentState is deleted.
  */
 public class TestTaskStopQueue extends TaskTestBase {
   private static final long TIMEOUT = 200000L;
@@ -74,13 +73,6 @@ public class TestTaskStopQueue extends TaskTestBase {
       Assert.assertFalse(_manager.getHelixDataAccessor().getBaseDataAccessor()
           .exists(currentStatePath, AccessOption.PERSISTENT));
     }
-
-    String previousAssignment = "/" + CLUSTER_NAME + "/PROPERTYSTORE/TaskRebalancer/"
-        + namespacedJobName + "/PreviousResourceAssignment";
-    _manager.getHelixDataAccessor().getBaseDataAccessor().remove(previousAssignment,
-        AccessOption.PERSISTENT);
-    Assert.assertFalse(_manager.getHelixDataAccessor().getBaseDataAccessor()
-        .exists(previousAssignment, AccessOption.PERSISTENT));
 
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_1";

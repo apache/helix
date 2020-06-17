@@ -57,8 +57,8 @@ public final class OnlineOfflineWithBootstrapSMD extends StateModelDefinition {
     builder.addState(States.BOOTSTRAP.name(), 1);
     builder.addState(States.OFFLINE.name(), 2);
     for (HelixDefinedState state : HelixDefinedState.values()) {
-    builder.addState(state.name());
-  }
+      builder.addState(state.name());
+    }
 
     // add transitions
     builder.addTransition(States.ONLINE.name(), States.OFFLINE.name(), 0);

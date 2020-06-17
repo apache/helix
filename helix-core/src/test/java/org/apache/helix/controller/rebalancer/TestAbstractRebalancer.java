@@ -60,7 +60,7 @@ public class TestAbstractRebalancer {
   }
 
   @DataProvider(name = "TestComputeBestPossibleStateInput")
-  public Object[][] loadTestComputeBestPossiblqeStateInput() {
+  public Object[][] loadTestComputeBestPossibleStateInput() {
     final String[] params = {"comment", "stateModel", "liveInstances", "preferenceList", "currentStateMap",
         "disabledInstancesForPartition", "expectedBestPossibleStateMap"};
     return TestInputLoader.loadTestInputs("TestAbstractRebalancer.ComputeBestPossibleState.json", params);

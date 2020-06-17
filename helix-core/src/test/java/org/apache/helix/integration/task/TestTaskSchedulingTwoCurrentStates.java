@@ -35,15 +35,12 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
@@ -184,16 +181,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isCurrentStateCreated);
-
-    String previousAssignmentPath = "/" + CLUSTER_NAME + "/PROPERTYSTORE/TaskRebalancer/"
-        + namespacedJobName + "/PreviousResourceAssignment";
-    ResourceAssignment prevAssignment = new ResourceAssignment(namespacedJobName);
-    Map<String, String> replicaMap = new HashMap<>();
-    replicaMap.put(instanceP0, TaskPartitionState.RUNNING.name());
-    Partition taskPartition = new Partition(namespacedJobName + "_0");
-    prevAssignment.addReplicaMap(taskPartition, replicaMap);
-    _manager.getHelixDataAccessor().getBaseDataAccessor().set(previousAssignmentPath,
-        prevAssignment.getRecord(), AccessOption.PERSISTENT);
 
     // Wait until the job is finished.
     _driver.pollForJobState(jobQueueName, namespacedJobName, TaskState.COMPLETED);

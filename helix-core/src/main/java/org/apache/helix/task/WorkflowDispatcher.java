@@ -588,7 +588,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // Only remove from cache when remove all workflow success. Otherwise, batch write will
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
         // and jobs will rescheduled again.
-        removeContextsAndPreviousAssignment(workflow, jobs, _clusterDataCache.getTaskDataCache());
+        removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
       }
     } else {
       LOG.info("Did not clean up workflow " + workflow
@@ -596,12 +596,11 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
   }
 
-  private void removeContextsAndPreviousAssignment(String workflow, Set<String> jobs,
+  private void removeContexts(String workflow, Set<String> jobs,
       TaskDataCache cache) {
     if (jobs != null) {
       for (String job : jobs) {
         cache.removeContext(job);
-        cache.removePrevAssignment(job);
       }
     }
     cache.removeContext(workflow);

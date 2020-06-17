@@ -56,6 +56,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   private boolean _monitorRootOnly;
 
   private SimpleDynamicMetric<Long> _stateChangeEventCounter;
+  private SimpleDynamicMetric<Long> _expiredSessionCounter;
   private SimpleDynamicMetric<Long> _dataChangeEventCounter;
   private SimpleDynamicMetric<Long> _outstandingRequestGauge;
 
@@ -79,6 +80,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     _monitorRootOnly = monitorRootOnly;
 
     _stateChangeEventCounter = new SimpleDynamicMetric("StateChangeEventCounter", 0l);
+    _expiredSessionCounter = new SimpleDynamicMetric("ExpiredSessionCounter", 0l);
     _dataChangeEventCounter = new SimpleDynamicMetric("DataChangeEventCounter", 0l);
     _outstandingRequestGauge = new SimpleDynamicMetric("OutstandingRequestGauge", 0l);
     if (zkEventThread != null) {
@@ -100,6 +102,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     attributeList.add(_dataChangeEventCounter);
     attributeList.add(_outstandingRequestGauge);
     attributeList.add(_stateChangeEventCounter);
+    attributeList.add(_expiredSessionCounter);
     if (_zkEventThreadMetric != null) {
       attributeList.add(_zkEventThreadMetric);
     }
@@ -135,6 +138,12 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   public void increaseStateChangeEventCounter() {
     synchronized (_stateChangeEventCounter) {
       _stateChangeEventCounter.updateValue(_stateChangeEventCounter.getValue() + 1);
+    }
+  }
+
+  public void increasExpiredSessionCounter() {
+    synchronized (_expiredSessionCounter) {
+      _expiredSessionCounter.updateValue(_expiredSessionCounter.getValue() + 1);
     }
   }
 

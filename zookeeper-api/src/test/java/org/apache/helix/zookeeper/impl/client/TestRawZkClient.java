@@ -300,6 +300,7 @@ public class TestRawZkClient extends ZkTestBase {
 
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 0);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 0);
 
@@ -481,6 +482,50 @@ public class TestRawZkClient extends ZkTestBase {
       Assert.assertTrue(TestHelper
           .verify(() -> (long) beanServer.getAttribute(name, "OutstandingRequestGauge") == 0,
               2000));
+      zkClient.close();
+    } finally {
+      zkServer.shutdown();
+    }
+  }
+
+  @Test(dependsOnMethods = "testZkClientMonitor")
+  void testSessionExpireCount() throws Exception {
+    final String TEST_KEY = "testSessionExpireCount";
+
+    final MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+    final ObjectName name = MBeanRegistrar
+        .buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            TEST_TAG, ZkClientMonitor.MONITOR_KEY, TEST_KEY);
+
+    final int zkPort = TestHelper.getRandomPort();
+    final String zkAddr = String.format("localhost:%d", zkPort);
+    final ZkServer zkServer = startZkServer(zkAddr);
+
+    try {
+      ZkClient.Builder builder = new ZkClient.Builder();
+      builder.setZkServer(zkAddr).setMonitorKey(TEST_KEY).setMonitorType(TEST_TAG)
+          .setMonitorRootPathOnly(true);
+      final ZkClient zkClient = builder.build();
+      long lastSessionId = zkClient.getSessionId();
+      long previousSessionExpiredCount =
+          (long) beanServer.getAttribute(name, "ExpiredSessionCounter");
+      ZkTestHelper.expireSession(zkClient);
+      //Wait until the ZkClient has got a new session.
+      Assert.assertTrue(TestHelper.verify(() -> {
+        try {
+          // New session id should not equal to expired session id.
+          return zkClient.getSessionId() != lastSessionId;
+        } catch (ZkClientException ex) {
+          return false;
+        }
+      }, 1000L));
+
+      long newSessionId = zkClient.getSessionId();
+      Assert.assertTrue(newSessionId != lastSessionId,
+          "New session id should not equal to expired session id.");
+      Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"),
+          previousSessionExpiredCount + 1);
+
       zkClient.close();
     } finally {
       zkServer.shutdown();

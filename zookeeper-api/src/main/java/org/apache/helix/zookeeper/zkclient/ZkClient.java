@@ -912,6 +912,7 @@ public class ZkClient implements Watcher {
     _zookeeperEventThread = Thread.currentThread();
 
     boolean stateChanged = event.getPath() == null;
+    boolean sessionExpired = stateChanged && event.getState() == KeeperState.Expired;
     boolean znodeChanged = event.getPath() != null;
     boolean dataChanged =
         event.getType() == EventType.NodeDataChanged || event.getType() == EventType.NodeDeleted
@@ -960,7 +961,7 @@ public class ZkClient implements Watcher {
       getEventLock().unlock();
 
       // update state change counter.
-      recordStateChange(stateChanged, dataChanged);
+      recordStateChange(stateChanged, dataChanged, sessionExpired);
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Leaving process event");
@@ -2138,11 +2139,14 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void recordStateChange(boolean stateChanged, boolean dataChanged) {
+  private void recordStateChange(boolean stateChanged, boolean dataChanged, boolean sessionExpired) {
     // update state change counter.
     if (_monitor != null) {
       if (stateChanged) {
         _monitor.increaseStateChangeEventCounter();
+        if (sessionExpired) {
+          _monitor.increasExpiredSessionCounter();
+        }
       }
       if (dataChanged) {
         _monitor.increaseDataChangeEventCounter();

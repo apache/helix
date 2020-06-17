@@ -605,9 +605,12 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         "Should have 1 data-watches: MESSAGES");
     Assert.assertEquals(watchPaths.get("childWatches").size(), 1,
         "Should have 1 child-watches: MESSAGES");
-    Assert
-        .assertEquals(watchPaths.get("existWatches").size(), 2,
-            "Should have 2 exist-watches: CURRENTSTATE/{oldSessionId} and CURRENTSTATE/{oldSessionId}/TestDB0");
+    result = TestHelper.verify(()-> {
+      Map<String, List<String>> wPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
+      return wPaths.get("existWatches").size() == 1;
+    }, 10000);
+    Assert.assertTrue(result,
+        "Should have 2 exist-watches: CURRENTSTATE/{oldSessionId}");
 
     // another session expiry on localhost_12918 should clear the two exist-watches on
     // CURRENTSTATE/{oldSessionId}

@@ -103,10 +103,9 @@ class PartitionMovementConstraint extends SoftConstraint {
       Map<String, String> instanceToStateMap) {
     if (instanceToStateMap.containsKey(nodeName)) {
       return state.equals(instanceToStateMap.get(nodeName)) ?
-          // if state matches, no state transition required for the proposed assignment
-          1 :
-          // if state does not match, then the proposed assignment requires state transition
-          STATE_TRANSITION_COST_FACTOR;
+          1 : // if state matches, no state transition required for the proposed assignment
+          STATE_TRANSITION_COST_FACTOR; // if state does not match,
+                                        // then the proposed assignment requires state transition.
     }
     return 0;
   }

@@ -1,5 +1,6 @@
 package org.apache.helix.controller.stages;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -66,8 +67,10 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         }
       }
     }
-    event.addAttribute(AttributeName.EXPIRED_JOBS_MAP.name(), expiredJobsMap);
-    event.addAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name(), workflowsToBeDeleted);
+    event.addAttribute(AttributeName.EXPIRED_JOBS_MAP.name(),
+        Collections.unmodifiableMap(expiredJobsMap));
+    event.addAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name(),
+        Collections.unmodifiableSet(workflowsToBeDeleted));
 
     super.process(event);
   }

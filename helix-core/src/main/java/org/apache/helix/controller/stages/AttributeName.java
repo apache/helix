@@ -40,5 +40,7 @@ public enum AttributeName {
   PipelineType,
   LastRebalanceFinishTimeStamp,
   ControllerDataProvider,
-  STATEFUL_REBALANCER
+  STATEFUL_REBALANCER,
+  WORKFLOWS_TO_BE_DELETED,
+  EXPIRED_JOBS_MAP
 }

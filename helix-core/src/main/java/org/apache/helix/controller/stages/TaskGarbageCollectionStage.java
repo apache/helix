@@ -36,6 +36,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
       return;
     }
 
+    Map<String, Set<String>> expiredJobsMap = new HashMap<>();
+    Set<String> workflowsToBeDeleted = new HashSet<>();
     WorkflowControllerDataProvider dataProvider =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
     for (Map.Entry<String, ZNRecord> entry : dataProvider.getContexts().entrySet()) {
@@ -51,7 +53,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
           Set<String> expiredJobs =
               TaskUtil.getExpiredJobsFromCache(dataProvider, workflowConfig, workflowContext);
           if (!expiredJobs.isEmpty()) {
-            dataProvider.setExpiredJobsForWorkflow(workflowConfig.getWorkflowId(), expiredJobs);
+            expiredJobsMap.put(workflowConfig.getWorkflowId(), expiredJobs);
           }
           scheduleNextJobPurge(workflowConfig.getWorkflowId(), currentTime, purgeInterval,
               _rebalanceScheduler, manager);
@@ -60,10 +62,12 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         if (entry.getValue() != null && entry.getValue().getId()
             .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
           // Find workflows that need to be purged
-          dataProvider.addToBeDeletedWorkflow(entry.getKey());
+          workflowsToBeDeleted.add(entry.getKey());
         }
       }
     }
+    event.addAttribute(AttributeName.EXPIRED_JOBS_MAP.name(), expiredJobsMap);
+    event.addAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name(), workflowsToBeDeleted);
 
     super.process(event);
   }
@@ -78,8 +82,10 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
       return;
     }
 
-    Map<String, Set<String>> expiredJobsMap = new HashMap<>();
-    Set<String> toBeDeletedWorkflows = new HashSet<>();
+    Map<String, Set<String>> expiredJobsMap =
+        event.getAttribute(AttributeName.EXPIRED_JOBS_MAP.name());
+    Set<String> toBeDeletedWorkflows =
+        event.getAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
       try {

@@ -261,30 +261,6 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     return _existsLiveInstanceOrCurrentStateChange;
   }
 
-  public Map<String, Set<String>> getExpiredJobsByWorkflow() {
-    return _taskDataCache.getExpiredJobsByWorkflow();
-  }
-
-  public void setExpiredJobsForWorkflow(String workflowId, Set<String> expiredJobs) {
-    _taskDataCache.setExpiredJobsForWorkflow(workflowId, expiredJobs);
-  }
-
-  public void clearExpiredJobsForWorkflow() {
-    _taskDataCache.clearExpiredJobsForWorkflow();
-  }
-
-  public Set<String> getToBeDeletedWorkflows() {
-    return _taskDataCache.getToBeDeletedWorkflows();
-  }
-
-  public void addToBeDeletedWorkflow(String resourceName) {
-    _taskDataCache.addToBeDeletedWorkflow(resourceName);
-  }
-
-  public void clearToBeDeletedWorkflow() {
-    _taskDataCache.clearToBeDeletedWorkflow();
-  }
-
   @Override
   public String toString() {
     StringBuilder sb = genCacheContentStringBuilder();

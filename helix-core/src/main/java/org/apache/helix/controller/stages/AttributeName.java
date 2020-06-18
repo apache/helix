@@ -41,6 +41,6 @@ public enum AttributeName {
   LastRebalanceFinishTimeStamp,
   ControllerDataProvider,
   STATEFUL_REBALANCER,
-  WORKFLOW_CONFIG_MAP,
-  RESOURCE_CONTEXT_MAP
+  WORKFLOWS_TO_BE_DELETED,
+  EXPIRED_JOBS_MAP
 }

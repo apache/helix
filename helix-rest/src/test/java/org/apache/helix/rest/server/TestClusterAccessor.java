@@ -434,7 +434,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(defMap.size() == 2);
     Assert.assertTrue(defMap.get("stateModelDefinitions") instanceof List);
     List<String> stateModelNames = (List<String>) defMap.get("stateModelDefinitions");
-    Assert.assertEquals(stateModelNames.size(), 6);
+    Assert.assertEquals(stateModelNames.size(), 7);
 
     String oneModel = stateModelNames.get(1);
     String twoModel = stateModelNames.get(2);

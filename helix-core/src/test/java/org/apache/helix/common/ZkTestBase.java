@@ -788,10 +788,6 @@ public class ZkTestBase {
     }
   }
 
-  protected void runPipeline(ClusterEvent event, Pipeline pipeline) throws Exception {
-    runPipeline(event, pipeline, false);
-  }
-
   protected void runPipeline(ClusterEvent event, Pipeline pipeline, boolean shouldThrowException)
       throws Exception {
     try {

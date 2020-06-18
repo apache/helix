@@ -62,7 +62,7 @@ public class TestExternalViewStage extends ZkUnitTestBase {
     ExternalViewComputeStage externalViewComputeStage = new ExternalViewComputeStage();
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     runStage(event, new ResourceComputationStage());
     runStage(event, new CurrentStateComputationStage());
     runStage(event, externalViewComputeStage);

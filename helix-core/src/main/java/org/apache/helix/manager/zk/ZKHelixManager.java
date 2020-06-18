@@ -403,8 +403,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       throw new HelixException(
           "HelixManager is not connected within retry timeout for cluster " + _clusterName);
     }
-
-    _sessionId = ZKUtil.toHexSessionId(_zkclient.getSessionId());
   }
 
   void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType,

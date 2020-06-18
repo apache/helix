@@ -82,7 +82,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
     // An early check for expected leader session. If the sessions don't match, it means the
     // controller lost leadership, then messages should not be sent and the pipeline is stopped.
     // This potentially avoid double masters for a single partition.
-    if (expectedSession != null && !manager.getSessionId().equals(expectedSession)) {
+    if (expectedSession != null && !expectedSession.equals(manager.getSessionId())) {
       throw new StageException(
           "Controller: " + manager.getInstanceName() + " lost leadership! Expected session: "
               + expectedSession + ", actual: " + manager.getSessionId());

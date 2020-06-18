@@ -98,8 +98,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "OFFLINE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages =
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -114,9 +114,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_1",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     refreshClusterConfig(clusterName, accessor);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, rebalancePipeline, false);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node1");
@@ -297,8 +297,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "OFFLINE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages =
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -315,10 +315,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates(), true);
     cache.setIdealStates(idealStates);
 
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     cache.setClusterConfig(new ClusterConfig(clusterName));
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, rebalancePipeline, false);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0,
@@ -329,8 +329,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     List<String> msgIds = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     accessor.removeProperty(keyBuilder.message("localhost_0", msgIds.get(0)));
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1,
@@ -393,8 +393,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages =
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -412,8 +412,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node0");
@@ -476,8 +476,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", liveInstances.get(1).getEphemeralOwner(),
         "MASTER");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    runPipeline(event, dataRefresh, false);
+    runPipeline(event, rebalancePipeline, false);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     List<Message> messages =
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -553,7 +553,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, partitionName,
         liveInstances.get(0).getEphemeralOwner(), "SLAVE");
 
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
 
     // After data refresh, controller loses leadership and its session id changes.
     manager.setSessionId(manager.getSessionId() + "_new");

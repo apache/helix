@@ -84,7 +84,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
 
     try {
       runStage(event, throttleStage);
@@ -258,7 +258,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     runStage(event, new ResourceComputationStage());
     MessageOutput msgSelectOutput = new MessageOutput();
 

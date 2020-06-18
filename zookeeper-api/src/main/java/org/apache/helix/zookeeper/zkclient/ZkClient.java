@@ -2241,10 +2241,12 @@ public class ZkClient implements Watcher {
        * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
        * may cause potential performance issue.
        */
-      return ((ZkConnection) getConnection()).getZookeeper();
+      zk = ((ZkConnection) getConnection()).getZookeeper();
     } finally {
       getEventLock().unlock();
     }
+
+    return zk;
   }
 
   // operations to update monitor's counters

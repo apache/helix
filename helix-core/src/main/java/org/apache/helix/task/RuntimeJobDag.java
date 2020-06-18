@@ -49,6 +49,7 @@ public class RuntimeJobDag extends JobDag {
   private boolean _isJobQueue;
   private int _numParallelJobs;
   private String _lastJob;
+  private int _version; // The version of the workflow config znode that is used to construct this RuntimeJobDag
 
   /**
    * Constructor for Job DAG.
@@ -58,15 +59,21 @@ public class RuntimeJobDag extends JobDag {
     _readyJobList = new ArrayDeque<>();
     _inflightJobList = new HashSet<>();
     _hasDagChanged = true;
+    _version = 0;
   }
 
-  public RuntimeJobDag(JobDag jobDag, boolean isJobQueue, int numParallelJobs) {
+  public RuntimeJobDag(JobDag jobDag, boolean isJobQueue, int numParallelJobs, int version) {
     this._childrenToParents = jobDag.getChildrenToParents();
     this._parentsToChildren = jobDag.getParentsToChildren();
     this._allNodes = jobDag.getAllNodes();
     this._isJobQueue = isJobQueue;
     this._numParallelJobs = numParallelJobs <= 0 ? DEFAULT_NUM_PARALLEL_JOBS : numParallelJobs;
+    this._version = version;
     generateJobList();
+  }
+
+  public int getVersion() {
+    return this._version;
   }
 
   @Override

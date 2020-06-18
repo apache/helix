@@ -258,25 +258,18 @@ public class Topology {
          * Return a ordered map representing the instance path. The topology order is defined in
          * ClusterConfig.topology.
          */
-        Map<String, String> domainAsMap = new HashMap<>();
-        String[] pathPairs = instanceConfig.getDomainAsString().trim().split(",");
-        for (String pair : pathPairs) {
-          String[] values = pair.trim().split("=");
-          if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
-            throw new IllegalArgumentException(String.format(
-                "Domain-Value pair %s for instance %s is not valid, failed the topology-aware placement!",
-                pair, instanceName));
-          }
-          domainAsMap.put(values[0], values[1]);
+        Map<String, String> domainAsMap = instanceConfig.getDomainAsMap();
+        if (domainAsMap.isEmpty()) {
+          throw new IllegalArgumentException(String
+              .format("Domain for instance %s is not set, fail the topology-aware placement!",
+                  instanceName));
         }
-
         int numOfMatchedKeys = 0;
         for (String key : clusterTopologyKeys) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
           if (value == null || value.length() == 0) {
             value = _defaultDomainPathValues.get(key);
-                //defaultDomainPathValuesCache.computeIfAbsent(key, k -> (DEFAULT_DOMAIN_PREFIX + key));
           } else {
             numOfMatchedKeys++;
           }

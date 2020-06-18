@@ -134,7 +134,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     Map<String, String> commandConfig = ImmutableMap.of(MockTask.JOB_DELAY, String.valueOf(100));
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
-    jobBuilder.setJobCommandConfigMap(commandConfig).setMaxAttemptsPerTask(1)
+    jobBuilder.setJobCommandConfigMap(commandConfig)
         .setTargetPartitions(targetPartitions);
 
     Workflow flow =

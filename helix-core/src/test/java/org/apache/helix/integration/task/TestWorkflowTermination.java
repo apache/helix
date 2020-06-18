@@ -62,7 +62,7 @@ public class TestWorkflowTermination extends TaskTestBase {
     String taskState = shouldJobFail ? TaskState.FAILED.name() : TaskState.COMPLETED.name();
     return new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
         .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
-        .setWorkflow(workflow).setCommand(MockTask.TASK_COMMAND)
+        .setWorkflow(workflow).setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(5)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, Long.toString(timeoutMs),
             MockTask.TASK_RESULT_STATUS, taskState));
   }
@@ -82,12 +82,15 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // Timeout is longer than job finish so workflow status should be COMPLETED
     _driver.pollForWorkflowState(workflowName, 5000L, TaskState.COMPLETED);
+    long finishTime = _driver.getWorkflowContext(workflowName).getFinishTime();
     WorkflowContext context = _driver.getWorkflowContext(workflowName);
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() < timeout);
 
     // Workflow should be cleaned up after expiry
-    Thread.sleep(workflowExpiry + 200);
     verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, JOB_NAME));
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - finishTime >= workflowExpiry);
+
 
     ObjectName objectName = getWorkflowMBeanObjectName(workflowName);
     Assert.assertEquals((long) beanServer.getAttribute(objectName, "SuccessfulWorkflowCount"), 1);
@@ -98,7 +101,7 @@ public class TestWorkflowTermination extends TaskTestBase {
   }
 
   @Test
-  public void testWorkflowRunningTimeout() throws InterruptedException {
+  public void testWorkflowRunningTimeout() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String notStartedJobName = JOB_NAME + "-NotStarted";
     long workflowExpiry = 2000; // 2sec expiry time
@@ -116,6 +119,7 @@ public class TestWorkflowTermination extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     _driver.pollForWorkflowState(workflowName, 10000L, TaskState.TIMED_OUT);
+    long finishTime = _driver.getWorkflowContext(workflowName).getFinishTime();
 
     // Running job should be marked as timeout
     // and job not started should not appear in workflow context
@@ -126,14 +130,14 @@ public class TestWorkflowTermination extends TaskTestBase {
     Assert.assertNull(context.getJobState(notStartedJobName));
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
-    Thread.sleep(workflowExpiry + 200);
-
     verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, JOB_NAME),
         getJobNameToPoll(workflowName, notStartedJobName));
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - finishTime >= workflowExpiry);
   }
 
   @Test
-  public void testWorkflowPausedTimeout() throws InterruptedException {
+  public void testWorkflowPausedTimeout() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     long workflowExpiry = 2000; // 2sec expiry time
     long timeout = 5000;
@@ -162,13 +166,15 @@ public class TestWorkflowTermination extends TaskTestBase {
     Assert.assertNull(context.getJobState(notStartedJobName));
 
     _driver.pollForWorkflowState(workflowName, 10000L, TaskState.TIMED_OUT);
+    long finishTime = _driver.getWorkflowContext(workflowName).getFinishTime();
 
     context = _driver.getWorkflowContext(workflowName);
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() >= timeout);
 
-    Thread.sleep(workflowExpiry + 200);
     verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, JOB_NAME),
         getJobNameToPoll(workflowName, notStartedJobName));
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - finishTime >= workflowExpiry);
 
   }
 
@@ -224,6 +230,7 @@ public class TestWorkflowTermination extends TaskTestBase {
 
     // Timeout is longer than fail time, so the failover should occur earlier
     WorkflowContext context = _driver.getWorkflowContext(workflowName);
+    long finishTime = context.getFinishTime();
     Assert.assertTrue(context.getFinishTime() - context.getStartTime() < timeout);
 
     // job1 will complete
@@ -247,18 +254,28 @@ public class TestWorkflowTermination extends TaskTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(objectName, "FailedWorkflowCount"), 1);
 
     // For a failed workflow, after timing out, it will be purged
-    Thread.sleep(workflowExpiry + 200);
     verifyWorkflowCleanup(workflowName, getJobNameToPoll(workflowName, job1),
         getJobNameToPoll(workflowName, job2), getJobNameToPoll(workflowName, job3),
         getJobNameToPoll(workflowName, job4));
+
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - finishTime >= workflowExpiry);
   }
 
-  private void verifyWorkflowCleanup(String workflowName, String... jobNames) {
-    Assert.assertNull(_driver.getWorkflowConfig(workflowName));
-    Assert.assertNull(_driver.getWorkflowContext(workflowName));
+  private void verifyWorkflowCleanup(String workflowName, String... jobNames) throws Exception {
+    // Verify workflow config and workflow context have been deleted
+    Assert
+        .assertTrue(
+            TestHelper.verify(
+                () -> (_driver.getWorkflowConfig(workflowName) == null
+                    && _driver.getWorkflowContext(workflowName) == null),
+                TestHelper.WAIT_DURATION));
+
+    // Verify job config and job context have been deleted
     for (String job : jobNames) {
-      Assert.assertNull(_driver.getJobConfig(job));
-      Assert.assertNull(_driver.getJobContext(job));
+      Assert.assertTrue(TestHelper.verify(
+          () -> (_driver.getJobConfig(job) == null && _driver.getJobContext(job) == null),
+          TestHelper.WAIT_DURATION));
     }
   }
 

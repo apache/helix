@@ -56,7 +56,7 @@ public class TestAbstractRebalancer {
             new IdealState("test"), new ClusterConfig("TestCluster"), partition,
             MonitoredAbnormalResolver.DUMMY_STATE_RESOLVER);
 
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+    Assert.assertTrue(bestPossibleMap.equals(expectedBestPossibleMap));
   }
 
   @DataProvider(name = "TestComputeBestPossibleStateInput")

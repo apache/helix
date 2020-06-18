@@ -24,11 +24,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -352,60 +356,137 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
     }
 
     // (3) Assign normal states to instances.
-    // When we choose the top-state (e.g. MASTER) replica for a partition, we prefer to choose it from
-    // these replicas which are already in the secondary states (e.g, SLAVE) instead of in lower-state.
-    // This is because a replica in secondary state will take shorter time to transition to the top-state,
-    // which could minimize the impact to the application's availability.
-    // To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and second-states with
-    // same priority and rely on the fact that Collections.sort() is stable.
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    Set<String> assigned = new HashSet<>();
-    Set<String> liveAndEnabled = new HashSet<>(liveInstances);
-    liveAndEnabled.removeAll(disabledInstancesForPartition);
+    assignStatesToInstances(preferenceList, stateModelDef, currentStateMap, liveInstances,
+        disabledInstancesForPartition, bestPossibleStateMap);
 
-    // Sort the instances based on replicas' state priority in the current state
-    List<String> sortedPreferenceList = new ArrayList<>(preferenceList);
-    sortedPreferenceList.sort(new StatePriorityComparator(currentStateMap, stateModelDef));
+    return bestPossibleStateMap;
+  }
 
-    // Assign the state to the instances that appear in the preference list.
-    for (String state : statesPriorityList) {
+  /**
+   * Assign the states to the instances listed in the preference list according to inputs.
+   * Note that when we choose the top-state (e.g. MASTER) replica for a partition, we prefer to
+   * choose it from these replicas which are already in the secondary states (e.g, SLAVE) instead
+   * of in lower-state. This is because a replica in secondary state will take shorter time to
+   * transition to the top-state, which could minimize the impact to the application's availability.
+   * To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and
+   * second-states with same priority and rely on the fact that Collections.sort() is stable.
+   */
+  private void assignStatesToInstances(final List<String> preferenceList,
+      final StateModelDefinition stateModelDef, final Map<String, String> currentStateMap,
+      final Set<String> liveInstances, final Set<String> disabledInstancesForPartition,
+      Map<String, String> bestPossibleStateMap) {
+    // Record the assigned instances to avoid double calculating or conflict assignment.
+    Set<String> assignedInstances = new HashSet<>();
+
+    Set<String> liveAndEnabled =
+        liveInstances.stream().filter(instance -> !disabledInstancesForPartition.contains(instance))
+            .collect(Collectors.toSet());
+
+    Queue<String> preferredActiveInstanceQueue = new LinkedList<>(preferenceList);
+    preferredActiveInstanceQueue.retainAll(liveAndEnabled);
+    int totalCandidateCount = preferredActiveInstanceQueue.size();
+
+    // Sort the preferred instances based on replicas' state priority in the current state.
+    // Note that if one instance exists in the current states but not in the preference list, then
+    // it won't show in the prioritized list.
+    List<String> currentStatePrioritizedList = new ArrayList<>(preferredActiveInstanceQueue);
+    currentStatePrioritizedList.sort(new StatePriorityComparator(currentStateMap, stateModelDef));
+    Iterator<String> currentStatePrioritizedInstanceIter = currentStatePrioritizedList.iterator();
+
+    // Assign the states to the instances that appear in the preference list.
+    for (String state : stateModelDef.getStatesPriorityList()) {
       int stateCount =
           getStateCount(state, stateModelDef, liveAndEnabled.size(), preferenceList.size());
-      for (String instance : preferenceList) {
+      while (!preferredActiveInstanceQueue.isEmpty()) {
         if (stateCount <= 0) {
           break; // continue assigning for the next state
         }
-        if (assigned.contains(instance) || !liveAndEnabled.contains(instance)) {
+        String peekInstance = preferredActiveInstanceQueue.peek();
+        if (assignedInstances.contains(peekInstance)) {
+          preferredActiveInstanceQueue.poll();
           continue; // continue checking for the next available instance
         }
-        String proposedInstance = instance;
-        // Additional check and alternate the assignment for reducing top state handoff.
-        if (state.equals(stateModelDef.getTopState()) && !stateModelDef.getSecondTopStates()
-            .contains(currentStateMap.getOrDefault(instance, stateModelDef.getInitialState()))) {
-          // If the desired state is the top state, but the instance cannot be transited to the
-          // top state in one hop, try to keep the top state on current host or a host with a closer
-          // state.
-          for (String currentStatePrioritizedInstance : sortedPreferenceList) {
-            if (!assigned.contains(currentStatePrioritizedInstance) && liveAndEnabled
-                .contains(currentStatePrioritizedInstance)) {
-              proposedInstance = currentStatePrioritizedInstance;
-              break;
-            }
-          }
-          // Note that if all the current top state instances are not assignable, then we fallback
-          // to the default logic that assigning the state according to preference list order.
+        String proposedInstance = adjustInstanceIfNecessary(state, peekInstance,
+            currentStateMap.getOrDefault(peekInstance, stateModelDef.getInitialState()),
+            stateModelDef, assignedInstances, totalCandidateCount - assignedInstances.size(),
+            stateCount, currentStatePrioritizedInstanceIter);
+
+        if (proposedInstance.equals(peekInstance)) {
+          // If the peeked instance is the final decision, then poll it from the queue.
+          preferredActiveInstanceQueue.poll();
         }
-        // Assign the desired state to the proposed instance
+        // else, if we found a different instance for the partition placement, then we need to
+        // check the same instance again or it will not be assigned with any partitions.
+
+        // Assign the desired state to the proposed instance if not on ERROR state.
         if (HelixDefinedState.ERROR.toString().equals(currentStateMap.get(proposedInstance))) {
           bestPossibleStateMap.put(proposedInstance, HelixDefinedState.ERROR.toString());
         } else {
           bestPossibleStateMap.put(proposedInstance, state);
           stateCount--;
         }
-        assigned.add(proposedInstance);
+        // Note that in either case, the proposed instance is considered to be assigned with a state
+        // by now.
+        if (!assignedInstances.add(proposedInstance)) {
+          throw new AssertionError(String
+              .format("The proposed instance %s has been already assigned before.",
+                  proposedInstance));
+        }
       }
     }
-    return bestPossibleStateMap;
+  }
+
+  /**
+   * If the proposed instance may cause unnecessary state transition (according to the current
+   * state), check and return a alternative instance to avoid.
+   *
+   * @param requestedState                      The requested state.
+   * @param proposedInstance                    The current proposed instance to host the replica
+   *                                            with the specified state.
+   * @param currentState                        The current state of the proposed Instance, or init
+   *                                            state if the proposed instance does not have an
+   *                                            assignment.
+   * @param stateModelDef
+   * @param assignedInstances
+   * @param remainCandidateCount                The count of the remaining unassigned instances
+   * @param remainRequestCount                  The count of the remaining replicas that need to be
+   *                                            assigned with the given state.
+   * @param currentStatePrioritizedInstanceIter The iterator of the prioritized instance list which
+   *                                            can be used to find a better alternative instance.
+   * @return The alternative instance, or the original proposed instance if adjustment is not
+   * necessary.
+   */
+  private String adjustInstanceIfNecessary(String requestedState, String proposedInstance,
+      String currentState, StateModelDefinition stateModelDef, Set<String> assignedInstances,
+      int remainCandidateCount, int remainRequestCount,
+      Iterator<String> currentStatePrioritizedInstanceIter) {
+    String adjustedInstance = proposedInstance;
+    // Check and alternate the assignment for reducing top state handoff.
+    // 1. If the requested state is not the top state, then it does not worth it to adjust.
+    // 2. If all remaining candidates need to be assigned with the the state, then there is no need
+    // to adjust.
+    // 3. If the proposed instance already has the top state or a secondary state, then adjustment
+    // is not necessary.
+    if (remainRequestCount < remainCandidateCount && requestedState
+        .equals(stateModelDef.getTopState()) && !requestedState.equals(currentState)
+        && !stateModelDef.getSecondTopStates().contains(currentState)) {
+      // If the desired state is the top state, but the instance cannot be transited to the
+      // top state in one hop, try to keep the top state on current host or a host with a closer
+      // state.
+      while (currentStatePrioritizedInstanceIter.hasNext()) {
+        // Note that it is safe to check the prioritized instance items only once here.
+        // Since the only possible condition when we don't use an instance in this list is that
+        // it has been assigned with a state. And this is not revertable.
+        String currentStatePrioritizedInstance = currentStatePrioritizedInstanceIter.next();
+        if (!assignedInstances.contains(currentStatePrioritizedInstance)) {
+          adjustedInstance = currentStatePrioritizedInstance;
+          break;
+        }
+      }
+      // Note that if all the current top state instances are not assignable, then we fallback
+      // to the default logic that assigning the state according to preference list order.
+    }
+    return adjustedInstance;
   }
 
   /**

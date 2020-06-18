@@ -27,6 +27,7 @@ public enum BuiltInStateModelDefinitions {
   LeaderStandby(new LeaderStandbySMD()),
   StorageSchemata(new StorageSchemataSMD()),
   OnlineOffline(new OnlineOfflineSMD()),
+  OnlineOfflineWithBootstrap(OnlineOfflineWithBootstrapSMD.build()),
   ScheduledTask(new ScheduledTaskSMD()),
   Task(new TaskSMD());
 

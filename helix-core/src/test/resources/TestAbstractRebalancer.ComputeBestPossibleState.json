@@ -198,5 +198,29 @@
       "node_3": "DROPPED",
       "node_4": "SLAVE"
     }
+  }, {
+    "comment": "For a multiple top state state model with complicated middle states, the rebalancer correctly handles the top states and assigns all instances with the expected state.",
+    "stateModel": "OnlineOfflineWithBootstrap",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_3",
+      "node_2",
+      "node_1"
+    ],
+    "currentStateMap": {
+      "node_1": "OFFLINE",
+      "node_2": "ONLINE",
+      "node_3": "ONLINE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "ONLINE",
+      "node_2": "ONLINE",
+      "node_3": "ONLINE"
+    }
   }
 ]

@@ -428,9 +428,9 @@ public abstract class AbstractRebalancer<T extends BaseControllerDataProvider> i
         // Note that in either case, the proposed instance is considered to be assigned with a state
         // by now.
         if (!assignedInstances.add(proposedInstance)) {
-          // Sanity check to ensure there is no unexpected double assignment.
-          throw new HelixException(String
-              .format("The proposed instance %s has already been assigned before.", proposedInstance));
+          throw new AssertionError(String
+              .format("The proposed instance %s has been already assigned before.",
+                  proposedInstance));
         }
       }
     }

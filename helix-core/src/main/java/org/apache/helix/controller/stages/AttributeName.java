@@ -41,6 +41,8 @@ public enum AttributeName {
   LastRebalanceFinishTimeStamp,
   ControllerDataProvider,
   STATEFUL_REBALANCER,
+  // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   WORKFLOWS_TO_BE_DELETED,
+  // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   EXPIRED_JOBS_MAP
 }

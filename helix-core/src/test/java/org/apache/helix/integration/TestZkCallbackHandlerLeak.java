@@ -605,9 +605,23 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         "Should have 1 data-watches: MESSAGES");
     Assert.assertEquals(watchPaths.get("childWatches").size(), 1,
         "Should have 1 child-watches: MESSAGES");
-    Assert
-        .assertEquals(watchPaths.get("existWatches").size(), 2,
-            "Should have 2 exist-watches: CURRENTSTATE/{oldSessionId} and CURRENTSTATE/{oldSessionId}/TestDB0");
+
+    // In this test participant0 also register to its own cocurrent state with a callbackhandler
+    // When session expiration happens, the current state parent path would also changes. However,
+    // an exists watch would still be installed by event pushed to ZkCLient event thread by
+    // fireAllEvent() children even path on behalf of old session callbackhandler. By the time this
+    // event gets invoked, the old session callbackhandler was removed, but the event would still
+    // install a exist watch for old session.
+    // The closest similar case in production is that router/controller has an session expiration at
+    // the same time as participant.
+    // Currently there are many places to register watch in Zookeeper over the evolution of Helix
+    // and ZkClient. We plan for further simplify the logic of watch installation next.
+    result = TestHelper.verify(()-> {
+      Map<String, List<String>> wPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
+      return wPaths.get("existWatches").size() == 1;
+    }, 10000);
+    Assert.assertTrue(result,
+        "Should have 1 exist-watches: CURRENTSTATE/{oldSessionId}");
 
     // another session expiry on localhost_12918 should clear the two exist-watches on
     // CURRENTSTATE/{oldSessionId}

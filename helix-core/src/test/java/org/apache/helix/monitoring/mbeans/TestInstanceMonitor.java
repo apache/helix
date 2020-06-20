@@ -59,6 +59,8 @@ public class TestInstanceMonitor {
     monitor.updateMaxCapacityUsage(0.5d);
     monitor.increaseMessageCount(10L);
     monitor.updateInstance(tags, disabledPartitions, Collections.emptyList(), true, true);
+    monitor.updateMessageQueueSize(100L);
+    monitor.updatePastDueMessageGauge(50L);
 
     // Verify metrics.
     Assert.assertEquals(monitor.getTotalMessageReceived(), 10L);
@@ -69,6 +71,8 @@ public class TestInstanceMonitor {
     Assert.assertEquals(monitor.getEnabled(), 1L);
     Assert.assertEquals(monitor.getDisabledPartitions(), 2L);
     Assert.assertEquals(monitor.getMaxCapacityUsageGauge(), 0.5d);
+    Assert.assertEquals(monitor.getMessageQueueSizeGauge(), 100L);
+    Assert.assertEquals(monitor.getPastDueMessageGauge(), 50L);
 
     monitor.unregister();
   }

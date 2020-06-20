@@ -48,7 +48,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     ENABLED_STATUS_GAUGE("Enabled"),
     ONLINE_STATUS_GAUGE("Online"),
     DISABLED_PARTITIONS_GAUGE("DisabledPartitions"),
-    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge");
+    MAX_CAPACITY_USAGE_GAUGE("MaxCapacityUsageGauge"),
+    MESSAGE_QUEUE_SIZE_GAUGE("MessageQueueSizeGauge"),
+    PASTDUE_MESSAGE_GAUGE("PastDueMessageGauge");
 
     private final String metricName;
 
@@ -75,6 +77,8 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _disabledPartitionsGauge;
   private SimpleDynamicMetric<Long> _onlineStatusGauge;
   private SimpleDynamicMetric<Double> _maxCapacityUsageGauge;
+  private SimpleDynamicMetric<Long> _messageQueueSizeGauge;
+  private SimpleDynamicMetric<Long> _pastDueMessageGauge;
 
   // A map of dynamic capacity Gauges. The map's keys could change.
   private final Map<String, SimpleDynamicMetric<Long>> _dynamicCapacityMetricsMap;
@@ -108,6 +112,12 @@ public class InstanceMonitor extends DynamicMBeanProvider {
     _maxCapacityUsageGauge =
         new SimpleDynamicMetric<>(InstanceMonitorMetric.MAX_CAPACITY_USAGE_GAUGE.metricName(),
             0.0d);
+    _messageQueueSizeGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.MESSAGE_QUEUE_SIZE_GAUGE.metricName(),
+            0L);
+    _pastDueMessageGauge =
+        new SimpleDynamicMetric<>(InstanceMonitorMetric.PASTDUE_MESSAGE_GAUGE.metricName(),
+            0L);
   }
 
   private List<DynamicMetric<?, ?>> buildAttributeList() {
@@ -116,7 +126,9 @@ public class InstanceMonitor extends DynamicMBeanProvider {
         _disabledPartitionsGauge,
         _enabledStatusGauge,
         _onlineStatusGauge,
-        _maxCapacityUsageGauge
+        _maxCapacityUsageGauge,
+        _messageQueueSizeGauge,
+        _pastDueMessageGauge
     );
 
     attributeList.addAll(_dynamicCapacityMetricsMap.values());
@@ -145,6 +157,10 @@ public class InstanceMonitor extends DynamicMBeanProvider {
   protected long getDisabledPartitions() {
     return _disabledPartitionsGauge.getValue();
   }
+
+  protected long getMessageQueueSizeGauge() { return _messageQueueSizeGauge.getValue(); }
+
+  protected long getPastDueMessageGauge() { return _pastDueMessageGauge.getValue(); }
 
   /**
    * Get the name of the monitored instance
@@ -207,6 +223,22 @@ public class InstanceMonitor extends DynamicMBeanProvider {
    */
   public synchronized void updateMaxCapacityUsage(double maxUsage) {
     _maxCapacityUsageGauge.updateValue(maxUsage);
+  }
+
+  /**
+   * Updates message queue size for this instance.
+   * @param queueSize message queue size of this instance
+   */
+  public synchronized void updateMessageQueueSize(long queueSize) {
+    _messageQueueSizeGauge.updateValue(queueSize);
+  }
+
+  /**
+   * Updates number of messages that has not been completed after its expected completion time for this instance.
+   * @param msgCount count of messages that has not been completed after its due completion time
+   */
+  public synchronized void updatePastDueMessageGauge(long msgCount) {
+    _pastDueMessageGauge.updateValue(msgCount);
   }
 
   /**

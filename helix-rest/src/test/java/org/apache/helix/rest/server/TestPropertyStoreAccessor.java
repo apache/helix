@@ -20,6 +20,8 @@ package org.apache.helix.rest.server;
  */
 
 import java.io.IOException;
+import java.util.Base64;
+import java.util.zip.DataFormatException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -31,12 +33,17 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.ZLibCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.http.HttpStatus;
 import org.codehaus.jackson.JsonNode;
-import org.junit.Assert;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -44,18 +51,19 @@ import org.testng.annotations.Test;
 
 public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final String TEST_CLUSTER = "TestCluster_0";
-  private static final String ZNRECORD_PATH =
-      PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/ZnRecord";
+  private static final String TEST_CLUSTER_PROPERTY_STORE_PATH =
+      PropertyPathBuilder.propertyStore(TEST_CLUSTER);
+  private static final String ZNRECORD_PATH = TEST_CLUSTER_PROPERTY_STORE_PATH + "/ZnRecord";
   private static final ZNRecord TEST_ZNRECORD = new ZNRecord("TestContent");
-  private static final String CUSTOM_PATH =
-      PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
+  private static final String CUSTOM_PATH = TEST_CLUSTER_PROPERTY_STORE_PATH + "/NonZnRecord";
   private static final String TEST_CONTENT = "TestContent";
   private static final String CONTENT_KEY = "content";
 
   private ZkBaseDataAccessor<String> _customDataAccessor;
+  private RealmAwareZkClient _DedicatedZkClient;
 
   @BeforeClass
-  public void init() {
+  public void init() throws IOException {
     _customDataAccessor = new ZkBaseDataAccessor<>(ZK_ADDR, new ZkSerializer() {
       @Override
       public byte[] serialize(Object o) throws ZkMarshallingError {
@@ -71,13 +79,32 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     Assert
         .assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
     Assert.assertTrue(_baseAccessor.create(ZNRECORD_PATH, TEST_ZNRECORD, AccessOption.PERSISTENT));
+
+    // Prepare compressed znodes
+    HelixZkClient.ZkClientConfig clientConfig =
+        new HelixZkClient.ZkClientConfig().setZkSerializer(new ByteArraySerializer());
+    _DedicatedZkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR), clientConfig);
+    byte[] contentBytes = TEST_CONTENT.getBytes();
+    byte[] zlibCompressed = ZLibCompressionUtil.compress(contentBytes);
+    byte[] gzipCompressed = GZipCompressionUtil.compress(contentBytes);
+    _DedicatedZkClient
+        .createPersistent(TEST_CLUSTER_PROPERTY_STORE_PATH + "/zlibCompressed", zlibCompressed);
+    _DedicatedZkClient
+        .createPersistent(TEST_CLUSTER_PROPERTY_STORE_PATH + "/gzipCompressed", gzipCompressed);
   }
 
   @AfterClass
-  public void close() {
+  public void close() throws Exception {
     if (_customDataAccessor != null) {
       _customDataAccessor.close();
     }
+    Assert.assertTrue(TestHelper.verify(() -> {
+      final String path = "/" + TEST_CLUSTER;
+      _DedicatedZkClient.deleteRecursively(path);
+      return !_DedicatedZkClient.exists(path);
+    }, TestHelper.WAIT_DURATION));
+    _DedicatedZkClient.close();
   }
 
   @Test
@@ -115,6 +142,48 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         new JerseyUriRequestBuilder("clusters/{}/propertyStore" + path).format(TEST_CLUSTER)
             .getResponse(this);
     Assert.assertEquals(response.getStatus(), HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void testGetPropertyStoreWithZLibCompression() throws IOException {
+    String zlibResponse =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/zlibCompressed?compression=zlib")
+            .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+    String deflaterResponse =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/zlibCompressed?compression=deflater")
+            .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+
+    // zlib and deflater are the same so should get the same response string.
+    Assert.assertEquals(zlibResponse, deflaterResponse);
+
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(zlibResponse);
+    String payLoad = jsonNode.get(CONTENT_KEY).getValueAsText();
+
+    Assert.assertEquals(payLoad, TEST_CONTENT);
+  }
+
+  @Test
+  public void testGetPropertyStoreWithGzipCompression() throws IOException {
+    String response =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/gzipCompressed?compression=gzip")
+            .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response);
+    String payLoad = jsonNode.get(CONTENT_KEY).getValueAsText();
+
+    Assert.assertEquals(payLoad, TEST_CONTENT);
+  }
+
+  @Test
+  public void testGetPropertyStoreWithEncode() throws IOException, DataFormatException {
+    String response =
+        new JerseyUriRequestBuilder("clusters/{}/propertyStore/zlibCompressed?encode=base64")
+            .format(TEST_CLUSTER).isBodyReturnExpected(true).get(this);
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(response);
+    String payLoad = jsonNode.get(CONTENT_KEY).getValueAsText();
+    String decodedContent =
+        new String(ZLibCompressionUtil.decompress(Base64.getDecoder().decode(payLoad)));
+
+    Assert.assertEquals(decodedContent, TEST_CONTENT);
   }
 
   @Test

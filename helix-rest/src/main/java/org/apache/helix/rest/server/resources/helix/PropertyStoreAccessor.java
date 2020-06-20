@@ -19,7 +19,10 @@ package org.apache.helix.rest.server.resources.helix;
  * under the License.
  */
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Base64;
+import java.util.zip.DataFormatException;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -36,52 +39,82 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.util.GZipCompressionUtil;
+import org.apache.helix.zookeeper.util.ZLibCompressionUtil;
+import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-@Path("/clusters/{clusterId}/propertyStore")
+@Path("/clusters/{clusterId}/propertyStore{path: /.+}")
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);
+
   private static final String CONTENT_KEY = "content";
+  private static final String GZIP_COMPRESSION = "gzip";
+  private static final String ZLIB_COMPRESSION = "zlib";
+  private static final String DEFLATER_COMPRESSION = "deflater";
+  private static final String BASE64_ENCODE = "base64";
   private static final ZNRecordSerializer ZN_RECORD_SERIALIZER = new ZNRecordSerializer();
 
   /**
    * Sample HTTP URLs:
    *  http://<HOST>/clusters/{clusterId}/propertyStore/<PATH>
    * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
+   * <p>
+   * If the znode content is compressed, compression method could be specified to
+   * decompress the content before returning the response:
+   * "/propertyStore/path?compression=zlib"
+   * <p>
+   * Encoding znode content in response could be achieved by explicitly specifying
+   * encode query param:
+   * "/propertyStore/path?encode=base64"
+   * So the content will be encoded to base64 and client needs to decode the content.
+   * If compression method is not supported, a client should specify base64 to encode
+   * compressed bytes so client could decode and decompress data.
+   *
    * @param clusterId The cluster Id
-   * @param path path parameter is like "abc/abc/abc" in the URL
+   * @param path path parameter is like "/abc/abc/abc" in the URL
+   * @param compression method that compresses znode content, eg. gzip, zlib, deflater.
+   * @param encode encoding method that encodes znode content byte array in response
+   *               so the client could decode the content accordingly. base64 is supported.
+   *               It is useful when compression method is not supported, we could encode the
+   *               bytes to base64.
    * @return If the payload is ZNRecord format, return ZnRecord json response;
-   *         Otherwise, return json object {<PATH>: raw string}
+   *         Otherwise, return json object {{@link #CONTENT_KEY}: raw string}
    */
   @GET
-  @Path("{path: .+}")
   public Response getPropertyByPath(@PathParam("clusterId") String clusterId,
-      @PathParam("path") String path) {
-    path = "/" + path;
+      @PathParam("path") String path, @QueryParam("compression") String compression,
+      @QueryParam("encode") String encode) {
     if (!ZkValidationUtil.isPathValid(path)) {
       LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       return badRequest(
           "Invalid path string. Valid path strings use slash as the directory separator and names the location of ZNode");
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
-    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
-    if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
-      byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
-      ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
-      // The ZNRecordSerializer returns null when exception occurs in deserialization method
-      if (znRecord == null) {
-        ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
-        jsonNode.put(CONTENT_KEY, new String(bytes));
-        return JSONRepresentation(jsonNode);
-      }
-      return JSONRepresentation(znRecord);
-    } else {
-      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-          .entity(String.format("The property store path %s doesn't exist", recordPath)).build());
+    byte[] bytes = readPropertyStoreBytes(recordPath);
+
+    if (compression != null && !compression.isEmpty()) {
+      return decompressBytes(bytes, recordPath, compression);
     }
+
+    if (encode != null && !encode.isEmpty()) {
+      return encodeBytes(bytes, encode);
+    }
+
+    ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
+    // The ZNRecordSerializer returns null when exception occurs in deserialization method
+    if (znRecord == null) {
+      ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
+      // By default, treat the bytes as plain string bytes and convert the bytes to string.
+      // If bytes are compressed, converting to string would cause client not able to decompress.
+      jsonNode.put(CONTENT_KEY, new String(bytes));
+      return JSONRepresentation(jsonNode);
+    }
+
+    return JSONRepresentation(znRecord);
   }
 
   /**
@@ -89,17 +122,15 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    *  http://<HOST>/clusters/{clusterId}/propertyStore/<PATH>
    * It refers to the /PROPERTYSTORE/<PATH> in Helix metadata store
    * @param clusterId The cluster Id
-   * @param path path parameter is like "abc/abc/abc" in the URL
+   * @param path path parameter is like "/abc/abc/abc" in the URL
    * @param isZNRecord true if the content represents a ZNRecord. false means byte array.
    * @param content
    * @return Response
    */
   @PUT
-  @Path("{path: .+}")
   public Response putPropertyByPath(@PathParam("clusterId") String clusterId,
       @PathParam("path") String path,
       @QueryParam("isZNRecord") @DefaultValue("true") String isZNRecord, String content) {
-    path = "/" + path;
     if (!ZkValidationUtil.isPathValid(path)) {
       LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       return badRequest(
@@ -142,10 +173,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    * @return
    */
   @DELETE
-  @Path("{path: .+}")
   public Response deletePropertyByPath(@PathParam("clusterId") String clusterId,
       @PathParam("path") String path) {
-    path = "/" + path;
     if (!ZkValidationUtil.isPathValid(path)) {
       LOG.info("The propertyStore path {} is invalid for cluster {}", path, clusterId);
       return badRequest(
@@ -157,5 +186,60 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
       return serverError("Failed to delete PropertyStore record in path: " + path);
     }
     return OK();
+  }
+
+  private byte[] readPropertyStoreBytes(String recordPath) {
+    BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
+
+    // If znode does not exist, bytes is null. But content of an existing znode could be null.
+    // We use stat ctime to check if znode exists or not. ctime == 0L means znode does not exist.
+    Stat stat = new Stat();
+    byte[] bytes = propertyStoreDataAccessor.get(recordPath, stat, AccessOption.PERSISTENT);
+    if (stat.getCtime() == 0L) {
+      throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+          .entity(String.format("The property store path %s doesn't exist", recordPath)).build());
+    }
+
+    return bytes;
+  }
+
+  private Response decompressBytes(byte[] bytes, String recordPath, String compression) {
+    byte[] decompressedBytes;
+    try {
+      switch (compression) {
+        case ZLIB_COMPRESSION:
+        case DEFLATER_COMPRESSION:
+          decompressedBytes = ZLibCompressionUtil.decompress(bytes);
+          break;
+        case GZIP_COMPRESSION:
+          decompressedBytes = GZipCompressionUtil.uncompress(new ByteArrayInputStream(bytes));
+          break;
+        default:
+          LOG.info("{} compression method is not supported.", compression);
+          return badRequest(compression + " compression method is not supported.");
+      }
+    } catch (IOException | DataFormatException e) {
+      LOG.info("Failed to decompress znode bytes using {} for path: {}", compression, recordPath,
+          e);
+      return badRequest("Failed to decompress znode bytes for path: " + recordPath
+          + ", caused by: " + e.getMessage());
+    }
+
+    ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
+    jsonNode.put(CONTENT_KEY, new String(decompressedBytes));
+
+    return JSONRepresentation(jsonNode);
+  }
+
+  private Response encodeBytes(byte[] bytes, String encode) {
+    // For now only supports base64.
+    if (!BASE64_ENCODE.equalsIgnoreCase(encode)) {
+      return badRequest("Encoding method: " + encode + " is not supported");
+    }
+
+    ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
+    jsonNode.put(CONTENT_KEY, Base64.getEncoder().encodeToString(bytes));
+
+    return JSONRepresentation(jsonNode);
   }
 }

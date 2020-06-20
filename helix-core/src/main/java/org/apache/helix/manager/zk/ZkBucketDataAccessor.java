@@ -25,9 +25,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
@@ -69,18 +69,19 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
       Executors.newSingleThreadScheduledExecutor();
 
   private final int _bucketSize;
-  private final long _versionTTL;
+  private final long _versionTTLms;
   private ZkSerializer _zkSerializer;
   private RealmAwareZkClient _zkClient;
   private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
+  private ScheduledFuture _gcTaskFuture = null;
 
   /**
    * Constructor that allows a custom bucket size.
    * @param zkAddr
    * @param bucketSize
-   * @param versionTTL in ms
+   * @param versionTTLms in ms
    */
-  public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTL) {
+  public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
       try {
         // Create realm-aware ZkClient.
@@ -114,7 +115,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     _zkBaseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
     _zkSerializer = new ZNRecordJacksonSerializer();
     _bucketSize = bucketSize;
-    _versionTTL = versionTTL;
+    _versionTTLms = versionTTLms;
   }
 
   /**
@@ -223,7 +224,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     }
 
     // 5. Update the timer for GC
-    updateGCTimer(rootPath, versionStr);
+    updateGCTimer(rootPath, version);
     return true;
   }
 
@@ -329,16 +330,18 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     disconnect();
   }
 
-  private void updateGCTimer(String rootPath, String currentVersion) {
-    TimerTask gcTask = new TimerTask() {
-      @Override
-      public void run() {
-        deleteStaleVersions(rootPath, currentVersion);
-      }
-    };
-
+  private synchronized void updateGCTimer(String rootPath, long currentVersion) {
+    if (_gcTaskFuture != null) {
+      _gcTaskFuture.cancel(false);
+    }
     // Schedule the gc task with TTL
-    GC_THREAD.schedule(gcTask, _versionTTL, TimeUnit.MILLISECONDS);
+    _gcTaskFuture = GC_THREAD.schedule(() -> {
+      try {
+        deleteStaleVersions(rootPath, currentVersion);
+      } catch (Exception ex) {
+        LOG.error("Failed to delete the stale versions.", ex);
+      }
+    }, _versionTTLms, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -346,15 +349,15 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param rootPath
    * @param currentVersion
    */
-  private void deleteStaleVersions(String rootPath, String currentVersion) {
+  private void deleteStaleVersions(String rootPath, long currentVersion) {
     // Get all children names under path
     List<String> children = _zkBaseDataAccessor.getChildNames(rootPath, AccessOption.PERSISTENT);
     if (children == null || children.isEmpty()) {
       // The whole path has been deleted so return immediately
       return;
     }
-    filterChildrenNames(children, currentVersion);
-    List<String> pathsToDelete = getPathsToDelete(rootPath, children);
+    List<String> pathsToDelete =
+        getPathsToDelete(rootPath, filterChildrenNames(children, currentVersion));
     for (String pathToDelete : pathsToDelete) {
       // TODO: Should be batch delete but it doesn't work. It's okay since this runs async
       _zkBaseDataAccessor.remove(pathToDelete, AccessOption.PERSISTENT);
@@ -363,29 +366,32 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
 
   /**
    * Filter out non-version children names and non-stale versions.
-   * @param childrenToRemove
+   * @param childrenNodes
+   * @param currentVersion
+   * @return The filtered child node names to be removed
    */
-  private void filterChildrenNames(List<String> childrenToRemove, String currentVersion) {
-    // Leave out metadata
-    childrenToRemove.remove(LAST_SUCCESSFUL_WRITE_KEY);
-    childrenToRemove.remove(LAST_WRITE_KEY);
-
-    // Leave out currentVersion and above
-    // This is because we want to honor the TTL for newer versions
-    childrenToRemove.remove(currentVersion);
-    long currentVer = Long.parseLong(currentVersion);
-    for (String child : childrenToRemove) {
-      try {
-        long version = Long.parseLong(child);
-        if (version >= currentVer) {
-          childrenToRemove.remove(child);
-        }
-      } catch (Exception e) {
-        // Ignore ZNode names that aren't parseable
-        childrenToRemove.remove(child);
-        LOG.debug("Found an invalid ZNode: {}", child);
+  private List<String> filterChildrenNames(List<String> childrenNodes, long currentVersion) {
+    List<String> childrenToRemove = new ArrayList<>();
+    for (String child : childrenNodes) {
+      // Leave out metadata
+      if (child.equals(LAST_SUCCESSFUL_WRITE_KEY) || child.equals(LAST_WRITE_KEY)) {
+        continue;
       }
+      long childVer;
+      try {
+        childVer = Long.parseLong(child);
+      } catch (NumberFormatException ex) {
+        LOG.warn("Found an invalid ZNode: {}", child);
+        // Ignore ZNode names that aren't parseable
+        continue;
+      }
+      if (childVer < currentVersion) {
+        childrenToRemove.add(child);
+      }
+      // Leave out currentVersion and above
+      // This is because we want to honor the TTL for newer versions
     }
+    return childrenToRemove;
   }
 
   /**

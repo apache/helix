@@ -1783,9 +1783,9 @@ public class ZkClient implements Watcher {
     return writeDataReturnStat(path, datat, expectedVersion);
   }
 
-  public void asyncCreate(final String path, Object data, final CreateMode mode,
+  public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
-    asyncCreate(path, data, mode, cb, null);
+    asyncCreate(path, datat, mode, cb, null);
   }
 
   public void asyncCreate(final String path, Object data, final CreateMode mode,
@@ -2212,38 +2212,32 @@ public class ZkClient implements Watcher {
    * It is used for write operations that suppose the znode to be created by the expected session.
    */
   private ZooKeeper getExpectedZookeeper(final String expectedSessionId) {
+    /*
+     * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
+     * under this zookeeper connection. This is to avoid zk session change after expected
+     * session check.
+     */
     ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
 
+    /*
+     * The operation is NOT session aware, we will use the actual zookeeper session without
+     * checking expected session.
+     */
     if (expectedSessionId == null || expectedSessionId.isEmpty()) {
       return zk;
     }
 
     /*
-     * 1. If operation is session aware, we have to check whether or not the
-     * passed-in(expected) session id matches actual session's id.
-     * If not, znode creation is failed. This validation is
-     * critical to guarantee the znode is created by the expected ZK session.
-     *
-     * 2. Otherwise, the operation is NOT session aware.
-     * In this case, we will use the actual zookeeper session to create the node.
+     * If operation is session aware (expectedSession is valid),
+     * we have to check whether or not the passed-in(expected) session id
+     * matches actual session's id.
+     * If not, we should not return a zk object for the zk operation.
      */
-    acquireEventLock();
-    try {
-      final String actualSessionId = Long.toHexString(zk.getSessionId());
-      if (!actualSessionId.equals(expectedSessionId)) {
-        throw new ZkSessionMismatchedException(
-            "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
-                + expectedSessionId + ". Actual: " + actualSessionId);
-      }
-
-      /*
-       * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
-       * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
-       * may cause potential performance issue.
-       */
-      zk = ((ZkConnection) getConnection()).getZookeeper();
-    } finally {
-      getEventLock().unlock();
+    final String actualSessionId = Long.toHexString(zk.getSessionId());
+    if (!actualSessionId.equals(expectedSessionId)) {
+      throw new ZkSessionMismatchedException(
+          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
+              + expectedSessionId + ". Actual: " + actualSessionId);
     }
 
     return zk;

@@ -157,12 +157,12 @@ public class InstanceConfig extends HelixProperty {
 
     String[] pathPairs = domain.trim().split(",");
     for (String pair : pathPairs) {
-      String[] values = pair.trim().split("=");
+      String[] values = pair.split("=");
       if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
         throw new IllegalArgumentException(
             String.format("Domain-Value pair %s is not valid.", pair));
       }
-      domainAsMap.put(values[0], values[1]);
+      domainAsMap.put(values[0].trim(), values[1].trim());
     }
 
     return domainAsMap;

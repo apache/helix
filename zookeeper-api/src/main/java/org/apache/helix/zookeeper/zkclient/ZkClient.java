@@ -70,8 +70,13 @@ import org.slf4j.LoggerFactory;
  * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
-  private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
-  private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+  private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+
+  private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+
+  // If number of children exceeds this limit,
+  // getChildren() should not retry on connection loss.
+  private static final int NUM_CHILDREN_LIMIT;
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -102,6 +107,17 @@ public class ZkClient implements Watcher {
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
   protected final ZkAsyncRetryThread _asyncCallRetryThread;
+
+  static {
+    // 100K is specific for helix messages which use UUID.
+    // It makes messages packet length just below 4 MB.
+    // Tested and calculated: response packet length: 4 * 1024 * 1024 bytes.
+    // UUID string length: 36 bytes. Each child adds 4 bytes in packet.
+    // Estimate num children: (4 * 1024 * 1024) / (36 + 4) ~= 104.8K
+    // Set it here for unit test to use reflection to change value
+    // because compilers optimize constants by replacing them inline.
+    NUM_CHILDREN_LIMIT = 100 * 1000;
+  }
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -984,11 +1000,43 @@ public class ZkClient implements Watcher {
 
   protected List<String> getChildren(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
+    // Need one element array to change value of this final variable.
+    final int[] connectionLossRetryCount = {0};
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
-          return getConnection().getChildren(path, watch);
+          try {
+            return getConnection().getChildren(path, watch);
+          } catch (ConnectionLossException e) {
+            ++connectionLossRetryCount[0];
+            // Allow retrying 3 times before checking stat checking number of children,
+            // because there is a higher possibility that connection loss is caused by other
+            // factors such as network connectivity, connected ZK node could not serve
+            // the request, session expired, etc.
+            if (connectionLossRetryCount[0] >= 3) {
+              // Issue: https://github.com/apache/helix/issues/962
+              // Connection loss might be caused by an excessive number of children.
+              // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
+              // This is a workaround to check numChildren to have a chance to exit retry loop.
+              // TODO: remove this check once we have a better way to exit infinite retry
+              Stat stat = getStat(path);
+              if (stat != null && stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
+                LOG.error("Failed to get children for path {} because number of children {} "
+                        + "exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
+                    NUM_CHILDREN_LIMIT);
+                // There is not an accurate KeeperException for the purpose.
+                // MarshallingErrorException could represent transport error,
+                // so use it to exit retry loop and tell that zk is not able to
+                // transport the data because packet length is too large.
+                throw new KeeperException.MarshallingErrorException();
+              }
+            }
+
+            // Re-throw the ConnectionLossException for retryUntilConnected() to catch
+            // and retry the operation.
+            throw e;
+          }
         }
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
@@ -1503,12 +1551,14 @@ public class ZkClient implements Watcher {
         } catch (Exception e) {
           throw ExceptionUtil.convertToRuntimeException(e);
         }
+
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
               + _operationRetryTimeoutInMillis + " milli seconds). Retry was caused by "
               + retryCauseCode);
         }
+        LOG.warn("Retrying operation, caused by {}", retryCauseCode);
       }
     } finally {
       if (_monitor != null) {

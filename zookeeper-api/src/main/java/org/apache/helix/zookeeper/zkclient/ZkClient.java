@@ -997,22 +997,22 @@ public class ZkClient implements Watcher {
 
   protected List<String> getChildren(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
-    // This variable needs to be accessed in inner class Callable so it needs to be final.
-    // And need one element array to change value of this final variable.
-    final int[] connectionLossRetryCount = {0};
+
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
+        private int connectionLossRetryCount = 0;
+
         @Override
         public List<String> call() throws Exception {
           try {
             return getConnection().getChildren(path, watch);
           } catch (ConnectionLossException e) {
-            ++connectionLossRetryCount[0];
+            ++connectionLossRetryCount;
             // Allow retrying 3 times before checking stat checking number of children,
             // because there is a higher possibility that connection loss is caused by other
             // factors such as network connectivity, connected ZK node could not serve
             // the request, session expired, etc.
-            if (connectionLossRetryCount[0] >= 3) {
+            if (connectionLossRetryCount >= 3) {
               // Issue: https://github.com/apache/helix/issues/962
               // Connection loss might be caused by an excessive number of children.
               // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
@@ -1031,7 +1031,7 @@ public class ZkClient implements Watcher {
                   throw new KeeperException.MarshallingErrorException();
                 } else {
                   // No need to do stat again for next connection loss.
-                  connectionLossRetryCount[0] = 0;
+                  connectionLossRetryCount = 0;
                   LOG.info("Number of children {} is less than limit {}, not exiting retry.",
                       stat.getNumChildren(), NUM_CHILDREN_LIMIT);
                 }

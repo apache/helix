@@ -74,8 +74,9 @@ public class ZkClient implements Watcher {
 
   private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
-  // If number of children exceeds this limit,
-  // getChildren() should not retry on connection loss.
+  // If number of children exceeds this limit, getChildren() should not retry on connection loss.
+  // This is a workaround for exiting retry on connection loss because of large number of children.
+  //TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT;
 
   private final IZkConnection _connection;
@@ -1000,7 +1001,8 @@ public class ZkClient implements Watcher {
 
   protected List<String> getChildren(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
-    // Need one element array to change value of this final variable.
+    // This variable needs to be accessed in inner class Callable so it needs to be final.
+    // And need one element array to change value of this final variable.
     final int[] connectionLossRetryCount = {0};
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
@@ -1021,15 +1023,22 @@ public class ZkClient implements Watcher {
               // This is a workaround to check numChildren to have a chance to exit retry loop.
               // TODO: remove this check once we have a better way to exit infinite retry
               Stat stat = getStat(path);
-              if (stat != null && stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
-                LOG.error("Failed to get children for path {} because number of children {} "
-                        + "exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
-                    NUM_CHILDREN_LIMIT);
-                // There is not an accurate KeeperException for the purpose.
-                // MarshallingErrorException could represent transport error,
-                // so use it to exit retry loop and tell that zk is not able to
-                // transport the data because packet length is too large.
-                throw new KeeperException.MarshallingErrorException();
+              if (stat != null) {
+                if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
+                  LOG.error("Failed to get children for path {} because number of children {} "
+                          + "exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
+                      NUM_CHILDREN_LIMIT);
+                  // There is not an accurate KeeperException for the purpose.
+                  // MarshallingErrorException could represent transport error,
+                  // so use it to exit retry loop and tell that zk is not able to
+                  // transport the data because packet length is too large.
+                  throw new KeeperException.MarshallingErrorException();
+                } else {
+                  // No need to do stat again for next connection loss.
+                  connectionLossRetryCount[0] = 0;
+                  LOG.info("Number of children {} is less than limit {}, not exiting retry.",
+                      stat.getNumChildren(), NUM_CHILDREN_LIMIT);
+                }
               }
             }
 

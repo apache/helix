@@ -150,12 +150,22 @@ public class InstanceConfig extends HelixProperty {
    */
   public Map<String, String> getDomainAsMap() {
     String domain = getDomainAsString();
+    Map<String, String> domainAsMap = new HashMap<>();
     if (domain == null || domain.isEmpty()) {
-      return Collections.emptyMap();
+      return domainAsMap;
     }
 
-    return Splitter.on(',').trimResults()
-        .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults()).split(domain);
+    String[] pathPairs = domain.trim().split(",");
+    for (String pair : pathPairs) {
+      String[] values = pair.split("=");
+      if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
+        throw new IllegalArgumentException(
+            String.format("Domain-Value pair %s is not valid.", pair));
+      }
+      domainAsMap.put(values[0].trim(), values[1].trim());
+    }
+
+    return domainAsMap;
   }
 
   /**

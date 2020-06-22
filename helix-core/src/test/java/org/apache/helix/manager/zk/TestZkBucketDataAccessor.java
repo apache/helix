@@ -138,7 +138,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
               new Long(lastSuccessfulWriteVer).toString()));
     }, VERSION_TTL_MS * 2));
 
-    // Wait one more TTL to ensure that the
+    // Wait one more TTL to ensure that the GC has been done.
     Thread.sleep(VERSION_TTL_MS);
     List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
     Assert.assertTrue(children.size() == 3 && children.containsAll(ImmutableList

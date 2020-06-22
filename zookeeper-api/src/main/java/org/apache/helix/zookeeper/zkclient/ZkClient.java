@@ -110,11 +110,7 @@ public class ZkClient implements Watcher {
   protected final ZkAsyncRetryThread _asyncCallRetryThread;
 
   static {
-    // 100K is specific for helix messages which use UUID.
-    // It makes messages packet length just below 4 MB.
-    // Tested and calculated: response packet length: 4 * 1024 * 1024 bytes.
-    // UUID string length: 36 bytes. Each child adds 4 bytes in packet.
-    // Estimate num children: (4 * 1024 * 1024) / (36 + 4) ~= 104.8K
+    // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
     // Set it here for unit test to use reflection to change value
     // because compilers optimize constants by replacing them inline.
     NUM_CHILDREN_LIMIT = 100 * 1000;

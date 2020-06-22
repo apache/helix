@@ -63,12 +63,10 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
           scheduleNextJobPurge(workflowConfig.getWorkflowId(), currentTime, purgeInterval,
               _rebalanceScheduler, manager);
         }
-      } else if (workflowConfig == null) {
-        if (entry.getValue() != null && entry.getValue().getId()
-            .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
-          // Find workflows that need to be purged
-          workflowsToBeDeleted.add(entry.getKey());
-        }
+      } else if (workflowConfig == null && entry.getValue() != null && entry.getValue().getId()
+          .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
+        // Find workflows that need to be purged
+        workflowsToBeDeleted.add(entry.getKey());
       }
     }
     event.addAttribute(AttributeName.EXPIRED_JOBS_MAP.name(),

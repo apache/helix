@@ -1020,7 +1020,7 @@ public class TaskUtil {
       if (!TaskUtil
           .removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(), job)) {
         failedJobRemovals.add(job);
-        LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
+        LOG.warn("Failed to clean up expired and completed jobs from workflow {}!", workflow);
       }
       rebalanceScheduler.removeScheduledRebalance(job);
     }
@@ -1030,8 +1030,8 @@ public class TaskUtil {
     expiredJobs.removeAll(failedJobRemovals);
 
     if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs, true)) {
-      LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs + " from the workflow "
-          + workflow);
+      LOG.warn("Error occurred while trying to remove jobs {} from the workflow {}!", expiredJobs,
+          workflow);
     }
 
     if (expiredJobs.size() > 0) {
@@ -1044,7 +1044,8 @@ public class TaskUtil {
       if (resourceConfigs.size() > 0) {
         RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
       } else {
-        LOG.warn("No resource config to trigger rebalance for clean up contexts for" + expiredJobs);
+        LOG.warn("No resource config to trigger rebalance for clean up contexts for {}!",
+            expiredJobs);
       }
     }
   }

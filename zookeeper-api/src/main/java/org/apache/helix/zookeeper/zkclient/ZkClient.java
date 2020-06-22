@@ -2144,12 +2144,12 @@ public class ZkClient implements Watcher {
     if (_monitor != null) {
       if (stateChanged) {
         _monitor.increaseStateChangeEventCounter();
-        if (sessionExpired) {
-          _monitor.increasExpiredSessionCounter();
-        }
       }
       if (dataChanged) {
         _monitor.increaseDataChangeEventCounter();
+      }
+      if (sessionExpired) {
+        _monitor.increasExpiredSessionCounter();
       }
     }
   }

@@ -145,23 +145,6 @@ public class TestRawZkClient extends ZkTestBase {
     }
   }
 
-  /*
-   * Tests session expiry for the helix's IZkStateListener.
-   */
-  @Test
-  void testSessionExpiry()
-      throws Exception {
-    long lastSessionId = _zkClient.getSessionId();
-
-    // Test multiple times to make sure each time the new session id is increasing.
-    for (int i = 0; i < 3; i++) {
-      ZkTestHelper.expireSession(_zkClient);
-      long newSessionId = _zkClient.getSessionId();
-      Assert.assertTrue(newSessionId != lastSessionId,
-          "New session id should not equal to expired session id.");
-      lastSessionId = newSessionId;
-    }
-  }
 
   /*
    * Tests state changes subscription for I0Itec's IZkStateListener.
@@ -488,6 +471,9 @@ public class TestRawZkClient extends ZkTestBase {
     }
   }
 
+  /*
+   * Tests session expiry and session expire counter for the helix's IZkStateListener.
+   */
   @Test(dependsOnMethods = "testZkClientMonitor")
   void testSessionExpireCount() throws Exception {
     final String TEST_KEY = "testSessionExpireCount";
@@ -509,22 +495,16 @@ public class TestRawZkClient extends ZkTestBase {
       long lastSessionId = zkClient.getSessionId();
       long previousSessionExpiredCount =
           (long) beanServer.getAttribute(name, "ExpiredSessionCounter");
-      ZkTestHelper.expireSession(zkClient);
-      //Wait until the ZkClient has got a new session.
-      Assert.assertTrue(TestHelper.verify(() -> {
-        try {
-          // New session id should not equal to expired session id.
-          return zkClient.getSessionId() != lastSessionId;
-        } catch (ZkClientException ex) {
-          return false;
-        }
-      }, 1000L));
 
-      long newSessionId = zkClient.getSessionId();
-      Assert.assertTrue(newSessionId != lastSessionId,
-          "New session id should not equal to expired session id.");
+      for (int i = 0; i < 3; i++) {
+        ZkTestHelper.expireSession(zkClient);
+        long newSessionId = zkClient.getSessionId();
+        Assert.assertTrue(newSessionId != lastSessionId,
+            "New session id should not equal to expired session id.");
+        lastSessionId = newSessionId;
+      }
       Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"),
-          previousSessionExpiredCount + 1);
+          previousSessionExpiredCount + 3);
 
       zkClient.close();
     } finally {

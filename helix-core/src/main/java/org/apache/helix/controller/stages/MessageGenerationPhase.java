@@ -226,11 +226,12 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
           if (pendingMessage == null || (message == null &&
               currentState.equalsIgnoreCase(pendingMessage.getToState()))) {
             if (pendingMessage != null) {
-              logger.info("Ignore the pending message for resource %s partition %s instance "
-                      + "%s since the current state %s equals toState of pending message.",
+              logger.info("Ignore the pending message for resource {} partition {} instance "
+                      + "{} since the current state {} equals toState of pending message.",
                   resource.getResourceName(), partition.getPartitionName(), instanceName,
                   currentState);
             }
+
             // Create new state transition message
             message = createStateTransitionMessage(manager, resource, partition.getPartitionName(),
                 instanceName, currentState, nextState, sessionIdMap.get(instanceName),

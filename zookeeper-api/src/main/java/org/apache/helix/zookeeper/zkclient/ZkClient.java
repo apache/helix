@@ -76,7 +76,7 @@ public class ZkClient implements Watcher {
 
   // If number of children exceeds this limit, getChildren() should not retry on connection loss.
   // This is a workaround for exiting retry on connection loss because of large number of children.
-  //TODO: remove it once we have a better way to exit retry for this case
+  // TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT;
 
   private final IZkConnection _connection;
@@ -1024,9 +1024,8 @@ public class ZkClient implements Watcher {
                   LOG.error("Failed to get children for path {} because number of children {} "
                           + "exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
                       NUM_CHILDREN_LIMIT);
-                  // There is not an accurate KeeperException for the purpose.
-                  // MarshallingErrorException could represent transport error,
-                  // so use it to exit retry loop and tell that zk is not able to
+                  // MarshallingErrorException could represent transport error: exceeding the
+                  // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
                   // transport the data because packet length is too large.
                   throw new KeeperException.MarshallingErrorException();
                 } else {

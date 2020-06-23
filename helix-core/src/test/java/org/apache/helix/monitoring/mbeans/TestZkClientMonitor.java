@@ -110,6 +110,10 @@ public class TestZkClientMonitor {
     long stateChangeCount = (long) _beanServer.getAttribute(name, "StateChangeEventCounter");
     Assert.assertEquals(stateChangeCount, 1);
 
+    monitor.increasExpiredSessionCounter();
+    long expiredSessionCount = (long) _beanServer.getAttribute(name, "ExpiredSessionCounter");
+    Assert.assertEquals(expiredSessionCount, 1);
+
     monitor.increaseOutstandingRequestGauge();
     long requestGauge = (long) _beanServer.getAttribute(name, "OutstandingRequestGauge");
     Assert.assertEquals(requestGauge, 1);

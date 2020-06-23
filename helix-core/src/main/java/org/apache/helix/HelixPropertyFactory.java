@@ -70,7 +70,7 @@ public final class HelixPropertyFactory {
     return new HelixManagerProperty(properties, cloudConfig);
   }
 
-  public static CloudConfig buildEmptyCloudConfig(String clusterName) {
+  private static CloudConfig buildEmptyCloudConfig() {
     return new CloudConfig.Builder().setCloudEnabled(false).build();
   }
 

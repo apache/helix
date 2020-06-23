@@ -22,11 +22,15 @@ package org.apache.helix;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.client.DedicatedZkClient;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -56,57 +60,7 @@ public final class HelixPropertyFactory {
    * Clients may override these values.
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
-    CloudConfig cloudConfig;
-
-
-
-
-    // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
-      try {
-        RealmAwareZkClient zkClient = null;
-        RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder builder = new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-        builder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM).setZkRealmShardingKey("/" + clusterName);
-
-        zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(builder.build());
-        return;
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-        throw new HelixException("Failed to create ConfigAccessor!", e);
-      }
-    }
-
-    _zkClient = SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
-
-
-
-
-
-
-    try {
-      // This configAccessor is a dedicated zkclient because HelixManager is single realm
-      HelixZkClient.ZkConnectionConfig connectionConfig =
-          new HelixZkClient.ZkConnectionConfig(zkAddress);
-      zkClient = DedicatedZkClientFactory.getInstance().buildZkClient(connectionConfig);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
-      ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-      // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
-      // up yet, constructing a new ZKHelixManager should not throw an exception
-      try {
-        cloudConfig =
-            configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig(clusterName)
-                : configAccessor.getCloudConfig(clusterName);
-      } catch (HelixException e) {
-        cloudConfig = buildEmptyCloudConfig(clusterName);
-      }
-    } finally {
-      // Use a try-finally to make sure zkclient connection is closed properly
-      if (zkClient != null && !zkClient.isClosed()) {
-        zkClient.close();
-      }
-    }
-
+    CloudConfig cloudConfig = getCloudConfig(zkAddress, clusterName);
     Properties properties = new Properties();
     try {
       InputStream stream = Thread.currentThread().getContextClassLoader()
@@ -124,5 +78,58 @@ public final class HelixPropertyFactory {
 
   public static CloudConfig buildEmptyCloudConfig(String clusterName) {
     return new CloudConfig.Builder().setCloudEnabled(false).build();
+  }
+
+  /**
+   * Retrieve the CloudConfig of the cluster if available.
+   * Note: the reason we create a dedicated zk client here is because we need an isolated access to
+   * ZK in order to create a HelixManager instance.
+   * If shared zk client instance is used, this logic may break if users write tests that shut down
+   * ZK server and start again at a 0 zxid because the shared client would have a higher zxid.
+   * @param zkAddress
+   * @param clusterName
+   * @return
+   */
+  private CloudConfig getCloudConfig(String zkAddress, String clusterName) {
+    CloudConfig cloudConfig;
+    RealmAwareZkClient dedicatedZkClient = null;
+    try {
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+        // If the multi ZK config is enabled, use multi-realm mode with DedicatedZkClient
+        try {
+          RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+              new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+                  .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+                  .setZkRealmShardingKey("/" + clusterName).build();
+          dedicatedZkClient =
+              DedicatedZkClientFactory.getInstance().buildZkClient(connectionConfig);
+        } catch (IOException | InvalidRoutingDataException e) {
+          throw new HelixException("Not able to connect on multi-ZK mode!", e);
+        }
+      } else {
+        // Use a dedicated ZK client single-ZK mode
+        HelixZkClient.ZkConnectionConfig connectionConfig =
+            new HelixZkClient.ZkConnectionConfig(zkAddress);
+        dedicatedZkClient = DedicatedZkClientFactory.getInstance().buildZkClient(connectionConfig);
+      }
+      dedicatedZkClient.setZkSerializer(new ZNRecordSerializer());
+      ConfigAccessor configAccessor = new ConfigAccessor(dedicatedZkClient);
+
+      // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
+      // up yet, constructing a new ZKHelixManager should not throw an exception
+      try {
+        cloudConfig =
+            configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig(clusterName)
+                : configAccessor.getCloudConfig(clusterName);
+      } catch (HelixException e) {
+        cloudConfig = buildEmptyCloudConfig(clusterName);
+      }
+    } finally {
+      // Use a try-finally to make sure zkclient connection is closed properly
+      if (dedicatedZkClient != null && !dedicatedZkClient.isClosed()) {
+        dedicatedZkClient.close();
+      }
+    }
+    return cloudConfig;
   }
 }

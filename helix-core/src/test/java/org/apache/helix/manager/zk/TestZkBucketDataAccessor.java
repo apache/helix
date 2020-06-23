@@ -19,24 +19,25 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.testng.Assert;
@@ -49,6 +50,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   private static final String NAME_KEY = TestHelper.getTestClassName();
   private static final String LAST_SUCCESSFUL_WRITE_KEY = "LAST_SUCCESSFUL_WRITE";
   private static final String LAST_WRITE_KEY = "LAST_WRITE";
+  private static final long VERSION_TTL_MS = 1000L;
 
   // Populate list and map fields for content comparison
   private static final List<String> LIST_FIELD = ImmutableList.of("1", "2");
@@ -62,7 +64,7 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
   @BeforeClass
   public void beforeClass() {
     // Initialize ZK accessors for testing
-    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR, 50 * 1024, 0L);
+    _bucketDataAccessor = new ZkBucketDataAccessor(ZK_ADDR, 50 * 1024, VERSION_TTL_MS);
     HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(ZK_ADDR));
     zkClient.setZkSerializer(new ZkSerializer() {
@@ -103,8 +105,13 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
   @Test(dependsOnMethods = "testCompressedBucketWrite")
   public void testMultipleWrites() throws Exception {
-    int count = 50;
+    // Note to use a count number < 10 for testing.
+    // Otherwise the nodes named with version number will be ordered in a different alphabet order.
+    // This might hide some bugs in the GC code。
+    int count = 5;
 
+    Assert.assertTrue(VERSION_TTL_MS > 100,
+        "This test should be executed with the TTL more than 100ms.");
     // Write "count" times
     for (int i = 0; i < count; i++) {
       _bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record));
@@ -126,8 +133,17 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Use Verifier because GC can take ZK delay
     Assert.assertTrue(TestHelper.verify(() -> {
       List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
-      return children.size() == 3;
-    }, 60 * 1000L));
+      return children.size() == 3 && children.containsAll(ImmutableList
+          .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY,
+              new Long(lastSuccessfulWriteVer).toString()));
+    }, VERSION_TTL_MS * 2));
+
+    // Wait one more TTL to ensure that the GC has been done.
+    Thread.sleep(VERSION_TTL_MS);
+    List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
+    Assert.assertTrue(children.size() == 3 && children.containsAll(ImmutableList
+        .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY,
+            new Long(lastSuccessfulWriteVer).toString())));
   }
 
   /**

@@ -28,9 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -136,9 +133,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicTriggerInterval;
-  private ExecutorService _periodicTriggerExecutor;
-  private Future<?> _periodicTriggerFuture;
   private volatile long _lastInvokeTime;
+  private Thread _periodicTriggerThread;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -422,6 +418,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public void enqueueTask(NotificationContext changeContext) throws Exception {
+    if (_periodicTriggerThread != null) {
+      _lastInvokeTime = System.currentTimeMillis();
+    }
+
     // async mode only applicable to CALLBACK from ZK, During INIT and FINALIZE invoke the
     // callback's immediately.
     if (_batchModeEnabled && changeContext.getType() == NotificationContext.Type.CALLBACK) {
@@ -451,10 +451,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void invoke(NotificationContext changeContext) throws Exception {
     Type type = changeContext.getType();
     long start = System.currentTimeMillis();
-
-    if (_periodicTriggerExecutor != null) {
-      _lastInvokeTime = System.currentTimeMillis();
-    }
 
     // This allows the listener to work with one change at a time
     synchronized (_manager) {
@@ -893,7 +889,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             _batchCallbackProcessor.resetEventQueue();
           }
         }
-        shutDownTriggerTask(isShutdown);
+        shutDownTriggerTask();
       }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
@@ -931,14 +927,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   /**
    * Used to shut down a periodic triggered task
    */
-  private void shutDownTriggerTask(boolean isShutdown) {
-    if (_periodicTriggerFuture != null) {
-      _periodicTriggerFuture.cancel(true);
+  private void shutDownTriggerTask() {
+    if (_periodicTriggerThread != null) {
+      _periodicTriggerThread.interrupt();
     }
-    if (_periodicTriggerExecutor != null && isShutdown) {
-      _periodicTriggerExecutor.shutdownNow();
-      _periodicTriggerExecutor = null;
-    }
+    _periodicTriggerThread = null;
   }
 
   /**
@@ -949,12 +942,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     if (triggerInterval <= 0) {
       return;
     }
-    shutDownTriggerTask(false);
+    shutDownTriggerTask();
     _lastInvokeTime = System.currentTimeMillis();
-    if (_periodicTriggerExecutor == null) {
-      _periodicTriggerExecutor = Executors.newSingleThreadExecutor();
-    }
-    _periodicTriggerFuture = _periodicTriggerExecutor
-        .submit(new TriggerTask(triggerInterval));
+    _periodicTriggerThread = new Thread(new TriggerTask(triggerInterval));
+    _periodicTriggerThread.setDaemon(true);
+    _periodicTriggerThread.start();
   }
 }

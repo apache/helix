@@ -33,7 +33,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.zookeeper.Watcher;
 import org.testng.Assert;
-import org.testng.annotations.AfterSuite;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -143,11 +143,10 @@ public class TestPeriodicRefresh extends ZkUnitTestBase {
     _manager.connect();
   }
 
-  @AfterSuite
-  public void afterSuite() throws IOException {
+  @AfterClass
+  public void afterClass() {
     _manager.disconnect();
     _gSetupTool.deleteCluster(clusterName);
-    super.afterSuite();
   }
 
   @Test

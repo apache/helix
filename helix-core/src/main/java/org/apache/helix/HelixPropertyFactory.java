@@ -112,11 +112,10 @@ public final class HelixPropertyFactory {
       // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
       // up yet, constructing a new ZKHelixManager should not throw an exception
       try {
-        cloudConfig =
-            configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig(clusterName)
-                : configAccessor.getCloudConfig(clusterName);
+        cloudConfig = configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig()
+            : configAccessor.getCloudConfig(clusterName);
       } catch (HelixException e) {
-        cloudConfig = buildEmptyCloudConfig(clusterName);
+        cloudConfig = buildEmptyCloudConfig();
       }
     } finally {
       // Use a try-finally to make sure zkclient connection is closed properly

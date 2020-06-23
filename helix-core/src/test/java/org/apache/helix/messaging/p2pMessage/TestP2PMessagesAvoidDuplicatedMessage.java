@@ -152,9 +152,10 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     Assert.assertEquals(relayMessage.getToState(), MasterSlaveSMD.States.MASTER.name());
 
     // Scenario 2A:
-    // Old master (initialMaster) completes the M->S transition,
-    // but has not forward p2p message to new master (secondMaster) yet.
-    // Validate: Controller should not send S->M message to new master.
+    // Old master (initialMaster) completes the M->S transition, but the M->S has not been deleted,
+    // and it has not forward p2p message to new master (secondMaster) yet.
+    // Validate: Controller should not send S->M message to new master, but should send S->O to
+    // old master
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
     currentStateOutput.setPendingMessage(_db, _partition, initialMaster, toSlaveMessage);
     currentStateOutput.setPendingRelayMessage(_db, _partition, initialMaster, relayMessage);
@@ -165,13 +166,18 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     messageOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(_db, _partition);
-    Assert.assertEquals(messages.size(), 0);
+    Assert.assertEquals(messages.size(), 1);
+    Message toOfflineMessage = messages.get(0);
+    Assert.assertEquals(toOfflineMessage.getTgtName(), initialMaster);
+    Assert.assertEquals(toOfflineMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
+    Assert.assertEquals(toOfflineMessage.getToState(), MasterSlaveSMD.States.OFFLINE.name());
 
 
     // Scenario 2B:
-    // Old master (initialMaster) completes the M->S transition,
+    // Old master (initialMaster) completes the M->S transition, and the message has been
+    // deleted, but the message S->O is still there.
     // There is a pending p2p message to new master (secondMaster).
-    // Validate: Controller should send S->M message to new master at same time.
+    // Validate: Controller should send S->M message to new master at same time
 
     currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
     currentStateOutput.getPendingMessageMap(_db, _partition).clear();
@@ -201,7 +207,8 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     Assert.assertTrue(hasToOffline);
 
     // Secenario 2C
-    // Old master (initialMaster) completes the M->S transition,
+    // Old master (initialMaster) completes the M->S transition, and the message has been
+    // deleted, but the message S->O is still there.
     // There is a pending p2p message to new master (secondMaster).
     // However, the new master has been changed in bestPossible
     // Validate: Controller should not send S->M message to the third master at same time.
@@ -215,24 +222,23 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     instanceStateMap.put(thirdMaster, "MASTER");
     _bestpossibleState.setState(_db, _partition, instanceStateMap);
 
-
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+
+    currentStateOutput.setPendingMessage(_db, _partition, initialMaster, toOfflineMessage);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     _messagePipeline.handle(event);
 
     messageOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(_db, _partition);
-    Assert.assertEquals(messages.size(), 1);
-    Assert.assertTrue(messages.get(0).getToState().equals("OFFLINE"));
-    Assert.assertTrue(messages.get(0).getTgtName().equals(initialMaster));
-
+    Assert.assertEquals(messages.size(), 0);
 
     // Scenario 3:
-    // Old master (initialMaster) completes the M->S transition,
+    // Old master (initialMaster) completes the S->O transition,
     // and has already forwarded p2p message to new master (secondMaster)
-    // The original S->M message sent to old master has been removed.
-    // Validate: Controller should send S->O to old master, but not S->M message to new master.
+    // The original S->O message sent to old master has been removed.
+    // Validate: Controller should not send S->M message to new master.
     instanceStateMap = _bestpossibleState.getInstanceStateMap(_db, _partition);
     instanceStateMap.put(secondMaster, "MASTER");
     instanceStateMap.put(thirdMaster, "SLAVE");
@@ -240,74 +246,38 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     currentStateOutput =
         populateCurrentStateFromBestPossible(_bestpossibleState);
-    currentStateOutput.setCurrentState(_db, _partition, initialMaster, "SLAVE");
+    currentStateOutput.setCurrentState(_db, _partition, initialMaster, "OFFLINE");
     currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
-    _fullPipeline.handle(event);
+    _messagePipeline.handle(event);
 
     messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(_db, _partition);
-    Assert.assertEquals(messages.size(), 1);
-
-    Message toOfflineMessage = messages.get(0);
-    Assert.assertEquals(toOfflineMessage.getTgtName(), initialMaster);
-    Assert.assertEquals(toOfflineMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
-    Assert.assertEquals(toOfflineMessage.getToState(), MasterSlaveSMD.States.OFFLINE.name());
-
+    Assert.assertEquals(messages.size(), 0);
 
     // Scenario 4:
-    // The old master (initialMaster) finish state transition, but has not forward p2p message yet.
-    // Then the preference list has changed, so now the new master (thirdMaster) is different from previously calculated new master (secondMaster)
-    // Validate: controller should not send S->M to thirdMaster.
-    currentStateOutput.setCurrentState(_db, _partition, initialMaster, "OFFLINE");
-    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    // The old master (initialMaster) finish state transition, and forward p2p message to
+    // secondMaster. The secondMaster has finished state transition too, but the message has not
+    // been deleted yet.
+    // Then the preference list has changed, so now the new master (thirdMaster) is different
+    // from previously calculated new master (secondMaster)
+    // Validate: controller should not send S->M to thirdMaster, but should send M->S to
+    // secondMaster.
 
     thirdMaster =
         getTopStateInstance(_bestpossibleState.getInstanceStateMap(_db, _partition),
             MasterSlaveSMD.States.SLAVE.name());
-
     instanceStateMap = _bestpossibleState.getInstanceStateMap(_db, _partition);
     instanceStateMap.put(secondMaster, "SLAVE");
     instanceStateMap.put(thirdMaster, "MASTER");
     _bestpossibleState.setState(_db, _partition, instanceStateMap);
-
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
 
-    _messagePipeline.handle(event);
-
-    messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
-    messages = messageOutput.getMessages(_db, _partition);
-    Assert.assertEquals(messages.size(), 0);
-
-
-    // Scenario 5:
-    // The initial master has forwarded the p2p message to secondMaster and deleted original M->S message on initialMaster,
-    // But the S->M state-transition has not completed yet in secondMaster.
-    // Validate: Controller should not send S->M to thirdMaster.
-    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
-    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
-
-    _messagePipeline.handle(event);
-
-    messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
-    messages = messageOutput.getMessages(_db, _partition);
-    Assert.assertEquals(messages.size(), 0);
-
-
-    // Scenario 5:
-    // The thirdMaster completed the state transition and deleted the p2p message.
-    // Validate: Controller should M->S message to secondMaster.
-    currentStateOutput =
-        populateCurrentStateFromBestPossible(_bestpossibleState);
+    currentStateOutput.setCurrentState(_db, _partition, initialMaster, "OFFLINE");
     currentStateOutput.setCurrentState(_db, _partition, secondMaster, "MASTER");
-    currentStateOutput.setCurrentState(_db, _partition, thirdMaster, "SLAVE");
-
+    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     _messagePipeline.handle(event);
@@ -316,14 +286,15 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 1);
-
     toSlaveMessage = messages.get(0);
     Assert.assertEquals(toSlaveMessage.getTgtName(), secondMaster);
     Assert.assertEquals(toSlaveMessage.getFromState(), MasterSlaveSMD.States.MASTER.name());
     Assert.assertEquals(toSlaveMessage.getToState(), MasterSlaveSMD.States.SLAVE.name());
 
-    // verify p2p message are attached to the M->S message sent to the secondMaster
+    // verify p2p message are attached to the M->S message sent to the second master instance
     Assert.assertEquals(toSlaveMessage.getRelayMessages().entrySet().size(), 1);
+    thirdMaster =
+        getTopStateInstance(_bestpossibleState.getInstanceStateMap(_db, _partition), MasterSlaveSMD.States.MASTER.name());
 
     relayMessage = toSlaveMessage.getRelayMessage(thirdMaster);
     Assert.assertNotNull(relayMessage);
@@ -332,6 +303,58 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     Assert.assertEquals(relayMessage.getRelaySrcHost(), secondMaster);
     Assert.assertEquals(relayMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
     Assert.assertEquals(relayMessage.getToState(), MasterSlaveSMD.States.MASTER.name());
+
+    // Scenario 5:
+    // The second master has finished transition from M->S, but the message is still there.
+    // Validate: Controller should NOT send S->M to thirdMaster due to the pending M-S message
+    currentStateOutput.setCurrentState(_db, _partition, secondMaster, "SLAVE");
+    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, toSlaveMessage);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+
+    _messagePipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(_db, _partition);
+    Assert.assertEquals(messages.size(), 0);
+
+    /// Scenario 6a:
+    // The second master has finished transition from M->S, and the message has been delete.
+    // There is an pending relay message
+    // Validate: Controller should NOT send S->M to thirdMaster
+    currentStateOutput.setPendingMessage(_db, _partition, secondMaster, toSlaveMessage);currentStateOutput.setPendingRelayMessage(_db, _partition, thirdMaster, relayMessage);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+
+    _messagePipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(_db, _partition);
+    Assert.assertEquals(messages.size(), 0);
+
+    /// Scenario 6b:
+    // The second master has finished transition from M->S, and the message has been delete.
+    // There is no pending relay message
+    // Validate: Controller should send S->M to thirdMaster
+    currentStateOutput.getPendingMessageMap(_db, _partition).clear();
+    currentStateOutput.getPendingRelayMessageMap(_db, _partition).clear();
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+
+    _messagePipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(_db, _partition);
+    Assert.assertEquals(messages.size(), 1);
+    Message toMasterMessage = messages.get(0);
+    Assert.assertEquals(toMasterMessage.getTgtName(), thirdMaster);
+    Assert.assertEquals(toMasterMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
+    Assert.assertEquals(toMasterMessage.getToState(), MasterSlaveSMD.States.MASTER.name());
   }
 
 

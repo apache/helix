@@ -1267,30 +1267,32 @@ public class ZkClient implements Watcher {
     }
     final String sessionId = getHexSessionId();
     for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
+      _eventThread
+          .send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
 
-        @Override
-        public void run() throws Exception {
-          if (_syncOnNewSession) {
-            //System.out.println("syncOnNewSession with sessionID:" + sessionId);
-            LOG.info("syncOnNewSession with sessionId {}", sessionId);
-            final ZkConnection zkConnection = (ZkConnection) getConnection();
-            if (zkConnection == null || zkConnection.getZookeeper() == null) {
-              throw new IllegalStateException(
-                  "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
-            }
-            final String syncPath = new String("/");
-            zkConnection.getZookeeper().sync(syncPath, new AsyncCallback.VoidCallback() {
-              @Override
-              public void processResult(int rt, String s, Object ctx) {
-                //System.out.println("sycnOnNewSession with sessionID " + sessionId + " async return code:" + rt);
-                LOG.info("sycnOnNewSession with sessionID {} async return code: {}", sessionId, rt);
+            @Override
+            public void run() throws Exception {
+              if (_syncOnNewSession) {
+                //System.out.println("syncOnNewSession with sessionID:" + sessionId);
+                LOG.info("syncOnNewSession with sessionId {}", sessionId);
+                final ZkConnection zkConnection = (ZkConnection) getConnection();
+                if (zkConnection == null || zkConnection.getZookeeper() == null) {
+                  throw new IllegalStateException(
+                      "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
+                }
+                final String syncPath = new String("/");
+                zkConnection.getZookeeper().sync(syncPath, new AsyncCallback.VoidCallback() {
+                  @Override
+                  public void processResult(int rt, String s, Object ctx) {
+                    //System.out.println("sycnOnNewSession with sessionID " + sessionId + " async return code:" + rt);
+                    LOG.info("sycnOnNewSession with sessionID {} async return code: {}", sessionId,
+                        rt);
+                  }
+                }, syncPath);
               }
-            }, syncPath);
-          }
-          stateListener.handleNewSession(sessionId);
-        }
-      });
+              stateListener.handleNewSession(sessionId);
+            }
+          });
     }
   }
 

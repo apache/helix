@@ -146,8 +146,8 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Assert.assertEquals(relayMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
     Assert.assertEquals(relayMessage.getToState(), MasterSlaveSMD.States.MASTER.name());
 
-    // test the old master finishes state transition, but has not forwarded p2p message, and has
-    // not deleted original M-S message.
+
+    // test the old master finish state transition, but has not forward p2p message yet.
     currentStateOutput.setCurrentState(db, p, masterInstance, "SLAVE");
     currentStateOutput.setPendingMessage(db, p, masterInstance, toSlaveMessage);
     currentStateOutput.setPendingRelayMessage(db, p, masterInstance, relayMessage);
@@ -156,22 +156,36 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
 
     pipeline.handle(event);
 
-    // We send out S->O message to old master although there is still pending message and pending
-    // p2p message
     messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(db, p);
+    Assert.assertEquals(messages.size(), 0);
+
+
+    currentStateOutput =
+        populateCurrentStateFromBestPossible(bestPossibleStateOutput);
+    currentStateOutput.setCurrentState(db, p, masterInstance, "SLAVE");
+    currentStateOutput.setPendingMessage(db, p, newMasterInstance, relayMessage);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    pipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(db, p);
+    Assert.assertEquals(messages.size(), 1);
+
     Message toOfflineMessage = messages.get(0);
     Assert.assertEquals(toOfflineMessage.getTgtName(), masterInstance);
     Assert.assertEquals(toOfflineMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
     Assert.assertEquals(toOfflineMessage.getToState(), MasterSlaveSMD.States.OFFLINE.name());
 
-    // Now, the old master finishes state transition, and the second master also finishes state
-    // transition.
-    // Then the preference list has changed, so now the new master is different from previously
-    // calculated new master
-    // Controller should not send S->M to newly calculated master, but should send M-S to
-    // second master.
+
+    // Now, the old master finish state transition, but has not forward p2p message yet.
+    // Then the preference list has changed, so now the new master is different from previously calculated new master
+    // but controller should not send S->M to newly calculated master.
+    currentStateOutput.setCurrentState(db, p, masterInstance, "OFFLINE");
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     String slaveInstance =
         getTopStateInstance(bestPossibleStateOutput.getInstanceStateMap(db, p),
@@ -181,47 +195,6 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     instanceStateMap.put(newMasterInstance, "SLAVE");
     instanceStateMap.put(slaveInstance, "MASTER");
     bestPossibleStateOutput.setState(db, p, instanceStateMap);
-
-    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-
-    currentStateOutput =
-        populateCurrentStateFromBestPossible(bestPossibleStateOutput);
-    currentStateOutput.setCurrentState(db, p, newMasterInstance, "MASTER");
-    currentStateOutput.setCurrentState(db, p, slaveInstance, "SLAVE");
-    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-
-    pipeline = new Pipeline("test");
-    pipeline.addStage(new IntermediateStateCalcStage());
-    pipeline.addStage(new ResourceMessageGenerationPhase());
-    pipeline.addStage(new MessageSelectionStage());
-    pipeline.addStage(new MessageThrottleStage());
-
-    pipeline.handle(event);
-
-    messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
-    messages = messageOutput.getMessages(db, p);
-    Assert.assertEquals(messages.size(), 1);
-    toSlaveMessage = messages.get(0);
-    Assert.assertEquals(toSlaveMessage.getTgtName(), newMasterInstance);
-    Assert.assertEquals(toSlaveMessage.getFromState(), MasterSlaveSMD.States.MASTER.name());
-    Assert.assertEquals(toSlaveMessage.getToState(), MasterSlaveSMD.States.SLAVE.name());
-
-    relayMessage = toSlaveMessage.getRelayMessage(slaveInstance);
-    Assert.assertNotNull(relayMessage);
-    Assert.assertEquals(relayMessage.getMsgSubType(), Message.MessageType.RELAYED_MESSAGE.name());
-    Assert.assertEquals(relayMessage.getTgtName(), slaveInstance);
-    Assert.assertEquals(relayMessage.getRelaySrcHost(), newMasterInstance);
-    Assert.assertEquals(relayMessage.getFromState(), MasterSlaveSMD.States.SLAVE.name());
-    Assert.assertEquals(relayMessage.getToState(), MasterSlaveSMD.States.MASTER.name());
-
-    // Now, the old master and second master both finishes state transition, and messages are
-    // deleted, the forwarded relay message is pending.
-    // Controller will not send S->M to third master.
-    currentStateOutput =
-        populateCurrentStateFromBestPossible(bestPossibleStateOutput);
-    currentStateOutput.setPendingMessage(db, p, slaveInstance, relayMessage);
-    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
@@ -237,6 +210,57 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = messageOutput.getMessages(db, p);
     Assert.assertEquals(messages.size(), 0);
+
+
+    // Now, the old master has forwarded the p2p master to previously calculated master,
+    // So the state-transition still happened in previously calculated master.
+    // Controller will not send S->M to new master.
+    currentStateOutput.setPendingMessage(db, p, newMasterInstance, relayMessage);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), bestPossibleStateOutput);
+
+
+    pipeline = new Pipeline("test");
+    pipeline.addStage(new IntermediateStateCalcStage());
+    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new MessageThrottleStage());
+
+    pipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(db, p);
+    Assert.assertEquals(messages.size(), 0);
+
+
+    // now, the previous calculated master completed the state transition and deleted the p2p message.
+    // Controller should drop this master first.
+    currentStateOutput =
+        populateCurrentStateFromBestPossible(bestPossibleStateOutput);
+    currentStateOutput.setCurrentState(db, p, newMasterInstance, "MASTER");
+    currentStateOutput.setCurrentState(db, p, slaveInstance, "SLAVE");
+
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    pipeline = new Pipeline("test");
+    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new MessageThrottleStage());
+
+    pipeline.handle(event);
+
+    messageOutput =
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messages = messageOutput.getMessages(db, p);
+    Assert.assertEquals(messages.size(), 1);
+
+    toSlaveMessage = messages.get(0);
+    Assert.assertEquals(toSlaveMessage.getTgtName(), newMasterInstance);
+    Assert.assertEquals(toSlaveMessage.getFromState(), MasterSlaveSMD.States.MASTER.name());
+    Assert.assertEquals(toSlaveMessage.getToState(), MasterSlaveSMD.States.SLAVE.name());
   }
 
   private void testP2PMessage(ClusterConfig clusterConfig, Boolean p2pMessageEnabled)

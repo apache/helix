@@ -206,7 +206,6 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
-
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -1323,7 +1322,7 @@ public class ZkClient implements Watcher {
         @Override
         public void run() throws Exception {
           if (issueSync(zk) == false) {
-            LOG.warn("\"Failed to call sync() on new session {}", sessionId);
+            LOG.warn("Failed to call sync() on new session {}", sessionId);
           }
         }
       });

@@ -46,6 +46,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -117,6 +118,8 @@ public class ZkClient implements Watcher {
     // because compilers optimize constants by replacing them inline.
     NUM_CHILDREN_LIMIT = 100 * 1000;
   }
+
+  private final boolean _syncOnNewSession;
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -200,6 +203,7 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
+    _syncOnNewSession = true;
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -1267,6 +1271,23 @@ public class ZkClient implements Watcher {
 
         @Override
         public void run() throws Exception {
+          if (_syncOnNewSession) {
+            //System.out.println("syncOnNewSession with sessionID:" + sessionId);
+            LOG.info("syncOnNewSession with sessionId {}", sessionId);
+            final ZkConnection zkConnection = (ZkConnection) getConnection();
+            if (zkConnection == null || zkConnection.getZookeeper() == null) {
+              throw new IllegalStateException(
+                  "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
+            }
+            final String syncPath = new String("/");
+            zkConnection.getZookeeper().sync(syncPath, new AsyncCallback.VoidCallback() {
+              @Override
+              public void processResult(int rt, String s, Object ctx) {
+                //System.out.println("sycnOnNewSession with sessionID " + sessionId + " async return code:" + rt);
+                LOG.info("sycnOnNewSession with sessionID {} async return code: {}", sessionId, rt);
+              }
+            }, syncPath);
+          }
           stateListener.handleNewSession(sessionId);
         }
       });

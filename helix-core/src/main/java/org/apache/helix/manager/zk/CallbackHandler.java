@@ -28,6 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -133,8 +137,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicTriggerInterval;
+  private final static ExecutorService _periodicTriggerExecutor =
+      Executors.newFixedThreadPool(40, new ThreadFactory() {
+        public Thread newThread(Runnable runnable) {
+          Thread thread = Executors.defaultThreadFactory().newThread(runnable);
+          thread.setDaemon(true);
+          thread.setName("TriggerTaskThread");
+          return thread;
+        }
+      });
+  private Future<?> _periodicTriggerFuture;
   private volatile long _lastInvokeTime;
-  private Thread _periodicTriggerThread;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -225,6 +238,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     @Override
     public void run() {
+      logger.info("Starting trigger task.");
       while (!Thread.currentThread().isInterrupted()) {
         try {
           long currentTime = System.currentTimeMillis();
@@ -245,6 +259,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             wait(remainingTime);
           }
         } catch (InterruptedException e) {
+          System.out.println("Interrupting trigger task");
           Thread.currentThread().interrupt();
         } catch (IllegalMonitorStateException e0) {
           // Wait() time out, do nothing
@@ -252,6 +267,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           logger.warn("Exception during execute refresh task. Error: ", e1);
         }
       }
+      logger.info("Exiting trigger task.");
     }
   }
 
@@ -393,8 +409,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     Method callbackMethod = listenerClass.getMethods()[0];
     try {
-      Method method = _listener.getClass().getMethod(callbackMethod.getName(),
-          callbackMethod.getParameterTypes());
+      Method method = _listener.getClass()
+          .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
       BatchMode batchModeInMethod = method.getAnnotation(BatchMode.class);
       PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
       if (batchModeInMethod != null) {
@@ -418,7 +434,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public void enqueueTask(NotificationContext changeContext) throws Exception {
-    if (_periodicTriggerThread != null) {
+    if (_periodicTriggerExecutor != null) {
       _lastInvokeTime = System.currentTimeMillis();
     }
 
@@ -928,10 +944,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * Used to shut down a periodic triggered task
    */
   private void shutDownTriggerTask() {
-    if (_periodicTriggerThread != null) {
-      _periodicTriggerThread.interrupt();
+    if (_periodicTriggerFuture != null) {
+      _periodicTriggerFuture.cancel(true);
     }
-    _periodicTriggerThread = null;
   }
 
   /**
@@ -944,8 +959,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
     shutDownTriggerTask();
     _lastInvokeTime = System.currentTimeMillis();
-    _periodicTriggerThread = new Thread(new TriggerTask(triggerInterval));
-    _periodicTriggerThread.setDaemon(true);
-    _periodicTriggerThread.start();
+    _periodicTriggerFuture = _periodicTriggerExecutor.submit(new TriggerTask(triggerInterval));
   }
 }

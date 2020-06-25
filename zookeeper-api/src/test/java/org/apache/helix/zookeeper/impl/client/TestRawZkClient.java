@@ -850,7 +850,8 @@ public class TestRawZkClient extends ZkTestBase {
       Assert.fail("Should not succeed to create path under invalid session");
     } catch (ZkSessionMismatchedException expected) {
       Assert.assertTrue(expected.getMessage().startsWith(
-          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected:"));
+          "Failed to get expected zookeeper instance! "
+              + "There is a session id mismatch. Expected: invalidSession"));
     }
   }
 }

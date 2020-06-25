@@ -40,6 +40,7 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -54,7 +55,6 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
@@ -720,6 +720,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records,
       boolean[] needCreate, List<List<String>> pathsCreated, int options) {
+    return create(paths, records, needCreate, pathsCreated, options, null);
+  }
+
+  ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records,
+      boolean[] needCreate, List<List<String>> pathsCreated, int options,
+      String expectedSessionId) {
     if ((records != null && records.size() != paths.size()) || needCreate.length != paths.size()
         || (pathsCreated != null && pathsCreated.size() != paths.size())) {
       throw new IllegalArgumentException(
@@ -747,7 +753,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         String path = paths.get(i);
         T record = records == null ? null : records.get(i);
         cbList[i] = new ZkAsyncCallbacks.CreateCallbackHandler();
-        _zkClient.asyncCreate(path, record, mode, cbList[i]);
+        _zkClient.asyncCreate(path, record, mode, cbList[i], expectedSessionId);
       }
 
       List<String> parentPaths = new ArrayList<>(Collections.<String>nCopies(paths.size(), null));
@@ -774,7 +780,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           // if succeeds, record what paths we've created
           if (Code.get(cb.getRc()) == Code.OK && pathsCreated != null) {
             if (pathsCreated.get(i) == null) {
-              pathsCreated.set(i, new ArrayList<String>());
+              pathsCreated.set(i, new ArrayList<>());
             }
             pathsCreated.get(i).add(path);
           }
@@ -812,6 +818,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean[] createChildren(List<String> paths, List<T> records, int options) {
+    return createChildren(paths, records, options, null);
+  }
+
+  public boolean[] createChildren(List<String> paths, List<T> records, int options,
+      String expectedSession) {
     boolean[] success = new boolean[paths.size()];
 
     CreateMode mode = AccessOption.getMode(options);
@@ -827,9 +838,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
     long startT = System.nanoTime();
     try {
-
       ZkAsyncCallbacks.CreateCallbackHandler[] cbList =
-          create(paths, records, needCreate, pathsCreated, options);
+          create(paths, records, needCreate, pathsCreated, options, expectedSession);
 
       for (int i = 0; i < cbList.length; i++) {
         ZkAsyncCallbacks.CreateCallbackHandler cb = cbList[i];

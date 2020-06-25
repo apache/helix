@@ -20,6 +20,7 @@ package org.apache.helix.integration.manager;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -28,13 +29,15 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkClient;
+import org.apache.helix.model.Message;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -105,5 +108,20 @@ public class TestHelixDataAccessor extends ZkTestBase {
   public void testDataProviderRefresh() {
     ResourceControllerDataProvider cache = new ResourceControllerDataProvider("MyCluster");
     cache.refresh(accessor);
+  }
+
+  @Test
+  public void testCreateChildrenWithInvalidSession() {
+    List<PropertyKey> keys =
+        Collections.singletonList(accessor.keyBuilder().messages(PARTICIPANT_PREFIX + "_0"));
+    List<Message> messages =
+        Collections.singletonList(new Message(Message.MessageType.STATE_TRANSITION, "testId"));
+    try {
+      accessor.createChildren(keys, messages, "invalidSession");
+      Assert.fail("Should fail to create children because there is a session id mismatch.");
+    } catch (ZkSessionMismatchedException expected) {
+      Assert.assertTrue(expected.getMessage().startsWith("Failed to get expected zookeeper "
+          + "instance! There is a session id mismatch. Expected: invalidSession. Actual: "));
+    }
   }
 }

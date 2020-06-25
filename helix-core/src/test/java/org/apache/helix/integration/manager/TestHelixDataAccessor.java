@@ -36,6 +36,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkClient;
 import org.apache.helix.model.Message;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
 import org.testng.Assert;
@@ -123,5 +124,19 @@ public class TestHelixDataAccessor extends ZkTestBase {
       Assert.assertTrue(expected.getMessage().startsWith("Failed to get expected zookeeper "
           + "instance! There is a session id mismatch. Expected: invalidSession. Actual: "));
     }
+  }
+
+  @Test
+  public void testCreateChildren() {
+    String instanceName = PARTICIPANT_PREFIX + "_0";
+    List<PropertyKey> keys =
+        Collections.singletonList(accessor.keyBuilder().messages(instanceName));
+    Message message = new Message(Message.MessageType.NO_OP, "testId");
+    message.setTgtName(instanceName);
+    boolean[] success = accessor.createChildren(keys, Collections.singletonList(message));
+
+    Assert.assertTrue(success[0]);
+
+    Assert.assertTrue(HelixUtil.removeMessageFromZK(accessor, message, instanceName));
   }
 }

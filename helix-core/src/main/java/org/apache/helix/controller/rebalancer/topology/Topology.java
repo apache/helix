@@ -43,11 +43,11 @@ import org.slf4j.LoggerFactory;
  */
 public class Topology {
   private static Logger logger = LoggerFactory.getLogger(Topology.class);
+
   public enum Types {
-    ROOT,
-    ZONE,
-    INSTANCE
+    ROOT, ZONE, INSTANCE
   }
+
   private static final int DEFAULT_NODE_WEIGHT = 1000;
 
   private final MessageDigest _md;
@@ -82,29 +82,17 @@ public class Topology {
     _clusterTopologyKeys = new LinkedHashSet<>();
 
     if (clusterConfig.isTopologyAwareEnabled()) {
-      String topologyDef = _clusterConfig.getTopology();
-      if (topologyDef != null) {
+      if (_clusterConfig.getTopology() != null) {
         // Customized cluster topology definition is configured.
-        String[] topologyKeys = topologyDef.trim().split("/");
-        int lastValidTypeIdx = 0;
-        for (int i = 0; i < topologyKeys.length; i++) {
-          if (topologyKeys[i].length() != 0) {
-            _clusterTopologyKeys.add(topologyKeys[i]);
-            _defaultDomainPathValues.put(topologyKeys[i], DEFAULT_DOMAIN_PREFIX + topologyKeys[i]);
-            lastValidTypeIdx = i;
-          }
-        }
-        if (_clusterTopologyKeys.size() == 0) {
-          throw new HelixException("Invalid cluster topology definition " + topologyDef);
-        }
-        _endNodeType = topologyKeys[lastValidTypeIdx];
+        _endNodeType = populateClusterTopologySetting(clusterConfig, _clusterTopologyKeys,
+            _defaultDomainPathValues);
         _faultZoneType = clusterConfig.getFaultZoneType();
         if (_faultZoneType == null) {
           _faultZoneType = _endNodeType;
         } else if (!_clusterTopologyKeys.contains(_faultZoneType)) {
           throw new HelixException(String
               .format("Invalid fault zone type %s, not present in topology definition %s.",
-                  _faultZoneType, topologyDef));
+                  _faultZoneType, _clusterConfig.getTopology()));
         }
       } else {
         // Use default cluster topology definition, i,e. /root/zone/instance
@@ -169,7 +157,8 @@ public class Topology {
     return newRoot;
   }
 
-  private static Node cloneTree(Node root, Map<Node, Integer> newNodeWeight, Set<Node> failedNodes) {
+  private static Node cloneTree(Node root, Map<Node, Integer> newNodeWeight,
+      Set<Node> failedNodes) {
     Node newRoot = root.clone();
     if (newNodeWeight.containsKey(root)) {
       newRoot.setWeight(newNodeWeight.get(root));
@@ -205,7 +194,8 @@ public class Topology {
       try {
         LinkedHashMap<String, String> instanceTopologyMap =
             computeInstanceTopologyMap(_clusterConfig.isTopologyAwareEnabled(), instanceName,
-                insConfig, _clusterTopologyKeys);
+                insConfig, _clusterTopologyKeys, _defaultDomainPathValues,
+                null /*faultZoneForEarlyQuit*/);
         int weight = insConfig.getWeight();
         if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
           weight = DEFAULT_NODE_WEIGHT;
@@ -231,15 +221,50 @@ public class Topology {
   }
 
   /**
+   * Populate  clusterTopologyKeys and defaultDomainPathValues from clusterConfig
+   * @param clusterConfig
+   * @param clusterTopologyKeys
+   * @param defaultDomainPathValues
+   * @return lastValidType in clusterConfig.topology
+   */
+  public static String populateClusterTopologySetting(ClusterConfig clusterConfig,
+      LinkedHashSet<String> clusterTopologyKeys /*OUT*/,
+      Map<String, String> defaultDomainPathValues /*OUT*/) {
+
+    if (clusterConfig.isTopologyAwareEnabled()) {
+      String topologyDef = clusterConfig.getTopology();
+      if (topologyDef != null) {
+        String[] topologyKeys = topologyDef.trim().split("/");
+        int lastValidTypeIdx = 0;
+        for (int i = 0; i < topologyKeys.length; i++) {
+          if (topologyKeys[i].length() != 0) {
+            clusterTopologyKeys.add(topologyKeys[i]);
+            defaultDomainPathValues.put(topologyKeys[i], DEFAULT_DOMAIN_PREFIX + topologyKeys[i]);
+            lastValidTypeIdx = i;
+          }
+        }
+        if (clusterTopologyKeys.size() == 0) {
+          throw new IllegalArgumentException("Invalid cluster topology definition " + topologyDef);
+        }
+        return topologyKeys[lastValidTypeIdx];
+      }
+    }
+    return Types.INSTANCE.name();
+  }
+
+  /**
    * This function returns a LinkedHashMap<String, String> object representing
    * the topology path for an instance.
    * LinkedHashMap is used here since the order of the path needs to be preserved
    * when creating the topology tree.
    *
+   * @param defaultDomainPathValues a const map for default path kay
    * @return an LinkedHashMap object representing the topology path for the input instance.
    */
-  private LinkedHashMap<String, String> computeInstanceTopologyMap(boolean isTopologyAwareEnabled,
-      String instanceName, InstanceConfig instanceConfig, LinkedHashSet<String> clusterTopologyKeys)
+  public static LinkedHashMap<String, String> computeInstanceTopologyMap(
+      boolean isTopologyAwareEnabled, String instanceName, InstanceConfig instanceConfig,
+      LinkedHashSet<String> clusterTopologyKeys, Map<String, String> defaultDomainPathValues,
+      String faultZoneForEarlyQuit)
       throws IllegalArgumentException {
     LinkedHashMap<String, String> instanceTopologyMap = new LinkedHashMap<>();
     if (isTopologyAwareEnabled) {
@@ -252,6 +277,9 @@ public class Topology {
                   instanceName));
         }
         instanceTopologyMap.put(Types.ZONE.name(), zone);
+        if (faultZoneForEarlyQuit!=null) {
+          return instanceTopologyMap;
+        }
         instanceTopologyMap.put(Types.INSTANCE.name(), instanceName);
       } else {
         /*
@@ -269,11 +297,14 @@ public class Topology {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
           if (value == null || value.length() == 0) {
-            value = _defaultDomainPathValues.get(key);
+            value = defaultDomainPathValues.get(key);
           } else {
             numOfMatchedKeys++;
           }
           instanceTopologyMap.put(key, value);
+          if (key.equals(faultZoneForEarlyQuit)) {
+            return instanceTopologyMap;
+          }
         }
         if (numOfMatchedKeys != domainAsMap.size()) {
           logger.warn(
@@ -287,6 +318,22 @@ public class Topology {
       instanceTopologyMap.put(Types.INSTANCE.name(), instanceName);
     }
     return instanceTopologyMap;
+  }
+
+  public static LinkedHashMap<String, String> computeInstanceTopologyMap(
+      ClusterConfig clusterConfig, String instanceName, InstanceConfig instanceConfig,
+      boolean earlyQuitTillFaultZone)
+      throws IllegalArgumentException {
+    LinkedHashSet<String> clusterTopologyKeys = new LinkedHashSet<>();
+    Map<String, String> defaultDomainPathValues = new HashMap<>();
+
+    String endNodeType =
+        populateClusterTopologySetting(clusterConfig, clusterTopologyKeys, defaultDomainPathValues);
+    String faultZoneForEarlyQuit =
+        earlyQuitTillFaultZone ? (clusterConfig.getFaultZoneType() == null ? endNodeType
+            : clusterConfig.getFaultZoneType()) : null;
+    return computeInstanceTopologyMap(clusterConfig.isTopologyAwareEnabled(), instanceName,
+        instanceConfig, clusterTopologyKeys, defaultDomainPathValues, faultZoneForEarlyQuit);
   }
 
   /**

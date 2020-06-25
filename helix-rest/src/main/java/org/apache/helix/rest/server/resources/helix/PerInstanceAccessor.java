@@ -41,6 +41,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
@@ -289,6 +290,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @Path("configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String commandStr,
+      @DefaultValue("false") @QueryParam("doSanityCheck") boolean doSanityCheck,
       String content) {
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
@@ -312,8 +314,20 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     ConfigAccessor configAccessor = getConfigAccessor();
     try {
       switch (command) {
-      case update:
-        configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+        case update:
+          // The new instanceConfig will be merged with existing one
+          if (doSanityCheck) {
+            try {
+              validateDeltaInstanceConfigForUpdate(clusterId, instanceName, configAccessor,
+                  instanceConfig);
+            } catch (IllegalArgumentException ex) {
+              LOG.error(
+                  String.format("Error in update instance config for instance: %s", instanceName),
+                  ex);
+              return serverError(ex);
+            }
+          }
+          configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
         break;
       case delete:
         HelixConfigScope instanceScope =
@@ -543,5 +557,18 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
   private boolean validInstance(JsonNode node, String instanceName) {
     return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
+  }
+
+  private boolean validateDeltaInstanceConfigForUpdate(String clusterName, String instanceName,
+      ConfigAccessor configAccessor, InstanceConfig newInstanceConfig) throws IllegalArgumentException{
+    InstanceConfig origionalInstanceConfig =
+        configAccessor.getInstanceConfig(clusterName, instanceName);
+    origionalInstanceConfig.getRecord().update(newInstanceConfig.getRecord());
+
+    return
+      ConfigAccessor
+          .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
+              instanceName, origionalInstanceConfig);
+
   }
 }

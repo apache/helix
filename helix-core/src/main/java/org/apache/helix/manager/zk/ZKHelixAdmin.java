@@ -288,6 +288,7 @@ public class ZKHelixAdmin implements HelixAdmin {
               + " is different from new hostname: " + newInstanceConfig.getHostName()
               + "and new port: " + newInstanceConfig.getPort());
     }
+
     return accessor.setProperty(instanceConfigPropertyKey, newInstanceConfig);
   }
 

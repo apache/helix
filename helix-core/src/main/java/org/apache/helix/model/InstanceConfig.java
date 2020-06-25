@@ -148,13 +148,14 @@ public class InstanceConfig extends HelixProperty {
    * @return
    */
   public Map<String, String> getDomainAsMap() {
-    String domain = getDomainAsString();
+    String domainAsString = getDomainAsString();
+
     Map<String, String> domainAsMap = new HashMap<>();
-    if (domain == null || domain.isEmpty()) {
+    if (domainAsString == null || domainAsString.isEmpty()) {
       return domainAsMap;
     }
 
-    String[] pathPairs = domain.trim().split(",");
+    String[] pathPairs = domainAsString.trim().split(",");
     for (String pair : pathPairs) {
       String[] values = pair.split("=");
       if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {

@@ -20,14 +20,17 @@ package org.apache.helix;
  */
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
@@ -369,7 +372,6 @@ public class ConfigAccessor {
     } else {
       update.setMapField(mapKey, keyValueMap);
     }
-
     ZKUtil.createOrMerge(_zkClient, zkPath, update, true, true);
   }
 
@@ -945,23 +947,23 @@ public class ConfigAccessor {
    * replaced with the value of the same field in given config if it presents. If there is new field
    * in given config but not in current config, the field will be added into the current config..
    * The list fields and map fields will be replaced as a single entry.
-   * The current Cluster config will be replaced with the given clusterConfig. WARNING: This is not
+   * The current instanceConfig will be replaced with the given instanceConfig. WARNING: This is not
    * thread-safe or concurrent updates safe.
    * *
    *
    * @param clusterName
    * @param instanceName
-   * @param instanceConfig
+   * @param newInstanceConfig
    *
    * @return
    */
   public void updateInstanceConfig(String clusterName, String instanceName,
-      InstanceConfig instanceConfig) {
-    updateInstanceConfig(clusterName, instanceName, instanceConfig, false);
+      InstanceConfig newInstanceConfig) {
+    updateInstanceConfig(clusterName, instanceName, newInstanceConfig, false);
   }
 
   private void updateInstanceConfig(String clusterName, String instanceName,
-      InstanceConfig instanceConfig, boolean overwrite) {
+      InstanceConfig newInstanceConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -976,11 +978,14 @@ public class ConfigAccessor {
           "updateInstanceConfig failed. Given InstanceConfig does not already exist. instance: "
               + instanceName);
     }
-
     if (overwrite) {
-      ZKUtil.createOrReplace(_zkClient, zkPath, instanceConfig.getRecord(), true);
+      ZKUtil.createOrReplace(_zkClient, zkPath, newInstanceConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(_zkClient, zkPath, instanceConfig.getRecord(), true, true);
+      /* If overwrite is false, the new records will be appended to fields in current instanceConfig.
+       * We only need to do the check if Domain or ZoneId is updated to new value.
+       */
+      //validateTopologyFieldsInInstanceConfig(clusterName, newInstanceConfig.getRecord().getSimpleFields());
+      ZKUtil.createOrUpdate(_zkClient, zkPath, newInstanceConfig.getRecord(), true, true);
     }
   }
 
@@ -1009,4 +1014,25 @@ public class ConfigAccessor {
               _zkAddress), false);
     }
   }
+
+  /**
+   * Validate if the topology related settings (Domain or ZoneId) in the given instanceConfig
+   * is valid and aligns with current clusterConfig.
+   * This function should be called when instance added to cluster or caller updates instanceConfig
+   * by overwrites the current config with a new one.
+   *
+   * @param
+   * @param instanceName
+   * @param instanceConfig
+   * @throws IllegalArgumentException
+   */
+  public static boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
+      String instanceName, InstanceConfig instanceConfig) throws IllegalArgumentException{
+    //ClusterConfig clusterConfig = getClusterConfig(clusterName);
+    Topology.computeInstanceTopologyMap(clusterConfig, instanceName, instanceConfig,
+        false /*earlyQuitForFaultZone*/);
+    return true;
+  }
+
+
 }

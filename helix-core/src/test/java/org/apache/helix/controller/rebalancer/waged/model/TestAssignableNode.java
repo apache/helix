@@ -211,7 +211,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
     AssignableNode node = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
-    Assert.assertEquals(node.getFaultZone(), "Default_zone");
+    Assert.assertEquals(node.getFaultZone(), "Helix_default_zone");
   }
 
   @Test

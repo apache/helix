@@ -69,9 +69,9 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         workflowsToBeDeleted.add(entry.getKey());
       }
     }
-    event.addAttribute(AttributeName.EXPIRED_JOBS_MAP.name(),
+    event.addAttribute(AttributeName.TO_BE_DELETED_JOBS_MAP.name(),
         Collections.unmodifiableMap(expiredJobsMap));
-    event.addAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name(),
+    event.addAttribute(AttributeName.TO_BE_DELETED_WORKFLOWS.name(),
         Collections.unmodifiableSet(workflowsToBeDeleted));
 
     super.process(event);
@@ -88,9 +88,9 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     }
 
     Map<String, Set<String>> expiredJobsMap =
-        event.getAttribute(AttributeName.EXPIRED_JOBS_MAP.name());
+        event.getAttribute(AttributeName.TO_BE_DELETED_JOBS_MAP.name());
     Set<String> toBeDeletedWorkflows =
-        event.getAttribute(AttributeName.WORKFLOWS_TO_BE_DELETED.name());
+        event.getAttribute(AttributeName.TO_BE_DELETED_WORKFLOWS.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
       try {

@@ -1066,6 +1066,7 @@ public class TaskUtil {
           "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
           workflowName);
 
+      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
       if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
         LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
             workflowName);

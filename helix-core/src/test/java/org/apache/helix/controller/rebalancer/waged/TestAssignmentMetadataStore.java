@@ -72,7 +72,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     if (_store != null) {
       _store.close();
     }
-    _baseAccessor.remove("/" + CLUSTER_NAME + "/ASSIGNMENT_METADATA", AccessOption.PERSISTENT);
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
   }
 
   /**

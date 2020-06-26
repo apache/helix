@@ -123,7 +123,7 @@ public class ZkClient implements Watcher {
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
   protected final ZkAsyncRetryThread _asyncCallRetryThread;
-
+  
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
     final boolean _prefetchData;
@@ -1261,8 +1261,6 @@ public class ZkClient implements Watcher {
       getEventLock().unlock();
     }
   }
-
-
 
   private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
       final ZkAsyncCallbacks.SyncCallbackHandler cb) {

@@ -193,7 +193,7 @@ public class Topology {
       InstanceConfig insConfig = _instanceConfigMap.get(instanceName);
       try {
         LinkedHashMap<String, String> instanceTopologyMap =
-            computeInstanceTopologyMap(_clusterConfig.isTopologyAwareEnabled(), instanceName,
+            computeInstanceTopologyMapHelper(_clusterConfig.isTopologyAwareEnabled(), instanceName,
                 insConfig, _clusterTopologyKeys, _defaultDomainPathValues,
                 null /*faultZoneForEarlyQuit*/);
         int weight = insConfig.getWeight();
@@ -221,10 +221,14 @@ public class Topology {
   }
 
   /**
-   * Populate  clusterTopologyKeys and defaultDomainPathValues from clusterConfig
-   * @param clusterConfig
-   * @param clusterTopologyKeys
-   * @param defaultDomainPathValues
+   * Populate clusterTopologyKeys and defaultDomainPathValues from clusterConfig
+   *
+   * @param clusterTopologyKeys       out parameter. LinkedHashSet to be populated for cluster
+   *                                  topology keys. The set will remain empty if topology aware is
+   *                                  not enabled or this cluster uses zone instead of domains.
+   * @param defaultDomainPathValues   out parameter. Map to be populated for all default path keys.
+   *                                  The map will remain empty if topology aware is not enabled or
+   *                                  this cluster uses zone instead of domains.
    * @return lastValidType in clusterConfig.topology
    */
   public static String populateClusterTopologySetting(ClusterConfig clusterConfig,
@@ -258,10 +262,12 @@ public class Topology {
    * LinkedHashMap is used here since the order of the path needs to be preserved
    * when creating the topology tree.
    *
-   * @param defaultDomainPathValues a const map for default path kay
+   * @param defaultDomainPathValues a const map for default path key.
+   * @param faultZoneForEarlyQuit   this flag os set to true only if caller wants the path
+   *                                to faultZone instead the whole path for the instance.
    * @return an LinkedHashMap object representing the topology path for the input instance.
    */
-  public static LinkedHashMap<String, String> computeInstanceTopologyMap(
+  private static LinkedHashMap<String, String> computeInstanceTopologyMapHelper(
       boolean isTopologyAwareEnabled, String instanceName, InstanceConfig instanceConfig,
       LinkedHashSet<String> clusterTopologyKeys, Map<String, String> defaultDomainPathValues,
       String faultZoneForEarlyQuit)
@@ -332,7 +338,7 @@ public class Topology {
     String faultZoneForEarlyQuit =
         earlyQuitTillFaultZone ? (clusterConfig.getFaultZoneType() == null ? endNodeType
             : clusterConfig.getFaultZoneType()) : null;
-    return computeInstanceTopologyMap(clusterConfig.isTopologyAwareEnabled(), instanceName,
+    return computeInstanceTopologyMapHelper(clusterConfig.isTopologyAwareEnabled(), instanceName,
         instanceConfig, clusterTopologyKeys, defaultDomainPathValues, faultZoneForEarlyQuit);
   }
 

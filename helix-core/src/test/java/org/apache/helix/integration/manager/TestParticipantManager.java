@@ -21,6 +21,7 @@ package org.apache.helix.integration.manager;
 
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
@@ -37,6 +39,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -107,6 +111,50 @@ public class TestParticipantManager extends ZkTestBase {
     participant.disconnect();
 
     // verify all live-instances and leader nodes are gone
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
+    Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
+  }
+
+  @Test
+  public void simpleIntegrationTestNeg() throws Exception {
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        1, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
+
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.getRecord()
+        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
+            new ArrayList<>());
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/Rack/Sub-Rack/Host/Instance");
+    clusterConfig.setFaultZoneType("Host");
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+
+
+    String instanceName = "localhost_12918";
+    HelixManager participant =
+        new ZKHelixManager(clusterName, instanceName , InstanceType.PARTICIPANT, ZK_ADDR);
+    participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
+        new MockMSModelFactory());
+    // We are expecting an IllegalArgumentException since the domain is not set.
+    try {
+      participant.connect();
+    } catch (IllegalArgumentException expected) {
+      Assert.assertEquals(expected.getMessage(),
+          "Domain for instance localhost_12918 is not set, fail the topology-aware placement!");
+    }
+
+    // verify there is no live-instances created
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();

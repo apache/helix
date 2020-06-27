@@ -292,7 +292,6 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
     faultZoneStringBuilder.setLength(faultZoneStringBuilder.length() - 1);
     return faultZoneStringBuilder.toString();
-
   }
 
   /**

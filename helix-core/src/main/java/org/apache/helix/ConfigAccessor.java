@@ -981,10 +981,6 @@ public class ConfigAccessor {
     if (overwrite) {
       ZKUtil.createOrReplace(_zkClient, zkPath, newInstanceConfig.getRecord(), true);
     } else {
-      /* If overwrite is false, the new records will be appended to fields in current instanceConfig.
-       * We only need to do the check if Domain or ZoneId is updated to new value.
-       */
-      //validateTopologyFieldsInInstanceConfig(clusterName, newInstanceConfig.getRecord().getSimpleFields());
       ZKUtil.createOrUpdate(_zkClient, zkPath, newInstanceConfig.getRecord(), true, true);
     }
   }
@@ -1017,22 +1013,16 @@ public class ConfigAccessor {
 
   /**
    * Validate if the topology related settings (Domain or ZoneId) in the given instanceConfig
-   * is valid and aligns with current clusterConfig.
-   * This function should be called when instance added to cluster or caller updates instanceConfig
-   * by overwrites the current config with a new one.
+   * are valid and align with current clusterConfig.
+   * This function should be called when instance added to cluster or caller updates instanceConfig.
    *
-   * @param
-   * @param instanceName
-   * @param instanceConfig
    * @throws IllegalArgumentException
    */
   public static boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
       String instanceName, InstanceConfig instanceConfig) throws IllegalArgumentException{
-    //ClusterConfig clusterConfig = getClusterConfig(clusterName);
+    //IllegalArgumentException will be thrown here if the input is not valid.
     Topology.computeInstanceTopologyMap(clusterConfig, instanceName, instanceConfig,
         false /*earlyQuitForFaultZone*/);
     return true;
   }
-
-
 }

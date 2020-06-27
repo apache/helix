@@ -409,6 +409,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "checkUpdateFails")
   public void testValidateWeightForInstance()
       throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord()
@@ -462,5 +463,53 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testValidateWeightForInstance")
+  public void testValidateDeltaInstanceConfigForUpdate() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Enable Topology aware for the cluster
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.getRecord()
+        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
+            new ArrayList<>());
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/Rack/Sub-Rack/Host/Instance");
+    clusterConfig.setFaultZoneType("Host");
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    String instanceName = CLUSTER_NAME + "localhost_12918";
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
+
+    // Update InstanceConfig with Topology Info
+    String domain = "Rack=rack1, Sub-Rack=Sub-Rack1, Host=Host-1";
+    ZNRecord record = instanceConfig.getRecord();
+    record.getSimpleFields().put(InstanceConfig.InstanceConfigProperty.DOMAIN.name(), domain);
+
+    // Add these fields by way of "update"
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/configs?command=update&doSanityCheck=true")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    // Check that the fields have been added
+    Assert.assertEquals(response.getStatus(), 200);
+    // Check the cluster config is updated
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getDomainAsString(), domain);
+
+    // set domain to an invalid value
+    record.getSimpleFields()
+        .put(InstanceConfig.InstanceConfigProperty.DOMAIN.name(), "InvalidDomainValue");
+    entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    // Updating using an invalid domain value should return a non-OK response
+    new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/configs?command=update&doSanityCheck=true")
+        .expectedReturnStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

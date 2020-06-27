@@ -312,31 +312,33 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
     InstanceConfig instanceConfig = new InstanceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
+
+    if (doSanityCheck && (command == Command.delete || command == Command.update)) {
+      try {
+        validateDeltaInstanceConfigForUpdate(clusterId, instanceName, configAccessor,
+            instanceConfig, command == Command.delete);
+      } catch (IllegalArgumentException ex) {
+        LOG.error(
+            String.format("Error in update instance config for instance: %s", instanceName),
+            ex);
+        return serverError(ex);
+      }
+    }
+
     try {
       switch (command) {
         case update:
           // The new instanceConfig will be merged with existing one
-          if (doSanityCheck) {
-            try {
-              validateDeltaInstanceConfigForUpdate(clusterId, instanceName, configAccessor,
-                  instanceConfig);
-            } catch (IllegalArgumentException ex) {
-              LOG.error(
-                  String.format("Error in update instance config for instance: %s", instanceName),
-                  ex);
-              return serverError(ex);
-            }
-          }
           configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
-        break;
-      case delete:
-        HelixConfigScope instanceScope =
-            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
-                .forCluster(clusterId).forParticipant(instanceName).build();
-        configAccessor.remove(instanceScope, record);
-        break;
-      default:
-        return badRequest(String.format("Unsupported command: %s", command));
+          break;
+        case delete:
+          HelixConfigScope instanceScope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+                  .forCluster(clusterId).forParticipant(instanceName).build();
+          configAccessor.remove(instanceScope, record);
+          break;
+        default:
+          return badRequest(String.format("Unsupported command: %s", command));
       }
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
@@ -560,15 +562,21 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   }
 
   private boolean validateDeltaInstanceConfigForUpdate(String clusterName, String instanceName,
-      ConfigAccessor configAccessor, InstanceConfig newInstanceConfig) throws IllegalArgumentException{
-    InstanceConfig origionalInstanceConfig =
+      ConfigAccessor configAccessor, InstanceConfig newInstanceConfig, boolean isDelete)
+      throws IllegalArgumentException {
+    InstanceConfig originalInstanceConfigCopy =
         configAccessor.getInstanceConfig(clusterName, instanceName);
-    origionalInstanceConfig.getRecord().update(newInstanceConfig.getRecord());
+    if (isDelete) {
+      for (Map.Entry<String, String> entry : newInstanceConfig.getRecord().getSimpleFields()
+          .entrySet()) {
+        originalInstanceConfigCopy.getRecord().getSimpleFields().remove(entry.getKey());
+      }
+    } else {
+      originalInstanceConfigCopy.getRecord().update(newInstanceConfig.getRecord());
+    }
 
-    return
-      ConfigAccessor
-          .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
-              instanceName, origionalInstanceConfig);
-
+    return ConfigAccessor
+        .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
+            instanceName, originalInstanceConfigCopy);
   }
 }

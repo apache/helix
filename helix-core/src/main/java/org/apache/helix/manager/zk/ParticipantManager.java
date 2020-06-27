@@ -140,10 +140,6 @@ public class ParticipantManager {
 
     joinCluster();
 
-   /* ConfigAccessor.validateTopologySettingInInstanceConfig(
-        _configAccessor.getClusterConfig(_clusterName), _instanceName,
-        _configAccessor.getInstanceConfig(_clusterName,_instanceName));*/
-
     /**
      * Invoke PreConnectCallbacks
      */
@@ -211,10 +207,6 @@ public class ParticipantManager {
       }
       _helixAdmin.addInstance(_clusterName, instanceConfig);
     } else {
-      /*String instanceConfigPath = _keyBuilder.instanceConfig(_instanceName).getPath();
-      Stat stat = new Stat();
-      ZNRecord record = _zkclient.readData(instanceConfigPath, stat, true);
-      instanceConfig = new InstanceConfig(record);*/
       ConfigAccessor.validateTopologySettingInInstanceConfig(
           _configAccessor.getClusterConfig(_clusterName), _instanceName,
           _configAccessor.getInstanceConfig(_clusterName,_instanceName));

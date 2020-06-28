@@ -99,18 +99,19 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
         break;
 
       case SINGLE_REALM:
+        HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
+            new HelixZkClient.ZkConnectionConfig(zkAddress)
+                .setSessionTimeout(connectionConfig.getSessionTimeout());
         if (_zkClientType == ZkClientType.DEDICATED) {
           // If DEDICATED, then we use a dedicated HelixZkClient because we must support ephemeral
           // operations
           zkClient = DedicatedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                  clientConfig.createHelixZkClientConfig());
+              .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
         } else {
           // if SHARED: Use a SharedZkClient because ZkBaseDataAccessor does not need to
           // do ephemeral operations.
           zkClient = SharedZkClientFactory.getInstance()
-              .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-                  clientConfig.createHelixZkClientConfig());
+              .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
           zkClient
               .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         }
@@ -123,23 +124,25 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
 
   /**
    * Validate ZkClientType based on RealmMode.
+   * If ZkClientType is DEDICATED or SHARED, the realm mode must be SINGLE-REALM.
+   * If ZkClientType is FEDERATED, the realm mode must be MULTI-REALM.
    * @param zkClientType
    * @param realmMode
    */
   private void validateZkClientType(ZkClientType zkClientType,
       RealmAwareZkClient.RealmMode realmMode) {
-    boolean isZkClientTypeSet = zkClientType != null;
-    // If ZkClientType is set, RealmMode must either be single-realm or not set.
-    if (isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) {
-      throw new HelixException("ZkClientType cannot be set on multi-realm mode!");
+    if (realmMode == null) {
+      throw new HelixException("Cannot validate ZkClient type: realmMode is null!");
     }
-    // If ZkClientType is not set and realmMode is single-realm, default to SHARED
-    if (!isZkClientTypeSet && realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
-      zkClientType = ZkClientType.SHARED;
-    }
-    if (realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM
-        && zkClientType == ZkClientType.FEDERATED) {
-      throw new HelixException("FederatedZkClient cannot be set on single-realm mode!");
+    // If ZkClientType is DEDICATED or SHARED, the realm mode cannot be multi-realm.
+    // If ZkClientType is FEDERATED, the realm mode cannot be single-realm.
+    if (((zkClientType == ZkClientType.DEDICATED || zkClientType == ZkClientType.SHARED)
+        && realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) || (
+        zkClientType == ZkClientType.FEDERATED
+            && realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM)) {
+      throw new HelixException(
+          "Invalid combination of ZkClientType and RealmMode: ZkClientType is " + zkClientType
+              .name() + " and realmMode is " + realmMode.name());
     }
   }
 }

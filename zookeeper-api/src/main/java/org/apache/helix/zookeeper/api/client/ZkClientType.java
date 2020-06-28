@@ -25,18 +25,24 @@ public enum ZkClientType {
    * creation, callback functionality, and session management. But note that this is more
    * resource-heavy since it creates a dedicated ZK connection so should be used sparingly only
    * when the aforementioned features are needed.
+   *
+   * Valid on SINGLE_REALM only.
    */
   DEDICATED,
 
   /**
    * If a Helix API is created with the SHARED type, it only supports CRUD
    * functionalities. This will be the default mode of creation.
+   *
+   * Valid on SINGLE_REALM only.
    */
   SHARED,
 
   /**
    * Uses FederatedZkClient (applicable on multi-realm mode only) that queries Metadata Store
    * Directory Service for routing data.
+   *
+   * Valid on MULTI_REALM only.
    */
   FEDERATED
 }

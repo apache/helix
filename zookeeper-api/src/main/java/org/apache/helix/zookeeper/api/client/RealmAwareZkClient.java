@@ -383,7 +383,7 @@ public interface RealmAwareZkClient {
      */
     private String _zkRealmShardingKey;
     private String _msdsEndpoint;
-    private int _sessionTimeout;
+    private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     private RealmAwareZkConnectionConfig(Builder builder) {
       _zkRealmShardingKey = builder._zkRealmShardingKey;
@@ -430,27 +430,6 @@ public interface RealmAwareZkClient {
 
     public String getMsdsEndpoint() {
       return _msdsEndpoint;
-    }
-
-    public HelixZkClient.ZkConnectionConfig createZkConnectionConfig()
-        throws IOException, InvalidRoutingDataException {
-      // Convert to a single-realm HelixZkClient's ZkConnectionConfig
-      if (_zkRealmShardingKey == null || _zkRealmShardingKey.isEmpty()) {
-        throw new ZkClientException(
-            "Cannot create ZkConnectionConfig because ZK realm sharding key is either null or empty!");
-      }
-
-      String zkAddress;
-      // Look up the ZK address for the given ZK realm sharding key
-      if (_msdsEndpoint == null || _msdsEndpoint.isEmpty()) {
-        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData()
-            .getMetadataStoreRealm(_zkRealmShardingKey);
-      } else {
-        zkAddress = HttpRoutingDataReader.getMetadataStoreRoutingData(_msdsEndpoint)
-            .getMetadataStoreRealm(_zkRealmShardingKey);
-      }
-
-      return new HelixZkClient.ZkConnectionConfig(zkAddress).setSessionTimeout(_sessionTimeout);
     }
 
     public static class Builder {
@@ -500,11 +479,12 @@ public interface RealmAwareZkClient {
         boolean isShardingKeySet = _zkRealmShardingKey != null && !_zkRealmShardingKey.isEmpty();
         if (_realmMode == RealmMode.MULTI_REALM && isShardingKeySet) {
           throw new IllegalArgumentException(
-              "ZK sharding key cannot be set on multi-realm mode! Sharding key: "
+              "RealmAwareZkConnectionConfig.Builder: ZK sharding key cannot be set on multi-realm mode! Sharding key: "
                   + _zkRealmShardingKey);
         }
         if (_realmMode == RealmMode.SINGLE_REALM && !isShardingKeySet) {
-          throw new IllegalArgumentException("ZK sharding key must be set on single-realm mode!");
+          throw new IllegalArgumentException(
+              "RealmAwareZkConnectionConfig.Builder: ZK sharding key must be set on single-realm mode!");
         }
       }
     }

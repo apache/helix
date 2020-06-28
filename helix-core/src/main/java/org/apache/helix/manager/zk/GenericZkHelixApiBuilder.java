@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.io.IOException;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
@@ -52,7 +51,7 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
   /**
    * Note: If you set the ZK address explicitly, this setting will take priority over the ZK path
    * sharding key set in RealmAwareZkConnectionConfig.
-   * If this field is null, and the realm mode is single-realm, then we will try to look up the
+   * If this field is null, and the realm mode is single-realm, then it will try to look up the
    * ZK address based on the ZK path sharding key.
    * @param zkAddress
    * @return
@@ -82,15 +81,15 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
   /**
    * Validates the given Builder parameters using a generic validation logic.
    *
-   * This validation function mostly checks whether realm mode has been set correctly, and
+   * This validation function checks whether realm mode has been set correctly, and
    * resolves them if not set at all.
    *
    * If realm mode is null, we look at zkAddress field or RealmAwareZkClient's connection config to
-   * see if we could deduce the Zk address.
+   * see if we could deduce the Zk address based on the MetadataStoreRoutingData.
    *
    * Note: If you set the ZK address explicitly, this setting will take priority over the ZK path
    * sharding key set in RealmAwareZkConnectionConfig.
-   * If this field is null, and the realm mode is single-realm, then we will try to look up the
+   * If this field is null, and the realm mode is single-realm, then it will try to look up the
    * ZK address based on the ZK path sharding key.
    */
   protected void validate() {
@@ -180,7 +179,8 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
   }
 
   /**
-   * Resolve Zk address based on the zk realm sharding key.
+   * Resolve Zk address based on the zk realm sharding key. This method is only used if the
+   * ZK address is not given in this Builder.
    * @param connectionConfig
    * @return
    * @throws IOException

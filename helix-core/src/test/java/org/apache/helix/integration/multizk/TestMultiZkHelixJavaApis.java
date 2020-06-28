@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -90,9 +89,9 @@ import org.testng.annotations.Test;
  */
 public class TestMultiZkHelixJavaApis {
   private static final int NUM_ZK = 3;
-  private static final Map<String, ZkServer> ZK_SERVER_MAP = new TreeMap<>();
-  private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new TreeMap<>();
-  private static final Map<String, ClusterControllerManager> MOCK_CONTROLLERS = new TreeMap<>();
+  private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
+  private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
+  private static final Map<String, ClusterControllerManager> MOCK_CONTROLLERS = new HashMap<>();
   private static final Set<MockParticipantManager> MOCK_PARTICIPANTS = new HashSet<>();
   private static final List<String> CLUSTER_LIST =
       ImmutableList.of("CLUSTER_1", "CLUSTER_2", "CLUSTER_3");

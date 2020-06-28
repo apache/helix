@@ -97,15 +97,26 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
 
     // Resolve RealmMode based on whether ZK address has been set
     boolean isZkAddressSet = _zkAddress != null && !_zkAddress.isEmpty();
+
+    // If realmMode is single-realm (in other words, ZkAddress is needed) and zk address is not
+    // given, then try to look up ZK address if ZK realm sharding key is set
+    // If realmMode is multi-realm, make sure it's not tied to a single sharding key
     if (!isZkAddressSet && _realmAwareZkConnectionConfig.getZkRealmShardingKey() != null
         && !_realmAwareZkConnectionConfig.getZkRealmShardingKey().isEmpty()) {
-      // Try to resolve the zk address using the zk path sharding key if given
-      try {
-        _zkAddress = resolveZkAddressWithShardingKey(_realmAwareZkConnectionConfig);
-        isZkAddressSet = true;
-      } catch (IOException | InvalidRoutingDataException e) {
-        LOG.warn("GenericZkHelixApiBuilder: failed to resolve ZkAddress with ZK path sharding key!",
-            e);
+      if (_realmMode == RealmAwareZkClient.RealmMode.SINGLE_REALM) {
+        // Try to resolve the zk address using the zk path sharding key if given
+        try {
+          _zkAddress = resolveZkAddressWithShardingKey(_realmAwareZkConnectionConfig);
+          isZkAddressSet = true;
+        } catch (IOException | InvalidRoutingDataException e) {
+          LOG.warn(
+              "GenericZkHelixApiBuilder: ZkAddress is not set and failed to resolve ZkAddress with ZK path sharding key!",
+              e);
+        }
+      } else if (_realmMode == RealmAwareZkClient.RealmMode.MULTI_REALM) {
+        // Multi-realm and a single sharding key cannot coexist (by definition, multi-realm can access multiple sharding keys)
+        throw new HelixException(
+            "GenericZkHelixApiBuilder: Cannot have a ZK path sharding key in ConnectionConfig on multi-realm mode! Multi-realm accesses multiple sharding keys.");
       }
     }
 
@@ -117,6 +128,7 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
       throw new HelixException(
           "GenericZkHelixApiBuilder: ZkAddress cannot be set on multi-realm mode!");
     }
+
     if (_realmMode == null) {
       _realmMode = isZkAddressSet ? RealmAwareZkClient.RealmMode.SINGLE_REALM
           : RealmAwareZkClient.RealmMode.MULTI_REALM;
@@ -154,7 +166,8 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
           return new FederatedZkClient(connectionConfig,
               clientConfig.setZkSerializer(new ZNRecordSerializer()));
         } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
-          throw new HelixException("Failed to create FederatedZkClient!", e);
+          throw new HelixException("GenericZkHelixApiBuilder: Failed to create FederatedZkClient!",
+              e);
         }
       case SINGLE_REALM:
         // Create a HelixZkClient: Use a SharedZkClient because ClusterSetup does not need to do
@@ -164,7 +177,7 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
                 .setSessionTimeout(connectionConfig.getSessionTimeout()),
             clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
       default:
-        throw new HelixException("Invalid RealmMode given: " + realmMode);
+        throw new HelixException("GenericZkHelixApiBuilder: Invalid RealmMode given: " + realmMode);
     }
   }
 

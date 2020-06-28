@@ -132,7 +132,8 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
   private void validateZkClientType(ZkClientType zkClientType,
       RealmAwareZkClient.RealmMode realmMode) {
     if (realmMode == null) {
-      throw new HelixException("Cannot validate ZkClient type: realmMode is null!");
+      throw new HelixException(
+          "GenericBaseDataAccessorBuilder: Cannot validate ZkClient type! RealmMode is null!");
     }
     // If ZkClientType is DEDICATED or SHARED, the realm mode cannot be multi-realm.
     // If ZkClientType is FEDERATED, the realm mode cannot be single-realm.

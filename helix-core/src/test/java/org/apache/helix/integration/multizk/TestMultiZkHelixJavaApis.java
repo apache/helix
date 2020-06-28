@@ -526,8 +526,9 @@ public class TestMultiZkHelixJavaApis {
    * - Create ZkBaseDataAccessor, multi-realm, dedicated ZkClient (should fail)
    * - Create ZkBaseDataAccessor, multi-realm, shared ZkClient (should fail)
    * - Create ZkBaseDataAccessor, multi-realm, federated ZkClient, ZkAddress set (should fail)
-   * - Create ZkBaseDataAccessor, multi-realm, federated ZkClient, Zk sharding key set (should fail because ZK address will be looked up based on sharding key)
+   * - Create ZkBaseDataAccessor, multi-realm, federated ZkClient, Zk sharding key set (should fail because by definition, multi-realm can access multiple sharding keys)
    * - Create ZkBaseDataAccessor, multi-realm, federated ZkClient
+   * - Create ZkBaseDataAccessor, single-realm, dedicated ZkClient, No ZkAddress set, ConnectionConfig has an invalid ZK sharding key (should fail because it cannot find a valid ZK to connect to)
    */
   @Test(dependsOnMethods = "testGetAllClusters")
   public void testGenericBaseDataAccessorBuilder() {
@@ -663,7 +664,7 @@ public class TestMultiZkHelixJavaApis {
     }
 
     // Create ZkBaseDataAccessor, multi-realm, federated ZkClient, Zk sharding key set (should fail
-    // because ZK address will be looked up based on sharding key)
+    // because by definition, multi-realm can access multiple sharding keys)
     try {
       connectionConfigBuilder.setZkRealmShardingKey(firstClusterPath)
           .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM);
@@ -683,6 +684,19 @@ public class TestMultiZkHelixJavaApis {
     Assert.assertTrue(accessor.exists(firstClusterPath, AccessOption.PERSISTENT));
     Assert.assertTrue(accessor.exists(secondClusterPath, AccessOption.PERSISTENT));
     accessor.close();
+
+    // Create ZkBaseDataAccessor, single-realm, dedicated ZkClient, No ZkAddress set,
+    // ConnectionConfig has an invalid ZK sharding key (should fail because it cannot find a valid
+    // ZK to connect to)
+    connectionConfigBuilder.setZkRealmShardingKey("/NonexistentShardingKey");
+    try {
+      accessor = zkBaseDataAccessorBuilder.setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+          .setZkClientType(ZkClientType.DEDICATED).setZkAddress(null)
+          .setRealmAwareZkConnectionConfig(connectionConfigBuilder.build()).build();
+      Assert.fail("Should fail because it cannot find a valid ZK to connect to!");
+    } catch (NoSuchElementException e) {
+      // Expected because the sharding key wouldn't be found
+    }
   }
 
   /**

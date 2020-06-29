@@ -147,7 +147,7 @@ public class TaskDataCache extends AbstractDataCache {
     }
 
     // Removed jobs
-    // This block makes sure that the job workflow config has been changes.
+    // This block makes sure that the workflow config has been changed.
     // This avoid the race condition where job config has been purged but job has not been deleted
     // from JobDag yet
     for (String workflowName : _workflowConfigMap.keySet()) {

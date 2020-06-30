@@ -139,6 +139,15 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     // Since there is no special condition, the calculated IdealStates should be exactly the same
     // as the mock algorithm result.
     validateRebalanceResult(resourceMap, newIdealStates, algorithmResult);
+
+    Assert.assertFalse(_metadataStore.getBaseline().isEmpty());
+    Assert.assertFalse(_metadataStore.getBestPossibleAssignment().isEmpty());
+    // Calculate with empty resource list. The rebalancer shall clean up all the assignment status.
+    newIdealStates = rebalancer
+        .computeNewIdealStates(clusterData, Collections.emptyMap(), new CurrentStateOutput());
+    Assert.assertTrue(newIdealStates.isEmpty());
+    Assert.assertTrue(_metadataStore.getBaseline().isEmpty());
+    Assert.assertTrue(_metadataStore.getBestPossibleAssignment().isEmpty());
   }
 
   @Test(dependsOnMethods = "testRebalance")

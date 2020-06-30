@@ -19,6 +19,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.testng.Assert;
@@ -37,58 +37,34 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestAssignmentMetadataStore extends ZkTestBase {
-  protected static final int NODE_NR = 5;
-  protected static final int START_PORT = 12918;
-  protected static final String STATE_MODEL = "MasterSlave";
-  protected static final String TEST_DB = "TestDB";
-  protected static final int _PARTITIONS = 20;
+  private static final int DEFAULT_BUCKET_SIZE = 50 * 1024; // 50KB
+  private static final String BASELINE_KEY = "BASELINE";
+  private static final String BEST_POSSIBLE_KEY = "BEST_POSSIBLE";
 
+  protected static final String TEST_DB = "TestDB";
   protected HelixManager _manager;
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  protected MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
-  protected ClusterControllerManager _controller;
-  protected int _replica = 3;
-
   private AssignmentMetadataStore _store;
 
   @BeforeClass
-  public void beforeClass()
-      throws Exception {
+  public void beforeClass() throws Exception {
     super.beforeClass();
 
     // setup storage cluster
     _gSetupTool.addCluster(CLUSTER_NAME, true);
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
-    for (int i = 0; i < NODE_NR; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-    }
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
-
-    // start dummy participants
-    for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
-      _participants[i].syncStart();
-    }
-
-    // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
 
     // create cluster manager
     _manager = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
-    // create AssignmentMetadataStore
-    _store = new AssignmentMetadataStore(_manager.getMetadataStoreConnectionString(),
-        _manager.getClusterName());
+    // Create AssignmentMetadataStore. No version clean up to ensure the test result is stable.
+    _store = new AssignmentMetadataStore(
+        new ZkBucketDataAccessor(_manager.getMetadataStoreConnectionString(), DEFAULT_BUCKET_SIZE,
+            Integer.MAX_VALUE), _manager.getClusterName());
   }
 
   @AfterClass
@@ -96,6 +72,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     if (_store != null) {
       _store.close();
     }
+    _gSetupTool.deleteCluster(CLUSTER_NAME);
   }
 
   /**
@@ -107,8 +84,13 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
    */
   @Test
   public void testReadEmptyBaseline() {
-    Map<String, ResourceAssignment> baseline = _store.getBaseline();
-    Assert.assertTrue(baseline.isEmpty());
+    // This should be the first test. Assert there is no record in ZK.
+    // Check that only one version exists
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 0);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 0);
+    // Read from cache and the result is empty.
+    Assert.assertTrue(_store.getBaseline().isEmpty());
+    Assert.assertTrue(_store.getBestPossibleAssignment().isEmpty());
   }
 
   /**
@@ -116,9 +98,6 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
    */
   @Test(dependsOnMethods = "testReadEmptyBaseline")
   public void testAvoidingRedundantWrite() {
-    String baselineKey = "BASELINE";
-    String bestPossibleKey = "BEST_POSSIBLE";
-
     Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
 
     // Call persist functions
@@ -126,36 +105,82 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     _store.persistBestPossibleAssignment(dummyAssignment);
 
     // Check that only one version exists
-    List<String> baselineVersions = getExistingVersionNumbers(baselineKey);
-    List<String> bestPossibleVersions = getExistingVersionNumbers(bestPossibleKey);
-    Assert.assertEquals(baselineVersions.size(), 1);
-    Assert.assertEquals(bestPossibleVersions.size(), 1);
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 1);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 1);
 
     // Call persist functions again
     _store.persistBaseline(dummyAssignment);
     _store.persistBestPossibleAssignment(dummyAssignment);
 
     // Check that only one version exists still
-    baselineVersions = getExistingVersionNumbers(baselineKey);
-    bestPossibleVersions = getExistingVersionNumbers(bestPossibleKey);
-    Assert.assertEquals(baselineVersions.size(), 1);
-    Assert.assertEquals(bestPossibleVersions.size(), 1);
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 1);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 1);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testAvoidingRedundantWrite")
   public void testAssignmentCache() {
     Map<String, ResourceAssignment> dummyAssignment = getDummyAssignment();
     // Call persist functions
     _store.persistBaseline(dummyAssignment);
     _store.persistBestPossibleAssignment(dummyAssignment);
 
+    // Check that only one version exists
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 1);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 1);
+
+    // Same data in cache
     Assert.assertEquals(_store._bestPossibleAssignment, dummyAssignment);
     Assert.assertEquals(_store._globalBaseline, dummyAssignment);
 
+    dummyAssignment.values().stream().forEach(assignment -> {
+      assignment.addReplicaMap(new Partition("foo"), Collections.emptyMap());
+    });
+
+    // Call persist functions
+    _store.persistBaseline(dummyAssignment);
+    _store.persistBestPossibleAssignment(dummyAssignment);
+
+    // Check that two versions exist
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 2);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 2);
+
+    // Same data in cache
+    Assert.assertEquals(_store._bestPossibleAssignment, dummyAssignment);
+    Assert.assertEquals(_store._globalBaseline, dummyAssignment);
+
+    // Clear cache
     _store.reset();
 
     Assert.assertEquals(_store._bestPossibleAssignment, null);
     Assert.assertEquals(_store._globalBaseline, null);
+
+    // Check the persisted data is not changed.
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), 2);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), 2);
+  }
+
+  @Test(dependsOnMethods = "testAssignmentCache")
+  void testClearAssignment() {
+    // Check the persisted data is not empty
+    List<String> baselineVersions = getExistingVersionNumbers(BASELINE_KEY);
+    List<String> bestPossibleVersions = getExistingVersionNumbers(BEST_POSSIBLE_KEY);
+    int baselineVersionCount = baselineVersions.size();
+    int bestPossibleVersionCount = bestPossibleVersions.size();
+    Assert.assertTrue(baselineVersionCount > 0);
+    Assert.assertTrue(bestPossibleVersionCount > 0);
+
+    _store.clearAssignmentMetadata();
+
+    // 1. cache is cleaned up
+    Assert.assertEquals(_store._bestPossibleAssignment, Collections.emptyMap());
+    Assert.assertEquals(_store._globalBaseline, Collections.emptyMap());
+    // 2. refresh the cache and then read from ZK again to ensure the persisted assignments is empty
+    _store.reset();
+    Assert.assertEquals(_store.getBaseline(), Collections.emptyMap());
+    Assert.assertEquals(_store.getBestPossibleAssignment(), Collections.emptyMap());
+    // 3. check that there is
+    Assert.assertEquals(getExistingVersionNumbers(BASELINE_KEY).size(), baselineVersionCount + 1);
+    Assert.assertEquals(getExistingVersionNumbers(BEST_POSSIBLE_KEY).size(), bestPossibleVersionCount + 1);
   }
 
   private Map<String, ResourceAssignment> getDummyAssignment() {
@@ -172,6 +197,7 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
 
   /**
    * Returns a list of existing version numbers only.
+   *
    * @param metadataType
    * @return
    */
@@ -179,6 +205,9 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     List<String> children = _baseAccessor
         .getChildNames("/" + CLUSTER_NAME + "/ASSIGNMENT_METADATA/" + metadataType,
             AccessOption.PERSISTENT);
+    if (children == null) {
+      children = Collections.EMPTY_LIST;
+    }
     children.remove("LAST_SUCCESSFUL_WRITE");
     children.remove("LAST_WRITE");
     return children;

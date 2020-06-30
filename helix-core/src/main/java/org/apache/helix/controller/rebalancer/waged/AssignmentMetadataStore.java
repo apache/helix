@@ -27,10 +27,10 @@ import java.util.Map;
 import org.apache.helix.BucketDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.manager.zk.ZNRecordJacksonSerializer;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordJacksonSerializer;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 
@@ -70,7 +70,7 @@ public class AssignmentMetadataStore {
         _globalBaseline = splitAssignments(baseline);
       } catch (ZkNoNodeException ex) {
         // Metadata does not exist, so return an empty map
-        _globalBaseline = Collections.emptyMap();
+        _globalBaseline = new HashMap<>();
       }
     }
     return _globalBaseline;
@@ -85,7 +85,7 @@ public class AssignmentMetadataStore {
         _bestPossibleAssignment = splitAssignments(baseline);
       } catch (ZkNoNodeException ex) {
         // Metadata does not exist, so return an empty map
-        _bestPossibleAssignment = Collections.emptyMap();
+        _bestPossibleAssignment = new HashMap<>();
       }
     }
     return _bestPossibleAssignment;
@@ -95,53 +95,56 @@ public class AssignmentMetadataStore {
    * @return true if a new baseline was persisted.
    * @throws HelixException if the method failed to persist the baseline.
    */
-  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
-  // TODO: when it is skipped.
   public synchronized boolean persistBaseline(Map<String, ResourceAssignment> globalBaseline) {
-    // TODO: Make the write async?
-    // If baseline hasn't changed, skip writing to metadata store
-    if (compareAssignments(_globalBaseline, globalBaseline)) {
-      return false;
-    }
-    // Persist to ZK
-    HelixProperty combinedAssignments = combineAssignments(BASELINE_KEY, globalBaseline);
-    try {
-      _dataAccessor.compressedBucketWrite(_baselinePath, combinedAssignments);
-    } catch (IOException e) {
-      // TODO: Improve failure handling
-      throw new HelixException("Failed to persist baseline!", e);
-    }
-
-    // Update the in-memory reference
-    _globalBaseline = globalBaseline;
-    return true;
+    return persistAssignment(globalBaseline, getBaseline(), _baselinePath, BASELINE_KEY);
   }
 
   /**
    * @return true if a new best possible assignment was persisted.
    * @throws HelixException if the method failed to persist the baseline.
    */
-  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
-  // TODO: when it is skipped.
   public synchronized boolean persistBestPossibleAssignment(
       Map<String, ResourceAssignment> bestPossibleAssignment) {
+    return persistAssignment(bestPossibleAssignment, getBestPossibleAssignment(), _bestPossiblePath,
+        BEST_POSSIBLE_KEY);
+  }
+
+  public synchronized void clearAssignmentMetadata() {
+    persistAssignment(Collections.emptyMap(), getBaseline(), _baselinePath, BASELINE_KEY);
+    persistAssignment(Collections.emptyMap(), getBestPossibleAssignment(), _bestPossiblePath,
+        BEST_POSSIBLE_KEY);
+  }
+
+  /**
+   * @param newAssignment
+   * @param cachedAssignment
+   * @param path the path of the assignment record
+   * @param key  the key of the assignment in the record
+   * @return true if a new assignment was persisted.
+   */
+  // TODO: Enhance the return value so it is more intuitive to understand when the persist fails and
+  // TODO: when it is skipped.
+  private boolean persistAssignment(Map<String, ResourceAssignment> newAssignment,
+      Map<String, ResourceAssignment> cachedAssignment, String path,
+      String key) {
     // TODO: Make the write async?
-    // If bestPossibleAssignment hasn't changed, skip writing to metadata store
-    if (compareAssignments(_bestPossibleAssignment, bestPossibleAssignment)) {
+    // If the assignment hasn't changed, skip writing to metadata store
+    if (compareAssignments(cachedAssignment, newAssignment)) {
       return false;
     }
     // Persist to ZK
-    HelixProperty combinedAssignments =
-        combineAssignments(BEST_POSSIBLE_KEY, bestPossibleAssignment);
+    HelixProperty combinedAssignments = combineAssignments(key, newAssignment);
     try {
-      _dataAccessor.compressedBucketWrite(_bestPossiblePath, combinedAssignments);
+      _dataAccessor.compressedBucketWrite(path, combinedAssignments);
     } catch (IOException e) {
       // TODO: Improve failure handling
-      throw new HelixException("Failed to persist BestPossibleAssignment!", e);
+      throw new HelixException(
+          String.format("Failed to persist %s assignment to path %s", key, path), e);
     }
 
     // Update the in-memory reference
-    _bestPossibleAssignment = bestPossibleAssignment;
+    cachedAssignment.clear();
+    cachedAssignment.putAll(newAssignment);
     return true;
   }
 

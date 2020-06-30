@@ -57,7 +57,8 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
   private final String PARTITION_01 = "TestDB0_1";
   private final String PARTITION_10 = "TestDB1_0";
   private final String PARTITION_11 = "TestDB1_1";
-
+  private MockParticipantManager[] _participants;
+  private ClusterControllerManager _controller;
   // Customized state values used for test, TYPE_A_0 - TYPE_A_2 are values for Customized state TypeA, etc.
   private enum CurrentStateValues {
     TYPE_A_0, TYPE_A_1, TYPE_A_2, TYPE_B_0, TYPE_B_1, TYPE_B_2, TYPE_C_0, TYPE_C_1, TYPE_C_2
@@ -85,21 +86,21 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterControllerManager controller =
+    _controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
-    controller.syncStart();
+    _controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    _participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-      participants[i].syncStart();
+      _participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      _participants[i].syncStart();
     }
 
-    INSTANCE_0 = participants[0].getInstanceName();
-    INSTANCE_1 = participants[1].getInstanceName();
+    INSTANCE_0 = _participants[0].getInstanceName();
+    INSTANCE_1 = _participants[1].getInstanceName();
 
     _manager = HelixManagerFactory
         .getZKHelixManager(clusterName, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
@@ -111,9 +112,9 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
     // Initialize customized state provider
     _customizedStateProvider_participant0 = CustomizedStateProviderFactory.getInstance()
-        .buildCustomizedStateProvider(_manager, participants[0].getInstanceName());
+        .buildCustomizedStateProvider(_manager, _participants[0].getInstanceName());
     _customizedStateProvider_participant1 = CustomizedStateProviderFactory.getInstance()
-        .buildCustomizedStateProvider(_manager, participants[1].getInstanceName());
+        .buildCustomizedStateProvider(_manager, _participants[1].getInstanceName());
 
     _localCustomizedView = new HashMap<>();
     _routingTableProviderDataSources = new HashSet<>();
@@ -139,6 +140,10 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() {
+    _controller.syncStop();
+    for (MockParticipantManager participant : _participants) {
+      participant.syncStop();
+    }
     _routingTableProvider.shutdown();
     _manager.disconnect();
     _spectator.disconnect();

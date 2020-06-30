@@ -82,22 +82,11 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
     switch (realmMode) {
       case MULTI_REALM:
         try {
-          if (_zkClientType == ZkClientType.DEDICATED) {
-            // Use a realm-aware dedicated zk client
-            zkClient = DedicatedZkClientFactory.getInstance()
-                .buildZkClient(connectionConfig, clientConfig);
-          } else if (_zkClientType == ZkClientType.SHARED) {
-            // Use a realm-aware shared zk client
-            zkClient =
-                SharedZkClientFactory.getInstance().buildZkClient(connectionConfig, clientConfig);
-          } else {
-            zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-          }
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+          zkClient = new FederatedZkClient(connectionConfig, clientConfig);
+        } catch (IOException | InvalidRoutingDataException e) {
           throw new HelixException("Not able to connect on multi-realm mode.", e);
         }
         break;
-
       case SINGLE_REALM:
         HelixZkClient.ZkConnectionConfig helixZkConnectionConfig =
             new HelixZkClient.ZkConnectionConfig(zkAddress)
@@ -108,13 +97,13 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
           zkClient = DedicatedZkClientFactory.getInstance()
               .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
         } else {
-          // if SHARED: Use a SharedZkClient because ZkBaseDataAccessor does not need to
+          // if SHARED or null: Use a SharedZkClient because ZkBaseDataAccessor does not need to
           // do ephemeral operations.
           zkClient = SharedZkClientFactory.getInstance()
               .buildZkClient(helixZkConnectionConfig, clientConfig.createHelixZkClientConfig());
-          zkClient
-              .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         }
+        zkClient
+            .waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         break;
       default:
         throw new HelixException("Invalid RealmMode given: " + realmMode);
@@ -132,6 +121,8 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
   private void validateZkClientType(ZkClientType zkClientType,
       RealmAwareZkClient.RealmMode realmMode) {
     if (realmMode == null) {
+      // NOTE: GenericZkHelixApiBuilder::validate() is and must be called before this function, so
+      // we could assume that realmMode will not be null. If it is, we throw an exception.
       throw new HelixException(
           "GenericBaseDataAccessorBuilder: Cannot validate ZkClient type! RealmMode is null!");
     }

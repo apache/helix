@@ -174,6 +174,16 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       }
       return;
     }
+
+    // Step 6: handle workflow that should go to IN_PROGRESS state after is has been resumed
+    // This block is added to make sure workflow/queue context state becomes IN_PROGRESS for the
+    // case where a queue which has been stopped before is just resumed and the queue does not
+    // contain any job that needs to be run.
+    if (targetState.equals(TargetState.START)
+        && workflowCtx.getWorkflowState() == TaskState.STOPPED) {
+      workflowCtx.setWorkflowState(TaskState.IN_PROGRESS);
+    }
+
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 

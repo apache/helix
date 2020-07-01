@@ -1,0 +1,139 @@
+ -----
+ Release Notes for Apache Helix 1.0.1
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 1.0.1 (DEPRECATED)
+
+  The Apache Helix team would like to announce the release of Apache Helix 1.0.1.
+
+  This is the tweentieth release under the Apache umbrella, and the sixteenth as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+
+  In this release, Helix provides several performance improvements for rebalance pipeline:
+
+[]
+
+* Key Note for Helix Release
+
+** ZooScalability
+
+   Project ZooScalability includes initiatives and newly-added components to achieve horizontal scalability of ZooKeeper. Some Helix applications have been experiencing performance loss due to increased traffic to ZooKeeper.
+
+** Helix Cloud Support
+
+    Helix new features for customers in a cloud environment, e.g. Azure, AWS, or GCP, etc. This version implements the function of participant auto registration to a Helix cluster, using Azure cloud provider as an example. With this feature, after a Helix cluster is created, the participant can auto register itself to the cluster when the participant comes online. Users do not need to manually populate any information, even the fault domain information, which can be dynamically retrieved from the cloud provider by the participant. We provide interface and Azure implementation for participant auto registration. Users may implement the auto registration function for their own cloud provider, or even for on premise environment.
+
+    Detailed wiki page: {{https://github.com/apache/helix/wiki/Helix-Cloud-Support}}
+
+** Customized View Aggregation
+
+    A new feature for customers to define their own per partition state and provides aggregated view for the customized states. The customized state is updated by customers on demand and stored under each participant’s customized state path. Depending on a new cluster level config, called customized state config, Helix generic controller decides whether it will do aggregation across all participants on the state or not. If aggregation on a certain state is turned on, the output will be on a znode under the cluster, called customized view. The routing table provider will listen on customized view znode, and customers may get the snapshot of the routing table to retrieve customized view.
+
+    For details: {{https://github.com/apache/helix/wiki/Customized-View-Aggregation}}
+
+** Distributed Lock Support
+
+    An exclusive distributed lock based on ZooKeeper for Helix users to coordinate their work on the same resource. Currently we support:
+
+    * Synchronized lock: Acquires the lock if it is available immediately returns true, and lock path znode is updated with the new lock data (owner id, timeout stamp, etc.). If the user is already the lock owner, returns true. If the lock is not available then immediately return false.
+
+    * Synchronized unlock: Lock owner can unlock the lock and set the lock path znode data to default data (empty owner id, empty message, etc).
+
+    * Lock timeout: User provides an expiration time for the lock while acquiring it. The lock automatically becomes available after this timestamp. Any user can query the lock information and check when the lock will be expired.
+
+    * Lock message: Lock owner can provide a message for other users to know the purpose of current lock. Lock messages can be retrieved when users query the lock information.
+
+    * Lock owner recognition: Users can check if they are the current lock owner of a certain path.
+
+** Weight Aware Global Even Distribute Rebalancer
+
+    A new weight-aware globally-even distribute Rebalancer to better meet the applications’ requirement.
+
+    Please refer to {{https://github.com/apache/helix/wiki/Weight-aware-Globally-Evenly-distributed-Rebalancer}}
+
+
+[]
+
+* Detailed Changes
+
+** Bug Fixes
+
+    * Fix RuntimeJobDag initialization with old DAG (#1131)
+
+    * Fix the queue not going to IN_PROGRESS state (#1114)
+
+    * Fix leaking Zk path watch and Callbackhandler issue (#1035)
+
+    * Fix ZkBucketDataAccessor failure due to concurrent modification. (#1107)
+
+    * Fix the issue that the instance may not be assigned a replica as expected. (#1098)
+
+    * Fix NPE for RoutingDataCache.refresh (#1087)
+
+    * Fix waitToStop method in TaskDriver (#1083)
+
+    * Fix ReadOnlyWagedRebalancer so that it computes mapping from scratch (#1058)
+
+    * Fix the ConcurrentModificationException in ClusterEvent.java (#785)
+
+    * Generate cancellation message for currentState=null desiredState=DROPPED (#831)
+
+    * Fix the concurrent modification error happens during the HelixManager initHandlers() call (#904)
+
+    * Fix the scheduling decision for multiple currentStates (#923)
+
+    * Fix ZkHelixPropertyStore loses Zookeeper notification issue (#924)
+
+    * Fix unexpceted partition movements in the CrushEd strategy. (#941)
+
+** Improvements
+
+    * Cleanup the persisted assignment state if no resource is on WAGED rebalancer. (#1123)
+
+    * Use dedicated ZkClient in getHelixManagerProperty (#1110)
+
+    * Add metrics for expired session count (#1101)
+
+    * Do not ignore the baseline assignment when evaluating in PartitionMovementConstraint. (#1078)
+
+    * Add ExcessiveTopStateResolver to gracefully fix the double-masters situation. (#1037)
+
+    * Add close method to Helix lock (#1077)
+
+    * Upgrade lodash version to 4.17.12+ for helix-rest (#1081)
+
+    * Add delete for PropertyStore in Helix REST (#1079)
+
+    * Call session aware createEphemeral to create live instance. (#700)
+
+    * Bump jackson-databind from 2.9.5 to 2.9.10.1 in /helix-rest (#597)
+
+    * Add system property options to config write size limit for ZNRecord Serializer (#809)
+
+    * Async write operation should not throw Exception for serializing error (#845)
+[]
+
+Cheers,
+--
+The Apache Helix Team

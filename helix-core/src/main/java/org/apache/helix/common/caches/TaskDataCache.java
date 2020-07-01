@@ -112,7 +112,7 @@ public class TaskDataCache extends AbstractDataCache {
           WorkflowConfig workflowConfig = _workflowConfigMap.get(entry.getKey());
           _runtimeJobDagMap.put(entry.getKey(), new RuntimeJobDag(workflowConfig.getJobDag(),
               workflowConfig.isJobQueue() || !workflowConfig.isTerminable(),
-              workflowConfig.getParallelJobs()));
+              workflowConfig.getParallelJobs(), workflowConfig.getRecord().getVersion()));
         }
       } else if (entry.getValue().getRecord().getSimpleFields()
           .containsKey(WorkflowConfig.WorkflowConfigProperty.WorkflowID.name())) {
@@ -147,9 +147,15 @@ public class TaskDataCache extends AbstractDataCache {
     }
 
     // Removed jobs
-    for (String jobName : _jobConfigMap.keySet()) {
-      if (!newJobConfigs.containsKey(jobName) && _jobConfigMap.get(jobName).getWorkflow() != null) {
-        workflowsUpdated.add(_jobConfigMap.get(jobName).getWorkflow());
+    // This block makes sure that the workflow config has been changed.
+    // This avoid the race condition where job config has been purged but job has not been deleted
+    // from JobDag yet
+    for (String workflowName : _workflowConfigMap.keySet()) {
+      if (_runtimeJobDagMap.containsKey(workflowName)) {
+        if (_workflowConfigMap.get(workflowName).getRecord().getVersion() != _runtimeJobDagMap
+            .get(workflowName).getVersion()) {
+          workflowsUpdated.add(workflowName);
+        }
       }
     }
 
@@ -159,7 +165,7 @@ public class TaskDataCache extends AbstractDataCache {
         WorkflowConfig workflowConfig = _workflowConfigMap.get(changedWorkflow);
         _runtimeJobDagMap.put(changedWorkflow, new RuntimeJobDag(workflowConfig.getJobDag(),
             workflowConfig.isJobQueue() || !workflowConfig.isTerminable(),
-            workflowConfig.getParallelJobs()));
+            workflowConfig.getParallelJobs(), workflowConfig.getRecord().getVersion()));
       }
     }
 

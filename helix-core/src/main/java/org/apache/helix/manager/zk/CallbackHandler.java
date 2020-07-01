@@ -28,10 +28,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -78,7 +79,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
@@ -137,19 +137,23 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
   private final long _periodicTriggerInterval;
-  private final static ExecutorService _periodicTriggerExecutor =
-      Executors.newFixedThreadPool(40, new ThreadFactory() {
+  private final boolean _periodicTriggerEnabled;
+  private final static ScheduledThreadPoolExecutor PERIODIC_TRIGGER_EXECUTOR =
+      new ScheduledThreadPoolExecutor(0, new ThreadFactory() {
         public Thread newThread(Runnable runnable) {
           Thread thread = Executors.defaultThreadFactory().newThread(runnable);
           thread.setDaemon(true);
-          thread.setName("TriggerTaskThread");
+          thread.setName("PeriodicTriggerTask");
           return thread;
         }
       });
+  static {
+    PERIODIC_TRIGGER_EXECUTOR.setRemoveOnCancelPolicy(true);
+  }
   private Future<?> _periodicTriggerFuture;
   private volatile long _lastInvokeTime;
 
-  // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
+  // TODO: make this be per _manager or per _listener instead of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
@@ -238,36 +242,32 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     @Override
     public void run() {
-      logger.info("Starting trigger task.");
-      while (!Thread.currentThread().isInterrupted()) {
-        try {
-          long currentTime = System.currentTimeMillis();
-          long remainingTime = _lastInvokeTime + _triggerInterval - currentTime;
-          if (remainingTime <= 0) {
-            // If there is no event in the queue, meaning this long idle time could be due to lack of events
-            // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
-            if (_batchCallbackProcessor == null || _batchCallbackProcessor.queueIsEmpty()) {
-              NotificationContext changeContext = new NotificationContext(_manager);
-              changeContext.setType(Type.CALLBACK);
-              changeContext.setChangeType(_changeType);
-              enqueueTask(changeContext);
-            } else {
-              // Event is already queued but not processed yet
-              wait(_triggerInterval);
-            }
-          } else {
-            wait(remainingTime);
+      long currentTime = System.currentTimeMillis();
+      long remainingTime = _lastInvokeTime + _triggerInterval - currentTime;
+
+      if (remainingTime <= 0) {
+        // If there is no event in the queue, meaning this long idle time could be due to lack of events
+        // Otherwise, if there is event in the queue, this long idle time is due to slow process of events
+        if (_batchCallbackProcessor == null || _batchCallbackProcessor.queueIsEmpty()) {
+          NotificationContext changeContext = new NotificationContext(_manager);
+          changeContext.setType(Type.CALLBACK);
+          changeContext.setChangeType(_changeType);
+          try {
+            enqueueTask(changeContext);
+          } catch (Exception e) {
+            logger.warn("An exception was thrown during periodic triggered task.", e);
           }
-        } catch (InterruptedException e) {
-          System.out.println("Interrupting trigger task");
-          Thread.currentThread().interrupt();
-        } catch (IllegalMonitorStateException e0) {
-          // Wait() time out, do nothing
-        } catch (Exception e1) {
-          logger.warn("Exception during execute refresh task. Error: ", e1);
         }
+        scheduleNewTask(_triggerInterval);
+      } else {
+        scheduleNewTask(remainingTime);
       }
       logger.info("Exiting trigger task.");
+    }
+
+    private synchronized void scheduleNewTask(long waitTime) {
+      _periodicTriggerFuture = PERIODIC_TRIGGER_EXECUTOR
+          .schedule(new TriggerTask(_triggerInterval), waitTime, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -324,6 +324,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
      * We also add this one to periodical read stale messages from ZkServer in the case we don't see any event for a certain period.
      */
     _periodicTriggerInterval = periodicTriggerInterval;
+    _periodicTriggerEnabled = _periodicTriggerInterval > 0;
 
     parseListenerProperties();
 
@@ -434,7 +435,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   public void enqueueTask(NotificationContext changeContext) throws Exception {
-    if (_periodicTriggerExecutor != null) {
+    if (_periodicTriggerEnabled) {
       _lastInvokeTime = System.currentTimeMillis();
     }
 
@@ -959,6 +960,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
     shutDownTriggerTask();
     _lastInvokeTime = System.currentTimeMillis();
-    _periodicTriggerFuture = _periodicTriggerExecutor.submit(new TriggerTask(triggerInterval));
+    new TriggerTask(triggerInterval).scheduleNewTask(triggerInterval);
   }
 }

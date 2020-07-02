@@ -289,6 +289,11 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
       super(zkAddr, clusterName, instanceName);
       _msModelFactory = new MockDelayMSStateModelFactory();
     }
+
+    @Override
+    public void finalize() {
+      super.finalize();
+    }
   }
 
   public static class MockDelayMSStateModelFactory extends MockMSModelFactory {

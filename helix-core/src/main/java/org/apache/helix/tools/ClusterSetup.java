@@ -205,6 +205,11 @@ public class ClusterSetup {
     }
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig)
       throws HelixException {
     _admin.addCluster(clusterName, overwritePrevious);

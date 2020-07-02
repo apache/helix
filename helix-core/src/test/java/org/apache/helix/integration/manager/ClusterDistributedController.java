@@ -19,16 +19,9 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-
 import org.apache.helix.InstanceType;
-import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,5 +50,10 @@ public class ClusterDistributedController extends ClusterManager {
       disconnect();
       _waitStopFinishCountDown.countDown();
     }
+  }
+
+  @Override
+  public void finalize() {
+    super.finalize();
   }
 }

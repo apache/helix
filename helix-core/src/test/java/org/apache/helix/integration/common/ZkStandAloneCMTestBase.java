@@ -92,6 +92,9 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    if (_clusterVerifier != null) {
+      _clusterVerifier.close();
+    }
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

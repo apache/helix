@@ -268,32 +268,33 @@ public class TestHelper {
 
   public static void setupCluster(String clusterName, String zkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
-      int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance)
-      throws Exception {
+      int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance) {
     HelixZkClient zkClient = SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    if (zkClient.exists("/" + clusterName)) {
-      LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      zkClient.deleteRecursively("/" + clusterName);
-    }
-
-    ClusterSetup setupTool = new ClusterSetup(zkAddr);
-    setupTool.addCluster(clusterName, true);
-
-    for (int i = 0; i < nodesNb; i++) {
-      int port = startPort + i;
-      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
-    }
-
-    for (int i = 0; i < resourceNb; i++) {
-      String resourceName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
-          mode.toString());
-      if (doRebalance) {
-        setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
+    try {
+      if (zkClient.exists("/" + clusterName)) {
+        LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
+        zkClient.deleteRecursively("/" + clusterName);
       }
+
+      ClusterSetup setupTool = new ClusterSetup(zkAddr);
+      setupTool.addCluster(clusterName, true);
+
+      for (int i = 0; i < nodesNb; i++) {
+        int port = startPort + i;
+        setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
+      }
+
+      for (int i = 0; i < resourceNb; i++) {
+        String resourceName = resourceNamePrefix + i;
+        setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef, mode.toString());
+        if (doRebalance) {
+          setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
+        }
+      }
+    } finally {
+      zkClient.close();
     }
-    zkClient.close();
   }
 
   public static void dropCluster(String clusterName, RealmAwareZkClient zkClient) {

@@ -51,11 +51,6 @@ public class TestJobQueueDeleteIdealState extends TaskTestBase {
     _numPartitions = 1;
     _numNodes = 3;
     super.beforeClass();
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
-
-    _manager.connect();
-    _driver = new TaskDriver(_manager);
   }
 
   @Test

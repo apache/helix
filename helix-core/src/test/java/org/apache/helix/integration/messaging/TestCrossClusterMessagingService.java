@@ -30,6 +30,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -54,9 +56,9 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     _adminController = new ClusterControllerManager(ZK_ADDR, ADMIN_CLUSTER_NAME, controllerName);
     _adminController.syncStart();
 
-    _clusterVerifier =
+    ZkHelixClusterVerifier adminClusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(ADMIN_CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    Assert.assertTrue(adminClusterVerifier.verifyByPolling());
   }
 
   @AfterClass

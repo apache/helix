@@ -56,8 +56,6 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
     _numPartitions = 1;
     _numNodes = 3;
     super.beforeClass();
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
 
     // Stop participants that have been started in super class
     for (int i = 0; i < _numNodes; i++) {
@@ -79,9 +77,6 @@ public class TestStoppingQueueFailToStop extends TaskTestBase {
           new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
-
-    _manager.connect();
-    _driver = new TaskDriver(_manager);
   }
 
   @Test

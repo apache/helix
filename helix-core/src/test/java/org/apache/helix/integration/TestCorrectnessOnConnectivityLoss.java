@@ -87,34 +87,35 @@ public class TestCorrectnessOnConnectivityLoss {
     HelixManager participant =
         HelixManagerFactory.getZKHelixManager(_clusterName, "localhost_12918",
             InstanceType.PARTICIPANT, ZK_ADDR);
-    participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-        new MyStateModelFactory(stateReachedCounts));
-    participant.connect();
 
-    Thread.sleep(1000);
+    try {
+      participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline", new MyStateModelFactory(stateReachedCounts));
+      participant.connect();
 
-    // Ensure that the external view coalesces
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            _clusterName));
-    Assert.assertTrue(result);
+      Thread.sleep(1000);
 
-    // Ensure that there was only one state transition
-    Assert.assertEquals(stateReachedCounts.size(), 1);
-    Assert.assertTrue(stateReachedCounts.containsKey("ONLINE"));
-    Assert.assertEquals(stateReachedCounts.get("ONLINE").intValue(), 1);
+      // Ensure that the external view coalesces
+      boolean result = ClusterStateVerifier
+          .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
+      Assert.assertTrue(result);
 
-    // Now let's stop the ZK server; this should do nothing
-    TestHelper.stopZkServer(_zkServer);
-    Thread.sleep(1000);
+      // Ensure that there was only one state transition
+      Assert.assertEquals(stateReachedCounts.size(), 1);
+      Assert.assertTrue(stateReachedCounts.containsKey("ONLINE"));
+      Assert.assertEquals(stateReachedCounts.get("ONLINE").intValue(), 1);
 
-    // Verify no change
-    Assert.assertEquals(stateReachedCounts.size(), 1);
-    Assert.assertTrue(stateReachedCounts.containsKey("ONLINE"));
-    Assert.assertEquals(stateReachedCounts.get("ONLINE").intValue(), 1);
+      // Now let's stop the ZK server; this should do nothing
+      TestHelper.stopZkServer(_zkServer);
+      Thread.sleep(1000);
 
-    if (participant.isConnected()) {
-      participant.disconnect();
+      // Verify no change
+      Assert.assertEquals(stateReachedCounts.size(), 1);
+      Assert.assertTrue(stateReachedCounts.containsKey("ONLINE"));
+      Assert.assertEquals(stateReachedCounts.get("ONLINE").intValue(), 1);
+    } finally {
+      if (participant.isConnected()) {
+        participant.disconnect();
+      }
     }
   }
 
@@ -125,12 +126,13 @@ public class TestCorrectnessOnConnectivityLoss {
     HelixManager participant =
         HelixManagerFactory.getZKHelixManager(_clusterName, "localhost_12918",
             InstanceType.PARTICIPANT, ZK_ADDR);
-    participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-        new MyStateModelFactory(stateReachedCounts));
-    participant.connect();
-
     RoutingTableProvider routingTableProvider = new RoutingTableProvider();
+
     try {
+      participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
+          new MyStateModelFactory(stateReachedCounts));
+      participant.connect();
+
       HelixManager spectator = HelixManagerFactory
           .getZKHelixManager(_clusterName, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
       spectator.connect();

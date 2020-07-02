@@ -177,6 +177,7 @@ public class TestMultiZkHelixJavaApis {
       }, TestHelper.WAIT_DURATION));
 
       // Tear down zookeepers
+      ZK_CLIENT_MAP.forEach((zkAddress, zkClient) -> zkClient.close());
       ZK_SERVER_MAP.forEach((zkAddress, zkServer) -> zkServer.shutdown());
 
       // Stop MockMSDS

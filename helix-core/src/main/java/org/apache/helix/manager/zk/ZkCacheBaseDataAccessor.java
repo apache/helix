@@ -836,6 +836,11 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   public static class Builder<T> extends GenericBaseDataAccessorBuilder<Builder<T>> {
     /** ZkCacheBaseDataAccessor-specific parameters */
     private String _chrootPath;

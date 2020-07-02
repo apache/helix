@@ -123,4 +123,9 @@ public class MockParticipantManager extends ClusterManager {
   public List<CallbackHandler> getHandlers() {
     return _handlers;
   }
+
+  @Override
+  public void finalize() {
+    super.finalize();
+  }
 }

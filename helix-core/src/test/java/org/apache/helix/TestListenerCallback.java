@@ -119,6 +119,9 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
+    }
     TestHelper.dropCluster(_clusterName, _gZkClient);
     System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }

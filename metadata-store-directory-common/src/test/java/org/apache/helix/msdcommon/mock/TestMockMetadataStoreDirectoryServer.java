@@ -21,13 +21,11 @@ package org.apache.helix.msdcommon.mock;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.constant.TestConstants;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -35,9 +33,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.Test;
 import org.testng.Assert;
-
+import org.testng.annotations.Test;
 
 public class TestMockMetadataStoreDirectoryServer {
   @Test

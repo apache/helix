@@ -330,6 +330,12 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     disconnect();
   }
 
+  @Override
+  public void finalize() {
+    _zkBaseDataAccessor.close();
+    close();
+  }
+
   private synchronized void updateGCTimer(String rootPath, long currentVersion) {
     if (_gcTaskFuture != null) {
       _gcTaskFuture.cancel(false);

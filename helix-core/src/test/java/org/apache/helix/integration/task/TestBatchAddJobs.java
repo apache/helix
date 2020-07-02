@@ -88,6 +88,7 @@ public class TestBatchAddJobs extends ZkTestBase {
   public void afterClass() {
     for (SubmitJobTask submitJobTask : _submitJobTasks) {
       submitJobTask.interrupt();
+      submitJobTask.cleanup();
     }
 
     deleteCluster(CLUSTER_NAME);
@@ -96,12 +97,13 @@ public class TestBatchAddJobs extends ZkTestBase {
   static class SubmitJobTask extends Thread {
     private TaskDriver _driver;
     private String _jobPrefixName;
+    private HelixManager _manager;
 
     public SubmitJobTask(String zkAddress, int index) throws Exception {
-      HelixManager manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Administrator",
+      _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Administrator",
           InstanceType.ADMINISTRATOR, zkAddress);
-      manager.connect();
-      _driver = new TaskDriver(manager);
+      _manager.connect();
+      _driver = new TaskDriver(_manager);
       _jobPrefixName = "JOB_" + index + "#";
     }
 
@@ -117,6 +119,10 @@ public class TestBatchAddJobs extends ZkTestBase {
       }
 
       _driver.enqueueJobs(QUEUE_NAME, jobNames, jobConfigBuilders);
+    }
+
+    public void cleanup() {
+      _manager.disconnect();
     }
   }
 }

@@ -993,6 +993,11 @@ public class ConfigAccessor {
     }
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   public static class Builder extends GenericZkHelixApiBuilder<Builder> {
     public Builder() {
     }

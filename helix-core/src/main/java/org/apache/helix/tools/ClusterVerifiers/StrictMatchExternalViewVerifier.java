@@ -340,4 +340,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
         .format("%s(%s@%s@resources[%s])", verifierName, _clusterName, _zkClient.getServers(),
             _resources != null ? Arrays.toString(_resources.toArray()) : "");
   }
+
+  @Override
+  public void finalize() {
+    close();
+  }
 }

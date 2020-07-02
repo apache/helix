@@ -164,7 +164,8 @@ public final class HelixUtil {
 
   /**
    * Returns the expected ideal ResourceAssignments for the given resources in the cluster
-   * calculated using the read-only WAGED rebalancer.
+   * calculated using the read-only WAGED rebalancer. The returned result is based on preference
+   * lists.
    * @param metadataStoreAddress
    * @param clusterConfig
    * @param instanceConfigs
@@ -177,6 +178,39 @@ public final class HelixUtil {
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    return getIdealAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+        instanceConfigs, liveInstances, idealStates, resourceConfigs, true);
+  }
+
+  /**
+   * Returns the expected ideal ResourceAssignments for the given resources in the cluster
+   * calculated using the read-only WAGED rebalancer. The returned result is based on partition
+   * state mapping.
+   * @param metadataStoreAddress
+   * @param clusterConfig
+   * @param instanceConfigs
+   * @param liveInstances
+   * @param idealStates
+   * @param resourceConfigs
+   * @return
+   */
+  public static Map<String, ResourceAssignment> getIdealPartitionMapForWagedFullAuto(
+      String metadataStoreAddress, ClusterConfig clusterConfig,
+      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    return getIdealAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+        instanceConfigs, liveInstances, idealStates, resourceConfigs, false);
+  }
+
+  /*
+   * If usePrefLists is set to true, the returned assignment is based on preference lists; if
+   * false, the returned assignment is based on partition state mapping, which may differ from
+   * preference lists.
+   */
+  private static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAutoImpl(
+      String metadataStoreAddress, ClusterConfig clusterConfig,
+      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs, boolean usePrefLists) {
     // Copy the cluster config and make globalRebalance happen synchronously
     // Otherwise, globalRebalance may not complete and this util might end up returning
     // an empty assignment.
@@ -262,10 +296,19 @@ public final class HelixUtil {
     }
     for (Resource resource : resourceMap.values()) {
       String resourceName = resource.getResourceName();
+      StateModelDefinition stateModelDefinition =
+          BuiltInStateModelDefinitions.valueOf(resource.getStateModelDefRef())
+              .getStateModelDefinition();
       PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
       ResourceAssignment resourceAssignment = new ResourceAssignment(resourceName);
       for (Partition partition : resource.getPartitions()) {
-        resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
+        if (usePrefLists) {
+          resourceAssignment.addReplicaMap(partition, computeIdealMapping(
+              output.getPreferenceList(resourceName, partition.getPartitionName()),
+              stateModelDefinition, new HashSet<>(liveInstances)));
+        } else {
+          resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
+        }
       }
       result.put(resourceName, resourceAssignment);
     }

@@ -47,6 +47,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -192,7 +193,28 @@ public class TestWagedRebalance extends ZkTestBase {
     Assert.assertEquals(utilResult.size(), _allDBs.size());
     for (IdealState idealState : idealStates) {
       Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
-      Assert.assertEquals(utilResult.get(idealState.getResourceName()).getRecord().getMapFields(),
+      StateModelDefinition stateModelDefinition =
+          BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
+              .getStateModelDefinition();
+      for (String partition : idealState.getPartitionSet()) {
+        Assert.assertEquals(
+            utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition),
+            HelixUtil
+                .computeIdealMapping(idealState.getPreferenceList(partition), stateModelDefinition,
+                    new HashSet<>(liveInstances)));
+      }
+    }
+
+    // Verify that the partition state mapping mode also works
+    Map<String, ResourceAssignment> paritionMappingBasedResult = HelixUtil
+        .getIdealPartitionMapForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+    Assert.assertNotNull(paritionMappingBasedResult);
+    Assert.assertEquals(paritionMappingBasedResult.size(), _allDBs.size());
+    for (IdealState idealState : idealStates) {
+      Assert.assertTrue(paritionMappingBasedResult.containsKey(idealState.getResourceName()));
+      Assert.assertEquals(
+          paritionMappingBasedResult.get(idealState.getResourceName()).getRecord().getMapFields(),
           idealState.getRecord().getMapFields());
     }
 

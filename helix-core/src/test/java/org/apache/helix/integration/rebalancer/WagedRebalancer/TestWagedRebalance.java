@@ -188,7 +188,7 @@ public class TestWagedRebalance extends ZkTestBase {
         .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
     Assert.assertNotNull(utilResult);
-    Assert.assertEquals(utilResult.size(), _allDBs.size());
+    Assert.assertEquals(utilResult.size(), idealStates.size());
     for (IdealState idealState : idealStates) {
       Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
       StateModelDefinition stateModelDefinition =
@@ -208,7 +208,7 @@ public class TestWagedRebalance extends ZkTestBase {
         .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
             liveInstances, idealStates, resourceConfigs);
     Assert.assertNotNull(paritionMappingBasedResult);
-    Assert.assertEquals(paritionMappingBasedResult.size(), _allDBs.size());
+    Assert.assertEquals(paritionMappingBasedResult.size(), idealStates.size());
     for (IdealState idealState : idealStates) {
       Assert.assertTrue(paritionMappingBasedResult.containsKey(idealState.getResourceName()));
       Assert.assertEquals(

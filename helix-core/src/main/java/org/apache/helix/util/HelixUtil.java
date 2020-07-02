@@ -165,7 +165,7 @@ public final class HelixUtil {
   /**
    * Returns the expected ideal ResourceAssignments for the given resources in the cluster
    * calculated using the read-only WAGED rebalancer. The returned result is based on preference
-   * lists.
+   * lists, which is the target stable assignment.
    * @param metadataStoreAddress
    * @param clusterConfig
    * @param instanceConfigs
@@ -185,7 +185,9 @@ public final class HelixUtil {
   /**
    * Returns the expected ideal ResourceAssignments for the given resources in the cluster
    * calculated using the read-only WAGED rebalancer. The returned result is based on partition
-   * state mapping.
+   * state mapping. which is the immediate assignment. The immediate assignment is different from
+   * the final target assignment; it could be an intermediate state where it contains replicas that
+   * need to be dropped later, for example. 
    * @param metadataStoreAddress
    * @param clusterConfig
    * @param instanceConfigs
@@ -288,23 +290,18 @@ public final class HelixUtil {
       throw new HelixException(
           "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
     }
-    Map<String, Resource> resourceMap =
-        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    if (resourceMap == null) {
-      throw new HelixException(
-          "getIdealAssignmentForWagedFullAuto(): Calculation failed: RESOURCES_TO_REBALANCE is null!");
-    }
-    for (Resource resource : resourceMap.values()) {
-      String resourceName = resource.getResourceName();
+    for (IdealState idealState : idealStates) {
+      String resourceName = idealState.getResourceName();
       StateModelDefinition stateModelDefinition =
-          BuiltInStateModelDefinitions.valueOf(resource.getStateModelDefRef())
+          BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
               .getStateModelDefinition();
       PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
       ResourceAssignment resourceAssignment = new ResourceAssignment(resourceName);
-      for (Partition partition : resource.getPartitions()) {
+      for (String partitionName : idealState.getPartitionSet()) {
+        Partition partition = new Partition(partitionName);
         if (usePrefLists) {
           resourceAssignment.addReplicaMap(partition, computeIdealMapping(
-              output.getPreferenceList(resourceName, partition.getPartitionName()),
+              output.getPreferenceList(resourceName, partitionName),
               stateModelDefinition, new HashSet<>(liveInstances)));
         } else {
           resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));

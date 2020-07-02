@@ -174,11 +174,11 @@ public final class HelixUtil {
    * @param resourceConfigs
    * @return
    */
-  public static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAuto(
+  public static Map<String, ResourceAssignment> getTargetAssignmentForWagedFullAuto(
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
-    return getIdealAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
         instanceConfigs, liveInstances, idealStates, resourceConfigs, true);
   }
 
@@ -194,11 +194,11 @@ public final class HelixUtil {
    * @param resourceConfigs
    * @return
    */
-  public static Map<String, ResourceAssignment> getIdealPartitionMapForWagedFullAuto(
+  public static Map<String, ResourceAssignment> getImmediateAssignmentForWagedFullAuto(
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
-    return getIdealAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
         instanceConfigs, liveInstances, idealStates, resourceConfigs, false);
   }
 
@@ -207,7 +207,7 @@ public final class HelixUtil {
    * false, the returned assignment is based on partition state mapping, which may differ from
    * preference lists.
    */
-  private static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAutoImpl(
+  private static Map<String, ResourceAssignment> getAssignmentForWagedFullAutoImpl(
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs, boolean usePrefLists) {

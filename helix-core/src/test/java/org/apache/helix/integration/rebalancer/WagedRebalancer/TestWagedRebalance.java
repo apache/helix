@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
@@ -187,7 +185,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
     // Verify that utilResult contains the assignment for the resources added
     Map<String, ResourceAssignment> utilResult = HelixUtil
-        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
     Assert.assertNotNull(utilResult);
     Assert.assertEquals(utilResult.size(), _allDBs.size());
@@ -207,7 +205,7 @@ public class TestWagedRebalance extends ZkTestBase {
 
     // Verify that the partition state mapping mode also works
     Map<String, ResourceAssignment> paritionMappingBasedResult = HelixUtil
-        .getIdealPartitionMapForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
             liveInstances, idealStates, resourceConfigs);
     Assert.assertNotNull(paritionMappingBasedResult);
     Assert.assertEquals(paritionMappingBasedResult.size(), _allDBs.size());
@@ -231,7 +229,7 @@ public class TestWagedRebalance extends ZkTestBase {
     }
 
     utilResult = HelixUtil
-        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
 
     Set<String> instancesWithAssignments = new HashSet<>();

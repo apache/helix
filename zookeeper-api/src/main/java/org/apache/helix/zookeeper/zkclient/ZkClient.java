@@ -1007,23 +1007,22 @@ public class ZkClient implements Watcher {
           try {
             return getConnection().getChildren(path, watch);
           } catch (ConnectionLossException e) {
-            ++connectionLossRetryCount;
+            // Issue: https://github.com/apache/helix/issues/962
+            // Connection loss might be caused by an excessive number of children.
+            // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
+            // This is a workaround to check numChildren to have a chance to exit retry loop.
             // Allow retrying 3 times before checking stat checking number of children,
             // because there is a higher possibility that connection loss is caused by other
-            // factors such as network connectivity, connected ZK node could not serve
-            // the request, session expired, etc.
+            // factors such as network connectivity, session expired, etc.
+            // TODO: remove this check once we have a better way to exit infinite retry
+            ++connectionLossRetryCount;
             if (connectionLossRetryCount >= 3) {
-              // Issue: https://github.com/apache/helix/issues/962
-              // Connection loss might be caused by an excessive number of children.
-              // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
-              // This is a workaround to check numChildren to have a chance to exit retry loop.
-              // TODO: remove this check once we have a better way to exit infinite retry
-              Stat stat = getStat(path);
+              Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
               if (stat != null) {
                 if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
-                  LOG.error("Failed to get children for path {} because number of children {} "
-                          + "exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
-                      NUM_CHILDREN_LIMIT);
+                  LOG.error("Failed to get children for path {} because of connection loss. "
+                          + "Number of children {} exceeds limit {}, aborting retry.", path,
+                      stat.getNumChildren(), NUM_CHILDREN_LIMIT);
                   // MarshallingErrorException could represent transport error: exceeding the
                   // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
                   // transport the data because packet length is too large.
@@ -1555,14 +1554,12 @@ public class ZkClient implements Watcher {
         } catch (Exception e) {
           throw ExceptionUtil.convertToRuntimeException(e);
         }
-
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
               + _operationRetryTimeoutInMillis + " milli seconds). Retry was caused by "
               + retryCauseCode);
         }
-        LOG.warn("Retrying operation, caused by {}", retryCauseCode);
       }
     } finally {
       if (_monitor != null) {

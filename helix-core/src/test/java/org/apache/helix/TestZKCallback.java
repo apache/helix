@@ -21,7 +21,6 @@ package org.apache.helix;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.helix.PropertyKey.Builder;
@@ -141,94 +140,100 @@ public class TestZKCallback extends ZkUnitTestBase {
             InstanceType.PARTICIPANT, ZK_ADDR);
     testHelixManager.connect();
 
-    TestZKCallback test = new TestZKCallback();
+    try {
+      TestZKCallback test = new TestZKCallback();
 
-    TestZKCallback.TestCallbackListener testListener = test.new TestCallbackListener();
+      TestZKCallback.TestCallbackListener testListener = test.new TestCallbackListener();
 
-    testHelixManager.addMessageListener(testListener, "localhost_8900");
-    testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
-        testHelixManager.getSessionId());
-    testHelixManager.addCustomizedStateRootChangeListener(testListener, "localhost_8900");
-    testHelixManager.addConfigChangeListener(testListener);
-    testHelixManager.addIdealStateChangeListener(testListener);
-    testHelixManager.addExternalViewChangeListener(testListener);
-    testHelixManager.addLiveInstanceChangeListener(testListener);
-    // Initial add listener should trigger the first execution of the
-    // listener callbacks
-    AssertJUnit.assertTrue(testListener.configChangeReceived
-        & testListener.currentStateChangeReceived & testListener.externalViewChangeReceived
-        & testListener.idealStateChangeReceived & testListener.liveInstanceChangeReceived
-        & testListener.messageChangeReceived);
+      testHelixManager.addMessageListener(testListener, "localhost_8900");
+      testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
+          testHelixManager.getSessionId());
+      testHelixManager.addCustomizedStateRootChangeListener(testListener, "localhost_8900");
+      testHelixManager.addConfigChangeListener(testListener);
+      testHelixManager.addIdealStateChangeListener(testListener);
+      testHelixManager.addExternalViewChangeListener(testListener);
+      testHelixManager.addLiveInstanceChangeListener(testListener);
+      // Initial add listener should trigger the first execution of the
+      // listener callbacks
+      AssertJUnit.assertTrue(
+          testListener.configChangeReceived & testListener.currentStateChangeReceived & testListener.externalViewChangeReceived
+              & testListener.idealStateChangeReceived & testListener.liveInstanceChangeReceived & testListener.messageChangeReceived);
 
-    testListener.Reset();
-    HelixDataAccessor accessor = testHelixManager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
+      testListener.Reset();
+      HelixDataAccessor accessor = testHelixManager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
 
-    ExternalView extView = new ExternalView("db-12345");
-    accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
-    Thread.sleep(100);
-    AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
-    testListener.Reset();
+      ExternalView extView = new ExternalView("db-12345");
+      accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
+      Thread.sleep(100);
+      AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
+      testListener.Reset();
 
-    CurrentState curState = new CurrentState("db-12345");
-    curState.setSessionId("sessionId");
-    curState.setStateModelDefRef("StateModelDef");
-    accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
-        curState.getId()), curState);
-    Thread.sleep(100);
-    AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
-    testListener.Reset();
+      CurrentState curState = new CurrentState("db-12345");
+      curState.setSessionId("sessionId");
+      curState.setStateModelDefRef("StateModelDef");
+      accessor.setProperty(keyBuilder
+              .currentState("localhost_8900", testHelixManager.getSessionId(), curState.getId()),
+          curState);
+      Thread.sleep(100);
+      AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
+      testListener.Reset();
 
-    IdealState idealState = new IdealState("db-1234");
-    idealState.setNumPartitions(400);
-    idealState.setReplicas(Integer.toString(2));
-    idealState.setStateModelDefRef("StateModeldef");
-    accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
-    Thread.sleep(100);
-    AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
-    testListener.Reset();
+      IdealState idealState = new IdealState("db-1234");
+      idealState.setNumPartitions(400);
+      idealState.setReplicas(Integer.toString(2));
+      idealState.setStateModelDefRef("StateModeldef");
+      accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
+      Thread.sleep(100);
+      AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
+      testListener.Reset();
 
-    // dummyRecord = new ZNRecord("db-12345");
-    // dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState, "db-12345"
-    // );
-    // Thread.sleep(100);
-    // AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
-    // testListener.Reset();
+      // dummyRecord = new ZNRecord("db-12345");
+      // dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState, "db-12345"
+      // );
+      // Thread.sleep(100);
+      // AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
+      // testListener.Reset();
 
-    // dummyRecord = new ZNRecord("localhost:8900");
-    // List<ZNRecord> recList = new ArrayList<ZNRecord>();
-    // recList.add(dummyRecord);
+      // dummyRecord = new ZNRecord("localhost:8900");
+      // List<ZNRecord> recList = new ArrayList<ZNRecord>();
+      // recList.add(dummyRecord);
 
-    testListener.Reset();
-    Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
-    message.setTgtSessionId("*");
-    message.setResourceName("testResource");
-    message.setPartitionName("testPartitionKey");
-    message.setStateModelDef("MasterSlave");
-    message.setToState("toState");
-    message.setFromState("fromState");
-    message.setTgtName("testTarget");
-    message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+      testListener.Reset();
+      Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+      message.setTgtSessionId("*");
+      message.setResourceName("testResource");
+      message.setPartitionName("testPartitionKey");
+      message.setStateModelDef("MasterSlave");
+      message.setToState("toState");
+      message.setFromState("fromState");
+      message.setTgtName("testTarget");
+      message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 
-    accessor.setProperty(keyBuilder.message("localhost_8900", message.getId()), message);
-    Thread.sleep(500);
-    AssertJUnit.assertTrue(testListener.messageChangeReceived);
+      accessor.setProperty(keyBuilder.message("localhost_8900", message.getId()), message);
+      Thread.sleep(500);
+      AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
-    // dummyRecord = new ZNRecord("localhost_9801");
-    LiveInstance liveInstance = new LiveInstance("localhost_9801");
-    liveInstance.setSessionId(UUID.randomUUID().toString());
-    liveInstance.setHelixVersion(UUID.randomUUID().toString());
-    accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
-    Thread.sleep(500);
-    AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
-    testListener.Reset();
+      // dummyRecord = new ZNRecord("localhost_9801");
+      LiveInstance liveInstance = new LiveInstance("localhost_9801");
+      liveInstance.setSessionId(UUID.randomUUID().toString());
+      liveInstance.setHelixVersion(UUID.randomUUID().toString());
+      accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
+      Thread.sleep(500);
+      AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
+      testListener.Reset();
 
-    // dataAccessor.setNodeConfigs(recList); Thread.sleep(100);
-    // AssertJUnit.assertTrue(testListener.configChangeReceived);
-    // testListener.Reset();
+      // dataAccessor.setNodeConfigs(recList); Thread.sleep(100);
+      // AssertJUnit.assertTrue(testListener.configChangeReceived);
+      // testListener.Reset();
 
-    accessor.removeProperty(keyBuilder.liveInstance("localhost_8900"));
-    accessor.removeProperty(keyBuilder.liveInstance("localhost_9801"));
+      accessor.removeProperty(keyBuilder.liveInstance("localhost_8900"));
+      accessor.removeProperty(keyBuilder.liveInstance("localhost_9801"));
+    } finally {
+      if (testHelixManager.isConnected()) {
+        testHelixManager.disconnect();
+      }
+    }
   }
 
   @BeforeClass()

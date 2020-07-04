@@ -248,6 +248,11 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
       // helix manager is connected. Thus we do not do connected check here.
       return _messagingService;
     }
+
+    @Override
+    public void finalize() {
+      super.finalize();
+    }
   }
 
   static class MockMessagingService extends DefaultMessagingService {

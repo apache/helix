@@ -21,18 +21,13 @@ package org.apache.helix.integration.paticipant;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.customizedstate.CustomizedStateProvider;
@@ -42,11 +37,9 @@ import org.apache.helix.model.CustomizedState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
 
 public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   private static Logger LOG = LoggerFactory.getLogger(TestCustomizedStateUpdate.class);
@@ -55,7 +48,6 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   private final String PARTITION_NAME2 = "testPartition2";
   private final String RESOURCE_NAME = "testResource1";
   private final String PARTITION_STATE = "partitionState";
-  private static HelixManager _manager;
   private static CustomizedStateProvider _mockProvider;
   private PropertyKey _propertyKey;
   private HelixDataAccessor _dataAccessor;
@@ -63,21 +55,12 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
-    _manager.connect();
     _participants[0].connect();
     _mockProvider = CustomizedStateProviderFactory.getInstance()
         .buildCustomizedStateProvider(_manager, _participants[0].getInstanceName());
     _dataAccessor = _manager.getHelixDataAccessor();
     _propertyKey = _dataAccessor.keyBuilder()
         .customizedStates(_participants[0].getInstanceName(), CUSTOMIZE_STATE_NAME);
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-    _manager.disconnect();
   }
 
   @BeforeMethod
@@ -154,7 +137,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     mapView = customizedState.getRecord().getMapFields();
     Assert.assertEquals(mapView.keySet().size(), 2);
     Assert.assertEqualsNoOrder(mapView.keySet().toArray(),
-        new String[]{PARTITION_NAME1, PARTITION_NAME2});
+        new String[] { PARTITION_NAME1, PARTITION_NAME2 });
 
     Map<String, String> partitionMap1 = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);

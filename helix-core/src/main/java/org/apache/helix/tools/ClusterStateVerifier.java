@@ -149,6 +149,7 @@ public class ClusterStateVerifier {
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr), clientConfig);
   }
 
+  @Deprecated
   public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
@@ -169,7 +170,7 @@ public class ClusterStateVerifier {
       this(validateAndGetClient(zkAddr, clusterName), clusterName, errStates, resources);
     }
 
-    public BestPossAndExtViewZkVerifier(HelixZkClient zkClient, String clusterName,
+    private BestPossAndExtViewZkVerifier(HelixZkClient zkClient, String clusterName,
         Map<String, Map<String, String>> errStates, Set<String> resources) {
       if (zkClient == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkClient|clusterName");
@@ -426,9 +427,16 @@ public class ClusterStateVerifier {
       verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
       return verifierName + "(" + clusterName + "@" + zkClient.getServers() + ")";
     }
+
+    @Override
+    public void finalize() {
+      if (zkClient != null) {
+        zkClient.close();
+      }
+    }
   }
 
-
+  @Deprecated
   public static class MasterNbInExtViewVerifier implements ZkVerifier {
     private final String clusterName;
     private final HelixZkClient zkClient;
@@ -437,7 +445,7 @@ public class ClusterStateVerifier {
       this(validateAndGetClient(zkAddr, clusterName), clusterName);
     }
 
-    public MasterNbInExtViewVerifier(HelixZkClient zkClient, String clusterName) {
+    private MasterNbInExtViewVerifier(HelixZkClient zkClient, String clusterName) {
       if (zkClient == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkClient|clusterName");
       }
@@ -510,6 +518,13 @@ public class ClusterStateVerifier {
         }
       }
       return true;
+    }
+
+    @Override
+    public void finalize() {
+      if (zkClient != null) {
+        zkClient.close();
+      }
     }
   }
 
@@ -743,5 +758,4 @@ public class ClusterStateVerifier {
     System.out.println(result ? "Successful" : "failed");
     System.exit(1);
   }
-
 }

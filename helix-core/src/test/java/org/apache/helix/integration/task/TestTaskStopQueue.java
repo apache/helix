@@ -21,21 +21,15 @@ package org.apache.helix.integration.task;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
@@ -45,19 +39,6 @@ import org.testng.annotations.Test;
 public class TestTaskStopQueue extends TaskTestBase {
   private static final long TIMEOUT = 200000L;
   private static final String EXECUTION_TIME = "100000";
-  private HelixAdmin _admin;
-  protected HelixManager _manager;
-  protected TaskDriver _driver;
-
-  @BeforeClass
-  public void beforeClass() throws Exception {
-    super.beforeClass();
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
-    _manager.connect();
-    _driver = new TaskDriver(_manager);
-    _admin = _gSetupTool.getClusterManagementTool();
-  }
 
   @Test
   public void testStopRunningQueue() throws InterruptedException {

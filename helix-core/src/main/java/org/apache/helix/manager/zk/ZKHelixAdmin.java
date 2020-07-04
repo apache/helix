@@ -1800,6 +1800,11 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void finalize() {
+    close();
+  }
+
+  @Override
   public boolean addResourceWithWeight(String clusterName, IdealState idealState,
       ResourceConfig resourceConfig) {
     // Null checks

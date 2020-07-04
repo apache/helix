@@ -93,6 +93,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
   private void setupThrottleConfig() {

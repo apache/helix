@@ -1300,6 +1300,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     }
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   public static class Builder<T> extends GenericBaseDataAccessorBuilder<Builder<T>> {
     public Builder() {
     }

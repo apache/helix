@@ -19,19 +19,16 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 
 /**
  * Test to check if context of the queue gets properly updated even when there is no job queued in
@@ -45,10 +42,6 @@ public class TestStopAndResumeQueue extends TaskTestBase {
     _numPartitions = 1;
     _numNodes = 3;
     super.beforeClass();
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
-    _manager.connect();
-    _driver = new TaskDriver(_manager);
   }
 
   @Test

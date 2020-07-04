@@ -271,6 +271,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
             new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, participantName);
         _participants[shutdownParticipantIndex].syncStart();
       }
+      helixManager.disconnect();
     }
   }
 

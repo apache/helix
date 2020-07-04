@@ -43,21 +43,25 @@ public class TestBasicSpectator extends ZkStandAloneCMTestBase implements
     HelixManager relayHelixManager =
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, null, InstanceType.SPECTATOR, ZK_ADDR);
 
-    relayHelixManager.connect();
-    relayHelixManager.addExternalViewChangeListener(this);
+    try {
+      relayHelixManager.connect();
+      relayHelixManager.addExternalViewChangeListener(this);
 
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
 
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+      boolean result = ClusterStateVerifier.verifyByPolling(
+          new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
 
-    Assert.assertTrue(result);
+      Assert.assertTrue(result);
 
-    Assert.assertTrue(_externalViewChanges.containsKey("NextDB"));
-    Assert.assertTrue(_externalViewChanges.containsKey(TEST_DB));
-
+      Assert.assertTrue(_externalViewChanges.containsKey("NextDB"));
+      Assert.assertTrue(_externalViewChanges.containsKey(TEST_DB));
+    } finally {
+      if (relayHelixManager.isConnected()) {
+        relayHelixManager.disconnect();
+      }
+    }
   }
 
   @Override

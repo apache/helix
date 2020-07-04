@@ -29,9 +29,13 @@ import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
+  private static final int DISCONNECT_WAIT_TIME_MS = 3000;
+
+  private final String _clusterName;
+  private final String _instanceName;
+  private final InstanceType _type;
 
   protected CountDownLatch _startCountDown = new CountDownLatch(1);
   protected CountDownLatch _stopCountDown = new CountDownLatch(1);
@@ -39,8 +43,14 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
 
   protected boolean _started = false;
 
-  protected ClusterManager(String zkAddr, String clusterName, String instanceName, InstanceType type) {
+  protected Thread _watcher;
+
+  protected ClusterManager(String zkAddr, String clusterName, String instanceName,
+      InstanceType type) {
     super(clusterName, instanceName, type, zkAddr);
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _type = type;
   }
 
   public void syncStop() {
@@ -62,7 +72,11 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
       _started = true;
     }
 
-    new Thread(this).start();
+    _watcher = new Thread(this);
+    _watcher.setName(String
+        .format("ClusterManager_Watcher_%s_%s_%s", _clusterName, _instanceName, _type.name()));
+    _watcher.start();
+
     try {
       _startCountDown.await();
     } catch (InterruptedException e) {
@@ -93,6 +107,22 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
   @Override
   public List<CallbackHandler> getHandlers() {
     return _handlers;
+  }
+
+  @Override
+  public void finalize() {
+    _watcher.interrupt();
+    try {
+      _watcher.join(DISCONNECT_WAIT_TIME_MS);
+    } catch (InterruptedException e) {
+      LOG.error("ClusterManager watcher cleanup in the finalize method was interrupted.", e);
+    } finally {
+      if (isConnected()) {
+        LOG.warn(
+            "The HelixManager ({}-{}-{}) is still connected after {} ms wait. This is a potential resource leakage!",
+            _clusterName, _instanceName, _type.name(), DISCONNECT_WAIT_TIME_MS);
+      }
+    }
   }
 }
 

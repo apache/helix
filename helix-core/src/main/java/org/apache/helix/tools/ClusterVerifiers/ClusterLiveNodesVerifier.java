@@ -59,6 +59,11 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
     return _expectLiveNodes.equals(actualLiveNodes);
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   public static class Builder extends ZkHelixClusterVerifier.Builder<Builder> {
     private final String _clusterName; // This is the ZK path sharding key
     private final Set<String> _expectLiveNodes;

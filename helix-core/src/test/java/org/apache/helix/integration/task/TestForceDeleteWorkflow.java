@@ -59,8 +59,6 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   // Long delay to simulate the tasks that are stuck in Task.cancel().
   private static final String STOP_DELAY = "1000000";
   private HelixAdmin _admin;
-  protected HelixManager _manager;
-  protected TaskDriver _driver;
 
   // These AtomicIntegers are used to verify that the tasks are indeed stuck in Task.cancel().
   // CANCEL shows that the task cancellation process has been started. (Incremented at the beginning
@@ -98,12 +96,6 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
           new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
-
-    _manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin",
-        InstanceType.ADMINISTRATOR, ZK_ADDR);
-    _manager.connect();
-
-    _driver = new TaskDriver(_manager);
 
     _admin = _gSetupTool.getClusterManagementTool();
   }

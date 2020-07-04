@@ -22,7 +22,6 @@ package org.apache.helix;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-@Test
 public class TestPropertyPathBuilder {
   @Test
   public void testGetPath() {

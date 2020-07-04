@@ -433,6 +433,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
        + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
   }
 
+  @Override
+  public void finalize() {
+    close();
+  }
+
   private class DryrunWagedRebalancer extends org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer {
     public DryrunWagedRebalancer(String metadataStoreAddress, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {

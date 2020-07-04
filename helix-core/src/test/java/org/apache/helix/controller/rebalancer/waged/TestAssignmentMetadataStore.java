@@ -72,6 +72,9 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
     if (_store != null) {
       _store.close();
     }
+    if (_manager != null) {
+      _manager.disconnect();
+    }
     _gSetupTool.deleteCluster(CLUSTER_NAME);
   }
 

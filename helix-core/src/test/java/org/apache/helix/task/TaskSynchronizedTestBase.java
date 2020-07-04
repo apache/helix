@@ -35,6 +35,7 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -161,6 +162,10 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
   }
 
   protected void startParticipant(String zkAddr, int i) {
+    if (_participants[i] != null) {
+      stopParticipant(i);
+    }
+
     Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
     taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
     String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
@@ -181,12 +186,22 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
 
   protected void stopParticipant(int i) {
     if (_participants.length <= i) {
-      throw new HelixException(
-          String.format("Can't stop participant %s, only %s participants" + "were set up.", i,
+      throw new HelixException(String
+          .format("Can't stop participant %s, only %s participants" + "were set up.", i,
               _participants.length));
     }
-    if (_participants[i] != null && _participants[i].isConnected()) {
-      _participants[i].syncStop();
+    if (_participants[i] != null) {
+      if (_participants[i].isConnected()) {
+        _participants[i].syncStop();
+      }
+      // Shutdown the state model factories to close all threads.
+      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
+      if (stateMachine != null) {
+        StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
+        if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
+          ((TaskStateModelFactory) stateModelFactory).shutdownNow();
+        }
+      }
     }
   }
 

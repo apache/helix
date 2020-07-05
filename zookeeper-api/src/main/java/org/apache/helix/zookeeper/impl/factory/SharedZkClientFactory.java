@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -121,6 +122,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   }
 
   // For testing purposes only
+  @VisibleForTesting
   public int getActiveConnectionCount() {
     int count = 0;
     synchronized (_connectionManagerPool) {

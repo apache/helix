@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -90,6 +91,15 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
     _taskExecutor.shutdown();
     _timerTaskExecutor.shutdown();
+    if (_monitor != null) {
+      _monitor.unregister();
+    }
+  }
+
+  @VisibleForTesting
+  void shutdownNow() {
+    _taskExecutor.shutdownNow();
+    _timerTaskExecutor.shutdownNow();
     if (_monitor != null) {
       _monitor.unregister();
     }

@@ -173,7 +173,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
 
     // Register a Task state model factory.
     StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-    stateMachine.registerStateModelFactory("Task",
+    stateMachine.registerStateModelFactory(TaskConstants.STATE_MODEL_NAME,
         new TaskStateModelFactory(_participants[i], taskFactoryReg));
     _participants[i].syncStart();
   }
@@ -197,7 +197,8 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
       // Shutdown the state model factories to close all threads.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
       if (stateMachine != null) {
-        StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
+        StateModelFactory stateModelFactory =
+            stateMachine.getStateModelFactory(TaskConstants.STATE_MODEL_NAME);
         if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
           ((TaskStateModelFactory) stateModelFactory).shutdownNow();
         }

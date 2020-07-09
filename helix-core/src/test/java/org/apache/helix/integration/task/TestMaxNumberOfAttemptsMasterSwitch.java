@@ -21,11 +21,10 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
@@ -47,8 +46,8 @@ import com.google.common.collect.Sets;
 public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
   private static final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
   protected HelixDataAccessor _accessor;
-  private PropertyKey.Builder _keyBuilder;
-  private List<String> _preferenceList;
+  private List<String> _assignmentList1;
+  private List<String> _assignmentList2;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -56,10 +55,18 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
     _numNodes = 3;
     super.beforeClass();
     _driver = new TaskDriver(_manager);
-    _preferenceList = new ArrayList<>();
-    _preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
-    _preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
-    _preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
+
+    // Assignment1: localhost_12918: Master, localhost_12919:Slave, localhost_12920: Slave
+    _assignmentList1 = new ArrayList<>();
+    _assignmentList1.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
+    _assignmentList1.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
+    _assignmentList1.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
+
+    // Assignment2: localhost_12919: Master, localhost_12918:Slave, localhost_12920: Slave
+    _assignmentList2 = new ArrayList<>();
+    _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
+    _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
+    _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
   }
 
   @AfterClass
@@ -71,19 +78,7 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
   public void testMaxNumberOfAttemptsMasterSwitch() throws Exception {
     String jobQueueName = TestHelper.getTestMethodName();
     int maxNumberOfAttempts = 5;
-
-    _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    _keyBuilder = _accessor.keyBuilder();
-    ClusterConfig clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
-    _accessor.setProperty(_keyBuilder.clusterConfig(), clusterConfig);
-
-    // Change the Rebalance Mode to SEMI_AUTO
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DATABASE);
-    idealState.setPreferenceList(DATABASE + "_0", _preferenceList);
-    idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
-    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, DATABASE,
-        idealState);
+    assignCustomizedIdealState(_assignmentList1);
 
     JobConfig.Builder jobBuilder0 =
         new JobConfig.Builder().setWorkflow(jobQueueName).setTargetResource(DATABASE)
@@ -97,11 +92,10 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
 
     _driver.start(jobQueue.build());
     _driver.pollForJobState(jobQueueName, nameSpacedJobName, TaskState.IN_PROGRESS);
-    boolean isInstanceAlive = true;
+    boolean isAssignmentInIdealState = true;
 
     // Turn on and off the instance (10 times) and make sure task gets retried and number of
-    // attempts gets
-    // incremented every time.
+    // attempts gets incremented every time.
     // Also make sure that the task won't be retried more than maxNumberOfAttempts
     for (int i = 1; i <= 2 * maxNumberOfAttempts; i++) {
       int expectedRetryNumber = Math.min(i, maxNumberOfAttempts);
@@ -111,12 +105,14 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
                   () -> (_driver.getJobContext(nameSpacedJobName)
                       .getPartitionNumAttempts(0) == expectedRetryNumber),
                   TestHelper.WAIT_DURATION));
-      if (isInstanceAlive) {
-        stopParticipant(0);
-        isInstanceAlive = false;
+      if (isAssignmentInIdealState) {
+        assignCustomizedIdealState(_assignmentList2);
+        verifyMastership(_assignmentList2);
+        isAssignmentInIdealState = false;
       } else {
-        startParticipant(0);
-        isInstanceAlive = true;
+        assignCustomizedIdealState(_assignmentList1);
+        verifyMastership(_assignmentList1);
+        isAssignmentInIdealState = true;
       }
     }
 
@@ -124,5 +120,33 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
     _driver.pollForJobState(jobQueueName, nameSpacedJobName, TaskState.FAILED);
     Assert.assertEquals(_driver.getJobContext(nameSpacedJobName).getPartitionNumAttempts(0),
         maxNumberOfAttempts);
+  }
+
+  private void assignCustomizedIdealState(List<String> _assignmentList) {
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DATABASE);
+    idealState.setPartitionState(DATABASE + "_0", _assignmentList.get(0), "MASTER");
+    idealState.setPartitionState(DATABASE + "_0", _assignmentList.get(1), "SLAVE");
+    idealState.setPartitionState(DATABASE + "_0", _assignmentList.get(2), "SLAVE");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, DATABASE,
+        idealState);
+  }
+
+  private void verifyMastership(List<String> _assignmentList) throws Exception {
+    String instance = _assignmentList.get(0);
+    boolean isMasterSwitchedToCorrectInstance = TestHelper.verify(() -> {
+      ExternalView externalView =
+          _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DATABASE);
+      if (externalView == null) {
+        return false;
+      }
+      Map<String, String> stateMap = externalView.getStateMap(DATABASE + "_0");
+      if (stateMap == null) {
+        return false;
+      }
+      return "MASTER".equals(stateMap.get(instance));
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isMasterSwitchedToCorrectInstance);
   }
 }

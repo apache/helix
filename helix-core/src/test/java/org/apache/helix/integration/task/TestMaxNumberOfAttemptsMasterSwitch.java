@@ -75,7 +75,6 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
     _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     _keyBuilder = _accessor.keyBuilder();
     ClusterConfig clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
-    clusterConfig.setRebalanceTimePeriod(5000L);
     _accessor.setProperty(_keyBuilder.clusterConfig(), clusterConfig);
 
     // Change the Rebalance Mode to SEMI_AUTO

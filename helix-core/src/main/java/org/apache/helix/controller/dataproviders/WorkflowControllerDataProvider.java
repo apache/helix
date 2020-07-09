@@ -58,7 +58,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
 
   // For detecting live instance and target resource partition state change in task assignment
   // Used in AbstractTaskDispatcher
-  private boolean _existsLiveInstanceOrCurrentStateChange = false;
+  private boolean _existsLiveInstanceOrCurrentStateOrMessageChange = false;
 
   public WorkflowControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER);
@@ -71,12 +71,14 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   }
 
   private void refreshClusterStateChangeFlags(Set<HelixConstants.ChangeType> propertyRefreshed) {
-    // This is for targeted jobs' task assignment. It needs to watch for current state changes for
-    // when targeted resources' state transitions complete
-    _existsLiveInstanceOrCurrentStateChange =
+    // This is for targeted jobs' task assignment. It needs to watch for current state or message
+    // changes for when targeted resources' state transitions complete
+    _existsLiveInstanceOrCurrentStateOrMessageChange =
         // TODO read and update CURRENT_STATE in the BaseControllerDataProvider as well.
-        // This check (and set) is necessary for now since the current state flag in _propertyDataChangedMap is not used by the BaseControllerDataProvider for now.
+        // This check (and set) is necessary for now since the current state flag in
+        // _propertyDataChangedMap is not used by the BaseControllerDataProvider for now.
         _propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE).getAndSet(false)
+            || _propertyDataChangedMap.get(HelixConstants.ChangeType.MESSAGE).getAndSet(false)
             || propertyRefreshed.contains(HelixConstants.ChangeType.CURRENT_STATE)
             || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE);
   }
@@ -119,7 +121,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   }
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
-    _existsLiveInstanceOrCurrentStateChange = true;
+    _existsLiveInstanceOrCurrentStateOrMessageChange = true;
     super.setLiveInstances(liveInstances);
   }
 
@@ -257,8 +259,8 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
    * task-assigning in AbstractTaskDispatcher.
    * @return
    */
-  public boolean getExistsLiveInstanceOrCurrentStateChange() {
-    return _existsLiveInstanceOrCurrentStateChange;
+  public boolean getExistsLiveInstanceOrCurrentStateOrMessageChange() {
+    return _existsLiveInstanceOrCurrentStateOrMessageChange;
   }
 
   @Override

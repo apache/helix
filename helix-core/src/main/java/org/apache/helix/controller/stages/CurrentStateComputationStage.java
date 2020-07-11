@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
@@ -56,11 +57,17 @@ import org.slf4j.LoggerFactory;
  */
 public class CurrentStateComputationStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CurrentStateComputationStage.class);
+  private boolean isTaskFrameworkPipeline = false;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
+
+    if (cache instanceof WorkflowControllerDataProvider) {
+      isTaskFrameworkPipeline = true;
+    }
+
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     final Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -77,15 +84,18 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceName = instance.getInstanceName();
       String instanceSessionId = instance.getEphemeralOwner();
 
-      // update pending messages
-      Map<String, Message> messages = cache.getMessages(instanceName);
-      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), currentStateOutput, relayMessages.values(), resourceMap);
-
       // update current states.
       Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
+
+      Map<String, Map<String, Message>> existingStaleMessages = cache.getStaleMessages();
+      currentStateOutput.setStaleMessageMap(existingStaleMessages);
+      // update pending messages
+      Map<String, Message> messages = cache.getMessages(instanceName);
+      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
+      updatePendingMessages(instance, messages.values(), currentStateOutput,
+          relayMessages.values(), resourceMap, existingStaleMessages);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
@@ -103,14 +113,20 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   // update all pending messages to CurrentStateOutput.
   private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
       CurrentStateOutput currentStateOutput, Collection<Message> pendingRelayMessages,
-      Map<String, Resource> resourceMap) {
+      Map<String, Resource> resourceMap, Map<String, Map<String, Message>> existingStaleMessages) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
+      // ignore existing stale messages
+      if (existingStaleMessages.containsKey(instanceName) && existingStaleMessages.get(instanceName)
+          .containsKey(message.getMsgId())) {
+        continue;
+      }
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
-          && !MessageType.STATE_TRANSITION_CANCELLATION.name().equalsIgnoreCase(message.getMsgType())) {
+          && !MessageType.STATE_TRANSITION_CANCELLATION.name()
+          .equalsIgnoreCase(message.getMsgType())) {
         continue;
       }
       if (!instanceSessionId.equals(message.getTgtSessionId())) {
@@ -129,7 +145,13 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         String partitionName = message.getPartitionName();
         Partition partition = resource.getPartition(partitionName);
         if (partition != null) {
-          setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
+          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
+              instanceName);
+          if (!isStaleMessage(message, currentState)) {
+            setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
+          } else {
+            setStaleMessage(currentStateOutput, instanceName, message);
+          }
         } else {
           LogUtil.logInfo(LOG, _eventId, String
               .format("Ignore a pending message %s for a non-exist resource %s and partition %s",
@@ -191,6 +213,15 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     }
   }
 
+  private boolean isStaleMessage(Message message, String currentState) {
+    if (isTaskFrameworkPipeline || currentState == null || message.getFromState() == null
+        || message.getToState() == null) {
+      return false;
+    }
+    return !message.getFromState().equalsIgnoreCase(currentState) || message.getToState()
+        .equalsIgnoreCase(currentState);
+  }
+
   // update current states in CurrentStateOutput
   private void updateCurrentStates(LiveInstance instance, Collection<CurrentState> currentStates,
       CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
@@ -234,6 +265,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         }
       }
     }
+  }
+
+  private void setStaleMessage(CurrentStateOutput currentStateOutput, String instanceName,
+      Message message) {
+    currentStateOutput.setStaleMessage(instanceName, message);
   }
 
   private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,

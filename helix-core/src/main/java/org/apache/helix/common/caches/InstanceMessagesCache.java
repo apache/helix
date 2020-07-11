@@ -55,6 +55,8 @@ public class InstanceMessagesCache {
   // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
 
+  private Map<String, Map<String, Message>> _staleMessageCache = Maps.newHashMap();
+
   // maintain a set of valid pending P2P messages.
   // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _relayMessageCache = Maps.newHashMap();
@@ -151,6 +153,13 @@ public class InstanceMessagesCache {
     return true;
   }
 
+  public Map<String, Map<String, Message>> getStaleMessageCache() {
+    return _staleMessageCache;
+  }
+
+  public void setStaleMessageCache(Map<String, Map<String, Message>> staleMessageMap) {
+    _staleMessageCache = staleMessageMap;
+  }
   /**
    * Refresh relay message cache by updating relay messages read from ZK, and remove all expired relay messages.
    */

@@ -239,6 +239,18 @@ public class TestWagedRebalance extends ZkTestBase {
     // The newly added instances should contain some partitions
     Assert.assertTrue(instancesWithAssignments.contains(instance_0));
     Assert.assertTrue(instancesWithAssignments.contains(instance_1));
+
+    // Perform the same test with immediate assignment
+    utilResult = HelixUtil
+        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+    Set<String> instancesWithAssignmentsImmediate = new HashSet<>();
+    utilResult.values().forEach(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
+            .forEach(entry -> instancesWithAssignmentsImmediate.addAll(entry.keySet())));
+    // The newly added instances should contain some partitions
+    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
+    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
   }
 
   @Test(dependsOnMethods = "test")

@@ -187,7 +187,7 @@ public final class HelixUtil {
    * calculated using the read-only WAGED rebalancer. The returned result is based on partition
    * state mapping. which is the immediate assignment. The immediate assignment is different from
    * the final target assignment; it could be an intermediate state where it contains replicas that
-   * need to be dropped later, for example. 
+   * need to be dropped later, for example.
    * @param metadataStoreAddress
    * @param clusterConfig
    * @param instanceConfigs

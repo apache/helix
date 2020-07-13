@@ -49,9 +49,9 @@ public class TestDeleteWorkflow extends TaskTestBase {
   @Test
   public void testDeleteWorkflow() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
-    JobConfig.Builder jobBuilder =
-        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setWorkflow(jobQueueName)
-            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);
@@ -90,9 +90,9 @@ public class TestDeleteWorkflow extends TaskTestBase {
   @Test
   public void testDeleteWorkflowForcefully() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
-    JobConfig.Builder jobBuilder =
-        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setWorkflow(jobQueueName)
-            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);
@@ -137,9 +137,9 @@ public class TestDeleteWorkflow extends TaskTestBase {
   @Test
   public void testDeleteHangingJobs() throws InterruptedException {
     String jobQueueName = TestHelper.getTestMethodName();
-    JobConfig.Builder jobBuilder =
-        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setWorkflow(jobQueueName)
-            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000000"));
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
     jobQueue.enqueueJob("job1", jobBuilder);

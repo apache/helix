@@ -44,10 +44,10 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     // Create two jobs: job1 will complete fast, and job2 will be stuck in progress (taking a long
     // time to finish). The idea is to force-delete a stuck job (job2).
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
     JobConfig.Builder jobBuilder2 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setWorkflow(jobQueueName)
+        .setMaxAttemptsPerTask(1).setWorkflow(jobQueueName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000")).setTimeout(100000);
 
     JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);

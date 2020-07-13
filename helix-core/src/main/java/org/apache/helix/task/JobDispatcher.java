@@ -245,7 +245,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         jobResource, currStateOutput, jobCtx, jobCfg, jobState, assignedPartitions,
         partitionsToDropFromIs, paMap, jobTgtState, skippedPartitions, cache, tasksToDrop);
 
-    addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
+    addGiveUpPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
 
     if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()
         || (jobCfg.getTargetResource() != null

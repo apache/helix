@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -73,6 +74,12 @@ public abstract class AbstractTaskDispatcher {
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
       Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache,
       Map<String, Set<Integer>> tasksToDrop) {
+
+    // If a job is in the following states and contains running tasks, all of the running tasks
+    // should go to the ABORTED states.
+    Set<TaskState> jobStatesForRunningTaskToAbortedState =
+        new HashSet<>(Arrays.asList(TaskState.TIMING_OUT, TaskState.TIMED_OUT, TaskState.FAILING,
+            TaskState.FAILED, TaskState.ABORTED));
 
     // Get AssignableInstanceMap for releasing resources for tasks in terminal states
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
@@ -185,9 +192,7 @@ public abstract class AbstractTaskDispatcher {
         switch (currState) {
         case RUNNING: {
           TaskPartitionState nextState = TaskPartitionState.RUNNING;
-          if (jobState == TaskState.TIMING_OUT || jobState == TaskState.TIMED_OUT
-              || jobState == TaskState.FAILING || jobState == TaskState.FAILED
-              || jobState == TaskState.ABORTED) {
+          if (jobStatesForRunningTaskToAbortedState.contains(jobState)) {
             nextState = TaskPartitionState.TASK_ABORTED;
           } else if (jobTgtState == TargetState.STOP) {
             nextState = TaskPartitionState.STOPPED;
@@ -743,8 +748,12 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  // add all partitions that are given up
-  protected static void addGiveupPartitions(Set<Integer> set, JobContext ctx,
+  // Add all partitions/tasks that are cannot be retried. These tasks are:
+  // 1- Task is in ABORTED or ERROR state.
+  // 2- Task has just gone to TIMED_OUT, ERROR or DROPPED states and has reached to its
+  // maxNumberAttempts
+  // These tasks determine whether the job needs to FAILED or not.
+  protected static void addGiveUpPartitions(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds, JobConfig cfg) {
     for (Integer pId : pIds) {
       if (isTaskGivenup(ctx, cfg, pId)) {
@@ -753,7 +762,7 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  // add all partitions that have reached their maxNumberAttempts. These tasks should not be
+  // Add all partitions that have reached their maxNumberAttempts. These tasks should not be
   // considered for scheduling again.
   protected static void addPartitionsReachedMaximumRetries(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds, JobConfig cfg) {

@@ -55,15 +55,15 @@ public class TestStopWorkflowWithExecutionDelay extends TaskTestBase {
     //       JOB1   JOB2
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(timeout).setWorkflow(workflowName)
+        .setTimeoutPerTask(timeout).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000"));
 
     JobConfig.Builder jobBuilder2 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(timeout).setWorkflow(workflowName)
+        .setTimeoutPerTask(timeout).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000"));
 
     JobConfig.Builder jobBuilder3 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(timeout).setWorkflow(workflowName)
+        .setTimeoutPerTask(timeout).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000"));
 
     builder.addParentChildDependency("JOB0", "JOB1");

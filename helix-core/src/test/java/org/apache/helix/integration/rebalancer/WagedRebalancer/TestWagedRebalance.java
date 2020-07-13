@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
@@ -47,6 +45,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -186,13 +185,34 @@ public class TestWagedRebalance extends ZkTestBase {
 
     // Verify that utilResult contains the assignment for the resources added
     Map<String, ResourceAssignment> utilResult = HelixUtil
-        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
     Assert.assertNotNull(utilResult);
-    Assert.assertEquals(utilResult.size(), _allDBs.size());
+    Assert.assertEquals(utilResult.size(), idealStates.size());
     for (IdealState idealState : idealStates) {
       Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
-      Assert.assertEquals(utilResult.get(idealState.getResourceName()).getRecord().getMapFields(),
+      StateModelDefinition stateModelDefinition =
+          BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
+              .getStateModelDefinition();
+      for (String partition : idealState.getPartitionSet()) {
+        Assert.assertEquals(
+            utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition),
+            HelixUtil
+                .computeIdealMapping(idealState.getPreferenceList(partition), stateModelDefinition,
+                    new HashSet<>(liveInstances)));
+      }
+    }
+
+    // Verify that the partition state mapping mode also works
+    Map<String, ResourceAssignment> paritionMappingBasedResult = HelixUtil
+        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+    Assert.assertNotNull(paritionMappingBasedResult);
+    Assert.assertEquals(paritionMappingBasedResult.size(), idealStates.size());
+    for (IdealState idealState : idealStates) {
+      Assert.assertTrue(paritionMappingBasedResult.containsKey(idealState.getResourceName()));
+      Assert.assertEquals(
+          paritionMappingBasedResult.get(idealState.getResourceName()).getRecord().getMapFields(),
           idealState.getRecord().getMapFields());
     }
 
@@ -209,7 +229,7 @@ public class TestWagedRebalance extends ZkTestBase {
     }
 
     utilResult = HelixUtil
-        .getIdealAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
+        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
 
     Set<String> instancesWithAssignments = new HashSet<>();
@@ -219,6 +239,18 @@ public class TestWagedRebalance extends ZkTestBase {
     // The newly added instances should contain some partitions
     Assert.assertTrue(instancesWithAssignments.contains(instance_0));
     Assert.assertTrue(instancesWithAssignments.contains(instance_1));
+
+    // Perform the same test with immediate assignment
+    utilResult = HelixUtil
+        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+    Set<String> instancesWithAssignmentsImmediate = new HashSet<>();
+    utilResult.values().forEach(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
+            .forEach(entry -> instancesWithAssignmentsImmediate.addAll(entry.keySet())));
+    // The newly added instances should contain some partitions
+    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
+    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
   }
 
   @Test(dependsOnMethods = "test")

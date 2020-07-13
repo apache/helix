@@ -164,7 +164,8 @@ public final class HelixUtil {
 
   /**
    * Returns the expected ideal ResourceAssignments for the given resources in the cluster
-   * calculated using the read-only WAGED rebalancer.
+   * calculated using the read-only WAGED rebalancer. The returned result is based on preference
+   * lists, which is the target stable assignment.
    * @param metadataStoreAddress
    * @param clusterConfig
    * @param instanceConfigs
@@ -173,10 +174,45 @@ public final class HelixUtil {
    * @param resourceConfigs
    * @return
    */
-  public static Map<String, ResourceAssignment> getIdealAssignmentForWagedFullAuto(
+  public static Map<String, ResourceAssignment> getTargetAssignmentForWagedFullAuto(
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+        instanceConfigs, liveInstances, idealStates, resourceConfigs, true);
+  }
+
+  /**
+   * Returns the expected ideal ResourceAssignments for the given resources in the cluster
+   * calculated using the read-only WAGED rebalancer. The returned result is based on partition
+   * state mapping. which is the immediate assignment. The immediate assignment is different from
+   * the final target assignment; it could be an intermediate state where it contains replicas that
+   * need to be dropped later, for example.
+   * @param metadataStoreAddress
+   * @param clusterConfig
+   * @param instanceConfigs
+   * @param liveInstances
+   * @param idealStates
+   * @param resourceConfigs
+   * @return
+   */
+  public static Map<String, ResourceAssignment> getImmediateAssignmentForWagedFullAuto(
+      String metadataStoreAddress, ClusterConfig clusterConfig,
+      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+        instanceConfigs, liveInstances, idealStates, resourceConfigs, false);
+  }
+
+  /*
+   * If usePrefLists is set to true, the returned assignment is based on preference lists; if
+   * false, the returned assignment is based on partition state mapping, which may differ from
+   * preference lists.
+   */
+  private static Map<String, ResourceAssignment> getAssignmentForWagedFullAutoImpl(
+      String metadataStoreAddress, ClusterConfig clusterConfig,
+      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs, boolean usePrefLists) {
     // Copy the cluster config and make globalRebalance happen synchronously
     // Otherwise, globalRebalance may not complete and this util might end up returning
     // an empty assignment.
@@ -254,18 +290,22 @@ public final class HelixUtil {
       throw new HelixException(
           "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
     }
-    Map<String, Resource> resourceMap =
-        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    if (resourceMap == null) {
-      throw new HelixException(
-          "getIdealAssignmentForWagedFullAuto(): Calculation failed: RESOURCES_TO_REBALANCE is null!");
-    }
-    for (Resource resource : resourceMap.values()) {
-      String resourceName = resource.getResourceName();
+    for (IdealState idealState : idealStates) {
+      String resourceName = idealState.getResourceName();
+      StateModelDefinition stateModelDefinition =
+          BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
+              .getStateModelDefinition();
       PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
       ResourceAssignment resourceAssignment = new ResourceAssignment(resourceName);
-      for (Partition partition : resource.getPartitions()) {
-        resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
+      for (String partitionName : idealState.getPartitionSet()) {
+        Partition partition = new Partition(partitionName);
+        if (usePrefLists) {
+          resourceAssignment.addReplicaMap(partition, computeIdealMapping(
+              output.getPreferenceList(resourceName, partitionName),
+              stateModelDefinition, new HashSet<>(liveInstances)));
+        } else {
+          resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
+        }
       }
       result.put(resourceName, resourceAssignment);
     }

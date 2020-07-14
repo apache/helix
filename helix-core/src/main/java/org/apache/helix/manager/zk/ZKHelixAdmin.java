@@ -1867,7 +1867,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
     for (IdealState idealState : idealStates) {
-      if (resourceNames.contains(idealState.getResourceName())) {
+      if (idealState != null && resourceNames.contains(idealState.getResourceName())) {
         idealState.setRebalancerClassName(WagedRebalancer.class.getName());
         idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
         enabledIdealStates.add(idealState);

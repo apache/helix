@@ -1861,23 +1861,25 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
+    List<IdealState> idealStates = new ArrayList<>();
+    List<PropertyKey> idealStateKeys = new ArrayList<>();
     List<String> nullIdealStates = new ArrayList<>();
-    for (int i = 0; i < idealStates.size(); i++) {
-      if (idealStates.get(i) == null) {
-        nullIdealStates.add(resourceNames.get(i));
+    for (String resourceName : resourceNames) {
+      PropertyKey key = keyBuilder.idealStates(resourceName);
+      IdealState idealState = accessor.getProperty(key);
+      if (idealState == null) {
+        nullIdealStates.add(resourceName);
       } else {
-        idealStates.get(i).setRebalancerClassName(WagedRebalancer.class.getName());
-        idealStates.get(i).setRebalanceMode(RebalanceMode.FULL_AUTO);
+        idealState.setRebalancerClassName(WagedRebalancer.class.getName());
+        idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
+        idealStates.add(idealState);
+        idealStateKeys.add(key);
       }
     }
     if (!nullIdealStates.isEmpty()) {
       throw new HelixException(
           String.format("Not all IdealStates exist in the cluster: %s", nullIdealStates));
     }
-    List<PropertyKey> idealStateKeys = new ArrayList<>();
-    idealStates.forEach(
-        idealState -> idealStateKeys.add(keyBuilder.idealStates(idealState.getResourceName())));
     boolean[] success = accessor.setChildren(idealStateKeys, idealStates);
     for (boolean s : success) {
       if (!s) {

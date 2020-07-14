@@ -740,6 +740,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     String testResourcePrefix = "TestResource";
+    String unaffectedResource = "UnaffectedResource";
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.addCluster(clusterName, true);
     admin.addStateModelDef(clusterName, "MasterSlave", new MasterSlaveSMD());
@@ -751,9 +752,18 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
     admin.addResource(clusterName, testResourcePrefix, idealState);
 
-    admin.enableWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix));
+    // Add an unaffected IdealState
+    IdealState unaffectedIdealState = new IdealState(unaffectedResource);
+    unaffectedIdealState.setNumPartitions(3);
+    unaffectedIdealState.setStateModelDefRef("MasterSlave");
+    unaffectedIdealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    admin.addResource(clusterName, unaffectedResource, unaffectedIdealState);
+
+    Assert.assertTrue(admin.enableWagedRebalance(clusterName, Collections.singletonList(testResourcePrefix)));
     IdealState is = admin.getResourceIdealState(clusterName, testResourcePrefix);
     Assert.assertEquals(is.getRebalancerClassName(), WagedRebalancer.class.getName());
+    is = admin.getResourceIdealState(clusterName, unaffectedResource);
+    Assert.assertNotSame(is.getRebalancerClassName(), WagedRebalancer.class.getName());
   }
 
   @Test

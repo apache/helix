@@ -147,7 +147,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (partition != null) {
           String currentState = currentStateOutput.getCurrentState(resourceName, partition,
               instanceName);
-          if (!isStaleMessage(message, currentState)) {
+          if (_isTaskFrameworkPipeline || !isStaleMessage(message, currentState)) {
             setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
           } else {
             setStaleMessage(currentStateOutput, instanceName, message);
@@ -214,8 +214,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   }
 
   private boolean isStaleMessage(Message message, String currentState) {
-    if (_isTaskFrameworkPipeline || currentState == null || message.getFromState() == null
-        || message.getToState() == null) {
+    if (currentState == null || message.getFromState() == null || message.getToState() == null) {
       return false;
     }
     return !message.getFromState().equalsIgnoreCase(currentState) || message.getToState()

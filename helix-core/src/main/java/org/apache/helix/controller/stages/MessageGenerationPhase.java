@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
   // transition
   public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
+  private final static String PENDING_MESSAGE = "pending message";
+  private final static String STALE_MESSAGE = "stale message";
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -192,23 +195,15 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
         if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
             currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-          String logMsg = String.format(
-              "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state"
-                  + " of resource %s:%s is %s", pendingMessage.getMsgId(), instanceName,
-              pendingMessage.getFromState(), pendingMessage.getToState(), resourceName, partition,
-              currentState);
-          logAndAddToCleanUp(pendingMessagesToCleanUp, logMsg, pendingMessage, instanceName);
+          logAndAddToCleanUp(pendingMessagesToCleanUp, pendingMessage, instanceName, resourceName,
+              partition, currentState, PENDING_MESSAGE);
         }
 
         for (Message staleMessage : staleMessages) {
           if (shouldCleanUpStaleMessage(staleMessage,
               currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-            String logMsg = String.format(
-                "Adding stale message %s on instance %s to clean up. Msg: %s->%s, current state"
-                    + " of resource %s:%s is %s", staleMessage.getMsgId(), instanceName,
-                staleMessage.getFromState(), staleMessage.getToState(), resourceName, partition,
-                currentState);
-            logAndAddToCleanUp(pendingMessagesToCleanUp, logMsg, staleMessage, instanceName);
+            logAndAddToCleanUp(pendingMessagesToCleanUp, staleMessage, instanceName, resourceName,
+                partition, currentState, STALE_MESSAGE);
           }
         }
 
@@ -274,8 +269,13 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
   }
 
   private void logAndAddToCleanUp(Map<String, Map<String, Message>> pendingMessagesToCleanUp,
-      String logMessage, Message message, String instanceName) {
-    LogUtil.logInfo(logger, _eventId, logMessage);
+      Message message, String instanceName, String resourceName, Partition partition,
+      String currentState, String cleanUpMessageType) {
+    String logMsg = String.format(
+        "Adding %s %s on instance %s to clean up. Msg: %s->%s, current state"
+            + " of resource %s:%s is %s", cleanUpMessageType, message.getMsgId(), instanceName,
+        message.getFromState(), message.getToState(), resourceName, partition, currentState);
+    LogUtil.logInfo(logger, _eventId, logMsg);
     if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
       pendingMessagesToCleanUp.put(instanceName, new HashMap<String, Message>());
     }
@@ -360,19 +360,18 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
       final HelixDataAccessor accessor, Map<String, Map<String, Message>> staleMessageMap) {
     workerPool.submit(new Callable<Object>() {
-      @Override public Object call() {
+      @Override
+      public Object call() {
         for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
           String instanceName = entry.getKey();
           for (Message msg : entry.getValue().values()) {
             if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
               LogUtil.logInfo(logger, _eventId, String
                   .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
-              if (staleMessageMap != null && staleMessageMap.containsKey(msg.getTgtName())
-                  && staleMessageMap.get(msg.getTgtName()).containsKey(msg.getMsgId())) {
-                staleMessageMap.get(msg.getTgtName()).remove(msg.getMsgId());
-                if (staleMessageMap.get(msg.getTgtName()).size() == 0) {
-                  staleMessageMap.remove(msg.getTgtName());
-                }
+              staleMessageMap.getOrDefault(msg.getTgtName(), Collections.emptyMap())
+                  .remove(msg.getMsgId());
+              if (staleMessageMap.get(msg.getTgtName()).size() == 0) {
+                staleMessageMap.remove(msg.getTgtName());
               }
             }
           }

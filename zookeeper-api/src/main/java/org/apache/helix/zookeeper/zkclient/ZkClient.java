@@ -1337,6 +1337,7 @@ public class ZkClient implements Watcher {
     if (code == OK) {
       LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
           code);
+      return true;
     }
 
     // Not retryable error, including session expiration; Log the error and return

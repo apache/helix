@@ -1863,7 +1863,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     List<IdealState> enabledIdealStates = new ArrayList<>();
     List<PropertyKey> enabledIdealStateKeys = new ArrayList<>();
-    List<String> enabledResourceNames = new ArrayList<>();
+    Set<String> enabledResourceNames = new HashSet<>();
 
     List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
     for (IdealState idealState : idealStates) {

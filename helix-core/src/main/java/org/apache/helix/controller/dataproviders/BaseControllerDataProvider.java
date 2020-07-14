@@ -544,10 +544,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _instanceMessagesCache.getMessages(instanceName);
   }
 
-  public void setStaleMessages(Map<String, Map<String, Message>> staleMessageMap) {
-    _instanceMessagesCache.setStaleMessageCache(staleMessageMap);
-  }
-
   public Map<String, Map<String, Message>> getStaleMessages() {
     return _instanceMessagesCache.getStaleMessageCache();
   }

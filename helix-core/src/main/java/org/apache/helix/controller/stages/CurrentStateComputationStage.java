@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CurrentStateComputationStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CurrentStateComputationStage.class);
-  private boolean isTaskFrameworkPipeline = false;
+  private boolean _isTaskFrameworkPipeline = false;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -65,7 +65,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
     if (cache instanceof WorkflowControllerDataProvider) {
-      isTaskFrameworkPipeline = true;
+      _isTaskFrameworkPipeline = true;
     }
 
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
@@ -214,7 +214,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   }
 
   private boolean isStaleMessage(Message message, String currentState) {
-    if (isTaskFrameworkPipeline || currentState == null || message.getFromState() == null
+    if (_isTaskFrameworkPipeline || currentState == null || message.getFromState() == null
         || message.getToState() == null) {
       return false;
     }

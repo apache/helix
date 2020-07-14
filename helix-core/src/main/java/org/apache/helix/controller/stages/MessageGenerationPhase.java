@@ -200,10 +200,14 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         }
 
         for (Message staleMessage : staleMessages) {
-          if (shouldCleanUpStaleMessage(staleMessage,
-              currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-            logAndAddToCleanUp(pendingMessagesToCleanUp, staleMessage, instanceName, resourceName,
-                partition, currentState, STALE_MESSAGE);
+          if (staleMessage == null) {
+            logger.warn("Should not contain a stale message as null");
+          } else {
+            if (shouldCleanUpStaleMessage(
+                currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
+              logAndAddToCleanUp(pendingMessagesToCleanUp, staleMessage, instanceName, resourceName,
+                  partition, currentState, STALE_MESSAGE);
+            }
           }
         }
 
@@ -400,10 +404,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     }
   }
 
-  private boolean shouldCleanUpStaleMessage(Message staleMsg, Long currentStateTransitionEndTime) {
-    if (staleMsg == null) {
-      return false;
-    }
+  private boolean shouldCleanUpStaleMessage(Long currentStateTransitionEndTime) {
     return System.currentTimeMillis() - currentStateTransitionEndTime
         > DEFAULT_OBSELETE_MSG_PURGE_DELAY;
   }

@@ -157,6 +157,9 @@ public class InstanceMessagesCache {
     return _staleMessageCache;
   }
 
+  public void setStaleMessageCache(Map<String, Map<String, Message>> staleMessageMap) {
+    _staleMessageCache = staleMessageMap;
+  }
   /**
    * Refresh relay message cache by updating relay messages read from ZK, and remove all expired relay messages.
    */

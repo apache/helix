@@ -547,6 +547,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   public Map<String, Map<String, Message>> getStaleMessages() {
     return _instanceMessagesCache.getStaleMessageCache();
   }
+
+  public void setStaleMessages(Map<String, Map<String, Message>> staleMessageMap) {
+    _instanceMessagesCache.setStaleMessageCache(staleMessageMap);
+  }
+
   /**
    * Provides a list of current outstanding pending relay messages on a given instance.
    * @param instanceName

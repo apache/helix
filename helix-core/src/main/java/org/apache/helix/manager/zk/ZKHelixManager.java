@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -90,6 +89,8 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ChainedPathZkSerializer;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.HelixZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
@@ -100,8 +101,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.helix.zookeeper.datamodel.serializer.ChainedPathZkSerializer;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
@@ -805,27 +804,23 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     LOG.info("disconnect " + _instanceName + "(" + _instanceType + ") from " + _clusterName);
 
+    /**
+     * stop all timer tasks
+     */
+    stopTimerTasks();
+
+    /**
+     * shutdown thread pool first to avoid reset() being invoked in the middle of state
+     * transition
+     */
+    _messagingService.getExecutor().shutdown();
+
     try {
-      /**
-       * stop all timer tasks
-       */
-      stopTimerTasks();
-
-      /**
-       * shutdown thread pool first to avoid reset() being invoked in the middle of state
-       * transition
-       */
-      _messagingService.getExecutor().shutdown();
-
-      // TODO reset user defined handlers only
-      // TODO Fix the issue that when connection disconnected, reset handlers will be blocked. -- JJ
-      // This is because reset logic contains ZK operations.
-      resetHandlers(true);
-
-      if (_leaderElectionHandler != null) {
-        _leaderElectionHandler.reset(true);
-      }
-
+      cleanupCallbackHandlers();
+    } catch (InterruptedException e) {
+      LOG.warn(
+          "The callback handler cleanup has been interrupted. Some callback handlers might not be reset properly. Continue to finish the other HelixMananger disconnect tasks.",
+          e);
     } finally {
       GenericHelixController controller = _controller;
       if (controller != null) {
@@ -834,11 +829,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         } catch (InterruptedException e) {
           LOG.info("Interrupted shutting down GenericHelixController", e);
         }
-      }
-
-      ParticipantManager participantManager = _participantManager;
-      if (participantManager != null) {
-        participantManager.disconnect();
       }
 
       for (HelixCallbackMonitor callbackMonitor : _callbackMonitors.values()) {
@@ -863,6 +853,76 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       }
       _sessionStartTime = null;
       LOG.info("Cluster manager: " + _instanceName + " disconnected");
+    }
+  }
+
+  /**
+   * The callback handler cleanup operations that require an active ZkClient connection.
+   * If ZkClient is not connected, Helix Manager shall skip the cleanup.
+   */
+  private void cleanupCallbackHandlers() throws InterruptedException {
+    if (_zkclient.waitUntilConnected(_waitForConnectedTimeout, TimeUnit.MILLISECONDS)) {
+      // Create a separate thread for executing cleanup task to avoid forever retry.
+      Thread cleanupThread = new Thread(String
+          .format("Cleanup thread for %s-%s-%s", _clusterName, _instanceName, _instanceType)) {
+        @Override
+        public void run() {
+          // TODO reset user defined handlers only
+          resetHandlers(true);
+
+          if (_leaderElectionHandler != null) {
+            _leaderElectionHandler.reset(true);
+          }
+
+          ParticipantManager participantManager = _participantManager;
+          if (participantManager != null) {
+            participantManager.disconnect();
+          }
+        }
+      };
+
+      // Define the state listener to terminate the cleanup thread when the ZkConnection breaks.
+      IZkStateListener stateListener = new IZkStateListener() {
+        @Override
+        public void handleStateChanged(KeeperState state) {
+          // If the connection breaks during the cleanup , then stop the cleanup thread.
+          if (state != KeeperState.SyncConnected) {
+            cleanupThread.interrupt();
+          }
+        }
+
+        @Override
+        public void handleNewSession(String sessionId) {
+          // nothing
+        }
+
+        @Override
+        public void handleSessionEstablishmentError(Throwable error) {
+          // nothing
+        }
+      };
+
+      cleanupThread.start();
+      try {
+        // Subscribe and check the connection status one more time to ensure the thread is running
+        // with an active ZkConnection.
+        _zkclient.subscribeStateChanges(stateListener);
+        if (!_zkclient.waitUntilConnected(0, TimeUnit.MILLISECONDS)) {
+          cleanupThread.interrupt();
+        }
+
+        try {
+          cleanupThread.join();
+        } catch (InterruptedException ex) {
+          cleanupThread.interrupt();
+          throw ex;
+        }
+      } finally {
+        _zkclient.unsubscribeStateChanges(stateListener);
+      }
+    } else {
+      LOG.warn(
+          "ZkClient is not connected to the Zookeeper. Skip the cleanup work that requires accessing Zookeeper.");
     }
   }
 

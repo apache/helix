@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.ImmutableMap;
@@ -101,6 +102,28 @@ public class TestZkConnectionLost extends TaskTestBase {
     TestHelper.dropCluster(CLUSTER_NAME, _zkClient, _setupTool);
     _zkClient.close();
     TestHelper.stopZkServer(_zkServerRef.get());
+  }
+
+  @Test
+  public void testDisconnectWhenConnectionBreak() throws Exception {
+    _zkServerRef.get().shutdown();
+    AtomicBoolean disconnected = new AtomicBoolean(false);
+    Thread testThread = new Thread("Testing HelixManager disconnect") {
+      @Override
+      public void run() {
+        _controller.disconnect();
+        disconnected.set(true);
+      }
+    };
+    try {
+      testThread.start();
+      testThread.join(5000);
+      Assert.assertTrue(disconnected.get());
+      Assert.assertFalse(_controller.isConnected());
+    } finally {
+      testThread.interrupt();
+      _zkServerRef.set(TestHelper.startZkServer(_zkAddr, null, false));
+    }
   }
 
   @Test

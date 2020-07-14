@@ -764,6 +764,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(is.getRebalancerClassName(), WagedRebalancer.class.getName());
     is = admin.getResourceIdealState(clusterName, unaffectedResource);
     Assert.assertNotSame(is.getRebalancerClassName(), WagedRebalancer.class.getName());
+
+    // Test non existent resource case
+    try {
+      admin.enableWagedRebalance(clusterName, Collections.singletonList("FakeResourceName"));
+      Assert.fail("Expected HelixException");
+    } catch (HelixException e) {
+      Assert.assertEquals(e.getMessage(),
+          "Some resources do not have IdealStates: [FakeResourceName]");
+    }
   }
 
   @Test

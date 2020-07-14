@@ -1861,26 +1861,28 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    List<IdealState> idealStates = new ArrayList<>();
-    List<PropertyKey> idealStateKeys = new ArrayList<>();
-    List<String> nullIdealStates = new ArrayList<>();
-    for (String resourceName : resourceNames) {
-      PropertyKey key = keyBuilder.idealStates(resourceName);
-      IdealState idealState = accessor.getProperty(key);
-      if (idealState == null) {
-        nullIdealStates.add(resourceName);
-      } else {
+    List<IdealState> enabledIdealStates = new ArrayList<>();
+    List<PropertyKey> enabledIdealStateKeys = new ArrayList<>();
+    List<String> enabledResourceNames = new ArrayList<>();
+
+    List<IdealState> idealStates = accessor.getChildValues(keyBuilder.idealStates(), true);
+    for (IdealState idealState : idealStates) {
+      if (resourceNames.contains(idealState.getResourceName())) {
         idealState.setRebalancerClassName(WagedRebalancer.class.getName());
         idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
-        idealStates.add(idealState);
-        idealStateKeys.add(key);
+        enabledIdealStates.add(idealState);
+        enabledIdealStateKeys.add(keyBuilder.idealStates(idealState.getResourceName()));
+        enabledResourceNames.add(idealState.getResourceName());
       }
     }
-    if (!nullIdealStates.isEmpty()) {
+    List<String> resourcesNotFound =
+        resourceNames.stream().filter(resourceName -> !enabledResourceNames.contains(resourceName))
+            .collect(Collectors.toList());
+    if (!resourcesNotFound.isEmpty()) {
       throw new HelixException(
-          String.format("Not all IdealStates exist in the cluster: %s", nullIdealStates));
+          String.format("Some resources do not have IdealStates: %s", resourcesNotFound));
     }
-    boolean[] success = accessor.setChildren(idealStateKeys, idealStates);
+    boolean[] success = accessor.setChildren(enabledIdealStateKeys, enabledIdealStates);
     for (boolean s : success) {
       if (!s) {
         return false;

@@ -40,8 +40,6 @@ import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
-import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
@@ -49,6 +47,8 @@ import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,20 +106,25 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   @Test
   public void testDisconnectWhenConnectionBreak() throws Exception {
-    _zkServerRef.get().shutdown();
+    String controllerName = CONTROLLER_PREFIX + "_" + TestHelper.getTestMethodName();
+    ClusterControllerManager controllerManager =
+        new ClusterControllerManager(_zkAddr, CLUSTER_NAME, controllerName);
+    controllerManager.syncStart();
+
+    TestHelper.stopZkServer(_zkServerRef.get());
     AtomicBoolean disconnected = new AtomicBoolean(false);
     Thread testThread = new Thread("Testing HelixManager disconnect") {
       @Override
       public void run() {
-        _controller.disconnect();
+        controllerManager.disconnect();
         disconnected.set(true);
       }
     };
     try {
       testThread.start();
-      testThread.join(5000);
+      testThread.join(10000);
       Assert.assertTrue(disconnected.get());
-      Assert.assertFalse(_controller.isConnected());
+      Assert.assertFalse(controllerManager.isConnected());
     } finally {
       testThread.interrupt();
       _zkServerRef.set(TestHelper.startZkServer(_zkAddr, null, false));

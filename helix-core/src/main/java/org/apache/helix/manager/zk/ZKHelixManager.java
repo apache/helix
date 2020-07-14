@@ -804,18 +804,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     LOG.info("disconnect " + _instanceName + "(" + _instanceType + ") from " + _clusterName);
 
-    /**
-     * stop all timer tasks
-     */
-    stopTimerTasks();
-
-    /**
-     * shutdown thread pool first to avoid reset() being invoked in the middle of state
-     * transition
-     */
-    _messagingService.getExecutor().shutdown();
-
     try {
+      /**
+       * stop all timer tasks
+       */
+      stopTimerTasks();
+
+      /**
+       * shutdown thread pool first to avoid reset() being invoked in the middle of state
+       * transition
+       */
+      _messagingService.getExecutor().shutdown();
+
       cleanupCallbackHandlers();
     } catch (InterruptedException e) {
       LOG.warn(

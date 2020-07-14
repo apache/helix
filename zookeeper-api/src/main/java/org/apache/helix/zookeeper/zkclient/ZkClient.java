@@ -29,6 +29,7 @@ import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -127,7 +128,7 @@ public class ZkClient implements Watcher {
   }
 
   private final boolean _syncOnNewSession;
-  final String _syncPath = new String("/");
+  final String _syncPath = "/";
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -211,7 +212,10 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
-    _syncOnNewSession = true;
+
+    String syncUpOnNewSession = System.getProperty(ZkSystemPropertyKeys.ZK_SYNC_UPON_NEWSESSION, "true");
+    _syncOnNewSession = Boolean.parseBoolean(syncUpOnNewSession);
+
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -1268,71 +1272,78 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private class SyncContext {
-    private CountDownLatch _latch;
-    private AtomicInteger _rc;
+  private class SyncCallbackHandler extends ZkAsyncCallbacks.DefaultCallback implements AsyncCallback.VoidCallback {
+    private String _sessionId;
 
-    public SyncContext(CountDownLatch latch) {
-      _latch = latch;
+    SyncCallbackHandler(String sessionId) {
+      _sessionId = sessionId;
     }
 
-    AtomicInteger getRc() {
-      return _rc;
+    @Override
+    public void processResult(int rc, String path, Object ctx) {
+      LOG.info("sycnOnNewSession with sessionID {} async return code: {}", _sessionId, rc);
+      callback(rc, path, ctx);
     }
 
-    void setRc(AtomicInteger rc) {
-      _rc = rc;
+    @Override
+    public void handle() {
+      // Make compiler happy, not used.
     }
 
-    CountDownLatch getLatch() {
-      return _latch;
+    @Override
+    protected boolean needRetry(int rc) {
+      try {
+        switch (KeeperException.Code.get(rc)) {
+          /** Connection to the server has been lost */
+          case CONNECTIONLOSS:
+            return true;
+          default:
+            return false;
+        }
+      } catch (ClassCastException | NullPointerException ex) {
+        LOG.error("Session {} failed to handle unknown return code {}. Skip retrying. ex {}",
+            _sessionId, rc, ex);
+        return false;
+      }
     }
+  }
+
+  private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
+      final SyncCallbackHandler cb) {
+    zk.sync(path, cb,
+        new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
+          @Override
+          protected void doRetry() throws Exception {
+            doAsyncSync(zk, path, startT, cb);
+          }
+        });
   }
 
   private boolean retrySync(String sessionId) throws ZkInterruptedException {
     if (!_syncOnNewSession) {
       return true;
     }
-    while (true) {
-      CountDownLatch latch = new CountDownLatch(1);
-      SyncContext ctx = new SyncContext(latch);
 
-      final ZkConnection zkConnection = (ZkConnection) getConnection();
-      zkConnection.getZookeeper().sync(_syncPath, new AsyncCallback.VoidCallback() {
-        @Override
-        public void processResult(int rt, String s, Object ctx) {
-          LOG.info("sycnOnNewSession with sessionID {} async return code: {}", sessionId, rt);
-          SyncContext synCtx = ((SyncContext) ctx);
-          synCtx.setRc(new AtomicInteger(rt));
-          synCtx.getLatch().countDown();
-        }
-      }, ctx);
+    SyncCallbackHandler callbackHandler = new SyncCallbackHandler(sessionId);
 
-      try {
-        latch.await();
-      } catch (InterruptedException e) {
-        LOG.info("retrySync latch waiting got interrrupted with sessionId {} ", sessionId);
-        throw new ZkInterruptedException(e);
-      }
+    final ZkConnection zkConnection = (ZkConnection) getConnection();
+    final ZooKeeper zk = zkConnection.getZookeeper();
+    final long startT = System.currentTimeMillis();
+    doAsyncSync(zk, _syncPath, startT, callbackHandler);
 
-      KeeperException.Code code = KeeperException.Code.get(ctx.getRc().get());
-      if (code == OK) {
-        LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
-            code);
-        break;
-      }
-      if (code == CONNECTIONLOSS || code == SESSIONMOVED) {
-        LOG.info("sycnOnNewSession with sessionID {} async return code: {} and retry", sessionId,
-            code);
-        continue;
-      }
-      // Not retryable, including session expiration; but having error. Log the error and return
-      LOG.error(
-          "sycnOnNewSession with sessionID {} async return code: {} and not retryable, stop calling handleNewSession",
-          sessionId, code);
-      return false;
+    callbackHandler.waitForSuccess();
+
+    KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
+    if (code == OK) {
+      LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
+          code);
     }
-    return true;
+
+    // Not retryable error, including session expiration; Log the error and return
+    LOG.warn(
+        "sycnOnNewSession with sessionID {} async return code: {} and not retryable, stop calling handleNewSession",
+        sessionId, code);
+    return false;
   }
 
   private void fireNewSessionEvents() {
@@ -1341,16 +1352,25 @@ public class ZkClient implements Watcher {
       return;
     }
     final String sessionId = getHexSessionId();
+
+    _eventThread.send(
+        new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
+            sessionId) {
+          @Override
+          public void run() throws Exception {
+            boolean syncStatus = retrySync(sessionId);
+            if (syncStatus == false) {
+              LOG.warn("sync on session {} failed", sessionId);
+            }
+          }
+        });
+
     for (final IZkStateListener stateListener : _stateListener) {
       _eventThread
           .send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
 
             @Override
             public void run() throws Exception {
-              boolean proceed = retrySync(sessionId);
-              if (!proceed) {
-                return;
-              }
               stateListener.handleNewSession(sessionId);
             }
           });

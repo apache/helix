@@ -215,7 +215,7 @@ public class ZkAsyncCallbacks {
      * @param rc the return code
      * @return true if the error is transient and the operation may succeed when being retried.
      */
-    private boolean needRetry(int rc) {
+    protected boolean needRetry(int rc) {
       try {
         switch (Code.get(rc)) {
         /** Connection to the server has been lost */

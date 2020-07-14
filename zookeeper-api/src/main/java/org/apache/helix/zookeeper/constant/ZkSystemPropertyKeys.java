@@ -50,4 +50,14 @@ public class ZkSystemPropertyKeys {
    */
   public static final String ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES =
       "zk.serializer.znrecord.write.size.limit.bytes";
+
+  /**
+   * This property determines the behavior of ZkClient issuing an sync() to server upon new session
+   * established.
+   *
+   * <p>
+   *   The default value is "true" (issuing sync)
+   */
+  public static final String ZK_SYNC_UPON_NEWSESSION =
+      "zk.sync.upon.newsession";
 }

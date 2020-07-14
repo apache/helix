@@ -33,7 +33,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
-
 public class HelixCallbackMonitor extends DynamicMBeanProvider {
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";

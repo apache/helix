@@ -22,7 +22,6 @@ package org.apache.helix.monitoring.metrics.model;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
-
 /**
  * Represents a count metric and defines methods to help with calculation. A count metric gives a
  * gauge value of a certain property.

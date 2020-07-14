@@ -42,7 +42,7 @@ public enum AttributeName {
   ControllerDataProvider,
   STATEFUL_REBALANCER,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
-  TO_BE_DELETED_WORKFLOWS,
+  TO_BE_PURGED_WORKFLOWS,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
-  TO_BE_DELETED_JOBS_MAP
+  TO_BE_PURGED_JOBS_MAP
 }

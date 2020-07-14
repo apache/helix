@@ -38,7 +38,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     }
 
     Map<String, Set<String>> expiredJobsMap = new HashMap<>();
-    Set<String> workflowsToBeDeleted = new HashSet<>();
+    Set<String> workflowsToBePurged = new HashSet<>();
     WorkflowControllerDataProvider dataProvider =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
     for (Map.Entry<String, ZNRecord> entry : dataProvider.getContexts().entrySet()) {
@@ -62,13 +62,13 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
       } else if (workflowConfig == null && entry.getValue() != null && entry.getValue().getId()
           .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
         // Find workflows that need to be purged
-        workflowsToBeDeleted.add(entry.getKey());
+        workflowsToBePurged.add(entry.getKey());
       }
     }
-    event.addAttribute(AttributeName.TO_BE_DELETED_JOBS_MAP.name(),
+    event.addAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name(),
         Collections.unmodifiableMap(expiredJobsMap));
-    event.addAttribute(AttributeName.TO_BE_DELETED_WORKFLOWS.name(),
-        Collections.unmodifiableSet(workflowsToBeDeleted));
+    event.addAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name(),
+        Collections.unmodifiableSet(workflowsToBePurged));
 
     super.process(event);
   }
@@ -84,9 +84,9 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     }
 
     Map<String, Set<String>> expiredJobsMap =
-        event.getAttribute(AttributeName.TO_BE_DELETED_JOBS_MAP.name());
-    Set<String> toBeDeletedWorkflows =
-        event.getAttribute(AttributeName.TO_BE_DELETED_WORKFLOWS.name());
+        event.getAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name());
+    Set<String> toBePurgedWorkflows =
+        event.getAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
       try {
@@ -97,7 +97,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
       }
     }
 
-    TaskUtil.workflowGarbageCollection(toBeDeletedWorkflows, manager);
+    TaskUtil.workflowGarbageCollection(toBePurgedWorkflows, manager);
   }
 
   private static void scheduleNextJobPurge(String workflow, long currentTime, long purgeInterval,

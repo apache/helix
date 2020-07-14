@@ -1053,15 +1053,15 @@ public class TaskUtil {
   /**
    * The function that removes IdealStates and workflow contexts of the workflows that need to be
    * deleted.
-   * @param toBeDeletedWorkflows
+   * @param toBePurgedWorkflows
    * @param manager
    */
-  public static void workflowGarbageCollection(final Set<String> toBeDeletedWorkflows,
+  public static void workflowGarbageCollection(final Set<String> toBePurgedWorkflows,
       final HelixManager manager) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
 
-    for (String workflowName : toBeDeletedWorkflows) {
+    for (String workflowName : toBePurgedWorkflows) {
       LOG.warn(
           "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
           workflowName);

@@ -29,8 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -54,6 +54,7 @@ import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.mockito.internal.util.collections.Sets;
 import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -85,6 +86,8 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
+    boolean routingTableChangeReceived = false;
+
     @Override
     public void onRoutingTableChange(RoutingTableSnapshot routingTableSnapshot, Object context) {
       Set<String> masterInstances = new HashSet<>();
@@ -102,6 +105,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
       } else {
         _listenerTestResult = true;
       }
+      routingTableChangeReceived = true;
     }
   }
 
@@ -178,7 +182,18 @@ public class TestRoutingTableProvider extends ZkTestBase {
     deleteCluster(CLUSTER_NAME);
   }
 
-  @Test
+  @Test()
+  public void testInvocation() throws Exception {
+    MockRoutingTableChangeListener routingTableChangeListener =
+        new TestRoutingTableProvider().new MockRoutingTableChangeListener();
+    _routingTableProvider_default.addRoutingTableChangeListener(routingTableChangeListener, null);
+
+    // Initial add listener should trigger the first execution of the
+    // listener callbacks
+    AssertJUnit.assertTrue(routingTableChangeListener.routingTableChangeReceived);
+  }
+
+  @Test(dependsOnMethods = { "testInvocation" })
   public void testRoutingTable() {
     Assert.assertEquals(_routingTableProvider_default.getLiveInstances().size(), _instances.size());
     Assert.assertEquals(_routingTableProvider_default.getInstanceConfigs().size(), _instances.size());

@@ -413,6 +413,31 @@ public class RoutingTableProvider
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
     logger.info("Attach RoutingTableProviderChangeListener {}",
         routingTableChangeListener.getClass().getName());
+    if (_sourceDataTypeMap.isEmpty()) {
+      routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
+    } else {
+      for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+        switch (propertyType) {
+          case EXTERNALVIEW:
+          case TARGETEXTERNALVIEW:
+          case CURRENTSTATES:
+            routingTableChangeListener
+                .onRoutingTableChange(getRoutingTableSnapshot(propertyType), context);
+            break;
+          case CUSTOMIZEDVIEW:
+            for (String customizedStateType : _sourceDataTypeMap
+                .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
+              routingTableChangeListener.onRoutingTableChange(
+                  getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, customizedStateType),
+                  context);
+            }
+            break;
+          default:
+            logger.warn("Unsupported source data type: {}, stop triggering callback!",
+                propertyType);
+        }
+      }
+    }
   }
 
   /**

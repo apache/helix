@@ -81,6 +81,7 @@ import static org.apache.zookeeper.KeeperException.Code.SESSIONMOVED;
  * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
+
   private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
   private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
@@ -89,6 +90,9 @@ public class ZkClient implements Watcher {
   // This is a workaround for exiting retry on connection loss because of large number of children.
   // TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT;
+
+  private static String ZK_AUTOSYNC_ENABLED_DEFAULT = "true";
+
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -213,7 +217,7 @@ public class ZkClient implements Watcher {
       throw new NullPointerException("Zookeeper connection is null!");
     }
 
-    String syncUpOnNewSession = System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, "true");
+    String syncUpOnNewSession = System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, ZK_AUTOSYNC_ENABLED_DEFAULT);
     _syncOnNewSession = Boolean.parseBoolean(syncUpOnNewSession);
 
     _connection = zkConnection;
@@ -1277,7 +1281,7 @@ public class ZkClient implements Watcher {
   private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
       final ZkAsyncCallbacks.SyncCallbackHandler cb) {
     zk.sync(path, cb,
-        new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
+        new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, true) {
           @Override
           protected void doRetry() throws Exception {
             doAsyncSync(zk, path, System.currentTimeMillis(), cb);

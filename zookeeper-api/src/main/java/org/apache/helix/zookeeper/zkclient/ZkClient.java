@@ -1274,6 +1274,7 @@ public class ZkClient implements Watcher {
         });
   }
 
+
   /*
    *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
    *  The reason we do this is that we want to ensure each new session event is preceded with exactly
@@ -1321,7 +1322,7 @@ public class ZkClient implements Watcher {
         @Override
         public void run() throws Exception {
           if (issueSync(zk) == false) {
-            LOG.warn("Failed to call sync() on new session {}", sessionId);
+            LOG.warn("Failed to call sync() on new session {}", sessionId);.
           }
         }
       });

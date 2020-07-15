@@ -1276,7 +1276,6 @@ public class ZkClient implements Watcher {
         });
   }
 
-
   /*
    *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
    *  The reason we do this is that we want to ensure each new session event is preceded with exactly
@@ -1289,8 +1288,10 @@ public class ZkClient implements Watcher {
    *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
    *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
    */
+
   private boolean issueSync(ZooKeeper zk) {
     String sessionId = Long.toHexString(zk.getSessionId());
+
     ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
         new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
 

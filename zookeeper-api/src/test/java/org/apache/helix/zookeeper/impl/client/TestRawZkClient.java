@@ -579,6 +579,16 @@ public class TestRawZkClient extends ZkTestBase {
     // Expire the original session.
     ZkTestHelper.expireSession(_zkClient);
 
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        // New session id should not equal to expired session id.
+        return _zkClient.getSessionId() != originalSessionId;
+      } catch (ZkClientException ex) {
+        return false;
+      }
+    }, 1000L));
+    
     // Verify the node is created and its data is correct.
     Stat stat = new Stat();
     String nodeData = null;

@@ -80,6 +80,7 @@ import org.slf4j.LoggerFactory;
  * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
+
   private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
   private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
@@ -93,6 +94,7 @@ public class ZkClient implements Watcher {
   private static final boolean SYNC_ON_SESSION = Boolean.parseBoolean(
       System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, "true"));
   private static final String SYNC_PATH = "/";
+
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -123,7 +125,7 @@ public class ZkClient implements Watcher {
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
   protected final ZkAsyncRetryThread _asyncCallRetryThread;
-  
+
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
     final boolean _prefetchData;
@@ -1322,7 +1324,7 @@ public class ZkClient implements Watcher {
         @Override
         public void run() throws Exception {
           if (issueSync(zk) == false) {
-            LOG.warn("Failed to call sync() on new session {}", sessionId);.
+            LOG.warn("Failed to call sync() on new session {}", sessionId);
           }
         }
       });

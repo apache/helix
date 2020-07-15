@@ -231,7 +231,7 @@ public class Topology {
    *                                  this cluster uses zone instead of domains.
    * @return lastValidType in clusterConfig.topology
    */
-  public static String populateClusterTopologySetting(ClusterConfig clusterConfig,
+  private static String populateClusterTopologySetting(ClusterConfig clusterConfig,
       LinkedHashSet<String> clusterTopologyKeys /*OUT*/,
       Map<String, String> defaultDomainPathValues /*OUT*/) {
 
@@ -263,7 +263,7 @@ public class Topology {
    * when creating the topology tree.
    *
    * @param defaultDomainPathValues a const map for default path key.
-   * @param faultZoneForEarlyQuit   this flag os set to true only if caller wants the path
+   * @param faultZoneForEarlyQuit   this flag is set to true only if caller wants the path
    *                                to faultZone instead the whole path for the instance.
    * @return an LinkedHashMap object representing the topology path for the input instance.
    */
@@ -328,7 +328,7 @@ public class Topology {
 
   public static LinkedHashMap<String, String> computeInstanceTopologyMap(
       ClusterConfig clusterConfig, String instanceName, InstanceConfig instanceConfig,
-      boolean earlyQuitTillFaultZone)
+      boolean earlyQuitForFaultZone)
       throws IllegalArgumentException {
     LinkedHashSet<String> clusterTopologyKeys = new LinkedHashSet<>();
     Map<String, String> defaultDomainPathValues = new HashMap<>();
@@ -336,7 +336,7 @@ public class Topology {
     String endNodeType =
         populateClusterTopologySetting(clusterConfig, clusterTopologyKeys, defaultDomainPathValues);
     String faultZoneForEarlyQuit =
-        earlyQuitTillFaultZone ? (clusterConfig.getFaultZoneType() == null ? endNodeType
+        earlyQuitForFaultZone ? (clusterConfig.getFaultZoneType() == null ? endNodeType
             : clusterConfig.getFaultZoneType()) : null;
     return computeInstanceTopologyMapHelper(clusterConfig.isTopologyAwareEnabled(), instanceName,
         instanceConfig, clusterTopologyKeys, defaultDomainPathValues, faultZoneForEarlyQuit);

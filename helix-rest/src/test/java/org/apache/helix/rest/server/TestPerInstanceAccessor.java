@@ -466,6 +466,10 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  /**
+   * Test the sanity check when updating the instance config.
+   * The config is validated at rest server side.
+   */
   @Test(dependsOnMethods = "testValidateWeightForInstance")
   public void testValidateDeltaInstanceConfigForUpdate() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());

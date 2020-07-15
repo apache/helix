@@ -559,6 +559,52 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   /*
+   * This test validates that when ZK_AUTOSYNC_ENABLED_DEFAULT is enabled, sync() would be issued
+   * before handleNewSession. ZKclient would not see stale data.
+   */
+  @Test
+  public void testAutoSyncWithNewSessionEstablishment() throws Exception {
+    final String path = "/" + TestHelper.getTestMethodName();
+    final String data = "Hello Helix 2";
+
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(TestHelper
+        .verify(() -> _zkClient.getConnection().getZookeeperState().isConnected(), 1000L));
+
+    final long originalSessionId = _zkClient.getSessionId();
+
+    try {
+      // Create node.
+      _zkClient.create(path, data, CreateMode.PERSISTENT);
+    } catch (Exception ex) {
+      Assert.fail("Failed to create ephemeral node.", ex);
+    }
+
+    // Expire the original session.
+    ZkTestHelper.expireSession(_zkClient);
+
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(TestHelper.verify(() -> {
+      try {
+        // New session id should not equal to expired session id.
+        return _zkClient.getSessionId() != originalSessionId;
+      } catch (ZkClientException ex) {
+        return false;
+      }
+    }, 1000L));
+
+    // Verify the node is created and its data is correct.
+    Stat stat = new Stat();
+    String nodeData = null;
+    try {
+       nodeData = _zkClient.readData(path, stat, true);
+    } catch (ZkException e) {
+      Assert.fail("fail to read data");
+    }
+    Assert.assertEquals(nodeData, data, "Data is not correct.");
+  }
+
+  /*
    * This test checks that ephemeral creation fails because the expected zk session does not match
    * the actual zk session.
    * How this test does is:

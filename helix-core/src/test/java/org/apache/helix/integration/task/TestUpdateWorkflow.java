@@ -40,7 +40,7 @@ public class TestUpdateWorkflow extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestUpdateWorkflow.class);
 
   @Test
-  public void testUpdateRunningQueue() throws InterruptedException {
+  public void testUpdateRunningQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -70,7 +70,10 @@ public class TestUpdateWorkflow extends TaskTestBase {
     // ensure current schedule is completed
     _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
 
-    Thread.sleep(1000);
+    // Make sure next round of the recurrent workflow is scheduled
+    Assert
+        .assertTrue(TestHelper.verify(() -> (TaskTestUtil.pollForWorkflowContext(_driver, queueName)
+            .getScheduledWorkflows().size() > 1), TestHelper.WAIT_DURATION));
 
     wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
@@ -86,7 +89,7 @@ public class TestUpdateWorkflow extends TaskTestBase {
   }
 
   @Test
-  public void testUpdateStoppedQueue() throws InterruptedException {
+  public void testUpdateStoppedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -124,7 +127,10 @@ public class TestUpdateWorkflow extends TaskTestBase {
     // ensure current schedule is completed
     _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
 
-    Thread.sleep(1000);
+    // Make sure next round of the recurrent workflow is scheduled
+    Assert
+        .assertTrue(TestHelper.verify(() -> (TaskTestUtil.pollForWorkflowContext(_driver, queueName)
+            .getScheduledWorkflows().size() > 1), TestHelper.WAIT_DURATION));
 
     wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     scheduledQueue = wCtx.getLastScheduledSingleWorkflow();

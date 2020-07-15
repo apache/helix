@@ -58,6 +58,6 @@ public class ZkSystemPropertyKeys {
    * <p>
    *   The default value is "true" (issuing sync)
    */
-  public static final String ZK_SYNC_UPON_NEWSESSION =
-      "zk.sync.upon.newsession";
+  public static final String ZK_AUTOSYNC_ENABLED =
+      "zk.autosync.enabled";
 }

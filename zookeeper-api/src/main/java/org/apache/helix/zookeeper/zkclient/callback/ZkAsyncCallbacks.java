@@ -22,10 +22,12 @@ package org.apache.helix.zookeeper.zkclient.callback;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -120,6 +122,41 @@ public class ZkAsyncCallbacks {
     }
   }
 
+  public static class SyncCallbackHandler extends DefaultCallback implements AsyncCallback.VoidCallback {
+    private String _sessionId;
+
+    public SyncCallbackHandler(String sessionId) {
+      _sessionId = sessionId;
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx) {
+      LOG.info("sycnOnNewSession with sessionID {} async return code: {}", _sessionId, rc);
+      callback(rc, path, ctx);
+    }
+
+    @Override
+    public void handle() {
+      // Make compiler happy, not used.
+    }
+
+    @Override
+    protected boolean needRetry(int rc) {
+      try {
+        switch (KeeperException.Code.get(rc)) {
+          /** Connection to the server has been lost */
+          case CONNECTIONLOSS:
+            return true;
+          default:
+            return false;
+        }
+      } catch (ClassCastException | NullPointerException ex) {
+        LOG.error("Session {} failed to handle unknown return code {}. Skip retrying. ex {}",
+            _sessionId, rc, ex);
+        return false;
+      }
+    }
+  }
   /**
    * Default callback for zookeeper async api.
    */

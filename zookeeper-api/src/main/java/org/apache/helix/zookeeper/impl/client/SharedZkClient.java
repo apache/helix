@@ -421,14 +421,6 @@ public class SharedZkClient implements RealmAwareZkClient {
   }
 
   @Override
-  public void asyncCreate(String path, Object datat, CreateMode mode,
-      ZkAsyncCallbacks.CreateCallbackHandler cb, String expectedSessionId) {
-    throw new UnsupportedOperationException(
-        "Async creating nodes under expected session using " + SharedZkClient.class.getSimpleName()
-            + " is not supported.");
-  }
-
-  @Override
   public void asyncSetData(String path, Object datat, int version,
       ZkAsyncCallbacks.SetDataCallbackHandler cb) {
     checkIfPathContainsShardingKey(path);
@@ -544,7 +536,7 @@ public class SharedZkClient implements RealmAwareZkClient {
       if (!_zkRealmAddress.equals(zkRealmForPath)) {
         throw new IllegalArgumentException("Given path: " + path + "'s ZK realm: " + zkRealmForPath
             + " does not match the ZK realm: " + _zkRealmAddress + " and sharding key: "
-            + _zkRealmShardingKey + " for this " + SharedZkClient.class.getSimpleName());
+            + _zkRealmShardingKey + " for this SharedZkClient!");
       }
     } catch (NoSuchElementException e) {
       throw new IllegalArgumentException(

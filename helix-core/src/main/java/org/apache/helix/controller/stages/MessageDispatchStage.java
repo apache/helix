@@ -80,14 +80,14 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
 
     String expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
     // An early check for expected leader session. If the sessions don't match, it means the
-    // controller lost leadership, then messages should not be sent and the pipeline is stopped.
-    // This potentially avoid double masters for a single partition.
+    // controller lost leadership, then messages should not be sent and pipeline should stop.
+    // This avoids potential double masters for a single partition.
     if (expectedSession != null && !expectedSession.equals(manager.getSessionId())) {
       throw new StageException(
           "Controller: " + manager.getInstanceName() + " lost leadership! Expected session: "
               + expectedSession + ", actual: " + manager.getSessionId());
     }
-    List<Message> messagesSent = sendMessages(dataAccessor, outputMessages, expectedSession);
+    List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
 
     // TODO: Need also count messages from task rebalancer
     if (!(cache instanceof WorkflowControllerDataProvider)) {
@@ -147,8 +147,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
   }
 
   // return the messages actually sent
-  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages,
-      String expectedSession) {
+  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
     List<Message> messageSent = new ArrayList<>();
     if (messages == null || messages.isEmpty()) {
       return messageSent;
@@ -179,8 +178,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }
 
-    boolean[] results =
-        dataAccessor.createChildren(keys, new ArrayList<>(messages), expectedSession);
+    boolean[] results = dataAccessor.createChildren(keys, new ArrayList<>(messages));
     for (int i = 0; i < results.length; i++) {
       if (!results[i]) {
         LogUtil.logError(logger, _eventId, "Failed to send message: " + keys.get(i));

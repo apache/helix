@@ -498,14 +498,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   }
 
   @Override
-  public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
-      List<T> children) {
-    return createChildren(keys, children, null);
-  }
-
-  @Override
-  public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
-      List<T> children, String expectedSession) {
+  public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys, List<T> children) {
     // TODO: add validation
     int options = -1;
     List<String> paths = new ArrayList<String>();
@@ -519,7 +512,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       records.add(value.getRecord());
       options = constructOptions(type);
     }
-    return _baseDataAccessor.createChildren(paths, records, options, expectedSession);
+    return _baseDataAccessor.createChildren(paths, records, options);
   }
 
   @Override

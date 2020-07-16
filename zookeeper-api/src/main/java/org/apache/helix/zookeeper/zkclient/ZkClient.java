@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -74,6 +73,9 @@ import org.slf4j.LoggerFactory;
 public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
   private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+
+  private static final String MSG_ID_ATTRIBUTE = "MSG_ID";
+  private static final String MSG_SRC_SESSION_ID_ATTRIBUTE = "SRC_SESSION_ID";
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -1785,21 +1787,16 @@ public class ZkClient implements Watcher {
 
   public void asyncCreate(final String path, Object datat, final CreateMode mode,
       final ZkAsyncCallbacks.CreateCallbackHandler cb) {
-    asyncCreate(path, datat, mode, cb, null);
-  }
-
-  public void asyncCreate(final String path, Object data, final CreateMode mode,
-      final ZkAsyncCallbacks.CreateCallbackHandler cb, final String expectedSessionId) {
     final long startT = System.currentTimeMillis();
-    final byte[] dataBytes;
+    final byte[] data;
     try {
-      dataBytes = (data == null ? null : serialize(data, path));
+      data = (datat == null ? null : serialize(datat, path));
     } catch (ZkMarshallingError e) {
       cb.processResult(KeeperException.Code.MARSHALLINGERROR.intValue(), path,
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncCreate(path, dataBytes, mode, startT, cb, expectedSessionId);
+    doAsyncCreate(path, data, mode, startT, cb, parseExpectedSessionId(datat));
   }
 
   private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
@@ -2241,6 +2238,26 @@ public class ZkClient implements Watcher {
     }
 
     return zk;
+  }
+
+  private String parseExpectedSessionId(Object data) {
+    if (data == null) {
+      return null;
+    }
+
+    ZNRecord record;
+    try {
+      record = (ZNRecord) data;
+    } catch (ClassCastException e) {
+      LOG.debug("Failed to parse expected session id!", e);
+      return null;
+    }
+
+    // Check it is a message and get src session id as expected session id for message.
+    if (record.getSimpleField(MSG_ID_ATTRIBUTE) != null) {
+      return record.getSimpleField(MSG_SRC_SESSION_ID_ATTRIBUTE);
+    }
+    return null;
   }
 
   // operations to update monitor's counters

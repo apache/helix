@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
@@ -816,11 +817,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
        */
       _messagingService.getExecutor().shutdown();
 
-      cleanupCallbackHandlers();
-    } catch (InterruptedException e) {
-      LOG.warn(
-          "The callback handler cleanup has been interrupted. Some callback handlers might not be reset properly. Continue to finish the other HelixMananger disconnect tasks.",
-          e);
+      if (!cleanupCallbackHandlers()) {
+        LOG.warn(
+            "The callback handler cleanup has been cleanly done. "
+                + "Some callback handlers might not be reset properly. "
+                + "Continue to finish the other Helix Mananger disconnect tasks.");
+      }
     } finally {
       GenericHelixController controller = _controller;
       if (controller != null) {
@@ -859,8 +861,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   /**
    * The callback handler cleanup operations that require an active ZkClient connection.
    * If ZkClient is not connected, Helix Manager shall skip the cleanup.
+   *
+   * @return true if the cleanup has been done successfully.
    */
-  private void cleanupCallbackHandlers() throws InterruptedException {
+  private boolean cleanupCallbackHandlers() {
+    AtomicBoolean cleanupDone = new AtomicBoolean(false);
+
     if (_zkclient.waitUntilConnected(_waitForConnectedTimeout, TimeUnit.MILLISECONDS)) {
       // Create a separate thread for executing cleanup task to avoid forever retry.
       Thread cleanupThread = new Thread(String
@@ -878,6 +884,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           if (participantManager != null) {
             participantManager.disconnect();
           }
+
+          cleanupDone.set(true);
         }
       };
 
@@ -915,7 +923,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           cleanupThread.join();
         } catch (InterruptedException ex) {
           cleanupThread.interrupt();
-          throw ex;
         }
       } finally {
         _zkclient.unsubscribeStateChanges(stateListener);
@@ -924,6 +931,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       LOG.warn(
           "ZkClient is not connected to the Zookeeper. Skip the cleanup work that requires accessing Zookeeper.");
     }
+
+    return cleanupDone.get();
   }
 
   @Override

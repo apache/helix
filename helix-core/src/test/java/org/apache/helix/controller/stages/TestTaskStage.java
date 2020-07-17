@@ -1,16 +1,8 @@
 package org.apache.helix.controller.stages;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.helix.AccessOption;
-import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.common.DedupEventProcessor;
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
-import org.apache.helix.controller.pipeline.AsyncWorkerType;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
@@ -74,7 +66,7 @@ public class TestTaskStage extends TaskTestBase {
         TaskConstants.STATE_MODEL_NAME);
 
     // Create the context
-    WorkflowContext wfCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+    WorkflowContext wfCtx = new WorkflowContext(new ZNRecord(_testWorkflow));
     wfCtx.setJobState(_testJobPrefix + "0", TaskState.COMPLETED);
     wfCtx.setJobState(_testJobPrefix + "1", TaskState.COMPLETED);
     wfCtx.setWorkflowState(TaskState.IN_PROGRESS);
@@ -133,75 +125,21 @@ public class TestTaskStage extends TaskTestBase {
    * async job purge will try to delete it again.
    */
   @Test(dependsOnMethods = "testPersistContextData")
-  public void testPartialDataPurge() throws Exception {
-    DedupEventProcessor<String, Runnable> worker =
-        new DedupEventProcessor<String, Runnable>(CLUSTER_NAME,
-            AsyncWorkerType.TaskJobPurgeWorker.name()) {
-          @Override
-          protected void handleEvent(Runnable event) {
-            event.run();
-          }
-        };
-    worker.start();
-    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> workerPool = new HashMap<>();
-    workerPool.put(AsyncWorkerType.TaskJobPurgeWorker, worker);
-    _event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), workerPool);
-
+  public void testPartialDataPurge() {
     // Manually delete JobConfig
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "0");
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "1");
     deleteJobConfigs(_testWorkflow, _testJobPrefix + "2");
 
-    // Manually refresh because there's no controller notify data change
-    BaseControllerDataProvider dataProvider =
-        _event.getAttribute(AttributeName.ControllerDataProvider.name());
-    dataProvider.notifyDataChange(HelixConstants.ChangeType.RESOURCE_CONFIG);
-    dataProvider.refresh(_manager.getHelixDataAccessor());
-
     // Then purge jobs
     TaskGarbageCollectionStage garbageCollectionStage = new TaskGarbageCollectionStage();
-    garbageCollectionStage.process(_event);
+    garbageCollectionStage.execute(_event);
 
     // Check that IS and contexts have been purged for the 2 jobs in both old and new ZNode paths
     // IdealState check
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "0");
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "1");
     checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "2");
-  }
-
-  @Test(dependsOnMethods = "testPartialDataPurge")
-  public void testWorkflowGarbageCollection() throws Exception {
-    DedupEventProcessor<String, Runnable> worker =
-        new DedupEventProcessor<String, Runnable>(CLUSTER_NAME,
-            AsyncWorkerType.TaskJobPurgeWorker.name()) {
-          @Override
-          protected void handleEvent(Runnable event) {
-            event.run();
-          }
-        };
-    worker.start();
-    Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> workerPool = new HashMap<>();
-    workerPool.put(AsyncWorkerType.TaskJobPurgeWorker, worker);
-    _event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), workerPool);
-
-    String zkPath =
-        _manager.getHelixDataAccessor().keyBuilder().resourceConfig(_testWorkflow).getPath();
-    _baseAccessor.remove(zkPath, AccessOption.PERSISTENT);
-
-    // Manually refresh because there's no controller notify data change
-    BaseControllerDataProvider dataProvider =
-        _event.getAttribute(AttributeName.ControllerDataProvider.name());
-    dataProvider.notifyDataChange(HelixConstants.ChangeType.RESOURCE_CONFIG);
-    dataProvider.refresh(_manager.getHelixDataAccessor());
-
-    // Then garbage collect workflow
-    TaskGarbageCollectionStage garbageCollectionStage = new TaskGarbageCollectionStage();
-    garbageCollectionStage.process(_event);
-
-    // Check that IS and contexts have been purged for the workflow
-    checkForIdealStateAndContextRemoval(_testWorkflow);
-
-    worker.shutdown();
   }
 
   private void deleteJobConfigs(String workflowName, String jobName) {
@@ -212,23 +150,16 @@ public class TestTaskStage extends TaskTestBase {
     _baseAccessor.remove(newPath, AccessOption.PERSISTENT);
   }
 
-  private void checkForIdealStateAndContextRemoval(String workflow, String job) throws Exception {
+  private void checkForIdealStateAndContextRemoval(String workflow, String job) {
+    // IdealState
+    Assert.assertFalse(
+        _baseAccessor.exists(_keyBuilder.idealStates(job).getPath(), AccessOption.PERSISTENT));
+
     // JobContexts in old ZNode path
     String oldPath =
         String.format("/%s/PROPERTYSTORE/TaskRebalancer/%s/Context", CLUSTER_NAME, job);
     String newPath = _keyBuilder.jobContextZNode(workflow, job).getPath();
-
-    Assert.assertTrue(TestHelper.verify(
-        () -> !_baseAccessor.exists(_keyBuilder.idealStates(job).getPath(), AccessOption.PERSISTENT)
-            && !_baseAccessor.exists(oldPath, AccessOption.PERSISTENT) && !_baseAccessor
-            .exists(newPath, AccessOption.PERSISTENT), 120000));
-  }
-
-  private void checkForIdealStateAndContextRemoval(String workflow) throws Exception {
-    Assert.assertTrue(TestHelper.verify(() ->
-            !_baseAccessor.exists(_keyBuilder.idealStates(workflow).getPath(), AccessOption.PERSISTENT)
-                && !_baseAccessor
-                .exists(_keyBuilder.workflowContextZNode(workflow).getPath(), AccessOption.PERSISTENT),
-        120000));
+    Assert.assertFalse(_baseAccessor.exists(oldPath, AccessOption.PERSISTENT));
+    Assert.assertFalse(_baseAccessor.exists(newPath, AccessOption.PERSISTENT));
   }
 }

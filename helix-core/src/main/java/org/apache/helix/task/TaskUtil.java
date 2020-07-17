@@ -735,58 +735,24 @@ public class TaskUtil {
       for (String job : workflowConfig.getJobDag().getAllNodes()) {
         JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
         JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
-        if (isJobExpired(job, jobConfig, jobContext, jobStates.get(job))) {
+        if (jobConfig == null) {
+          LOG.error(String.format(
+              "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
+              job, workflowConfig.getWorkflowId()));
+          // Add the job name to expiredJobs so that purge operation will be tried again on this job
           expiredJobs.add(job);
+          continue;
+        }
+        long expiry = jobConfig.getExpiry();
+        if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
+          if (jobContext.getFinishTime() != WorkflowContext.UNFINISHED
+              && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
+            expiredJobs.add(job);
+          }
         }
       }
     }
     return expiredJobs;
-  }
-
-  /**
-   * Based on a workflow's config or context, create a set of jobs that are either expired, which
-   * means they are COMPLETED and have passed their expiration time, or don't have JobConfigs,
-   * meaning that the job might have been deleted manually from the a job queue, or is left in the
-   * DAG due to a failed clean-up attempt from last purge. The difference between this function and
-   * getExpiredJobs() is that this function gets JobConfig and JobContext from a
-   * WorkflowControllerDataProvider instead of Zk.
-   * @param workflowControllerDataProvider
-   * @param workflowConfig
-   * @param workflowContext
-   * @return
-   */
-  public static Set<String> getExpiredJobsFromCache(
-      WorkflowControllerDataProvider workflowControllerDataProvider, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
-    Set<String> expiredJobs = new HashSet<>();
-    Map<String, TaskState> jobStates = workflowContext.getJobStates();
-    for (String job : workflowConfig.getJobDag().getAllNodes()) {
-      JobConfig jobConfig = workflowControllerDataProvider.getJobConfig(job);
-      JobContext jobContext = workflowControllerDataProvider.getJobContext(job);
-      if (isJobExpired(job, jobConfig, jobContext, jobStates.get(job))) {
-        expiredJobs.add(job);
-      }
-    }
-    return expiredJobs;
-  }
-
-  /*
-   * Checks if a job is expired and should be purged. This includes a special case when jobConfig
-   * is null. That happens when a job might have been deleted manually from the a job queue, or is
-   * left in the DAG due to a failed clean-up attempt from last purge.
-   */
-  private static boolean isJobExpired(String jobName, JobConfig jobConfig, JobContext jobContext,
-      TaskState jobState) {
-    if (jobConfig == null) {
-      LOG.warn(
-          "Job {} exists in JobDAG but JobConfig is missing! It's treated as expired and will be purged.",
-          jobName);
-      return true;
-    }
-    long expiry = jobConfig.getExpiry();
-    return jobContext != null && jobState == TaskState.COMPLETED
-        && jobContext.getFinishTime() != WorkflowContext.UNFINISHED
-        && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry;
   }
 
   /**
@@ -1011,71 +977,72 @@ public class TaskUtil {
   }
 
   /**
-   * Clean up all jobs that are marked as expired.
+   * Clean up all jobs that are COMPLETED and passes its expiry time.
+   * @param workflowConfig
+   * @param workflowContext
    */
-  public static void purgeExpiredJobs(String workflow, Set<String> expiredJobs,
-      HelixManager manager, RebalanceScheduler rebalanceScheduler) {
-    Set<String> failedJobRemovals = new HashSet<>();
-    for (String job : expiredJobs) {
-      if (!TaskUtil
-          .removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(), job)) {
-        failedJobRemovals.add(job);
-        LOG.warn("Failed to clean up expired and completed jobs from workflow {}!", workflow);
-      }
-      rebalanceScheduler.removeScheduledRebalance(job);
+  public static void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext, HelixManager manager,
+      RebalanceScheduler rebalanceScheduler) {
+    if (workflowContext == null) {
+      LOG.warn(String.format("Workflow %s context does not exist!", workflow));
+      return;
     }
-
-    // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
-    // removal will be tried again at next purge
-    expiredJobs.removeAll(failedJobRemovals);
-
-    if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs, true)) {
-      LOG.warn("Error occurred while trying to remove jobs {} from the workflow {}!", expiredJobs,
-          workflow);
-    }
-
-    if (expiredJobs.size() > 0) {
-      // Update workflow context will be in main pipeline not here. Otherwise, it will cause
-      // concurrent write issue. It is possible that jobs got purged but there is no event to
-      // trigger the pipeline to clean context.
-      HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      List<String> resourceConfigs =
-          accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
-      if (resourceConfigs.size() > 0) {
-        RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
+    long purgeInterval = workflowConfig.getJobPurgeInterval();
+    long currentTime = System.currentTimeMillis();
+    final Set<String> expiredJobs = Sets.newHashSet();
+    if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
+      expiredJobs.addAll(TaskUtil.getExpiredJobs(manager.getHelixDataAccessor(),
+          manager.getHelixPropertyStore(), workflowConfig, workflowContext));
+      if (expiredJobs.isEmpty()) {
+        LOG.info("No job to purge for the queue " + workflow);
       } else {
-        LOG.warn("No resource config to trigger rebalance for clean up contexts for {}!",
-            expiredJobs);
+        LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
+        Set<String> failedJobRemovals = new HashSet<>();
+        for (String job : expiredJobs) {
+          if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
+              job)) {
+            failedJobRemovals.add(job);
+            LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
+          }
+          rebalanceScheduler.removeScheduledRebalance(job);
+        }
+
+        // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
+        // removal will be tried again at next purge
+        expiredJobs.removeAll(failedJobRemovals);
+
+        if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs,
+            true)) {
+          LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs
+              + " from the workflow " + workflow);
+        }
+
+        if (expiredJobs.size() > 0) {
+          // Update workflow context will be in main pipeline not here. Otherwise, it will cause
+          // concurrent write issue. It is possible that jobs got purged but there is no event to
+          // trigger the pipeline to clean context.
+          HelixDataAccessor accessor = manager.getHelixDataAccessor();
+          List<String> resourceConfigs =
+              accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+          if (resourceConfigs.size() > 0) {
+            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
+          } else {
+            LOG.warn(
+                "No resource config to trigger rebalance for clean up contexts for" + expiredJobs);
+          }
+        }
       }
     }
+    setNextJobPurgeTime(workflow, currentTime, purgeInterval, rebalanceScheduler, manager);
   }
 
-  /**
-   * The function that removes IdealStates and workflow contexts of the workflows that need to be
-   * deleted.
-   * @param toBePurgedWorkflows
-   * @param manager
-   */
-  public static void workflowGarbageCollection(final Set<String> toBePurgedWorkflows,
-      final HelixManager manager) {
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
-
-    for (String workflowName : toBePurgedWorkflows) {
-      LOG.warn(
-          "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
-          workflowName);
-
-      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
-      if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
-        LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
-            workflowName);
-        continue;
-      }
-
-      if (!removeWorkflowContext(propertyStore, workflowName)) {
-        LOG.warn("Error occurred while trying to remove workflow context for {}.", workflowName);
-      }
+  private static void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval,
+      RebalanceScheduler rebalanceScheduler, HelixManager manager) {
+    long nextPurgeTime = currentTime + purgeInterval;
+    long currentScheduledTime = rebalanceScheduler.getRebalanceTime(workflow);
+    if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
+      rebalanceScheduler.scheduleRebalance(manager, workflow, nextPurgeTime);
     }
   }
 }

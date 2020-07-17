@@ -256,12 +256,10 @@ public class CurrentStateOutput {
     return getStateMessage(resourceName, partition, instanceName, _pendingMessageMap);
   }
 
-  public Set<Message> getStaleMessages(String instanceName) {
-    if (_staleMessageMap.containsKey(instanceName)) {
-      Map<String, Message> staleMessageMap =  _staleMessageMap.get(instanceName);
-      if (staleMessageMap != null) {
-        return new HashSet<>(staleMessageMap.values());
-      }
+  public Set<Message> getStaleMessagesByInstance(String instanceName) {
+    Map<String, Message> staleMessageMap = _staleMessageMap.get(instanceName);
+    if (staleMessageMap != null) {
+      return new HashSet<>(staleMessageMap.values());
     }
     return Collections.emptySet();
   }

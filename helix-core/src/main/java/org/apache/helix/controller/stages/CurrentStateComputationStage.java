@@ -64,6 +64,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     _eventId = event.getEventId();
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
 
+    // TODO: remove the explicit checking of type, since this could potentially complicates
+    //  pipeline separation
     if (cache instanceof WorkflowControllerDataProvider) {
       _isTaskFrameworkPipeline = true;
     }
@@ -94,8 +96,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
       Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), currentStateOutput,
-          relayMessages.values(), resourceMap, existingStaleMessages);
+      updatePendingMessages(instance, messages.values(), relayMessages.values(), currentStateOutput,
+          resourceMap);
       cache.setStaleMessages(currentStateOutput.getStaleMessageMap());
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
@@ -113,16 +115,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
   // update all pending messages to CurrentStateOutput.
   private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
-      CurrentStateOutput currentStateOutput, Collection<Message> pendingRelayMessages,
-      Map<String, Resource> resourceMap, Map<String, Map<String, Message>> existingStaleMessages) {
+      Collection<Message> pendingRelayMessages, CurrentStateOutput currentStateOutput,
+      Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
       // ignore existing stale messages
-      if (existingStaleMessages.containsKey(instanceName) && existingStaleMessages.get(instanceName)
-          .containsKey(message.getMsgId())) {
+      if (currentStateOutput.getStaleMessageMap().containsKey(instanceName) && currentStateOutput
+          .getStaleMessageMap().get(instanceName).containsKey(message.getMsgId())) {
         continue;
       }
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())

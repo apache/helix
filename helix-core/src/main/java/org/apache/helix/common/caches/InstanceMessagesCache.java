@@ -55,6 +55,8 @@ public class InstanceMessagesCache {
   // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
 
+  // maintain a cache of stale messages
+  // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _staleMessageCache = Maps.newHashMap();
 
   // maintain a set of valid pending P2P messages.

@@ -155,7 +155,19 @@ public class InstanceMessagesCache {
     return true;
   }
 
+  // filter stale message cache by message cache to remove deleted messages
   public Map<String, Map<String, Message>> getStaleMessageCache() {
+    for (String instanceName : _staleMessageCache.keySet()) {
+      for (String messageId : _staleMessageCache.get(instanceName).keySet()) {
+        if (!_messageCache.getOrDefault(instanceName, Collections.emptyMap())
+            .containsKey(messageId)) {
+          _staleMessageCache.get(instanceName).remove(messageId);
+          if (_staleMessageCache.get(instanceName).size() == 0) {
+            _staleMessageCache.remove(instanceName);
+          }
+        }
+      }
+    }
     return _staleMessageCache;
   }
 

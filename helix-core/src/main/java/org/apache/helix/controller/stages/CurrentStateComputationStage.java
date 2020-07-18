@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -91,7 +92,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
 
-      Map<String, Map<String, Message>> existingStaleMessages = cache.getStaleMessages();
+      Map<String, Map<String, Message>> existingStaleMessages =
+          new HashMap<>(cache.getStaleMessages());
       currentStateOutput.setStaleMessageMap(existingStaleMessages);
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);

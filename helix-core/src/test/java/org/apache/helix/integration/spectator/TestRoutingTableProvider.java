@@ -186,7 +186,8 @@ public class TestRoutingTableProvider extends ZkTestBase {
   public void testInvocation() throws Exception {
     MockRoutingTableChangeListener routingTableChangeListener =
         new TestRoutingTableProvider().new MockRoutingTableChangeListener();
-    _routingTableProvider_default.addRoutingTableChangeListener(routingTableChangeListener, null);
+    _routingTableProvider_default
+        .addRoutingTableChangeListener(routingTableChangeListener, null, true);
 
     // Initial add listener should trigger the first execution of the
     // listener callbacks
@@ -237,9 +238,10 @@ public class TestRoutingTableProvider extends ZkTestBase {
     Map<String, Set<String>> context = new HashMap<>();
     context.put("MASTER", Sets.newSet(_instances.get(0)));
     context.put("SLAVE", Sets.newSet(_instances.get(1), _instances.get(2)));
-    _routingTableProvider_default.addRoutingTableChangeListener(routingTableChangeListener, context);
     _routingTableProvider_default
-        .addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null);
+        .addRoutingTableChangeListener(routingTableChangeListener, context, true);
+    _routingTableProvider_default
+        .addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null, true);
     // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);

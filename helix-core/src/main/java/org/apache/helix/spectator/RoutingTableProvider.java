@@ -403,6 +403,7 @@ public class RoutingTableProvider
     return snapshots;
   }
 
+
   /**
    * Add RoutingTableChangeListener with user defined context
    * @param routingTableChangeListener
@@ -410,31 +411,44 @@ public class RoutingTableProvider
    */
   public void addRoutingTableChangeListener(
       final RoutingTableChangeListener routingTableChangeListener, Object context) {
+    addRoutingTableChangeListener(routingTableChangeListener, context, false);
+  }
+
+  /**
+   * Add RoutingTableChangeListener with user defined context
+   * @param routingTableChangeListener
+   * @param context user defined context
+   * @param doInit whether to trigger the initial callback during adding listener
+   */
+  public void addRoutingTableChangeListener(
+      final RoutingTableChangeListener routingTableChangeListener, Object context, boolean doInit) {
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
     logger.info("Attach RoutingTableProviderChangeListener {}",
         routingTableChangeListener.getClass().getName());
-    if (_sourceDataTypeMap.isEmpty()) {
-      routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
-    } else {
-      for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
-        switch (propertyType) {
-          case EXTERNALVIEW:
-          case TARGETEXTERNALVIEW:
-          case CURRENTSTATES:
-            routingTableChangeListener
-                .onRoutingTableChange(getRoutingTableSnapshot(propertyType), context);
-            break;
-          case CUSTOMIZEDVIEW:
-            for (String customizedStateType : _sourceDataTypeMap
-                .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
-              routingTableChangeListener.onRoutingTableChange(
-                  getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, customizedStateType),
-                  context);
-            }
-            break;
-          default:
-            logger.warn("Unsupported source data type: {}, stop triggering callback!",
-                propertyType);
+    if (doInit) {
+      if (_sourceDataTypeMap.isEmpty()) {
+        routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
+      } else {
+        for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
+          switch (propertyType) {
+            case EXTERNALVIEW:
+            case TARGETEXTERNALVIEW:
+            case CURRENTSTATES:
+              routingTableChangeListener
+                  .onRoutingTableChange(getRoutingTableSnapshot(propertyType), context);
+              break;
+            case CUSTOMIZEDVIEW:
+              for (String customizedStateType : _sourceDataTypeMap
+                  .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
+                routingTableChangeListener.onRoutingTableChange(
+                    getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, customizedStateType),
+                    context);
+              }
+              break;
+            default:
+              logger.warn("Unsupported source data type: {}, stop triggering callback!",
+                  propertyType);
+          }
         }
       }
     }

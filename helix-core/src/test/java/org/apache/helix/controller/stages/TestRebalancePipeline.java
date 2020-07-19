@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -61,8 +62,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(),
-        new ResourceControllerDataProvider());
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
+    dataCache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
@@ -110,7 +112,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // round2: updates node0 currentState to SLAVE but keep the
     // message, make sure controller should not send S->M until removal is done
-    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_1",
+    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
         "SLAVE");
 
     runPipeline(event, dataRefresh);

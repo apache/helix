@@ -953,13 +953,13 @@ public class ConfigAccessor {
    *
    * @param clusterName
    * @param instanceName
-   * @param newInstanceConfig
+   * @param instanceConfig
    *
    * @return
    */
   public void updateInstanceConfig(String clusterName, String instanceName,
-      InstanceConfig newInstanceConfig) {
-    updateInstanceConfig(clusterName, instanceName, newInstanceConfig, false);
+      InstanceConfig instanceConfig) {
+    updateInstanceConfig(clusterName, instanceName, instanceConfig, false);
   }
 
   private void updateInstanceConfig(String clusterName, String instanceName,
@@ -1011,18 +1011,4 @@ public class ConfigAccessor {
     }
   }
 
-  /**
-   * Validate if the topology related settings (Domain or ZoneId) in the given instanceConfig
-   * are valid and align with current clusterConfig.
-   * This function should be called when instance added to cluster or caller updates instanceConfig.
-   *
-   * @throws IllegalArgumentException
-   */
-  public static boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
-      String instanceName, InstanceConfig instanceConfig) throws IllegalArgumentException{
-    //IllegalArgumentException will be thrown here if the input is not valid.
-    Topology.computeInstanceTopologyMap(clusterConfig, instanceName, instanceConfig,
-        false /*earlyQuitForFaultZone*/);
-    return true;
-  }
 }

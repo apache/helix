@@ -207,9 +207,9 @@ public class ParticipantManager {
       }
       _helixAdmin.addInstance(_clusterName, instanceConfig);
     } else {
-      ConfigAccessor.validateTopologySettingInInstanceConfig(
-          _configAccessor.getClusterConfig(_clusterName), _instanceName,
-          _configAccessor.getInstanceConfig(_clusterName,_instanceName));
+      _configAccessor.getInstanceConfig(_clusterName, _instanceName)
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
     }
 
 

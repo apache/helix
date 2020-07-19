@@ -290,7 +290,6 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @Path("configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String commandStr,
-      @DefaultValue("false") @QueryParam("doSanityCheck") boolean doSanityCheck,
       String content) {
     Command command;
     if (commandStr == null || commandStr.isEmpty()) {
@@ -313,19 +312,15 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     InstanceConfig instanceConfig = new InstanceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
 
-    if (doSanityCheck && (command == Command.delete || command == Command.update)) {
-      try {
-        validateDeltaInstanceConfigForUpdate(clusterId, instanceName, configAccessor,
-            instanceConfig, command == Command.delete);
-      } catch (IllegalArgumentException ex) {
-        LOG.error(
-            String.format("Error in update instance config for instance: %s", instanceName),
-            ex);
-        return serverError(ex);
-      }
-    }
-
     try {
+      /*
+       * Even if the instance is disabled, non-valid instance topology config will cause rebalance
+       * failure. We are doing the check whenever user updates InstanceConfig.
+       */
+      if (command == Command.delete || command == Command.update) {
+        validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+            instanceConfig, command == Command.delete);
+      }
       switch (command) {
         case update:
           // The new instanceConfig will be merged with existing one
@@ -340,6 +335,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         default:
           return badRequest(String.format("Unsupported command: %s", command));
       }
+    } catch (IllegalArgumentException ex) {
+      LOG.error(String.format("Invalid topology setting for Instance : %s. Fail the config update",
+          instanceName), ex);
+      return serverError(ex);
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
@@ -561,7 +560,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
   }
 
-  private boolean validateDeltaInstanceConfigForUpdate(String clusterName, String instanceName,
+  private boolean validateDeltaTopologySettingInInstanceConfig(String clusterName, String instanceName,
       ConfigAccessor configAccessor, InstanceConfig newInstanceConfig, boolean isDelete)
       throws IllegalArgumentException {
     InstanceConfig originalInstanceConfigCopy =
@@ -575,8 +574,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       originalInstanceConfigCopy.getRecord().update(newInstanceConfig.getRecord());
     }
 
-    return ConfigAccessor
+    return originalInstanceConfigCopy
         .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
-            instanceName, originalInstanceConfigCopy);
+            instanceName);
   }
 }

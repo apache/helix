@@ -112,6 +112,22 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
 
+    // Add another state transition message which is stale
+    message = new Message(Message.MessageType.STATE_TRANSITION, "msg2");
+    message.setFromState("SLAVE");
+    message.setToState("OFFLINE");
+    message.setResourceName("testResourceName");
+    message.setPartitionName("testResourceName_1");
+    message.setTgtName("localhost_3");
+    message.setTgtSessionId("session_3");
+    accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
+
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, stage);
+    CurrentStateOutput output4 = event.getAttribute(AttributeName.CURRENT_STATE.name());
+    AssertJUnit.assertEquals(output4.getStaleMessageMap().size(), 1);
+    AssertJUnit.assertTrue(output4.getStaleMessageMap().containsKey("localhost_3"));
+    AssertJUnit.assertTrue(output4.getStaleMessageMap().get("localhost_3").containsKey("msg2"));
   }
 
 }

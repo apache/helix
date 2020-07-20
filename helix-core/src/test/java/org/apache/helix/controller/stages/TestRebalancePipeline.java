@@ -63,6 +63,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
+    // The AsyncTasksThreadPool needs to be set, otherwise to start pending message cleanup job
+    // will throw NPE and stop the pipeline.
     dataCache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
 

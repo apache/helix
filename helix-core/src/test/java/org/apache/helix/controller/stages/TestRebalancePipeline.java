@@ -64,7 +64,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
     // The AsyncTasksThreadPool needs to be set, otherwise to start pending message cleanup job
-    // will throw NPE and stop the pipeline.
+    // will throw NPE and stop the pipeline. Refer to: https://github.com/apache/helix/issues/1156
     dataCache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
 

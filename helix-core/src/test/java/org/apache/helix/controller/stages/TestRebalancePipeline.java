@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.helix.HelixAdmin;
@@ -46,10 +47,17 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 public class TestRebalancePipeline extends ZkUnitTestBase {
   private final String _className = getShortClassName();
+  private ExecutorService _executorService;
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    _executorService.shutdown();
+  }
 
   @Test
   public void testDuplicateMsg() {
@@ -65,7 +73,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
     // The AsyncTasksThreadPool needs to be set, otherwise to start pending message cleanup job
     // will throw NPE and stop the pipeline. TODO: https://github.com/apache/helix/issues/1158
-    dataCache.setAsyncTasksThreadPool(Executors.newSingleThreadExecutor());
+    _executorService = Executors.newSingleThreadExecutor();
+    dataCache.setAsyncTasksThreadPool(_executorService);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
 
     final String resourceName = "testResource_dup";

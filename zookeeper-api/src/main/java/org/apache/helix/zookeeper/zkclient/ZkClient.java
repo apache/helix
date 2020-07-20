@@ -74,9 +74,6 @@ public class ZkClient implements Watcher {
   private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
   private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
-  private static final String MSG_ID_ATTRIBUTE = "MSG_ID";
-  private static final String MSG_SRC_SESSION_ID_ATTRIBUTE = "SRC_SESSION_ID";
-
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
@@ -2245,19 +2242,12 @@ public class ZkClient implements Watcher {
       return null;
     }
 
-    ZNRecord record;
     try {
-      record = (ZNRecord) data;
+      return ((ZNRecord) data).getExpectedSessionId();
     } catch (ClassCastException e) {
-      LOG.debug("Failed to parse expected session id!", e);
+      LOG.debug("Failed to parse expected session id because data object is not ZNRecord!");
       return null;
     }
-
-    // Check it is a message and get src session id as expected session id for message.
-    if (record.getSimpleField(MSG_ID_ATTRIBUTE) != null) {
-      return record.getSimpleField(MSG_SRC_SESSION_ID_ATTRIBUTE);
-    }
-    return null;
   }
 
   // operations to update monitor's counters

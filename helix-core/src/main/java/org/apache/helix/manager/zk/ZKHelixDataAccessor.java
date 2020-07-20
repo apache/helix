@@ -508,8 +508,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       PropertyType type = key.getType();
       String path = key.getPath();
       paths.add(path);
-      HelixProperty value = children.get(i);
-      records.add(value.getRecord());
+
+      ZNRecord record = children.get(i).getRecord();
+      populateExpectedSession(record);
+      records.add(record);
+
       options = constructOptions(type);
     }
     return _baseDataAccessor.createChildren(paths, records, options);
@@ -598,5 +601,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
+  }
+
+  private void populateExpectedSession(ZNRecord record) {
+    // Check it is a message and get src session id as expected session id in znrecord.
+    if (record.getSimpleField(Message.Attributes.MSG_ID.toString()) != null) {
+      record.setExpectedSessionId(
+          record.getSimpleField(Message.Attributes.SRC_SESSION_ID.toString()));
+    }
   }
 }

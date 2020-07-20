@@ -425,7 +425,7 @@ public class RoutingTableProvider
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
     logger.info("Attach RoutingTableProviderChangeListener {}",
         routingTableChangeListener.getClass().getName());
-    if (doInit) {
+    if (doInit && _sourceDataTypeMap != null) {
       if (_sourceDataTypeMap.isEmpty()) {
         routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
       } else {

@@ -557,6 +557,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return Collections.emptySet();
   }
 
+  public void addStaleMessage(String instanceName, Message staleMessage) {
+    _instanceMessagesCache.addStaleMessage(instanceName, staleMessage);
+  }
+
   /**
    * Provides a list of current outstanding pending relay messages on a given instance.
    * @param instanceName

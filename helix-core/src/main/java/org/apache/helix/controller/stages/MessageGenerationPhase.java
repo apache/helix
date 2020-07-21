@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +110,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     // Asynchronously GC pending messages if necessary
     if (!messagesToCleanUp.isEmpty()) {
       schedulePendingMessageCleanUp(messagesToCleanUp, cache.getAsyncTasksThreadPool(),
-          manager.getHelixDataAccessor(), cache.getStaleMessages());
+          manager.getHelixDataAccessor());
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
   }
@@ -364,7 +363,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
    */
   private void schedulePendingMessageCleanUp(
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
-      final HelixDataAccessor accessor, Map<String, Map<String, Message>> staleMessages) {
+      final HelixDataAccessor accessor) {
     workerPool.submit(new Callable<Object>() {
       @Override
       public Object call() {
@@ -374,11 +373,6 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
             if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
               LogUtil.logInfo(logger, _eventId, String
                   .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
-              staleMessages.getOrDefault(msg.getTgtName(), Collections.emptyMap())
-                  .remove(msg.getMsgId());
-              if (staleMessages.get(msg.getTgtName()).size() == 0) {
-                staleMessages.remove(msg.getTgtName());
-              }
             }
           }
         }

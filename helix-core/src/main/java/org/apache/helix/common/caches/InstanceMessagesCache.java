@@ -153,11 +153,17 @@ public class InstanceMessagesCache {
         "END: InstanceMessagesCache.refresh(), {} of Messages read from ZooKeeper. took {} ms. ",
         newMessageKeys.size(), (System.currentTimeMillis() - startTime));
 
+    refreshStaleMessageCache();
     return true;
   }
 
   public Map<String, Map<String, Message>> getStaleMessageCache() {
     return _staleMessageCache;
+  }
+
+  public void addStaleMessage(String instanceName, Message staleMessage) {
+    _staleMessageCache.putIfAbsent(instanceName, new HashMap<>());
+    _staleMessageCache.get(instanceName).putIfAbsent(staleMessage.getMsgId(), staleMessage);
   }
 
   /**
@@ -523,6 +529,22 @@ public class InstanceMessagesCache {
     }
     _relayMessageCache.get(instanceName).put(relayMessage.getId(), relayMessage);
     _relayHostMessageCache.put(relayMessage.getMsgId(), hostMessage);
+  }
+
+  // filter stale message cache by message cache to remove deleted messages
+  private void refreshStaleMessageCache() {
+    LOG.info("Start to refresh stale message cache");
+    for (String instanceName : _staleMessageCache.keySet()) {
+      for (String messageId : _staleMessageCache.get(instanceName).keySet()) {
+        if (!_messageCache.getOrDefault(instanceName, Collections.emptyMap())
+            .containsKey(messageId)) {
+          _staleMessageCache.get(instanceName).remove(messageId);
+          if (_staleMessageCache.get(instanceName).size() == 0) {
+            _staleMessageCache.remove(instanceName);
+          }
+        }
+      }
+    }
   }
 
   @Override public String toString() {

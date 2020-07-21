@@ -21,9 +21,9 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
@@ -92,11 +92,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
 
-      Map<String, Map<String, Message>> existingStaleMessages = cache.getStaleMessages();
+      Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
       Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), relayMessages.values(),
+      updatePendingMessages(instance, cache, messages.values(), relayMessages.values(),
           existingStaleMessages, currentStateOutput, resourceMap);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
@@ -113,18 +113,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   }
 
   // update all pending messages to CurrentStateOutput.
-  private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
-      Collection<Message> pendingRelayMessages,
-      Map<String, Map<String, Message>> existingStaleMessages,
-      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
+  private void updatePendingMessages(LiveInstance instance, BaseControllerDataProvider cache,
+      Collection<Message> pendingMessages, Collection<Message> pendingRelayMessages,
+      Set<Message> existingStaleMessages, CurrentStateOutput currentStateOutput,
+      Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
       // ignore existing stale messages
-      if (existingStaleMessages.getOrDefault(instanceName, Collections.emptyMap())
-          .containsKey(message.getMsgId())) {
+      if (existingStaleMessages.contains(message)) {
         continue;
       }
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
@@ -153,8 +152,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           if (_isTaskFrameworkPipeline || !isStaleMessage(message, currentState)) {
             setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
           } else {
-            existingStaleMessages.putIfAbsent(instanceName, new HashMap<>());
-            existingStaleMessages.get(instanceName).putIfAbsent(message.getMsgId(), message);
+            cache.addStaleMessage(instanceName, message);
           }
         } else {
           LogUtil.logInfo(LOG, _eventId, String

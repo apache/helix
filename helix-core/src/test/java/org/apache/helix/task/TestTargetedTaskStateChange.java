@@ -93,7 +93,7 @@ public class TestTargetedTaskStateChange {
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
     when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(true);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateOrMessageChange()).thenReturn(true);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())
@@ -130,7 +130,7 @@ public class TestTargetedTaskStateChange {
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
     when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(false);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateOrMessageChange()).thenReturn(false);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())

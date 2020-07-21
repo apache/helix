@@ -152,6 +152,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
   private Future<?> _periodicTriggerFuture;
   private volatile long _lastInvokeTime;
+  private final Object triggerTaskLock = new Object();
 
   // TODO: make this be per _manager or per _listener instead of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
@@ -242,6 +243,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     @Override
     public void run() {
+      if (!isReady()) {
+        return;
+      }
       long currentTime = System.currentTimeMillis();
       long remainingTime = _lastInvokeTime + _triggerInterval - currentTime;
 
@@ -262,12 +266,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       } else {
         scheduleNewTask(remainingTime);
       }
-      logger.info("Exiting trigger task.");
     }
 
-    private synchronized void scheduleNewTask(long waitTime) {
-      _periodicTriggerFuture = PERIODIC_TRIGGER_EXECUTOR
-          .schedule(new TriggerTask(_triggerInterval), waitTime, TimeUnit.MILLISECONDS);
+    private void scheduleNewTask(long waitTime) {
+      synchronized (triggerTaskLock) {
+        _periodicTriggerFuture = PERIODIC_TRIGGER_EXECUTOR
+            .schedule(new TriggerTask(_triggerInterval), waitTime, TimeUnit.MILLISECONDS);
+      }
     }
   }
 
@@ -773,7 +778,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void init() {
     logger.info("initializing CallbackHandler: {}, content: {} ", this.toString(), getContent());
 
-    if (_batchModeEnabled || _periodicTriggerEnabled) {
+    if (_batchModeEnabled) {
       synchronized (this) {
         if (_batchCallbackProcessor != null) {
           _batchCallbackProcessor.resetEventQueue();
@@ -783,8 +788,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         }
       }
     }
-
-    initTriggerTask(_periodicTriggerInterval);
     updateNotificationTime(System.nanoTime());
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -796,6 +799,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       String msg = "Exception while invoking init callback for listener:" + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
     }
+    initTriggerTask(_periodicTriggerInterval);
   }
 
   @Override
@@ -896,6 +900,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", this.toString(),
         isShutdown);
     try {
+      shutDownTriggerTask();
       _ready = false;
       synchronized (this) {
         if (_batchCallbackProcessor != null) {
@@ -906,7 +911,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             _batchCallbackProcessor.resetEventQueue();
           }
         }
-        shutDownTriggerTask();
       }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
@@ -945,8 +949,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * Used to shut down a periodic triggered task
    */
   private void shutDownTriggerTask() {
-    if (_periodicTriggerFuture != null) {
-      _periodicTriggerFuture.cancel(true);
+    synchronized (triggerTaskLock) {
+      if (_periodicTriggerFuture != null) {
+        _periodicTriggerFuture.cancel(true);
+      }
     }
   }
 

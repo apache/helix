@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -73,6 +74,12 @@ public abstract class AbstractTaskDispatcher {
       Map<Integer, PartitionAssignment> paMap, TargetState jobTgtState,
       Set<Integer> skippedPartitions, WorkflowControllerDataProvider cache,
       Map<String, Set<Integer>> tasksToDrop) {
+
+    // If a job is in one of the following states and its tasks are in RUNNING states, the tasks
+    // will be aborted.
+    Set<TaskState> jobStatesForAbortingTasks =
+        new HashSet<>(Arrays.asList(TaskState.TIMING_OUT, TaskState.TIMED_OUT, TaskState.FAILING,
+            TaskState.FAILED, TaskState.ABORTED));
 
     // Get AssignableInstanceMap for releasing resources for tasks in terminal states
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
@@ -185,17 +192,11 @@ public abstract class AbstractTaskDispatcher {
         switch (currState) {
         case RUNNING: {
           TaskPartitionState nextState = TaskPartitionState.RUNNING;
-          if (jobState == TaskState.TIMING_OUT) {
+          if (jobStatesForAbortingTasks.contains(jobState)) {
             nextState = TaskPartitionState.TASK_ABORTED;
           } else if (jobTgtState == TargetState.STOP) {
             nextState = TaskPartitionState.STOPPED;
-          } else if (jobState == TaskState.ABORTED || jobState == TaskState.FAILED
-              || jobState == TaskState.FAILING || jobState == TaskState.TIMED_OUT) {
-            // Drop tasks if parent job is not in progress
-            paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
-            break;
           }
-
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
           assignedPartitions.get(instance).add(pId);
           if (LOG.isDebugEnabled()) {
@@ -548,8 +549,8 @@ public abstract class AbstractTaskDispatcher {
       Set<Integer> allPartitions, final long currentTime, Collection<String> liveInstances) {
 
     // See if there was LiveInstance change and cache LiveInstances from this iteration of pipeline
-    boolean existsLiveInstanceOrCurrentStateChange =
-        cache.getExistsLiveInstanceOrCurrentStateChange();
+    boolean existsLiveInstanceOrCurrentStateOrMessageChangeChange =
+        cache.getExistsLiveInstanceOrCurrentStateOrMessageChange();
 
     // The excludeSet contains the set of task partitions that must be excluded from consideration
     // when making any new assignments.
@@ -560,7 +561,7 @@ public abstract class AbstractTaskDispatcher {
       excludeSet.addAll(assignedSet);
     }
     addCompletedTasks(excludeSet, jobCtx, allPartitions);
-    addGiveupPartitions(excludeSet, jobCtx, allPartitions, jobCfg);
+    addPartitionsReachedMaximumRetries(excludeSet, jobCtx, allPartitions, jobCfg);
     excludeSet.addAll(skippedPartitions);
     Set<Integer> partitionsWithDelay = TaskUtil.getNonReadyPartitions(jobCtx, currentTime);
     excludeSet.addAll(partitionsWithDelay);
@@ -576,7 +577,8 @@ public abstract class AbstractTaskDispatcher {
     Set<Integer> partitionsToRetryOnLiveInstanceChangeForTargetedJob = new HashSet<>();
     // If the job is a targeted job, in case of live instance change, we need to assign
     // non-terminal tasks so that they could be re-scheduled
-    if (!TaskUtil.isGenericTaskJob(jobCfg) && existsLiveInstanceOrCurrentStateChange) {
+    if (!TaskUtil.isGenericTaskJob(jobCfg)
+        && existsLiveInstanceOrCurrentStateOrMessageChangeChange) {
       // This job is a targeted job, so FixedAssignmentCalculator will be used
       // There has been a live instance change. Must re-add incomplete task partitions to be
       // re-assigned and re-scheduled
@@ -612,7 +614,8 @@ public abstract class AbstractTaskDispatcher {
     }
 
     // If this is a targeted job and if there was a live instance change
-    if (!TaskUtil.isGenericTaskJob(jobCfg) && existsLiveInstanceOrCurrentStateChange) {
+    if (!TaskUtil.isGenericTaskJob(jobCfg)
+        && existsLiveInstanceOrCurrentStateOrMessageChangeChange) {
       // Drop current jobs only if they are assigned to a different instance, regardless of
       // the jobCfg.isRebalanceRunningTask() setting
       dropRebalancedRunningTasks(tgtPartitionAssignments, currentInstanceToTaskAssignments, paMap,
@@ -745,11 +748,26 @@ public abstract class AbstractTaskDispatcher {
     }
   }
 
-  // add all partitions that have been tried maxNumberAttempts
-  protected static void addGiveupPartitions(Set<Integer> set, JobContext ctx,
+  // Add all partitions/tasks that are cannot be retried. These tasks are:
+  // 1- Task is in ABORTED or ERROR state.
+  // 2- Task has just gone to TIMED_OUT, ERROR or DROPPED states and has reached to its
+  // maxNumberAttempts
+  // These tasks determine whether the job needs to FAILED or not.
+  protected static void addGivenUpPartitions(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds, JobConfig cfg) {
     for (Integer pId : pIds) {
       if (isTaskGivenup(ctx, cfg, pId)) {
+        set.add(pId);
+      }
+    }
+  }
+
+  // Add all partitions that have reached their maxNumberAttempts. These tasks should not be
+  // considered for scheduling again.
+  protected static void addPartitionsReachedMaximumRetries(Set<Integer> set, JobContext ctx,
+      Iterable<Integer> pIds, JobConfig cfg) {
+    for (Integer pId : pIds) {
+      if (ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask()) {
         set.add(pId);
       }
     }
@@ -829,7 +847,8 @@ public abstract class AbstractTaskDispatcher {
     if (state == TaskPartitionState.TASK_ABORTED || state == TaskPartitionState.ERROR) {
       return true;
     }
-    if (state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ERROR) {
+    if (state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ERROR
+        || state == TaskPartitionState.DROPPED) {
       return ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask();
     }
     return false;

@@ -312,17 +312,17 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     //             JOB1 JOB2
 
     JobConfig.Builder jobBuilder0 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setTimeoutPerTask(LONG_TIMEOUT).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
             DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 
     JobConfig.Builder jobBuilder1 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setTimeoutPerTask(LONG_TIMEOUT).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
             DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 
     JobConfig.Builder jobBuilder2 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
-        .setTimeoutPerTask(LONG_TIMEOUT).setMaxAttemptsPerTask(1).setWorkflow(workflowName)
+        .setTimeoutPerTask(LONG_TIMEOUT).setWorkflow(workflowName)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, executionTime,
             DelayedStopTask.JOB_DELAY_CANCEL, stopDelay));
 

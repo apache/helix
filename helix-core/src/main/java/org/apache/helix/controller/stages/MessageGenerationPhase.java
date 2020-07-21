@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +110,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     // Asynchronously GC pending messages if necessary
     if (!messagesToCleanUp.isEmpty()) {
       schedulePendingMessageCleanUp(messagesToCleanUp, cache.getAsyncTasksThreadPool(),
-          manager.getHelixDataAccessor(), currentStateOutput.getStaleMessageMap());
+          manager.getHelixDataAccessor());
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
   }
@@ -363,7 +362,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
    */
   private void schedulePendingMessageCleanUp(
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
-      final HelixDataAccessor accessor, Map<String, Map<String, Message>> staleMessageMap) {
+      final HelixDataAccessor accessor) {
     workerPool.submit(new Callable<Object>() {
       @Override
       public Object call() {
@@ -373,11 +372,6 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
             if (accessor.removeProperty(msg.getKey(accessor.keyBuilder(), instanceName))) {
               LogUtil.logInfo(logger, _eventId, String
                   .format("Deleted message %s from instance %s", msg.getMsgId(), instanceName));
-              staleMessageMap.getOrDefault(msg.getTgtName(), Collections.emptyMap())
-                  .remove(msg.getMsgId());
-              if (staleMessageMap.get(msg.getTgtName()).size() == 0) {
-                staleMessageMap.remove(msg.getTgtName());
-              }
             }
           }
         }
@@ -403,11 +397,6 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       // the message is invalid and can be safely deleted immediately.
       return !currentState.equalsIgnoreCase(pendingMsg.getFromState());
     }
-  }
-
-  private boolean shouldCleanUpStaleMessage(Long currentStateTransitionEndTime) {
-    return System.currentTimeMillis() - currentStateTransitionEndTime
-        > DEFAULT_OBSELETE_MSG_PURGE_DELAY;
   }
 
   private Message createStateTransitionMessage(HelixManager manager, Resource resource,

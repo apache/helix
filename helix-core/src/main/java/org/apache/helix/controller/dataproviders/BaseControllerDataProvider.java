@@ -549,7 +549,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   public void setStaleMessages(Map<String, Map<String, Message>> staleMessageMap) {
-    _instanceMessagesCache.setStaleMessageCache(staleMessageMap);
+    _instanceMessagesCache.cacheStaleMessageCache(staleMessageMap);
   }
 
   /**

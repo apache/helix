@@ -173,12 +173,7 @@ public class CurrentStateOutput {
   }
 
   public void setStaleMessageMap(Map<String, Map<String, Message>> staleMessageMap) {
-    _staleMessageMap = staleMessageMap;
-  }
-
-  public void setStaleMessage(String instanceName, Message message) {
-    _staleMessageMap.putIfAbsent(instanceName, new HashMap<>());
-    _staleMessageMap.get(instanceName).putIfAbsent(message.getMsgId(), message);
+    _staleMessageMap = new HashMap<>(staleMessageMap);
   }
 
   private void setStateMessage(String resourceName, Partition partition, String instanceName,

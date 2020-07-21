@@ -94,13 +94,13 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
       Map<String, Map<String, Message>> existingStaleMessages =
           new HashMap<>(cache.getStaleMessages());
-      currentStateOutput.setStaleMessageMap(existingStaleMessages);
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
       Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), relayMessages.values(), currentStateOutput,
-          resourceMap);
-      cache.setStaleMessages(currentStateOutput.getStaleMessageMap());
+      updatePendingMessages(instance, messages.values(), relayMessages.values(),
+          existingStaleMessages, currentStateOutput, resourceMap);
+      currentStateOutput.setStaleMessageMap(existingStaleMessages);
+      cache.setStaleMessages(existingStaleMessages);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
@@ -117,16 +117,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
   // update all pending messages to CurrentStateOutput.
   private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
-      Collection<Message> pendingRelayMessages, CurrentStateOutput currentStateOutput,
-      Map<String, Resource> resourceMap) {
+      Collection<Message> pendingRelayMessages,
+      Map<String, Map<String, Message>> existingStaleMessages,
+      CurrentStateOutput currentStateOutput, Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
       // ignore existing stale messages
-      if (currentStateOutput.getStaleMessageMap().containsKey(instanceName) && currentStateOutput
-          .getStaleMessageMap().get(instanceName).containsKey(message.getMsgId())) {
+      if (existingStaleMessages.getOrDefault(instanceName, Collections.emptyMap())
+          .containsKey(message.getMsgId())) {
         continue;
       }
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
@@ -155,7 +156,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           if (_isTaskFrameworkPipeline || !isStaleMessage(message, currentState)) {
             setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
           } else {
-            setStaleMessage(currentStateOutput, instanceName, message);
+            existingStaleMessages.putIfAbsent(instanceName, new HashMap<>());
+            existingStaleMessages.get(instanceName).putIfAbsent(message.getMsgId(), message);
           }
         } else {
           LogUtil.logInfo(LOG, _eventId, String
@@ -269,11 +271,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         }
       }
     }
-  }
-
-  private void setStaleMessage(CurrentStateOutput currentStateOutput, String instanceName,
-      Message message) {
-    currentStateOutput.setStaleMessage(instanceName, message);
   }
 
   private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,

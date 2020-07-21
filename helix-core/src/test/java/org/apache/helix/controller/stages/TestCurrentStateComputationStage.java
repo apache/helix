@@ -57,8 +57,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(),
-        new ResourceControllerDataProvider());
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -125,9 +125,9 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output4 = event.getAttribute(AttributeName.CURRENT_STATE.name());
-    AssertJUnit.assertEquals(output4.getStaleMessageMap().size(), 1);
-    AssertJUnit.assertTrue(output4.getStaleMessageMap().containsKey("localhost_3"));
-    AssertJUnit.assertTrue(output4.getStaleMessageMap().get("localhost_3").containsKey("msg2"));
+    AssertJUnit.assertEquals(dataCache.getStaleMessages().size(), 1);
+    AssertJUnit.assertTrue(dataCache.getStaleMessages().containsKey("localhost_3"));
+    AssertJUnit.assertTrue(dataCache.getStaleMessages().get("localhost_3").containsKey("msg2"));
   }
 
 }

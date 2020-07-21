@@ -92,15 +92,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
 
-      Map<String, Map<String, Message>> existingStaleMessages =
-          new HashMap<>(cache.getStaleMessages());
+      Map<String, Map<String, Message>> existingStaleMessages = cache.getStaleMessages();
       // update pending messages
       Map<String, Message> messages = cache.getMessages(instanceName);
       Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
       updatePendingMessages(instance, messages.values(), relayMessages.values(),
           existingStaleMessages, currentStateOutput, resourceMap);
-      currentStateOutput.setStaleMessageMap(existingStaleMessages);
-      cache.setStaleMessages(existingStaleMessages);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 

@@ -21,7 +21,6 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,7 +41,6 @@ public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, Message>>> _pendingMessageMap;
   private final Map<String, Map<Partition, Map<String, Message>>> _cancellationMessageMap;
   private final Map<String, Map<Partition, Map<String, Message>>> _pendingRelayMessageMap;
-  private Map<String, Map<String, Message>> _staleMessageMap;
 
   // resourceName -> (Partition -> (instanceName -> endTime))
   // Note that startTime / endTime in CurrentState marks that of state transition
@@ -73,7 +71,6 @@ public class CurrentStateOutput {
     _curStateMetaMap = new HashMap<>();
     _requestedStateMap = new HashMap<>();
     _infoMap = new HashMap<>();
-    _staleMessageMap = new HashMap<>();
   }
 
   public void setResourceStateModelDef(String resourceName, String stateModelDefName) {
@@ -168,14 +165,6 @@ public class CurrentStateOutput {
     setStateMessage(resourceName, partition, instanceName, message, _pendingRelayMessageMap);
   }
 
-  public Map<String, Map<String, Message>> getStaleMessageMap() {
-    return _staleMessageMap;
-  }
-
-  public void setStaleMessageMap(Map<String, Map<String, Message>> staleMessageMap) {
-    _staleMessageMap = new HashMap<>(staleMessageMap);
-  }
-
   private void setStateMessage(String resourceName, Partition partition, String instanceName,
       Message message, Map<String, Map<Partition, Map<String, Message>>> stateMessageMap) {
     if (!stateMessageMap.containsKey(resourceName)) {
@@ -204,9 +193,7 @@ public class CurrentStateOutput {
     }
     return null;
   }
-
-
-
+  
   public Long getEndTime(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, Long>> partitionInfo = _currentStateEndTimeMap.get(resourceName);
     if (partitionInfo != null) {
@@ -249,14 +236,6 @@ public class CurrentStateOutput {
    */
   public Message getPendingMessage(String resourceName, Partition partition, String instanceName) {
     return getStateMessage(resourceName, partition, instanceName, _pendingMessageMap);
-  }
-
-  public Set<Message> getStaleMessagesByInstance(String instanceName) {
-    Map<String, Message> staleMessageMap = _staleMessageMap.get(instanceName);
-    if (staleMessageMap != null) {
-      return new HashSet<>(staleMessageMap.values());
-    }
-    return Collections.emptySet();
   }
 
   public Map<String, Message> getPendingRelayMessageMap(String resourceName, Partition partition) {

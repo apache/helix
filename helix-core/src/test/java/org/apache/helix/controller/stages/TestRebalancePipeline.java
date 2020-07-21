@@ -151,8 +151,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertTrue(messages.get(0).getFromState().equalsIgnoreCase("SLAVE"));
     Assert.assertTrue(messages.get(0).getToState().equalsIgnoreCase("MASTER"));
 
-    runPipeline(event, dataRefresh);
-
     Assert.assertTrue(TestHelper.verify(() -> {
       if (dataCache.getStaleMessages().size() != 0) {
         return false;

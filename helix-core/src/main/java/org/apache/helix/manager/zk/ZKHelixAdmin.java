@@ -83,11 +83,12 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
@@ -967,9 +968,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       String msdsEndpoint = _zkClient.getRealmAwareZkConnectionConfig().getMsdsEndpoint();
       try {
         if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
-          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData();
+          realmToShardingKeys = RoutingDataManager.getRawRoutingData();
         } else {
-          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData(msdsEndpoint);
+          // TODO: Make RoutingDataReaderType configurable
+          realmToShardingKeys =
+              RoutingDataManager.getRawRoutingData(RoutingDataReaderType.HTTP, msdsEndpoint);
         }
       } catch (IOException e) {
         throw new HelixException(

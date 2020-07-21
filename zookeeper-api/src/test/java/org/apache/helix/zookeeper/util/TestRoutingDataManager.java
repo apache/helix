@@ -35,17 +35,18 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestHttpRoutingDataReader extends ZkTestBase {
+public class TestRoutingDataManager extends ZkTestBase {
   private MockMetadataStoreDirectoryServer _msdsServer;
   private final String _host = "localhost";
   private final int _port = 1991;
-  private final String _namespace = "TestHttpRoutingDataReader";
+  private final String _namespace = "TestRoutingDataManager";
 
   @BeforeClass
   public void beforeClass() throws IOException {
@@ -66,14 +67,14 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
 
   @Test
   public void testGetRawRoutingData() throws IOException {
-    Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getRawRoutingData();
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
   @Test(dependsOnMethods = "testGetRawRoutingData")
   public void testGetMetadataStoreRoutingData() throws IOException, InvalidRoutingDataException {
-    MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
+    MetadataStoreRoutingData data = RoutingDataManager.getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
@@ -101,7 +102,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
 
     // HttpRoutingDataReader should still return old data because it's static
     // Make sure the results don't contain the new realm
-    Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getRawRoutingData();
     Assert.assertFalse(rawRoutingData.containsKey(newRealm));
 
     // Remove newRealm and check for equality
@@ -110,7 +111,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
 
-    MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
+    MetadataStoreRoutingData data = RoutingDataManager.getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,

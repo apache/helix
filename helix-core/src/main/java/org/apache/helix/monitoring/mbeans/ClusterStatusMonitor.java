@@ -37,7 +37,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -82,7 +81,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Set<String> _disabledInstances = Collections.emptySet();
   private Map<String, Map<String, List<String>>> _disabledPartitions = Collections.emptyMap();
   private Map<String, List<String>> _oldDisabledPartitions = Collections.emptyMap();
-  private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
+  private AtomicLong _totalMsgQueueSize = new AtomicLong(0L);
+  private AtomicLong _maxInstanceMsgQueueSize = new AtomicLong(0L);
+  private AtomicLong _totalPastDueMsgSize = new AtomicLong(0L);
   private boolean _rebalanceFailure = false;
   private AtomicLong _rebalanceFailureCount = new AtomicLong(0L);
 
@@ -175,22 +176,17 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   @Override
   public long getMaxMessageQueueSizeGauge() {
-    long maxQueueSize = 0;
-    for (Long queueSize : _instanceMsgQueueSizes.values()) {
-      if (queueSize > maxQueueSize) {
-        maxQueueSize = queueSize;
-      }
-    }
-    return maxQueueSize;
+    return _maxInstanceMsgQueueSize.get();
   }
 
   @Override
   public long getInstanceMessageQueueBacklog() {
-    long sum = 0;
-    for (Long queueSize : _instanceMsgQueueSizes.values()) {
-      sum += queueSize;
-    }
-    return sum;
+    return _totalMsgQueueSize.get();
+  }
+
+  @Override
+  public long getTotalPastDueMessageGauge() {
+    return _totalPastDueMsgSize.get();
   }
 
   private void register(Object bean, ObjectName name) {
@@ -228,10 +224,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param disabledInstanceSet the current set of configured instances that are disabled
    * @param disabledPartitions a map of instance name to the set of partitions disabled on it
    * @param tags a map of instance name to the set of tags on it
+   * @param instanceMessageMap a map of pending messages from each live instance
    */
   public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
       Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
-      Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags) {
+      Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags,
+      Map<String, Set<Message>> instanceMessageMap) {
     synchronized (_instanceMonitorMap) {
       // Unregister beans for instances that are no longer configured
       Set<String> toUnregister = Sets.newHashSet(_instanceMonitorMap.keySet());
@@ -254,6 +252,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           LOG.error("Failed to create instance monitor for instance: {}.", instanceName);
         }
       }
+
       try {
         registerInstances(monitorsToRegister);
       } catch (JMException e) {
@@ -267,6 +266,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _disabledPartitions = disabledPartitions;
       _oldDisabledPartitions = oldDisabledPartitions;
 
+      // message related counts
+      long totalMsgQueueSize = 0L;
+      long maxInstanceMsgQueueSize = 0L;
+      long totalPastDueMsgSize = 0L;
+      long now = System.currentTimeMillis();
+
       // Update the instance MBeans
       for (String instanceName : instanceSet) {
         if (_instanceMonitorMap.containsKey(instanceName)) {
@@ -276,6 +281,24 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
               oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
               !disabledInstanceSet.contains(instanceName));
+
+          // calculate and update instance level message related gauges
+          Set<Message> messages = instanceMessageMap.get(instanceName);
+          if (messages != null) {
+            long msgQueueSize = messages.size();
+            bean.updateMessageQueueSize(msgQueueSize);
+            totalMsgQueueSize += msgQueueSize;
+            if (msgQueueSize > maxInstanceMsgQueueSize) {
+              maxInstanceMsgQueueSize = msgQueueSize;
+            }
+
+            long pastDueMsgCount =
+                messages.stream().filter(m -> (m.getCompletionDueTimeStamp() <= now)).count();
+            bean.updatePastDueMessageGauge(pastDueMsgCount);
+            totalPastDueMsgSize += pastDueMsgCount;
+            LOG.debug("There are totally {} messages, {} are past due on instance {}", msgQueueSize,
+                pastDueMsgCount, instanceName);
+          }
 
           // If the sensor name changed, re-register the bean so that listeners won't miss it
           String newSensorName = bean.getSensorName();
@@ -289,6 +312,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           }
         }
       }
+
+      // Update cluster level message related gauges
+      _maxInstanceMsgQueueSize.set(maxInstanceMsgQueueSize);
+      _totalMsgQueueSize.set(totalMsgQueueSize);
+      _totalPastDueMsgSize.set(totalPastDueMsgSize);
     }
   }
 
@@ -324,7 +352,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   /**
-   * Update message count per instance and per resource
+   * Update the total count of messages that the controller has sent to each instance and each resource so far
    * @param messages a list of messages
    */
   public void increaseMessageReceived(List<Message> messages) {
@@ -351,7 +379,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
     }
 
-    // Update message count per instance and per resource
+    // Update message count sent per instance and per resource
     for (String instance : messageCountPerInstance.keySet()) {
       InstanceMonitor instanceMonitor = _instanceMonitorMap.get(instance);
       if (instanceMonitor != null) {
@@ -563,10 +591,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void addMessageQueueSize(String instanceName, long msgQueueSize) {
-    _instanceMsgQueueSizes.put(instanceName, msgQueueSize);
-  }
-
   public void active() {
     LOG.info("Active ClusterStatusMonitor");
     try {
@@ -580,7 +604,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     LOG.info("Reset ClusterStatusMonitor");
     try {
       unregisterAllResources();
-      _instanceMsgQueueSizes.clear();
       unregisterAllInstances();
       unregisterAllPerInstanceResources();
       unregister(getObjectName(clusterBeanName()));
@@ -588,7 +611,16 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       unregisterAllWorkflowsMonitor();
       unregisterAllJobs();
 
+      _liveInstances.clear();
+      _instances.clear();
+      _disabledInstances.clear();
+      _disabledPartitions.clear();
+      _oldDisabledPartitions.clear();
       _rebalanceFailure = false;
+      _maxInstanceMsgQueueSize.set(0L);
+      _totalPastDueMsgSize.set(0L);
+      _totalMsgQueueSize.set(0L);
+      _rebalanceFailureCount.set(0L);
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }
@@ -872,7 +904,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return _resourceMonitorMap.get(resourceName);
   }
 
-  public String clusterBeanName() {
+  protected String clusterBeanName() {
     return String.format("%s=%s", CLUSTER_DN_KEY, _clusterName);
   }
 
@@ -881,7 +913,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param instanceName
    * @return instance bean name
    */
-  private String getInstanceBeanName(String instanceName) {
+  protected String getInstanceBeanName(String instanceName) {
     return String.format("%s,%s=%s", clusterBeanName(), INSTANCE_DN_KEY, instanceName);
   }
 
@@ -890,7 +922,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param resourceName
    * @return resource bean name
    */
-  private String getResourceBeanName(String resourceName) {
+  protected String getResourceBeanName(String resourceName) {
     return String.format("%s,%s=%s", clusterBeanName(), RESOURCE_DN_KEY, resourceName);
   }
 
@@ -901,7 +933,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param resourceName
    * @return per-instance resource bean name
    */
-  public String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
+  protected String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
     return String.format("%s,%s", clusterBeanName(),
         new PerInstanceResourceMonitor.BeanName(instanceName, resourceName).toString());
   }
@@ -912,7 +944,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param workflowType The workflow type
    * @return per workflow type bean name
    */
-  public String getWorkflowBeanName(String workflowType) {
+  protected String getWorkflowBeanName(String workflowType) {
     return String.format("%s, %s=%s", clusterBeanName(), WORKFLOW_TYPE_DN_KEY, workflowType);
   }
 
@@ -922,7 +954,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param jobType The job type
    * @return per job type bean name
    */
-  public String getJobBeanName(String jobType) {
+  protected String getJobBeanName(String jobType) {
     return String.format("%s, %s=%s", clusterBeanName(), JOB_TYPE_DN_KEY, jobType);
   }
 

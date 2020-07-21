@@ -19,6 +19,8 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +39,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +80,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             Map<String, List<String>> oldDisabledPartitions = Maps.newHashMap();
             Map<String, Set<String>> tags = Maps.newHashMap();
             Map<String, LiveInstance> liveInstanceMap = dataProvider.getLiveInstances();
+            Map<String, Set<Message>> instanceMessageMap = Maps.newHashMap();
             for (Map.Entry<String, InstanceConfig> e : dataProvider.getInstanceConfigMap()
                 .entrySet()) {
               String instanceName = e.getKey();
@@ -84,6 +88,8 @@ public class ReadClusterDataStage extends AbstractBaseStage {
               instanceSet.add(instanceName);
               if (liveInstanceMap.containsKey(instanceName)) {
                 liveInstanceSet.add(instanceName);
+                instanceMessageMap.put(instanceName,
+                    Sets.newHashSet(dataProvider.getMessages(instanceName).values()));
               }
               if (!config.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
                   && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
@@ -99,7 +105,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
             }
             clusterStatusMonitor
                 .setClusterInstanceStatus(liveInstanceSet, instanceSet, disabledInstanceSet,
-                    disabledPartitions, oldDisabledPartitions, tags);
+                    disabledPartitions, oldDisabledPartitions, tags, instanceMessageMap);
             LogUtil.logDebug(logger, _eventId, "Complete cluster status monitors update.");
           }
           return null;

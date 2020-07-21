@@ -29,6 +29,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
@@ -56,6 +58,8 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.testng.collections.Sets;
+
 
 public class TestClusterStatusMonitor {
   private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
@@ -164,6 +168,84 @@ public class TestClusterStatusMonitor {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
+  @Test()
+  public void testMessageMetrics() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    int n = 5;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    Map<String, Set<Message>> instanceMessageMap = Maps.newHashMap();
+    Set<String> liveInstanceSet = Sets.newHashSet();
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+      liveInstanceSet.add(instanceName);
+
+      long now = System.currentTimeMillis();
+      Set<Message> messages = Sets.newHashSet();
+      // add 10 regular messages to each instance
+      for (int j = 0; j < 10; j++) {
+        Message m = new Message(Message.MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+        m.setTgtName(instanceName);
+        messages.add(m);
+      }
+
+      // add 10 past-due messages to each instance (using default completion period)
+      for (int j = 0; j < 10; j++) {
+        Message m = new Message(Message.MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+        m.setTgtName(instanceName);
+        m.setCreateTimeStamp(now - Message.MESSAGE_EXPECT_COMPLETION_PERIOD - 1000);
+        messages.add(m);
+      }
+
+      // add other 5 past-due messages to each instance (using explicitly set COMPLETION time in message)
+      for (int j = 0; j < 5; j++) {
+        Message m = new Message(Message.MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+        m.setTgtName(instanceName);
+        m.setCompletionDueTimeStamp(now - 1000);
+        messages.add(m);
+      }
+      instanceMessageMap.put(instanceName, messages);
+    }
+
+    monitor.setClusterInstanceStatus(liveInstanceSet, liveInstanceSet, Collections.emptySet(),
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), instanceMessageMap);
+
+    Assert.assertEquals(monitor.getInstanceMessageQueueBacklog(), 25 * n);
+    Assert.assertEquals(monitor.getTotalPastDueMessageGauge(), 15 * n);
+
+    Object totalMsgSize =
+        _server.getAttribute(clusterMonitorObjName, "InstanceMessageQueueBacklog");
+    Assert.assertTrue(totalMsgSize instanceof Long);
+    Assert.assertEquals((long) totalMsgSize, 25 * n);
+
+    Object totalPastdueMsgCount =
+        _server.getAttribute(clusterMonitorObjName, "TotalPastDueMessageGauge");
+    Assert.assertTrue(totalPastdueMsgCount instanceof Long);
+    Assert.assertEquals((long) totalPastdueMsgCount, 15 * n);
+
+    for (String instance : liveInstanceSet) {
+      ObjectName objName =
+          monitor.getObjectName(monitor.getInstanceBeanName(instance));
+      Object messageSize = _server.getAttribute(objName, "MessageQueueSizeGauge");
+      Assert.assertTrue(messageSize instanceof Long);
+      Assert.assertEquals((long) messageSize, 25L);
+
+      Object pastdueMsgCount = _server.getAttribute(objName, "PastDueMessageGauge");
+      Assert.assertTrue(pastdueMsgCount instanceof Long);
+      Assert.assertEquals((long) pastdueMsgCount, 15L);
+    }
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 
   @Test
   public void testResourceAggregation() throws JMException, IOException {
@@ -352,7 +434,7 @@ public class TestClusterStatusMonitor {
     // Call setClusterInstanceStatus to register instance monitors.
     monitor.setClusterInstanceStatus(maxUsageMap.keySet(), maxUsageMap.keySet(),
         Collections.emptySet(), Collections.emptyMap(), Collections.emptyMap(),
-        Collections.emptyMap());
+        Collections.emptyMap(), Collections.emptyMap());
 
     // Update instance capacity status.
     for (Map.Entry<String, Double> usageEntry : maxUsageMap.entrySet()) {
@@ -410,6 +492,33 @@ public class TestClusterStatusMonitor {
   }
 
   private void verifyCapacityMetrics(ClusterStatusMonitor monitor, Map<String, Double> maxUsageMap,
+      Map<String, Map<String, Integer>> instanceCapacityMap)
+      throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
+             ReflectionException, InstanceNotFoundException {
+    // Verify results.
+    for (Map.Entry<String, Map<String, Integer>> instanceEntry : instanceCapacityMap.entrySet()) {
+      String instance = instanceEntry.getKey();
+      Map<String, Integer> capacityMap = instanceEntry.getValue();
+      String instanceBeanName = String
+          .format("%s,%s=%s", monitor.clusterBeanName(), ClusterStatusMonitor.INSTANCE_DN_KEY,
+              instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertTrue(_server.isRegistered(instanceObjectName));
+      Assert.assertEquals(_server.getAttribute(instanceObjectName,
+          InstanceMonitor.InstanceMonitorMetric.MAX_CAPACITY_USAGE_GAUGE.metricName()),
+          maxUsageMap.get(instance));
+
+      for (Map.Entry<String, Integer> capacityEntry : capacityMap.entrySet()) {
+        String capacityKey = capacityEntry.getKey();
+        String attributeName = capacityKey + "Gauge";
+        Assert.assertEquals((long) _server.getAttribute(instanceObjectName, attributeName),
+            (long) instanceCapacityMap.get(instance).get(capacityKey));
+      }
+    }
+  }
+
+  private void verifyMessageMetrics(ClusterStatusMonitor monitor, Map<String, Double> maxUsageMap,
       Map<String, Map<String, Integer>> instanceCapacityMap)
       throws MalformedObjectNameException, IOException, AttributeNotFoundException, MBeanException,
              ReflectionException, InstanceNotFoundException {

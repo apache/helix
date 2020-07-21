@@ -643,7 +643,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private Map<String, ResourceAssignment> getBaselineAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
-    Map<String, ResourceAssignment> currentBaseline = Collections.emptyMap();
+    Map<String, ResourceAssignment> currentBaseline = new HashMap<>();
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
@@ -655,11 +655,16 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
-    if (currentBaseline.isEmpty()) {
-      LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
-      currentBaseline = currentStateOutput.getAssignment(resources);
-    }
     currentBaseline.keySet().retainAll(resources);
+    if (!currentBaseline.keySet().containsAll(resources)) {
+      LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
+      for (Map.Entry<String, ResourceAssignment> entry : currentStateOutput.getAssignment(resources)
+          .entrySet()) {
+        if (resources.contains(entry.getKey()) && !currentBaseline.containsKey(entry.getKey())) {
+          currentBaseline.put(entry.getKey(), entry.getValue());
+        }
+      }
+    }
     return currentBaseline;
   }
 

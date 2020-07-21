@@ -19,10 +19,14 @@ package org.apache.helix.zookeeper.constant;
  * under the License.
  */
 
+/**
+ * RoutingDataReaderType is an enum that designates the reader type and the class name that can be
+ * used to create an instance of RoutingDataReader by reflection.
+ */
 public enum RoutingDataReaderType {
   HTTP("org.apache.helix.zookeeper.routing.HttpRoutingDataReader"),
-  ZK("ZkRoutingDataReader"),
-  HTTP_ZK_FALLBACK("HttpZkFallbackRoutingDataReader");
+  ZK("org.apache.helix.zookeeper.routing.ZkRoutingDataReader"),
+  HTTP_ZK_FALLBACK("org.apache.helix.zookeeper.routing.HttpZkFallbackRoutingDataReader");
 
   private final String className;
 

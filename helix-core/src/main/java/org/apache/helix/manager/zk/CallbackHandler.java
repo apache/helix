@@ -773,7 +773,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void init() {
     logger.info("initializing CallbackHandler: {}, content: {} ", this.toString(), getContent());
 
-    if (_batchModeEnabled) {
+    if (_batchModeEnabled || _periodicTriggerEnabled) {
       synchronized (this) {
         if (_batchCallbackProcessor != null) {
           _batchCallbackProcessor.resetEventQueue();

@@ -647,7 +647,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBaseline = assignmentMetadataStore.getBaseline();
+        currentBaseline = new HashMap<>(assignmentMetadataStore.getBaseline());
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(

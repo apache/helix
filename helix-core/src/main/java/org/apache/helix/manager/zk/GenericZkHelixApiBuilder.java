@@ -26,10 +26,11 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,9 +205,10 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
       throws IOException, InvalidRoutingDataException {
     boolean isMsdsEndpointSet =
         connectionConfig.getMsdsEndpoint() != null && !connectionConfig.getMsdsEndpoint().isEmpty();
-    MetadataStoreRoutingData routingData = isMsdsEndpointSet ? HttpRoutingDataReader
-        .getMetadataStoreRoutingData(connectionConfig.getMsdsEndpoint())
-        : HttpRoutingDataReader.getMetadataStoreRoutingData();
+    // TODO: Make RoutingDataReaderType configurable
+    MetadataStoreRoutingData routingData = isMsdsEndpointSet ? RoutingDataManager
+        .getMetadataStoreRoutingData(RoutingDataReaderType.HTTP, connectionConfig.getMsdsEndpoint())
+        : RoutingDataManager.getMetadataStoreRoutingData();
     return routingData.getMetadataStoreRealm(connectionConfig.getZkRealmShardingKey());
   }
 }

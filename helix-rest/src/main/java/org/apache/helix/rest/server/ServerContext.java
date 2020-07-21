@@ -48,7 +48,7 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
@@ -323,8 +323,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       LOG.info("ServerContext: Resetting ZK resources due to routing data change! Routing ZK: {}",
           _zkAddr);
       try {
-        // Reset HttpRoutingDataReader's cache
-        HttpRoutingDataReader.reset();
+        // Reset RoutingDataManager's cache
+        RoutingDataManager.reset();
         // All Helix APIs will be closed implicitly because ZkClient is closed
         if (_zkClient != null && !_zkClient.isClosed()) {
           _zkClient.close();

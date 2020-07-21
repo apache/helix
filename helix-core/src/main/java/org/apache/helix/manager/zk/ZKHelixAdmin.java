@@ -966,19 +966,14 @@ public class ZKHelixAdmin implements HelixAdmin {
       // If on multi-zk mode, we retrieve cluster information from Metadata Store Directory Service.
       Map<String, List<String>> realmToShardingKeys;
       String msdsEndpoint = _zkClient.getRealmAwareZkConnectionConfig().getMsdsEndpoint();
-      try {
-        if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
-          realmToShardingKeys = RoutingDataManager.getRawRoutingData();
-        } else {
-          // TODO: Make RoutingDataReaderType configurable
-          realmToShardingKeys =
-              RoutingDataManager.getRawRoutingData(RoutingDataReaderType.HTTP, msdsEndpoint);
-        }
-      } catch (IOException e) {
-        throw new HelixException(
-            "ZKHelixAdmin: Failed to read raw routing data from Metadata Store Directory Service! MSDS endpoint used: "
-                + msdsEndpoint, e);
+      if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+        realmToShardingKeys = RoutingDataManager.getRawRoutingData();
+      } else {
+        // TODO: Make RoutingDataReaderType configurable
+        realmToShardingKeys =
+            RoutingDataManager.getRawRoutingData(RoutingDataReaderType.HTTP, msdsEndpoint);
       }
+
       if (realmToShardingKeys == null || realmToShardingKeys.isEmpty()) {
         return Collections.emptyList();
       }

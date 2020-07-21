@@ -66,7 +66,7 @@ public class TestRoutingDataManager extends ZkTestBase {
   }
 
   @Test
-  public void testGetRawRoutingData() throws IOException {
+  public void testGetRawRoutingData() {
     Map<String, List<String>> rawRoutingData = RoutingDataManager.getRawRoutingData();
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));

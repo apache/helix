@@ -61,9 +61,8 @@ public class RoutingDataManager {
    * Fetches routing data from the data source via HTTP by querying the MSDS configured in the JVM
    * config.
    * @return
-   * @throws IOException
    */
-  public static Map<String, List<String>> getRawRoutingData() throws IOException {
+  public static Map<String, List<String>> getRawRoutingData() {
     if (DEFAULT_MSDS_ENDPOINT == null || DEFAULT_MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System "

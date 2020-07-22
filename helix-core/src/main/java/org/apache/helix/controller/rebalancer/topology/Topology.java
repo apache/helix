@@ -247,17 +247,11 @@ public class Topology {
   }
 
   /**
-   * This function returns a LinkedHashMap<String, String> object representing
-   * the topology path for an instance.
-   * LinkedHashMap is used here since the order of the path needs to be preserved
-   * when creating the topology tree.
-   *
    * @param clusterTopologyKeyDefaultValue  a LinkedHashMap where keys are cluster topology path and
    *                                       values are their corresponding default value. The entries
    *                                        are ordered by ClusterConfig.topology setting.
    * @param faultZoneForEarlyQuit   this flag is set to true only if caller wants the path
    *                                to faultZone instead the whole path for the instance.
-   * @return an LinkedHashMap object representing the topology path for the input instance.
    */
   private static LinkedHashMap<String, String> computeInstanceTopologyMapHelper(
       boolean isTopologyAwareEnabled, String instanceName, InstanceConfig instanceConfig,
@@ -317,6 +311,19 @@ public class Topology {
     return instanceTopologyMap;
   }
 
+  /**
+   * This function returns a LinkedHashMap<String, String> object representing
+   * the topology path for an instance.
+   * LinkedHashMap is used here since the order of the path needs to be preserved
+   * when creating the topology tree.
+   *
+   * @param clusterConfig         clusterConfig of the given cluster.
+   * @param instanceName          name of the instance.
+   * @param instanceConfig        instanceConfig to be checked.
+   * @param earlyQuitForFaultZone Set to true if we only need the path till faultZone.
+   *
+   * @return an LinkedHashMap object representing the topology path for the input instance.
+   */
   public static LinkedHashMap<String, String> computeInstanceTopologyMap(
       ClusterConfig clusterConfig, String instanceName, InstanceConfig instanceConfig,
       boolean earlyQuitForFaultZone) throws IllegalArgumentException {

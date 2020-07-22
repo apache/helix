@@ -1017,26 +1017,11 @@ public class ZkClient implements Watcher {
             // TODO: remove this check once we have a better way to exit infinite retry
             ++connectionLossRetryCount;
             if (connectionLossRetryCount >= 3) {
-              Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
-              if (stat != null) {
-                if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
-                  LOG.error("Failed to get children for path {} because of connection loss. "
-                          + "Number of children {} exceeds limit {}, aborting retry.", path,
-                      stat.getNumChildren(), NUM_CHILDREN_LIMIT);
-                  // MarshallingErrorException could represent transport error: exceeding the
-                  // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
-                  // transport the data because packet length is too large.
-                  throw new KeeperException.MarshallingErrorException();
-                } else {
-                  connectionLossRetryCount = 0;
-                  LOG.info("Number of children {} is less than limit {}, not exiting retry.",
-                      stat.getNumChildren(), NUM_CHILDREN_LIMIT);
-                }
-              }
+              checkNumChildren(path);
+              connectionLossRetryCount = 0;
             }
 
-            // Re-throw the ConnectionLossException for retryUntilConnected() to catch
-            // and retry the operation.
+            // Re-throw the ConnectionLossException for retryUntilConnected() to catch and retry.
             throw e;
           }
         }
@@ -2266,6 +2251,27 @@ public class ZkClient implements Watcher {
   private void validateCurrentThread() {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
+    }
+  }
+
+  private void checkNumChildren(String path) throws KeeperException, InterruptedException {
+    Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
+    if (stat == null) {
+      return;
+    }
+
+    if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
+      LOG.error("Failed to get children for path {} because of connection loss. "
+              + "Number of children {} exceeds limit {}, aborting retry.", path,
+          stat.getNumChildren(),
+          NUM_CHILDREN_LIMIT);
+      // MarshallingErrorException could represent transport error: exceeding the
+      // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
+      // transport the data because packet length is too large.
+      throw new KeeperException.MarshallingErrorException();
+    } else {
+      LOG.debug("Number of children {} is less than limit {}, not exiting retry.",
+          stat.getNumChildren(), NUM_CHILDREN_LIMIT);
     }
   }
 }

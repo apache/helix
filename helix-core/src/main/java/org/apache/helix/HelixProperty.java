@@ -40,7 +40,11 @@ import org.slf4j.LoggerFactory;
 public class HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
-  private static final String DEFAULT_ZNRECORD_ID = "DUMMY";
+  // JVM level class bounded default znrecord and stat for default constructor.
+  private static final ZNRecord DEFAULT_ZNRECORD = new ZNRecord("DUMMY");
+  private static final Stat DEFAULT_STAT =
+      new Stat(DEFAULT_ZNRECORD.getVersion(), DEFAULT_ZNRECORD.getCreationTime(),
+          DEFAULT_ZNRECORD.getModifiedTime(), DEFAULT_ZNRECORD.getEphemeralOwner());
 
   public enum HelixPropertyAttribute {
     BUCKET_SIZE, BATCH_MESSAGE_MODE
@@ -150,12 +154,11 @@ public class HelixProperty {
     }
   }
 
-  private Stat _stat;
+  protected Stat _stat;
 
   public HelixProperty() {
-    _record = new ZNRecord(DEFAULT_ZNRECORD_ID);
-    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
-        _record.getEphemeralOwner());
+    _record = DEFAULT_ZNRECORD;
+    _stat = DEFAULT_STAT;
   }
 
   /**

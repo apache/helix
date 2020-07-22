@@ -41,6 +41,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.SessionAwareZkWriteData;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -155,6 +156,7 @@ public class Message extends HelixProperty {
    */
   public Message(String type, String msgId) {
     _record = new SessionAwareZNRecord(msgId);
+    initStat();
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState(MessageState.NEW);
@@ -167,6 +169,7 @@ public class Message extends HelixProperty {
    */
   public Message(ZNRecord record) {
     _record = new SessionAwareZNRecord(record);
+    initStat();
     if (getMsgState() == null) {
       setMsgState(MessageState.NEW);
     }
@@ -182,6 +185,7 @@ public class Message extends HelixProperty {
    */
   public Message(ZNRecord record, String id) {
     _record = new SessionAwareZNRecord(record, id);
+    initStat();
     setMsgId(id);
   }
 
@@ -192,6 +196,7 @@ public class Message extends HelixProperty {
    */
   public Message(Message message, String id) {
     _record = new SessionAwareZNRecord(message.getRecord(), id);
+    initStat();
     setMsgId(id);
   }
 
@@ -942,6 +947,13 @@ public class Message extends HelixProperty {
     return data == null || data.length() == 0 || data.trim().length() == 0;
   }
 
+  private void initStat() {
+    _stat.setCreationTime(_record.getCreationTime());
+    _stat.setEphemeralOwner(_record.getEphemeralOwner());
+    _stat.setModifiedTime(_record.getModifiedTime());
+    _stat.setVersion(_record.getVersion());
+  }
+
   @Override
   public boolean isValid() {
     // TODO: refactor message to state transition message and task-message and
@@ -959,13 +971,11 @@ public class Message extends HelixProperty {
     return true;
   }
 
-  @Override
-  public ZNRecord getRecord() {
-    return _record;
-  }
-
+  // A class represents session aware ZNRecord for message. The message should be written to zk
+  // by the expected session.
   // TODO: remove this class once public session-aware ZNRecord is available
   private static class SessionAwareZNRecord extends ZNRecord implements SessionAwareZkWriteData {
+    @JsonIgnore
     private String expectedSessionId;
 
     public SessionAwareZNRecord(String id) {
@@ -980,11 +990,13 @@ public class Message extends HelixProperty {
       super(record, id);
     }
 
+    @JsonIgnore
     @Override
     public String getExpectedSessionId() {
       return expectedSessionId;
     }
 
+    @JsonIgnore
     public void setExpectedSessionId(String sessionId) {
       expectedSessionId = sessionId;
     }

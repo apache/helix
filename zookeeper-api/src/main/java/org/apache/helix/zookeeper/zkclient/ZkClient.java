@@ -1825,18 +1825,19 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncSetData(path, data, version, startT, cb);
+    doAsyncSetData(path, data, version, startT, cb, parseExpectedSessionId(datat));
   }
 
   private void doAsyncSetData(final String path, byte[] data, final int version, final long startT,
-      final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
+      final ZkAsyncCallbacks.SetDataCallbackHandler cb, final String expectedSessionId) {
     retryUntilConnected(() -> {
-      ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
+      getExpectedZookeeper(expectedSessionId).setData(path, data, version, cb,
           new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
               data == null ? 0 : data.length, false) {
             @Override
             protected void doRetry() {
-              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb);
+              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb,
+                  expectedSessionId);
             }
           });
       return null;

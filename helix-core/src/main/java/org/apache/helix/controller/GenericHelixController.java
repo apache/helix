@@ -316,7 +316,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     Optional<String> leaderSession = manager.getSessionIdIfLead();
     // If session is not present, this cluster manager is not leader for the cluster.
     if (!leaderSession.isPresent()) {
-      logger.error("Cluster manager: {} is not leader for {}. Event {} is discarded.",
+      logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
           manager.getInstanceName(), manager.getClusterName(), event);
       return;
     }
@@ -766,10 +766,11 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     if (eventSessionId != null) {
       String managerSessionId = manager.getSessionId();
       if (!eventSessionId.equals(managerSessionId)) {
-        logger.error(
-            "Controller pipeline is not invoked. Cluster manager {} is not leader for cluster {}. "
-                + "Event session: {}, actual manager session: {}", manager.getInstanceName(),
-            manager.getClusterName(), eventSessionId, managerSessionId);
+        logger.warn(
+            "Controller pipeline is not invoked because cluster manager {} lost leadership for "
+                + "cluster {}. Event type: {}, id: {}, session: {}, actual manager session: {}",
+            manager.getInstanceName(), manager.getClusterName(), event.getEventType(),
+            event.getEventId(), eventSessionId, managerSessionId);
         return;
       }
     }
@@ -1138,7 +1139,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     Optional<String> leaderSession = manager.getSessionIdIfLead();
     // If session is not present, this cluster manager is not leader for the cluster.
     if (!leaderSession.isPresent()) {
-      logger.error("Cluster manager: {} is not leader for {}. Event {} is discarded.",
+      logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
           manager.getInstanceName(), manager.getClusterName(), event);
       return;
     }
@@ -1394,7 +1395,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         Optional<String> leaderSession = manager.getSessionIdIfLead();
         // If session is not present, this cluster manager is not leader for the cluster.
         if (!leaderSession.isPresent()) {
-          logger.error("Cluster manager: {} is not leader for {}. Event {} is discarded.",
+          logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
               manager.getInstanceName(), manager.getClusterName(), event);
           return false;
         }

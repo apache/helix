@@ -68,10 +68,6 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.zookeeper.KeeperException.Code.CONNECTIONLOSS;
-import static org.apache.zookeeper.KeeperException.Code.OK;
-import static org.apache.zookeeper.KeeperException.Code.SESSIONMOVED;
-
 
 /**
  * "Native ZkClient": not to be used directly.
@@ -81,7 +77,6 @@ import static org.apache.zookeeper.KeeperException.Code.SESSIONMOVED;
  * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
-
   private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
   private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
@@ -91,9 +86,9 @@ public class ZkClient implements Watcher {
   // TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT;
 
-  private static String ZK_AUTOSYNC_ENABLED_DEFAULT = "true";
 
-
+  private static final String ZK_AUTOSYNC_ENABLED_DEFAULT = "true";
+  
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();
@@ -132,7 +127,7 @@ public class ZkClient implements Watcher {
   }
 
   private final boolean _syncOnNewSession;
-  private final String _syncPath = "/";
+  private static final String _syncPath = "/";
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -1290,18 +1285,18 @@ public class ZkClient implements Watcher {
   }
 
   /*
-   *  Note, retrySync takes a ZooKeeper (client) object and pass it to doAsyncSync().
+   *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
    *  The reason we do this is that we want to ensure each new session event is preceded with exactly
    *  one sync() to server. The sync() is to make sure the server would not see stale data.
    *
    *  ZooKeeper client object has an invariant of each object has one session. With this invariant
    *  we can achieve each one sync() to server upon new session establishment. The reasoning is:
-   *  retrySync() is called when fireNewSessionEvents() which in under eventLock of ZkClient. Thus
+   *  issueSync() is called when fireNewSessionEvents() which in under eventLock of ZkClient. Thus
    *  we are guaranteed the ZooKeeper object passed in would have the new incoming sessionId. If by
    *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
    *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
    */
-  private boolean retrySync(String sessionId, ZooKeeper zk) throws ZkInterruptedException {
+  private boolean issueSync(String sessionId, ZooKeeper zk) throws ZkInterruptedException {
     ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
         new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
 
@@ -1311,7 +1306,7 @@ public class ZkClient implements Watcher {
     callbackHandler.waitForSuccess();
 
     KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
-    if (code == OK) {
+    if (code == KeeperException.Code.OK) {
       LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
           code);
       return true;
@@ -1332,13 +1327,12 @@ public class ZkClient implements Watcher {
     final String sessionId = getHexSessionId();
 
     if (_syncOnNewSession) {
-      final ZkConnection zkConnection = (ZkConnection) getConnection();
-      final ZooKeeper zk = zkConnection.getZookeeper();
+      final ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
       _eventThread.send(new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
           sessionId) {
         @Override
         public void run() throws Exception {
-          if (retrySync(sessionId, zk) == false) {
+          if (issueSync(sessionId, zk) == false) {
             LOG.warn("sync on session {} failed", sessionId);
           }
         }

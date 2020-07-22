@@ -37,6 +37,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.SessionAwareZkWriteData;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -144,7 +145,7 @@ public class Message extends HelixProperty {
    * @param msgId unique message identifier
    */
   public Message(String type, String msgId) {
-    super(new ZNRecord(msgId));
+    _record = new SessionAwareZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState(MessageState.NEW);
@@ -156,7 +157,7 @@ public class Message extends HelixProperty {
    * @param record a ZNRecord corresponding to a message
    */
   public Message(ZNRecord record) {
-    super(record);
+    _record = new SessionAwareZNRecord(record);
     if (getMsgState() == null) {
       setMsgState(MessageState.NEW);
     }
@@ -166,20 +167,12 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set the time that the message was created
-   * @param timestamp a UNIX timestamp
-   */
-  public void setCreateTimeStamp(long timestamp) {
-    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
-  }
-
-  /**
    * Instantiate a message with a new id
    * @param record a ZNRecord corresponding to a message
    * @param id unique message identifier
    */
   public Message(ZNRecord record, String id) {
-    super(new ZNRecord(record, id));
+    _record = new SessionAwareZNRecord(record, id);
     setMsgId(id);
   }
 
@@ -189,8 +182,17 @@ public class Message extends HelixProperty {
    * @param id unique message identifier
    */
   public Message(Message message, String id) {
-    super(new ZNRecord(message.getRecord(), id));
+    _record = new SessionAwareZNRecord(message.getRecord(), id);
     setMsgId(id);
+  }
+
+
+  /**
+   * Set the time that the message was created
+   * @param timestamp a UNIX timestamp
+   */
+  public void setCreateTimeStamp(long timestamp) {
+    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
   }
 
   /**
@@ -255,6 +257,10 @@ public class Message extends HelixProperty {
    */
   public void setSrcSessionId(String srcSessionId) {
     _record.setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
+  }
+
+  public void setExpectedSessionId(String expectedSessionId) {
+    ((SessionAwareZNRecord) _record).setExpectedSessionId(expectedSessionId);
   }
 
   /**
@@ -922,5 +928,36 @@ public class Message extends HelixProperty {
       return !isNotValid;
     }
     return true;
+  }
+
+  @Override
+  public ZNRecord getRecord() {
+    return _record;
+  }
+
+  // TODO: remove this class once public session-aware ZNRecord is available
+  private static class SessionAwareZNRecord extends ZNRecord implements SessionAwareZkWriteData {
+    private String expectedSessionId;
+
+    public SessionAwareZNRecord(String id) {
+      super(id);
+    }
+
+    public SessionAwareZNRecord(ZNRecord record) {
+      super(record);
+    }
+
+    public SessionAwareZNRecord(ZNRecord record, String id) {
+      super(record, id);
+    }
+
+    @Override
+    public String getExpectedSessionId() {
+      return expectedSessionId;
+    }
+
+    public void setExpectedSessionId(String sessionId) {
+      expectedSessionId = sessionId;
+    }
   }
 }

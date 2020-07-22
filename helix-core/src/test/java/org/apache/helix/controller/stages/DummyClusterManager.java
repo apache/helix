@@ -67,6 +67,13 @@ public class DummyClusterManager implements HelixManager {
     _instanceName = "DummyInstance_" + clusterName;
   }
 
+  public DummyClusterManager(String clusterName, HelixDataAccessor accessor, String sessionId) {
+    _clusterName = clusterName;
+    _accessor = accessor;
+    _sessionId = sessionId;
+    _instanceName = "DummyInstance_" + clusterName;
+  }
+
   @Override
   public void connect() throws Exception {
     // TODO Auto-generated method stub

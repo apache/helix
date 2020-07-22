@@ -2238,16 +2238,10 @@ public class ZkClient implements Watcher {
   }
 
   private String parseExpectedSessionId(Object data) {
-    if (data == null) {
+    if (!(data instanceof SessionAwareZkWriteData)) {
       return null;
     }
-
-    try {
-      return ((ZNRecord) data).getExpectedSessionId();
-    } catch (ClassCastException e) {
-      LOG.debug("Failed to parse expected session id because data object is not ZNRecord!");
-      return null;
-    }
+    return ((SessionAwareZkWriteData) data).getExpectedSessionId();
   }
 
   // operations to update monitor's counters

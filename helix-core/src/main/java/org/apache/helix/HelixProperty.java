@@ -40,11 +40,13 @@ import org.slf4j.LoggerFactory;
 public class HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
+  private static final String DEFAULT_ZNRECORD_ID = "DUMMY";
+
   public enum HelixPropertyAttribute {
     BUCKET_SIZE, BATCH_MESSAGE_MODE
   }
 
-  protected final ZNRecord _record;
+  protected ZNRecord _record;
 
   /**
    * Metadata of a HelixProperty
@@ -150,6 +152,12 @@ public class HelixProperty {
 
   private Stat _stat;
 
+  public HelixProperty() {
+    _record = new ZNRecord(DEFAULT_ZNRECORD_ID);
+    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
+        _record.getEphemeralOwner());
+  }
+
   /**
    * Initialize the property with an identifier
    * @param id
@@ -189,7 +197,7 @@ public class HelixProperty {
    * Get the backing ZNRecord
    * @return ZNRecord object associated with this property
    */
-  public final ZNRecord getRecord() {
+  public ZNRecord getRecord() {
     return _record;
   }
 

@@ -59,7 +59,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     refreshClusterConfig(clusterName, accessor);
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
+    HelixManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
@@ -256,7 +257,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
+    HelixManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
 
@@ -353,7 +355,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
+    HelixManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
@@ -431,7 +434,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
+    HelixManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
@@ -501,7 +505,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
    * the pipeline.
    */
   @Test
-  public void testNoMessageSentOnControllerLosesLeadership() throws Exception {
+  public void testNoMessageSentOnControllerLeadershipLoss() throws Exception {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = _className + "_" + methodName;
 
@@ -525,7 +529,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
-    DummyClusterManager manager = new DummyClusterManager(clusterName, accessor);
+    DummyClusterManager manager =
+        new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.OnDemandRebalance);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),

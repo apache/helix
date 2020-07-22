@@ -83,10 +83,6 @@ public class ZNRecord {
 
   private long _ephemeralOwner;
 
-  // The znrecord is created/updated by the expected zk session.
-  @JsonIgnore
-  private String _expectedSessionId;
-
   /**
    * Initialize with an identifier
    * @param id
@@ -730,28 +726,11 @@ public class ZNRecord {
   }
 
   /**
-   * Gets expected session id.
-   */
-  @JsonIgnore
-  public String getExpectedSessionId() {
-    return _expectedSessionId;
-  }
-
-  /**
    * Set the session Id of ephemeral node owner
    * @param ephemeralOwner
    */
   @JsonIgnore(true)
   public void setEphemeralOwner(long ephemeralOwner) {
     _ephemeralOwner = ephemeralOwner;
-  }
-
-  /**
-   * Sets expected session id.
-   * @param expectedSessionId expected session id.
-   */
-  @JsonIgnore
-  public void setExpectedSessionId(String expectedSessionId) {
-    _expectedSessionId = expectedSessionId;
   }
 }

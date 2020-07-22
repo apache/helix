@@ -144,7 +144,6 @@ public class AssignableInstanceManager {
 
           String assignedInstance = jobContext.getAssignedParticipant(taskIndex);
           String taskId = jobContext.getTaskIdForPartition(taskIndex);
-          System.out.println("taskID is:" + taskId);
           if (taskId == null) {
             // For targeted tasks, taskId will be null
             // We instead use pName (see FixedTargetTaskAssignmentCalculator)
@@ -185,8 +184,14 @@ public class AssignableInstanceManager {
   /**
    * Builds AssignableInstances and restores TaskAssignResults from scratch by reading from
    * CurrentState. It re-computes current quota profile for each AssignableInstance.
-   * If a task current state is INIT or RUNNING or if there is a message which contains RUNNING
-   * ToState, the will be assigned to the AssignableInstances.
+   * If a task current state is INIT or RUNNING or if there is a pending message which it's ToState
+   * is RUNNING, the task/partition will be assigned to AssignableInstances of the instance.
+   * @param clusterConfig
+   * @param taskDataCache
+   * @param liveInstances
+   * @param instanceConfigs
+   * @param currentStateOutput
+   * @param resourceMap
    */
   public void buildAssignableInstancesFromCurrentState(ClusterConfig clusterConfig,
       TaskDataCache taskDataCache, Map<String, LiveInstance> liveInstances,
@@ -212,8 +217,9 @@ public class AssignableInstanceManager {
       LOG.debug("AssignableInstance created for instance: {}", instanceName);
     }
 
-    // Update task profiles by traversing all TaskContexts
     Map<String, JobConfig> jobConfigMap = taskDataCache.getJobConfigMap();
+
+    // Update task profiles by traversing all CurrentStates
     for (Map.Entry<String, Resource> resourceEntry : resourceMap.entrySet()) {
       String resourceName = resourceEntry.getKey();
       if (resourceEntry.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
@@ -230,6 +236,8 @@ public class AssignableInstanceManager {
               .entrySet()) {
             String assignedInstance = instanceCurrentStateEntry.getKey();
             String taskState = instanceCurrentStateEntry.getValue();
+            // If a task in in INIT or RUNNING state on the instance, this task should occupy one
+            // quota from this instance.
             if (taskState.equals(TaskPartitionState.INIT.name())
                 || taskState.equals(TaskPartitionState.RUNNING.name())) {
               assignTaskToInstance(assignedInstance, jobConfig, taskId, quotaType);
@@ -246,6 +254,8 @@ public class AssignableInstanceManager {
               .getValue().entrySet()) {
             String assignedInstance = instancePendingMessageEntry.getKey();
             String messageToState = instancePendingMessageEntry.getValue().getToState();
+            // If there is a pending message on the instance which has ToState of RUNNING, the task
+            // will run on the instance soon. So the task needs to occupy one quota on this instance.
             if (messageToState.equals(TaskPartitionState.RUNNING.name())
                 && !TaskPartitionState.INIT.name().equals(
                     currentStateOutput.getCurrentState(resourceName, partition, assignedInstance))
@@ -262,6 +272,13 @@ public class AssignableInstanceManager {
     computeGlobalThreadBasedCapacity();
   }
 
+  /**
+   * Assign the task to the instance's Assignable Instance
+   * @param instance
+   * @param jobConfig
+   * @param taskId
+   * @param quotaType
+   */
   private void assignTaskToInstance(String instance, JobConfig jobConfig, String taskId,
       String quotaType) {
     if (_assignableInstanceMap.containsKey(instance)) {
@@ -283,6 +300,11 @@ public class AssignableInstanceManager {
     }
   }
 
+  /**
+   * Extract the quota type information of the Job
+   * @param jobConfig
+   * @return
+   */
   private String getQuotaType(JobConfig jobConfig) {
     // If jobConfig is null (job has been deleted but participant has not dropped the task yet), use
     // default quota for the task
@@ -296,8 +318,16 @@ public class AssignableInstanceManager {
     return quotaType;
   }
 
+  /**
+   * Calculate the TaskID based on the JobConfig and JobContext information
+   * @param jobConfig
+   * @param jobContext
+   * @param partition
+   * @return
+   */
   private String getTaskID(JobConfig jobConfig, JobContext jobContext, Partition partition) {
     if (jobConfig == null || jobContext == null) {
+      // If JobConfig or JobContext is null, use the partition name
       return partition.getPartitionName();
     }
     int taskIndex = TaskUtil.getPartitionId(partition.getPartitionName());
@@ -310,6 +340,12 @@ public class AssignableInstanceManager {
     return taskId;
   }
 
+  /**
+   * A method that return the task config a task based on the JonConfig information
+   * @param jobConfig
+   * @param taskId
+   * @return
+   */
   private TaskConfig getTaskConfig (JobConfig jobConfig, String taskId) {
     if (jobConfig == null){
       return new TaskConfig(null, null, taskId, null);

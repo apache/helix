@@ -58,7 +58,7 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     }
 
 
-    // Build quota capacity based on Current State
+    // Build quota capacity based on Current State and Pending Messages
     cache.getAssignableInstanceManager().buildAssignableInstancesFromCurrentState(
         cache.getClusterConfig(), cache.getTaskDataCache(), cache.getLiveInstances(), cache.getInstanceConfigMap(),
         currentStateOutput, resourceMap);

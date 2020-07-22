@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,7 +54,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   private final String _className = getShortClassName();
 
   @Test
-  public void testDuplicateMsg() {
+  public void testDuplicateMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_dup";
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -115,16 +116,51 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     // round2: updates node0 currentState to SLAVE but keep the
-    // message, make sure controller should not send S->M until removal is done
-    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
-        "SLAVE");
+    // message, make sure controller should not wait for the message to be deleted, but should
+    // send out a S -> M message to node0
+    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0",
+        liveInstances.get(0).getEphemeralOwner(), "SLAVE");
 
     runPipeline(event, dataRefresh);
     refreshClusterConfig(clusterName, accessor);
-    runPipeline(event, rebalancePipeline);
+
+    Pipeline computationPipeline = new Pipeline();
+    computationPipeline.addStage(new ResourceComputationStage());
+    computationPipeline.addStage(new CurrentStateComputationStage());
+
+    Pipeline messagePipeline = new Pipeline();
+    messagePipeline.addStage(new BestPossibleStateCalcStage());
+    messagePipeline.addStage(new IntermediateStateCalcStage());
+    messagePipeline.addStage(new ResourceMessageGenerationPhase());
+    messagePipeline.addStage(new MessageSelectionStage());
+    messagePipeline.addStage(new MessageThrottleStage());
+    messagePipeline.addStage(new ResourceMessageDispatchStage());
+
+    runPipeline(event, computationPipeline);
+
+    Map<String, Map<String, Message>> staleMessages = dataCache.getStaleMessages();
+    Assert.assertEquals(staleMessages.size(), 1);
+    Assert.assertTrue(staleMessages.containsKey("localhost_0"));
+    Assert.assertTrue(staleMessages.get("localhost_0").containsKey(message.getMsgId()));
+
+    runPipeline(event, messagePipeline);
+
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
-    Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node1");
+    Assert.assertEquals(messages.size(), 1, "Should output 1 message: SLAVE-MASTER for node0");
+    Assert.assertTrue(messages.get(0).getTgtName().equalsIgnoreCase("localhost_0"));
+    Assert.assertTrue(messages.get(0).getFromState().equalsIgnoreCase("SLAVE"));
+    Assert.assertTrue(messages.get(0).getToState().equalsIgnoreCase("MASTER"));
+
+    runPipeline(event, dataRefresh);
+
+    // Verify the stale message should be deleted
+    Assert.assertTrue(TestHelper.verify(() -> {
+      if (dataCache.getStaleMessages().size() != 0) {
+        return false;
+      }
+      return true;
+    }, 2000));
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);

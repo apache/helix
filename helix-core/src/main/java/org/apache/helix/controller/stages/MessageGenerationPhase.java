@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -67,6 +68,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
   // transition
   public final static long DEFAULT_OBSELETE_MSG_PURGE_DELAY = HelixUtil
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
+  private final static String PENDING_MESSAGE = "pending message";
+  private final static String STALE_MESSAGE = "stale message";
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -77,8 +80,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
-    Map<String, Map<String, Message>> pendingMessagesToCleanUp = new HashMap<>();
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
+
+    Map<String, Map<String, Message>> messagesToCleanUp = new HashMap<>();
     if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
         || resourcesStateMap == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -96,7 +100,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     for (Resource resource : resourceMap.values()) {
       try {
         generateMessage(resource, cache, resourcesStateMap, currentStateOutput, manager,
-            sessionIdMap, event.getEventType(), output, pendingMessagesToCleanUp);
+            sessionIdMap, event.getEventType(), output, messagesToCleanUp);
       } catch (HelixException ex) {
         LogUtil.logError(logger, _eventId,
             "Failed to generate message for resource " + resource.getResourceName(), ex);
@@ -104,8 +108,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     }
 
     // Asynchronously GC pending messages if necessary
-    if (!pendingMessagesToCleanUp.isEmpty()) {
-      schedulePendingMessageCleanUp(pendingMessagesToCleanUp, cache.getAsyncTasksThreadPool(),
+    if (!messagesToCleanUp.isEmpty()) {
+      schedulePendingMessageCleanUp(messagesToCleanUp, cache.getAsyncTasksThreadPool(),
           manager.getHelixDataAccessor());
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
@@ -115,7 +119,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       final ResourcesStateMap resourcesStateMap, final CurrentStateOutput currentStateOutput,
       final HelixManager manager, final Map<String, String> sessionIdMap,
       final ClusterEventType eventType, MessageOutput output,
-      Map<String, Map<String, Message>> pendingMessagesToCleanUp) {
+      Map<String, Map<String, Message>> messagesToCleanUp) {
     String resourceName = resource.getResourceName();
 
     StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
@@ -147,6 +151,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       Map<String, List<Message>> messageMap = new HashMap<>();
 
       for (String instanceName : instanceStateMap.keySet()) {
+
+        Set<Message> staleMessages = cache.getStaleMessagesByInstance(instanceName);
+
         String desiredState = instanceStateMap.get(instanceName);
 
         String currentState =
@@ -188,14 +195,17 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
         if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
             currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
-          LogUtil.logInfo(logger, _eventId, String.format(
-              "Adding pending message %s on instance %s to clean up. Msg: %s->%s, current state of resource %s:%s is %s",
-              pendingMessage.getMsgId(), instanceName, pendingMessage.getFromState(),
-              pendingMessage.getToState(), resourceName, partition, currentState));
-          if (!pendingMessagesToCleanUp.containsKey(instanceName)) {
-            pendingMessagesToCleanUp.put(instanceName, new HashMap<String, Message>());
+          logAndAddToCleanUp(messagesToCleanUp, pendingMessage, instanceName, resourceName,
+              partition, currentState, PENDING_MESSAGE);
+        }
+
+        for (Message staleMessage : staleMessages) {
+          if (System.currentTimeMillis() - currentStateOutput
+              .getEndTime(resourceName, partition, instanceName)
+              > DEFAULT_OBSELETE_MSG_PURGE_DELAY) {
+            logAndAddToCleanUp(messagesToCleanUp, staleMessage, instanceName, resourceName,
+                partition, currentState, STALE_MESSAGE);
           }
-          pendingMessagesToCleanUp.get(instanceName).put(pendingMessage.getMsgId(), pendingMessage);
         }
 
         if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
@@ -257,6 +267,20 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         }
       }
     } // end of for-each-partition
+  }
+
+  private void logAndAddToCleanUp(Map<String, Map<String, Message>> messagesToCleanUp,
+      Message message, String instanceName, String resourceName, Partition partition,
+      String currentState, String cleanUpMessageType) {
+    String logMsg = String.format(
+        "Adding %s %s on instance %s to clean up. Msg: %s->%s, current state"
+            + " of resource %s:%s is %s", cleanUpMessageType, message.getMsgId(), instanceName,
+        message.getFromState(), message.getToState(), resourceName, partition, currentState);
+    LogUtil.logInfo(logger, _eventId, logMsg);
+    if (!messagesToCleanUp.containsKey(instanceName)) {
+      messagesToCleanUp.put(instanceName, new HashMap<String, Message>());
+    }
+    messagesToCleanUp.get(instanceName).put(message.getMsgId(), message);
   }
 
   private Message generateCancellationMessageForPendingMessage(final String desiredState, final String currentState,
@@ -337,7 +361,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       final Map<String, Map<String, Message>> pendingMessagesToPurge, ExecutorService workerPool,
       final HelixDataAccessor accessor) {
     workerPool.submit(new Callable<Object>() {
-      @Override public Object call() {
+      @Override
+      public Object call() {
         for (Map.Entry<String, Map<String, Message>> entry : pendingMessagesToPurge.entrySet()) {
           String instanceName = entry.getKey();
           for (Message msg : entry.getValue().values()) {

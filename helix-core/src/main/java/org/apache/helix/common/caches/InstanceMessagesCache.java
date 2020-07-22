@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -54,6 +55,10 @@ public class InstanceMessagesCache {
   // maintain a cache of participant messages across pipeline runs
   // <instance -> {<MessageId, Message>}>
   private Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
+
+  // maintain a cache of stale messages
+  // <instance -> {<MessageId, Message>}>
+  private Map<String, Map<String, Message>> _staleMessageCache = Maps.newHashMap();
 
   // maintain a set of valid pending P2P messages.
   // <instance -> {<MessageId, Message>}>
@@ -148,7 +153,27 @@ public class InstanceMessagesCache {
     LOG.info(
         "END: InstanceMessagesCache.refresh(), {} of Messages read from ZooKeeper. took {} ms. ",
         newMessageKeys.size(), (System.currentTimeMillis() - startTime));
+
+    refreshStaleMessageCache();
     return true;
+  }
+
+  @VisibleForTesting
+  public Map<String, Map<String, Message>> getStaleMessageCache() {
+    return _staleMessageCache;
+  }
+
+  public Set<Message> getStaleMessagesByInstance(String instanceName) {
+    Map<String, Message> staleMessageMap = _staleMessageCache.get(instanceName);
+    if (staleMessageMap != null) {
+      return new HashSet<>(staleMessageMap.values());
+    }
+    return Collections.emptySet();
+  }
+
+  public void addStaleMessage(String instanceName, Message staleMessage) {
+    _staleMessageCache.putIfAbsent(instanceName, new HashMap<>());
+    _staleMessageCache.get(instanceName).putIfAbsent(staleMessage.getMsgId(), staleMessage);
   }
 
   /**
@@ -514,6 +539,27 @@ public class InstanceMessagesCache {
     }
     _relayMessageCache.get(instanceName).put(relayMessage.getId(), relayMessage);
     _relayHostMessageCache.put(relayMessage.getMsgId(), hostMessage);
+  }
+
+  // filter stale message cache by message cache to remove already deleted messages
+  private void refreshStaleMessageCache() {
+    LOG.info("Start to refresh stale message cache");
+    Map<String, Set<String>> toRemoveMessages = new HashMap<>();
+    for (String instanceName : _staleMessageCache.keySet()) {
+      for (String messageId : _staleMessageCache.get(instanceName).keySet()) {
+        if (!_messageCache.getOrDefault(instanceName, Collections.emptyMap())
+            .containsKey(messageId)) {
+          toRemoveMessages.computeIfAbsent(instanceName, k -> new HashSet<>()).add(messageId);
+        }
+      }
+    }
+
+    toRemoveMessages.entrySet().stream().forEach(entry -> {
+      entry.getValue().stream().forEach(id -> _staleMessageCache.get(entry.getKey()).remove(id));
+      if (_staleMessageCache.get(entry.getKey()).size() == 0) {
+        _staleMessageCache.remove(entry.getKey());
+      }
+    });
   }
 
   @Override public String toString() {

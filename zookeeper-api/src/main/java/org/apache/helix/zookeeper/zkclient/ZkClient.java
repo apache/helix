@@ -1286,10 +1286,8 @@ public class ZkClient implements Watcher {
    *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
    *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
    */
-
   private boolean issueSync(ZooKeeper zk) {
     String sessionId = Long.toHexString(zk.getSessionId());
-
     ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
         new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
 
@@ -1324,7 +1322,6 @@ public class ZkClient implements Watcher {
         public void run() throws Exception {
           if (issueSync(zk) == false) {
             LOG.warn("Failed to call sync() on new session {}", sessionId);
-
           }
         }
       });

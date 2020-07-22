@@ -146,7 +146,7 @@ public class ZkAsyncCallbacks {
         // Connection to the server has been lost
         if (KeeperException.Code.get(rc) == Code.CONNECTIONLOSS) {
           return true;
-        } 
+        }
         return false;
       } catch (ClassCastException | NullPointerException ex) {
         LOG.error("Session {} failed to handle unknown return code {}. Skip retrying. ex {}",

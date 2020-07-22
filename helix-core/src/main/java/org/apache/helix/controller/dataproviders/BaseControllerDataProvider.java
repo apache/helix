@@ -544,6 +544,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _instanceMessagesCache.getMessages(instanceName);
   }
 
+  /**
+   * This function is supposed to be only used by testing purpose for safety. For "get" usage,
+   * please use getStaleMessagesByInstance.
+   */
   public Map<String, Map<String, Message>> getStaleMessages() {
     return _instanceMessagesCache.getStaleMessageCache();
   }

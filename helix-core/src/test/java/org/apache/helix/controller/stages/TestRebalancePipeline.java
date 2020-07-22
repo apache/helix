@@ -116,9 +116,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     // round2: updates node0 currentState to SLAVE but keep the
-    // message, make sure controller should not send S->M until removal is done
-    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", liveInstances.get(0).getEphemeralOwner(),
-        "SLAVE");
+    // message, make sure controller should not wait for the message to be deleted, but should
+    // send out a S -> M message to node0
+    setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0",
+        liveInstances.get(0).getEphemeralOwner(), "SLAVE");
 
     runPipeline(event, dataRefresh);
     refreshClusterConfig(clusterName, accessor);
@@ -153,6 +154,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     runPipeline(event, dataRefresh);
 
+    // Verify the stale message should be deleted
     Assert.assertTrue(TestHelper.verify(() -> {
       if (dataCache.getStaleMessages().size() != 0) {
         return false;

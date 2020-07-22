@@ -200,15 +200,11 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         }
 
         for (Message staleMessage : staleMessages) {
-          if (staleMessage == null) {
-            logger.warn("Should not contain a stale message as null");
-          } else {
-            if (System.currentTimeMillis() - currentStateOutput
-                .getEndTime(resourceName, partition, instanceName)
-                > DEFAULT_OBSELETE_MSG_PURGE_DELAY) {
-              logAndAddToCleanUp(messagesToCleanUp, staleMessage, instanceName, resourceName,
-                  partition, currentState, STALE_MESSAGE);
-            }
+          if (System.currentTimeMillis() - currentStateOutput
+              .getEndTime(resourceName, partition, instanceName)
+              > DEFAULT_OBSELETE_MSG_PURGE_DELAY) {
+            logAndAddToCleanUp(messagesToCleanUp, staleMessage, instanceName, resourceName,
+                partition, currentState, STALE_MESSAGE);
           }
         }
 

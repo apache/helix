@@ -531,20 +531,25 @@ public class InstanceMessagesCache {
     _relayHostMessageCache.put(relayMessage.getMsgId(), hostMessage);
   }
 
-  // filter stale message cache by message cache to remove deleted messages
+  // filter stale message cache by message cache to remove already deleted messages
   private void refreshStaleMessageCache() {
     LOG.info("Start to refresh stale message cache");
+    Map<String, Set<String>> toRemoveMessages = new HashMap<>();
     for (String instanceName : _staleMessageCache.keySet()) {
       for (String messageId : _staleMessageCache.get(instanceName).keySet()) {
         if (!_messageCache.getOrDefault(instanceName, Collections.emptyMap())
             .containsKey(messageId)) {
-          _staleMessageCache.get(instanceName).remove(messageId);
-          if (_staleMessageCache.get(instanceName).size() == 0) {
-            _staleMessageCache.remove(instanceName);
-          }
+          toRemoveMessages.computeIfAbsent(instanceName, k -> new HashSet<>()).add(messageId);
         }
       }
     }
+
+    toRemoveMessages.entrySet().stream().forEach(entry -> {
+      entry.getValue().stream().forEach(id -> _staleMessageCache.get(entry.getKey()).remove(id));
+      if (_staleMessageCache.get(entry.getKey()).size() == 0) {
+        _staleMessageCache.remove(entry.getKey());
+      }
+    });
   }
 
   @Override public String toString() {

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -157,8 +158,17 @@ public class InstanceMessagesCache {
     return true;
   }
 
+  @VisibleForTesting
   public Map<String, Map<String, Message>> getStaleMessageCache() {
     return _staleMessageCache;
+  }
+
+  public Set<Message> getStaleMessagesByInstance(String instanceName) {
+    Map<String, Message> staleMessageMap = _staleMessageCache.get(instanceName);
+    if (staleMessageMap != null) {
+      return new HashSet<>(staleMessageMap.values());
+    }
+    return Collections.emptySet();
   }
 
   public void addStaleMessage(String instanceName, Message staleMessage) {

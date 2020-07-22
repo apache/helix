@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -542,6 +543,23 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, Message> getMessages(String instanceName) {
     return _instanceMessagesCache.getMessages(instanceName);
+  }
+
+  /**
+   * This function is supposed to be only used by testing purpose for safety. For "get" usage,
+   * please use getStaleMessagesByInstance.
+   */
+  @VisibleForTesting
+  public Map<String, Map<String, Message>> getStaleMessages() {
+    return _instanceMessagesCache.getStaleMessageCache();
+  }
+
+  public Set<Message> getStaleMessagesByInstance(String instanceName) {
+    return _instanceMessagesCache.getStaleMessagesByInstance(instanceName);
+  }
+
+  public void addStaleMessage(String instanceName, Message staleMessage) {
+    _instanceMessagesCache.addStaleMessage(instanceName, staleMessage);
   }
 
   /**

@@ -959,10 +959,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     pushToEventQueues(ClusterEventType.MessageChange, changeContext,
         Collections.<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
 
-    if (_isMonitoring && messages != null) {
-      _clusterStatusMonitor.addMessageQueueSize(instanceName, messages.size());
-    }
-
     logger.info("END: GenericClusterController.onMessage() for cluster " + _clusterName);
   }
 

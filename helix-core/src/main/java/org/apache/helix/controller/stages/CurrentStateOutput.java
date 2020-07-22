@@ -193,7 +193,7 @@ public class CurrentStateOutput {
     }
     return null;
   }
-
+  
   public Long getEndTime(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, Long>> partitionInfo = _currentStateEndTimeMap.get(resourceName);
     if (partitionInfo != null) {

@@ -23,12 +23,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
@@ -56,11 +58,19 @@ import org.slf4j.LoggerFactory;
  */
 public class CurrentStateComputationStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CurrentStateComputationStage.class);
+  private boolean _isTaskFrameworkPipeline = false;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
+
+    // TODO: remove the explicit checking of type, since this could potentially complicates
+    //  pipeline separation
+    if (cache instanceof WorkflowControllerDataProvider) {
+      _isTaskFrameworkPipeline = true;
+    }
+
     final Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     final Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -77,15 +87,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceName = instance.getInstanceName();
       String instanceSessionId = instance.getEphemeralOwner();
 
-      // update pending messages
-      Map<String, Message> messages = cache.getMessages(instanceName);
-      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
-      updatePendingMessages(instance, messages.values(), currentStateOutput, relayMessages.values(), resourceMap);
-
       // update current states.
       Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
+
+      Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
+      // update pending messages
+      Map<String, Message> messages = cache.getMessages(instanceName);
+      Map<String, Message> relayMessages = cache.getRelayMessages(instanceName);
+      updatePendingMessages(instance, cache, messages.values(), relayMessages.values(),
+          existingStaleMessages, currentStateOutput, resourceMap);
     }
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
@@ -101,16 +113,22 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
   }
 
   // update all pending messages to CurrentStateOutput.
-  private void updatePendingMessages(LiveInstance instance, Collection<Message> pendingMessages,
-      CurrentStateOutput currentStateOutput, Collection<Message> pendingRelayMessages,
+  private void updatePendingMessages(LiveInstance instance, BaseControllerDataProvider cache,
+      Collection<Message> pendingMessages, Collection<Message> pendingRelayMessages,
+      Set<Message> existingStaleMessages, CurrentStateOutput currentStateOutput,
       Map<String, Resource> resourceMap) {
     String instanceName = instance.getInstanceName();
     String instanceSessionId = instance.getEphemeralOwner();
 
     // update all pending messages
     for (Message message : pendingMessages) {
+      // ignore existing stale messages
+      if (existingStaleMessages.contains(message)) {
+        continue;
+      }
       if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
-          && !MessageType.STATE_TRANSITION_CANCELLATION.name().equalsIgnoreCase(message.getMsgType())) {
+          && !MessageType.STATE_TRANSITION_CANCELLATION.name()
+          .equalsIgnoreCase(message.getMsgType())) {
         continue;
       }
       if (!instanceSessionId.equals(message.getTgtSessionId())) {
@@ -129,7 +147,13 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         String partitionName = message.getPartitionName();
         Partition partition = resource.getPartition(partitionName);
         if (partition != null) {
-          setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
+          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
+              instanceName);
+          if (_isTaskFrameworkPipeline || !isStaleMessage(message, currentState)) {
+            setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
+          } else {
+            cache.addStaleMessage(instanceName, message);
+          }
         } else {
           LogUtil.logInfo(LOG, _eventId, String
               .format("Ignore a pending message %s for a non-exist resource %s and partition %s",
@@ -189,6 +213,14 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
             String.format("A relay message %s should not be batched, ignored!", message.getMsgId()));
       }
     }
+  }
+
+  private boolean isStaleMessage(Message message, String currentState) {
+    if (currentState == null || message.getFromState() == null || message.getToState() == null) {
+      return false;
+    }
+    return !message.getFromState().equalsIgnoreCase(currentState) || message.getToState()
+        .equalsIgnoreCase(currentState);
   }
 
   // update current states in CurrentStateOutput

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import org.apache.helix.HelixException;
@@ -36,6 +37,8 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.SessionAwareZkWriteData;
 
@@ -80,6 +83,7 @@ public class Message extends HelixProperty {
     TO_STATE,
     STATE_MODEL_DEF,
     CREATE_TIMESTAMP,
+    COMPLETION_DUE_TIMESTAMP,
     READ_TIMESTAMP,
     EXECUTE_START_TIMESTAMP,
     MSG_TYPE,
@@ -117,6 +121,11 @@ public class Message extends HelixProperty {
   // copy of the message.
   // Currently, the field is only used for invalidating messages in controller's message cache.
   private boolean _expired = false;
+
+  // The expect period of time (in ms) that a message should be completed, default 1 day
+  public static final long MESSAGE_EXPECT_COMPLETION_PERIOD = HelixUtil
+      .getSystemPropertyAsLong(SystemPropertyKeys.MESSAGE_EXPECTED_COMPLETION_PERIOD,
+          TimeUnit.DAYS.toMillis(1));
 
   /**
    * Compares the creation time of two Messages
@@ -186,13 +195,20 @@ public class Message extends HelixProperty {
     setMsgId(id);
   }
 
-
   /**
    * Set the time that the message was created
    * @param timestamp a UNIX timestamp
    */
   public void setCreateTimeStamp(long timestamp) {
     _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
+  }
+
+  /**
+   * Set the time that the message was expected to be completed
+   * @param timestamp a UNIX timestamp (in ms)
+   */
+  public void setCompletionDueTimeStamp(long timestamp) {
+    _record.setLongField(Attributes.COMPLETION_DUE_TIMESTAMP.name(), timestamp);
   }
 
   /**
@@ -496,7 +512,7 @@ public class Message extends HelixProperty {
 
   /**
    * Set the time that this message was read
-   * @param time UNIX timestamp
+   * @param time UNIX timestamp (in ms)
    */
   public void setReadTimeStamp(long time) {
     _record.setLongField(Attributes.READ_TIMESTAMP.toString(), time);
@@ -504,7 +520,7 @@ public class Message extends HelixProperty {
 
   /**
    * Set the time that the instance executes tasks as instructed by this message
-   * @param time UNIX timestamp
+   * @param time UNIX timestamp (in ms)
    */
   public void setExecuteStartTimeStamp(long time) {
     _record.setLongField(Attributes.EXECUTE_START_TIMESTAMP.toString(), time);
@@ -512,7 +528,7 @@ public class Message extends HelixProperty {
 
   /**
    * Get the time that this message was read
-   * @return UNIX timestamp
+   * @return UNIX timestamp (in ms)
    */
   public long getReadTimeStamp() {
     return _record.getLongField(Attributes.READ_TIMESTAMP.toString(), 0L);
@@ -520,7 +536,7 @@ public class Message extends HelixProperty {
 
   /**
    * Get the time that execution occurred as a result of this message
-   * @return UNIX timestamp
+   * @return UNIX timestamp (in ms)
    */
   public long getExecuteStartTimeStamp() {
     return _record.getLongField(Attributes.EXECUTE_START_TIMESTAMP.toString(), 0L);
@@ -528,10 +544,23 @@ public class Message extends HelixProperty {
 
   /**
    * Get the time that this message was created
-   * @return UNIX timestamp
+   * @return UNIX timestamp (in ms)
    */
   public long getCreateTimeStamp() {
     return _record.getLongField(Attributes.CREATE_TIMESTAMP.toString(), 0L);
+  }
+
+  /**
+   * Get the time that the message was expected to be completed
+   * @return UNIX timestamp (in ms)
+   */
+  public long getCompletionDueTimeStamp() {
+    long completionDue = _record.getLongField(Attributes.COMPLETION_DUE_TIMESTAMP.name(), 0L);
+    if (completionDue == 0) {
+      completionDue = getCreateTimeStamp() + MESSAGE_EXPECT_COMPLETION_PERIOD;
+    }
+
+    return completionDue;
   }
 
   /**

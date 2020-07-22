@@ -69,6 +69,10 @@ public class SystemPropertyKeys {
   // Controller
   public static final String CONTROLLER_MESSAGE_PURGE_DELAY = "helix.controller.stages.MessageGenerationPhase.messagePurgeDelay";
 
+  // Message
+  public static final String MESSAGE_EXPECTED_COMPLETION_PERIOD = "helix.controller.message.ExpectMessageCompletionPeriod";
+
+
   // MBean monitor for helix.
   public static final String HELIX_MONITOR_TIME_WINDOW_LENGTH_MS = "helix.monitor.slidingTimeWindow.ms";
 

@@ -57,8 +57,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(),
-        new ResourceControllerDataProvider());
+    ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), dataCache);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -112,6 +112,22 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
 
+    // Add another state transition message which is stale
+    message = new Message(Message.MessageType.STATE_TRANSITION, "msg2");
+    message.setFromState("SLAVE");
+    message.setToState("OFFLINE");
+    message.setResourceName("testResourceName");
+    message.setPartitionName("testResourceName_1");
+    message.setTgtName("localhost_3");
+    message.setTgtSessionId("session_3");
+    accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
+
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, stage);
+    CurrentStateOutput output4 = event.getAttribute(AttributeName.CURRENT_STATE.name());
+    AssertJUnit.assertEquals(dataCache.getStaleMessages().size(), 1);
+    AssertJUnit.assertTrue(dataCache.getStaleMessages().containsKey("localhost_3"));
+    AssertJUnit.assertTrue(dataCache.getStaleMessages().get("localhost_3").containsKey("msg2"));
   }
 
 }

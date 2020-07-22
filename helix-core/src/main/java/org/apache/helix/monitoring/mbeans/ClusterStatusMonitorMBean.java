@@ -61,6 +61,13 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
   long getInstanceMessageQueueBacklog();
 
   /**
+   * Total count of all messages that have not been completed
+   * after their expected completion time for instances in this cluster
+   * @return
+   */
+  long getTotalPastDueMessageGauge();
+
+  /**
    * @return 1 if cluster is enabled, otherwise 0
    */
   long getEnabled();

@@ -127,7 +127,7 @@ public class ZkClient implements Watcher {
   }
 
   private final boolean _syncOnNewSession;
-  private static final String _syncPath = "/";
+  private static final String SYNC_PATH = "/";
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -1296,12 +1296,13 @@ public class ZkClient implements Watcher {
    *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
    *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
    */
-  private boolean issueSync(String sessionId, ZooKeeper zk) throws ZkInterruptedException {
+  private boolean issueSync(ZooKeeper zk) {
+    String sessionId = Long.toHexString(zk.getSessionId());
     ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
         new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
 
     final long startT = System.currentTimeMillis();
-    doAsyncSync(zk, _syncPath, startT, callbackHandler);
+    doAsyncSync(zk, SYNC_PATH, startT, callbackHandler);
 
     callbackHandler.waitForSuccess();
 
@@ -1332,7 +1333,7 @@ public class ZkClient implements Watcher {
           sessionId) {
         @Override
         public void run() throws Exception {
-          if (issueSync(sessionId, zk) == false) {
+          if (issueSync(zk) == false) {
             LOG.warn("sync on session {} failed", sessionId);
           }
         }

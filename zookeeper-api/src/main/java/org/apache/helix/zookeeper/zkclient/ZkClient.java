@@ -1017,7 +1017,7 @@ public class ZkClient implements Watcher {
             // TODO: remove this check once we have a better way to exit infinite retry
             ++connectionLossRetryCount;
             if (connectionLossRetryCount >= 3) {
-              checkNumChildren(path);
+              checkNumChildrenLimit(path);
               connectionLossRetryCount = 0;
             }
 
@@ -2254,8 +2254,8 @@ public class ZkClient implements Watcher {
     }
   }
 
-  private void checkNumChildren(String path) throws KeeperException, InterruptedException {
-    Stat stat = ((ZkConnection) getConnection()).getZookeeper().exists(path, false);
+  private void checkNumChildrenLimit(String path) throws KeeperException {
+    Stat stat = getStat(path);
     if (stat == null) {
       return;
     }

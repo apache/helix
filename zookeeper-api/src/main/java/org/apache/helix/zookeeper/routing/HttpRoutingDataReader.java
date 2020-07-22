@@ -27,9 +27,6 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
-import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
-import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
-import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -47,20 +44,6 @@ import org.apache.http.util.EntityUtils;
  */
 public class HttpRoutingDataReader implements RoutingDataReader {
   private static final int DEFAULT_HTTP_TIMEOUT_IN_MS = 5000;
-
-  /**
-   * Returns an object form of metadata store routing data.
-   * @param endpoint
-   * @return
-   */
-  @Override
-  public MetadataStoreRoutingData getMetadataStoreRoutingData(String endpoint) {
-    try {
-      return new TrieRoutingData(getRawRoutingData(endpoint));
-    } catch (InvalidRoutingDataException e) {
-      throw new MultiZkException(e);
-    }
-  }
 
   /**
    * Returns a map form of metadata store routing data.

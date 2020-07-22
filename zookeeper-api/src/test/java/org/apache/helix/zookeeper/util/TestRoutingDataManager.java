@@ -44,20 +44,21 @@ import org.testng.annotations.Test;
 
 public class TestRoutingDataManager extends ZkTestBase {
   private MockMetadataStoreDirectoryServer _msdsServer;
-  private final String _host = "localhost";
-  private final int _port = 1991;
-  private final String _namespace = "TestRoutingDataManager";
+  private static final String HOST = "localhost";
+  private static final int PORT = 1991;
+  private static final String NAMESPACE = "TestRoutingDataManager";
+  private static final String MSDS_ENDPOINT =
+      "http://" + HOST + ":" + PORT + "/admin/v2/namespaces/" + NAMESPACE;
 
   @BeforeClass
   public void beforeClass() throws IOException {
     // Start MockMSDS
-    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace,
+    _msdsServer = new MockMetadataStoreDirectoryServer(HOST, PORT, NAMESPACE,
         TestConstants.FAKE_ROUTING_DATA);
     _msdsServer.startServer();
 
     // Register the endpoint as a System property
-    String msdsEndpoint = "http://" + _host + ":" + _port + "/admin/v2/namespaces/" + _namespace;
-    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, msdsEndpoint);
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, MSDS_ENDPOINT);
   }
 
   @AfterClass
@@ -97,7 +98,7 @@ public class TestRoutingDataManager extends ZkTestBase {
 
     // Kill MSDS and restart with a new mapping
     _msdsServer.stopServer();
-    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace, newRoutingData);
+    _msdsServer = new MockMetadataStoreDirectoryServer(HOST, PORT, NAMESPACE, newRoutingData);
     _msdsServer.startServer();
 
     // HttpRoutingDataReader should still return old data because it's static

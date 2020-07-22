@@ -23,16 +23,24 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.zookeeper.exception.MultiZkException;
 
 
 public interface RoutingDataReader {
-
   /**
    * Returns an object form of metadata store routing data.
    * @param endpoint
    * @return
    */
-  MetadataStoreRoutingData getMetadataStoreRoutingData(String endpoint);
+  default MetadataStoreRoutingData getMetadataStoreRoutingData(String endpoint) {
+    try {
+      return new TrieRoutingData(getRawRoutingData(endpoint));
+    } catch (InvalidRoutingDataException e) {
+      throw new MultiZkException(e);
+    }
+  }
 
   /**
    * Returns a map form of metadata store routing data.

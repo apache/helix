@@ -153,17 +153,13 @@ public class RoutingDataManager {
    */
   private static RoutingDataReader resolveRoutingDataReader(
       RoutingDataReaderType routingDataReaderType) {
-    // RoutingDataReaderType.HTTP by default if not found
-    routingDataReaderType =
-        routingDataReaderType == null ? RoutingDataReaderType.HTTP : routingDataReaderType;
-
     // Instantiate an instance of routing data reader using the type
     try {
       return (RoutingDataReader) Class.forName(routingDataReaderType.getClassName()).newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       throw new MultiZkException(
-          "RoutingDataManager: failed to instantiate RoutingDataReader! ReaderType className: "
-              + routingDataReaderType.getClassName(), e);
+          "RoutingDataManager: failed to instantiate RoutingDataReader! RoutingDataReaderType: "
+              + routingDataReaderType, e);
     }
   }
 
@@ -175,6 +171,9 @@ public class RoutingDataManager {
    */
   private static String getRoutingDataCacheKey(RoutingDataReaderType routingDataReaderType,
       String endpoint) {
+    if (routingDataReaderType == null) {
+      throw new MultiZkException("RoutingDataManager: RoutingDataReaderType cannot be null!");
+    }
     return routingDataReaderType.name() + "_" + endpoint;
   }
 }

@@ -588,7 +588,7 @@ public class TestRawZkClient extends ZkTestBase {
         return false;
       }
     }, 1000L));
-    
+
     // Verify the node is created and its data is correct.
     Stat stat = new Stat();
     String nodeData = null;

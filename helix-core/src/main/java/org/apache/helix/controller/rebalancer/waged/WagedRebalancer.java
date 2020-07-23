@@ -643,11 +643,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private Map<String, ResourceAssignment> getBaselineAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
-    Map<String, ResourceAssignment> currentBaseline = Collections.emptyMap();
+    Map<String, ResourceAssignment> currentBaseline = new HashMap<>();
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBaseline = assignmentMetadataStore.getBaseline();
+        currentBaseline = new HashMap<>(assignmentMetadataStore.getBaseline());
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
@@ -655,11 +655,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
-    if (currentBaseline.isEmpty()) {
-      LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
-      currentBaseline = currentStateOutput.getAssignment(resources);
-    }
     currentBaseline.keySet().retainAll(resources);
+
+    // For resources without baseline, fall back to current state  assignments
+    Set<String> missingResources = new HashSet<>(resources);
+    missingResources.removeAll(currentBaseline.keySet());
+    currentBaseline.putAll(currentStateOutput.getAssignment(missingResources));
+
     return currentBaseline;
   }
 
@@ -674,11 +676,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   protected Map<String, ResourceAssignment> getBestPossibleAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
-    Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
+    Map<String, ResourceAssignment> currentBestAssignment = new HashMap<>();
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
+        currentBestAssignment = new HashMap<>(assignmentMetadataStore.getBestPossibleAssignment());
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
@@ -686,12 +688,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
-    if (currentBestAssignment.isEmpty()) {
-      LOG.warn(
-          "The current best possible assignment record is empty. Use the current states instead.");
-      currentBestAssignment = currentStateOutput.getAssignment(resources);
-    }
     currentBestAssignment.keySet().retainAll(resources);
+
+    // For resources without best possible states, fall back to current state  assignments
+    Set<String> missingResources = new HashSet<>(resources);
+    missingResources.removeAll(currentBestAssignment.keySet());
+    currentBestAssignment.putAll(currentStateOutput.getAssignment(missingResources));
+    
     return currentBestAssignment;
   }
 

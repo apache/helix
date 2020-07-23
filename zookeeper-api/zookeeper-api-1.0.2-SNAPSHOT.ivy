@@ -43,8 +43,8 @@ under the License.
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-log4j12" ext="jar"/>
     </dependency>
-    <dependency org="org.apache.helix" name="metrics-common" rev="1.0.1-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-    <dependency org="org.apache.helix" name="metadata-store-directory-common" rev="1.0.1-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.apache.helix" name="metrics-common" rev="1.0.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.apache.helix" name="metadata-store-directory-common" rev="1.0.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.13" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="commons-codec" name="commons-codec" rev="1.14" conf="compile->compile(default);runtime->runtime(default);default->default"/>

@@ -43,7 +43,7 @@ under the License.
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-log4j12" ext="jar"/>
     </dependency>
-    <dependency org="org.apache.helix" name="metrics-common" rev="1.0.1-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-    <dependency org="org.apache.helix" name="zookeeper-api" rev="1.0.1-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.apache.helix" name="metrics-common" rev="1.0.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.apache.helix" name="zookeeper-api" rev="1.0.2-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

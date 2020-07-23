@@ -308,14 +308,10 @@ public class AssignableInstanceManager {
   private String getQuotaType(JobConfig jobConfig) {
     // If jobConfig is null (job has been deleted but participant has not dropped the task yet), use
     // default quota for the task
-    if (jobConfig == null) {
+    if (jobConfig == null || jobConfig.getJobType() == null) {
       return AssignableInstance.DEFAULT_QUOTA_TYPE;
     }
-    String quotaType = jobConfig.getJobType();
-    if (quotaType == null) {
-      quotaType = AssignableInstance.DEFAULT_QUOTA_TYPE;
-    }
-    return quotaType;
+    return jobConfig.getJobType();
   }
 
   /**

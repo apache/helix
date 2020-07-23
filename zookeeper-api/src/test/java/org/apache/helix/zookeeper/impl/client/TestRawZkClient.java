@@ -568,8 +568,7 @@ public class TestRawZkClient extends ZkTestBase {
     final String data = "Hello Helix 2";
 
     // Wait until the ZkClient has got a new session.
-    Assert.assertTrue(TestHelper
-        .verify(() -> _zkClient.getConnection().getZookeeperState().isConnected(), 1000L));
+    Assert.assertTrue(_zkClient.waitUntilConnected(1, TimeUnit.SECONDS));
 
     final long originalSessionId = _zkClient.getSessionId();
 
@@ -582,16 +581,6 @@ public class TestRawZkClient extends ZkTestBase {
 
     // Expire the original session.
     ZkTestHelper.expireSession(_zkClient);
-
-    // Wait until the ZkClient has got a new session.
-    Assert.assertTrue(TestHelper.verify(() -> {
-      try {
-        // New session id should not equal to expired session id.
-        return _zkClient.getSessionId() != originalSessionId;
-      } catch (ZkClientException ex) {
-        return false;
-      }
-    }, 1000L));
 
     // Verify the node is created and its data is correct.
     Stat stat = new Stat();

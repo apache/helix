@@ -1313,10 +1313,7 @@ public class ZkClient implements Watcher {
       return true;
     }
 
-    // Not retryable error, including session expiration; Log the error and return
-    LOG.warn(
-        "sycnOnNewSession with sessionID {} async return code: {} and not retryable, stop calling handleNewSession",
-        sessionId, code);
+    // Not retryable error, including session expiration; return false.
     return false;
   }
 

@@ -71,8 +71,14 @@ import org.slf4j.LoggerFactory;
  * WARN: Do not use this class directly, use {@link org.apache.helix.manager.zk.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
-  private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
-  private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+  private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+
+  private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+
+  // If number of children exceeds this limit, getChildren() should not retry on connection loss.
+  // This is a workaround for exiting retry on connection loss because of large number of children.
+  // TODO: remove it once we have a better way to exit retry for this case
+  private static final int NUM_CHILDREN_LIMIT;
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -89,6 +95,13 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
+
+  static {
+    // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
+    // Set it here for unit test to use reflection to change value
+    // because compilers optimize constants by replacing them inline.
+    NUM_CHILDREN_LIMIT = 100 * 1000;
+  }
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -713,11 +726,33 @@ public class ZkClient implements Watcher {
 
   protected List<String> getChildren(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
+
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
+        private int connectionLossRetryCount = 0;
+
         @Override
         public List<String> call() throws Exception {
-          return getConnection().getChildren(path, watch);
+          try {
+            return getConnection().getChildren(path, watch);
+          } catch (ConnectionLossException e) {
+            // Issue: https://github.com/apache/helix/issues/962
+            // Connection loss might be caused by an excessive number of children.
+            // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
+            // This is a workaround to check numChildren to have a chance to exit retry loop.
+            // Check numChildren stat every other 3 connection loss, because there is a higher
+            // possibility that connection loss is caused by other factors such as network
+            // connectivity, session expired, etc.
+            // TODO: remove this check once we have a better way to exit infinite retry
+            ++connectionLossRetryCount;
+            if (connectionLossRetryCount >= 3) {
+              checkNumChildrenLimit(path);
+              connectionLossRetryCount = 0;
+            }
+
+            // Re-throw the ConnectionLossException for retryUntilConnected() to catch and retry.
+            throw e;
+          }
         }
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
@@ -1763,6 +1798,27 @@ public class ZkClient implements Watcher {
       if (dataChanged) {
         _monitor.increaseDataChangeEventCounter();
       }
+    }
+  }
+
+  private void checkNumChildrenLimit(String path) throws KeeperException {
+    Stat stat = getStat(path);
+    if (stat == null) {
+      return;
+    }
+
+    if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
+      LOG.error("Failed to get children for path {} because of connection loss. "
+              + "Number of children {} exceeds limit {}, aborting retry.", path,
+          stat.getNumChildren(),
+          NUM_CHILDREN_LIMIT);
+      // MarshallingErrorException could represent transport error: exceeding the
+      // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
+      // transport the data because packet length is too large.
+      throw new KeeperException.MarshallingErrorException();
+    } else {
+      LOG.debug("Number of children {} is less than limit {}, not exiting retry.",
+          stat.getNumChildren(), NUM_CHILDREN_LIMIT);
     }
   }
 }

@@ -19,20 +19,10 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import java.lang.management.ManagementFactory;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkServer;
+import org.I0Itec.zkclient.exception.ZkException;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -42,18 +32,28 @@ import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class TestRawZkClient extends ZkUnitTestBase {
   private final String TEST_TAG = "test_monitor";
@@ -410,6 +410,69 @@ public class TestRawZkClient extends ZkUnitTestBase {
       }
       zkClient.delete("/tmp/async");
       zkClient.delete("/tmp/asyncOversize");
+    }
+  }
+
+
+  /*
+   * Tests getChildren() when there are an excessive number of children and connection loss happens,
+   * the operation should terminate and exit retry loop.
+   */
+  @Test
+  public void testGetChildrenOnLargeNumChildren() throws Exception {
+    // Default packetLen is 4M. It is static final and initialized
+    // when first zkClient is created.
+    // So we could not just set "jute.maxbuffer" to change the value.
+    // Reflection is needed to change the value.
+    // Remove "final" modifier
+    Field modifiersField = Field.class.getDeclaredField("modifiers");
+    boolean isModifierAccessible = modifiersField.isAccessible();
+    modifiersField.setAccessible(true);
+
+    Field packetLenField = ClientCnxn.class.getDeclaredField("packetLen");
+    Field childrenLimitField =
+            org.apache.helix.manager.zk.zookeeper.ZkClient.class.getDeclaredField("NUM_CHILDREN_LIMIT");
+    modifiersField.setInt(packetLenField, packetLenField.getModifiers() & ~Modifier.FINAL);
+    modifiersField.setInt(childrenLimitField, childrenLimitField.getModifiers() & ~Modifier.FINAL);
+
+    boolean isPacketLenAccessible = packetLenField.isAccessible();
+    packetLenField.setAccessible(true);
+    int originPacketLen = packetLenField.getInt(null);
+    // Keep 150 bytes for successfully creating each child node.
+    packetLenField.set(null, 150);
+
+    boolean isChildrenLimitAccessible = childrenLimitField.isAccessible();
+    childrenLimitField.setAccessible(true);
+    int originChildrenLimit = childrenLimitField.getInt(null);
+    childrenLimitField.set(null, 2);
+
+    String path = "/" + TestHelper.getTestMethodName();
+    // Create 5 children to make packet length of children exceed 150 bytes
+    // and cause connection loss for getChildren() operation
+    for (int i = 0; i < 5; i++) {
+      _zkClient.createPersistent(path + "/" + UUID.randomUUID().toString(), true);
+    }
+
+    try {
+      _zkClient.getChildren(path);
+      Assert.fail("Should not successfully get children.");
+    } catch (ZkException expected) {
+      Assert.assertEquals(expected.getMessage(),
+              "org.apache.zookeeper.KeeperException$MarshallingErrorException: "
+                      + "KeeperErrorCode = MarshallingError");
+    } finally {
+      packetLenField.set(null, originPacketLen);
+      packetLenField.setAccessible(isPacketLenAccessible);
+
+      childrenLimitField.set(null, originChildrenLimit);
+      childrenLimitField.setAccessible(isChildrenLimitAccessible);
+
+      modifiersField.setAccessible(isModifierAccessible);
+
+      Assert.assertTrue(TestHelper.verify(() -> {
+        _zkClient.deleteRecursively(path);
+        return !_zkClient.exists(path);
+      }, TestHelper.WAIT_DURATION));
     }
   }
 }

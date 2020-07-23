@@ -59,5 +59,5 @@ public class ZkSystemPropertyKeys {
    *   The default value is "true" (issuing sync)
    */
   public static final String ZK_AUTOSYNC_ENABLED =
-      "zk.autosync.enabled";
+      "zk.zkclient.autosync.enabled";
 }

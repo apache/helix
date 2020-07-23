@@ -126,7 +126,10 @@ public class ZkClient implements Watcher {
     NUM_CHILDREN_LIMIT = 100 * 1000;
   }
 
-  private final boolean _syncOnNewSession;
+  private static final boolean SYNC_ON_SESSION = Boolean.parseBoolean(
+      System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, ZK_AUTOSYNC_ENABLED_DEFAULT));
+  ;
+
   private static final String SYNC_PATH = "/";
 
   private class IZkDataListenerEntry {
@@ -211,9 +214,6 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
-
-    String syncUpOnNewSession = System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, ZK_AUTOSYNC_ENABLED_DEFAULT);
-    _syncOnNewSession = Boolean.parseBoolean(syncUpOnNewSession);
 
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
@@ -1324,14 +1324,14 @@ public class ZkClient implements Watcher {
     }
     final String sessionId = getHexSessionId();
 
-    if (_syncOnNewSession) {
+    if (SYNC_ON_SESSION) {
       final ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
       _eventThread.send(new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
           sessionId) {
         @Override
         public void run() throws Exception {
           if (issueSync(zk) == false) {
-            LOG.warn("sync on session {} failed", sessionId);
+            LOG.warn("\"Failed to call sync() on new session {}", sessionId);
           }
         }
       });

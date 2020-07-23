@@ -131,7 +131,7 @@ public class ZkAsyncCallbacks {
 
     @Override
     public void processResult(int rc, String path, Object ctx) {
-      LOG.info("sycnOnNewSession with sessionID {} async return code: {}", _sessionId, rc);
+      LOG.debug("sync() call with sessionID {} async return code: {}", _sessionId, rc);
       callback(rc, path, ctx);
     }
 

@@ -88,7 +88,7 @@ public class ZkClient implements Watcher {
 
 
   private static final String ZK_AUTOSYNC_ENABLED_DEFAULT = "true";
-  
+
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
   private final Map<String, Set<IZkChildListener>> _childListener = new ConcurrentHashMap<>();

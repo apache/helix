@@ -143,11 +143,13 @@ public class ZkAsyncCallbacks {
     @Override
     protected boolean needRetry(int rc) {
       try {
-        // Connection to the server has been lost
-        if (KeeperException.Code.get(rc) == Code.CONNECTIONLOSS) {
-          return true;
+        switch (KeeperException.Code.get(rc)) {
+          /** Connection to the server has been lost */
+          case CONNECTIONLOSS:
+            return true;
+          default:
+            return false;
         }
-        return false;
       } catch (ClassCastException | NullPointerException ex) {
         LOG.error("Session {} failed to handle unknown return code {}. Skip retrying. ex {}",
             _sessionId, rc, ex);

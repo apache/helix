@@ -312,17 +312,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     changeContext.setType(NotificationContext.Type.CALLBACK);
     String uid = UUID.randomUUID().toString().substring(0, 8);
     ClusterEvent event = new ClusterEvent(_clusterName, eventType, uid);
-
-    Optional<String> leaderSession = manager.getSessionIdIfLead();
-    // If manager is not leader, should discard the stale event.
-    if (!leaderSession.isPresent()) {
-      logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
-          manager.getInstanceName(), manager.getClusterName(), event);
-      return;
-    }
-
-    // Add event session to event for later pipeline stages to check whether event is stale.
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
+    event.addAttribute(AttributeName.EVENT_SESSION.name(),
+        changeContext.getManager().getSessionIdIfLead());
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.eventData.name(), new ArrayList<>());
@@ -763,17 +754,14 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
 
     // If manager session changes, no need to run pipeline for the stale event.
-    String eventSessionId = event.getAttribute(AttributeName.EVENT_SESSION.name());
-    if (eventSessionId != null) {
-      String managerSessionId = manager.getSessionId();
-      if (!eventSessionId.equals(managerSessionId)) {
-        logger.warn(
-            "Controller pipeline is not invoked because event session doesn't match cluster "
-                + "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
-                + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
-            eventSessionId, managerSessionId, manager.getInstanceName(), manager.getClusterName());
-        return;
-      }
+    Optional<String> eventSessionId = event.getAttribute(AttributeName.EVENT_SESSION.name());
+    String managerSessionId = manager.getSessionId();
+    if (!eventSessionId.isPresent() || !eventSessionId.get().equals(managerSessionId)) {
+      logger.warn("Controller pipeline is not invoked because event session doesn't match cluster "
+              + "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
+              + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
+          eventSessionId, managerSessionId, manager.getInstanceName(), manager.getClusterName());
+      return;
     }
 
     logger.info("START: Invoking {} controller pipeline for cluster: {}. Event type: {}, ID: {}. "
@@ -1135,19 +1123,9 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     String uid = UUID.randomUUID().toString().substring(0, 8);
     ClusterEvent event = new ClusterEvent(_clusterName, eventType,
         String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
-
-    HelixManager manager = changeContext.getManager();
-    // If manager is not leader, should discard the stale event.
-    Optional<String> leaderSession = manager.getSessionIdIfLead();
-    if (!leaderSession.isPresent()) {
-      logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
-          manager.getInstanceName(), manager.getClusterName(), event);
-      return;
-    }
-
-    // Add event session to event for later pipeline stages to check whether event is stale.
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
-    event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.EVENT_SESSION.name(),
+        changeContext.getManager().getSessionIdIfLead());
+    event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
     event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
     for (Map.Entry<String, Object> attr : eventAttributes.entrySet()) {
@@ -1391,6 +1369,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         String uid = UUID.randomUUID().toString().substring(0, 8);
         ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume,
             String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
+        event.addAttribute(AttributeName.EVENT_SESSION.name(),
+            changeContext.getManager().getSessionIdIfLead());
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
         event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
         event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);

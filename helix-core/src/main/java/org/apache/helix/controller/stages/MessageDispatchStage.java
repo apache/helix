@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -78,15 +79,15 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
 
-    String expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
     // An early check for expected leader session. If the sessions don't match, it means the
-    // controller lost leadership, then messages should not be sent and pipeline should stop.
-    // This avoids potential double masters for a single partition.
-    if (expectedSession != null && !expectedSession.equals(manager.getSessionId())) {
-      throw new StageException(
-          "Controller: " + manager.getInstanceName() + " lost leadership! Expected session: "
-              + expectedSession + ", actual: " + manager.getSessionId());
+    // controller's session changes, then messages should not be sent and pipeline should stop.
+    Optional<String> expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
+    if (!expectedSession.isPresent() || !expectedSession.get().equals(manager.getSessionId())) {
+      throw new StageException(String.format(
+          "Event session doesn't match controller %s session! Expected session: %s, actual: %s",
+          manager.getInstanceName(), expectedSession, manager.getSessionId()));
     }
+
     List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
 
     // TODO: Need also count messages from task rebalancer

@@ -68,14 +68,14 @@ public class TestRoutingDataManager extends ZkTestBase {
 
   @Test
   public void testGetRawRoutingData() {
-    Map<String, List<String>> rawRoutingData = RoutingDataManager.getRawRoutingData();
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getInstance().getRawRoutingData();
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
   @Test(dependsOnMethods = "testGetRawRoutingData")
-  public void testGetMetadataStoreRoutingData() throws IOException, InvalidRoutingDataException {
-    MetadataStoreRoutingData data = RoutingDataManager.getMetadataStoreRoutingData();
+  public void testGetMetadataStoreRoutingData() throws InvalidRoutingDataException {
+    MetadataStoreRoutingData data = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
@@ -103,7 +103,7 @@ public class TestRoutingDataManager extends ZkTestBase {
 
     // HttpRoutingDataReader should still return old data because it's static
     // Make sure the results don't contain the new realm
-    Map<String, List<String>> rawRoutingData = RoutingDataManager.getRawRoutingData();
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getInstance().getRawRoutingData();
     Assert.assertFalse(rawRoutingData.containsKey(newRealm));
 
     // Remove newRealm and check for equality
@@ -112,7 +112,7 @@ public class TestRoutingDataManager extends ZkTestBase {
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
 
-    MetadataStoreRoutingData data = RoutingDataManager.getMetadataStoreRoutingData();
+    MetadataStoreRoutingData data = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,

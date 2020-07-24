@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
@@ -65,8 +64,7 @@ public class SharedZkClient implements RealmAwareZkClient {
   private final RealmAwareZkClient.RealmAwareZkClientConfig _clientConfig;
 
   public SharedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
-      throws IOException, InvalidRoutingDataException {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) throws InvalidRoutingDataException {
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
@@ -76,14 +74,15 @@ public class SharedZkClient implements RealmAwareZkClient {
     _connectionConfig = connectionConfig;
     _clientConfig = clientConfig;
 
-    // Get the routing data from a static Singleton HttpRoutingDataReader
-    String msdsEndpoint = connectionConfig.getMsdsEndpoint();
-    if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+    // Get MetadataStoreRoutingData
+    String routingDataSourceEndpoint = connectionConfig.getRoutingDataSourceEndpoint();
+    if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
+      // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
       _metadataStoreRoutingData = RoutingDataManager.getMetadataStoreRoutingData();
     } else {
-      // TODO: Make RoutingDataReaderType configurable
-      _metadataStoreRoutingData =
-          RoutingDataManager.getMetadataStoreRoutingData(RoutingDataReaderType.HTTP, msdsEndpoint);
+      _metadataStoreRoutingData = RoutingDataManager.getMetadataStoreRoutingData(
+          RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
+          routingDataSourceEndpoint);
     }
 
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();

@@ -20,7 +20,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -134,13 +133,13 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
                   new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
               // If MSDS endpoint is set for this namespace, use that instead.
               if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setMsdsEndpoint(_msdsEndpoint);
+                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint);
               }
               _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
                   new RealmAwareZkClient.RealmAwareZkClientConfig()
                       .setZkSerializer(new ZNRecordSerializer()));
               LOG.info("ServerContext: FederatedZkClient created successfully!");
-            } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+            } catch (InvalidRoutingDataException | IllegalStateException e) {
               throw new HelixException("Failed to create FederatedZkClient!", e);
             }
           } else {

@@ -19,8 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
-
 import org.apache.helix.HelixException;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -109,7 +107,7 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
         try {
           _zkAddress = resolveZkAddressWithShardingKey(_realmAwareZkConnectionConfig);
           isZkAddressSet = true;
-        } catch (IOException | InvalidRoutingDataException e) {
+        } catch (InvalidRoutingDataException e) {
           LOG.warn(
               "GenericZkHelixApiBuilder: ZkAddress is not set and failed to resolve ZkAddress with ZK path sharding key!",
               e);
@@ -166,7 +164,7 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
         try {
           return new FederatedZkClient(connectionConfig,
               clientConfig.setZkSerializer(new ZNRecordSerializer()));
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        } catch (InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("GenericZkHelixApiBuilder: Failed to create FederatedZkClient!",
               e);
         }
@@ -197,17 +195,18 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
    * ZK address is not given in this Builder.
    * @param connectionConfig
    * @return
-   * @throws IOException
    * @throws InvalidRoutingDataException
    */
   private String resolveZkAddressWithShardingKey(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig)
-      throws IOException, InvalidRoutingDataException {
-    boolean isMsdsEndpointSet =
-        connectionConfig.getMsdsEndpoint() != null && !connectionConfig.getMsdsEndpoint().isEmpty();
-    // TODO: Make RoutingDataReaderType configurable
-    MetadataStoreRoutingData routingData = isMsdsEndpointSet ? RoutingDataManager
-        .getMetadataStoreRoutingData(RoutingDataReaderType.HTTP, connectionConfig.getMsdsEndpoint())
+      throws InvalidRoutingDataException {
+    boolean isRoutingDataSourceEndpointSet =
+        connectionConfig.getRoutingDataSourceEndpoint() != null && !connectionConfig
+            .getRoutingDataSourceEndpoint().isEmpty();
+    MetadataStoreRoutingData routingData = isRoutingDataSourceEndpointSet ? RoutingDataManager
+        .getMetadataStoreRoutingData(
+            RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
+            connectionConfig.getRoutingDataSourceEndpoint())
         : RoutingDataManager.getMetadataStoreRoutingData();
     return routingData.getMetadataStoreRealm(connectionConfig.getZkRealmShardingKey());
   }

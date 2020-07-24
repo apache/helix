@@ -151,7 +151,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       try {
         zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
-      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalStateException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on multi-realm mode.", e);
       }
     } else {
@@ -965,13 +965,15 @@ public class ZKHelixAdmin implements HelixAdmin {
         || _zkClient instanceof FederatedZkClient) {
       // If on multi-zk mode, we retrieve cluster information from Metadata Store Directory Service.
       Map<String, List<String>> realmToShardingKeys;
-      String msdsEndpoint = _zkClient.getRealmAwareZkConnectionConfig().getMsdsEndpoint();
-      if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
+      String routingDataSourceEndpoint =
+          _zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceEndpoint();
+      if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
+        // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
         realmToShardingKeys = RoutingDataManager.getRawRoutingData();
       } else {
-        // TODO: Make RoutingDataReaderType configurable
-        realmToShardingKeys =
-            RoutingDataManager.getRawRoutingData(RoutingDataReaderType.HTTP, msdsEndpoint);
+        realmToShardingKeys = RoutingDataManager.getRawRoutingData(RoutingDataReaderType
+                .lookUp(_zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceType()),
+            routingDataSourceEndpoint);
       }
 
       if (realmToShardingKeys == null || realmToShardingKeys.isEmpty()) {

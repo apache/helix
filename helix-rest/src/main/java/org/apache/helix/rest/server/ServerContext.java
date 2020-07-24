@@ -323,7 +323,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
           _zkAddr);
       try {
         // Reset RoutingDataManager's cache
-        RoutingDataManager.reset();
+        RoutingDataManager.getInstance().reset();
         // All Helix APIs will be closed implicitly because ZkClient is closed
         if (_zkClient != null && !_zkClient.isClosed()) {
           _zkClient.close();

@@ -1039,7 +1039,7 @@ public class TestMultiZkHelixJavaApis {
             .setRoutingDataSourceEndpoint(_msdsEndpoint).build();
 
     // Reset cached routing data
-    RoutingDataManager.reset();
+    RoutingDataManager.getInstance().reset();
     // Shutdown MSDS to ensure that these accessors are able to pull routing data from ZK
     _msds.stopServer();
 

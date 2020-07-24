@@ -969,9 +969,10 @@ public class ZKHelixAdmin implements HelixAdmin {
           _zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceEndpoint();
       if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
         // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
-        realmToShardingKeys = RoutingDataManager.getRawRoutingData();
+        realmToShardingKeys = RoutingDataManager.getInstance().getRawRoutingData();
       } else {
-        realmToShardingKeys = RoutingDataManager.getRawRoutingData(RoutingDataReaderType
+        realmToShardingKeys = RoutingDataManager.getInstance().getRawRoutingData(
+            RoutingDataReaderType
                 .lookUp(_zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceType()),
             routingDataSourceEndpoint);
       }

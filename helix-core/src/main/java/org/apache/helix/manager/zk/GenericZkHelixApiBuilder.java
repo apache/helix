@@ -203,11 +203,12 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
     boolean isRoutingDataSourceEndpointSet =
         connectionConfig.getRoutingDataSourceEndpoint() != null && !connectionConfig
             .getRoutingDataSourceEndpoint().isEmpty();
-    MetadataStoreRoutingData routingData = isRoutingDataSourceEndpointSet ? RoutingDataManager
-        .getMetadataStoreRoutingData(
-            RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
-            connectionConfig.getRoutingDataSourceEndpoint())
-        : RoutingDataManager.getMetadataStoreRoutingData();
+    MetadataStoreRoutingData routingData =
+        isRoutingDataSourceEndpointSet ? RoutingDataManager.getInstance()
+            .getMetadataStoreRoutingData(
+                RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
+                connectionConfig.getRoutingDataSourceEndpoint())
+            : RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     return routingData.getMetadataStoreRealm(connectionConfig.getZkRealmShardingKey());
   }
 }

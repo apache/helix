@@ -78,9 +78,9 @@ public class SharedZkClient implements RealmAwareZkClient {
     String routingDataSourceEndpoint = connectionConfig.getRoutingDataSourceEndpoint();
     if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
       // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
-      _metadataStoreRoutingData = RoutingDataManager.getMetadataStoreRoutingData();
+      _metadataStoreRoutingData = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     } else {
-      _metadataStoreRoutingData = RoutingDataManager.getMetadataStoreRoutingData(
+      _metadataStoreRoutingData = RoutingDataManager.getInstance().getMetadataStoreRoutingData(
           RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
           routingDataSourceEndpoint);
     }

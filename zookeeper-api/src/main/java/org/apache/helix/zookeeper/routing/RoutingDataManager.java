@@ -33,28 +33,47 @@ import org.apache.helix.zookeeper.exception.MultiZkException;
 
 
 /**
- * RoutingDataManager is a static Singleton that
+ * RoutingDataManager is a Singleton that
  * 1. resolves RoutingDataReader based on the system config given
  * 2. caches routing data
  * 3. provides public methods for reading routing data from various sources (configurable)
  */
 public class RoutingDataManager {
   /** HTTP call to MSDS is used to fetch routing data by default */
-  private static final String DEFAULT_MSDS_ENDPOINT =
+  private final String DEFAULT_MSDS_ENDPOINT =
       System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
 
   /** Double-checked locking requires that the following fields be final (volatile) */
   // The following map stands for (RoutingDataReaderType_endpoint ID, Raw Routing Data)
-  private static final Map<String, Map<String, List<String>>> _rawRoutingDataMap =
+  private final Map<String, Map<String, List<String>>> _rawRoutingDataMap =
       new ConcurrentHashMap<>();
   // The following map stands for (RoutingDataReaderType_endpoint ID, MetadataStoreRoutingData)
-  private static final Map<String, MetadataStoreRoutingData> _metadataStoreRoutingDataMap =
+  private final Map<String, MetadataStoreRoutingData> _metadataStoreRoutingDataMap =
       new ConcurrentHashMap<>();
+
+  // Singleton instance
+  private static RoutingDataManager _instance;
 
   /**
    * This class is a Singleton.
    */
   private RoutingDataManager() {
+    // Private constructor for Singleton
+  }
+
+  /**
+   * Lazy initialization with double-checked locking.
+   * @return
+   */
+  public static RoutingDataManager getInstance() {
+    if (_instance == null) {
+      synchronized (RoutingDataManager.class) {
+        if (_instance == null) {
+          _instance = new RoutingDataManager();
+        }
+      }
+    }
+    return _instance;
   }
 
   /**
@@ -62,7 +81,7 @@ public class RoutingDataManager {
    * config.
    * @return
    */
-  public static Map<String, List<String>> getRawRoutingData() {
+  public Map<String, List<String>> getRawRoutingData() {
     if (DEFAULT_MSDS_ENDPOINT == null || DEFAULT_MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System "
@@ -79,8 +98,8 @@ public class RoutingDataManager {
    * @param routingDataReaderType
    * @param endpoint
    */
-  public static Map<String, List<String>> getRawRoutingData(
-      RoutingDataReaderType routingDataReaderType, String endpoint) {
+  public Map<String, List<String>> getRawRoutingData(RoutingDataReaderType routingDataReaderType,
+      String endpoint) {
     String routingDataCacheKey = getRoutingDataCacheKey(routingDataReaderType, endpoint);
     Map<String, List<String>> rawRoutingData = _rawRoutingDataMap.get(routingDataCacheKey);
     if (rawRoutingData == null) {
@@ -101,8 +120,7 @@ public class RoutingDataManager {
    * MSDS configured in the JVM config.
    * @return MetadataStoreRoutingData
    */
-  public static MetadataStoreRoutingData getMetadataStoreRoutingData()
-      throws InvalidRoutingDataException {
+  public MetadataStoreRoutingData getMetadataStoreRoutingData() throws InvalidRoutingDataException {
     if (DEFAULT_MSDS_ENDPOINT == null || DEFAULT_MSDS_ENDPOINT.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System "
@@ -119,7 +137,7 @@ public class RoutingDataManager {
    * @throws IOException
    * @throws InvalidRoutingDataException
    */
-  public static MetadataStoreRoutingData getMetadataStoreRoutingData(
+  public MetadataStoreRoutingData getMetadataStoreRoutingData(
       RoutingDataReaderType routingDataReaderType, String endpoint)
       throws InvalidRoutingDataException {
     String routingDataCacheKey = getRoutingDataCacheKey(routingDataReaderType, endpoint);
@@ -141,7 +159,7 @@ public class RoutingDataManager {
   /**
    * Clears the statically-cached routing data and private fields.
    */
-  public synchronized static void reset() {
+  public synchronized void reset() {
     _rawRoutingDataMap.clear();
     _metadataStoreRoutingDataMap.clear();
   }
@@ -151,8 +169,7 @@ public class RoutingDataManager {
    * @param routingDataReaderType
    * @return
    */
-  private static RoutingDataReader resolveRoutingDataReader(
-      RoutingDataReaderType routingDataReaderType) {
+  private RoutingDataReader resolveRoutingDataReader(RoutingDataReaderType routingDataReaderType) {
     // Instantiate an instance of routing data reader using the type
     try {
       return (RoutingDataReader) Class.forName(routingDataReaderType.getClassName()).newInstance();
@@ -169,7 +186,7 @@ public class RoutingDataManager {
    * @param endpoint
    * @return
    */
-  private static String getRoutingDataCacheKey(RoutingDataReaderType routingDataReaderType,
+  private String getRoutingDataCacheKey(RoutingDataReaderType routingDataReaderType,
       String endpoint) {
     if (routingDataReaderType == null) {
       throw new MultiZkException("RoutingDataManager: RoutingDataReaderType cannot be null!");

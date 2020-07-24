@@ -92,17 +92,6 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     // Refresh TaskCache
     _taskDataCache.refresh(accessor, getResourceConfigMap());
 
-    // Refresh AssignableInstanceManager
-    AssignableInstanceManager assignableInstanceManager =
-        _taskDataCache.getAssignableInstanceManager();
-
-    // Build from scratch every time
-    assignableInstanceManager.buildAssignableInstances(getClusterConfig(), _taskDataCache,
-        getLiveInstances(), getInstanceConfigMap());
-
-    // TODO: (Hunter) Consider this for optimization after fixing the problem of quotas not being
-    assignableInstanceManager.logQuotaProfileJSON(false);
-
     long duration = System.currentTimeMillis() - startTime;
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: WorkflowControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",

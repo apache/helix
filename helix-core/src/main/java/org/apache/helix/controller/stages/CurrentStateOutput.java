@@ -273,7 +273,7 @@ public class CurrentStateOutput {
   }
 
   /**
-   * Given resource, returns current state map (parition -> instance -> currentState)
+   * Given resource, returns current state map (partition -> instance -> currentState)
    * @param resourceName
    * @return
    */
@@ -333,6 +333,18 @@ public class CurrentStateOutput {
       if (map.containsKey(partition)) {
         return map.get(partition);
       }
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Given resource, returns pending message map (partition -> instance -> message)
+   * @param resourceName
+   * @return
+   */
+  public Map<Partition, Map<String, Message>> getPendingMessageMap(String resourceName) {
+    if (_pendingMessageMap.containsKey(resourceName)) {
+      return _pendingMessageMap.get(resourceName);
     }
     return Collections.emptyMap();
   }

@@ -200,7 +200,7 @@ public class HelixProperty {
    * Get the backing ZNRecord
    * @return ZNRecord object associated with this property
    */
-  public ZNRecord getRecord() {
+  public final ZNRecord getRecord() {
     return _record;
   }
 

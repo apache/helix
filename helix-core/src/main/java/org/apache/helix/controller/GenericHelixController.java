@@ -314,14 +314,14 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     ClusterEvent event = new ClusterEvent(_clusterName, eventType, uid);
 
     Optional<String> leaderSession = manager.getSessionIdIfLead();
-    // If session is not present, this cluster manager is not leader for the cluster.
+    // If manager is not leader, should discard the stale event.
     if (!leaderSession.isPresent()) {
       logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
           manager.getInstanceName(), manager.getClusterName(), event);
       return;
     }
 
-    // Pipeline should be run and Zk writes should be completed by the event session.
+    // Add event session to event for later pipeline stages to check whether event is stale.
     event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
     event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
@@ -762,15 +762,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
 
+    // If manager session changes, no need to run pipeline for the stale event.
     String eventSessionId = event.getAttribute(AttributeName.EVENT_SESSION.name());
     if (eventSessionId != null) {
       String managerSessionId = manager.getSessionId();
       if (!eventSessionId.equals(managerSessionId)) {
         logger.warn(
-            "Controller pipeline is not invoked because cluster manager {} lost leadership for "
-                + "cluster {}. Event type: {}, id: {}, session: {}, actual manager session: {}",
-            manager.getInstanceName(), manager.getClusterName(), event.getEventType(),
-            event.getEventId(), eventSessionId, managerSessionId);
+            "Controller pipeline is not invoked because event session doesn't match cluster "
+                + "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
+                + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
+            eventSessionId, managerSessionId, manager.getInstanceName(), manager.getClusterName());
         return;
       }
     }
@@ -1136,15 +1137,15 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
 
     HelixManager manager = changeContext.getManager();
+    // If manager is not leader, should discard the stale event.
     Optional<String> leaderSession = manager.getSessionIdIfLead();
-    // If session is not present, this cluster manager is not leader for the cluster.
     if (!leaderSession.isPresent()) {
       logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
           manager.getInstanceName(), manager.getClusterName(), event);
       return;
     }
 
-    // Pipeline should be run and Zk writes should be completed by the event session.
+    // Add event session to event for later pipeline stages to check whether event is stale.
     event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.changeContext.name(), changeContext);
@@ -1390,20 +1391,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         String uid = UUID.randomUUID().toString().substring(0, 8);
         ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Resume,
             String.format("%s_%s", uid, Pipeline.Type.DEFAULT.name()));
-
-        HelixManager manager = changeContext.getManager();
-        Optional<String> leaderSession = manager.getSessionIdIfLead();
-        // If session is not present, this cluster manager is not leader for the cluster.
-        if (!leaderSession.isPresent()) {
-          logger.warn("Cluster manager {} is not leader for {}. Event {} is discarded.",
-              manager.getInstanceName(), manager.getClusterName(), event);
-          return false;
-        }
-
-        // Pipeline should be run and Zk writes should be completed by the event session.
-        event.addAttribute(AttributeName.EVENT_SESSION.name(), leaderSession.get());
         event.addAttribute(AttributeName.changeContext.name(), changeContext);
-        event.addAttribute(AttributeName.helixmanager.name(), manager);
+        event.addAttribute(AttributeName.helixmanager.name(), changeContext.getManager());
         event.addAttribute(AttributeName.AsyncFIFOWorkerPool.name(), _asyncFIFOWorkerPool);
         enqueueEvent(_eventQueue, event);
         enqueueEvent(_taskEventQueue,

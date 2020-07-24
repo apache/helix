@@ -19,6 +19,10 @@ package org.apache.helix.zookeeper.constant;
  * under the License.
  */
 
+import org.apache.commons.lang3.EnumUtils;
+import org.apache.helix.zookeeper.exception.MultiZkException;
+
+
 /**
  * RoutingDataReaderType is an enum that designates the reader type and the class name that can be
  * used to create an instance of RoutingDataReader by reflection.
@@ -36,5 +40,15 @@ public enum RoutingDataReaderType {
 
   public String getClassName() {
     return this.className;
+  }
+
+  public static RoutingDataReaderType lookUp(String enumString) {
+    RoutingDataReaderType type =
+        EnumUtils.getEnumIgnoreCase(RoutingDataReaderType.class, enumString);
+    if (type == null) {
+      throw new MultiZkException(
+          "RoutingDataReaderType::lookUp: Unable to find the enum! String given: " + enumString);
+    }
+    return type;
   }
 }

@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixException;
@@ -83,7 +82,7 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
       case MULTI_REALM:
         try {
           zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-        } catch (IOException | InvalidRoutingDataException e) {
+        } catch (InvalidRoutingDataException e) {
           throw new HelixException("Not able to connect on multi-realm mode.", e);
         }
         break;

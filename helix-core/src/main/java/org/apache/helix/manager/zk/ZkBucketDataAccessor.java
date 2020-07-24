@@ -94,7 +94,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         _zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
     } else {

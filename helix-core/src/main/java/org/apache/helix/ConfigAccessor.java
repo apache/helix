@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,8 +29,8 @@ import java.util.TreeMap;
 
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CloudConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
@@ -40,8 +39,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -120,7 +119,7 @@ public class ConfigAccessor {
             new RealmAwareZkClient.RealmAwareZkClientConfig()
                 .setZkSerializer(new ZNRecordSerializer()));
         return;
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
         throw new HelixException("Failed to create ConfigAccessor!", e);
       }
     }

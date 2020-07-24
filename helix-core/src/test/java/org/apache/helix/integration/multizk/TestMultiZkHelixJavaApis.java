@@ -20,6 +20,7 @@ package org.apache.helix.integration.multizk;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,11 +74,14 @@ import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.api.client.ZkClientType;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -109,16 +113,17 @@ public class TestMultiZkHelixJavaApis {
   private HelixAdmin _zkHelixAdmin;
 
   // Save System property configs from before this test and pass onto after the test
-  private Map<String, String> _configStore = new HashMap<>();
+  private final Map<String, String> _configStore = new HashMap<>();
+
+  private static final String ZK_PREFIX = "localhost:";
+  private static final int ZK_START_PORT = 8777;
+  private String _msdsEndpoint;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     // Create 3 in-memory zookeepers and routing mapping
-    final String zkPrefix = "localhost:";
-    final int zkStartPort = 8777;
-
     for (int i = 0; i < NUM_ZK; i++) {
-      String zkAddress = zkPrefix + (zkStartPort + i);
+      String zkAddress = ZK_PREFIX + (ZK_START_PORT + i);
       ZK_SERVER_MAP.put(zkAddress, TestHelper.startZkServer(zkAddress));
       ZK_CLIENT_MAP.put(zkAddress, DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
@@ -132,6 +137,8 @@ public class TestMultiZkHelixJavaApis {
     final String msdsHostName = "localhost";
     final int msdsPort = 11117;
     final String msdsNamespace = "multiZkTest";
+    _msdsEndpoint =
+        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace;
     _msds = new MockMetadataStoreDirectoryServer(msdsHostName, msdsPort, msdsNamespace,
         _rawRoutingData);
     _msds.startServer();
@@ -151,8 +158,7 @@ public class TestMultiZkHelixJavaApis {
     // Turn on multiZk mode in System config
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
     // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/multiZkTest
-    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
-        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, _msdsEndpoint);
 
     // Create a FederatedZkClient for admin work
     _zkClient =
@@ -782,7 +788,8 @@ public class TestMultiZkHelixJavaApis {
         new MockMetadataStoreDirectoryServer("localhost", 11118, "multiZkTest", secondRoutingData);
     final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
         new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-            .setMsdsEndpoint(secondMsds.getEndpoint()).build();
+            .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
+            .setRoutingDataSourceEndpoint(secondMsds.getEndpoint()).build();
     secondMsds.startServer();
 
     try {
@@ -995,5 +1002,70 @@ public class TestMultiZkHelixJavaApis {
       sb.append('/').append(name);
     }
     return sb.toString();
+  }
+
+  /**
+   * Testing using ZK as the routing data source. We use BaseDataAccessor as the representative
+   * Helix API.
+   * Two modes are tested: ZK and HTTP-ZK fallback
+   */
+  @Test(dependsOnMethods = "testDifferentMsdsEndpointConfigs")
+  public void testZkRoutingDataSourceConfigs() {
+    // Set up routing data in ZK by connecting directly to ZK
+    BaseDataAccessor<ZNRecord> accessor =
+        new ZkBaseDataAccessor.Builder<ZNRecord>().setZkAddress(ZK_PREFIX + ZK_START_PORT).build();
+
+    // Create ZK realm routing data ZNRecord
+    _rawRoutingData.forEach((realm, keys) -> {
+      ZNRecord znRecord = new ZNRecord(realm);
+      znRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
+          new ArrayList<>(keys));
+      accessor.set(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + realm, znRecord,
+          AccessOption.PERSISTENT);
+    });
+
+    // Create connection configs with the source type set to each type
+    final RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+    final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigZk =
+        connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.ZK.name())
+            .setRoutingDataSourceEndpoint(ZK_PREFIX + ZK_START_PORT).build();
+    final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigHttpZkFallback =
+        connectionConfigBuilder
+            .setRoutingDataSourceType(RoutingDataReaderType.HTTP_ZK_FALLBACK.name())
+            .setRoutingDataSourceEndpoint(_msdsEndpoint + "," + ZK_PREFIX + ZK_START_PORT).build();
+    final RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfigHttp =
+        connectionConfigBuilder.setRoutingDataSourceType(RoutingDataReaderType.HTTP.name())
+            .setRoutingDataSourceEndpoint(_msdsEndpoint).build();
+
+    // Reset cached routing data
+    RoutingDataManager.reset();
+    // Shutdown MSDS to ensure that these accessors are able to pull routing data from ZK
+    _msds.stopServer();
+
+    // Create a BaseDataAccessor instance with the connection config
+    BaseDataAccessor<ZNRecord> zkBasedAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>()
+        .setRealmAwareZkConnectionConfig(connectionConfigZk).build();
+    BaseDataAccessor<ZNRecord> httpZkFallbackBasedAccessor =
+        new ZkBaseDataAccessor.Builder<ZNRecord>()
+            .setRealmAwareZkConnectionConfig(connectionConfigHttpZkFallback).build();
+    try {
+      BaseDataAccessor<ZNRecord> httpBasedAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>()
+          .setRealmAwareZkConnectionConfig(connectionConfigHttp).build();
+      Assert.fail("Must fail with a MultiZkException because HTTP connection will be refused.");
+    } catch (MultiZkException e) {
+      // Okay
+    }
+
+    // Check that all clusters appear as existing to this accessor
+    CLUSTER_LIST.forEach(cluster -> {
+      Assert.assertTrue(zkBasedAccessor.exists("/" + cluster, AccessOption.PERSISTENT));
+      Assert.assertTrue(httpZkFallbackBasedAccessor.exists("/" + cluster, AccessOption.PERSISTENT));
+    });
+
+    // Close all connections
+    accessor.close();
+    zkBasedAccessor.close();
+    httpZkFallbackBasedAccessor.close();
   }
 }

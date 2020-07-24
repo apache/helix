@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -622,7 +621,7 @@ public final class ZKUtil {
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         return new FederatedZkClient(connectionConfig, clientConfig);
-      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
     }

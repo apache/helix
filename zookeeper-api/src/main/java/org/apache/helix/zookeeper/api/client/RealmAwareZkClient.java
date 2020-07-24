@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -56,8 +57,7 @@ public interface RealmAwareZkClient {
    * MULTI_REALM: CRUD and change subscription are supported. Operations involving EPHEMERAL CreateMode will throw an UnsupportedOperationException.
    */
   enum RealmMode {
-    SINGLE_REALM,
-    MULTI_REALM
+    SINGLE_REALM, MULTI_REALM
   }
 
   int DEFAULT_OPERATION_TIMEOUT = Integer.MAX_VALUE;
@@ -65,6 +65,7 @@ public interface RealmAwareZkClient {
   int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
 
   // listener subscription
+
   /**
    * Subscribe the path and the listener will handle child events of the path.
    * Add exists watch to path if the path does not exist in ZooKeeper server.
@@ -86,7 +87,8 @@ public interface RealmAwareZkClient {
    * @return ChildrentSubsribeResult. If the path does not exists, the isInstalled field
    * is false. Otherwise, it is true and list of children are returned.
    */
-  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener, boolean skipWatchingNonExistNode);
+  ChildrenSubscribeResult subscribeChildChanges(String path, IZkChildListener listener,
+      boolean skipWatchingNonExistNode);
 
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
@@ -108,7 +110,8 @@ public interface RealmAwareZkClient {
    * @param skipWatchingNonExistNode True means not installing any watch if path does not exist.
    * return True if installation of watch succeed. Otherwise, return false.
    */
-  boolean subscribeDataChanges(String path, IZkDataListener listener, boolean skipWatchingNonExistNode);
+  boolean subscribeDataChanges(String path, IZkDataListener listener,
+      boolean skipWatchingNonExistNode);
 
   void unsubscribeDataChanges(String path, IZkDataListener listener);
 
@@ -378,12 +381,14 @@ public interface RealmAwareZkClient {
      * NOTE: this field will be ignored if RealmMode is MULTI_REALM!
      */
     private String _zkRealmShardingKey;
-    private String _msdsEndpoint;
+    private String _routingDataSourceType;
+    private String _routingDataSourceEndpoint;
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
     private RealmAwareZkConnectionConfig(Builder builder) {
       _zkRealmShardingKey = builder._zkRealmShardingKey;
-      _msdsEndpoint = builder._msdsEndpoint;
+      _routingDataSourceType = builder._routingDataSourceType;
+      _routingDataSourceEndpoint = builder._routingDataSourceEndpoint;
       _sessionTimeout = builder._sessionTimeout;
     }
 
@@ -424,14 +429,19 @@ public interface RealmAwareZkClient {
       return _sessionTimeout;
     }
 
-    public String getMsdsEndpoint() {
-      return _msdsEndpoint;
+    public String getRoutingDataSourceType() {
+      return _routingDataSourceType;
+    }
+
+    public String getRoutingDataSourceEndpoint() {
+      return _routingDataSourceEndpoint;
     }
 
     public static class Builder {
       private RealmMode _realmMode;
       private String _zkRealmShardingKey;
-      private String _msdsEndpoint;
+      private String _routingDataSourceType;
+      private String _routingDataSourceEndpoint;
       private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
 
       public Builder() {
@@ -453,8 +463,13 @@ public interface RealmAwareZkClient {
         return this;
       }
 
-      public Builder setMsdsEndpoint(String msdsEndpoint) {
-        _msdsEndpoint = msdsEndpoint;
+      public Builder setRoutingDataSourceType(String routingDataSourceType) {
+        _routingDataSourceType = routingDataSourceType;
+        return this;
+      }
+
+      public Builder setRoutingDataSourceEndpoint(String routingDataSourceEndpoint) {
+        _routingDataSourceEndpoint = routingDataSourceEndpoint;
         return this;
       }
 
@@ -481,6 +496,13 @@ public interface RealmAwareZkClient {
         if (_realmMode == RealmMode.SINGLE_REALM && !isShardingKeySet) {
           throw new IllegalArgumentException(
               "RealmAwareZkConnectionConfig.Builder: ZK sharding key must be set on single-realm mode!");
+        }
+        if ((_routingDataSourceEndpoint == null && _routingDataSourceType != null) || (
+            _routingDataSourceEndpoint != null && _routingDataSourceType == null)) {
+          // For routing data source type and endpoint, if one is set and not the other, it is invalid
+          throw new IllegalArgumentException(
+              "RealmAwareZkConnectionConfig.Builder: routing data source type and endpoint are not configured properly! Type: "
+                  + _routingDataSourceType + " Endpoint: " + _routingDataSourceEndpoint);
         }
       }
     }

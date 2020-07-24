@@ -29,6 +29,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -36,6 +38,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,7 +299,8 @@ public class TaskStateModel extends StateModel {
     try {
       // Read ZNRecord containing task definition information.
       ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
-          .get("/" + _manager.getClusterName() + "/TASK_DEFINITION", null, 0);
+          .get("/" + _manager.getClusterName() + "/TASK_DEFINITION",
+              null, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
       // Open the JAR file and import Task(s) and TaskFactory classes.
       File taskJar = new File(taskConfig.getSimpleField("JAR_FILE"));
@@ -311,9 +315,10 @@ public class TaskStateModel extends StateModel {
 
       // Register the TaskFactory.
       _taskFactoryRegistry.put(command, (TaskFactory) cl.newInstance());
-    } catch (MalformedURLException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (MalformedURLException | ClassNotFoundException | InstantiationException
+        | IllegalAccessException | ZkNoNodeException | NullPointerException | HelixException e) {
       LOG.info("Loading new task " + command + " for instance " + _manager.getInstanceName()
-          + " in cluster " + _manager.getClusterName() + " failed.");
+          + " in cluster " + _manager.getClusterName() + " failed. (" + e.getMessage() + ")");
       return false;
     }
     return true;

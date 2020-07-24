@@ -19,6 +19,10 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,8 +35,10 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 @StateModelInfo(states = "{'NOT USED BY HELIX'}", initialState = "INIT")
 public class TaskStateModel extends StateModel {
@@ -283,6 +289,36 @@ public class TaskStateModel extends StateModel {
     }
   }
 
+  /**
+   * Loads Task and TaskFactory classes for command input
+   */
+  private boolean loadNewTask(String command) {
+    try {
+      // Read ZNRecord containing task definition information.
+      ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
+          .get("/" + _manager.getClusterName() + "/TASK_DEFINITION", null, 0);
+
+      // Open the JAR file and import Task(s) and TaskFactory classes.
+      File taskJar = new File(taskConfig.getSimpleField("JAR_FILE"));
+      URL taskJarUrl = taskJar.toURI().toURL();
+
+      // Import Task(s) and TaskFactory classes.
+      URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
+      for(String taskClass : taskConfig.getListField("TASK_CLASSES")) {
+        classLoader.loadClass(taskClass);
+      }
+      Class cl = classLoader.loadClass(taskConfig.getSimpleField("TASKFACTORY"));
+
+      // Register the TaskFactory.
+      _taskFactoryRegistry.put(command, (TaskFactory) cl.newInstance());
+    } catch (MalformedURLException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      LOG.info("Loading new task " + command + " for instance " + _manager.getInstanceName()
+          + " in cluster " + _manager.getClusterName() + " failed.");
+      return false;
+    }
+    return true;
+  }
+
   private void startTask(Message msg, String taskPartition) {
     JobConfig cfg = TaskUtil.getJobConfig(_manager, msg.getResourceName());
     TaskConfig taskConfig = null;
@@ -313,9 +349,14 @@ public class TaskStateModel extends StateModel {
     callbackContext.setTaskConfig(taskConfig);
 
     // Create a task instance with this command
-    if (command == null || _taskFactoryRegistry == null
-        || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException("No callback implemented(or not registered) for task " + command);
+    if (command == null || _taskFactoryRegistry == null) {
+      throw new IllegalStateException("Null command for task " + command);
+    }
+    // If the task isn't registered, load the appropriate Task and TaskFactory classes
+    if(!_taskFactoryRegistry.containsKey(command)) {
+      if(!loadNewTask(command)) {
+        throw new IllegalStateException("No callback implemented for task " + command);
+      }
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);

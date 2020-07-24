@@ -21,11 +21,15 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -46,6 +50,7 @@ import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.util.ExponentialBackoffStrategy;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -80,6 +85,9 @@ public class ZkClient implements Watcher {
   // This is a workaround for exiting retry on connection loss because of large number of children.
   // TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT;
+
+
+  private static final String ZK_AUTOSYNC_ENABLED_DEFAULT = "true";
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -117,6 +125,12 @@ public class ZkClient implements Watcher {
     // because compilers optimize constants by replacing them inline.
     NUM_CHILDREN_LIMIT = 100 * 1000;
   }
+
+  private static final boolean SYNC_ON_SESSION = Boolean.parseBoolean(
+      System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, ZK_AUTOSYNC_ENABLED_DEFAULT));
+  ;
+
+  private static final String SYNC_PATH = "/";
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;
@@ -200,6 +214,7 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
+
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -1256,20 +1271,81 @@ public class ZkClient implements Watcher {
     }
   }
 
+
+
+  private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
+      final ZkAsyncCallbacks.SyncCallbackHandler cb) {
+    zk.sync(path, cb,
+        new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, true) {
+          @Override
+          protected void doRetry() throws Exception {
+            doAsyncSync(zk, path, System.currentTimeMillis(), cb);
+          }
+        });
+  }
+
+  /*
+   *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
+   *  The reason we do this is that we want to ensure each new session event is preceded with exactly
+   *  one sync() to server. The sync() is to make sure the server would not see stale data.
+   *
+   *  ZooKeeper client object has an invariant of each object has one session. With this invariant
+   *  we can achieve each one sync() to server upon new session establishment. The reasoning is:
+   *  issueSync() is called when fireNewSessionEvents() which in under eventLock of ZkClient. Thus
+   *  we are guaranteed the ZooKeeper object passed in would have the new incoming sessionId. If by
+   *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
+   *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
+   */
+  private boolean issueSync(ZooKeeper zk) {
+    String sessionId = Long.toHexString(zk.getSessionId());
+    ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
+        new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
+
+    final long startT = System.currentTimeMillis();
+    doAsyncSync(zk, SYNC_PATH, startT, callbackHandler);
+
+    callbackHandler.waitForSuccess();
+
+    KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
+    if (code == KeeperException.Code.OK) {
+      LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
+          code);
+      return true;
+    }
+
+    // Not retryable error, including session expiration; return false.
+    return false;
+  }
+
   private void fireNewSessionEvents() {
     // only managing zkclient fire handleNewSession event
     if (!isManagingZkConnection()) {
       return;
     }
     final String sessionId = getHexSessionId();
-    for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
 
+    if (SYNC_ON_SESSION) {
+      final ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
+      _eventThread.send(new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
+          sessionId) {
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession(sessionId);
+          if (issueSync(zk) == false) {
+            LOG.warn("\"Failed to call sync() on new session {}", sessionId);
+          }
         }
       });
+    }
+
+    for (final IZkStateListener stateListener : _stateListener) {
+      _eventThread
+          .send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
+
+            @Override
+            public void run() throws Exception {
+              stateListener.handleNewSession(sessionId);
+            }
+          });
     }
   }
 

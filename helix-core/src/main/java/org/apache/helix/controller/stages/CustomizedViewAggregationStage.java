@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -35,17 +36,20 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
+import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedViewAggregationStage.class);
+  private Map<String, CustomizedViewMonitor> _monitors = new HashMap<>();
 
   @Override
   public AsyncWorkerType getAsyncWorkerType() {
@@ -88,6 +92,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
       List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
+      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps = new HashMap<>();
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {
@@ -95,14 +100,35 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       }
 
       for (Resource resource : resourceMap.values()) {
-        try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
-              updatedCustomizedViews);
-        } catch (HelixException ex) {
-          LogUtil.logError(LOG, _eventId,
-              "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
+              updatedCustomizedViews, updatedStartTimestamps);
+
+          List<PropertyKey> keys = new ArrayList<>();
+          for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
+            CustomizedView view = it.next();
+            String resourceName = view.getResourceName();
+            keys.add(keyBuilder.customizedView(stateType, resourceName));
+          }
+          // add/update customized-views from zk and cache
+          if (updatedCustomizedViews.size() > 0) {
+            boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
+            cache.updateCustomizedViews(stateType, updatedCustomizedViews);
+            asyncReportLatency(cache.getAsyncTasksThreadPool(), getOrCreateMonitor(event),
+                updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps, success,
+                System.currentTimeMillis());
+          }
+
+          // remove stale customized views from zk and cache
+          List<String> customizedViewToRemove = new ArrayList<>();
+          for (String resourceName : curCustomizedViews.keySet()) {
+            if (!resourceMap.keySet().contains(resourceName)) {
+              LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
+              dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
+              customizedViewToRemove.add(resourceName);
+            }
+          }
+          cache.removeCustomizedViews(stateType, customizedViewToRemove);
         }
-      }
 
       List<PropertyKey> keys = new ArrayList<>();
       for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
@@ -132,7 +158,8 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
   private void computeCustomizedStateView(final Resource resource, final String stateType,
       CustomizedStateOutput customizedStateOutput,
       final Map<String, CustomizedView> curCustomizedViews,
-      List<CustomizedView> updatedCustomizedViews) {
+      List<CustomizedView> updatedCustomizedViews,
+      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps) {
     String resourceName = resource.getResourceName();
     CustomizedView view = new CustomizedView(resource.getResourceName());
 
@@ -152,6 +179,31 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     if (curCustomizedView == null || !curCustomizedView.getRecord().equals(view.getRecord())) {
       // Add customized view to the list which will be written to ZK later.
       updatedCustomizedViews.add(view);
+      updatedStartTimestamps.put(resourceName,
+          customizedStateOutput.getResourceStartTimeMap(stateType, resourceName));
     }
+  }
+
+  private CustomizedViewMonitor getOrCreateMonitor(ClusterEvent event) {
+    String clusterName = event.getClusterName();
+    if (_monitors.get(clusterName) == null) {
+      _monitors.put(clusterName, new CustomizedViewMonitor(clusterName));
+    }
+    return _monitors.get(clusterName);
+  }
+
+  private void asyncReportLatency(ExecutorService threadPool, CustomizedViewMonitor monitor,
+      List<CustomizedView> updatedCustomizedViews, Map<String, CustomizedView> curCustomizedViews,
+      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps,
+      boolean[] updateSuccess, long curTime) {
+    AbstractBaseStage.asyncExecute(threadPool, () -> {
+      try {
+        monitor.reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
+            updateSuccess, curTime);
+      } catch (Exception e) {
+        LOG.error("Failed to report UpdateToAggregationLatency metric.", e);
+      }
+      return null;
+    });
   }
 }

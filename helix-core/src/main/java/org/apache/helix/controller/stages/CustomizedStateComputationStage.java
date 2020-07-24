@@ -86,6 +86,9 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
           customizedStateOutput
               .setCustomizedState(customizedStateType, resourceName, partition, instanceName,
                   customizedState.getState(partitionName));
+          customizedStateOutput
+              .setStartTime(customizedStateType, resourceName, partition, instanceName,
+                  String.valueOf(customizedState.getStartTime(partitionName)));
         }
       }
     }

@@ -54,7 +54,8 @@ public class CustomizedStateProvider {
   public void updateCustomizedState(String customizedStateName, String resourceName,
       String partitionName, String customizedState) {
     Map<String, String> customizedStateMap = new HashMap<>();
-    customizedStateMap.put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), customizedState);
+    customizedStateMap
+        .put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), customizedState);
     updateCustomizedState(customizedStateName, resourceName, partitionName, customizedStateMap);
   }
 
@@ -68,6 +69,9 @@ public class CustomizedStateProvider {
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     ZNRecord record = new ZNRecord(resourceName);
+    // Update start time field for monitoring purpose, updated value is current time
+    customizedStateMap.put(CustomizedState.CustomizedStateProperty.START_TIME.name(),
+        String.valueOf(System.currentTimeMillis()));
     record.setMapField(partitionName, customizedStateMap);
     if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {
       throw new HelixException(String
@@ -110,7 +114,11 @@ public class CustomizedStateProvider {
     _helixDataAccessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord current) {
-        current.getMapFields().remove(partitionName);
+        Map<String, String> customizedStateMap = new HashMap<>();
+        // Update start time field for monitoring purpose, updated value is current time
+        customizedStateMap.put(CustomizedState.CustomizedStateProperty.START_TIME.name(),
+            String.valueOf(System.currentTimeMillis()));
+        current.getMapFields().put(partitionName, customizedStateMap);
         return current;
       }
     }, existingState);

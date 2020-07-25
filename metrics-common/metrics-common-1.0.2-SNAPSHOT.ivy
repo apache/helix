@@ -43,6 +43,6 @@ under the License.
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-log4j12" ext="jar"/>
     </dependency>
-    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.2.3" conf="compile->compile(*),master(*);runtime->runtime(*)/>
+    <dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.2.3" conf="compile->compile(*),master(*);runtime->runtime(*)" />
 	</dependencies>
 </ivy-module>

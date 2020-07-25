@@ -93,18 +93,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
     if (clientConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkClientConfig cannot be null!");
     }
-
-    // Get MetadataStoreRoutingData
-    String routingDataSourceEndpoint = connectionConfig.getRoutingDataSourceEndpoint();
-    if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
-      // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
-      _metadataStoreRoutingData = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
-    } else {
-      _metadataStoreRoutingData = RoutingDataManager.getInstance().getMetadataStoreRoutingData(
-          RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
-          routingDataSourceEndpoint);
-    }
-
+    _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(connectionConfig);
     _isClosed = false;
     _connectionConfig = connectionConfig;
     _clientConfig = clientConfig;

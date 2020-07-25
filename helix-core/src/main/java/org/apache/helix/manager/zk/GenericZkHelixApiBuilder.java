@@ -200,15 +200,8 @@ public abstract class GenericZkHelixApiBuilder<B extends GenericZkHelixApiBuilde
   private String resolveZkAddressWithShardingKey(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig)
       throws InvalidRoutingDataException {
-    boolean isRoutingDataSourceEndpointSet =
-        connectionConfig.getRoutingDataSourceEndpoint() != null && !connectionConfig
-            .getRoutingDataSourceEndpoint().isEmpty();
     MetadataStoreRoutingData routingData =
-        isRoutingDataSourceEndpointSet ? RoutingDataManager.getInstance()
-            .getMetadataStoreRoutingData(
-                RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
-                connectionConfig.getRoutingDataSourceEndpoint())
-            : RoutingDataManager.getInstance().getMetadataStoreRoutingData();
+        RealmAwareZkClient.getMetadataStoreRoutingData(connectionConfig);
     return routingData.getMetadataStoreRealm(connectionConfig.getZkRealmShardingKey());
   }
 }

@@ -25,7 +25,9 @@ package org.apache.helix.zookeeper.constant;
 public class RoutingSystemPropertyKeys {
 
   /**
-   * This static constant is used to refer to which implementation of RoutingDataReader to use.
+   * If enabled, FederatedZkClient (multiZkClient) will invalidate the cached routing data and
+   * re-read the routing data from the routing data source upon ZK path sharding key cache miss.
    */
-  public static final String ROUTING_DATA_READER_TYPE = "routing.data.reader.type";
+  public static final String UPDATE_ROUTING_DATA_ON_CACHE_MISS =
+      "update.routing.data.on.cache.miss.enabled";
 }

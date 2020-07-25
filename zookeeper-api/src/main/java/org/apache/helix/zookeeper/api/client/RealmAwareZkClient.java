@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
+import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
+import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -638,6 +641,24 @@ public interface RealmAwareZkClient {
     for (String child : getChildren(MetadataStoreRoutingConstants.ROUTING_DATA_PATH)) {
       subscribeDataChanges(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + child,
           dataListener);
+    }
+  }
+
+  /**
+   * Based on the RealmAwareZkConnectionConfig given, return MetadataStoreRoutingData.
+   * @param connectionConfig
+   * @return
+   */
+  static MetadataStoreRoutingData getMetadataStoreRoutingData(
+      RealmAwareZkConnectionConfig connectionConfig) throws InvalidRoutingDataException {
+    String routingDataSourceEndpoint = connectionConfig.getRoutingDataSourceEndpoint();
+    if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
+      // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
+      return RoutingDataManager.getInstance().getMetadataStoreRoutingData();
+    } else {
+      return RoutingDataManager.getInstance().getMetadataStoreRoutingData(
+          RoutingDataReaderType.lookUp(connectionConfig.getRoutingDataSourceType()),
+          routingDataSourceEndpoint);
     }
   }
 }

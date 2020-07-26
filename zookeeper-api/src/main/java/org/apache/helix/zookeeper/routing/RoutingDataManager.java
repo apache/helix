@@ -40,7 +40,7 @@ import org.apache.helix.zookeeper.exception.MultiZkException;
  */
 public class RoutingDataManager {
   /** HTTP call to MSDS is used to fetch routing data by default */
-  private final String DEFAULT_MSDS_ENDPOINT =
+  private String _defaultMsdsEndpoint =
       System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
 
   /** Double-checked locking requires that the following fields be final (volatile) */
@@ -82,12 +82,12 @@ public class RoutingDataManager {
    * @return
    */
   public Map<String, List<String>> getRawRoutingData() {
-    if (DEFAULT_MSDS_ENDPOINT == null || DEFAULT_MSDS_ENDPOINT.isEmpty()) {
+    if (_defaultMsdsEndpoint == null || _defaultMsdsEndpoint.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System "
               + "Properties!");
     }
-    return getRawRoutingData(RoutingDataReaderType.HTTP, DEFAULT_MSDS_ENDPOINT);
+    return getRawRoutingData(RoutingDataReaderType.HTTP, _defaultMsdsEndpoint);
   }
 
   /**
@@ -121,12 +121,12 @@ public class RoutingDataManager {
    * @return MetadataStoreRoutingData
    */
   public MetadataStoreRoutingData getMetadataStoreRoutingData() throws InvalidRoutingDataException {
-    if (DEFAULT_MSDS_ENDPOINT == null || DEFAULT_MSDS_ENDPOINT.isEmpty()) {
+    if (_defaultMsdsEndpoint == null || _defaultMsdsEndpoint.isEmpty()) {
       throw new IllegalStateException(
           "HttpRoutingDataReader was unable to find a valid MSDS endpoint String in System "
               + "Properties!");
     }
-    return getMetadataStoreRoutingData(RoutingDataReaderType.HTTP, DEFAULT_MSDS_ENDPOINT);
+    return getMetadataStoreRoutingData(RoutingDataReaderType.HTTP, _defaultMsdsEndpoint);
   }
 
   /**
@@ -162,6 +162,8 @@ public class RoutingDataManager {
   public synchronized void reset() {
     _rawRoutingDataMap.clear();
     _metadataStoreRoutingDataMap.clear();
+    _defaultMsdsEndpoint =
+        System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
   }
 
   /**

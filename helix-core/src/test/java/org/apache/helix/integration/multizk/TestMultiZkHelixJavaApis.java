@@ -970,8 +970,8 @@ public class TestMultiZkHelixJavaApis {
       if (shouldSucceed) {
         Assert.fail("ZK Realm should be found for /" + cluster);
       } else {
-        Assert.assertTrue(
-            e.getMessage().startsWith("Cannot find ZK realm for the path: /" + cluster));
+        Assert.assertTrue(e.getMessage()
+            .startsWith("No sharding key found within the provided path. Path: /" + cluster));
       }
     } catch (IllegalArgumentException e) {
       if (shouldSucceed) {

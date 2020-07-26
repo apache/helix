@@ -33,7 +33,7 @@ The following figure shows the high level architecture of customized view aggreg
 ### Terminologies
 * Customized state: A per partition state defined by users in a string format. Customized state exists under each participant. It may include different types of states. Each type of state is represented as a Znode itself and has different resources as its child Znode.
 * Customized state config: A cluster level config specifically used for customized state related config. For example, it can include a list of customized states that should be aggregated. 
-* Customized view: An aggregation result for customized states across all participants. It exists under the cluster and can also have a few different types of states depending on users' input. Each type of state is represented as a Znode itself and has different resources as it child Znode.
+* Customized view: An aggregation result for customized states across all participants. It exists under the cluster and can also have a few different types of states depending on users' input. Each type of state is represented as a Znode itself and has different resources as its child Znode.
 
 ### How to Use Customized View
 
@@ -42,7 +42,7 @@ Users are responsible for updating customized states in their application code. 
 
 After instantiation, users should call the function in the factory with user defined parameters to build a [Customized State Provider](https://github.com/apache/helix/blob/master/helix-core/src/main/java/org/apache/helix/customizedstate/CustomizedStateProvider.java) object. 
     
-There are two ways to build [Customized State Provider](https://github.com/apache/helix/blob/master/helix-core/src/main/java/org/apache/helix/customizedstate/CustomizedStateProvider.java), and the difference is what kind of [HelixManager](https://github.com/apache/helix/blob/master/helix-core/src/main/java/org/apache/helix/HelixManager.java) is passed in. As the following code shows, the first one relies on Helix provided manager, while the second one needs a user-created Helix manager. 
+There are two ways to build [Customized State Provider](https://github.com/apache/helix/blob/master/helix-core/src/main/java/org/apache/helix/customizedstate/CustomizedStateProvider.java), and the difference is what kind of [HelixManager](https://github.com/apache/helix/blob/master/helix-core/src/main/java/org/apache/helix/HelixManager.java) is passed in. As the following code shows, the first one relies on a Helix provided manager, while the second one needs a user-created Helix manager. 
 
 ```
   public CustomizedStateProvider buildCustomizedStateProvider(String instanceName,
@@ -80,11 +80,11 @@ Here are some additional guidelines about how to use [Customized State Provider]
 
 * When a user would like to drop a certain instance by calling Helix delete instance API, Helix will delete the instance as well as all sub-paths under it with recursive deletion. Therefore, the customized state will also be deleted, and customized view will be updated when the instance is gone.
 
-* When a user would like to drop a certain resource by calling Helix delete resource API, customer will be responsible for deleting customized state of all partitions for that resource across all instances. This operation can be implemented in users' state transition logic.
+* When a user would like to drop a certain resource by calling Helix delete resource API, he/she will be responsible for deleting customized state of all partitions for that resource across all instances. This operation can be implemented in users' state transition logic.
 
 * When Helix rebalance happens, and a certain partition on a certain instance is moved to another instance, customers will need to handle the cleanup in the callback function currently provided by Helix in the state transition logic. 
 
-* When an unexpected disconnection happened in client side from Zookeeper, but does not trigger rebalance, Helix will still keep the customized state as it is and wait for the connection to be reset. 
+* When an unexpected disconnection happens in client side from Zookeeper, but does not trigger rebalance, Helix will still keep the customized state as it is and wait for the connection to be reset. 
 
 
 #### Enable Customized State Aggregation in Config

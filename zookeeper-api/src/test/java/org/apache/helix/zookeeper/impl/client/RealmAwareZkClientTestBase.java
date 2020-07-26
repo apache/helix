@@ -36,10 +36,10 @@ public abstract class RealmAwareZkClientTestBase extends ZkTestBase {
   protected static final String TEST_INVALID_PATH = ZK_SHARDING_KEY_PREFIX + "_invalid" + "/a/b/c";
 
   // Create a MockMSDS for testing
-  private static MockMetadataStoreDirectoryServer _msdsServer;
-  private static final String MSDS_HOSTNAME = "localhost";
-  private static final int MSDS_PORT = 1111;
-  private static final String MSDS_NAMESPACE = "test";
+  protected static MockMetadataStoreDirectoryServer _msdsServer;
+  protected static final String MSDS_HOSTNAME = "localhost";
+  protected static final int MSDS_PORT = 19910;
+  protected static final String MSDS_NAMESPACE = "test";
 
   @BeforeClass
   public void beforeClass() throws IOException, InvalidRoutingDataException {

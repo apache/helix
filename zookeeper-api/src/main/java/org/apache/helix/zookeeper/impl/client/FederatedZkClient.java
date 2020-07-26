@@ -30,7 +30,8 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
+import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
+import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -74,7 +75,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private static final String DEDICATED_ZK_CLIENT_FACTORY =
       DedicatedZkClientFactory.class.getSimpleName();
 
-  private final MetadataStoreRoutingData _metadataStoreRoutingData;
+  private volatile MetadataStoreRoutingData _metadataStoreRoutingData;
   private final RealmAwareZkClient.RealmAwareZkConnectionConfig _connectionConfig;
   private final RealmAwareZkClient.RealmAwareZkClientConfig _clientConfig;
 
@@ -83,6 +84,8 @@ public class FederatedZkClient implements RealmAwareZkClient {
 
   private volatile boolean _isClosed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
+  private final boolean _routingDataUpdateOnCacheMissEnabled = Boolean.parseBoolean(
+      System.getProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS));
 
   // TODO: support capacity of ZkClient number in one FederatedZkClient and do garbage collection.
   public FederatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
@@ -509,7 +512,6 @@ public class FederatedZkClient implements RealmAwareZkClient {
     checkClosedState();
 
     String zkRealm = getZkRealm(path);
-
     // Use this zkClient reference to protect the returning zkClient from being null because of
     // race condition. Once we get the reference, even _zkRealmToZkClientMap is cleared by closed(),
     // this zkClient is not null which guarantees the returned value not null.
@@ -541,17 +543,66 @@ public class FederatedZkClient implements RealmAwareZkClient {
   }
 
   private String getZkRealm(String path) {
+    if (_routingDataUpdateOnCacheMissEnabled) {
+      try {
+        return updateRoutingDataOnCacheMiss(path);
+      } catch (InvalidRoutingDataException e) {
+        LOG.error(
+            "FederatedZkClient::getZkRealm: Failed to update routing data due to invalid routing "
+                + "data!", e);
+        throw new MultiZkException(e);
+      }
+    }
+    return _metadataStoreRoutingData.getMetadataStoreRealm(path);
+  }
+
+  /**
+   * Perform a 2-tier routing data cache update:
+   * 1. Do an in-memory update from the singleton RoutingDataManager
+   * 2. Do an I/O based read from the routing data source by resetting RoutingDataManager
+   * @param path
+   * @return
+   * @throws InvalidRoutingDataException
+   */
+  private String updateRoutingDataOnCacheMiss(String path) throws InvalidRoutingDataException {
     String zkRealm;
     try {
       zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
-    } catch (NoSuchElementException ex) {
-      throw new NoSuchElementException("Cannot find ZK realm for the path: " + path);
+    } catch (NoSuchElementException e1) {
+      synchronized (this) {
+        try {
+          zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+        } catch (NoSuchElementException e2) {
+          // Try 1) Refresh MetadataStoreRoutingData from RoutingDataManager
+          // This is an in-memory refresh from the Singleton RoutingDataManager - other
+          // FederatedZkClient objects may have triggered a cache refresh, so we first update the
+          // in-memory reference. This refresh only affects this object/thread, so we synchronize
+          // on "this".
+          _metadataStoreRoutingData =
+              RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+          try {
+            zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+          } catch (NoSuchElementException e3) {
+            synchronized (FederatedZkClient.class) {
+              try {
+                zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+              } catch (NoSuchElementException e4) {
+                // Try 2) Reset RoutingDataManager and re-read the routing data from routing data
+                // source via I/O. Since RoutingDataManager's cache doesn't have it either, so we
+                // synchronize on all threads by locking on FederatedZkClient.class.
+                RoutingDataManager.getInstance().reset();
+                _metadataStoreRoutingData =
+                    RealmAwareZkClient.getMetadataStoreRoutingData(_connectionConfig);
+                // No try-catch for the following call because if this throws a
+                // NoSuchElementException, it means the ZK path sharding key doesn't exist even
+                // after a full cache refresh
+                zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
+              }
+            }
+          }
+        }
+      }
     }
-
-    if (zkRealm == null || zkRealm.isEmpty()) {
-      throw new NoSuchElementException("Cannot find ZK realm for the path: " + path);
-    }
-
     return zkRealm;
   }
 

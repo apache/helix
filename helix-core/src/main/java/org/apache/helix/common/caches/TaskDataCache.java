@@ -418,19 +418,4 @@ public class TaskDataCache extends AbstractDataCache {
     }
     return null;
   }
-
-  public ResourceAssignment getPreviousAssignment(String resourceName) {
-    return _prevAssignmentMap.get(resourceName) != null ? new ResourceAssignment(
-        _prevAssignmentMap.get(resourceName)) : null;
-  }
-
-  public void setPreviousAssignment(String resourceName, ResourceAssignment prevAssignment) {
-    _prevAssignmentMap.put(resourceName, prevAssignment.getRecord());
-    _prevAssignmentToUpdate.add(resourceName);
-  }
-
-  public void removePrevAssignment(String resourceName) {
-    _prevAssignmentMap.remove(resourceName);
-    _prevAssignmentToRemove.add(resourceName);
-  }
 }

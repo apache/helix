@@ -55,8 +55,9 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         }
         long purgeInterval = workflowConfig.getJobPurgeInterval();
         long currentTime = System.currentTimeMillis();
-        if (purgeInterval > 0
-            && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
+        long nextPurgeTime = workflowContext.getLastJobPurgeTime() + purgeInterval;
+        if (purgeInterval > 0 && nextPurgeTime <= currentTime) {
+          nextPurgeTime = currentTime + purgeInterval;
           // Find jobs that are ready to be purged
           Set<String> expiredJobs =
               TaskUtil.getExpiredJobsFromCache(dataProvider, workflowConfig, workflowContext);
@@ -64,8 +65,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
             expiredJobsMap.put(workflowConfig.getWorkflowId(), expiredJobs);
           }
         }
-        scheduleNextJobPurge(workflowConfig.getWorkflowId(), workflowContext.getLastJobPurgeTime(),
-            purgeInterval, _rebalanceScheduler, manager);
+        scheduleNextJobPurge(workflowConfig.getWorkflowId(), nextPurgeTime, _rebalanceScheduler,
+            manager);
       } else if (workflowConfig == null && entry.getValue() != null && entry.getValue().getId()
           .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
         // Find workflows that need to be purged
@@ -106,9 +107,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     TaskUtil.workflowGarbageCollection(toBePurgedWorkflows, manager);
   }
 
-  private static void scheduleNextJobPurge(String workflow, long lastPurgeTime, long purgeInterval,
+  private static void scheduleNextJobPurge(String workflow, long nextPurgeTime,
       RebalanceScheduler rebalanceScheduler, HelixManager manager) {
-    long nextPurgeTime = lastPurgeTime + purgeInterval;
     long currentScheduledTime = rebalanceScheduler.getRebalanceTime(workflow);
     if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
       rebalanceScheduler.scheduleRebalance(manager, workflow, nextPurgeTime);

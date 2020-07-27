@@ -54,7 +54,6 @@ import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.mockito.internal.util.collections.Sets;
 import org.testng.Assert;
-import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -182,16 +181,15 @@ public class TestRoutingTableProvider extends ZkTestBase {
     deleteCluster(CLUSTER_NAME);
   }
 
-  @Test()
+  @Test
   public void testInvocation() throws Exception {
-    MockRoutingTableChangeListener routingTableChangeListener =
-        new TestRoutingTableProvider().new MockRoutingTableChangeListener();
+    MockRoutingTableChangeListener routingTableChangeListener = new MockRoutingTableChangeListener();
     _routingTableProvider_default
         .addRoutingTableChangeListener(routingTableChangeListener, null, true);
 
     // Initial add listener should trigger the first execution of the
     // listener callbacks
-    AssertJUnit.assertTrue(routingTableChangeListener.routingTableChangeReceived);
+    Assert.assertTrue(routingTableChangeListener.routingTableChangeReceived);
   }
 
   @Test(dependsOnMethods = { "testInvocation" })

@@ -29,8 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.AccessOption;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -38,7 +36,6 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +49,11 @@ public class TaskStateModel extends StateModel {
   private ScheduledFuture timeout_task;
   private TaskRunner _taskRunner;
   private final ScheduledExecutorService _timeoutTaskExecutor;
+  public static final String TASK_JAR_FILE = "JAR_FILE";
+  public static final String TASK_VERSION = "VERSION";
+  public static final String TASK_CLASSES = "TASK_CLASSES";
+  public static final String TASK_FACTORY = "TASKFACTORY";
+  public static final String TASK_PATH = "TASK_DEFINITION";
 
   public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
@@ -293,35 +295,56 @@ public class TaskStateModel extends StateModel {
   }
 
   /**
-   * Loads Task and TaskFactory classes for command input
+   * Loads Task and TaskFactory classes for command input from
+   * a JAR file, and register the TaskFactory in _taskFactoryRegistry.
+   * @param command The command indicating what task to be loaded
    */
-  private boolean loadNewTask(String command) {
-    try {
-      // Read ZNRecord containing task definition information.
-      ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
-          .get("/" + _manager.getClusterName() + "/TASK_DEFINITION",
-              null, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
-
-      // Open the JAR file and import Task(s) and TaskFactory classes.
-      File taskJar = new File(taskConfig.getSimpleField("JAR_FILE"));
-      URL taskJarUrl = taskJar.toURI().toURL();
-
-      // Import Task(s) and TaskFactory classes.
-      URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
-      for(String taskClass : taskConfig.getListField("TASK_CLASSES")) {
-        classLoader.loadClass(taskClass);
-      }
-      Class cl = classLoader.loadClass(taskConfig.getSimpleField("TASKFACTORY"));
-
-      // Register the TaskFactory.
-      _taskFactoryRegistry.put(command, (TaskFactory) cl.newInstance());
-    } catch (MalformedURLException | ClassNotFoundException | InstantiationException
-        | IllegalAccessException | ZkNoNodeException | NullPointerException | HelixException e) {
-      LOG.info("Loading new task " + command + " for instance " + _manager.getInstanceName()
-          + " in cluster " + _manager.getClusterName() + " failed. (" + e.getMessage() + ")");
-      return false;
+  private void loadNewTask(String command) {
+    // Read ZNRecord containing task definition information.
+    ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
+        .get("/" + _manager.getClusterName() + "/" + TASK_PATH + "_" + command,null, 0);
+    if(taskConfig == null) {
+      LOG.info("Failed to read ZNRecord for task " + command + " for instance " + _manager.getInstanceName()
+          + " in cluster " + _manager.getClusterName() + ".");
+      return;
     }
-    return true;
+
+    // Open the JAR file containing Task(s) and TaskFactory classes.
+    File taskJar;
+    URL taskJarUrl;
+    try {
+      taskJar = new File(taskConfig.getSimpleField(TASK_JAR_FILE));
+      taskJarUrl = taskJar.toURI().toURL();
+    } catch (MalformedURLException e) {
+      LOG.info("Failed to find/open JAR for new task " + command + " for instance " + _manager.getInstanceName()
+          + " in cluster " + _manager.getClusterName() + ".");
+      return;
+    }
+
+    // Import Task(s) and TaskFactory classes.
+    URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
+    for(String taskClass : taskConfig.getListField(TASK_CLASSES)) {
+      try {
+        classLoader.loadClass(taskClass);
+      } catch(ClassNotFoundException e) {
+        LOG.info("Failed to load class(es) for new task " + command + " for instance " + _manager.getInstanceName()
+            + " in cluster " + _manager.getClusterName() + ".");
+        return;
+      }
+    }
+    Class cl;
+    TaskFactory tf;
+    try {
+      cl = classLoader.loadClass(taskConfig.getSimpleField(TASK_FACTORY));
+      tf = (TaskFactory)cl.newInstance();
+    } catch(ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+      LOG.info("Failed to load/instantiate TaskFactory class for new task " + command
+          + " for instance " + _manager.getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
+      return;
+    }
+
+    // Register the TaskFactory.
+    _taskFactoryRegistry.put(command, tf);
   }
 
   private void startTask(Message msg, String taskPartition) {
@@ -359,9 +382,7 @@ public class TaskStateModel extends StateModel {
     }
     // If the task isn't registered, load the appropriate Task and TaskFactory classes
     if(!_taskFactoryRegistry.containsKey(command)) {
-      if(!loadNewTask(command)) {
-        throw new IllegalStateException("No callback implemented for task " + command);
-      }
+      loadNewTask(command);
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);

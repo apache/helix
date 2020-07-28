@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -38,31 +39,31 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.zookeeper.CreateMode;
+import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
 public class TestDynamicTaskLoading extends ZkTestBase {
-  HelixManager _manager;
-  MockParticipantManager _participant;
-  ClusterControllerManager _controller;
-  String _clusterName;
+  private final String _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+  private static final String _instanceName = "localhost_12913";
+  private HelixManager _manager;
+  private MockParticipantManager _participant;
+  private ClusterControllerManager _controller;
 
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
     _gSetupTool.addCluster(_clusterName, true);
 
     _manager = HelixManagerFactory.getZKHelixManager(_clusterName, "Admin",
         InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
-    String instanceName = "localhost_12913";
-    _gSetupTool.addInstanceToCluster(_clusterName, instanceName);
-    _participant = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
-    StateModelFactory<StateModel> stateModelFactory = new MasterSlaveStateModelFactory(instanceName, 0);
+    _gSetupTool.addInstanceToCluster(_clusterName, _instanceName);
+    _participant = new MockParticipantManager(ZK_ADDR, _clusterName, _instanceName);
+    StateModelFactory<StateModel> stateModelFactory = new MasterSlaveStateModelFactory(_instanceName, 0);
     StateMachineEngine stateMach = _participant.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
     Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
@@ -70,18 +71,18 @@ public class TestDynamicTaskLoading extends ZkTestBase {
         new TaskStateModelFactory(_participant, taskFactoryReg));
     _participant.syncStart();
 
-    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, null);
+    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName,null);
     _controller.syncStart();
 
     // Add task definition information as a ZNRecord.
     ZNRecord configZnRecord = new ZNRecord(_participant.getInstanceName());
-    configZnRecord.setSimpleField("JAR_FILE", "src/test/resources/Reindex.jar");
-    configZnRecord.setSimpleField("VERSION", "1.0.0");
+    configZnRecord.setSimpleField(TaskStateModel.TASK_JAR_FILE, "src/test/resources/Reindex.jar");
+    configZnRecord.setSimpleField(TaskStateModel.TASK_VERSION, "1.0.0");
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
-    configZnRecord.setListField("TASK_CLASSES", taskClasses);
-    configZnRecord.setSimpleField("TASKFACTORY", "com.mycompany.mocktask.MockTaskFactory");
-    String path = String.format("/%s/%s", _clusterName, "TASK_DEFINITION");
+    configZnRecord.setListField(TaskStateModel.TASK_CLASSES, taskClasses);
+    configZnRecord.setSimpleField(TaskStateModel.TASK_FACTORY, "com.mycompany.mocktask.MockTaskFactory");
+    String path = String.format("/%s/%s_Reindex", _clusterName, TaskStateModel.TASK_PATH);
     _participant.getZkClient().create(path, configZnRecord, CreateMode.PERSISTENT);
   }
 
@@ -100,7 +101,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     workflow.addJob("JOB", job);
     driver.start(workflow.build());
 
-    Thread.sleep(2000);
+    TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.COMPLETED);
+    AssertJUnit.assertEquals(finalState, TaskState.COMPLETED);
   }
 
   @AfterClass

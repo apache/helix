@@ -19,20 +19,13 @@ package org.apache.helix.zookeeper.constant;
  * under the License.
  */
 
-/**
- * This class contains various routing-related system property keys for multi-zk clients.
- */
-public class RoutingSystemPropertyKeys {
+public class RoutingDataConstants {
 
   /**
-   * If enabled, FederatedZkClient (multiZkClient) will invalidate the cached routing data and
-   * re-read the routing data from the routing data source upon ZK path sharding key cache miss.
+   * Default interval that defines how frequently RoutingDataManager's routing data should be
+   * updated from the routing data source. This exists to apply throttling to the rate at which
+   * the ZkClient pulls routing data from the routing data source to avoid overloading the routing
+   * data source.
    */
-  public static final String UPDATE_ROUTING_DATA_ON_CACHE_MISS =
-      "update.routing.data.on.cache.miss.enabled";
-
-  /**
-   * The interval to use between routing data updates from the routing data source.
-   */
-  public static final String ROUTING_DATA_UPDATE_INTERVAL_MS = "routing.data.update.interval.ms";
+  public static final long DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS = 5 * 1000L; // 5 seconds
 }

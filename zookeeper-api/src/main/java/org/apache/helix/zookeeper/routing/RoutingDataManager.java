@@ -51,6 +51,9 @@ public class RoutingDataManager {
   private final Map<String, MetadataStoreRoutingData> _metadataStoreRoutingDataMap =
       new ConcurrentHashMap<>();
 
+  // Tracks the time at which reset() was called last. Used to throttle reset()
+  private volatile long _lastResetTimestamp;
+
   // Singleton instance
   private static RoutingDataManager _instance;
 
@@ -164,6 +167,15 @@ public class RoutingDataManager {
     _metadataStoreRoutingDataMap.clear();
     _defaultMsdsEndpoint =
         System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
+    _lastResetTimestamp = System.currentTimeMillis();
+  }
+
+  /**
+   * Returns the timestamp for the last reset().
+   * @return
+   */
+  public long getLastResetTimestamp() {
+    return _lastResetTimestamp;
   }
 
   /**

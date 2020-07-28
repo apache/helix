@@ -111,13 +111,13 @@ public class TestJobQueueCleanUp extends TaskTestBase {
           WorkflowConfig config = _driver.getWorkflowConfig(queueName);
           System.out.println("|Current time: " + System.currentTimeMillis() +" **TEST: " + config.getJobDag().getAllNodes());
           return config.getJobDag().getAllNodes().equals(remainJobs);
-        }, 10000));
+        }, TestHelper.WAIT_DURATION));
 
     Assert.assertTrue(TestHelper.verify(() -> {
       WorkflowContext context = _driver.getWorkflowContext(queueName);
       return context.getJobStates().keySet().equals(remainJobs) && remainJobs
           .containsAll(context.getJobStartTimes().keySet());
-    }, 10000));
+    }, TestHelper.WAIT_DURATION));
 
     for (String job : deletedJobs) {
       JobConfig cfg = _driver.getJobConfig(job);

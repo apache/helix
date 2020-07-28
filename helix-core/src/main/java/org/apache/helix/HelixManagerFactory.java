@@ -25,10 +25,13 @@ package org.apache.helix;
  * for zk-based cluster managers, the getZKXXX(..zkClient) that takes a zkClient parameter
  *   are intended for session expiry test purpose
  */
+
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Obtain one of a set of Helix cluster managers, organized by the backing system.
@@ -65,4 +68,38 @@ public final class HelixManagerFactory {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener);
   }
 
+  /**
+   * Construct a ZkHelixManager using the HelixManagerProperty instance given. If a proper
+   * ZkConnectionConfig. HelixManagerProperty given must contain a valid ZkConnectionConfig.
+   * @param clusterName
+   * @param instanceName
+   * @param type
+   * @param stateListener
+   * @param helixManagerProperty must contain a valid ZkConnectionConfig
+   * @return
+   */
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
+    return new ZKHelixManager(clusterName, instanceName, type, null, stateListener,
+        helixManagerProperty);
+  }
+
+  /**
+   * Construct a ZkHelixManager using the HelixManagerProperty instance given. If a proper
+   * ZkConnectionConfig is given in HelixManagerProperty, zkAddr field will be overriden.
+   * @param clusterName
+   * @param instanceName
+   * @param type
+   * @param zkAddr will be overriden if a valid ZkConnectionConfig is given in helixManagerProperty
+   * @param stateListener
+   * @param helixManagerProperty
+   * @return
+   */
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, String zkAddr, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
+    return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener,
+        helixManagerProperty);
+  }
 }

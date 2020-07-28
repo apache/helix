@@ -111,7 +111,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
-  protected final String _zkAddress;
+  protected String _zkAddress;
   private final String _clusterName;
   private final String _instanceName;
   private final InstanceType _instanceType;
@@ -131,6 +131,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private int _reportLatency;
 
   protected RealmAwareZkClient _zkclient;
+  private RealmAwareZkClient.RealmAwareZkConnectionConfig _realmAwareZkConnectionConfig;
   private final DefaultMessagingService _messagingService;
   private Map<ChangeType, HelixCallbackMonitor> _callbackMonitors;
 
@@ -225,9 +226,24 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       String zkAddress, HelixManagerStateListener stateListener,
       HelixManagerProperty helixManagerProperty) {
 
-    LOG.info("Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: "
-        + clusterName + ", instanceName: " + instanceName + ", type: " + instanceType);
+    // Check that RealmAwareZkConnectionConfig is set correctly
+    // Since HelixManager is a single-realm API, connection config should have a ZK path sharding
+    // key set.
+    if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+          helixManagerProperty.getZkConnectionConfig();
+      if (connectionConfig.getZkRealmShardingKey() == null || connectionConfig
+          .getZkRealmShardingKey().isEmpty()) {
+        throw new HelixException(
+            "ZKHelixManager::ZK path sharding key must be set for ZKHelixManager! ZKHelixManager "
+                + "is only available on single-realm mode.");
+      }
+      _realmAwareZkConnectionConfig = connectionConfig;
+    }
 
+    LOG.info(
+        "Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: " + clusterName
+            + ", instanceName: " + instanceName + ", type: " + instanceType);
     _zkAddress = zkAddress;
     _clusterName = clusterName;
     _instanceType = instanceType;
@@ -318,13 +334,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _stateMachineEngine = null;
       _participantHealthInfoCollector = null;
       _controllerTimerTasks.add(new StatusDumpTask(this));
-
       break;
     case CONTROLLER_PARTICIPANT:
       _stateMachineEngine = new HelixStateMachineEngine(this);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
-
       _timerTasks
           .add(new ParticipantHealthReportTask(_participantHealthInfoCollector, _reportLatency));
       _controllerTimerTasks.add(new StatusDumpTask(this));
@@ -348,7 +362,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _enabledPipelineTypes = types;
   }
 
-  @Override public boolean removeListener(PropertyKey key, Object listener) {
+  @Override
+  public boolean removeListener(PropertyKey key, Object listener) {
     LOG.info("Removing listener: " + listener + " on path: " + key.getPath() + " from cluster: "
         + _clusterName + " by instance: " + _instanceName);
 
@@ -1405,11 +1420,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordSerializer()).build();
 
-    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkRealmShardingKey(shardingKey)
-            .setSessionTimeout(_sessionTimeout).build();
+    // If the user supplied RealmAwareZkConnectionConfig, then use it. Only create the connection
+    // config if nothing is given
+    if (_realmAwareZkConnectionConfig == null) {
+      // If no connection config is given, use the single realm mode with the cluster name as the
+      // key
+      _realmAwareZkConnectionConfig = new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+          .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+          .setZkRealmShardingKey(shardingKey).setSessionTimeout(_sessionTimeout).build();
+    }
 
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig();
@@ -1422,11 +1441,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         .setMonitorRootPathOnly(isMonitorRootPathOnly());
 
     if (_instanceType == InstanceType.ADMINISTRATOR) {
-      return resolveZkClient(SharedZkClientFactory.getInstance(), connectionConfig,
+      return resolveZkClient(SharedZkClientFactory.getInstance(), _realmAwareZkConnectionConfig,
           clientConfig);
     }
 
-    return resolveZkClient(DedicatedZkClientFactory.getInstance(), connectionConfig,
+    return resolveZkClient(DedicatedZkClientFactory.getInstance(), _realmAwareZkConnectionConfig,
         clientConfig);
   }
 

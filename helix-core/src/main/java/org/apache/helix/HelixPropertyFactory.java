@@ -88,8 +88,9 @@ public final class HelixPropertyFactory {
     CloudConfig cloudConfig;
     RealmAwareZkClient dedicatedZkClient = null;
     try {
-      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
-        // If the multi ZK config is enabled, use multi-realm mode with DedicatedZkClient
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
+        // If the multi ZK config is enabled or zkAddress is null, use realm-aware mode with
+        // DedicatedZkClient
         try {
           RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
               new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()

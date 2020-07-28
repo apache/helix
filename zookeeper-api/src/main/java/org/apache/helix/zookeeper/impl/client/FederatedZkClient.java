@@ -30,6 +30,7 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataConstants;
 import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
 import org.apache.helix.zookeeper.exception.MultiZkException;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -86,6 +87,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private final boolean _routingDataUpdateOnCacheMissEnabled = Boolean.parseBoolean(
       System.getProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS));
+  private long _routingDataUpdateInterval;
 
   // TODO: support capacity of ZkClient number in one FederatedZkClient and do garbage collection.
   public FederatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
@@ -102,6 +104,7 @@ public class FederatedZkClient implements RealmAwareZkClient {
     _clientConfig = clientConfig;
     _pathBasedZkSerializer = clientConfig.getZkSerializer();
     _zkRealmToZkClientMap = new ConcurrentHashMap<>();
+    getRoutingDataUpdateInterval();
   }
 
   @Override
@@ -587,6 +590,11 @@ public class FederatedZkClient implements RealmAwareZkClient {
               try {
                 zkRealm = _metadataStoreRoutingData.getMetadataStoreRealm(path);
               } catch (NoSuchElementException e4) {
+                if (shouldThrottleRead()) {
+                  // If routing data update from routing data source has taken place recently,
+                  // then just skip the update and throw the exception
+                  throw e4;
+                }
                 // Try 2) Reset RoutingDataManager and re-read the routing data from routing data
                 // source via I/O. Since RoutingDataManager's cache doesn't have it either, so we
                 // synchronize on all threads by locking on FederatedZkClient.class.
@@ -625,5 +633,35 @@ public class FederatedZkClient implements RealmAwareZkClient {
         "Session-aware operation is not supported by " + FEDERATED_ZK_CLIENT
             + ". Instead, please use " + DEDICATED_ZK_CLIENT_FACTORY
             + " to create a dedicated RealmAwareZkClient for this operation.");
+  }
+
+  /**
+   * Resolves the routing data update interval value from System Properties.
+   */
+  private void getRoutingDataUpdateInterval() {
+    try {
+      _routingDataUpdateInterval = Long.parseLong(
+          System.getProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS));
+      if (_routingDataUpdateInterval < 0) {
+        LOG.warn("FederatedZkClient::shouldThrottleRead(): invalid value: {} given for "
+                + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!",
+            _routingDataUpdateInterval);
+        _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+      }
+    } catch (NumberFormatException e) {
+      LOG.warn("FederatedZkClient::shouldThrottleRead(): failed to parse "
+          + "ROUTING_DATA_UPDATE_INTERVAL_MS, using the default value (5 sec) instead!", e);
+      _routingDataUpdateInterval = RoutingDataConstants.DEFAULT_ROUTING_DATA_UPDATE_INTERVAL_MS;
+    }
+  }
+
+  /**
+   * Return whether the read request to routing data source should be throttled using the default
+   * routing data update interval.
+   * @return
+   */
+  private boolean shouldThrottleRead() {
+    return System.currentTimeMillis() - RoutingDataManager.getInstance().getLastResetTimestamp()
+        < _routingDataUpdateInterval;
   }
 }

@@ -279,6 +279,8 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
       throws IOException, InvalidRoutingDataException {
     // Enable routing data update upon cache miss
     System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "true");
+    // Set the routing data update interval to 0 so there's no delay in testing
+    System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS, "0");
 
     RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     _msdsServer.stopServer();
@@ -375,7 +377,8 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     // Shut down MSDS
     _msdsServer.stopServer();
     // Disable System property
-    System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "false");
+    System.clearProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS);
+    System.clearProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS);
   }
 
   /**
@@ -402,6 +405,8 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
 
     // Enable routing data update upon cache miss
     System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "true");
+    // Set the routing data update interval to 0 so there's no delay in testing
+    System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS, "0");
 
     RoutingDataManager.getInstance().reset();
     RoutingDataManager.getInstance().getMetadataStoreRoutingData(RoutingDataReaderType.ZK, zkRealm);
@@ -496,7 +501,66 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     zkClient.deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
     zkClient.close();
     // Disable System property
-    System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "false");
+    System.clearProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS);
+    System.clearProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS);
+  }
+
+  /**
+   * Test that throttle based on last reset timestamp works correctly. Here, we use ZK as the
+   * routing data source.
+   * Test scenario: set the throttle value to a high value and check that routing data update from
+   * the routing data source does NOT happen (because it would be throttled).
+   */
+  @Test(dependsOnMethods = "testUpdateRoutingDataOnCacheMissZK")
+  public void testRoutingDataUpdateThrottle() throws InvalidRoutingDataException {
+    // Call reset to set the last reset() timestamp in RoutingDataManager
+    RoutingDataManager.getInstance().reset();
+
+    // Set up routing data in ZK with empty sharding key list
+    String zkRealm = "localhost:2127";
+    String newShardingKey = "/throttle";
+    ZkClient zkClient =
+        new ZkClient.Builder().setZkServer(zkRealm).setZkSerializer(new ZNRecordSerializer())
+            .build();
+    zkClient.create(MetadataStoreRoutingConstants.ROUTING_DATA_PATH, null, CreateMode.PERSISTENT);
+    ZNRecord zkRealmRecord = new ZNRecord(zkRealm);
+    zkRealmRecord.setListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY,
+        new ArrayList<>(TestConstants.TEST_KEY_LIST_1));
+    zkClient.create(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm, zkRealmRecord,
+        CreateMode.PERSISTENT);
+
+    // Enable routing data update upon cache miss
+    System.setProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS, "true");
+    // Set the throttle value to a very long value
+    System.setProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS,
+        String.valueOf(Integer.MAX_VALUE));
+
+    // Create a new FederatedZkClient, whose _routingDataUpdateInterval should be MAX_VALUE
+    FederatedZkClient federatedZkClient = new FederatedZkClient(
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRoutingDataSourceType(RoutingDataReaderType.ZK.name())
+            .setRoutingDataSourceEndpoint(zkRealm).build(),
+        new RealmAwareZkClient.RealmAwareZkClientConfig());
+
+    // Add newShardingKey to ZK's routing data
+    zkRealmRecord.getListField(MetadataStoreRoutingConstants.ZNRECORD_LIST_FIELD_KEY)
+        .add(newShardingKey);
+    zkClient
+        .writeData(MetadataStoreRoutingConstants.ROUTING_DATA_PATH + "/" + zkRealm, zkRealmRecord);
+
+    try {
+      Assert.assertFalse(federatedZkClient.exists(newShardingKey));
+      Assert.fail("NoSuchElementException expected!");
+    } catch (NoSuchElementException e) {
+      // Expected because it should not read from the routing data source because of the throttle
+    }
+
+    // Clean up
+    zkClient.deleteRecursively(MetadataStoreRoutingConstants.ROUTING_DATA_PATH);
+    zkClient.close();
+    federatedZkClient.close();
+    System.clearProperty(RoutingSystemPropertyKeys.UPDATE_ROUTING_DATA_ON_CACHE_MISS);
+    System.clearProperty(RoutingSystemPropertyKeys.ROUTING_DATA_UPDATE_INTERVAL_MS);
   }
 
   /*
@@ -504,7 +568,7 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
    * TODO: test that all raw zkClients are closed after FederatedZkClient close() is called. This
    *  could help avoid ZkClient leakage.
    */
-  @Test(dependsOnMethods = "testUpdateRoutingDataOnCacheMissZK")
+  @Test(dependsOnMethods = "testRoutingDataUpdateThrottle")
   public void testClose() {
     Assert.assertFalse(_realmAwareZkClient.isClosed());
 

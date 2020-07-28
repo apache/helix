@@ -319,7 +319,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
        */
       if (command == Command.delete || command == Command.update) {
         validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
-            instanceConfig, command == Command.delete);
+            instanceConfig, command);
       }
       switch (command) {
         case update:
@@ -336,7 +336,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           return badRequest(String.format("Unsupported command: %s", command));
       }
     } catch (IllegalArgumentException ex) {
-      LOG.error(String.format("Invalid topology setting for Instance : %s. Fail the config update",
+      LOG.error(String.format("Invalid topology setting for Instance : {}. Fail the config update",
           instanceName), ex);
       return serverError(ex);
     } catch (HelixException ex) {
@@ -560,12 +560,12 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
   }
 
-  private boolean validateDeltaTopologySettingInInstanceConfig(String clusterName, String instanceName,
-      ConfigAccessor configAccessor, InstanceConfig newInstanceConfig, boolean isDelete)
-      throws IllegalArgumentException {
+  private boolean validateDeltaTopologySettingInInstanceConfig(String clusterName,
+      String instanceName, ConfigAccessor configAccessor, InstanceConfig newInstanceConfig,
+      Command command) {
     InstanceConfig originalInstanceConfigCopy =
         configAccessor.getInstanceConfig(clusterName, instanceName);
-    if (isDelete) {
+    if (command == Command.delete) {
       for (Map.Entry<String, String> entry : newInstanceConfig.getRecord().getSimpleFields()
           .entrySet()) {
         originalInstanceConfigCopy.getRecord().getSimpleFields().remove(entry.getKey());

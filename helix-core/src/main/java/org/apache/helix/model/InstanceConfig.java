@@ -645,7 +645,7 @@ public class InstanceConfig extends HelixProperty {
    * @throws IllegalArgumentException
    */
   public boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
-      String instanceName) throws IllegalArgumentException{
+      String instanceName) {
     //IllegalArgumentException will be thrown here if the input is not valid.
     Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
         false /*earlyQuitForFaultZone*/);

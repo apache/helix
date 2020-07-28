@@ -20,17 +20,14 @@ package org.apache.helix;
  */
 
 import java.io.IOException;
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
@@ -372,6 +369,7 @@ public class ConfigAccessor {
     } else {
       update.setMapField(mapKey, keyValueMap);
     }
+
     ZKUtil.createOrMerge(_zkClient, zkPath, update, true, true);
   }
 
@@ -963,7 +961,7 @@ public class ConfigAccessor {
   }
 
   private void updateInstanceConfig(String clusterName, String instanceName,
-      InstanceConfig newInstanceConfig, boolean overwrite) {
+      InstanceConfig instanceConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -978,10 +976,11 @@ public class ConfigAccessor {
           "updateInstanceConfig failed. Given InstanceConfig does not already exist. instance: "
               + instanceName);
     }
+
     if (overwrite) {
-      ZKUtil.createOrReplace(_zkClient, zkPath, newInstanceConfig.getRecord(), true);
+      ZKUtil.createOrReplace(_zkClient, zkPath, instanceConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(_zkClient, zkPath, newInstanceConfig.getRecord(), true, true);
+      ZKUtil.createOrUpdate(_zkClient, zkPath, instanceConfig.getRecord(), true, true);
     }
   }
 
@@ -1010,5 +1009,4 @@ public class ConfigAccessor {
               _zkAddress), false);
     }
   }
-
 }

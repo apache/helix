@@ -149,6 +149,7 @@ public class TestParticipantManager extends ZkTestBase {
     // We are expecting an IllegalArgumentException since the domain is not set.
     try {
       participant.connect();
+      Assert.fail();  // connect will throw exception. The assertion will never be reached.
     } catch (IllegalArgumentException expected) {
       Assert.assertEquals(expected.getMessage(),
           "Domain for instance localhost_12918 is not set, fail the topology-aware placement!");

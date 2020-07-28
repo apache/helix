@@ -41,11 +41,11 @@ import org.slf4j.LoggerFactory;
  */
 public class Topology {
   private static Logger logger = LoggerFactory.getLogger(Topology.class);
-
   public enum Types {
-    ROOT, ZONE, INSTANCE
+    ROOT,
+    ZONE,
+    INSTANCE
   }
-
   private static final int DEFAULT_NODE_WEIGHT = 1000;
 
   private final MessageDigest _md;
@@ -55,7 +55,6 @@ public class Topology {
   private final Map<String, InstanceConfig> _instanceConfigMap;
   private final ClusterConfig _clusterConfig;
   private static final String DEFAULT_DOMAIN_PREFIX = "Helix_default_";
-
 
   static class ClusterTopologyConfig {
     String endNodeType;

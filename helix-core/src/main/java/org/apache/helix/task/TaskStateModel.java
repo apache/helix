@@ -306,7 +306,7 @@ public class TaskStateModel extends StateModel {
     if(taskConfig == null) {
       LOG.info("Failed to read ZNRecord for task " + command + " for instance " + _manager.getInstanceName()
           + " in cluster " + _manager.getClusterName() + ".");
-      return;
+      throw new IllegalStateException("No ZNRecord for task " + command);
     }
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
@@ -314,11 +314,15 @@ public class TaskStateModel extends StateModel {
     URL taskJarUrl;
     try {
       taskJar = new File(taskConfig.getSimpleField(TASK_JAR_FILE));
-      taskJarUrl = taskJar.toURI().toURL();
+      if(taskJar.exists() && !taskJar.isDirectory()) {
+        taskJarUrl = taskJar.toURI().toURL();
+      } else {
+        throw new IllegalStateException("No JAR for task " + command);
+      }
     } catch (MalformedURLException e) {
       LOG.info("Failed to find/open JAR for new task " + command + " for instance " + _manager.getInstanceName()
           + " in cluster " + _manager.getClusterName() + ".");
-      return;
+      throw new IllegalStateException("Malformed JAR URL for task " + command);
     }
 
     // Import Task(s) and TaskFactory classes.
@@ -329,7 +333,7 @@ public class TaskStateModel extends StateModel {
       } catch(ClassNotFoundException e) {
         LOG.info("Failed to load class(es) for new task " + command + " for instance " + _manager.getInstanceName()
             + " in cluster " + _manager.getClusterName() + ".");
-        return;
+        throw new IllegalStateException("Null class(es) for task " + command);
       }
     }
     Class cl;
@@ -340,7 +344,7 @@ public class TaskStateModel extends StateModel {
     } catch(ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       LOG.info("Failed to load/instantiate TaskFactory class for new task " + command
           + " for instance " + _manager.getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      return;
+      throw new IllegalStateException("Null TaskFactory for task " + command);
     }
 
     // Register the TaskFactory.

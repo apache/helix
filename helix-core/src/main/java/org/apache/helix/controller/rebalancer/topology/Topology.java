@@ -322,10 +322,11 @@ public class Topology {
    * @param earlyQuitForFaultZone Set to true if we only need the path till faultZone.
    *
    * @return an LinkedHashMap object representing the topology path for the input instance.
+   * @throws IllegalArgumentException if input is not valid.
    */
   public static LinkedHashMap<String, String> computeInstanceTopologyMap(
       ClusterConfig clusterConfig, String instanceName, InstanceConfig instanceConfig,
-      boolean earlyQuitForFaultZone) throws IllegalArgumentException {
+      boolean earlyQuitForFaultZone) {
     ClusterTopologyConfig clusterTopologyConfig = getClusterTopologySetting(clusterConfig);
     String faultZoneForEarlyQuit =
         earlyQuitForFaultZone ? clusterTopologyConfig.faultZoneType : null;

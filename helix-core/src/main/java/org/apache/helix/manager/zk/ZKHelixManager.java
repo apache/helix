@@ -225,21 +225,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkAddress, HelixManagerStateListener stateListener,
       HelixManagerProperty helixManagerProperty) {
-
-    // Check that RealmAwareZkConnectionConfig is set correctly
-    // Since HelixManager is a single-realm API, connection config should have a ZK path sharding
-    // key set.
-    if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-          helixManagerProperty.getZkConnectionConfig();
-      if (connectionConfig.getZkRealmShardingKey() == null || connectionConfig
-          .getZkRealmShardingKey().isEmpty()) {
-        throw new HelixException(
-            "ZKHelixManager::ZK path sharding key must be set for ZKHelixManager! ZKHelixManager "
-                + "is only available on single-realm mode.");
-      }
-      _realmAwareZkConnectionConfig = connectionConfig;
-    }
+    validateZkConnectionSettings(zkAddress, helixManagerProperty);
 
     LOG.info(
         "Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: " + clusterName
@@ -1482,5 +1468,31 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   private String buildShardingKey() {
     return _clusterName.charAt(0) == '/' ? _clusterName : "/" + _clusterName;
+  }
+
+  /**
+   * Check that not both zkAddress and ZkConnectionConfig are set.
+   * If zkAddress is not given and ZkConnectionConfig is given, check that ZkConnectionConfig has
+   * a ZK path sharding key set because HelixManager must work on single-realm mode.
+   * @param zkAddress
+   * @param helixManagerProperty
+   */
+  private void validateZkConnectionSettings(String zkAddress,
+      HelixManagerProperty helixManagerProperty) {
+    if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
+      if (_zkAddress != null && !_zkAddress.isEmpty()) {
+        throw new HelixException(
+            "ZKHelixManager: cannot have both ZkAddress and ZkConnectionConfig set!");
+      }
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+          helixManagerProperty.getZkConnectionConfig();
+      if (connectionConfig.getZkRealmShardingKey() == null || connectionConfig
+          .getZkRealmShardingKey().isEmpty()) {
+        throw new HelixException(
+            "ZKHelixManager::ZK path sharding key must be set for ZKHelixManager! ZKHelixManager "
+                + "is only available on single-realm mode.");
+      }
+      _realmAwareZkConnectionConfig = connectionConfig;
+    }
   }
 }

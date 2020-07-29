@@ -28,7 +28,6 @@ package org.apache.helix;
 
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +68,8 @@ public final class HelixManagerFactory {
   }
 
   /**
-   * Construct a ZkHelixManager using the HelixManagerProperty instance given. If a proper
-   * ZkConnectionConfig. HelixManagerProperty given must contain a valid ZkConnectionConfig.
+   * Construct a ZkHelixManager using the HelixManagerProperty instance given.
+   * HelixManagerProperty given must contain a valid ZkConnectionConfig.
    * @param clusterName
    * @param instanceName
    * @param type
@@ -86,12 +85,13 @@ public final class HelixManagerFactory {
   }
 
   /**
-   * Construct a ZkHelixManager using the HelixManagerProperty instance given. If a proper
-   * ZkConnectionConfig is given in HelixManagerProperty, zkAddr field will be overriden.
+   * Construct a ZkHelixManager using the HelixManagerProperty instance given.
+   * NOTE: if both zkAddr and a valid ZkConnectionConfig are given in HelixManagerProperty, the
+   * instantiation will fail - only one is required.
    * @param clusterName
    * @param instanceName
    * @param type
-   * @param zkAddr will be overriden if a valid ZkConnectionConfig is given in helixManagerProperty
+   * @param zkAddr
    * @param stateListener
    * @param helixManagerProperty
    * @return

@@ -19,7 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixManager;
@@ -29,8 +32,11 @@ import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(TaskGarbageCollectionStage.class);
@@ -42,34 +48,89 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
   }
 
   @Override
-  public void execute(ClusterEvent event) {
-    WorkflowControllerDataProvider dataProvider =
-        event.getAttribute(AttributeName.ControllerDataProvider.name());
+  public void process(ClusterEvent event) throws Exception {
+    // Use main thread to compute what jobs need to be purged, and what workflows need to be gc'ed.
+    // This is to avoid race conditions since the cache will be modified. After this work, then the
+    // async work will happen.
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
-
-    if (dataProvider == null || manager == null) {
+    if (manager == null) {
       LOG.warn(
-          "ResourceControllerDataProvider or HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
+          "HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage.",
           event.getEventId(), event.getEventType(), event.getClusterName());
       return;
     }
 
-    Set<WorkflowConfig> existingWorkflows =
-        new HashSet<>(dataProvider.getWorkflowConfigMap().values());
-    for (WorkflowConfig workflowConfig : existingWorkflows) {
-      // clean up the expired jobs if it is a queue.
+    Map<String, Set<String>> expiredJobsMap = new HashMap<>();
+    Set<String> workflowsToBePurged = new HashSet<>();
+    WorkflowControllerDataProvider dataProvider =
+        event.getAttribute(AttributeName.ControllerDataProvider.name());
+    for (Map.Entry<String, ZNRecord> entry : dataProvider.getContexts().entrySet()) {
+      WorkflowConfig workflowConfig = dataProvider.getWorkflowConfig(entry.getKey());
       if (workflowConfig != null && (!workflowConfig.isTerminable() || workflowConfig
           .isJobQueue())) {
-        try {
-          TaskUtil.purgeExpiredJobs(workflowConfig.getWorkflowId(), workflowConfig,
-              dataProvider.getWorkflowContext(workflowConfig.getWorkflowId()), manager,
-              _rebalanceScheduler);
-        } catch (Exception e) {
-          LOG.warn(String.format("Failed to purge job for workflow %s with reason %s",
-              workflowConfig.getWorkflowId(), e.toString()));
+        WorkflowContext workflowContext = dataProvider.getWorkflowContext(entry.getKey());
+        if (workflowContext == null) {
+          continue;
         }
+        long purgeInterval = workflowConfig.getJobPurgeInterval();
+        long currentTime = System.currentTimeMillis();
+        long nextPurgeTime = workflowContext.getLastJobPurgeTime() + purgeInterval;
+        if (purgeInterval > 0 && nextPurgeTime <= currentTime) {
+          nextPurgeTime = currentTime + purgeInterval;
+          // Find jobs that are ready to be purged
+          Set<String> expiredJobs =
+              TaskUtil.getExpiredJobsFromCache(dataProvider, workflowConfig, workflowContext);
+          if (!expiredJobs.isEmpty()) {
+            expiredJobsMap.put(workflowConfig.getWorkflowId(), expiredJobs);
+          }
+        }
+        scheduleNextJobPurge(workflowConfig.getWorkflowId(), nextPurgeTime, _rebalanceScheduler,
+            manager);
+      } else if (workflowConfig == null && entry.getValue() != null && entry.getValue().getId()
+          .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
+        // Find workflows that need to be purged
+        workflowsToBePurged.add(entry.getKey());
+      }
+    }
+    event.addAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name(),
+        Collections.unmodifiableMap(expiredJobsMap));
+    event.addAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name(),
+        Collections.unmodifiableSet(workflowsToBePurged));
+
+    super.process(event);
+  }
+
+  @Override
+  public void execute(ClusterEvent event) {
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    if (manager == null) {
+      LOG.warn(
+          "HelixManager is null for event {}({}) in cluster {}. Skip TaskGarbageCollectionStage async execution.",
+          event.getEventId(), event.getEventType(), event.getClusterName());
+      return;
+    }
+
+    Map<String, Set<String>> expiredJobsMap =
+        event.getAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name());
+    Set<String> toBePurgedWorkflows =
+        event.getAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name());
+
+    for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
+      try {
+        TaskUtil.purgeExpiredJobs(entry.getKey(), entry.getValue(), manager, _rebalanceScheduler);
+      } catch (Exception e) {
+        LOG.warn("Failed to purge job for workflow {}!", entry.getKey(), e);
       }
     }
 
+    TaskUtil.workflowGarbageCollection(toBePurgedWorkflows, manager);
+  }
+
+  private static void scheduleNextJobPurge(String workflow, long nextPurgeTime,
+      RebalanceScheduler rebalanceScheduler, HelixManager manager) {
+    long currentScheduledTime = rebalanceScheduler.getRebalanceTime(workflow);
+    if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
+      rebalanceScheduler.scheduleRebalance(manager, workflow, nextPurgeTime);
+    }
   }
 }

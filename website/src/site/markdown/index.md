@@ -77,9 +77,9 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has a new release:
 
-* [1.0.0](./1.0.0-docs/index.html) - A release containing multiple major features such as ZooScalability, Cloud Support, Customized View, WAGED Rebalancer and Distributed Lock
+* [1.0.1](./1.0.1-docs/index.html) - A release containing multiple major features such as ZooScalability, Cloud Support, Customized View, WAGED Rebalancer and Distributed Lock
 
-    [\[Quick Start\]](./1.0.0-docs/Quickstart.html) [\[Release Notes\]](./1.0.0-docs/releasenotes/release-1.0.0.html)
+    [\[Quick Start\]](./1.0.1-docs/Quickstart.html) [\[Release Notes\]](./1.0.1-docs/releasenotes/release-1.0.1.html)
 
 * [0.9.7](./0.9.7-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 

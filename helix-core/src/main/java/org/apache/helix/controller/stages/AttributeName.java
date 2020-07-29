@@ -40,5 +40,9 @@ public enum AttributeName {
   PipelineType,
   LastRebalanceFinishTimeStamp,
   ControllerDataProvider,
-  STATEFUL_REBALANCER
+  STATEFUL_REBALANCER,
+  // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
+  TO_BE_PURGED_WORKFLOWS,
+  // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
+  TO_BE_PURGED_JOBS_MAP
 }

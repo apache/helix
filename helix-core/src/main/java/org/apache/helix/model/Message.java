@@ -39,9 +39,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.SessionAwareZkWriteData;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -969,36 +968,5 @@ public class Message extends HelixProperty {
       return !isNotValid;
     }
     return true;
-  }
-
-  // A class represents session aware ZNRecord for message. The message should be written to zk
-  // by the expected session.
-  // TODO: remove this class once public session-aware ZNRecord is available
-  private static class SessionAwareZNRecord extends ZNRecord implements SessionAwareZkWriteData {
-    @JsonIgnore
-    private String expectedSessionId;
-
-    public SessionAwareZNRecord(String id) {
-      super(id);
-    }
-
-    public SessionAwareZNRecord(ZNRecord record) {
-      super(record);
-    }
-
-    public SessionAwareZNRecord(ZNRecord record, String id) {
-      super(record, id);
-    }
-
-    @JsonIgnore
-    @Override
-    public String getExpectedSessionId() {
-      return expectedSessionId;
-    }
-
-    @JsonIgnore
-    public void setExpectedSessionId(String sessionId) {
-      expectedSessionId = sessionId;
-    }
   }
 }

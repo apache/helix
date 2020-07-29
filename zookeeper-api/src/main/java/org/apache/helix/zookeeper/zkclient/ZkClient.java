@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
@@ -2239,10 +2240,10 @@ public class ZkClient implements Watcher {
   }
 
   private String parseExpectedSessionId(Object data) {
-    if (!(data instanceof SessionAwareZkWriteData)) {
+    if (!(data instanceof SessionAwareZNRecord)) {
       return null;
     }
-    return ((SessionAwareZkWriteData) data).getExpectedSessionId();
+    return ((SessionAwareZNRecord) data).getExpectedSessionId();
   }
 
   // operations to update monitor's counters

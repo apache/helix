@@ -49,54 +49,82 @@ public class HelixManagerProperty {
   @Deprecated
   public HelixManagerProperty(Properties helixManagerProperties, CloudConfig cloudConfig) {
     _helixCloudProperty = new HelixCloudProperty(cloudConfig);
-    setVersion(helixManagerProperties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION));
-    setHealthReportLatency(
+    _version = helixManagerProperties.getProperty(SystemPropertyKeys.HELIX_MANAGER_VERSION);
+    _healthReportLatency = Long.parseLong(
         helixManagerProperties.getProperty(SystemPropertyKeys.PARTICIPANT_HEALTH_REPORT_LATENCY));
   }
 
-  public HelixManagerProperty() {
+  private HelixManagerProperty(String version, long healthReportLatency,
+      HelixCloudProperty helixCloudProperty,
+      RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig,
+      RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
+    _version = version;
+    _healthReportLatency = healthReportLatency;
+    _helixCloudProperty = helixCloudProperty;
+    _zkConnectionConfig = zkConnectionConfig;
+    _zkClientConfig = zkClientConfig;
   }
 
   public HelixCloudProperty getHelixCloudProperty() {
     return _helixCloudProperty;
   }
 
-  public void setHelixCloudProperty(HelixCloudProperty helixCloudProperty) {
-    _helixCloudProperty = helixCloudProperty;
-  }
-
   public String getVersion() {
     return _version;
-  }
-
-  public void setVersion(String version) {
-    _version = version;
   }
 
   public long getHealthReportLatency() {
     return _healthReportLatency;
   }
 
-  public void setHealthReportLatency(String latency) {
-    _healthReportLatency = Long.valueOf(latency);
-  }
-
   public RealmAwareZkClient.RealmAwareZkConnectionConfig getZkConnectionConfig() {
     return _zkConnectionConfig;
-  }
-
-  public void setZkConnectionConfig(
-      RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig) {
-    _zkConnectionConfig = zkConnectionConfig;
   }
 
   public RealmAwareZkClient.RealmAwareZkClientConfig getZkClientConfig() {
     return _zkClientConfig;
   }
 
-  public void setZkClientConfig(RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
-    _zkClientConfig = zkClientConfig;
-  }
+  public static class Builder {
+    private String _version;
+    private long _healthReportLatency;
+    private HelixCloudProperty _helixCloudProperty;
+    private RealmAwareZkClient.RealmAwareZkConnectionConfig _zkConnectionConfig;
+    private RealmAwareZkClient.RealmAwareZkClientConfig _zkClientConfig;
 
-  // TODO: migrate all other participant related properties to this file.
+    public Builder() {
+    }
+
+    public HelixManagerProperty build() {
+      return new HelixManagerProperty(_version, _healthReportLatency, _helixCloudProperty,
+          _zkConnectionConfig, _zkClientConfig);
+    }
+
+    public Builder setVersion(String version) {
+      _version = version;
+      return this;
+    }
+
+    public Builder setHealthReportLatency(long healthReportLatency) {
+      _healthReportLatency = healthReportLatency;
+      return this;
+    }
+
+    public Builder setHelixCloudProperty(HelixCloudProperty helixCloudProperty) {
+      _helixCloudProperty = helixCloudProperty;
+      return this;
+    }
+
+    public Builder setRealmAWareZkConnectionConfig(
+        RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig) {
+      _zkConnectionConfig = zkConnectionConfig;
+      return this;
+    }
+
+    public Builder setRealmAwareZkClientConfig(
+        RealmAwareZkClient.RealmAwareZkClientConfig zkClientConfig) {
+      _zkClientConfig = zkClientConfig;
+      return this;
+    }
+  }
 }

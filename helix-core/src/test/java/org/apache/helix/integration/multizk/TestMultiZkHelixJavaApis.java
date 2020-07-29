@@ -365,12 +365,11 @@ public class TestMultiZkHelixJavaApis {
         connectionConfigBuilder.build();
     RealmAwareZkClient.RealmAwareZkConnectionConfig validZkConnectionConfig =
         connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
-    HelixManagerProperty helixManagerProperty = new HelixManagerProperty();
-    helixManagerProperty.setZkConnectionConfig(invalidZkConnectionConfig);
+    HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
     try {
       HelixManager invalidManager = HelixManagerFactory
           .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
-              helixManagerProperty);
+              propertyBuilder.setRealmAWareZkConnectionConfig(invalidZkConnectionConfig).build());
       Assert.fail("Should see a HelixException here because the connection config doesn't have the "
           + "sharding key set!");
     } catch (HelixException e) {
@@ -382,7 +381,8 @@ public class TestMultiZkHelixJavaApis {
     try {
       HelixManager invalidManager = HelixManagerFactory
           .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, "zkAddress",
-              null, helixManagerProperty);
+              null,
+              propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
       Assert.fail(
           "Should see a HelixException here because the connection config are zkAddress are both "
               + "set!");
@@ -391,16 +391,15 @@ public class TestMultiZkHelixJavaApis {
     }
 
     // Connect as a participant
-    helixManagerProperty.setZkConnectionConfig(validZkConnectionConfig);
     HelixManager managerParticipant = HelixManagerFactory
         .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
-            helixManagerProperty);
+            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
     managerParticipant.connect();
 
     // Connect as an administrator
     HelixManager managerAdministrator = HelixManagerFactory
         .getZKHelixManager(clusterName, participantName, InstanceType.ADMINISTRATOR, null,
-            helixManagerProperty);
+            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
     managerAdministrator.connect();
 
     // Perform assert checks to make sure the manager can read and register itself as a participant

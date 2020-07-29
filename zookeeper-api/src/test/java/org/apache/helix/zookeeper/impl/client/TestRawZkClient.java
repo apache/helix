@@ -290,7 +290,8 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 0);
+    // account for doAsyncSync()
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
 
     // Test exists
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 0);
@@ -414,8 +415,8 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 2);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(name, "PendingCallbackGauge"), 0);
 
     // Simulate a delayed callback

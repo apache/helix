@@ -88,7 +88,7 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable localhost_12918
@@ -162,7 +162,7 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable localhost_12919
@@ -325,7 +325,7 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable [TestDB0_0, TestDB0_5] on localhost_12919

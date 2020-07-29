@@ -61,7 +61,7 @@ public class TestTargetExternalView extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, _testDbs.get(0), 3);
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     Assert.assertEquals(

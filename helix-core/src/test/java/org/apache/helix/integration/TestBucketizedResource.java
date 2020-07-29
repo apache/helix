@@ -148,7 +148,7 @@ public class TestBucketizedResource extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // bounce
@@ -236,7 +236,7 @@ public class TestBucketizedResource extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // add an external view listener

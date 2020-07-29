@@ -78,7 +78,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
   }
 
   @AfterMethod

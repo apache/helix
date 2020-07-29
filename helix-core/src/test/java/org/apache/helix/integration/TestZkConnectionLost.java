@@ -87,7 +87,11 @@ public class TestZkConnectionLost extends TaskTestBase {
 
     ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(_zkAddr).build();
-    Assert.assertTrue(clusterVerifier.verifyByPolling());
+    try {
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
+    } finally {
+      clusterVerifier.close();
+    }
   }
 
   @AfterClass

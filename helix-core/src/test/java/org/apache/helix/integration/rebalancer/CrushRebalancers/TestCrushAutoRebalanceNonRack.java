@@ -275,7 +275,12 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    try {
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    } finally {
+      _clusterVerifier.close();
+    }
+
     for (String db : _allDBs) {
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);

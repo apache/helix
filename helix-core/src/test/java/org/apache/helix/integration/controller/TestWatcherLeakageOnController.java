@@ -43,7 +43,7 @@ public class TestWatcherLeakageOnController extends ZkTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, "TestInstance");
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_RESOURCE, 10, "MasterSlave");

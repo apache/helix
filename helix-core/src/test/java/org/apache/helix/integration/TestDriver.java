@@ -246,7 +246,11 @@ public class TestDriver {
 
     ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(verifier.verifyByPolling());
+    try {
+      Assert.assertTrue(verifier.verifyByPolling());
+    } finally {
+      verifier.close();
+    }
 
   }
 

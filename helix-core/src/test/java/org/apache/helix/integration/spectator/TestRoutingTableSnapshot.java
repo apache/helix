@@ -105,7 +105,7 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
       Thread.sleep(200);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
       Assert.assertTrue(clusterVerifier.verifyByPolling());
 
       IdealState idealState1 =

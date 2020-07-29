@@ -1503,7 +1503,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * @return
    */
   private String getZkConnectionInfo() {
-    String zkConnectionInfo = null;
+    String zkConnectionInfo;
     if (_zkAddress == null) {
       if (_helixManagerProperty != null && _helixManagerProperty.getZkConnectionConfig() != null) {
         zkConnectionInfo = _helixManagerProperty.getZkConnectionConfig().toString();

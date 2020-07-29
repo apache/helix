@@ -87,7 +87,7 @@ Apache Helix has a new release:
 
 ### Download
 
-<a href="./1.0.0-docs/download.html" class="btn btn-primary btn-small">1.0.0</a>
+<a href="./1.0.1-docs/download.html" class="btn btn-primary btn-small">1.0.1</a>
 
 <a href="./0.9.7-docs/download.html" class="btn btn-primary btn-small">0.9.7</a>
 
@@ -97,7 +97,7 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
@@ -108,6 +108,6 @@ Requirements: JDK 1.8+, Maven 3.5.0+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-1.0.0
+git checkout helix-1.0.1
 mvn install package -DskipTests
 ```

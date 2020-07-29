@@ -227,12 +227,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       HelixManagerProperty helixManagerProperty) {
     validateZkConnectionSettings(zkAddress, helixManagerProperty);
 
-    LOG.info(
-        "Create a zk-based cluster manager. zkSvr: " + zkAddress + ", clusterName: " + clusterName
-            + ", instanceName: " + instanceName + ", type: " + instanceType);
     _zkAddress = zkAddress;
     _clusterName = clusterName;
     _instanceType = instanceType;
+    LOG.info("Create a zk-based cluster manager. ZK connection: " + getZkConnectionInfo()
+        + ", clusterName: " + clusterName + ", instanceName: " + instanceName + ", type: "
+        + instanceType);
 
     if (instanceName == null) {
       try {
@@ -391,15 +391,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     boolean isConnected = isConnected();
     if (!isConnected && timeout > 0) {
-      LOG.warn(
-          "zkClient to " + _zkAddress + " is not connected, wait for " + _waitForConnectedTimeout
-              + "ms.");
+      LOG.warn("zkClient to " + getZkConnectionInfo() + " is not connected, wait for "
+          + _waitForConnectedTimeout + "ms.");
       isConnected = _zkclient.waitUntilConnected(_waitForConnectedTimeout, TimeUnit.MILLISECONDS);
     }
 
     if (!isConnected) {
       LOG.error("zkClient is not connected after waiting " + timeout + "ms."
-          + ", clusterName: " + _clusterName + ", zkAddress: " + _zkAddress);
+          + ", clusterName: " + _clusterName + ", zkAddress: " + getZkConnectionInfo());
       throw new HelixException(
           "HelixManager is not connected within retry timeout for cluster " + _clusterName);
     }
@@ -672,10 +671,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   /**
+   * Deprecated becuase ZKHelixManager shouldn't expose ZkAddress in realm-aware mode.
+   *
    * Returns a string that can be used to connect to metadata store for this HelixManager instance
    * i.e. for ZkHelixManager, this will have format "{zookeeper-address}:{port}"
    * @return a string used to connect to metadata store
    */
+  @Deprecated
   @Override
   public String getMetadataStoreConnectionString() {
     return _zkAddress;
@@ -1092,7 +1094,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       isConnected =
           _zkclient.waitUntilConnected(HelixZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
       if (!isConnected) {
-        LOG.error("fail to connect zkserver: " + _zkAddress + " in "
+        LOG.error("fail to connect zkserver: " + getZkConnectionInfo() + " in "
             + HelixZkClient.DEFAULT_CONNECTION_TIMEOUT + "ms. expiredSessionId: " + _sessionId
             + ", clusterName: " + _clusterName);
         continue;
@@ -1480,7 +1482,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private void validateZkConnectionSettings(String zkAddress,
       HelixManagerProperty helixManagerProperty) {
     if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
-      if (_zkAddress != null && !_zkAddress.isEmpty()) {
+      if (zkAddress != null && !zkAddress.isEmpty()) {
         throw new HelixException(
             "ZKHelixManager: cannot have both ZkAddress and ZkConnectionConfig set!");
       }
@@ -1494,5 +1496,23 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       }
       _realmAwareZkConnectionConfig = connectionConfig;
     }
+  }
+
+  /**
+   * Resolve ZK connection info for logging purposes.
+   * @return
+   */
+  private String getZkConnectionInfo() {
+    String zkConnectionInfo = null;
+    if (_zkAddress == null) {
+      if (_helixManagerProperty != null && _helixManagerProperty.getZkConnectionConfig() != null) {
+        zkConnectionInfo = _helixManagerProperty.getZkConnectionConfig().toString();
+      } else {
+        zkConnectionInfo = "ZkAddr and ZkConnectionConfig are null!";
+      }
+    } else {
+      zkConnectionInfo = _zkAddress;
+    }
+    return zkConnectionInfo;
   }
 }

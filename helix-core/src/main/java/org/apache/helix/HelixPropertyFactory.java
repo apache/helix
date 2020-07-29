@@ -33,12 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/**
- * ** Deprecated in favor of HelixManagerProperty.Builder() **
- *
+/***
  * Singleton factory that builds different types of Helix property, e.g. Helix manager property.
  */
-@Deprecated
 public final class HelixPropertyFactory {
   private static final Logger LOG = LoggerFactory.getLogger(HelixPropertyFactory.class);
   private static final String HELIX_PARTICIPANT_PROPERTY_FILE =
@@ -48,7 +45,6 @@ public final class HelixPropertyFactory {
     private static final HelixPropertyFactory INSTANCE = new HelixPropertyFactory();
   }
 
-  @Deprecated
   public static HelixPropertyFactory getInstance() {
     return SingletonHelper.INSTANCE;
   }
@@ -57,7 +53,6 @@ public final class HelixPropertyFactory {
    * Retrieve Helix manager property. It returns the property object with default values.
    * Clients may override these values.
    */
-  @Deprecated
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
     CloudConfig cloudConfig = getCloudConfig(zkAddress, clusterName);
     Properties properties = new Properties();

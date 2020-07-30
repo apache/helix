@@ -56,6 +56,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 15. [Helix REST Service 2.0](./tutorial_rest_service.html)
 16. [Helix UI Setup](./tutorial_ui.html)
 17. [Helix Customized View](./tutorial_customized_view.html)
+18. [Helix Cloud Support](./tutorial_cloud_support.html)
 
 ### Preliminaries
 

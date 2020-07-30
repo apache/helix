@@ -223,8 +223,8 @@ public class ZkTestBase {
     cleanupJMXObjects();
     // Giving each test some time to settle (such as gc pause, etc).
     // Note that this is the best effort we could make to stabilize tests, not a complete solution
-    // Runtime.getRuntime().gc();
-    // Thread.sleep(MANUAL_GC_PAUSE);
+    Runtime.getRuntime().gc();
+    Thread.sleep(MANUAL_GC_PAUSE);
   }
 
   @BeforeMethod

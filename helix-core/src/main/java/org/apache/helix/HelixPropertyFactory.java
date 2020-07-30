@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/***
+/**
  * Singleton factory that builds different types of Helix property, e.g. Helix manager property.
  */
 public final class HelixPropertyFactory {

@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.resources.zookeeper;
 
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -58,8 +59,7 @@ public class ZooKeeperAccessor extends AbstractResource {
     getBinaryData,
     getStringData,
     getChildren,
-    getStat,
-    delete
+    getStat
   }
 
   @GET
@@ -75,8 +75,7 @@ public class ZooKeeperAccessor extends AbstractResource {
         (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
     _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
 
-    // Need to prepend a "/" since JAX-RS regex removes it
-    path = "/" + path;
+    path = prependPath(path);
 
     // Check that the path supplied is valid
     if (!ZkValidationUtil.isPathValid(path)) {
@@ -96,13 +95,31 @@ public class ZooKeeperAccessor extends AbstractResource {
         return getChildren(_zkBaseDataAccessor, path);
       case getStat:
         return getStat(_zkBaseDataAccessor, path);
-      case delete:
-        return delete(_zkBaseDataAccessor, path);
       default:
         String errMsg = "Unsupported command: " + commandStr;
         LOG.error(errMsg);
         return badRequest(errMsg);
     }
+  }
+
+  @DELETE
+  @Path("{path: .+}")
+  public Response delete(@PathParam("path") String path) {
+    // Lazily initialize ZkBaseDataAccessor
+    ServerContext _serverContext =
+        (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
+
+    path = prependPath(path);
+
+    // Check that the path supplied is valid
+    if (!ZkValidationUtil.isPathValid(path)) {
+      String errMsg = "The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
+      return badRequest(errMsg);
+    }
+
+    return delete(_zkBaseDataAccessor, path);
   }
 
   /**
@@ -207,22 +224,32 @@ public class ZooKeeperAccessor extends AbstractResource {
    * @return The delete result and the operated path.
    */
   private Response delete(BaseDataAccessor zkBaseDataAccessor, String path) {
-    // TODO: Remove this restriction once we have audit and ACL for the API calls.
-    // TODO: This method is added pre-maturely to support removing the live instance of a zombie
-    // TODO: instance. It is risky to allow all deleting requests before audit and ACL are done.
     Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
-    if (stat != null && stat.getEphemeralOwner() <= 0) {
+    if (stat == null) {
+      return notFound();
+    } else if (stat.getEphemeralOwner() <= 0) {
+      // TODO: Remove this restriction once we have audit and ACL for the API calls.
+      // TODO: This method is added pre-maturely to support removing the live instance of a zombie
+      // TODO: instance. It is risky to allow all deleting requests before audit and ACL are done.
       throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
-          .entity(String.format("Deleting a non ephemeral node is not allowed", path)).build());
+          .entity(String.format("Deleting a non ephemeral node is not allowed. Path %s.", path))
+          .build());
     }
 
-    Boolean ret = zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
-    Map<String, String> result =
-        ImmutableMap.of(ZooKeeperCommand.delete.name(), ret.toString(), PATH_STR, path);
-    return JSONRepresentation(result);
+    if (zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
+      return OK();
+    } else {
+      throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+          .entity(String.format("Failed to delete %s.", path)).build());
+    }
   }
 
   private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {
     return Enums.getIfPresent(ZooKeeperCommand.class, command).orNull();
+  }
+
+  private String prependPath(String path) {
+    // Need to prepend a "/" since JAX-RS regex removes it
+    return "/" + path;
   }
 }

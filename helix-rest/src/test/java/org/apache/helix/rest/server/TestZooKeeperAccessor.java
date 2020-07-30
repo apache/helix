@@ -30,6 +30,8 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
+import org.apache.helix.zookeeper.impl.client.DedicatedZkClient;
+import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.data.Stat;
@@ -56,7 +58,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
           throws ZkMarshallingError {
         return new String(bytes);
       }
-    });
+    }, ZkBaseDataAccessor.ZkClientType.DEDICATED);
   }
 
   @AfterClass
@@ -193,27 +195,25 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
   }
 
   @Test
-  public void testDelete() throws IOException {
+  public void testDelete() {
     String path = "/path";
     String deletePath = path + "/delete";
 
     try {
       // 1. Create a persistent node. Delete shall fail.
       _testBaseDataAccessor.create(deletePath, null, AccessOption.PERSISTENT);
-      // Verify with the REST endpoint
-      new JerseyUriRequestBuilder("zookeeper{}?command=delete").format(deletePath)
-          .expectedReturnStatusCode(Response.Status.FORBIDDEN.getStatusCode());
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath)
+          .expectedReturnStatusCode(Response.Status.FORBIDDEN.getStatusCode()).delete(this);
       Assert.assertTrue(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
-
-      // 2. Create a ephemeral node. Delete shall be done successfully.
+      // 2. Try to delete a non-exist ZNode
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath + "/foobar")
+          .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).delete(this);
+      // 3. Create an ephemeral node. Delete shall be done successfully.
       _testBaseDataAccessor.remove(deletePath, AccessOption.PERSISTENT);
       _testBaseDataAccessor.create(deletePath, null, AccessOption.EPHEMERAL);
       // Verify with the REST endpoint
-      String data = new JerseyUriRequestBuilder("zookeeper{}?command=delete").format(deletePath)
-          .isBodyReturnExpected(true).get(this);
-      Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
-      Assert.assertEquals(result.get("path"), deletePath);
-      Assert.assertEquals(result.get("delete"), new Boolean(true).toString());
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath)
+          .expectedReturnStatusCode(Response.Status.OK.getStatusCode()).delete(this);
       Assert.assertFalse(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
     } finally {
       // Clean up

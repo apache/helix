@@ -52,8 +52,6 @@ public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
-  private static final String PATH_STR = "path";
-
   public enum ZooKeeperCommand {
     exists,
     getBinaryData,
@@ -213,7 +211,7 @@ public class ZooKeeperAccessor extends AbstractResource {
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
     Map<String, String> result = ZKUtil.fromStatToMap(stat);
-    result.put(PATH_STR, path);
+    result.put("path", path);
     return JSONRepresentation(result);
   }
 

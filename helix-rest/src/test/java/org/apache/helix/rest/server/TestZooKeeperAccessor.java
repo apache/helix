@@ -24,7 +24,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
@@ -191,5 +190,34 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+  }
+
+  @Test
+  public void testDelete() throws IOException {
+    String path = "/path";
+    String deletePath = path + "/delete";
+
+    try {
+      // 1. Create a persistent node. Delete shall fail.
+      _testBaseDataAccessor.create(deletePath, null, AccessOption.PERSISTENT);
+      // Verify with the REST endpoint
+      new JerseyUriRequestBuilder("zookeeper{}?command=delete").format(deletePath)
+          .expectedReturnStatusCode(Response.Status.FORBIDDEN.getStatusCode());
+      Assert.assertTrue(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
+
+      // 2. Create a ephemeral node. Delete shall be done successfully.
+      _testBaseDataAccessor.remove(deletePath, AccessOption.PERSISTENT);
+      _testBaseDataAccessor.create(deletePath, null, AccessOption.EPHEMERAL);
+      // Verify with the REST endpoint
+      String data = new JerseyUriRequestBuilder("zookeeper{}?command=delete").format(deletePath)
+          .isBodyReturnExpected(true).get(this);
+      Map<String, String> result = OBJECT_MAPPER.readValue(data, HashMap.class);
+      Assert.assertEquals(result.get("path"), deletePath);
+      Assert.assertEquals(result.get("delete"), new Boolean(true).toString());
+      Assert.assertFalse(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
+    } finally {
+      // Clean up
+      _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+    }
   }
 }

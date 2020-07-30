@@ -21,7 +21,6 @@ package org.apache.helix.rest.server.resources.zookeeper;
 
 import java.util.List;
 import java.util.Map;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -52,12 +51,15 @@ public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
 
+  private static final String PATH_STR = "path";
+
   public enum ZooKeeperCommand {
     exists,
     getBinaryData,
     getStringData,
     getChildren,
-    getStat
+    getStat,
+    delete
   }
 
   @GET
@@ -94,6 +96,8 @@ public class ZooKeeperAccessor extends AbstractResource {
         return getChildren(_zkBaseDataAccessor, path);
       case getStat:
         return getStat(_zkBaseDataAccessor, path);
+      case delete:
+        return delete(_zkBaseDataAccessor, path);
       default:
         String errMsg = "Unsupported command: " + commandStr;
         LOG.error(errMsg);
@@ -192,7 +196,29 @@ public class ZooKeeperAccessor extends AbstractResource {
           .entity(String.format("The ZNode at path %s does not exist!", path)).build());
     }
     Map<String, String> result = ZKUtil.fromStatToMap(stat);
-    result.put("path", path);
+    result.put(PATH_STR, path);
+    return JSONRepresentation(result);
+  }
+
+  /**
+   * Delete the ZNode at the given path if exists.
+   * @param zkBaseDataAccessor
+   * @param path
+   * @return The delete result and the operated path.
+   */
+  private Response delete(BaseDataAccessor zkBaseDataAccessor, String path) {
+    // TODO: Remove this restriction once we have audit and ACL for the API calls.
+    // TODO: This method is added pre-maturely to support removing the live instance of a zombie
+    // TODO: instance. It is risky to allow all deleting requests before audit and ACL are done.
+    Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    if (stat != null && stat.getEphemeralOwner() <= 0) {
+      throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
+          .entity(String.format("Deleting a non ephemeral node is not allowed", path)).build());
+    }
+
+    Boolean ret = zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+    Map<String, String> result =
+        ImmutableMap.of(ZooKeeperCommand.delete.name(), ret.toString(), PATH_STR, path);
     return JSONRepresentation(result);
   }
 

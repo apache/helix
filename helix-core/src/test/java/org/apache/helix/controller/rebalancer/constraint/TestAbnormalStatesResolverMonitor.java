@@ -30,7 +30,7 @@ import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.metrics.AbnormalStatesMetricCollector;
 import org.testng.Assert;
 import org.testng.annotations.Test;

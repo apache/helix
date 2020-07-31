@@ -26,6 +26,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.monitoring.common.mbeans.MBeanRegistrar;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

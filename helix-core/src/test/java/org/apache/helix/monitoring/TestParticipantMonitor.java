@@ -34,7 +34,7 @@ import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

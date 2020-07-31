@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring;
+package org.apache.helix.monitoring.common.mbeans.exception;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.monitoring;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,17 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-public interface SensorNameProvider {
-  String getSensorName();
+public class MetricException extends RuntimeException {
+
+  public MetricException(String message) {
+    super(message);
+  }
+
+  public MetricException(Throwable cause) {
+    super(cause);
+  }
+
+  public MetricException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

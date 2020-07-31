@@ -47,6 +47,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;

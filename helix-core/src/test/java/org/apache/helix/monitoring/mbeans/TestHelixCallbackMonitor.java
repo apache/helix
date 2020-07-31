@@ -10,6 +10,8 @@ import javax.management.ObjectName;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.InstanceType;
+import org.apache.helix.monitoring.common.mbeans.MBeanRegistrar;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

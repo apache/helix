@@ -27,10 +27,10 @@ import javax.management.JMException;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import org.apache.helix.model.Message;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 public class MessageLatencyMonitor extends DynamicMBeanProvider {
   private static final String MBEAN_DESCRIPTION = "Helix Message Latency Monitor";

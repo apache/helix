@@ -19,7 +19,7 @@ package org.apache.helix.monitoring.metrics.model;
  * under the License.
  */
 
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
 
 /**
  * Defines a generic metric interface.

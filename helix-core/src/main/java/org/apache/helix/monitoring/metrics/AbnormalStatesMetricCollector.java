@@ -22,7 +22,7 @@ package org.apache.helix.monitoring.metrics;
 import javax.management.JMException;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.metrics.implementation.RebalanceCounter;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
 

@@ -35,15 +35,19 @@ under the License.
       org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
-    <osgi.export>org.apache.helix*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>
+      <!-- Exclude metrics-common -->
+      !org.apache.helix.monitoring.common.*,
+      <!-- Exclude msdcommon -->
+      !org.apache.helix.msdcommon.*,
+      <!-- Exclude zookeeper-api -->
+      !org.apache.helix.zookeeper.*,
+      <!-- Include helix-common -->
+      org.apache.helix.*; version="${project.version}; -noimport:=true
+    </osgi.export>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.helix</groupId>
-      <artifactId>metrics-common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>zookeeper-api</artifactId>

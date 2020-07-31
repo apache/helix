@@ -27,11 +27,11 @@ import javax.management.ObjectName;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 
 public class ZkClientPathMonitor extends DynamicMBeanProvider {

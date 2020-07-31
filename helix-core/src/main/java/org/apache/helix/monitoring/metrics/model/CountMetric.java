@@ -19,8 +19,8 @@ package org.apache.helix.monitoring.metrics.model;
  * under the License.
  */
 
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.SimpleDynamicMetric;
 
 /**
  * Represents a count metric and defines methods to help with calculation. A count metric gives a

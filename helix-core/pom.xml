@@ -43,9 +43,20 @@ under the License.
       *
     </osgi.import>
     <osgi.ignore>
-      org.apache.helix.tools*
+      org.apache.helix.tools.*
     </osgi.ignore>
-    <osgi.export>org.apache.helix*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>
+      <!-- Exclude metrics-common -->
+      !org.apache.helix.monitoring.common.*,
+      <!-- Exclude msd-common -->
+      !org.apache.helix.msdcommon.*,
+      <!-- Exclude zookeeper-api -->
+      !org.apache.helix.zookeeper.*,
+      <!-- Exclude helix-common -->
+      !org.apache.helix.manager.zk.serializer,
+      <!-- Include helix-core -->
+      org.apache.helix.*; version="${project.version}; -noimport:=true
+    </osgi.export>
   </properties>
 
   <dependencies>

@@ -32,6 +32,7 @@ import javax.management.ObjectName;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -22,7 +22,7 @@ package org.apache.helix;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.common.mbeans.MonitorDomainNames;
 
 /**
  * CONTROLLER: cluster managing component is a controller

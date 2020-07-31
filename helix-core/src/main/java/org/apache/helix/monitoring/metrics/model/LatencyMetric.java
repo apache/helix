@@ -20,8 +20,8 @@ package org.apache.helix.monitoring.metrics.model;
  */
 
 import com.codahale.metrics.Histogram;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.HistogramDynamicMetric;
 
 /**
  * Represents a latency metric and defines methods to help with calculation. A latency metric gives

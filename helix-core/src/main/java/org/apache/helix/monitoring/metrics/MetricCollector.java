@@ -27,8 +27,8 @@ import javax.management.JMException;
 import javax.management.ObjectName;
 import org.apache.helix.HelixException;
 import org.apache.helix.monitoring.metrics.model.Metric;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
-import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.common.mbeans.dynamicMBeans.DynamicMetric;
 
 /**
  * Collects and manages all metrics that implement the {@link Metric} interface.

@@ -19,7 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.monitoring.common.SensorNameProvider;
 
 /**
  * Job monitor MBean for jobs, which are shared among jobs with the same type.

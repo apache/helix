@@ -19,7 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.monitoring.common.SensorNameProvider;
 
 /**
  * A bean that describes the resource on each instance

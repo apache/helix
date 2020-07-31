@@ -1,4 +1,4 @@
-package org.apache.helix.monitoring.mbeans.dynamicMBeans;
+package org.apache.helix.monitoring.common.mbeans.dynamicMBeans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,8 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.management.MBeanAttributeInfo;
 
-import org.apache.helix.monitoring.mbeans.exception.MetricException;
-
+import org.apache.helix.monitoring.common.mbeans.exception.MetricException;
 
 /**
  * The abstract class for dynamic metrics that is used to emitting monitor data to DynamicMBean.

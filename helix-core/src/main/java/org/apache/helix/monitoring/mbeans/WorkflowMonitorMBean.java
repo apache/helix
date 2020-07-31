@@ -19,7 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import org.apache.helix.monitoring.SensorNameProvider;
+import org.apache.helix.monitoring.common.SensorNameProvider;
 
 /**
  * Workflow monitor MBean for workflows, which are shared among workflows with the same type.

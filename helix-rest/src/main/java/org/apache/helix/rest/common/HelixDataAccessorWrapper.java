@@ -19,6 +19,7 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,9 +52,9 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   private static final Logger LOG = LoggerFactory.getLogger(HelixDataAccessorWrapper.class);
   private static final ExecutorService POOL = Executors.newCachedThreadPool();
 
-  static final String PARTITION_HEALTH_KEY = "PARTITION_HEALTH";
-  static final String IS_HEALTHY_KEY = "IS_HEALTHY";
-  static final String EXPIRY_KEY = "EXPIRE";
+  public static final String PARTITION_HEALTH_KEY = "PARTITION_HEALTH";
+  public static final String IS_HEALTHY_KEY = "IS_HEALTHY";
+  public static final String EXPIRY_KEY = "EXPIRE";
 
   private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
   private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
@@ -64,14 +65,30 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     _restClient = CustomRestClientFactory.get();
   }
 
+  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor, CustomRestClient customRestClient) {
+    super(dataAccessor);
+    _restClient = customRestClient;
+  }
+
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
       RESTConfig restConfig, Map<String, String> customPayLoads) {
+    return getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads, false);
+  }
+
+  public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
+      RESTConfig restConfig, Map<String, String> customPayLoads, boolean skipZKRead) {
     // Only checks the instances are online with valid reports
     List<String> liveInstances = getChildNames(keyBuilder().liveInstances());
     // Make a parallel batch call for getting all healthreports from ZK.
-    List<HelixProperty> zkHealthReports = getProperty(liveInstances.stream()
-        .map(instance -> keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
-        .collect(Collectors.toList()), false);
+    List<HelixProperty> zkHealthReports;
+    if (!skipZKRead) {
+      zkHealthReports = getProperty(liveInstances.stream()
+          .map(instance -> keyBuilder().healthReport(instance, PARTITION_HEALTH_KEY))
+          .collect(Collectors.toList()), false);
+    } else {
+      zkHealthReports =
+          liveInstances.stream().map(instance -> new HelixProperty(instance)).collect(Collectors.toList());
+    }
     Map<String, Future<Map<String, Boolean>>> parallelTasks = new HashMap<>();
     for (int i = 0; i < liveInstances.size(); i++) {
       String liveInstance = liveInstances.get(i);
@@ -79,7 +96,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
           Optional.ofNullable(zkHealthReports.get(i)).map(HelixProperty::getRecord);
       parallelTasks.put(liveInstance,
           POOL.submit(() -> maybeHealthRecord
-              .map(record -> getPartitionsHealth(liveInstance, record, restConfig, customPayLoads))
+              .map(record -> getPartitionsHealth(liveInstance, record, restConfig, customPayLoads, skipZKRead))
               .orElseGet(() -> getHealthStatusFromRest(liveInstance, Collections.emptyList(),
                   restConfig, customPayLoads))));
     }
@@ -101,7 +118,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   }
 
   private Map<String, Boolean> getPartitionsHealth(String instance, ZNRecord partitionHealthRecord,
-      RESTConfig restConfig, Map<String, String> customPayLoads) {
+      RESTConfig restConfig, Map<String, String> customPayLoads, boolean requireFullRead) {
     Map<String, Boolean> result = new HashMap<>();
     List<String> expiredPartitions = new ArrayList<>();
     for (String partitionName : partitionHealthRecord.getMapFields().keySet()) {
@@ -119,10 +136,11 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
 
       result.put(partitionName, Boolean.valueOf(healthMap.get(IS_HEALTHY_KEY)));
     }
-    if (!expiredPartitions.isEmpty()) {
-      Map<String, Boolean> updatedHealthStatus =
-          getHealthStatusFromRest(instance, expiredPartitions, restConfig, customPayLoads);
-      result.putAll(updatedHealthStatus);
+
+    if (requireFullRead) {
+      result.putAll(getHealthStatusFromRest(instance, null, restConfig, customPayLoads));
+    } else if (!expiredPartitions.isEmpty()) {
+      result.putAll(getHealthStatusFromRest(instance, expiredPartitions, restConfig, customPayLoads));
     }
 
     return result;

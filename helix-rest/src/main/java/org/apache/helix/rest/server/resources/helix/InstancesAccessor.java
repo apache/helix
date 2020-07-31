@@ -144,7 +144,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   @POST
   public Response instancesOperations(@PathParam("clusterId") String clusterId,
-      @QueryParam("command") String command, String content) {
+      @QueryParam("skipZKRead") String skipZKRead, @QueryParam("command") String command, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -172,7 +172,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, false);
         break;
       case stoppable:
-        return batchGetStoppableInstances(clusterId, node);
+        return batchGetStoppableInstances(clusterId, node, Boolean.valueOf(skipZKRead));
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
@@ -188,7 +188,7 @@ public class InstancesAccessor extends AbstractHelixResource {
     return OK();
   }
 
-  private Response batchGetStoppableInstances(String clusterId, JsonNode node) throws IOException {
+  private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -218,7 +218,8 @@ public class InstancesAccessor extends AbstractHelixResource {
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
-          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)), getConfigAccessor());
+          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)), getConfigAccessor(),
+              skipZKRead);
       ClusterService clusterService =
           new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);

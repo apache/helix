@@ -33,9 +33,15 @@ import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.RESTConfig;
+import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.server.json.instance.StoppableCheck;
+import org.apache.helix.rest.server.service.InstanceService;
+import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;

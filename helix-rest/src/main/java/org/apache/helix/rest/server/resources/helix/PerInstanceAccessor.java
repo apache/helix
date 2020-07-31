@@ -85,7 +85,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
   @GET
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName,
+      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead,
       @DefaultValue("getInstance") @QueryParam("command") String command) {
     // Get the command. If not provided, the default would be "getInstance"
     Command cmd;
@@ -100,8 +100,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       ObjectMapper objectMapper = new ObjectMapper();
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
-      InstanceService instanceService = new InstanceServiceImpl(
-          new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+      InstanceService instanceService =
+          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
+              Boolean.valueOf(skipZKRead));
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
@@ -132,11 +133,12 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
   public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName) throws IOException {
+      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
+            Boolean.valueOf(skipZKRead));
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =

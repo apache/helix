@@ -869,11 +869,10 @@ public class TestRawZkClient extends ZkTestBase {
     // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
     String path = "/" + TestHelper.getTestMethodName();
-    int toCreateChildrenCount = 110;
 
     _zkClient.createPersistent(path);
 
-    for (int i = 0; i < toCreateChildrenCount; i++) {
+    for (int i = 0; i < 110; i++) {
       List<Op> ops = new ArrayList<>(1000);
       for (int j = 0; j < 1000; j++) {
         String child = path + "/" + UUID.randomUUID().toString();
@@ -895,8 +894,11 @@ public class TestRawZkClient extends ZkTestBase {
       _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
 
       Assert.assertTrue(TestHelper.verify(() -> {
-        _zkClient.delete(path);
-        return !_zkClient.exists(path);
+        try {
+          return _zkClient.delete(path);
+        } catch (ZkException e) {
+          return false;
+        }
       }, TestHelper.WAIT_DURATION));
     }
   }

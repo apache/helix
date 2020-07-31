@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * ZooKeeperAccessor provides methods for accessing ZooKeeper resources (ZNodes).
  * It provides basic ZooKeeper features supported by ZkClient.
  */
-@Path("/zookeeper")
+@Path("/zookeeper{path: /.+}")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -61,7 +61,6 @@ public class ZooKeeperAccessor extends AbstractResource {
   }
 
   @GET
-  @Path("{path: .+}")
   public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
     ZooKeeperCommand cmd = getZooKeeperCommandIfPresent(commandStr);
     if (cmd == null) {
@@ -72,8 +71,6 @@ public class ZooKeeperAccessor extends AbstractResource {
     ServerContext _serverContext =
         (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
     _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
-
-    path = prependPath(path);
 
     // Check that the path supplied is valid
     if (!ZkValidationUtil.isPathValid(path)) {
@@ -101,14 +98,11 @@ public class ZooKeeperAccessor extends AbstractResource {
   }
 
   @DELETE
-  @Path("{path: .+}")
   public Response delete(@PathParam("path") String path) {
     // Lazily initialize ZkBaseDataAccessor
     ServerContext _serverContext =
         (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
     _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
-
-    path = prependPath(path);
 
     // Check that the path supplied is valid
     if (!ZkValidationUtil.isPathValid(path)) {
@@ -230,8 +224,7 @@ public class ZooKeeperAccessor extends AbstractResource {
       // TODO: This method is added pre-maturely to support removing the live instance of a zombie
       // TODO: instance. It is risky to allow all deleting requests before audit and ACL are done.
       throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
-          .entity(String.format("Deleting a non ephemeral node is not allowed. Path %s.", path))
-          .build());
+          .entity(String.format("Deleting a non-ephemeral node is not allowed.")).build());
     }
 
     if (zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
@@ -244,10 +237,5 @@ public class ZooKeeperAccessor extends AbstractResource {
 
   private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {
     return Enums.getIfPresent(ZooKeeperCommand.class, command).orNull();
-  }
-
-  private String prependPath(String path) {
-    // Need to prepend a "/" since JAX-RS regex removes it
-    return "/" + path;
   }
 }

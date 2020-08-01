@@ -175,7 +175,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
 
-    _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
+    _timer = new Timer("HelixTaskExecutor_timer", true); // created as a daemon timer thread to handle task timeout
 
     _isShuttingDown = false;
 

@@ -109,7 +109,7 @@ public abstract class AsyncCallback {
       if (_startTimeStamp == 0) {
         _startTimeStamp = System.currentTimeMillis();
       }
-      _timer = new Timer(true);
+      _timer = new Timer("AsyncCallback-Timer", true);
       _timer.schedule(new TimeoutTask(this), _timeout);
     }
   }

@@ -367,8 +367,8 @@ under the License.
     <tag>HEAD</tag>
   </scm>
   <issueManagement>
-    <system>jira</system>
-    <url>https://issues.apache.org/jira/browse/HELIX</url>
+    <system>Github</system>
+    <url>https://github.com/apache/helix/issues</url>
   </issueManagement>
   <ciManagement>
     <system>Jenkins</system>
@@ -754,18 +754,17 @@ under the License.
         <version>2.12.1</version>
         <inherited>false</inherited>
         <configuration>
-          <columnNames>Type,Fix Version,Key,Summary,Assignee,Status,Created</columnNames>
-          <maxEntries>200</maxEntries>
-          <onlyCurrentVersion>true</onlyCurrentVersion>
-          <resolutionIds>Fixed</resolutionIds>
-          <sortColumnNames>Type</sortColumnNames>
-          <fixVersionIds>12324012</fixVersionIds>
-          <useJql>true</useJql>
+          <githubAPIScheme>https</githubAPIScheme>
+          <githubAPIPort>443</githubAPIPort>
+          <includeOpenIssues>false</includeOpenIssues>
+          <onlyCurrentVersion>false</onlyCurrentVersion>
+          <onlyMilestoneIssues>false</onlyMilestoneIssues>
+          <columnNames>Type,Key,Summary,Assignee,Status,Fix Version</columnNames>
         </configuration>
         <reportSets>
           <reportSet>
             <reports>
-              <report>jira-report</report>
+              <report>github-report</report>
             </reports>
           </reportSet>
         </reportSets>

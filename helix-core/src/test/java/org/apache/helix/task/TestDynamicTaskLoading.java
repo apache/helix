@@ -79,10 +79,10 @@ public class TestDynamicTaskLoading extends ZkTestBase {
   private ZNRecord createTaskConfig(String id, String jar, String version, List<String> taskClasses,
       String taskFactory) {
     ZNRecord configZnRecord = new ZNRecord(id);
-    configZnRecord.setSimpleField(TaskStateModel.TASK_JAR_FILE_KEY, jar);
-    configZnRecord.setSimpleField(TaskStateModel.TASK_VERSION_KEY, version);
-    configZnRecord.setListField(TaskStateModel.TASK_CLASSES_KEY, taskClasses);
-    configZnRecord.setSimpleField(TaskStateModel.TASK_FACTORY_KEY, taskFactory);
+    configZnRecord.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jar);
+    configZnRecord.setSimpleField(TaskConstants.TASK_VERSION_KEY, version);
+    configZnRecord.setListField(TaskConstants.TASK_CLASSES_KEY, taskClasses);
+    configZnRecord.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactory);
     return configZnRecord;
   }
 
@@ -113,7 +113,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     ZNRecord configZnRecord =
         createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskStateModel.TASK_PATH + "/Reindex";
+    String path = TaskConstants.TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, configZnRecord, AccessOption.PERSISTENT);
@@ -139,7 +139,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     ZNRecord configZnRecord =
         createTaskConfig("Reindex", "src/test/resources/Random.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskStateModel.TASK_PATH + "/Reindex";
+    String path = TaskConstants.TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, configZnRecord, AccessOption.PERSISTENT);
@@ -160,7 +160,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
   @Test
   public void testDynamicTaskLoadingNonexistingTaskConfig() throws Exception {
     // Remove task config ZNRecord if it exists.
-    String path = TaskStateModel.TASK_PATH + "/Reindex";
+    String path = TaskConstants.TASK_PATH + "/Reindex";
     removePathIfExists(path);
 
     // Submit workflow
@@ -184,7 +184,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     ZNRecord configZnRecord =
         createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskStateModel.TASK_PATH + "/Reindex";
+    String path = TaskConstants.TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, configZnRecord, AccessOption.PERSISTENT);
@@ -210,7 +210,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     ZNRecord configZnRecord =
         createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.RandomTaskFactory");
-    String path = TaskStateModel.TASK_PATH + "/Reindex";
+    String path = TaskConstants.TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, configZnRecord, AccessOption.PERSISTENT);

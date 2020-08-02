@@ -1,4 +1,4 @@
-package org.apache.helix.task;
+package org.apache.helix.task.api;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

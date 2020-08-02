@@ -33,6 +33,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.task.api.JarLoader;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,11 +47,6 @@ public class TaskStateModel extends StateModel {
   private ScheduledFuture timeout_task;
   private TaskRunner _taskRunner;
   private final ScheduledExecutorService _timeoutTaskExecutor;
-  public static final String TASK_JAR_FILE_KEY = "JAR_FILE";
-  public static final String TASK_VERSION_KEY = "VERSION";
-  public static final String TASK_CLASSES_KEY = "TASK_CLASSES";
-  public static final String TASK_FACTORY_KEY = "TASKFACTORY";
-  public static final String TASK_PATH = "/TASK_DEFINITION";
 
   public TaskStateModel(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
       ScheduledExecutorService taskExecutor) {
@@ -77,7 +73,8 @@ public class TaskStateModel extends StateModel {
     reset();
   }
 
-  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+  public boolean awaitTermination(long timeout, TimeUnit unit)
+      throws InterruptedException {
     return _taskExecutor.awaitTermination(timeout, unit);
   }
 
@@ -90,9 +87,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeStoppedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
@@ -108,9 +104,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeCompletedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -129,9 +124,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTimedOutFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -150,9 +144,8 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskErrorFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     TaskResult r = _taskRunner.waitTillDone();
@@ -171,15 +164,13 @@ public class TaskStateModel extends StateModel {
   public String onBecomeTaskAbortedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
-      throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
     TaskResult r = _taskRunner.waitTillDone();
-    if (r.getStatus() != TaskResult.Status.FATAL_FAILED
-        && r.getStatus() != TaskResult.Status.CANCELED) {
+    if (r.getStatus() != TaskResult.Status.FATAL_FAILED && r.getStatus() != TaskResult.Status.CANCELED) {
       throw new IllegalStateException(String.format(
           "Partition %s received a state transition to %s but the result status code is %s.",
           msg.getPartitionName(), msg.getToState(), r.getStatus()));
@@ -250,8 +241,7 @@ public class TaskStateModel extends StateModel {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
       throw new IllegalStateException(String
-          .format("Invalid state transition. There is no running task for partition %s.",
-              taskPartition));
+          .format("Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
     _taskRunner.cancel();
@@ -319,9 +309,13 @@ public class TaskStateModel extends StateModel {
    * @param command The command indicating what task to be loaded
    */
   private void loadNewTask(String command) {
+    // If the path for dynamic tasks doesn't exist, skip loading the task
+    if (!_manager.getHelixDataAccessor().getBaseDataAccessor().exists(TaskConstants.TASK_PATH, 0)) {
+      return;
+    }
     // Read ZNRecord containing task definition information.
     ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .get(TASK_PATH + "/" + command, null, 0);
+        .get(TaskConstants.TASK_PATH + "/" + command, null, 0);
     if (taskConfig == null) {
       LOG.error("Failed to read ZNRecord for task " + command + " for instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
@@ -330,20 +324,19 @@ public class TaskStateModel extends StateModel {
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
     JarLoader jarLoader = new LocalJarLoader();
-    URL taskJarUrl = jarLoader.openJar(taskConfig.getSimpleField(TASK_JAR_FILE_KEY));
+    URL taskJarUrl = jarLoader.openJar(taskConfig.getSimpleField(TaskConstants.TASK_JAR_FILE_KEY));
 
     // Import Task(s) class(es).
     URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
-    for (String taskClass : taskConfig.getListField(TASK_CLASSES_KEY)) {
+    for (String taskClass : taskConfig.getListField(TaskConstants.TASK_CLASSES_KEY)) {
       loadClass(classLoader, taskClass);
     }
 
     // Import and instantiate TaskFactory class
     TaskFactory taskFactory;
     try {
-      taskFactory =
-          (TaskFactory) loadClass(classLoader, taskConfig.getSimpleField(TASK_FACTORY_KEY))
-              .newInstance();
+      taskFactory = (TaskFactory) loadClass(classLoader,
+          taskConfig.getSimpleField(TaskConstants.TASK_FACTORY_KEY)).newInstance();
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Failed to instantiate TaskFactory class for new task in instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
@@ -395,8 +388,7 @@ public class TaskStateModel extends StateModel {
     Task task = taskFactory.createNewTask(callbackContext);
 
     if (task instanceof UserContentStore) {
-      ((UserContentStore) task)
-          .init(_manager, cfg.getWorkflow(), msg.getResourceName(), taskPartition);
+      ((UserContentStore) task).init(_manager, cfg.getWorkflow(), msg.getResourceName(), taskPartition);
     }
 
     // Submit the task for execution

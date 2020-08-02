@@ -23,6 +23,7 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.apache.helix.task.api.JarLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +37,9 @@ public class LocalJarLoader implements JarLoader {
       taskJar = new File(jar);
       if (taskJar.exists() && !taskJar.isDirectory()) {
         return taskJar.toURI().toURL();
-      } else {
-        LOG.error("Failed to find JAR " + jar + " for new task.");
-        throw new IllegalStateException("No JAR for task");
       }
+      LOG.error("Failed to find JAR " + jar + " for new task.");
+      throw new IllegalStateException("No JAR for task");
     } catch (MalformedURLException e) {
       LOG.error("Failed to open JAR " + jar + " for new task.");
       throw new IllegalStateException("Malformed JAR URL for task");

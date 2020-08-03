@@ -875,8 +875,9 @@ public class TestRawZkClient extends ZkTestBase {
     for (int i = 0; i < 110; i++) {
       List<Op> ops = new ArrayList<>(1000);
       for (int j = 0; j < 1000; j++) {
-        String child = path + "/" + UUID.randomUUID().toString();
-        ops.add(Op.create(child, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
+        String childPath = path + "/" + UUID.randomUUID().toString();
+        ops.add(
+            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
       }
       // Reduce total creation time by batch creating znodes
       _zkClient.multi(ops);

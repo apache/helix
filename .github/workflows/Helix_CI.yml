@@ -1,0 +1,32 @@
+# Run full test for any changes that are merged to master branch.
+
+name: Helix Merge CI
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Build with Maven
+      run: mvn clean install -Dmaven.test.skip.exec=true
+    - name: Test metrics-common
+      run: cd metrics-common; mvn test
+    - name: Test metadata-store-directory-common
+      run: cd metadata-store-directory-common; mvn test
+    - name: Test helix-lock
+      run: cd helix-lock; mvn test
+    - name: Test helix-common
+      run: cd helix-common; mvn test
+    - name: Test helix-rest
+      run: cd helix-rest; mvn test
+    - name: Test helix-core
+      run: cd helix-core; mvn test

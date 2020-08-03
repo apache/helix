@@ -29,12 +29,15 @@ jobs:
     - name: Test metadata-store-directory-common
       run: cd metadata-store-directory-common; mvn test
       if: contains(steps.file-diff.outputs.all, 'metadata-store-directory-common')
-    - name: Test helix-lock
-      run: cd helix-lock; mvn test
-      if: contains(steps.file-diff.outputs.all, 'helix-lock')
+    - name: Test zookeeper-api
+      run: cd zookeeper-api; mvn test
+      if: contains(steps.file-diff.outputs.all, 'zookeeper-api')
     - name: Test helix-common
       run: cd helix-common; mvn test
       if: contains(steps.file-diff.outputs.all, 'helix-common')
+    - name: Test helix-lock
+      run: cd helix-lock; mvn test
+      if: contains(steps.file-diff.outputs.all, 'helix-lock')
     - name: Test helix-rest
       run: cd helix-rest; mvn test
       if: contains(steps.file-diff.outputs.all, 'helix-rest')

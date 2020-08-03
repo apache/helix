@@ -1,0 +1,24 @@
+# Verify if the PR meets all the requirements for merging on PR review event. 
+
+name: PR Pre-merge Check
+
+on: [pull_request_review]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  label:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify All Tasks are Finished
+        uses: venkatsarvesh/pr-tasks-completed-action@v1.0.0
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Verify the PR has been approved
+        uses: pullreminders/label-when-approved-action@master
+        env:
+          APPROVALS: "1"
+          ADD_LABEL: "CheckedAndApproved"

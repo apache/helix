@@ -19,7 +19,6 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,14 +31,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +73,15 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     return getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads, false);
   }
 
+  /**
+   * Retrieve partition health status for each live instances combined with reading health partition report from ZK
+   * and customized REST API call.
+   *
+   * @param restConfig        restConfig for the cluster contains customize REST API endpoint
+   * @param customPayLoads    user passed in customized payloads
+   * @param skipZKRead        skip the ZK read if this flag is true
+   * @return                  A map of instance -> partition -> healthy or not (boolean).
+   */
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
       RESTConfig restConfig, Map<String, String> customPayLoads, boolean skipZKRead) {
     // Only checks the instances are online with valid reports
@@ -92,13 +99,11 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     Map<String, Future<Map<String, Boolean>>> parallelTasks = new HashMap<>();
     for (int i = 0; i < liveInstances.size(); i++) {
       String liveInstance = liveInstances.get(i);
-      Optional<ZNRecord> maybeHealthRecord =
-          Optional.ofNullable(zkHealthReports.get(i)).map(HelixProperty::getRecord);
-      parallelTasks.put(liveInstance,
-          POOL.submit(() -> maybeHealthRecord
-              .map(record -> getPartitionsHealth(liveInstance, record, restConfig, customPayLoads, skipZKRead))
-              .orElseGet(() -> getHealthStatusFromRest(liveInstance, Collections.emptyList(),
-                  restConfig, customPayLoads))));
+      Optional<ZNRecord> maybeHealthRecord = Optional.ofNullable(zkHealthReports.get(i)).map(HelixProperty::getRecord);
+      parallelTasks.put(liveInstance, POOL.submit(() -> maybeHealthRecord.map(
+          record -> getPartitionsHealthFromCustomAPI(liveInstance, record, restConfig, customPayLoads, skipZKRead))
+          .orElseGet(
+              () -> getHealthStatusFromRest(liveInstance, Collections.emptyList(), restConfig, customPayLoads))));
     }
 
     Map<String, Map<String, Boolean>> result = new HashMap<>();
@@ -117,7 +122,20 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     return result;
   }
 
-  private Map<String, Boolean> getPartitionsHealth(String instance, ZNRecord partitionHealthRecord,
+  /**
+   * Get the partition health status from custom API. When we skip reading data from ZK, partitionHealthRecord will be
+   * empty. We need a full refresh of all the partitions. If we pass the empty set of partition to be refresh, custom
+   * API will return nothing.
+   *
+   * @param instance                instance to query
+   * @param partitionHealthRecord   retrieved partition health data from ZK. Could be emptry if we skip reading from ZK.
+   * @param restConfig              restConfig for the cluster contains custom API endpoint
+   * @param customPayLoads          user passed in customized payloads
+   * @param requireFullRead         get all the partition status from custom API endpoint if it is true. It should skip
+   *                                the payload of "PARTITION : list of partition need to be fetch" in REST call.
+   * @return                        A map of instance -> partition -> healthy or not (boolean).
+   */
+  private Map<String, Boolean> getPartitionsHealthFromCustomAPI(String instance, ZNRecord partitionHealthRecord,
       RESTConfig restConfig, Map<String, String> customPayLoads, boolean requireFullRead) {
     Map<String, Boolean> result = new HashMap<>();
     List<String> expiredPartitions = new ArrayList<>();

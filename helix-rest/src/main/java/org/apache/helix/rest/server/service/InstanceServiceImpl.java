@@ -76,12 +76,6 @@ public class InstanceServiceImpl implements InstanceService {
 
   @VisibleForTesting
   InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient) {
-    this(dataAccessor, configAccessor, customRestClient, false);
-  }
-
-  @VisibleForTesting
-  InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
       CustomRestClient customRestClient, boolean skipZKRead) {
     _dataAccessor = dataAccessor;
     _configAccessor = configAccessor;

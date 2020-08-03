@@ -79,7 +79,7 @@ public class TestInstanceService {
   public void testGetInstanceStoppableCheckWhenHelixOwnCheckFail() throws IOException {
     Map<String, Boolean> failedCheck = ImmutableMap.of("FailCheck", false);
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient) {
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -100,7 +100,7 @@ public class TestInstanceService {
   @Test
   public void testGetInstanceStoppableCheckWhenCustomInstanceCheckFail() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient) {
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -124,7 +124,7 @@ public class TestInstanceService {
   @Test
   public void testGetInstanceStoppableCheckConnectionRefused() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient) {
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {
@@ -157,8 +157,11 @@ public class TestInstanceService {
     // We expect the check fail if we skipZKRead.
 
     String testPartition = "PARTITION_0";
-    String slibilingInstance = "instance0.linkedin.com_1236";
-    String jsonContent = "{\n" + "   \"param1\": \"value1\",\n" + "\"param2\": \"value2\"\n" + "}";
+    String siblingInstance = "instance0.linkedin.com_1236";
+    String jsonContent = "{\n" +
+        "\"param1\": \"value1\",\n" +
+        "\"param2\": \"value2\"\n" +
+        "}";
     BaseDataAccessor<ZNRecord> mockAccessor = mock(ZkBaseDataAccessor.class);
     ZKHelixDataAccessor zkHelixDataAccessor =
         new ZKHelixDataAccessor(TEST_CLUSTER, InstanceType.ADMINISTRATOR, mockAccessor);
@@ -170,7 +173,7 @@ public class TestInstanceService {
 
     // Mocks for partition level
     when(mockAccessor.getChildNames(zkHelixDataAccessor.keyBuilder().liveInstances().getPath(), 2)).thenReturn(
-        Arrays.asList(TEST_INSTANCE, slibilingInstance));
+        Arrays.asList(TEST_INSTANCE, siblingInstance));
 
     // Mock ZK record is healthy
     Map<String, String> partition0 = new HashMap<>();
@@ -181,7 +184,7 @@ public class TestInstanceService {
     when(mockAccessor.get(Arrays.asList(zkHelixDataAccessor.keyBuilder()
         .healthReport(TEST_INSTANCE, HelixDataAccessorWrapper.PARTITION_HEALTH_KEY)
         .getPath(), zkHelixDataAccessor.keyBuilder()
-        .healthReport(slibilingInstance, HelixDataAccessorWrapper.PARTITION_HEALTH_KEY)
+        .healthReport(siblingInstance, HelixDataAccessorWrapper.PARTITION_HEALTH_KEY)
         .getPath()), Arrays.asList(new Stat(), new Stat()), 0, false)).thenReturn(
         Arrays.asList(successPartitionReport, successPartitionReport));
 
@@ -192,7 +195,7 @@ public class TestInstanceService {
     // Mock data for InstanceValidationUtil
     ExternalView externalView = new ExternalView("TestResource");
     externalView.setState(testPartition, TEST_INSTANCE, "MASTER");
-    externalView.setState(testPartition, slibilingInstance, "SLAVE");
+    externalView.setState(testPartition, siblingInstance, "SLAVE");
     externalView.getRecord().setSimpleField(IdealState.IdealStateProperty.STATE_MODEL_DEF_REF.name(), "MasterSlave");
     when(mockAccessor.getChildren(zkHelixDataAccessor.keyBuilder().externalViews().getPath(), null,
         AccessOption.PERSISTENT, 1, 0)).thenReturn(Arrays.asList(externalView.getRecord()));
@@ -219,7 +222,7 @@ public class TestInstanceService {
   @Test(enabled = false)
   public void testGetInstanceStoppableCheckWhenPartitionsCheckFail() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient) {
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
               String instanceName, List<HealthCheck> healthChecks) {

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 /**
  * Provide the classes necessary to create a Helix cluster manager
  * <p>
- * General flow 
+ * General flow
  * <blockquote>
  * <pre>
  * manager = HelixManagerFactory.getManagerForROLE(); ROLE can be participant, spectator or a controller<br/>
@@ -30,18 +31,18 @@
  * INIT -> will be invoked the first time the listener is added
  * CALLBACK -> will be invoked due to datachange in the property value
  * FINALIZE -> will be invoked when listener is removed or session expires
- * 
+ *
  * manager.disconnect()
  * </pre>
- * 
- * </blockquote> 
- * 
+ *
+ * </blockquote>
+ *
  * Default implementations available
- * 
+ *
  * @see org.apache.helix.participant.HelixStateMachineEngine for participant
  * @see RoutingTableProvider for spectator
  * @see GenericHelixController for controller
- * 
+ *
  */
 package org.apache.helix;
 

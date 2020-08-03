@@ -22,10 +22,12 @@ jobs:
       run: cd metrics-common; mvn test
     - name: Test metadata-store-directory-common
       run: cd metadata-store-directory-common; mvn test
-    - name: Test helix-lock
-      run: cd helix-lock; mvn test
+    - name: Test zookeeper-api
+      run: cd zookeeper-api; mvn test
     - name: Test helix-common
       run: cd helix-common; mvn test
+    - name: Test helix-lock
+      run: cd helix-lock; mvn test
     - name: Test helix-rest
       run: cd helix-rest; mvn test
     - name: Test helix-core

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import javax.management.JMException;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -102,6 +103,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       for (Resource resource : resourceMap.values()) {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
               updatedCustomizedViews, updatedStartTimestamps);
+          Map<String, CustomizedView> curCustomizedViewsCopy = new HashMap<>(curCustomizedViews);
 
           List<PropertyKey> keys = new ArrayList<>();
           for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
@@ -114,8 +116,8 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
             boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
             cache.updateCustomizedViews(stateType, updatedCustomizedViews);
             asyncReportLatency(cache.getAsyncTasksThreadPool(), getOrCreateMonitor(event),
-                updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps, success,
-                System.currentTimeMillis());
+                new ArrayList<>(updatedCustomizedViews), curCustomizedViewsCopy,
+                new HashMap<>(updatedStartTimestamps), success.clone(), System.currentTimeMillis());
           }
 
           // remove stale customized views from zk and cache
@@ -184,10 +186,12 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     }
   }
 
-  private CustomizedViewMonitor getOrCreateMonitor(ClusterEvent event) {
+  private CustomizedViewMonitor getOrCreateMonitor(ClusterEvent event) throws JMException {
     String clusterName = event.getClusterName();
     if (_monitors.get(clusterName) == null) {
-      _monitors.put(clusterName, new CustomizedViewMonitor(clusterName));
+      CustomizedViewMonitor monitor = new CustomizedViewMonitor(clusterName);
+      _monitors.put(clusterName, monitor);
+      monitor.register();
     }
     return _monitors.get(clusterName);
   }
@@ -201,7 +205,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
         monitor.reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
             updateSuccess, curTime);
       } catch (Exception e) {
-        LOG.error("Failed to report UpdateToAggregationLatency metric.", e);
+        LOG.warn("Failed to report UpdateToAggregationLatency metric.", e);
       }
       return null;
     });

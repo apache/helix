@@ -21,6 +21,8 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.management.ObjectInstance;
+import javax.management.ObjectName;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -34,6 +36,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
+import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,14 +58,8 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
-        0, 1
-    }, new String[] {
-        "TestDB"
-    }, 1, 2);
-    setupLiveInstances(clusterName, new int[] {
-        0, 1
-    });
+    setupIdealState(clusterName, new int[]{0, 1}, new String[]{"TestDB"}, 1, 2);
+    setupLiveInstances(clusterName, new int[]{0, 1});
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
@@ -105,6 +103,62 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
       Assert.assertEquals(oldCustomizedViews.get(i).getStat().getVersion(),
           newCustomizedViews.get(i).getStat().getVersion());
     }
+
+    if (manager.isConnected()) {
+      manager.disconnect(); // For DummyClusterManager, this is not necessary
+    }
+    deleteLiveInstances(clusterName);
+    deleteCluster(clusterName);
+  }
+
+  @Test
+  public void testLatencyMetricReporting() throws Exception {
+    String clusterName = "CLUSTER_" + TestHelper.getTestMethodName();
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    HelixManager manager = new DummyClusterManager(clusterName, accessor);
+
+    // ideal state: node0 is MASTER, node1 is SLAVE
+    // replica=2 means 1 master and 1 slave
+    setupIdealState(clusterName, new int[]{0, 1}, new String[]{"TestDB"}, 1, 2);
+    setupLiveInstances(clusterName, new int[]{0, 1});
+    setupStateModel(clusterName);
+
+    ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.Unknown);
+    ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterName);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
+
+    CustomizedStateConfig config = new CustomizedStateConfig();
+    List<String> aggregationEnabledTypes = new ArrayList<>();
+    aggregationEnabledTypes.add(CUSTOMIZED_STATE_NAME);
+    config.setAggregationEnabledTypes(aggregationEnabledTypes);
+
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.customizedStateConfig(), config);
+
+    CustomizedState customizedState = new CustomizedState(RESOURCE_NAME);
+    customizedState.setState(PARTITION_NAME, "STATE");
+    customizedState.setStartTime(PARTITION_NAME, 0);
+    accessor.setProperty(
+        keyBuilder.customizedState(INSTANCE_NAME, CUSTOMIZED_STATE_NAME, RESOURCE_NAME),
+        customizedState);
+
+    Pipeline dataRefresh = new Pipeline();
+    dataRefresh.addStage(new ReadClusterDataStage());
+    runPipeline(event, dataRefresh);
+    runStage(event, new ResourceComputationStage());
+    runStage(event, new CustomizedStateComputationStage());
+    runStage(event, new CustomizedViewAggregationStage());
+
+    ObjectName objectName = new ObjectName(String
+        .format("%s:%s=%s", MonitorDomainNames.CustomizedView.name(), "Cluster", clusterName));
+    ObjectInstance monitor = _server.getObjectInstance(objectName);
+    Assert.assertNotNull(monitor);
+    TestHelper.verify(() -> (long) _server.getAttribute(objectName,
+        CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + ".Max") == 0,
+        TestHelper.WAIT_DURATION);
 
     if (manager.isConnected()) {
       manager.disconnect(); // For DummyClusterManager, this is not necessary

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class CustomizedStateOutput {
-  private static Logger LOG = LoggerFactory.getLogger(CustomizedStateOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateOutput.class);
 
   // stateType -> (resourceName -> (Partition -> (instanceName -> customizedState)))
   private final Map<String, Map<String, Map<Partition, Map<String, String>>>> _customizedStateMap;
@@ -67,20 +67,15 @@ public class CustomizedStateOutput {
         mapToUpdate = _startTimeMap;
         break;
       default:
-        LOG.error(
+        LOG.warn(
             "The customized state property is not supported, could not update customized state output.");
         return;
     }
-    if (!mapToUpdate.containsKey(stateType)) {
-      mapToUpdate.put(stateType, new HashMap<String, Map<Partition, Map<String, String>>>());
-    }
-    if (!mapToUpdate.get(stateType).containsKey(resourceName)) {
-      mapToUpdate.get(stateType).put(resourceName, new HashMap<Partition, Map<String, String>>());
-    }
-    if (!mapToUpdate.get(stateType).get(resourceName).containsKey(partition)) {
-      mapToUpdate.get(stateType).get(resourceName).put(partition, new HashMap<String, String>());
-    }
-    mapToUpdate.get(stateType).get(resourceName).get(partition).put(instanceName, state);
+
+    mapToUpdate.computeIfAbsent(stateType, k -> new HashMap<>())
+        .computeIfAbsent(resourceName, k -> new HashMap<>())
+        .computeIfAbsent(partition, k -> new HashMap<>())
+        .put(instanceName, state);
   }
 
   /**
@@ -110,7 +105,7 @@ public class CustomizedStateOutput {
         readFromMap = _startTimeMap;
         break;
       default:
-        LOG.error(
+        LOG.warn(
             "The customized state property is not supported, could not read from customized state output.");
         return Collections.emptyMap();
     }
@@ -168,7 +163,6 @@ public class CustomizedStateOutput {
     }
     return null;
   }
-
 
   public Map<Partition, Map<String, String>> getResourceStartTimeMap(String stateType,
       String resourceName) {

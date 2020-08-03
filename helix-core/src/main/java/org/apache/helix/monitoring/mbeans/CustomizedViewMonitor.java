@@ -1,5 +1,24 @@
 package org.apache.helix.monitoring.mbeans;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,8 +30,6 @@ import javax.management.ObjectName;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Partition;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
@@ -20,23 +37,22 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.collections.Lists;
 
 
 public class CustomizedViewMonitor extends DynamicMBeanProvider {
-  private static Logger LOG = LoggerFactory.getLogger(CustomizedViewMonitor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CustomizedViewMonitor.class);
 
   private static final String MBEAN_DESCRIPTION = "Helix Customized View Aggregation Monitor";
   private final String _clusterName;
   private final String _sensorName;
   private HistogramDynamicMetric _updateToAggregationLatencyGauge;
+  public static final String UPDATE_TO_AGGREGATION_LATENCY_GAUGE = "UpdateToAggregationLatencyGauge";
 
   public CustomizedViewMonitor(String clusterName) {
     _clusterName = clusterName;
-    _sensorName =
-        String.format("%s.%s", MonitorDomainNames.RoutingTableProvider.name(), _clusterName);
-    _updateToAggregationLatencyGauge = new HistogramDynamicMetric("UpdateToAggregationLatencyGauge",
-        new Histogram(
+    _sensorName = String.format("%s.%s", MonitorDomainNames.CustomizedView.name(), _clusterName);
+    _updateToAggregationLatencyGauge =
+        new HistogramDynamicMetric(UPDATE_TO_AGGREGATION_LATENCY_GAUGE, new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
   }
 
@@ -58,7 +74,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
     return _sensorName;
   }
 
-  private void recordUpdateToAggregationLatency(long latency) {
+  void recordUpdateToAggregationLatency(long latency) {
     if (_updateToAggregationLatencyGauge != null) {
       _updateToAggregationLatencyGauge.updateValue(latency);
     }
@@ -76,115 +92,60 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
       Map<String, CustomizedView> curCustomizedViews,
       Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps,
       boolean[] updateSuccess, long endTime) {
+    if (updatedCustomizedViews == null || curCustomizedViews == null
+        || updatedStartTimestamps == null) {
+      LOG.warn("Cannot find updated time stamps for customized states, input parameter is null.");
+      return;
+    }
+
+    List<Long> collectedTimestamps = new ArrayList<>();
+
     for (int i = 0; i < updatedCustomizedViews.size(); i++) {
       if (!updateSuccess[i]) {
         continue;
       }
-      CustomizedView updatedCustomizedView = updatedCustomizedViews.get(i);
-      String resourceName = updatedCustomizedView.getResourceName();
-      CustomizedView curCustomizedView =
+      CustomizedView newCV = updatedCustomizedViews.get(i);
+      String resourceName = newCV.getResourceName();
+      CustomizedView oldCV =
           curCustomizedViews.getOrDefault(resourceName, new CustomizedView(resourceName));
-      List<Long> startTimestamps = getStartTimestamps(updatedCustomizedView, curCustomizedView,
-          updatedStartTimestamps.get(resourceName));
-      startTimestamps.forEach(startTime -> recordUpdateToAggregationLatency(endTime - startTime));
-    }
-  }
-
-  private List<Long> getStartTimestamps(CustomizedView newCV, CustomizedView oldCV,
-      Map<Partition, Map<String, String>> partitionStartTimestamps) {
-    List<Long> collectedTimestamps = Lists.newArrayList();
-
-    if (newCV == null || oldCV == null || partitionStartTimestamps == null) {
-      LOG.warn(
-          "Cannot find updated time stamps for customized state at resource level, input parameter is null.");
-      return collectedTimestamps;
-    }
-    MapDifference<String, Map<String, String>> diff =
-        Maps.difference(newCV.getRecord().getMapFields(), oldCV.getRecord().getMapFields());
-
-    // Resource level value diff
-    Map<String, MapDifference.ValueDifference<Map<String, String>>> resourceDiffs =
-        diff.entriesDiffering();
-    if (resourceDiffs != null) {
-      resourceDiffs.forEach((key, value) -> {
-        compareAtPartitionLevel(key, value.leftValue(), value.rightValue(),
-            partitionStartTimestamps, collectedTimestamps);
-      });
-    }
-
-    // Resource level left only - newly added resource
-    Map<String, Map<String, String>> leftOnlyResourceStateMap = diff.entriesOnlyOnLeft();
-    if (leftOnlyResourceStateMap != null) {
-      leftOnlyResourceStateMap.forEach((key, value) -> {
-        compareAtPartitionLevel(key, value, Maps.newHashMap(), partitionStartTimestamps,
-            collectedTimestamps);
-      });
-    }
-
-    // Resource level right only - newly deleted resource
-    Map<String, Map<String, String>> rightOnlyResourceStateMap = diff.entriesOnlyOnRight();
-    if (rightOnlyResourceStateMap != null) {
-      rightOnlyResourceStateMap.forEach((key, value) -> {
-        compareAtPartitionLevel(key, Maps.newHashMap(), value, partitionStartTimestamps,
-            collectedTimestamps);
-      });
-    }
-
-    return collectedTimestamps;
-  }
-
-  private void compareAtPartitionLevel(String resourceName, Map<String, String> newStateMap,
-      Map<String, String> oldStateMap, Map<Partition, Map<String, String>> partitionStartTimeMaps,
-      List<Long> collectedTimestamps) {
-    if (newStateMap == null || oldStateMap == null || partitionStartTimeMaps == null
-        || collectedTimestamps == null) {
-      LOG.warn(
-          "Cannot find updated time stamps for customized state at partition level, input parameter is null.");
-      return;
-    }
-
-    Map<String, String> partitionStartTimeMap =
-        partitionStartTimeMaps.getOrDefault(new Partition(resourceName), Collections.emptyMap());
-    // Partition level comparison
-    MapDifference<String, String> stateMapDiff = Maps.difference(newStateMap, oldStateMap);
-
-    // Partition level value diff
-    Map<String, MapDifference.ValueDifference<String>> stateMapValueDiff =
-        stateMapDiff.entriesDiffering();
-    if (stateMapValueDiff != null) {
-      stateMapValueDiff
-          .forEach((key, value) -> parseTimestamp(partitionStartTimeMap, key, collectedTimestamps));
-    }
-
-    // Partition level left only -> newly added state
-    Map<String, String> leftOnlyStateMapDiff = stateMapDiff.entriesOnlyOnLeft();
-    if (leftOnlyStateMapDiff != null) {
-      leftOnlyStateMapDiff
-          .forEach((key, value) -> parseTimestamp(partitionStartTimeMap, key, collectedTimestamps));
-    }
-
-    // Partition level right only -> newly deleted state
-    Map<String, String> rightOnlyStateMapDiff = stateMapDiff.entriesOnlyOnRight();
-    if (rightOnlyStateMapDiff != null) {
-      rightOnlyStateMapDiff
-          .forEach((key, value) -> parseTimestamp(partitionStartTimeMap, key, collectedTimestamps));
-    }
-  }
-
-  private void parseTimestamp(Map<String, String> source, String instanceName,
-      List<Long> collectedTimestamps) {
-    if (source.get(instanceName) != null) {
-      try {
-        long timestamp = Long.parseLong(source.get(instanceName));
-        if (timestamp > 0) {
-          collectedTimestamps.add(timestamp);
-          return;
-        }
-      } catch (NumberFormatException e) {
-        LOG.warn("Error occurs while parsing customized state update time stamp");
+      if (newCV.getRecord().equals(oldCV.getRecord())) {
+        continue;
       }
-      LOG.warn(
-          "Failed to report latency, customized state is updated but no update time stamp found.");
+
+      Map<String, Map<String, String>> newPartitionStateMaps = newCV.getRecord().getMapFields();
+      Map<String, Map<String, String>> oldPartitionStateMaps = oldCV.getRecord().getMapFields();
+      Map<Partition, Map<String, String>> partitionStartTimeMaps =
+          updatedStartTimestamps.getOrDefault(resourceName, Collections.emptyMap());
+
+      for (Map.Entry<String, Map<String, String>> partitionStateMapEntry : newPartitionStateMaps
+          .entrySet()) {
+        String partitionName = partitionStateMapEntry.getKey();
+        Map<String, String> newStateMap = partitionStateMapEntry.getValue();
+        Map<String, String> oldStateMap =
+            oldPartitionStateMaps.getOrDefault(partitionName, Collections.emptyMap());
+        if (!newStateMap.equals(oldStateMap)) {
+          Map<String, String> partitionStartTimeMap = partitionStartTimeMaps
+              .getOrDefault(new Partition(partitionName), Collections.emptyMap());
+
+          for (Map.Entry<String, String> stateMapEntry : newStateMap.entrySet()) {
+            String instanceName = stateMapEntry.getKey();
+            if (!stateMapEntry.getValue().equals(oldStateMap.get(instanceName))) {
+              try {
+                long timestamp = Long.parseLong(partitionStartTimeMap.get(instanceName));
+                if (timestamp > 0) {
+                  collectedTimestamps.add(timestamp);
+                } else {
+                  LOG.warn(
+                      "Failed to find customized state update time stamp for reos, the number should be positive.");
+                }
+              } catch (NumberFormatException e) {
+                LOG.warn("Error occurs while parsing customized state update time stamp");
+              }
+            }
+          }
+        }
+      }
     }
+    collectedTimestamps.forEach(startTime -> recordUpdateToAggregationLatency(endTime - startTime));
   }
 }

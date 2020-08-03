@@ -294,6 +294,10 @@ public class RoutingTableProvider
    * @param sourceDataTypeMap
    */
   private void validateSourceDataTypeMap(Map<PropertyType, List<String>> sourceDataTypeMap) {
+    if (sourceDataTypeMap == null) {
+      throw new IllegalArgumentException(
+          "The sourceDataTypeMap of Routing Table Provider should not be null");
+    }
     for (PropertyType propertyType : sourceDataTypeMap.keySet()) {
       if (propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
           && sourceDataTypeMap.get(propertyType).size() == 0) {
@@ -302,10 +306,10 @@ public class RoutingTableProvider
       }
       if (!propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
           && sourceDataTypeMap.get(propertyType).size() != 0) {
-        logger.error("Type has been used in addition to the propertyType {} !",
-            propertyType.name());
-        throw new HelixException(
-            String.format("Type %s has been used in addition to the propertyType %s !",
+        logger
+            .error("Type has been used in addition to the propertyType {} !", propertyType.name());
+        throw new HelixException(String
+            .format("Type %s has been used in addition to the propertyType %s !",
                 sourceDataTypeMap.get(propertyType), propertyType.name()));
       }
     }
@@ -426,7 +430,7 @@ public class RoutingTableProvider
     logger.info(
         "Attach RoutingTableProviderChangeListener {}. The doInit value of this listener is {}",
         routingTableChangeListener.getClass().getName(), doInit);
-    if (doInit && _sourceDataTypeMap != null) {
+    if (doInit) {
       if (_sourceDataTypeMap.isEmpty()) {
         routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
       } else {

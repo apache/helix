@@ -27,7 +27,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * A wrapper class for ZNRecord, used to store configs for tasks that are to be dynamically loaded
  */
 public class DynamicTaskConfig {
-  private ZNRecord _taskConfig;
+  private final ZNRecord _taskConfig;
 
   /**
    * Initialize task config with an existing ZNRecord
@@ -40,18 +40,18 @@ public class DynamicTaskConfig {
   /**
    * Initialize task config with parameters
    * @param id
-   * @param jarFile address of the JAR file containing the task
+   * @param jarFilePath path of the JAR file containing the task
    * @param taskVersion task version
-   * @param taskClasses list of the {@link Task} classes names
-   * @param taskFactory {@link TaskFactory} class name
+   * @param taskClassesFqns list of the {@link Task} classes fully qualified names
+   * @param taskFactoryFqn {@link TaskFactory} class fully qualified name
    */
-  public DynamicTaskConfig(String id, String jarFile, String taskVersion, List<String> taskClasses,
-      String taskFactory) {
+  public DynamicTaskConfig(String id, String jarFilePath, String taskVersion, List<String> taskClassesFqns,
+      String taskFactoryFqn) {
     _taskConfig = new ZNRecord(id);
-    _taskConfig.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jarFile);
+    _taskConfig.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jarFilePath);
     _taskConfig.setSimpleField(TaskConstants.TASK_VERSION_KEY, taskVersion);
-    _taskConfig.setListField(TaskConstants.TASK_CLASSES_KEY, taskClasses);
-    _taskConfig.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactory);
+    _taskConfig.setListField(TaskConstants.TASK_CLASSES_KEY, taskClassesFqns);
+    _taskConfig.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactoryFqn);
   }
 
   /**
@@ -63,27 +63,11 @@ public class DynamicTaskConfig {
   }
 
   /**
-   * Set the task config ZNRecord
-   * @param taskConfig
-   */
-  public void setTaskConfig(ZNRecord taskConfig) {
-    _taskConfig = taskConfig;
-  }
-
-  /**
    * Get the address of the JAR file containing the task
    * @return
    */
-  public String getJarFile() {
+  public String getJarFilePath() {
     return _taskConfig.getSimpleField(TaskConstants.TASK_JAR_FILE_KEY);
-  }
-
-  /**
-   * Set the address of the JAR file containing the task
-   * @param jarFile
-   */
-  public void setJarFile(String jarFile) {
-    _taskConfig.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jarFile);
   }
 
   /**
@@ -95,43 +79,19 @@ public class DynamicTaskConfig {
   }
 
   /**
-   * Set the task version
-   * @param taskVersion
-   */
-  public void seTaskVersion(String taskVersion) {
-    _taskConfig.setSimpleField(TaskConstants.TASK_VERSION_KEY, taskVersion);
-  }
-
-  /**
-   * Get the list of the {@link Task} classes names
+   * Get the list of the {@link Task} classes fully qualified names
    * @return
    */
-  public List<String> getTaskClasses() {
+  public List<String> getTaskClassesFqns() {
     return _taskConfig.getListField(TaskConstants.TASK_CLASSES_KEY);
   }
 
   /**
-   * Set the list of the {@link Task} classe names
-   * @param taskClasses
-   */
-  public void setTaskClasses(List<String> taskClasses) {
-    _taskConfig.setListField(TaskConstants.TASK_CLASSES_KEY, taskClasses);
-  }
-
-  /**
-   * Get the {@link TaskFactory} class name
+   * Get the {@link TaskFactory} class fully qualified name
    * @return
    */
-  public String getTaskFactory() {
+  public String getTaskFactoryFqn() {
     return _taskConfig.getSimpleField(TaskConstants.TASK_FACTORY_KEY);
-  }
-
-  /**
-   * Set the {@link TaskFactory} class name
-   * @param taskFactory
-   */
-  public void setTaskFactory(String taskFactory) {
-    _taskConfig.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactory);
   }
 
   @Override
@@ -146,8 +106,8 @@ public class DynamicTaskConfig {
     }
     if (obj instanceof DynamicTaskConfig) {
       DynamicTaskConfig that = (DynamicTaskConfig) obj;
-      if (that.getTaskConfig() != null) {
-        return that.getTaskConfig().equals(this.getTaskConfig());
+      if (that._taskConfig != null) {
+        return that._taskConfig.equals(this._taskConfig);
       }
     }
     return false;

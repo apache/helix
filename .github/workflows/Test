@@ -1,0 +1,16 @@
+name: Label Test
+on: [pull_request]
+
+jobs:
+  label:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify Linked Issue
+        uses: hattan/verify-linked-issue-action@v1.1.1
+        with:
+          # The text to use as the PR comen for when for pull requests with no linked issues.
+          message: "Linked Issue is required"
+      - name: Label approved pull requests
+        uses: abinoda/label-when-approved-action@1.0.5

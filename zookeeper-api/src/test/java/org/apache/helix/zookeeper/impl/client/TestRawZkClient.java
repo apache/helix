@@ -866,9 +866,11 @@ public class TestRawZkClient extends ZkTestBase {
    */
   @Test(timeOut = 30 * 1000L)
   public void testGetChildrenOnLargeNumChildren() throws Exception {
+    final String methodName = TestHelper.getTestMethodName();
+    System.out.println("Start test: " + methodName);
     // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
-    String path = "/" + TestHelper.getTestMethodName();
+    String path = "/" + methodName;
 
     _zkClient.createPersistent(path);
 
@@ -876,6 +878,7 @@ public class TestRawZkClient extends ZkTestBase {
       List<Op> ops = new ArrayList<>(1000);
       for (int j = 0; j < 1000; j++) {
         String childPath = path + "/" + UUID.randomUUID().toString();
+        // Create ephemeral nodes so closing zkClient deletes them for cleanup
         ops.add(
             Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
       }
@@ -891,6 +894,7 @@ public class TestRawZkClient extends ZkTestBase {
           "org.apache.zookeeper.KeeperException$MarshallingErrorException: "
               + "KeeperErrorCode = MarshallingError");
     } finally {
+      // Delete children ephemeral znodes
       _zkClient.close();
       _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
 
@@ -902,5 +906,6 @@ public class TestRawZkClient extends ZkTestBase {
         }
       }, TestHelper.WAIT_DURATION));
     }
+    System.out.println("End test: " + methodName);
   }
 }

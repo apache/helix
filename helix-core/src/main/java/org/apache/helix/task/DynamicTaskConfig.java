@@ -27,14 +27,14 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * A wrapper class for ZNRecord, used to store configs for tasks that are to be dynamically loaded
  */
 public class DynamicTaskConfig {
-  private final ZNRecord _taskConfig;
+  private final ZNRecord _taskConfigZNRecord;
 
   /**
    * Initialize task config with an existing ZNRecord
-   * @param taskConfig
+   * @param taskConfigZNRecord
    */
-  public DynamicTaskConfig(ZNRecord taskConfig) {
-    _taskConfig = taskConfig;
+  public DynamicTaskConfig(ZNRecord taskConfigZNRecord) {
+    _taskConfigZNRecord = taskConfigZNRecord;
   }
 
   /**
@@ -47,11 +47,11 @@ public class DynamicTaskConfig {
    */
   public DynamicTaskConfig(String id, String jarFilePath, String taskVersion, List<String> taskClassesFqns,
       String taskFactoryFqn) {
-    _taskConfig = new ZNRecord(id);
-    _taskConfig.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jarFilePath);
-    _taskConfig.setSimpleField(TaskConstants.TASK_VERSION_KEY, taskVersion);
-    _taskConfig.setListField(TaskConstants.TASK_CLASSES_KEY, taskClassesFqns);
-    _taskConfig.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactoryFqn);
+    _taskConfigZNRecord = new ZNRecord(id);
+    _taskConfigZNRecord.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jarFilePath);
+    _taskConfigZNRecord.setSimpleField(TaskConstants.TASK_VERSION_KEY, taskVersion);
+    _taskConfigZNRecord.setListField(TaskConstants.TASK_CLASSES_KEY, taskClassesFqns);
+    _taskConfigZNRecord.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactoryFqn);
   }
 
   /**
@@ -59,7 +59,7 @@ public class DynamicTaskConfig {
    * @return
    */
   public ZNRecord getTaskConfigZNRecord() {
-    return _taskConfig;
+    return _taskConfigZNRecord;
   }
 
   /**
@@ -67,7 +67,7 @@ public class DynamicTaskConfig {
    * @return
    */
   public String getJarFilePath() {
-    return _taskConfig.getSimpleField(TaskConstants.TASK_JAR_FILE_KEY);
+    return _taskConfigZNRecord.getSimpleField(TaskConstants.TASK_JAR_FILE_KEY);
   }
 
   /**
@@ -75,7 +75,7 @@ public class DynamicTaskConfig {
    * @return
    */
   public String getTaskVersion() {
-    return _taskConfig.getSimpleField(TaskConstants.TASK_VERSION_KEY);
+    return _taskConfigZNRecord.getSimpleField(TaskConstants.TASK_VERSION_KEY);
   }
 
   /**
@@ -83,7 +83,7 @@ public class DynamicTaskConfig {
    * @return
    */
   public List<String> getTaskClassesFqns() {
-    return _taskConfig.getListField(TaskConstants.TASK_CLASSES_KEY);
+    return _taskConfigZNRecord.getListField(TaskConstants.TASK_CLASSES_KEY);
   }
 
   /**
@@ -91,12 +91,12 @@ public class DynamicTaskConfig {
    * @return
    */
   public String getTaskFactoryFqn() {
-    return _taskConfig.getSimpleField(TaskConstants.TASK_FACTORY_KEY);
+    return _taskConfigZNRecord.getSimpleField(TaskConstants.TASK_FACTORY_KEY);
   }
 
   @Override
   public String toString() {
-    return "TaskConfig=" + _taskConfig.toString();
+    return "TaskConfig=" + _taskConfigZNRecord.toString();
   }
 
   @Override
@@ -106,8 +106,8 @@ public class DynamicTaskConfig {
     }
     if (obj instanceof DynamicTaskConfig) {
       DynamicTaskConfig that = (DynamicTaskConfig) obj;
-      if (that._taskConfig != null) {
-        return that._taskConfig.equals(this._taskConfig);
+      if (that._taskConfigZNRecord != null) {
+        return that._taskConfigZNRecord.equals(this._taskConfigZNRecord);
       }
     }
     return false;

@@ -709,9 +709,6 @@ public class ClusterConfig extends HelixProperty {
    * @param capacityKeys
    */
   public void setInstanceCapacityKeys(List<String> capacityKeys) {
-    if (capacityKeys == null || capacityKeys.isEmpty()) {
-      throw new IllegalArgumentException("The input instance capacity key list is empty.");
-    }
     _record.setListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
   }
 
@@ -744,7 +741,7 @@ public class ClusterConfig extends HelixProperty {
    * If the instance capacity is not configured in either Instance Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
    * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    */
   public void setDefaultInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
@@ -769,7 +766,7 @@ public class ClusterConfig extends HelixProperty {
    * If the partition weight is not configured in either Resource Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
    * @param weightDataMap - map of partition weight data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    */
   public void setDefaultPartitionWeightMap(Map<String, Integer> weightDataMap)
       throws IllegalArgumentException {
@@ -788,18 +785,19 @@ public class ClusterConfig extends HelixProperty {
   private void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
       Map<String, Integer> capacityDataMap) throws IllegalArgumentException {
     if (capacityDataMap == null) {
-      throw new IllegalArgumentException("Default capacity data is null");
+      _record.setMapField(capacityPropertyType.name(), null);
+    } else {
+      Map<String, String> data = new HashMap<>();
+      capacityDataMap.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() < 0) {
+          throw new IllegalArgumentException(String
+              .format("Default capacity data contains a negative value: %s = %d", entry.getKey(),
+                  entry.getValue()));
+        }
+        data.put(entry.getKey(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(capacityPropertyType.name(), data);
     }
-    Map<String, String> data = new HashMap<>();
-    capacityDataMap.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() < 0) {
-        throw new IllegalArgumentException(String
-            .format("Default capacity data contains a negative value: %s = %d", entry.getKey(),
-                entry.getValue()));
-      }
-      data.put(entry.getKey(), Integer.toString(entry.getValue()));
-    });
-    _record.setMapField(capacityPropertyType.name(), data);
   }
 
   /**
@@ -808,19 +806,21 @@ public class ClusterConfig extends HelixProperty {
    *                   The ratio of the configured weights will determine the rebalancer's behavior.
    */
   public void setGlobalRebalancePreference(Map<GlobalRebalancePreferenceKey, Integer> preference) {
-    Map<String, String> preferenceMap = new HashMap<>();
-
-    preference.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() > MAX_REBALANCE_PREFERENCE
-          || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
-        throw new IllegalArgumentException(String
-            .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
-                entry.getKey().name(), entry.getValue()));
-      }
-      preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
-    });
-
-    _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+    if (preference == null) {
+      _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), null);
+    } else {
+      Map<String, String> preferenceMap = new HashMap<>();
+      preference.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() > MAX_REBALANCE_PREFERENCE
+            || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
+          throw new IllegalArgumentException(String
+              .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
+                  entry.getKey().name(), entry.getValue()));
+        }
+        preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+    }
   }
 
   /**
@@ -861,8 +861,8 @@ public class ClusterConfig extends HelixProperty {
    * Set the abnormal state resolver class map.
    */
   public void setAbnormalStateResolverMap(Map<String, String> resolverMap) {
-    if (resolverMap.values().stream()
-        .anyMatch(className -> className == null || className.isEmpty())) {
+    if (resolverMap != null && resolverMap.values().stream()
+        .anyMatch(className -> className == null)) {
       throw new IllegalArgumentException(
           "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
     }

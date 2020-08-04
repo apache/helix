@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Splitter;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.util.HelixUtil;
@@ -534,7 +533,7 @@ public class InstanceConfig extends HelixProperty {
   /**
    * Set the instance capacity information with an Integer mapping.
    * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is incomplete
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    *
    * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
@@ -547,21 +546,19 @@ public class InstanceConfig extends HelixProperty {
   public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
     if (capacityDataMap == null) {
-      throw new IllegalArgumentException("Capacity Data is null");
+      _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), null);
+    } else {
+      Map<String, String> capacityData = new HashMap<>();
+      capacityDataMap.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() < 0) {
+          throw new IllegalArgumentException(String
+              .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
+                  entry.getValue()));
+        }
+        capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
     }
-
-    Map<String, String> capacityData = new HashMap<>();
-
-    capacityDataMap.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() < 0) {
-        throw new IllegalArgumentException(String
-            .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
-                entry.getValue()));
-      }
-      capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
-    });
-
-    _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
   }
 
   @Override

@@ -19,14 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -91,26 +90,26 @@ public class TestInstanceConfig {
         "item2", 2,
         "item3", 3);
 
-    Map<String, String> capacityDataMapString = ImmutableMap.of("item1", "1",
-        "item2", "2",
-        "item3", "3");
+    Map<String, String> capacityDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
 
     InstanceConfig testConfig = new InstanceConfig("testConfig");
     testConfig.setInstanceCapacityMap(capacityDataMap);
 
     Assert.assertEquals(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
         INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
-  }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data is null")
-  public void testSetInstanceCapacityMapEmpty() {
-    Map<String, Integer> capacityDataMap = new HashMap<>();
-
-    InstanceConfig testConfig = new InstanceConfig("testConfig");
     // This operation shall be done. This will clear the instance capacity map in the InstanceConfig
-    testConfig.setInstanceCapacityMap(capacityDataMap);
-    // This operation will fall.
+    testConfig.setInstanceCapacityMap(Collections.emptyMap());
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
+        INSTANCE_CAPACITY_MAP.name()), Collections.emptyMap());
+
+    // This operation shall be done. This will remove the instance capacity map in the InstanceConfig
     testConfig.setInstanceCapacityMap(null);
+
+    Assert.assertTrue(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
+        INSTANCE_CAPACITY_MAP.name()) == null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class,

@@ -6,7 +6,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  Merge_PR_CI:
 
     runs-on: ubuntu-latest
 

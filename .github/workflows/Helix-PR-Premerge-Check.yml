@@ -1,4 +1,4 @@
-# Verify if the PR meets all the requirements for merging on PR review event. 
+# Verify if the PR meets all the requirements for merging on PR review event.
 
 name: PR Pre-merge Check
 
@@ -8,7 +8,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  label:
+  validate_PR:
 
     runs-on: ubuntu-latest
 

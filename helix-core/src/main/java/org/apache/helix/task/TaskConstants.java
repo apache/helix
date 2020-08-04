@@ -49,4 +49,24 @@ public class TaskConstants {
   public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   public static final boolean DEFAULT_TASK_ENABLE_COMPRESSION = false;
+  /**
+   * Name of the JAR file for the task dynamically loaded in {@link TaskStateModel}
+   */
+  public static final String TASK_JAR_FILE_KEY = "JAR_FILE";
+  /**
+   * Version of the task dynamically loaded in {@link TaskStateModel}
+   */
+  public static final String TASK_VERSION_KEY = "VERSION";
+  /**
+   * Name of the {@link Task} class(es) for the task dynamically loaded in {@link TaskStateModel}
+   */
+  public static final String TASK_CLASSES_KEY = "TASK_CLASSES";
+  /**
+   * Name of the {@link TaskFactory} class for the task dynamically loaded in {@link TaskStateModel}
+   */
+  public static final String TASK_FACTORY_KEY = "TASK_FACTORY";
+  /**
+   * The path for dynamic task configs
+   */
+  public static final String DYNAMICALLY_LOADED_TASK_PATH = "/TASK_DEFINITION";
 }

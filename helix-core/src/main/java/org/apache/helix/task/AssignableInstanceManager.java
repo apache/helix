@@ -267,7 +267,7 @@ public class AssignableInstanceManager {
       }
     }
     LOG.info(
-        "AssignableInstanceManager built AssignableInstances from scratch based on contexts in TaskDataCache due to Controller switch or ClusterConfig change.");
+        "AssignableInstanceManager built AssignableInstances from scratch based on CurrentState.");
     computeGlobalThreadBasedCapacity();
   }
 

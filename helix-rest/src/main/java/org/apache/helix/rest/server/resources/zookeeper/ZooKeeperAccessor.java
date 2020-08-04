@@ -21,7 +21,7 @@ package org.apache.helix.rest.server.resources.zookeeper;
 
 import java.util.List;
 import java.util.Map;
-import javax.ws.rs.DefaultValue;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * ZooKeeperAccessor provides methods for accessing ZooKeeper resources (ZNodes).
  * It provides basic ZooKeeper features supported by ZkClient.
  */
-@Path("/zookeeper")
+@Path("/zookeeper{path: /.+}")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());
   private BaseDataAccessor<byte[]> _zkBaseDataAccessor;
@@ -61,7 +61,6 @@ public class ZooKeeperAccessor extends AbstractResource {
   }
 
   @GET
-  @Path("{path: .+}")
   public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
     ZooKeeperCommand cmd = getZooKeeperCommandIfPresent(commandStr);
     if (cmd == null) {
@@ -72,9 +71,6 @@ public class ZooKeeperAccessor extends AbstractResource {
     ServerContext _serverContext =
         (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
     _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
-
-    // Need to prepend a "/" since JAX-RS regex removes it
-    path = "/" + path;
 
     // Check that the path supplied is valid
     if (!ZkValidationUtil.isPathValid(path)) {
@@ -99,6 +95,23 @@ public class ZooKeeperAccessor extends AbstractResource {
         LOG.error(errMsg);
         return badRequest(errMsg);
     }
+  }
+
+  @DELETE
+  public Response delete(@PathParam("path") String path) {
+    // Lazily initialize ZkBaseDataAccessor
+    ServerContext _serverContext =
+        (ServerContext) _application.getProperties().get(ContextPropertyKeys.SERVER_CONTEXT.name());
+    _zkBaseDataAccessor = _serverContext.getByteArrayZkBaseDataAccessor();
+
+    // Check that the path supplied is valid
+    if (!ZkValidationUtil.isPathValid(path)) {
+      String errMsg = "The given path is not a valid ZooKeeper path: " + path;
+      LOG.info(errMsg);
+      return badRequest(errMsg);
+    }
+
+    return delete(_zkBaseDataAccessor, path);
   }
 
   /**
@@ -194,6 +207,32 @@ public class ZooKeeperAccessor extends AbstractResource {
     Map<String, String> result = ZKUtil.fromStatToMap(stat);
     result.put("path", path);
     return JSONRepresentation(result);
+  }
+
+  /**
+   * Delete the ZNode at the given path if exists.
+   * @param zkBaseDataAccessor
+   * @param path
+   * @return The delete result and the operated path.
+   */
+  private Response delete(BaseDataAccessor zkBaseDataAccessor, String path) {
+    Stat stat = zkBaseDataAccessor.getStat(path, AccessOption.PERSISTENT);
+    if (stat == null) {
+      return notFound();
+    } else if (stat.getEphemeralOwner() <= 0) {
+      // TODO: Remove this restriction once we have audit and ACL for the API calls.
+      // TODO: This method is added pre-maturely to support removing the live instance of a zombie
+      // TODO: instance. It is risky to allow all deleting requests before audit and ACL are done.
+      throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
+          .entity(String.format("Deleting a non-ephemeral node is not allowed.")).build());
+    }
+
+    if (zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
+      return OK();
+    } else {
+      throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+          .entity(String.format("Failed to delete %s.", path)).build());
+    }
   }
 
   private ZooKeeperCommand getZooKeeperCommandIfPresent(String command) {

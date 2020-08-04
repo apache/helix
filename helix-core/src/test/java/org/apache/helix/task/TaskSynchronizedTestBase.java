@@ -33,6 +33,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.mock.statemodel.MockTaskStateModelFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -201,6 +202,9 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
             stateMachine.getStateModelFactory(TaskConstants.STATE_MODEL_NAME);
         if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
           ((TaskStateModelFactory) stateModelFactory).shutdownNow();
+        }
+        if (stateModelFactory != null && (stateModelFactory instanceof MockTaskStateModelFactory)) {
+          ((MockTaskStateModelFactory) stateModelFactory).shutdownNow();
         }
       }
     }

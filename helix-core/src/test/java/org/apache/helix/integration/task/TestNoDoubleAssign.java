@@ -42,7 +42,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestNoDoubleAssign extends TaskTestBase {
-  private static final int THREAD_COUNT = 10;
+  private static final int THREAD_COUNT = 1;
   private static final long CONNECTION_DELAY = 100L;
   private static final long POLL_DELAY = 50L;
   private static final String TASK_DURATION = "200";
@@ -155,11 +155,16 @@ public class TestNoDoubleAssign extends TaskTestBase {
    * Randomly causes Participants to lost connection temporarily.
    */
   private void breakConnection() {
+    // Note, send to THREAD_COUNT == 1 is a must to avoid leaking ClusterManager (participant).
+    // Otherwise, multiple thread has race of stopping and starting the same slot of index
+    // this would cause a vast amount hundreds to thousand leaking threads.
+    // The design of this test itself relys on randomness too, which is also not a good idea.
     _executorServiceConnection = Executors.newScheduledThreadPool(THREAD_COUNT);
     _executorServiceConnection.scheduleAtFixedRate(() -> {
       // Randomly pick a Participant and cause a transient connection issue
       int participantIndex = RANDOM.nextInt(_numNodes);
-      _participants[participantIndex].disconnect();
+      // _participants[participantIndex].disconnect();
+      stopParticipant(participantIndex);
       startParticipant(participantIndex);
     }, 0L, CONNECTION_DELAY, TimeUnit.MILLISECONDS);
   }

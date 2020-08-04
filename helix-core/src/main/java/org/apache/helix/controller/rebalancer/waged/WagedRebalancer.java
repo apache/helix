@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -694,7 +694,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     Set<String> missingResources = new HashSet<>(resources);
     missingResources.removeAll(currentBestAssignment.keySet());
     currentBestAssignment.putAll(currentStateOutput.getAssignment(missingResources));
-    
+
     return currentBestAssignment;
   }
 

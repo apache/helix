@@ -58,7 +58,7 @@ public class DynamicTaskConfig {
    * Get the task config ZNRecord
    * @return
    */
-  public ZNRecord getTaskConfig() {
+  public ZNRecord getTaskConfigZNRecord() {
     return _taskConfig;
   }
 

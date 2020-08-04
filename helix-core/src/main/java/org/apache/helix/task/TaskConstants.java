@@ -64,9 +64,9 @@ public class TaskConstants {
   /**
    * Name of the {@link TaskFactory} class for the task dynamically loaded in {@link TaskStateModel}
    */
-  public static final String TASK_FACTORY_KEY = "TASKFACTORY";
+  public static final String TASK_FACTORY_KEY = "TASK_FACTORY";
   /**
    * The path for dynamic task configs
    */
-  public static final String TASK_PATH = "/TASK_DEFINITION";
+  public static final String DYNAMICALLY_LOADED_TASK_PATH = "/TASK_DEFINITION";
 }

@@ -109,7 +109,6 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     Assert
         .assertTrue(TestHelper.verify(() -> {
           WorkflowConfig config = _driver.getWorkflowConfig(queueName);
-          System.out.println("|Current time: " + System.currentTimeMillis() +" **TEST: " + config.getJobDag().getAllNodes());
           return config.getJobDag().getAllNodes().equals(remainJobs);
         }, TestHelper.WAIT_DURATION));
 

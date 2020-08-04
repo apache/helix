@@ -1063,7 +1063,7 @@ public class TaskUtil {
 
     for (String workflowName : toBePurgedWorkflows) {
       LOG.warn(
-          "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowConfig and IdealState!!",
+          "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowContext and IdealState!!",
           workflowName);
 
       // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.

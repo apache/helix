@@ -38,7 +38,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.HistogramDynamicMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CustomizedViewMonitor extends DynamicMBeanProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedViewMonitor.class);
 
@@ -46,7 +45,8 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   private final String _clusterName;
   private final String _sensorName;
   private HistogramDynamicMetric _updateToAggregationLatencyGauge;
-  public static final String UPDATE_TO_AGGREGATION_LATENCY_GAUGE = "UpdateToAggregationLatencyGauge";
+  public static final String UPDATE_TO_AGGREGATION_LATENCY_GAUGE =
+      "UpdateToAggregationLatencyGauge";
 
   public CustomizedViewMonitor(String clusterName) {
     _clusterName = clusterName;

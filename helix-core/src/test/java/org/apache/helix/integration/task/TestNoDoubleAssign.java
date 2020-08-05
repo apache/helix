@@ -155,15 +155,14 @@ public class TestNoDoubleAssign extends TaskTestBase {
    * Randomly causes Participants to lost connection temporarily.
    */
   private void breakConnection() {
-    // Note, send to THREAD_COUNT == 1 is a must to avoid leaking ClusterManager (participant).
+    // Note, THREAD_COUNT == 1 is a must to avoid leaking ClusterManager (participant).
     // Otherwise, multiple thread has race of stopping and starting the same slot of index
-    // this would cause a vast amount hundreds to thousand leaking threads.
-    // The design of this test itself relys on randomness too, which is also not a good idea.
-    _executorServiceConnection = Executors.newScheduledThreadPool(THREAD_COUNT);
+    // This would cause a vast amount (hundreds to thousand) leaking threads.
+    // The design of this test itself releys on randomness too, which is also not a good idea.
+    _executorServiceConnection = Executors.newSingleThreadScheduledExecutor();
     _executorServiceConnection.scheduleAtFixedRate(() -> {
       // Randomly pick a Participant and cause a transient connection issue
       int participantIndex = RANDOM.nextInt(_numNodes);
-      // _participants[participantIndex].disconnect();
       stopParticipant(participantIndex);
       startParticipant(participantIndex);
     }, 0L, CONNECTION_DELAY, TimeUnit.MILLISECONDS);

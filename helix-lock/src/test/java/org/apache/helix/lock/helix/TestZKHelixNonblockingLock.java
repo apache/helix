@@ -76,7 +76,6 @@ public class TestZKHelixNonblockingLock extends ZkTestBase {
 
   @AfterSuite
   public void afterSuite() throws IOException {
-    System.out.println("afterSuite " + getClass().getName());
     _lock.close();
     super.afterSuite();
   }

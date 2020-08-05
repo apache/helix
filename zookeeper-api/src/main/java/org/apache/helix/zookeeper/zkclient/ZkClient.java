@@ -212,9 +212,6 @@ public class ZkClient implements Watcher {
     }
 
     _uid = UID.getAndIncrement();
-    if (LOG.isInfoEnabled()) {
-      LOG.info("ZkClient created with _uid {}, stacktrace {}", _uid, Thread.currentThread().getStackTrace());
-    }
 
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
@@ -223,9 +220,7 @@ public class ZkClient implements Watcher {
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
     _asyncCallRetryThread.start();
-    if (LOG.isInfoEnabled()) {
-      LOG.info("ZkClient created with _uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
-    }
+    LOG.debug("ZkClient created with _uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
     connect(connectionTimeout, this);
 
@@ -2159,7 +2154,7 @@ public class ZkClient implements Watcher {
       _eventThread = new ZkEventThread(zkConnection.getServers());
       _eventThread.start();
 
-      LOG.info("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
+      LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
         zkConnection.connect(watcher);

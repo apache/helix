@@ -56,8 +56,6 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
     _instanceName = instanceName;
     _type = type;
     _uid = UID.getAndIncrement();
-
-    LOG.info("ClusterManager_watcher_{}_{}_{}_{} created, stacktrace {}", _clusterName, _instanceName, _type.name(), _uid, Thread.currentThread().getStackTrace());
   }
 
   public void syncStop() {
@@ -82,7 +80,7 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
     _watcher = new Thread(this);
     _watcher.setName(String
         .format("ClusterManager_Watcher_%s_%s_%s_%d", _clusterName, _instanceName, _type.name(), _uid));
-    LOG.info("ClusterManager_watcher_{}_{}_{}_{} started, stacktrace {}", _clusterName, _instanceName, _type.name(), _uid, Thread.currentThread().getStackTrace());
+    LOG.debug("ClusterManager_watcher_{}_{}_{}_{} started, stacktrace {}", _clusterName, _instanceName, _type.name(), _uid, Thread.currentThread().getStackTrace());
     _watcher.start();
 
     try {

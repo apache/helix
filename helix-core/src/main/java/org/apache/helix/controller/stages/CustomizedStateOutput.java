@@ -24,19 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.Partition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 public class CustomizedStateOutput {
-  private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateOutput.class);
-
   // stateType -> (resourceName -> (Partition -> (instanceName -> customizedState)))
   private final Map<String, Map<String, Map<Partition, Map<String, String>>>> _customizedStateMap;
   // stateType -> (resourceName -> (Partition -> (instanceName -> startTime)))
-  private final Map<String, Map<String, Map<Partition, Map<String, String>>>> _startTimeMap;
+  private final Map<String, Map<String, Map<Partition, Map<String, Long>>>> _startTimeMap;
 
   public CustomizedStateOutput() {
     _customizedStateMap = new HashMap<>();
@@ -44,38 +38,23 @@ public class CustomizedStateOutput {
   }
 
   public void setCustomizedState(String stateType, String resourceName, Partition partition,
-      String instanceName, String state) {
-    setCustomizedStateProperty(CustomizedState.CustomizedStateProperty.CURRENT_STATE, stateType,
-        resourceName, partition, instanceName, state);
+      String instanceName, String state, Long startTime) {
+    setCurrentState(stateType, resourceName, partition, instanceName, state);
+    setStartTime(stateType, resourceName, partition, instanceName, startTime);
   }
 
-  public void setStartTime(String stateType, String resourceName, Partition partition,
+  private void setCurrentState(String stateType, String resourceName, Partition partition,
       String instanceName, String state) {
-    setCustomizedStateProperty(CustomizedState.CustomizedStateProperty.START_TIME, stateType,
-        resourceName, partition, instanceName, state);
-  }
-
-  private void setCustomizedStateProperty(CustomizedState.CustomizedStateProperty propertyName,
-      String stateType, String resourceName, Partition partition, String instanceName,
-      String state) {
-    Map<String, Map<String, Map<Partition, Map<String, String>>>> mapToUpdate;
-    switch (propertyName) {
-      case CURRENT_STATE:
-        mapToUpdate = _customizedStateMap;
-        break;
-      case START_TIME:
-        mapToUpdate = _startTimeMap;
-        break;
-      default:
-        LOG.warn(
-            "The customized state property is not supported, could not update customized state output.");
-        return;
-    }
-
-    mapToUpdate.computeIfAbsent(stateType, k -> new HashMap<>())
+    _customizedStateMap.computeIfAbsent(stateType, k -> new HashMap<>())
         .computeIfAbsent(resourceName, k -> new HashMap<>())
-        .computeIfAbsent(partition, k -> new HashMap<>())
-        .put(instanceName, state);
+        .computeIfAbsent(partition, k -> new HashMap<>()).put(instanceName, state);
+  }
+
+  private void setStartTime(String stateType, String resourceName, Partition partition,
+      String instanceName, Long startTime) {
+    _startTimeMap.computeIfAbsent(stateType, k -> new HashMap<>())
+        .computeIfAbsent(resourceName, k -> new HashMap<>())
+        .computeIfAbsent(partition, k -> new HashMap<>()).put(instanceName, startTime);
   }
 
   /**
@@ -85,34 +64,15 @@ public class CustomizedStateOutput {
    * @return
    */
   public Map<String, Map<Partition, Map<String, String>>> getCustomizedStateMap(String stateType) {
-    return getCustomizedStateProperty(CustomizedState.CustomizedStateProperty.CURRENT_STATE,
-        stateType);
-  }
-
-  public Map<String, Map<Partition, Map<String, String>>> getStartTimeMap(String stateType) {
-    return getCustomizedStateProperty(CustomizedState.CustomizedStateProperty.START_TIME,
-        stateType);
-  }
-
-  private Map<String, Map<Partition, Map<String, String>>> getCustomizedStateProperty(
-      CustomizedState.CustomizedStateProperty propertyName, String stateType) {
-    Map<String, Map<String, Map<Partition, Map<String, String>>>> readFromMap;
-    switch (propertyName) {
-      case CURRENT_STATE:
-        readFromMap = _customizedStateMap;
-        break;
-      case START_TIME:
-        readFromMap = _startTimeMap;
-        break;
-      default:
-        LOG.warn(
-            "The customized state property is not supported, could not read from customized state output.");
-        return Collections.emptyMap();
-    }
-    if (readFromMap.containsKey(stateType)) {
-      return Collections.unmodifiableMap(readFromMap.get(stateType));
+    if (_customizedStateMap.containsKey(stateType)) {
+      return Collections.unmodifiableMap(_customizedStateMap.get(stateType));
     }
     return Collections.emptyMap();
+  }
+
+  public Map<String, Map<Partition, Map<String, Long>>> getStartTimeMap(String stateType) {
+    return Collections
+        .unmodifiableMap(_startTimeMap.getOrDefault(stateType, Collections.emptyMap()));
   }
 
   /**
@@ -164,12 +124,10 @@ public class CustomizedStateOutput {
     return null;
   }
 
-  public Map<Partition, Map<String, String>> getResourceStartTimeMap(String stateType,
+  public Map<Partition, Map<String, Long>> getResourceStartTimeMap(String stateType,
       String resourceName) {
-    if (getStartTimeMap(stateType).containsKey(resourceName)) {
-      return Collections.unmodifiableMap(getStartTimeMap(stateType).get(resourceName));
-    }
-    return Collections.emptyMap();
+    return Collections.unmodifiableMap(
+        getStartTimeMap(stateType).getOrDefault(resourceName, Collections.emptyMap()));
   }
 
   public Set<String> getAllStateTypes() {

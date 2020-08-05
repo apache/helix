@@ -39,7 +39,7 @@ public class TestCustomizedViewMonitor {
 
   private ObjectName buildObjectName(int duplicateNum) throws MalformedObjectNameException {
     ObjectName objectName = new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.CustomizedView.name(), "Cluster", TEST_CLUSTER));
+        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", TEST_CLUSTER));
     if (duplicateNum == 0) {
       return objectName;
     } else {

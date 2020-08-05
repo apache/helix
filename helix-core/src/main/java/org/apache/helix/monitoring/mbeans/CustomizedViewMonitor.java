@@ -50,7 +50,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
 
   public CustomizedViewMonitor(String clusterName) {
     _clusterName = clusterName;
-    _sensorName = String.format("%s.%s", MonitorDomainNames.CustomizedView.name(), _clusterName);
+    _sensorName = String.format("%s.%s", MonitorDomainNames.AggregatedView.name(), _clusterName);
     _updateToAggregationLatencyGauge =
         new HistogramDynamicMetric(UPDATE_TO_AGGREGATION_LATENCY_GAUGE, new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
@@ -66,7 +66,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
 
   private ObjectName getMBeanName() throws MalformedObjectNameException {
     return new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.CustomizedView.name(), "Cluster", _clusterName));
+        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", _clusterName));
   }
 
   @Override
@@ -90,7 +90,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
    */
   public void reportLatency(List<CustomizedView> updatedCustomizedViews,
       Map<String, CustomizedView> curCustomizedViews,
-      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps,
+      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
       boolean[] updateSuccess, long endTime) {
     if (updatedCustomizedViews == null || curCustomizedViews == null
         || updatedStartTimestamps == null) {
@@ -108,13 +108,10 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
       String resourceName = newCV.getResourceName();
       CustomizedView oldCV =
           curCustomizedViews.getOrDefault(resourceName, new CustomizedView(resourceName));
-      if (newCV.getRecord().equals(oldCV.getRecord())) {
-        continue;
-      }
 
       Map<String, Map<String, String>> newPartitionStateMaps = newCV.getRecord().getMapFields();
       Map<String, Map<String, String>> oldPartitionStateMaps = oldCV.getRecord().getMapFields();
-      Map<Partition, Map<String, String>> partitionStartTimeMaps =
+      Map<Partition, Map<String, Long>> partitionStartTimeMaps =
           updatedStartTimestamps.getOrDefault(resourceName, Collections.emptyMap());
 
       for (Map.Entry<String, Map<String, String>> partitionStateMapEntry : newPartitionStateMaps
@@ -124,22 +121,19 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
         Map<String, String> oldStateMap =
             oldPartitionStateMaps.getOrDefault(partitionName, Collections.emptyMap());
         if (!newStateMap.equals(oldStateMap)) {
-          Map<String, String> partitionStartTimeMap = partitionStartTimeMaps
+          Map<String, Long> partitionStartTimeMap = partitionStartTimeMaps
               .getOrDefault(new Partition(partitionName), Collections.emptyMap());
 
           for (Map.Entry<String, String> stateMapEntry : newStateMap.entrySet()) {
             String instanceName = stateMapEntry.getKey();
             if (!stateMapEntry.getValue().equals(oldStateMap.get(instanceName))) {
-              try {
-                long timestamp = Long.parseLong(partitionStartTimeMap.get(instanceName));
-                if (timestamp > 0) {
-                  collectedTimestamps.add(timestamp);
-                } else {
-                  LOG.warn(
-                      "Failed to find customized state update time stamp for reos, the number should be positive.");
-                }
-              } catch (NumberFormatException e) {
-                LOG.warn("Error occurs while parsing customized state update time stamp");
+              long timestamp = partitionStartTimeMap.get(instanceName);
+              if (timestamp > 0) {
+                collectedTimestamps.add(timestamp);
+              } else {
+                LOG.warn(
+                    "Failed to find customized state update time stamp for resource {} partition {} on instance {}, the number should be positive.",
+                    resourceName, partitionName, instanceName);
               }
             }
           }

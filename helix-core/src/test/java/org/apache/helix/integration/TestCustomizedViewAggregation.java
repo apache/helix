@@ -203,7 +203,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
             Map<String, Map<String, String>> localPerResourceCustomizedView = localSnapshot
                 .getOrDefault(resourceCustomizedView.getResourceName(), Maps.newHashMap());
 
-            if (resourceStateMap.isEmpty() && !localPerResourceCustomizedView.isEmpty()) {
+            if (resourceStateMap.size() != localPerResourceCustomizedView.size()) {
               return false;
             }
 

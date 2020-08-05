@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import javax.management.JMException;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -47,10 +46,8 @@ import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedViewAggregationStage.class);
-  private Map<String, CustomizedViewMonitor> _monitors = new HashMap<>();
 
   @Override
   public AsyncWorkerType getAsyncWorkerType() {
@@ -93,45 +90,23 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     // update customized view
     for (String stateType : customizedStateOutput.getAllStateTypes()) {
       List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
-      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps = new HashMap<>();
+      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps = new HashMap<>();
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
+      Map<String, CustomizedView> curCustomizedViewsCopy = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {
         curCustomizedViews = customizedViewCache.getCustomizedViewMap();
       }
 
       for (Resource resource : resourceMap.values()) {
+        try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
-              updatedCustomizedViews, updatedStartTimestamps);
-          Map<String, CustomizedView> curCustomizedViewsCopy = new HashMap<>(curCustomizedViews);
-
-          List<PropertyKey> keys = new ArrayList<>();
-          for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
-            CustomizedView view = it.next();
-            String resourceName = view.getResourceName();
-            keys.add(keyBuilder.customizedView(stateType, resourceName));
-          }
-          // add/update customized-views from zk and cache
-          if (updatedCustomizedViews.size() > 0) {
-            boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
-            cache.updateCustomizedViews(stateType, updatedCustomizedViews);
-            asyncReportLatency(cache.getAsyncTasksThreadPool(), getOrCreateMonitor(event),
-                new ArrayList<>(updatedCustomizedViews), curCustomizedViewsCopy,
-                new HashMap<>(updatedStartTimestamps), success.clone(), System.currentTimeMillis());
-          }
-
-          // remove stale customized views from zk and cache
-          List<String> customizedViewToRemove = new ArrayList<>();
-          for (String resourceName : curCustomizedViews.keySet()) {
-            if (!resourceMap.keySet().contains(resourceName)) {
-              LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
-              dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
-              customizedViewToRemove.add(resourceName);
-            }
-          }
-          cache.removeCustomizedViews(stateType, customizedViewToRemove);
+              updatedCustomizedViews, updatedStartTimestamps, curCustomizedViewsCopy);
+        } catch (HelixException ex) {
+          LogUtil.logError(LOG, _eventId,
+              "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
         }
-
+      }
       List<PropertyKey> keys = new ArrayList<>();
       for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
         CustomizedView view = it.next();
@@ -140,14 +115,18 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       }
       // add/update customized-views from zk and cache
       if (updatedCustomizedViews.size() > 0) {
-        dataAccessor.setChildren(keys, updatedCustomizedViews);
+        boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
         cache.updateCustomizedViews(stateType, updatedCustomizedViews);
+        asyncReportLatency(cache.getAsyncTasksThreadPool(),
+            cache.getOrCreateCustomizedViewMonitor(event), new ArrayList<>(updatedCustomizedViews),
+            curCustomizedViewsCopy, new HashMap<>(updatedStartTimestamps), success,
+            System.currentTimeMillis());
       }
 
       // remove stale customized views from zk and cache
       List<String> customizedViewToRemove = new ArrayList<>();
       for (String resourceName : curCustomizedViews.keySet()) {
-        if (!resourceMap.keySet().contains(resourceName)) {
+        if (!resourceMap.containsKey(resourceName)) {
           LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
           dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
           customizedViewToRemove.add(resourceName);
@@ -161,7 +140,8 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       CustomizedStateOutput customizedStateOutput,
       final Map<String, CustomizedView> curCustomizedViews,
       List<CustomizedView> updatedCustomizedViews,
-      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps) {
+      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
+      Map<String, CustomizedView> curCustomizedViewsCopy) {
     String resourceName = resource.getResourceName();
     CustomizedView view = new CustomizedView(resource.getResourceName());
 
@@ -183,22 +163,15 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       updatedCustomizedViews.add(view);
       updatedStartTimestamps.put(resourceName,
           customizedStateOutput.getResourceStartTimeMap(stateType, resourceName));
+      curCustomizedViewsCopy.put(resourceName,
+          curCustomizedView == null ? new CustomizedView(resourceName)
+              : new CustomizedView(curCustomizedView.getRecord()));
     }
-  }
-
-  private CustomizedViewMonitor getOrCreateMonitor(ClusterEvent event) throws JMException {
-    String clusterName = event.getClusterName();
-    if (_monitors.get(clusterName) == null) {
-      CustomizedViewMonitor monitor = new CustomizedViewMonitor(clusterName);
-      _monitors.put(clusterName, monitor);
-      monitor.register();
-    }
-    return _monitors.get(clusterName);
   }
 
   private void asyncReportLatency(ExecutorService threadPool, CustomizedViewMonitor monitor,
       List<CustomizedView> updatedCustomizedViews, Map<String, CustomizedView> curCustomizedViews,
-      Map<String, Map<Partition, Map<String, String>>> updatedStartTimestamps,
+      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
       boolean[] updateSuccess, long curTime) {
     AbstractBaseStage.asyncExecute(threadPool, () -> {
       try {

@@ -153,11 +153,11 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
     runStage(event, new CustomizedViewAggregationStage());
 
     ObjectName objectName = new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.CustomizedView.name(), "Cluster", clusterName));
+        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", clusterName));
     ObjectInstance monitor = _server.getObjectInstance(objectName);
     Assert.assertNotNull(monitor);
     TestHelper.verify(() -> (long) _server.getAttribute(objectName,
-        CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + ".Max") == 0,
+        CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + ".Max") != 0,
         TestHelper.WAIT_DURATION);
 
     if (manager.isConnected()) {

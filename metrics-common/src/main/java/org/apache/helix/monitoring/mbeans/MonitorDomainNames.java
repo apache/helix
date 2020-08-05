@@ -30,5 +30,5 @@ public enum MonitorDomainNames {
   RoutingTableProvider,
   CLMParticipantReport,
   Rebalancer,
-  CustomizedView
+  AggregatedView
 }

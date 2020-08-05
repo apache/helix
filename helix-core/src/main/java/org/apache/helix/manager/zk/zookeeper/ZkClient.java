@@ -77,8 +77,9 @@ public class ZkClient implements Watcher {
 
   // If number of children exceeds this limit, getChildren() should not retry on connection loss.
   // This is a workaround for exiting retry on connection loss because of large number of children.
+  // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
   // TODO: remove it once we have a better way to exit retry for this case
-  private static final int NUM_CHILDREN_LIMIT;
+  private static final int NUM_CHILDREN_LIMIT = 100 * 1000;
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -95,13 +96,6 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
-
-  static {
-    // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
-    // Set it here for unit test to use reflection to change value
-    // because compilers optimize constants by replacing them inline.
-    NUM_CHILDREN_LIMIT = 100 * 1000;
-  }
 
   private class IZkDataListenerEntry {
     final IZkDataListener _dataListener;

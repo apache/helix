@@ -253,6 +253,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>hzlu</id>
+      <name>Huizhi Lu</name>
+      <email>hzlu@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

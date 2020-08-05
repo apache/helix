@@ -358,7 +358,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
   }
 
-  private void stopOnDemandTimer() {
+  private void shutdownOnDemandTimer() {
     logger.info("GenericHelixController stopping onDemand timer");
     if (_onDemandRebalanceTimer != null) {
       _onDemandRebalanceTimer.cancel();
@@ -1280,7 +1280,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   public void shutdown() throws InterruptedException {
     stopPeriodRebalance();
-    stopOnDemandTimer();
+    shutdownOnDemandTimer();
     logger.info("Shutting down {} pipeline", Pipeline.Type.DEFAULT.name());
     shutdownPipeline(_eventThread, _eventQueue);
 

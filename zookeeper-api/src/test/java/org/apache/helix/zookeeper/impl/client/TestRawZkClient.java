@@ -20,8 +20,6 @@ package org.apache.helix.zookeeper.impl.client;
  */
 
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -56,12 +54,13 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedExceptio
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor;
-import org.apache.zookeeper.ClientCnxn;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
@@ -69,7 +68,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 
 public class TestRawZkClient extends ZkTestBase {
   private final String TEST_TAG = "test_monitor";
@@ -571,8 +569,6 @@ public class TestRawZkClient extends ZkTestBase {
     // Wait until the ZkClient has got a new session.
     Assert.assertTrue(_zkClient.waitUntilConnected(1, TimeUnit.SECONDS));
 
-    final long originalSessionId = _zkClient.getSessionId();
-
     try {
       // Create node.
       _zkClient.create(path, data, CreateMode.PERSISTENT);
@@ -868,61 +864,48 @@ public class TestRawZkClient extends ZkTestBase {
    * Tests getChildren() when there are an excessive number of children and connection loss happens,
    * the operation should terminate and exit retry loop.
    */
-  @Test
+  @Test(timeOut = 30 * 1000L)
   public void testGetChildrenOnLargeNumChildren() throws Exception {
-    // Default packetLen is 4M. It is static final and initialized
-    // when first zkClient is created.
-    // So we could not just set "jute.maxbuffer" to change the value.
-    // Reflection is needed to change the value.
-    // Remove "final" modifier
-    Field modifiersField = Field.class.getDeclaredField("modifiers");
-    boolean isModifierAccessible = modifiersField.isAccessible();
-    modifiersField.setAccessible(true);
-
-    Field packetLenField = ClientCnxn.class.getDeclaredField("packetLen");
-    Field childrenLimitField =
-        org.apache.helix.zookeeper.zkclient.ZkClient.class.getDeclaredField("NUM_CHILDREN_LIMIT");
-    modifiersField.setInt(packetLenField, packetLenField.getModifiers() & ~Modifier.FINAL);
-    modifiersField.setInt(childrenLimitField, childrenLimitField.getModifiers() & ~Modifier.FINAL);
-
-    boolean isPacketLenAccessible = packetLenField.isAccessible();
-    packetLenField.setAccessible(true);
-    int originPacketLen = packetLenField.getInt(null);
-    // Keep 150 bytes for successfully creating each child node.
-    packetLenField.set(null, 150);
-
-    boolean isChildrenLimitAccessible = childrenLimitField.isAccessible();
-    childrenLimitField.setAccessible(true);
-    int originChildrenLimit = childrenLimitField.getInt(null);
-    childrenLimitField.set(null, 2);
-
-    String path = "/" + TestHelper.getTestMethodName();
-    // Create 5 children to make packet length of children exceed 150 bytes
+    final String methodName = TestHelper.getTestMethodName();
+    System.out.println("Start test: " + methodName);
+    // Create 110K children to make packet length of children exceed 4 MB
     // and cause connection loss for getChildren() operation
-    for (int i = 0; i < 5; i++) {
-      _zkClient.createPersistent(path + "/" + UUID.randomUUID().toString(), true);
+    String path = "/" + methodName;
+
+    _zkClient.createPersistent(path);
+
+    for (int i = 0; i < 110; i++) {
+      List<Op> ops = new ArrayList<>(1000);
+      for (int j = 0; j < 1000; j++) {
+        String childPath = path + "/" + UUID.randomUUID().toString();
+        // Create ephemeral nodes so closing zkClient deletes them for cleanup
+        ops.add(
+            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
+      }
+      // Reduce total creation time by batch creating znodes
+      _zkClient.multi(ops);
     }
 
     try {
       _zkClient.getChildren(path);
-      Assert.fail("Should not successfully get children.");
+      Assert.fail("Should not successfully get children because of connection loss.");
     } catch (ZkException expected) {
       Assert.assertEquals(expected.getMessage(),
           "org.apache.zookeeper.KeeperException$MarshallingErrorException: "
               + "KeeperErrorCode = MarshallingError");
     } finally {
-      packetLenField.set(null, originPacketLen);
-      packetLenField.setAccessible(isPacketLenAccessible);
-
-      childrenLimitField.set(null, originChildrenLimit);
-      childrenLimitField.setAccessible(isChildrenLimitAccessible);
-
-      modifiersField.setAccessible(isModifierAccessible);
+      // Delete children ephemeral znodes
+      _zkClient.close();
+      _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
 
       Assert.assertTrue(TestHelper.verify(() -> {
-        _zkClient.deleteRecursively(path);
-        return !_zkClient.exists(path);
+        try {
+          return _zkClient.delete(path);
+        } catch (ZkException e) {
+          return false;
+        }
       }, TestHelper.WAIT_DURATION));
     }
+    System.out.println("End test: " + methodName);
   }
 }

@@ -533,6 +533,7 @@ public class InstanceConfig extends HelixProperty {
   /**
    * Set the instance capacity information with an Integer mapping.
    * @param capacityDataMap - map of instance capacity data
+   *                        If null, the capacity map item will be removed from the config.
    * @throws IllegalArgumentException - when any of the data value is a negative number
    *
    * This information is required by the global rebalancer.
@@ -546,7 +547,7 @@ public class InstanceConfig extends HelixProperty {
   public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
     if (capacityDataMap == null) {
-      _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), null);
+      _record.getMapFields().remove(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
     } else {
       Map<String, String> capacityData = new HashMap<>();
       capacityDataMap.entrySet().stream().forEach(entry -> {

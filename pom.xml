@@ -244,6 +244,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>alizamus</id>
+      <name>Ali Reza Zamani</name>
+      <email>alizamus@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

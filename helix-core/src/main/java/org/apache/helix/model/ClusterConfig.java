@@ -870,15 +870,16 @@ public class ClusterConfig extends HelixProperty {
    *                    If null, the resolver map item will be removed from the config.
    */
   public void setAbnormalStateResolverMap(Map<String, String> resolverMap) {
-    if (resolverMap != null && resolverMap.values().stream()
-        .anyMatch(className -> className == null)) {
-      throw new IllegalArgumentException(
-          "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
-    }
     if (resolverMap == null) {
       _record.getMapFields().remove(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name());
+    } else {
+      if (resolverMap.values().stream()
+          .anyMatch(className -> className == null || className.isEmpty())) {
+        throw new IllegalArgumentException(
+            "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
+      }
+      _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
     }
-    _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
   }
 
   public Map<String, String> getAbnormalStateResolverMap() {

@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
@@ -93,6 +94,9 @@ public class ZkClient implements Watcher {
   private static final boolean SYNC_ON_SESSION = Boolean.parseBoolean(
       System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, "true"));
   private static final String SYNC_PATH = "/";
+
+  private static AtomicLong UID = new AtomicLong(0);
+  private long _uid;
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -207,6 +211,8 @@ public class ZkClient implements Watcher {
       throw new NullPointerException("Zookeeper connection is null!");
     }
 
+    _uid = UID.getAndIncrement();
+
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -214,6 +220,7 @@ public class ZkClient implements Watcher {
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
     _asyncCallRetryThread.start();
+    LOG.debug("ZkClient created with _uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
     connect(connectionTimeout, this);
 
@@ -1263,8 +1270,6 @@ public class ZkClient implements Watcher {
     }
   }
 
-
-
   private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
       final ZkAsyncCallbacks.SyncCallbackHandler cb) {
     zk.sync(path, cb,
@@ -1323,7 +1328,7 @@ public class ZkClient implements Watcher {
         @Override
         public void run() throws Exception {
           if (issueSync(zk) == false) {
-            LOG.warn("\"Failed to call sync() on new session {}", sessionId);
+            LOG.warn("Failed to call sync() on new session {}", sessionId);
           }
         }
       });
@@ -2148,6 +2153,8 @@ public class ZkClient implements Watcher {
       IZkConnection zkConnection = getConnection();
       _eventThread = new ZkEventThread(zkConnection.getServers());
       _eventThread.start();
+
+      LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
         zkConnection.connect(watcher);

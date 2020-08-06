@@ -112,7 +112,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
 
       // wait for each participant to complete state transitions, so we have deterministic results
       ZkHelixClusterVerifier _clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+          new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
       Assert.assertTrue(_clusterVerifier.verifyByPolling(),
           "participant: " + instanceName + " fails to complete all transitions");
     }

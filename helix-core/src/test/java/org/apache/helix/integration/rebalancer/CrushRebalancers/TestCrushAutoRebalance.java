@@ -131,7 +131,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -164,7 +164,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -203,7 +203,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     }
     Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -244,10 +244,10 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
+    Thread.sleep(1000);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 

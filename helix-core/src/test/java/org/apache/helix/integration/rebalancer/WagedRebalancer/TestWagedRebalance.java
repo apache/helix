@@ -683,7 +683,11 @@ public class TestWagedRebalance extends ZkTestBase {
     ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
-    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    try {
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    } finally {
+      _clusterVerifier.close();
+    }
   }
 
   @AfterClass

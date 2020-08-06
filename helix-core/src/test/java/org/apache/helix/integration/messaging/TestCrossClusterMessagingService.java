@@ -57,7 +57,7 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     _adminController.syncStart();
 
     ZkHelixClusterVerifier adminClusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(ADMIN_CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(ADMIN_CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(adminClusterVerifier.verifyByPolling());
   }
 

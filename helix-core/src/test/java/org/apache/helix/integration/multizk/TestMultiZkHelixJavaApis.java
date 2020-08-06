@@ -402,7 +402,11 @@ public class TestMultiZkHelixJavaApis {
       ZkHelixClusterVerifier verifier =
           new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
               .setExpectLiveInstances(liveInstancesNames).build();
-      Assert.assertTrue(verifier.verifyByPolling());
+      try {
+        Assert.assertTrue(verifier.verifyByPolling());
+      } finally {
+        verifier.close();
+      }
     }
 
     // Using the ZkBaseDataAccessor created using the Builder, check that the correct IS is read

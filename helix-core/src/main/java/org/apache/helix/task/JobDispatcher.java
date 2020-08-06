@@ -87,9 +87,10 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     TaskState jobState = workflowCtx.getJobState(jobName);
     // The job is already in a final state (completed/failed).
     if (workflowState == TaskState.FAILED || workflowState == TaskState.COMPLETED
-        || jobState == TaskState.FAILED || jobState == TaskState.COMPLETED || jobState == TaskState.TIMED_OUT) {
+        || jobState == TaskState.FAILED || jobState == TaskState.COMPLETED
+        || jobState == TaskState.TIMED_OUT) {
       LOG.info(String.format(
-          "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
+          "Workflow %s or job %s is already in final state, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
       finishJobInRuntimeJobDag(_dataProvider.getTaskDataCache(), workflowResource, jobName);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);

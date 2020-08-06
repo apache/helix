@@ -61,6 +61,7 @@ public class InstanceServiceImpl implements InstanceService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
+  private boolean _skipZKRead;
 
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
     _dataAccessor = dataAccessor;
@@ -68,12 +69,18 @@ public class InstanceServiceImpl implements InstanceService {
     _customRestClient = CustomRestClientFactory.get();
   }
 
+  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor, boolean skipZKRead) {
+    this(dataAccessor,configAccessor);
+    this._skipZKRead = skipZKRead;
+  }
+
   @VisibleForTesting
   InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient) {
+      CustomRestClient customRestClient, boolean skipZKRead) {
     _dataAccessor = dataAccessor;
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
+    _skipZKRead = skipZKRead;
   }
 
   @Override
@@ -239,7 +246,7 @@ public class InstanceServiceImpl implements InstanceService {
   private Map<String, StoppableCheck> performPartitionsCheck(List<String> instances,
       RESTConfig restConfig, Map<String, String> customPayLoads) {
     Map<String, Map<String, Boolean>> allPartitionsHealthOnLiveInstance =
-        _dataAccessor.getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads);
+        _dataAccessor.getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads, _skipZKRead);
     List<ExternalView> externalViews =
         _dataAccessor.getChildValues(_dataAccessor.keyBuilder().externalViews(), true);
     Map<String, StoppableCheck> instanceStoppableChecks = new HashMap<>();

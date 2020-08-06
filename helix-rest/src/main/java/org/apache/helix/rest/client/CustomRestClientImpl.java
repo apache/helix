@@ -89,7 +89,9 @@ class CustomRestClientImpl implements CustomRestClient {
     // To avoid ImmutableMap as parameter
     Map<String, String> payLoads = new HashMap<>(customPayloads);
     // Add the entry: "partitions" : ["p1", "p3", "p9"]
-    payLoads.put(PARTITIONS, partitions.toString());
+    if (partitions != null) {
+      payLoads.put(PARTITIONS, partitions.toString());
+    }
     JsonConverter jsonConverter = jsonNode -> {
       Map<String, Boolean> result = new HashMap<>();
       jsonNode.fields().forEachRemaining(

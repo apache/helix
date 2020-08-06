@@ -19,12 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -149,11 +147,10 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     }
     _driver.start(builder.build());
 
-    Assert
-        .assertTrue(TestHelper.verify(() -> {
-          WorkflowConfig config = _driver.getWorkflowConfig(queueName);
-          return config.getJobDag().getAllNodes().isEmpty();
-        }, TestHelper.WAIT_DURATION));
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowConfig config = _driver.getWorkflowConfig(queueName);
+      return config.getJobDag().getAllNodes().isEmpty();
+    }, TestHelper.WAIT_DURATION));
 
     Assert.assertTrue(TestHelper.verify(() -> {
       WorkflowContext context = _driver.getWorkflowContext(queueName);
@@ -181,11 +178,10 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     }
     _driver.start(builder.build());
 
-    Assert
-        .assertTrue(TestHelper.verify(() -> {
-          WorkflowConfig config = _driver.getWorkflowConfig(queueName);
-          return config.getJobDag().getAllNodes().isEmpty();
-        }, TestHelper.WAIT_DURATION));
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowConfig config = _driver.getWorkflowConfig(queueName);
+      return config.getJobDag().getAllNodes().isEmpty();
+    }, TestHelper.WAIT_DURATION));
 
     Assert.assertTrue(TestHelper.verify(() -> {
       WorkflowContext context = _driver.getWorkflowContext(queueName);

@@ -92,4 +92,94 @@ public class TestTaskUtil extends TaskTestBase {
         .getExpiredJobsFromCache(workflowControllerDataProvider, jobQueue.getWorkflowConfig(),
             workflowContext), expectedJobs);
   }
+
+  @Test
+  public void testGetExpiredJobsFromCacheFailPropagation() {
+    String workflowName = "TEST_WORKFLOW_COMPLEX_DAG";
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    // Workflow Schematic:
+    //                 0
+    //               / | \
+    //              /  |  \
+    //             1   2   3
+    //            /     \ /
+    //          /｜\    /|\
+    //         4 5  6  7 8 9
+
+    for (int i = 0; i < 10; i++) {
+      workflowBuilder.addJob("Job_" + i,
+          new JobConfig.Builder().setJobId("Job_" + i).setTargetResource("1").setCommand("1"));
+    }
+
+    workflowBuilder.addParentChildDependency("Job_0", "Job_1");
+    workflowBuilder.addParentChildDependency("Job_0", "Job_2");
+    workflowBuilder.addParentChildDependency("Job_0", "Job_3");
+    workflowBuilder.addParentChildDependency("Job_1", "Job_4");
+    workflowBuilder.addParentChildDependency("Job_1", "Job_5");
+    workflowBuilder.addParentChildDependency("Job_1", "Job_6");
+    workflowBuilder.addParentChildDependency("Job_2", "Job_7");
+    workflowBuilder.addParentChildDependency("Job_2", "Job_8");
+    workflowBuilder.addParentChildDependency("Job_2", "Job_9");
+    workflowBuilder.addParentChildDependency("Job_3", "Job_7");
+    workflowBuilder.addParentChildDependency("Job_4", "Job_8");
+    workflowBuilder.addParentChildDependency("Job_5", "Job_9");
+    Workflow workflow = workflowBuilder.build();
+
+    WorkflowContext workflowContext = mock(WorkflowContext.class);
+    Map<String, TaskState> jobStates = new HashMap<>();
+    jobStates.put(workflowName + "_Job_0", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_1", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_2", TaskState.TIMED_OUT);
+    jobStates.put(workflowName + "_Job_3", TaskState.IN_PROGRESS);
+    jobStates.put(workflowName + "_Job_4", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_5", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_6", TaskState.IN_PROGRESS);
+    jobStates.put(workflowName + "_Job_7", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_8", TaskState.FAILED);
+    jobStates.put(workflowName + "_Job_9", TaskState.IN_PROGRESS);
+    when(workflowContext.getJobStates()).thenReturn(jobStates);
+
+    JobConfig jobConfig = mock(JobConfig.class);
+    when(jobConfig.getTerminalStateExpiry()).thenReturn(1L);
+    WorkflowControllerDataProvider workflowControllerDataProvider =
+        mock(WorkflowControllerDataProvider.class);
+    for (int i = 0; i < 10; i++) {
+      when(workflowControllerDataProvider.getJobConfig(workflowName + "_Job_" + i))
+          .thenReturn(jobConfig);
+    }
+
+    Long currentTime = System.currentTimeMillis();
+    JobContext inProgressJobContext = mock(JobContext.class);
+    JobContext failedJobContext = mock(JobContext.class);
+    when(failedJobContext.getFinishTime()).thenReturn(currentTime);
+
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_0"))
+        .thenReturn(failedJobContext);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_1")).thenReturn(null);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_2"))
+        .thenReturn(failedJobContext);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_3"))
+        .thenReturn(inProgressJobContext);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_4"))
+        .thenReturn(failedJobContext);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_5")).thenReturn(null);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_6"))
+        .thenReturn(inProgressJobContext);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_7")).thenReturn(null);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_8")).thenReturn(null);
+    when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_9"))
+        .thenReturn(inProgressJobContext);
+
+    Set<String> expectedJobs = new HashSet<>();
+    expectedJobs.add(workflowName + "_Job_0");
+    expectedJobs.add(workflowName + "_Job_1");
+    expectedJobs.add(workflowName + "_Job_2");
+    expectedJobs.add(workflowName + "_Job_4");
+    expectedJobs.add(workflowName + "_Job_5");
+    expectedJobs.add(workflowName + "_Job_7");
+    expectedJobs.add(workflowName + "_Job_8");
+    Assert.assertEquals(TaskUtil
+        .getExpiredJobsFromCache(workflowControllerDataProvider, workflow.getWorkflowConfig(),
+            workflowContext), expectedJobs);
+  }
 }

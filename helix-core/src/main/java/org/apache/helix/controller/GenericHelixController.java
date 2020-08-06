@@ -334,7 +334,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       if (_periodicalRebalanceTimer != null) {
         _periodicalRebalanceTimer.cancel();
       }
-      _periodicalRebalanceTimer = new Timer(true);
+      _periodicalRebalanceTimer =
+          new Timer("GenericHelixController_" + _clusterName + "_periodical_Timer", true);
       _timerPeriod = period;
       _periodicalRebalanceTimer
           .scheduleAtFixedRate(new RebalanceTask(manager, ClusterEventType.PeriodicalRebalance),
@@ -357,6 +358,12 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
   }
 
+  private void shutdownOnDemandTimer() {
+    logger.info("GenericHelixController stopping onDemand timer");
+    if (_onDemandRebalanceTimer != null) {
+      _onDemandRebalanceTimer.cancel();
+    }
+  }
   /**
    * This function is deprecated. Please use RebalanceUtil.scheduleInstantPipeline method instead.
    * schedule a future rebalance pipeline run, delayed at given time.
@@ -600,7 +607,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     _asyncFIFOWorkerPool = new HashMap<>();
     initializeAsyncFIFOWorkers();
 
-    _onDemandRebalanceTimer = new Timer(true);
+    _onDemandRebalanceTimer =
+        new Timer("GenericHelixController_" + _clusterName + "_onDemand_Timer", true);
 
     // initialize pipelines at the end so we have everything else prepared
     if (_enabledPipelineTypes.contains(Pipeline.Type.DEFAULT)) {
@@ -1272,7 +1280,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   public void shutdown() throws InterruptedException {
     stopPeriodRebalance();
-
+    shutdownOnDemandTimer();
     logger.info("Shutting down {} pipeline", Pipeline.Type.DEFAULT.name());
     shutdownPipeline(_eventThread, _eventQueue);
 

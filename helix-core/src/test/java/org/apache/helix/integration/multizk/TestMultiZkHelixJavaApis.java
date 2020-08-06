@@ -376,20 +376,6 @@ public class TestMultiZkHelixJavaApis {
       // Expected
     }
 
-    // Test that HelixManager instantiation fails if both zkAddress and a valid ZkConnectionConfig
-    // are given
-    try {
-      HelixManager invalidManager = HelixManagerFactory
-          .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, "zkAddress",
-              null,
-              propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
-      Assert.fail(
-          "Should see a HelixException here because the connection config are zkAddress are both "
-              + "set!");
-    } catch (HelixException e) {
-      // Expected
-    }
-
     // Connect as a participant
     HelixManager managerParticipant = HelixManagerFactory
         .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,

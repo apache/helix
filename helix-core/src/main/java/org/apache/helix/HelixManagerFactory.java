@@ -77,23 +77,4 @@ public final class HelixManagerFactory {
     return new ZKHelixManager(clusterName, instanceName, type, null, stateListener,
         helixManagerProperty);
   }
-
-  /**
-   * Construct a ZkHelixManager using the HelixManagerProperty instance given.
-   * NOTE: if both zkAddr and a valid ZkConnectionConfig are given in HelixManagerProperty, the
-   * instantiation will fail - only one is required.
-   * @param clusterName
-   * @param instanceName
-   * @param type
-   * @param zkAddr
-   * @param stateListener
-   * @param helixManagerProperty
-   * @return
-   */
-  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
-      InstanceType type, String zkAddr, HelixManagerStateListener stateListener,
-      HelixManagerProperty helixManagerProperty) {
-    return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener,
-        helixManagerProperty);
-  }
 }

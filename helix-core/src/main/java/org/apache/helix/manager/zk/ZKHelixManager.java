@@ -111,7 +111,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
-  protected String _zkAddress;
+  protected final String _zkAddress;
   private final String _clusterName;
   private final String _instanceName;
   private final InstanceType _instanceType;
@@ -1440,16 +1440,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   /*
    * Resolves what type of ZkClient this HelixManager should use based on whether MULTI_ZK_ENABLED
    * System config is set or not. Two types of ZkClients are available:
-   * 1) If MULTI_ZK_ENABLED is set to true, we create a dedicated RealmAwareZkClient
-   * that provides full ZkClient functionalities and connects to the correct ZK by querying
-   * MetadataStoreDirectoryService.
+   * 1) If MULTI_ZK_ENABLED is set to true or zkAddress is null, we create a dedicated
+   * RealmAwareZkClient that provides full ZkClient functionalities and connects to the correct ZK
+   * by querying MetadataStoreDirectoryService.
    * 2) Otherwise, we create a dedicated HelixZkClient which plainly connects to
    * the ZK address given.
    */
   private RealmAwareZkClient resolveZkClient(HelixZkClientFactory zkClientFactory,
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || _zkAddress == null) {
       try {
         // Create realm-aware ZkClient.
         return zkClientFactory.buildZkClient(connectionConfig, clientConfig);
@@ -1482,7 +1482,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private void validateZkConnectionSettings(String zkAddress,
       HelixManagerProperty helixManagerProperty) {
     if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
-      if (zkAddress != null && !zkAddress.isEmpty()) {
+      if (zkAddress != null) {
         throw new HelixException(
             "ZKHelixManager: cannot have both ZkAddress and ZkConnectionConfig set!");
       }
@@ -1508,7 +1508,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (_helixManagerProperty != null && _helixManagerProperty.getZkConnectionConfig() != null) {
         zkConnectionInfo = _helixManagerProperty.getZkConnectionConfig().toString();
       } else {
-        zkConnectionInfo = "ZkAddr and ZkConnectionConfig are null!";
+        zkConnectionInfo = "None";
       }
     } else {
       zkConnectionInfo = _zkAddress;

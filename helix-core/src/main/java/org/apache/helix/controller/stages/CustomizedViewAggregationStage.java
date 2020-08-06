@@ -98,34 +98,34 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
         try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
               updatedCustomizedViews);
-
-          List<PropertyKey> keys = new ArrayList<>();
-          for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
-            CustomizedView view = it.next();
-            String resourceName = view.getResourceName();
-            keys.add(keyBuilder.customizedView(stateType, resourceName));
-          }
-          // add/update customized-views from zk and cache
-          if (updatedCustomizedViews.size() > 0) {
-            dataAccessor.setChildren(keys, updatedCustomizedViews);
-            cache.updateCustomizedViews(stateType, updatedCustomizedViews);
-          }
-
-          // remove stale customized views from zk and cache
-          List<String> customizedViewToRemove = new ArrayList<>();
-          for (String resourceName : curCustomizedViews.keySet()) {
-            if (!resourceMap.keySet().contains(resourceName)) {
-              LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
-              dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
-              customizedViewToRemove.add(resourceName);
-            }
-          }
-          cache.removeCustomizedViews(stateType, customizedViewToRemove);
         } catch (HelixException ex) {
           LogUtil.logError(LOG, _eventId,
               "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
         }
       }
+
+      List<PropertyKey> keys = new ArrayList<>();
+      for (Iterator<CustomizedView> it = updatedCustomizedViews.iterator(); it.hasNext(); ) {
+        CustomizedView view = it.next();
+        String resourceName = view.getResourceName();
+        keys.add(keyBuilder.customizedView(stateType, resourceName));
+      }
+      // add/update customized-views from zk and cache
+      if (updatedCustomizedViews.size() > 0) {
+        dataAccessor.setChildren(keys, updatedCustomizedViews);
+        cache.updateCustomizedViews(stateType, updatedCustomizedViews);
+      }
+
+      // remove stale customized views from zk and cache
+      List<String> customizedViewToRemove = new ArrayList<>();
+      for (String resourceName : curCustomizedViews.keySet()) {
+        if (!resourceMap.keySet().contains(resourceName)) {
+          LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
+          dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
+          customizedViewToRemove.add(resourceName);
+        }
+      }
+      cache.removeCustomizedViews(stateType, customizedViewToRemove);
     }
   }
 

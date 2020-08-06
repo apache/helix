@@ -293,4 +293,35 @@ public class TestClusterConfig {
         .getMapField(ClusterConfig.ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name())
         == null);
   }
+
+  @Test
+  public void testSetInvalidAbnormalStatesResolverConfig() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+
+    Map<String, String> resolverMap = new HashMap<>();
+    resolverMap.put(null, MockAbnormalStateResolver.class.getName());
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put("", MockAbnormalStateResolver.class.getName());
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put(MasterSlaveSMD.name, null);
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put(MasterSlaveSMD.name, "");
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+  }
+
+  private void trySetInvalidAbnormalStatesResolverMap(ClusterConfig testConfig,
+      Map<String, String> resolverMap) {
+    try {
+      testConfig.setAbnormalStateResolverMap(resolverMap);
+      Assert.fail("Invalid resolver setup shall fail.");
+    } catch (IllegalArgumentException ex) {
+      // expected
+    }
+  }
 }

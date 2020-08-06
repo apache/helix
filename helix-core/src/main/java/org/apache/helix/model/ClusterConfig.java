@@ -873,10 +873,14 @@ public class ClusterConfig extends HelixProperty {
     if (resolverMap == null) {
       _record.getMapFields().remove(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name());
     } else {
-      if (resolverMap.values().stream()
-          .anyMatch(className -> className == null || className.isEmpty())) {
+      if (resolverMap.entrySet().stream().anyMatch(e -> {
+        String stateModelDefName = e.getKey();
+        String className = e.getValue();
+        return stateModelDefName == null || stateModelDefName.isEmpty() || className == null
+            || className.isEmpty();
+      })) {
         throw new IllegalArgumentException(
-            "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
+            "Invalid Abnormal State Resolver Map definition. StateModel definition name and the resolver class name cannot be empty.");
       }
       _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
     }

@@ -2,7 +2,11 @@
 
 name: PR Pre-merge Check
 
-on: [pull_request_review]
+on:
+  pull_request:
+    types: [edited]
+  pull_request_review:
+    types: [submitted]
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

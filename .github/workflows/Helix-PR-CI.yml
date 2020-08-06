@@ -6,10 +6,10 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    
+  pull_request_CI:
+
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 1.8

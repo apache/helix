@@ -111,7 +111,7 @@ public abstract class ZkHelixClusterVerifier
       throw new IllegalArgumentException("ZkHelixClusterVerifier: clusterName is null or empty!");
     }
     // If the multi ZK config is enabled, use DedicatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
       try {
         RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
@@ -370,7 +370,7 @@ public abstract class ZkHelixClusterVerifier
     protected RealmAwareZkClient createZkClient(RealmAwareZkClient.RealmMode realmMode,
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress) {
-      if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
         try {
           // First, try to create a RealmAwareZkClient that's a DedicatedZkClient
           return DedicatedZkClientFactory.getInstance()

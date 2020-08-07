@@ -148,10 +148,10 @@ public class TestTaskUtil extends TaskTestBase {
           .thenReturn(jobConfig);
     }
 
-    Long currentTime = System.currentTimeMillis();
     JobContext inProgressJobContext = mock(JobContext.class);
     JobContext failedJobContext = mock(JobContext.class);
-    when(failedJobContext.getFinishTime()).thenReturn(currentTime);
+    when(failedJobContext.getFinishTime()).thenReturn(System.currentTimeMillis() - 1L);
+    when(inProgressJobContext.getFinishTime()).thenReturn((long) WorkflowContext.UNFINISHED);
 
     when(workflowControllerDataProvider.getJobContext(workflowName + "_Job_0"))
         .thenReturn(failedJobContext);

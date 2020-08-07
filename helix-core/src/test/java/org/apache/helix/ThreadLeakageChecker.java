@@ -33,7 +33,6 @@ import org.apache.helix.common.ZkTestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class ThreadLeakageChecker {
   private final static Logger LOG = LoggerFactory.getLogger(ThreadLeakageChecker.class);
 

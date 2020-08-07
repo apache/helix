@@ -91,7 +91,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   public void reportLatency(List<CustomizedView> updatedCustomizedViews,
       Map<String, CustomizedView> curCustomizedViews,
       Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
-      boolean[] updateSuccess, long endTime) {
+      boolean[] updateSuccess, long endTime, String clusterName) {
     if (updatedCustomizedViews == null || curCustomizedViews == null
         || updatedStartTimestamps == null) {
       LOG.warn("Cannot find updated time stamps for customized states, input parameter is null.");
@@ -101,11 +101,15 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
     List<Long> collectedTimestamps = new ArrayList<>();
 
     for (int i = 0; i < updatedCustomizedViews.size(); i++) {
-      if (!updateSuccess[i]) {
-        continue;
-      }
       CustomizedView newCV = updatedCustomizedViews.get(i);
       String resourceName = newCV.getResourceName();
+
+      if (!updateSuccess[i]) {
+        LOG.warn("Customized views are not updated successfully for resource {} on cluster {}",
+            resourceName, clusterName);
+        continue;
+      }
+
       CustomizedView oldCV =
           curCustomizedViews.getOrDefault(resourceName, new CustomizedView(resourceName));
 
@@ -132,8 +136,8 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
                 collectedTimestamps.add(timestamp);
               } else {
                 LOG.warn(
-                    "Failed to find customized state update time stamp for resource {} partition {} on instance {}, the number should be positive.",
-                    resourceName, partitionName, instanceName);
+                    "Failed to find customized state update time stamp for resource {} partition {}, instance {}, on cluster {} the number should be positive.",
+                    resourceName, partitionName, instanceName, clusterName);
               }
             }
           }

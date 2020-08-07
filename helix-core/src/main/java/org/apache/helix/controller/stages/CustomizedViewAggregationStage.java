@@ -80,7 +80,9 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     Set<String> customizedTypesToRemove = new HashSet<>();
     for (String stateType : customizedViewCacheMap.keySet()) {
       if (!customizedStateOutput.getAllStateTypes().contains(stateType)) {
-        LogUtil.logInfo(LOG, _eventId, "Remove customizedView for stateType: " + stateType);
+        LogUtil.logInfo(LOG, _eventId,
+            "Remove customizedView for stateType: " + stateType + ", on cluster " + event
+                .getClusterName());
         dataAccessor.removeProperty(keyBuilder.customizedView(stateType));
         customizedTypesToRemove.add(stateType);
       }
@@ -104,7 +106,8 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
               updatedCustomizedViews, updatedStartTimestamps, curCustomizedViewsCopy);
         } catch (HelixException ex) {
           LogUtil.logError(LOG, _eventId,
-              "Failed to calculate customized view for resource " + resource.getResourceName(), ex);
+              "Failed to calculate customized view for resource " + resource.getResourceName()
+                  + ", on cluster " + event.getClusterName(), ex);
         }
       }
       List<PropertyKey> keys = new ArrayList<>();
@@ -120,14 +123,16 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
         asyncReportLatency(cache.getAsyncTasksThreadPool(),
             cache.getOrCreateCustomizedViewMonitor(event), new ArrayList<>(updatedCustomizedViews),
             curCustomizedViewsCopy, new HashMap<>(updatedStartTimestamps), success,
-            System.currentTimeMillis());
+            System.currentTimeMillis(), event.getClusterName());
       }
 
       // remove stale customized views from zk and cache
       List<String> customizedViewToRemove = new ArrayList<>();
       for (String resourceName : curCustomizedViews.keySet()) {
         if (!resourceMap.containsKey(resourceName)) {
-          LogUtil.logInfo(LOG, _eventId, "Remove customizedView for resource: " + resourceName);
+          LogUtil.logInfo(LOG, _eventId,
+              "Remove customizedView for resource: " + resourceName + ", on cluster " + event
+                  .getClusterName());
           dataAccessor.removeProperty(keyBuilder.customizedView(stateType, resourceName));
           customizedViewToRemove.add(resourceName);
         }
@@ -172,13 +177,13 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
   private void asyncReportLatency(ExecutorService threadPool, CustomizedViewMonitor monitor,
       List<CustomizedView> updatedCustomizedViews, Map<String, CustomizedView> curCustomizedViews,
       Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
-      boolean[] updateSuccess, long curTime) {
+      boolean[] updateSuccess, long curTime, String clusterName) {
     AbstractBaseStage.asyncExecute(threadPool, () -> {
       try {
         monitor.reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
-            updateSuccess, curTime);
+            updateSuccess, curTime, clusterName);
       } catch (Exception e) {
-        LOG.warn("Failed to report UpdateToAggregationLatency metric.", e);
+        LOG.warn("Failed to report UpdateToAggregationLatency metric on cluster " + clusterName, e);
       }
       return null;
     });

@@ -160,9 +160,6 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
         CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + ".Max") != 0,
         TestHelper.WAIT_DURATION);
 
-    if (manager.isConnected()) {
-      manager.disconnect(); // For DummyClusterManager, this is not necessary
-    }
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
   }

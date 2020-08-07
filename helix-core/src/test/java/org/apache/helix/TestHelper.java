@@ -948,10 +948,10 @@ public class TestHelper {
     }
   }
 
-  public static boolean afterClassCheck() {
+  public static boolean afterClassCheck(String classname) {
     // step 1: get all active threads
     List<Thread> threads = TestHelper.getAllThreads();
-    System.out.println(TestHelper.getTestClassName() + " has active threads cnt:" + threads.size());
+    System.out.println(classname + " has active threads cnt:" + threads.size());
 
 
     // step 2: caegorize threads

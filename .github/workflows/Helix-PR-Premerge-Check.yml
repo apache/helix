@@ -8,9 +8,6 @@ on:
   pull_request_review:
     types: [submitted]
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   validate_PR:
 
@@ -22,7 +19,8 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Verify the PR has been approved
-        uses: pullreminders/label-when-approved-action@master
+        uses: abinoda/label-when-approved-action@1.0.5
         env:
           APPROVALS: "1"
           ADD_LABEL: "CheckedAndApproved"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

@@ -880,7 +880,7 @@ public class ClusterConfig extends HelixProperty {
             || className.isEmpty();
       })) {
         throw new IllegalArgumentException(
-            "Invalid Abnormal State Resolver Map definition. StateModel definition name and the resolver class name cannot be empty.");
+            "Invalid Abnormal State Resolver Map definition. StateModel definition name and the resolver class name cannot be null or empty.");
       }
       _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
     }

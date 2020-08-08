@@ -28,9 +28,11 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -58,7 +60,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-
 
 public class TestInstanceService {
   private static final String TEST_CLUSTER = "TestCluster";
@@ -153,6 +154,38 @@ public class TestInstanceService {
     Assert.assertFalse(actual.isStoppable());
     Assert.assertEquals(actual.getFailedChecks().size(), expectedFailedChecksSize);
     Assert.assertEquals(actual.getFailedChecks().get(0), expectedFailedCheck);
+  }
+
+  /*
+   * Tests when getting instance health status throws exception, batch get instance stoppable
+   * checks should include not stoppable instance and reason.
+   */
+  @Test
+  public void testBatchGetInstancesStoppableChecksWhenException() throws IOException {
+    String errorMessage = "Instance stability check needs persist assignment cluster config turned "
+            + "on: PERSIST_INTERMEDIATE_ASSIGNMENT = true";
+    InstanceService service =
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false) {
+          @Override
+          protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
+              String instanceName, List<HealthCheck> healthChecks) {
+            throw new HelixException(errorMessage);
+          }
+        };
+
+    Map<String, StoppableCheck> stoppableCheck = service
+        .batchGetInstancesStoppableChecks(TEST_CLUSTER, Collections.singletonList(TEST_INSTANCE),
+            "jsonContent");
+
+    StoppableCheck expectedStoppable =
+        new StoppableCheck(false, Collections.singletonList(errorMessage),
+            StoppableCheck.Category.HELIX_OWN_CHECK);
+
+    Assert.assertNotNull(stoppableCheck);
+    Assert.assertEquals(stoppableCheck.keySet(), ImmutableSet.of(TEST_INSTANCE));
+    Assert.assertFalse(stoppableCheck.get(TEST_INSTANCE).isStoppable());
+    Assert.assertEquals(stoppableCheck.get(TEST_INSTANCE).getFailedChecks(),
+        expectedStoppable.getFailedChecks());
   }
 
   @Test

@@ -261,7 +261,9 @@ public class InstanceValidationUtil {
       throw new HelixException("Missing cluster config!");
     }
     if (!clusterConfig.isPersistIntermediateAssignment()) {
-      throw new HelixException("isInstanceStable needs persist assignment on!");
+      throw new HelixException(String.format(
+          "Instance stability check needs persist assignment cluster config turned on: %s = true",
+          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString()));
     }
 
     List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());

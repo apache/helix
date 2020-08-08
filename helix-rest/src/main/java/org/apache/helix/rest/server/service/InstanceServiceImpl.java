@@ -22,6 +22,7 @@ package org.apache.helix.rest.server.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -160,8 +161,10 @@ public class InstanceServiceImpl implements InstanceService {
     Map<String, Future<StoppableCheck>> helixInstanceChecks =
         instances.stream().collect(Collectors.toMap(Function.identity(),
             instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance))));
+
     List<String> instancesForCustomInstanceLevelChecks =
-        filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
+        filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks,
+            StoppableCheck.Category.HELIX_OWN_CHECK);
     if (instancesForCustomInstanceLevelChecks.isEmpty()) {
       // if all instances failed at helix custom level checks
       return finalStoppableChecks;
@@ -181,8 +184,11 @@ public class InstanceServiceImpl implements InstanceService {
             .collect(Collectors.toMap(Function.identity(),
                 instance -> POOL.submit(() -> performCustomInstanceCheck(clusterId, instance,
                     restConfig.getBaseUrl(instance), customPayLoads))));
+
     List<String> instancesForCustomPartitionLevelChecks =
-        filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
+        filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks,
+            StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
+
     if (!instancesForCustomPartitionLevelChecks.isEmpty()) {
       Map<String, StoppableCheck> instancePartitionLevelChecks = performPartitionsCheck(
           instancesForCustomPartitionLevelChecks, restConfig, customPayLoads);
@@ -198,7 +204,7 @@ public class InstanceServiceImpl implements InstanceService {
 
   private List<String> filterInstancesForNextCheck(
       Map<String, Future<StoppableCheck>> futureStoppableCheckByInstance,
-      Map<String, StoppableCheck> finalStoppableCheckByInstance) {
+      Map<String, StoppableCheck> finalStoppableCheckByInstance, StoppableCheck.Category category) {
     List<String> instancesForNextCheck = new ArrayList<>();
     for (Map.Entry<String, Future<StoppableCheck>> entry : futureStoppableCheckByInstance
         .entrySet()) {
@@ -213,7 +219,12 @@ public class InstanceServiceImpl implements InstanceService {
           instancesForNextCheck.add(instance);
         }
       } catch (InterruptedException | ExecutionException e) {
-        LOG.error("Failed to get StoppableChecks in parallel. Instance: {}", instance, e);
+        LOG.warn("Failed to get StoppableChecks in parallel. Instance: {}. Caused by {}", instance,
+            e.getMessage());
+        // Add instance not stoppable and reason as return so API response has error message
+        List<String> failedCheck = Collections.singletonList(e.getCause().getMessage());
+        finalStoppableCheckByInstance
+            .put(instance, new StoppableCheck(false, failedCheck, category));
       }
     }
 

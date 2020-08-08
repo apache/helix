@@ -36,16 +36,15 @@ public class LocalJarLoader implements JarLoader {
    */
   @Override
   public URL loadJar(String jarPath) {
-    File taskJarFile;
-    try {
-      taskJarFile = new File(jarPath);
-
-      // If taskJarFile exists and it's not a directory, return its URL
-      if (taskJarFile.exists() && !taskJarFile.isDirectory()) {
-        return taskJarFile.toURI().toURL();
-      }
+    // If taskJarFile doesn't exist or it's a directory, throw exception
+    File taskJarFile = new File(jarPath);
+    if (!taskJarFile.exists() || taskJarFile.isDirectory()) {
       LOG.error("Failed to find JAR " + jarPath + " for new task.");
       throw new IllegalStateException("No JAR for task");
+    }
+
+    try {
+      return taskJarFile.toURI().toURL();
     } catch (MalformedURLException e) {
       LOG.error("Failed to open JAR " + jarPath + " for new task.");
       throw new IllegalStateException("Malformed JAR URL for task");

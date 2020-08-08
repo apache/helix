@@ -205,11 +205,15 @@ public class ParticipantManager {
         instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
         instanceConfig.setDomain(domain);
       }
+      instanceConfig
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
       _helixAdmin.addInstance(_clusterName, instanceConfig);
+    } else {
+      _configAccessor.getInstanceConfig(_clusterName, _instanceName)
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
     }
-    _configAccessor.getInstanceConfig(_clusterName, _instanceName)
-        .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
-            _instanceName);
   }
 
   private CloudInstanceInformation getCloudInstanceInformation() {

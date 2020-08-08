@@ -313,20 +313,20 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     ConfigAccessor configAccessor = getConfigAccessor();
 
     try {
-      /*
-       * Even if the instance is disabled, non-valid instance topology config will cause rebalance
-       * failure. We are doing the check whenever user updates InstanceConfig.
-       */
-      if (command == Command.delete || command == Command.update) {
-        validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
-            instanceConfig, command);
-      }
       switch (command) {
         case update:
-          // The new instanceConfig will be merged with existing one
+          /*
+           * The new instanceConfig will be merged with existing one.
+           * Even if the instance is disabled, non-valid instance topology config will cause rebalance
+           * failure. We are doing the check whenever user updates InstanceConfig.
+           */
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
           configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
           break;
         case delete:
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
           HelixConfigScope instanceScope =
               new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
                   .forCluster(clusterId).forParticipant(instanceName).build();

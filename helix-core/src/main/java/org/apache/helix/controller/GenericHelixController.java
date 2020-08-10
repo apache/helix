@@ -697,6 +697,18 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.STATEFUL_REBALANCER.name(),
         _rebalancerRef.getRebalancer(manager));
 
+    // If manager session changes, no need to run pipeline for the stale event.
+    Optional<String> eventSessionId = event.getAttribute(AttributeName.EVENT_SESSION.name());
+    String managerSessionId = manager.getSessionId();
+    if (!eventSessionId.isPresent() || !eventSessionId.get().equals(managerSessionId)) {
+      logger.warn("Controller pipeline is not invoked because event session doesn't match cluster "
+              + "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
+              + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
+          eventSessionId.get(), managerSessionId, manager.getInstanceName(),
+          manager.getClusterName());
+      return;
+    }
+
     _helixManager = manager;
 
     // TODO If init controller with paused = true, it may not take effect immediately
@@ -752,17 +764,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       return;
     }
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
-
-    // If manager session changes, no need to run pipeline for the stale event.
-    Optional<String> eventSessionId = event.getAttribute(AttributeName.EVENT_SESSION.name());
-    String managerSessionId = manager.getSessionId();
-    if (!eventSessionId.isPresent() || !eventSessionId.get().equals(managerSessionId)) {
-      logger.warn("Controller pipeline is not invoked because event session doesn't match cluster "
-              + "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
-              + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
-          eventSessionId, managerSessionId, manager.getInstanceName(), manager.getClusterName());
-      return;
-    }
 
     logger.info("START: Invoking {} controller pipeline for cluster: {}. Event type: {}, ID: {}. "
             + "Event session ID: {}", manager.getClusterName(), dataProvider.getPipelineName(),

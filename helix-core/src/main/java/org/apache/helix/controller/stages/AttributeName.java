@@ -42,6 +42,6 @@ public enum AttributeName {
   ControllerDataProvider,
   STATEFUL_REBALANCER,
 
-  /** Event should be processed by the expected session. */
+  /** This is the cluster manager's session id when event is received. */
   EVENT_SESSION
 }

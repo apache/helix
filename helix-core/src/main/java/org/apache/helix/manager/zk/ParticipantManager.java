@@ -52,6 +52,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -350,6 +351,12 @@ public class ParticipantManager {
                   + lastCurState);
           continue;
         }
+
+        // If the the current state is related to tasks, there is no need to carry it over to new session.
+        if (stateModelDefRef.equals(TaskConstants.STATE_MODEL_NAME)) {
+          continue;
+        }
+
         StateModelDefinition stateModel =
             _dataAccessor.getProperty(_keyBuilder.stateModelDef(stateModelDefRef));
 

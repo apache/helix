@@ -42,6 +42,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,9 +122,10 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
         boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
         cache.updateCustomizedViews(stateType, updatedCustomizedViews);
         asyncReportLatency(cache.getAsyncTasksThreadPool(),
-            cache.getOrCreateCustomizedViewMonitor(event), new ArrayList<>(updatedCustomizedViews),
-            curCustomizedViewsCopy, new HashMap<>(updatedStartTimestamps), success,
-            System.currentTimeMillis(), event.getClusterName());
+            event.getAttribute(AttributeName.clusterStatusMonitor.name()),
+            new ArrayList<>(updatedCustomizedViews), curCustomizedViewsCopy,
+            new HashMap<>(updatedStartTimestamps), success, System.currentTimeMillis(),
+            event.getClusterName());
       }
 
       // remove stale customized views from zk and cache
@@ -174,14 +176,21 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
     }
   }
 
-  private void asyncReportLatency(ExecutorService threadPool, CustomizedViewMonitor monitor,
-      List<CustomizedView> updatedCustomizedViews, Map<String, CustomizedView> curCustomizedViews,
+  private void asyncReportLatency(ExecutorService threadPool,
+      ClusterStatusMonitor clusterStatusMonitor, List<CustomizedView> updatedCustomizedViews,
+      Map<String, CustomizedView> curCustomizedViews,
       Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
       boolean[] updateSuccess, long curTime, String clusterName) {
+    if (clusterStatusMonitor == null) {
+      return;
+    }
+    CustomizedViewMonitor customizedViewMonitor =
+        clusterStatusMonitor.getOrCreateCustomizedViewMonitor(clusterName);
     AbstractBaseStage.asyncExecute(threadPool, () -> {
       try {
-        monitor.reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
-            updateSuccess, curTime, clusterName);
+        customizedViewMonitor
+            .reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
+                updateSuccess, curTime, clusterName);
       } catch (Exception e) {
         LOG.warn("Failed to report UpdateToAggregationLatency metric on cluster " + clusterName, e);
       }

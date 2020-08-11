@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.management.JMException;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
@@ -38,7 +37,6 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.common.caches.PropertyCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.pipeline.Pipeline;
-import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.MissingTopStateRecord;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
@@ -46,7 +44,6 @@ import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +79,6 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   // Maintain a set of all ChangeTypes for change detection
   private Set<HelixConstants.ChangeType> _refreshedChangeTypes;
   private Set<String> _aggregationEnabledTypes = new HashSet<>();
-  private Map<String, CustomizedViewMonitor> _customizedViewMonitors = new HashMap<>();
 
   // CrushEd strategy needs to have a stable partition list input. So this cached list persist the
   // previous seen partition lists. If the members in a list are not modified, the old list will be
@@ -441,17 +437,6 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
   public void clearMonitoringRecords() {
     _missingTopStateMap.clear();
     _lastTopStateLocationMap.clear();
-  }
-
-  public synchronized CustomizedViewMonitor getOrCreateCustomizedViewMonitor(ClusterEvent event)
-      throws JMException {
-    String clusterName = event.getClusterName();
-    if (_customizedViewMonitors.get(clusterName) == null) {
-      CustomizedViewMonitor monitor = new CustomizedViewMonitor(clusterName);
-      _customizedViewMonitors.put(clusterName, monitor);
-      monitor.register();
-    }
-    return _customizedViewMonitors.get(clusterName);
   }
 
   /**

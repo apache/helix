@@ -21,7 +21,8 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.management.ObjectInstance;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.management.ObjectName;
 
 import org.apache.helix.HelixDataAccessor;
@@ -36,11 +37,11 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.CustomizedViewMonitor;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestCustomizedViewStage extends ZkUnitTestBase {
   private final String RESOURCE_NAME = "TestDB";
@@ -125,10 +126,14 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
     setupLiveInstances(clusterName, new int[]{0, 1});
     setupStateModel(clusterName);
 
+    ClusterStatusMonitor clusterStatusMonitor = new ClusterStatusMonitor(clusterName);
     ClusterEvent event = new ClusterEvent(clusterName, ClusterEventType.Unknown);
     ResourceControllerDataProvider cache = new ResourceControllerDataProvider(clusterName);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    cache.setAsyncTasksThreadPool(executor);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), clusterStatusMonitor);
 
     CustomizedStateConfig config = new CustomizedStateConfig();
     List<String> aggregationEnabledTypes = new ArrayList<>();
@@ -140,7 +145,7 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     CustomizedState customizedState = new CustomizedState(RESOURCE_NAME);
     customizedState.setState(PARTITION_NAME, "STATE");
-    customizedState.setStartTime(PARTITION_NAME, 0);
+    customizedState.setStartTime(PARTITION_NAME, 1);
     accessor.setProperty(
         keyBuilder.customizedState(INSTANCE_NAME, CUSTOMIZED_STATE_NAME, RESOURCE_NAME),
         customizedState);
@@ -153,14 +158,18 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
     runStage(event, new CustomizedViewAggregationStage());
 
     ObjectName objectName = new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", clusterName));
-    ObjectInstance monitor = _server.getObjectInstance(objectName);
-    Assert.assertNotNull(monitor);
+        .format("%s:%s=%s,%s=%s", MonitorDomainNames.AggregatedView.name(), "Type",
+            "CustomizedView", "Cluster", clusterName));
+    Assert.assertNotNull(
+        ((ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()))
+            .getOrCreateCustomizedViewMonitor(clusterName));
+
     TestHelper.verify(() -> (long) _server.getAttribute(objectName,
         CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + ".Max") != 0,
         TestHelper.WAIT_DURATION);
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
+    executor.shutdownNow();
   }
 }

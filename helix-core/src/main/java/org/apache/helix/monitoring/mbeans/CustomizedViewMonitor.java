@@ -47,6 +47,7 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _updateToAggregationLatencyGauge;
   public static final String UPDATE_TO_AGGREGATION_LATENCY_GAUGE =
       "UpdateToAggregationLatencyGauge";
+  private ClusterStatusMonitor _clusterStatusMonitor;
 
   public CustomizedViewMonitor(String clusterName) {
     _clusterName = clusterName;
@@ -66,7 +67,8 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
 
   private ObjectName getMBeanName() throws MalformedObjectNameException {
     return new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", _clusterName));
+        .format("%s:%s=%s,%s=%s", MonitorDomainNames.AggregatedView.name(), "Type",
+            "CustomizedView", "Cluster", _clusterName));
   }
 
   @Override
@@ -82,9 +84,12 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
 
   /**
    * Find updated customized states and report the aggregation latency of each customized state
+   * Latency reporting excludes: updating a customized state that is the same as previous customized state,
+   * deleting a customized state
    * @param updatedCustomizedViews Customized views that have been updated, obtained from CustomizedStateOutput
    * @param curCustomizedViews Current customized view values from the CustomizedViewCache
-   * @param updatedStartTimestamps All customized state START_TIME property values from CustomizedStateOutput
+   * @param updatedStartTimestamps All customized state START_TIME property values from CustomizedStateOutput.
+   * START_TIME field is automatically updated when a customized state for a partition is updated by CustomizedStateProvider.
    * @param updateSuccess If the customized view update to ZK is successful or not
    * @param endTime The timestamp when the new customized view is updated to ZK
    */

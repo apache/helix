@@ -39,7 +39,8 @@ public class TestCustomizedViewMonitor {
 
   private ObjectName buildObjectName(int duplicateNum) throws MalformedObjectNameException {
     ObjectName objectName = new ObjectName(String
-        .format("%s:%s=%s", MonitorDomainNames.AggregatedView.name(), "Cluster", TEST_CLUSTER));
+        .format("%s:%s=%s,%s=%s", MonitorDomainNames.AggregatedView.name(), "Type",
+            "CustomizedView", "Cluster", TEST_CLUSTER));
     if (duplicateNum == 0) {
       return objectName;
     } else {
@@ -82,13 +83,10 @@ public class TestCustomizedViewMonitor {
     monitor.register();
     int sum = 0;
     for (int i = 0; i < 10; i++) {
-      System.out.println("i = " + i);
       monitor.recordUpdateToAggregationLatency(i);
       sum += i;
       int expectedMax = i;
       double expectedMean = sum / (i + 1.0);
-      System.out.println("max = " + (long) _server.getAttribute(buildObjectName(0),
-          CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + MAX_SUFFIX));
       Assert.assertTrue(TestHelper.verify(() -> (long) _server.getAttribute(buildObjectName(0),
           CustomizedViewMonitor.UPDATE_TO_AGGREGATION_LATENCY_GAUGE + MAX_SUFFIX) == expectedMax,
           TestHelper.WAIT_DURATION));

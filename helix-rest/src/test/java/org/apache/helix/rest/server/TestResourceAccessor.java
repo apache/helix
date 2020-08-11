@@ -49,8 +49,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.rest.server.resources.helix.ResourceAccessor;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -203,7 +203,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Map<String, String> healthStatus =
-        OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>() {
+        OBJECT_MAPPER.convertValue(node, new TypeReference<Map<String, String>>() {
         });
 
     Assert.assertEquals(healthStatus.get("p0"), "HEALTHY");
@@ -292,7 +292,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Map<String, String> healthStatus =
-        OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>() {
+        OBJECT_MAPPER.convertValue(node, new TypeReference<Map<String, String>>() {
         });
 
     Assert.assertEquals(healthStatus.get(resourceNameHealthy), "HEALTHY");

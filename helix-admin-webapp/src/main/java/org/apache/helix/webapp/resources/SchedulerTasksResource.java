@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
@@ -37,8 +38,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
@@ -82,7 +82,7 @@ public class SchedulerTasksResource extends ServerResource {
   }
 
   StringRepresentation getSchedulerTasksRepresentation() throws JsonGenerationException,
-      JsonMappingException, IOException {
+                                                                JsonMappingException, IOException {
     String clusterName = (String) getRequest().getAttributes().get("clusterName");
     String instanceName = (String) getRequest().getAttributes().get("instanceName");
     ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);

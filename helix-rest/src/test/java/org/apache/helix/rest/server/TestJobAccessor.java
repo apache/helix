@@ -38,8 +38,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -82,7 +82,7 @@ public class TestJobAccessor extends AbstractTestClass {
     Assert.assertNotNull(node.get(JobAccessor.JobProperties.JobContext.name()));
     String workflowId =
         node.get(JobAccessor.JobProperties.JobConfig.name()).get("simpleFields").get("WorkflowID")
-            .getTextValue();
+            .textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -95,7 +95,7 @@ public class TestJobAccessor extends AbstractTestClass {
         get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs/" + JOB_NAME
             + "/configs", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    String workflowId = node.get("simpleFields").get("WorkflowID").getTextValue();
+    String workflowId = node.get("simpleFields").get("WorkflowID").textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -108,7 +108,7 @@ public class TestJobAccessor extends AbstractTestClass {
         get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/jobs/" + JOB_NAME
             + "/context", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    Assert.assertEquals(node.get("mapFields").get("0").get("STATE").getTextValue(),
+    Assert.assertEquals(node.get("mapFields").get("0").get("STATE").textValue(),
         TaskPartitionState.COMPLETED.name());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }

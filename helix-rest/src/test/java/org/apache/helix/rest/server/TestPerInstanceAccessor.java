@@ -19,6 +19,7 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -44,7 +45,6 @@ import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.codehaus.jackson.JsonNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -87,7 +87,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
     System.out.println("End test :" + TestHelper.getTestMethodName());
@@ -116,7 +116,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
 
@@ -125,7 +125,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     node = OBJECT_MAPPER.readTree(body);
     newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 0);
     System.out.println("End test :" + TestHelper.getTestMethodName());
@@ -156,7 +156,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String instancesCfg = node.get(PerInstanceAccessor.PerInstanceProperties.config.name()).toString();
     Assert.assertNotNull(instancesCfg);
-    boolean isHealth = node.get("health").getBooleanValue();
+    boolean isHealth = node.get("health").booleanValue();
     Assert.assertFalse(isHealth);
 
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
@@ -436,7 +436,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     // Must have the result saying (true) because there's no capacity keys set
     // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
 
     // Define keys in ClusterConfig
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -462,7 +462,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     node = OBJECT_MAPPER.readTree(body);
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -22,10 +22,13 @@ package org.apache.helix.zookeeper.datamodel.serializer;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +48,9 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
 
     ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+    mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);
     StringWriter sw = new StringWriter();
     try {
       mapper.writeValue(sw, data);
@@ -68,9 +71,9 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
     DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+    mapper.enable(MapperFeature.AUTO_DETECT_SETTERS);
+    mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     try {
       T payload = mapper.readValue(bais, clazz);
       return payload;

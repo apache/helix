@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Dag {
   private Map<String, Node> nodes = new HashMap<String, Dag.Node>();
@@ -76,8 +76,9 @@ public class Dag {
     }
 
     public String toJson() throws Exception {
-      ObjectMapper mapper = new ObjectMapper();
-      return mapper.defaultPrettyPrintingWriter().writeValueAsString(this);
+      ObjectMapper
+          mapper = new ObjectMapper();
+      return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
     }
 
     public void setId(String id) {
@@ -112,7 +113,7 @@ public class Dag {
 
   public String toJson() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
-    return mapper.defaultPrettyPrintingWriter().writeValueAsString(this);
+    return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
   }
 
   public Map<String, Node> getNodes() {

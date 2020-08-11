@@ -114,7 +114,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   @VisibleForTesting
-  void shutdownNow() {
+  public void shutdownNow() {
     _taskExecutor.shutdownNow();
     _timerTaskExecutor.shutdownNow();
     if (_monitor != null) {

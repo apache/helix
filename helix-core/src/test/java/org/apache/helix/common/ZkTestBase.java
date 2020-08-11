@@ -736,6 +736,9 @@ public class ZkTestBase {
     }
     _liveInstanceOwners.clear();
 
+    // wait 2 seconds for threads to be teared down.
+    // this reduce false alert.
+    Thread.sleep(1000);
     boolean status = false;
     try {
       status = ThreadLeakageChecker.afterClassCheck(testClassName);

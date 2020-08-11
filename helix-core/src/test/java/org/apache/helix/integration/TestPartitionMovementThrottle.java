@@ -131,7 +131,11 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
   }
 
-  @Test()
+  public void testHead() {
+    Assert.assertTrue(true);
+  }
+
+  @Test(dependsOnMethods = "testHead")
   public void testResourceThrottle() throws Exception {
     // start a few participants
     for (int i = 0; i < NODE_NR - 2; i++) {
@@ -168,7 +172,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testHead")
   public void testPartitionRecoveryRebalanceThrottle() throws InterruptedException {
     // start some participants
     for (int i = 0; i < NODE_NR - 2; i++) {
@@ -201,7 +205,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testHead")
   public void testANYtypeThrottle() throws InterruptedException {
     // start some participants
     for (int i = 0; i < NODE_NR - 3; i++) {
@@ -234,7 +238,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testHead")
   public void testThrottleOnlyClusterLevelAnyType() {
     // start some participants
     for (int i = 0; i < NODE_NR - 3; i++) {

@@ -54,6 +54,7 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
     return externalViews;
   }
 
+  /*
   @Test
   public void testDelayedPartitionMovement() {
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
@@ -63,6 +64,7 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
   public void testDisableDelayRebalanceInResource() {
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
   }
+  */
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testDelayedPartitionMovementWithClusterConfigedDelay()

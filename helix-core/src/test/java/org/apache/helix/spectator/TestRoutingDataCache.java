@@ -37,10 +37,8 @@ import org.testng.annotations.Test;
 
 public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
-  @Test
   public void testUpdateOnNotification() {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-    
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -73,7 +71,6 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     // async to the construction of RoutingDataCache in this test and subsequent
     // refresh().
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 

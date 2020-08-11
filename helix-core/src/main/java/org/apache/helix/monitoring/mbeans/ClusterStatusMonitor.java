@@ -390,6 +390,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       ResourceMonitor resourceMonitor = _resourceMonitorMap.get(resource);
       if (resourceMonitor != null) {
         resourceMonitor.increaseMessageCount(messageCountPerResource.get(resource));
+        resourceMonitor.increaseMessageCountWithCounter(messageCountPerResource.get(resource));
       }
     }
   }

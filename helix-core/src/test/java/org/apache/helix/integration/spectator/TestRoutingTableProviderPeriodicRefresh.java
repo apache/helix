@@ -54,7 +54,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
   private static final String STATE_MODEL = BuiltInStateModelDefinitions.MasterSlave.name();
   private static final String TEST_DB = "TestDB";
-  private static final String CLASS_NAME = TestRoutingTableProvider.class.getSimpleName();
+  private static final String CLASS_NAME = TestRoutingTableProviderPeriodicRefresh.class.getSimpleName();
   private static final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   private static final int PARTICIPANT_NUMBER = 3;
   private static final int PARTICIPANT_START_PORT = 12918;
@@ -160,9 +160,13 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     _routingTableProviderLongPeriodicRefresh.shutdown();
 
     _controller.syncStop();
+    _routingTableProvider.shutdown();
+    _routingTableProviderNoPeriodicRefresh.shutdown();
+    _routingTableProviderLongPeriodicRefresh.shutdown();
     _spectator.disconnect();
     _spectator_2.disconnect();
     _spectator_3.disconnect();
+
     deleteCluster(CLUSTER_NAME);
   }
 

@@ -126,6 +126,8 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestClusterInMaintenanceModeWhenReachingMaxPartition called!");
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

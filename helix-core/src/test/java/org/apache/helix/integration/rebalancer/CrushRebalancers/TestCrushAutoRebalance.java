@@ -298,7 +298,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       Assert.assertEquals(assignedZones.size(), expectedReplica);
     }
   }
-
+/* These blank test would cause @AfterClass not get invoked.
   @Test()
   public void testAddZone() throws Exception {
     // TODO
@@ -313,9 +313,13 @@ public class TestCrushAutoRebalance extends ZkTestBase {
   public void testNodeFailure() throws Exception {
     // TODO
   }
-
+*/
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestCrushAutoRebalance called.");
+
+    System.out.println("ENTER AFTERCLASS: " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

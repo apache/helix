@@ -66,6 +66,9 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestCrossClusterMessagingService called.");
+
     if (_adminController != null && _adminController.isConnected()) {
       _adminController.syncStop();
     }

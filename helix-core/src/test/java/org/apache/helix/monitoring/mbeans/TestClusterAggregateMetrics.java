@@ -127,6 +127,9 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
    */
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestClusterAggregateMetrics called.");
+
     if (_controller != null && _controller.isConnected()) {
       _controller.syncStop();
     }

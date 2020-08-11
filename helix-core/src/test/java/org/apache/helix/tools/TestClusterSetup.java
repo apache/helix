@@ -69,21 +69,24 @@ public class TestClusterSetup extends ZkUnitTestBase {
     return split;
   }
 
-  @BeforeClass()
+  @BeforeClass
   public void beforeClass() throws Exception {
     System.out
         .println("START TestClusterSetup.beforeClass() " + new Date(System.currentTimeMillis()));
     _clusterSetup = new ClusterSetup(ZK_ADDR);
   }
 
-  @AfterClass()
+  @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestClusterSetup called.");
+
     deleteCluster(CLUSTER_NAME);
     _clusterSetup.close();
     System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
-  @BeforeMethod()
+  @BeforeMethod
   public void setup() {
     try {
       _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
@@ -91,383 +94,6 @@ public class TestClusterSetup extends ZkUnitTestBase {
     } catch (Exception e) {
       System.out.println("@BeforeMethod TestClusterSetup exception:" + e);
     }
-  }
-
-  private boolean testZkAdminTimeoutHelper() {
-    boolean exceptionThrown = false;
-    ZKHelixAdmin admin = null;
-    try {
-      admin = new ZKHelixAdmin("localhost:27999");
-    } catch (Exception e) {
-      exceptionThrown = true;
-    } finally {
-      if (admin != null) {
-        admin.close();
-      }
-    }
-    return  exceptionThrown;
-  }
-
-  // Note, with mvn 3.6.1, we have a nasty bug that running "mvn test" under helix-core,
-  // all the bellow test will be invoked after other test including @AfterClass cleanup of this
-  // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
-  // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testZkAdminTimeout() {
-    boolean exceptionThrown = testZkAdminTimeoutHelper();
-
-    Assert.assertTrue(exceptionThrown);
-    System.setProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "3");
-    exceptionThrown = testZkAdminTimeoutHelper();
-    long time = System.currentTimeMillis();
-
-    Assert.assertTrue(exceptionThrown);
-    Assert.assertTrue(System.currentTimeMillis() - time < 5000);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testAddInstancesToCluster() throws Exception {
-    String[] instanceAddresses = new String[3];
-    for (int i = 0; i < 3; i++) {
-      String currInstance = INSTANCE_PREFIX + i;
-      instanceAddresses[i] = currInstance;
-    }
-    String nextInstanceAddress = INSTANCE_PREFIX + 3;
-
-    _clusterSetup.addInstancesToCluster(CLUSTER_NAME, instanceAddresses);
-
-    // verify instances
-    for (String instance : instanceAddresses) {
-      verifyInstance(_gZkClient, CLUSTER_NAME, instance, true);
-    }
-
-    _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, true);
-    // re-add
-    boolean caughtException = false;
-    try {
-      _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
-    } catch (HelixException e) {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testDisableDropInstancesFromCluster() throws Exception {
-    testAddInstancesToCluster();
-    String[] instanceAddresses = new String[3];
-    for (int i = 0; i < 3; i++) {
-      String currInstance = INSTANCE_PREFIX + i;
-      instanceAddresses[i] = currInstance;
-    }
-    String nextInstanceAddress = INSTANCE_PREFIX + 3;
-
-    boolean caughtException = false;
-    // drop without disabling
-    try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
-    } catch (HelixException e) {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-
-    // disable
-    _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, nextInstanceAddress,
-        false);
-    verifyEnabled(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
-
-    // drop
-    _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
-
-    // re-drop
-    caughtException = false;
-    try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
-    } catch (HelixException e) {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-
-    // bad format disable, drop
-    String badFormatInstance = "badinstance";
-    caughtException = false;
-    try {
-      _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, badFormatInstance,
-          false);
-    } catch (HelixException e) {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-
-    caughtException = false;
-    try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, badFormatInstance);
-    } catch (HelixException e) {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testAddResource() throws Exception {
-    try {
-      _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
-    } catch (Exception ignored) {
-    }
-    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testRemoveResource() throws Exception {
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
-    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
-    _clusterSetup.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
-    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, false);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testRebalanceCluster() throws Exception {
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
-    // testAddInstancesToCluster();
-    testAddResource();
-    _clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
-    verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testParseCommandLinesArgs() throws Exception {
-    // wipe ZK
-    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
-
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster " + CLUSTER_NAME));
-
-    // wipe again
-    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
-
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
-
-    ClusterSetup.processCommandLineArgs(
-        createArgs("-zkSvr " + ZK_ADDR + " --addNode " + CLUSTER_NAME + " " + TEST_NODE));
-    verifyInstance(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
-    try {
-      ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addResource "
-          + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
-    } catch (Exception ignored) {
-    }
-    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
-    // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
-    ClusterSetup.processCommandLineArgs(createArgs(
-        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " true"));
-    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
-
-    ClusterSetup.processCommandLineArgs(createArgs(
-        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " false"));
-    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, false);
-    ClusterSetup.processCommandLineArgs(
-        createArgs("-zkSvr " + ZK_ADDR + " --dropNode " + CLUSTER_NAME + " " + TEST_NODE));
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testSetGetRemoveParticipantConfig() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    _clusterSetup.addCluster(clusterName, true);
-    _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
-
-    // test set/get/remove instance configs
-    String scopeArgs = clusterName + ",localhost_0";
-    String keyValueMap = "key1=value1,key2=value2";
-    String keys = "key1,key2";
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--setConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
-        keyValueMap
-    });
-
-    // getConfig returns json-formatted key-value pairs
-    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
-    ZNRecordSerializer serializer = new ZNRecordSerializer();
-    ZNRecord record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
-    Assert.assertEquals(record.getSimpleField("key1"), "value1");
-    Assert.assertEquals(record.getSimpleField("key2"), "value2");
-
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
-        keys
-    });
-    valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
-    record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
-    Assert.assertNull(record.getSimpleField("key1"));
-    Assert.assertNull(record.getSimpleField("key2"));
-
-    deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testEnableCluster() throws Exception {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-
-    // pause cluster
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"
-    });
-
-    Builder keyBuilder = new Builder(clusterName);
-    boolean exists = _gZkClient.exists(keyBuilder.pause().getPath());
-    Assert.assertTrue(exists, "pause node under controller should be created");
-
-    // resume cluster
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
-    });
-
-    exists = _gZkClient.exists(keyBuilder.pause().getPath());
-    Assert.assertFalse(exists, "pause node under controller should be removed");
-
-    // clean up
-    TestHelper.dropCluster(clusterName, _gZkClient);
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testDropInstance() throws Exception {
-    // drop without stop, should throw exception
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    String instanceAddress = "localhost:12918";
-    String instanceName = "localhost_12918";
-
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-
-    // add fake liveInstance
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName,
-        new ZkBaseDataAccessor.Builder<ZNRecord>()
-            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-            .setZkClientType(ZkBaseDataAccessor.ZkClientType.DEDICATED)
-            .setZkAddress(ZK_ADDR)
-            .build());
-
-    try {
-      Builder keyBuilder = new Builder(clusterName);
-      LiveInstance liveInstance = new LiveInstance(instanceName);
-      liveInstance.setSessionId("session_0");
-      liveInstance.setHelixVersion("version_0");
-      Assert.assertTrue(accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance));
-
-      // Drop instance without stopping the live instance, should throw HelixException
-      try {
-        ClusterSetup.processCommandLineArgs(
-            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
-        Assert.fail("Should throw exception since localhost_12918 is still in LIVEINSTANCES/");
-      } catch (HelixException expected) {
-        Assert.assertEquals(expected.getMessage(),
-            "Cannot drop instance " + instanceName + " as it is still live. Please stop it first");
-      }
-      accessor.removeProperty(keyBuilder.liveInstance(instanceName));
-
-      // drop without disable, should throw exception
-      try {
-        ClusterSetup.processCommandLineArgs(
-            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
-        Assert.fail("Should throw exception since " + instanceName + " is enabled");
-      } catch (HelixException expected) {
-        Assert.assertEquals(expected.getMessage(),
-            "Node " + instanceName + " is enabled, cannot drop");
-      }
-
-      // Disable the instance
-      ClusterSetup.processCommandLineArgs(
-          new String[]{"--zkSvr", ZK_ADDR, "--enableInstance", clusterName, instanceName, "false"});
-      // Drop the instance
-      ClusterSetup.processCommandLineArgs(
-          new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
-
-      Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig(instanceName)),
-          "Instance config should be dropped");
-      Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.instance(clusterName, instanceName)),
-          "Instance/host should be dropped");
-    } finally {
-      // Have to close the dedicated zkclient in accessor to avoid zkclient leakage.
-      accessor.getBaseDataAccessor().close();
-      TestHelper.dropCluster(clusterName, _gZkClient);
-
-      // Verify the cluster has been dropped.
-      Assert.assertTrue(TestHelper.verify(() -> {
-        if (_gZkClient.exists("/" + clusterName)) {
-          TestHelper.dropCluster(clusterName, _gZkClient);
-        }
-        return true;
-      }, TestHelper.WAIT_DURATION));
-    }
-
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testDisableResource() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-    // disable "TestDB0" resource
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "false"
-    });
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    Assert.assertFalse(idealState.isEnabled());
-    // enable "TestDB0" resource
-    ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "true"
-    });
-    idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    Assert.assertTrue(idealState.isEnabled());
-
-    TestHelper.dropCluster(clusterName, _gZkClient);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(expectedExceptions = HelixException.class)
@@ -551,5 +177,385 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertNull(listUrlFromZk);
     Assert.assertNull(cloudConfigFromZk.getCloudInfoProcessorName());
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
+  }
+
+  private boolean testZkAdminTimeoutHelper() {
+    boolean exceptionThrown = false;
+    ZKHelixAdmin admin = null;
+    try {
+      admin = new ZKHelixAdmin("localhost:27999");
+    } catch (Exception e) {
+      exceptionThrown = true;
+    } finally {
+      if (admin != null) {
+        admin.close();
+      }
+    }
+    return  exceptionThrown;
+  }
+
+  // Note, with mvn 3.6.1, we have a nasty bug that running "mvn test" under helix-core,
+  // all the bellow test will be invoked after other test including @AfterClass cleanup of this
+  // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
+  // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
+  @Test(dependsOnMethods = "testAddClusterAzureProvider")
+  public void testZkAdminTimeout() {
+    boolean exceptionThrown = testZkAdminTimeoutHelper();
+
+    Assert.assertTrue(exceptionThrown);
+    System.setProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "3");
+    exceptionThrown = testZkAdminTimeoutHelper();
+    long time = System.currentTimeMillis();
+
+    Assert.assertTrue(exceptionThrown);
+    Assert.assertTrue(System.currentTimeMillis() - time < 5000);
+  }
+
+
+  @Test(dependsOnMethods = "testZkAdminTimeout")
+  public void testAddInstancesToCluster() throws Exception {
+    String[] instanceAddresses = new String[3];
+    for (int i = 0; i < 3; i++) {
+      String currInstance = INSTANCE_PREFIX + i;
+      instanceAddresses[i] = currInstance;
+    }
+    String nextInstanceAddress = INSTANCE_PREFIX + 3;
+
+    _clusterSetup.addInstancesToCluster(CLUSTER_NAME, instanceAddresses);
+
+    // verify instances
+    for (String instance : instanceAddresses) {
+      verifyInstance(_gZkClient, CLUSTER_NAME, instance, true);
+    }
+
+    _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
+    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, true);
+    // re-add
+    boolean caughtException = false;
+    try {
+      _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
+    } catch (HelixException e) {
+      caughtException = true;
+    }
+    AssertJUnit.assertTrue(caughtException);
+  }
+
+
+  @Test(dependsOnMethods = "testAddInstancesToCluster")
+  public void testDisableDropInstancesFromCluster() throws Exception {
+    testAddInstancesToCluster();
+    String[] instanceAddresses = new String[3];
+    for (int i = 0; i < 3; i++) {
+      String currInstance = INSTANCE_PREFIX + i;
+      instanceAddresses[i] = currInstance;
+    }
+    String nextInstanceAddress = INSTANCE_PREFIX + 3;
+
+    boolean caughtException = false;
+    // drop without disabling
+    try {
+      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+    } catch (HelixException e) {
+      caughtException = true;
+    }
+    AssertJUnit.assertTrue(caughtException);
+
+    // disable
+    _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, nextInstanceAddress,
+        false);
+    verifyEnabled(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
+
+    // drop
+    _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+    verifyInstance(_gZkClient, CLUSTER_NAME, nextInstanceAddress, false);
+
+    // re-drop
+    caughtException = false;
+    try {
+      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+    } catch (HelixException e) {
+      caughtException = true;
+    }
+    AssertJUnit.assertTrue(caughtException);
+
+    // bad format disable, drop
+    String badFormatInstance = "badinstance";
+    caughtException = false;
+    try {
+      _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, badFormatInstance,
+          false);
+    } catch (HelixException e) {
+      caughtException = true;
+    }
+    AssertJUnit.assertTrue(caughtException);
+
+    caughtException = false;
+    try {
+      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, badFormatInstance);
+    } catch (HelixException e) {
+      caughtException = true;
+    }
+    AssertJUnit.assertTrue(caughtException);
+  }
+
+  @Test(dependsOnMethods = "testDisableDropInstancesFromCluster")
+  public void testAddResource() throws Exception {
+    try {
+      _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
+    } catch (Exception ignored) {
+    }
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
+  }
+
+  @Test(dependsOnMethods = "testAddResource")
+  public void testRemoveResource() throws Exception {
+    _clusterSetup.setupTestCluster(CLUSTER_NAME);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
+    _clusterSetup.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, false);
+  }
+
+  @Test(dependsOnMethods = "testRemoveResource")
+  public void testRebalanceCluster() throws Exception {
+    _clusterSetup.setupTestCluster(CLUSTER_NAME);
+    // testAddInstancesToCluster();
+    testAddResource();
+    _clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
+    verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
+  }
+
+
+  @Test(dependsOnMethods = "testRebalanceCluster")
+  public void testParseCommandLinesArgs() throws Exception {
+    // wipe ZK
+    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
+
+    ClusterSetup
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster " + CLUSTER_NAME));
+
+    // wipe again
+    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
+
+    _clusterSetup.setupTestCluster(CLUSTER_NAME);
+
+    ClusterSetup.processCommandLineArgs(
+        createArgs("-zkSvr " + ZK_ADDR + " --addNode " + CLUSTER_NAME + " " + TEST_NODE));
+    verifyInstance(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
+    try {
+      ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addResource "
+          + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
+    } catch (Exception ignored) {
+    }
+    verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
+    // ClusterSetup
+    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
+    ClusterSetup.processCommandLineArgs(createArgs(
+        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " true"));
+    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, true);
+
+    ClusterSetup.processCommandLineArgs(createArgs(
+        "-zkSvr " + ZK_ADDR + " --enableInstance " + CLUSTER_NAME + " " + TEST_NODE + " false"));
+    verifyEnabled(_gZkClient, CLUSTER_NAME, TEST_NODE, false);
+    ClusterSetup.processCommandLineArgs(
+        createArgs("-zkSvr " + ZK_ADDR + " --dropNode " + CLUSTER_NAME + " " + TEST_NODE));
+  }
+
+  @Test(dependsOnMethods = "testParseCommandLinesArgs")
+  public void testSetGetRemoveParticipantConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    _clusterSetup.addCluster(clusterName, true);
+    _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
+
+    // test set/get/remove instance configs
+    String scopeArgs = clusterName + ",localhost_0";
+    String keyValueMap = "key1=value1,key2=value2";
+    String keys = "key1,key2";
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--setConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
+        keyValueMap
+    });
+
+    // getConfig returns json-formatted key-value pairs
+    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    ZNRecord record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
+    Assert.assertEquals(record.getSimpleField("key1"), "value1");
+    Assert.assertEquals(record.getSimpleField("key2"), "value2");
+
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
+        keys
+    });
+    valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
+    Assert.assertNull(record.getSimpleField("key1"));
+    Assert.assertNull(record.getSimpleField("key2"));
+
+    deleteCluster(clusterName);
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test(dependsOnMethods = "testSetGetRemoveParticipantConfig")
+  public void testEnableCluster() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
+    // pause cluster
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"
+    });
+
+    Builder keyBuilder = new Builder(clusterName);
+    boolean exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    Assert.assertTrue(exists, "pause node under controller should be created");
+
+    // resume cluster
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
+    });
+
+    exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    Assert.assertFalse(exists, "pause node under controller should be removed");
+
+    // clean up
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test(dependsOnMethods = "testEnableCluster")
+  public void testDropInstance() throws Exception {
+    // drop without stop, should throw exception
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String instanceAddress = "localhost:12918";
+    String instanceName = "localhost_12918";
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
+    // add fake liveInstance
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName,
+        new ZkBaseDataAccessor.Builder<ZNRecord>()
+            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+            .setZkClientType(ZkBaseDataAccessor.ZkClientType.DEDICATED)
+            .setZkAddress(ZK_ADDR)
+            .build());
+
+    try {
+      Builder keyBuilder = new Builder(clusterName);
+      LiveInstance liveInstance = new LiveInstance(instanceName);
+      liveInstance.setSessionId("session_0");
+      liveInstance.setHelixVersion("version_0");
+      Assert.assertTrue(accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance));
+
+      // Drop instance without stopping the live instance, should throw HelixException
+      try {
+        ClusterSetup.processCommandLineArgs(
+            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+        Assert.fail("Should throw exception since localhost_12918 is still in LIVEINSTANCES/");
+      } catch (HelixException expected) {
+        Assert.assertEquals(expected.getMessage(),
+            "Cannot drop instance " + instanceName + " as it is still live. Please stop it first");
+      }
+      accessor.removeProperty(keyBuilder.liveInstance(instanceName));
+
+      // drop without disable, should throw exception
+      try {
+        ClusterSetup.processCommandLineArgs(
+            new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+        Assert.fail("Should throw exception since " + instanceName + " is enabled");
+      } catch (HelixException expected) {
+        Assert.assertEquals(expected.getMessage(),
+            "Node " + instanceName + " is enabled, cannot drop");
+      }
+
+      // Disable the instance
+      ClusterSetup.processCommandLineArgs(
+          new String[]{"--zkSvr", ZK_ADDR, "--enableInstance", clusterName, instanceName, "false"});
+      // Drop the instance
+      ClusterSetup.processCommandLineArgs(
+          new String[]{"--zkSvr", ZK_ADDR, "--dropNode", clusterName, instanceAddress});
+
+      Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig(instanceName)),
+          "Instance config should be dropped");
+      Assert.assertFalse(_gZkClient.exists(PropertyPathBuilder.instance(clusterName, instanceName)),
+          "Instance/host should be dropped");
+    } finally {
+      // Have to close the dedicated zkclient in accessor to avoid zkclient leakage.
+      accessor.getBaseDataAccessor().close();
+      TestHelper.dropCluster(clusterName, _gZkClient);
+
+      // Verify the cluster has been dropped.
+      Assert.assertTrue(TestHelper.verify(() -> {
+        if (_gZkClient.exists("/" + clusterName)) {
+          TestHelper.dropCluster(clusterName, _gZkClient);
+        }
+        return true;
+      }, TestHelper.WAIT_DURATION));
+    }
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test(dependsOnMethods = "testDropInstance")
+  public void testDisableResource() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+    // disable "TestDB0" resource
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "false"
+    });
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    Assert.assertFalse(idealState.isEnabled());
+    // enable "TestDB0" resource
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "true"
+    });
+    idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    Assert.assertTrue(idealState.isEnabled());
+
+    TestHelper.dropCluster(clusterName, _gZkClient);
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

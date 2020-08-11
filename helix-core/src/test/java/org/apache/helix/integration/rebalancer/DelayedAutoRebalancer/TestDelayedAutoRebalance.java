@@ -320,6 +320,8 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestDelayedAutoRebalance called!");
     if (_clusterVerifier != null) {
       _clusterVerifier.close();
     }

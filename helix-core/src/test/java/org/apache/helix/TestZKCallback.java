@@ -273,6 +273,9 @@ public class TestZKCallback extends ZkUnitTestBase {
 
   @AfterClass()
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestZkCallback called.");
+
     deleteCluster(clusterName);
   }
 

@@ -112,6 +112,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestResourceChangeDetector called.");
     for (MockParticipantManager participant : _participants) {
       if (participant != null && participant.isConnected()) {
         participant.syncStop();

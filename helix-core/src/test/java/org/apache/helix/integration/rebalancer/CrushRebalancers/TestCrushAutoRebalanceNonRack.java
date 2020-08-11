@@ -117,6 +117,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestCrushAutoRebalanceNonRack called.");
+
     if (_controller != null && _controller.isConnected()) {
       _controller.syncStop();
     }

@@ -122,6 +122,9 @@ public class TestP2PSingleTopState extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestP2PSingleTopState called.");
+
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
       p.syncStop();

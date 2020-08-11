@@ -146,6 +146,9 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestRoutingTableProviderPeriodicRefresh called.");
+
     // stop participants
     for (MockParticipantManager p : _participants) {
       p.syncStop();

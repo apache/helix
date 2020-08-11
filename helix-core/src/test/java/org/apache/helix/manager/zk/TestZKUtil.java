@@ -62,6 +62,9 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @AfterClass()
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestZkUtil called.");
+
     deleteCluster(clusterName);
   }
 

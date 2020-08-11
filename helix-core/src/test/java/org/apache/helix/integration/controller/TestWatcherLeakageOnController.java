@@ -54,6 +54,9 @@ public class TestWatcherLeakageOnController extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestWatcherLeakageOnController called.");
+
     deleteCluster(CLUSTER_NAME);
   }
 

@@ -272,6 +272,9 @@ import org.testng.annotations.Test;
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestMixedModeAutoRebalance called.");
+
     /**
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

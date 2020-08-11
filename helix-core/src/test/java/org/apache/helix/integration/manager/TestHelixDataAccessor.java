@@ -71,6 +71,9 @@ public class TestHelixDataAccessor extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestHelixDataAccessor called.");
+
     _zkClient.deleteRecursively("/HELIX");
   }
 

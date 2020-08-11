@@ -231,6 +231,8 @@ public class TestZnodeModify extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestZnodeModify called.");
     if (_gZkClient.exists(PREFIX)) {
       _gZkClient.deleteRecursively(PREFIX);
     }

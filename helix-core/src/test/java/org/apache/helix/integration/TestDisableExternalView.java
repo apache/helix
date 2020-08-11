@@ -157,6 +157,9 @@ public class TestDisableExternalView extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestDisableExternalView called.");
+
     // clean up
     _controller.syncStop();
     for (int i = 0; i < NODE_NR; i++) {

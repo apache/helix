@@ -89,6 +89,9 @@ public class TestErrorReplicaPersist extends ZkStandAloneCMTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " of TestErrorReplicaPersist called.");
+
     for (MockParticipantManager participant : _participants) {
       participant.syncStop();
     }

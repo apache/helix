@@ -23,16 +23,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +66,7 @@ public class HelixCustomCodeRunner {
   private String _resourceName;
   private final HelixManager _manager;
   private final String _zkAddr;
+  private final RealmAwareZkClient.RealmAwareZkConnectionConfig _connectionConfig;
   private GenericLeaderStandbyStateModelFactory _stateModelFty;
 
   /**
@@ -73,6 +77,19 @@ public class HelixCustomCodeRunner {
   public HelixCustomCodeRunner(HelixManager manager, String zkAddr) {
     _manager = manager;
     _zkAddr = zkAddr;
+    _connectionConfig = null;
+  }
+
+  /**
+   * Constructs a HelixCustomCodeRunner that will be run on multi-zk mode.
+   * @param manager
+   * @param connectionConfig config with a multi-realm fields set
+   */
+  public HelixCustomCodeRunner(HelixManager manager,
+      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig) {
+    _manager = manager;
+    _zkAddr = null;
+    _connectionConfig = connectionConfig;
   }
 
   /**
@@ -130,14 +147,23 @@ public class HelixCustomCodeRunner {
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(LEADER_STANDBY, _stateModelFty, _resourceName);
-    HelixZkClient zkClient = null;
+    RealmAwareZkClient zkClient = null;
     try {
       // manually add ideal state for participant leader using LeaderStandby
       // model
-      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-      clientConfig.setZkSerializer(new ZNRecordSerializer());
-      zkClient = SharedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || _zkAddr == null) {
+        // Use multi-zk mode (FederatedZkClient)
+        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+            new RealmAwareZkClient.RealmAwareZkClientConfig();
+        clientConfig.setZkSerializer(new ZNRecordSerializer());
+        zkClient = new FederatedZkClient(_connectionConfig, clientConfig);
+      } else {
+        // Use single-zk mode using the ZkAddr given
+        HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+        clientConfig.setZkSerializer(new ZNRecordSerializer());
+        zkClient = SharedZkClientFactory.getInstance()
+            .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+      }
 
       HelixDataAccessor accessor =
           new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<>(zkClient));

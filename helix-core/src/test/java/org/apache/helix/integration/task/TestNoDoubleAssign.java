@@ -42,7 +42,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestNoDoubleAssign extends TaskTestBase {
-  private static final int THREAD_COUNT = 1;
+  private static final int THREAD_COUNT = 10;
   private static final long CONNECTION_DELAY = 100L;
   private static final long POLL_DELAY = 50L;
   private static final String TASK_DURATION = "200";

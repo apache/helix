@@ -71,8 +71,9 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _successTopStateHandoffCounter;
   private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter;
   private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration;
-  private SimpleDynamicMetric<Long> _totalMessageReceived;
-
+  @Deprecated
+  private SimpleDynamicMetric<Long> _totalMessageReceived; // This should be counter since the value behavior is ever-increasing
+  private SimpleDynamicMetric<Long> _totalMessageReceivedCounter;
   // Histograms
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;
   private HistogramDynamicMetric _partitionTopStateHandoffHelixLatencyGauge;
@@ -138,6 +139,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));
 
     _totalMessageReceived = new SimpleDynamicMetric("TotalMessageReceived", 0L);
+    _totalMessageReceivedCounter = new SimpleDynamicMetric("TotalMessageReceivedCounter", 0L);
     _maxSinglePartitionTopStateHandoffDuration =
         new SimpleDynamicMetric("MaxSinglePartitionTopStateHandoffDurationGauge", 0L);
     _failedTopStateHandoffCounter = new SimpleDynamicMetric("FailedTopStateHandoffCounter", 0L);
@@ -202,8 +204,13 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _totalMessageReceived.getValue();
   }
 
+  @Deprecated
   public synchronized void increaseMessageCount(long messageReceived) {
     _totalMessageReceived.updateValue(_totalMessageReceived.getValue() + messageReceived);
+  }
+
+  public synchronized void increaseMessageCountWithCounter(long messageReceived) {
+    _totalMessageReceivedCounter.updateValue(_totalMessageReceivedCounter.getValue() + messageReceived);
   }
 
   public String getResourceName() {
@@ -467,6 +474,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         _partitionTopStateHandoffHelixLatencyGauge,
         _partitionTopStateNonGracefulHandoffDurationGauge,
         _totalMessageReceived,
+        _totalMessageReceivedCounter,
         _numPendingStateTransitions,
         _rebalanceState
     );

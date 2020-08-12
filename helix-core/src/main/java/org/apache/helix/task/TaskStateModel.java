@@ -336,7 +336,7 @@ public class TaskStateModel extends StateModel {
     }
 
     try {
-      // Import and instantiate TaskFactory class
+      // Import and instantiate TaskFactory class.
       TaskFactory taskFactory =
           (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
 

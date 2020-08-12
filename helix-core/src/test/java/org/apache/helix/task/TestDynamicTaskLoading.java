@@ -80,6 +80,11 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     }
   }
 
+  /**
+   * Submit a workflow consisting of a job with a MockTask task.
+   * @param workflowName name of the workflow
+   * @param driver {@link TaskDriver} to submit workflowName to
+   */
   private void submitWorkflow(String workflowName, TaskDriver driver) {
     JobConfig.Builder job = new JobConfig.Builder();
     job.setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "100"));
@@ -95,7 +100,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @Test
   public void testDynamicTaskLoading() throws Exception {
-    // Add task definition information as a ZNRecord.
+    // Add task definition information as a DynamicTaskConfig.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
     DynamicTaskConfig taskConfig =
@@ -112,6 +117,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
+      // Wait for the workflow to either complete or fail.
       TaskState finalState =
           driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.COMPLETED);
@@ -122,7 +128,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @Test
   public void testDynamicTaskLoadingNonexistingJar() throws Exception {
-    // Add task definition information as a ZNRecord.
+    // Add task definition information as a DynamicTaskConfig.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
     DynamicTaskConfig taskConfig =
@@ -139,6 +145,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
+      // Wait for the workflow to either complete or fail.
       TaskState finalState =
           driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
@@ -159,6 +166,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
+      // Wait for the workflow to either complete or fail.
       TaskState finalState =
           driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
@@ -169,7 +177,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @Test
   public void testDynamicTaskLoadingNonexistingTaskClass() throws Exception {
-    // Add task definition information as a ZNRecord.
+    // Add task definition information as a DynamicTaskConfig.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.RandomTask");
     DynamicTaskConfig taskConfig =
@@ -186,6 +194,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
+      // Wait for the workflow to either complete or fail.
       TaskState finalState =
           driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
@@ -196,7 +205,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @Test
   public void testDynamicTaskLoadingNonexistingTaskFactory() throws Exception {
-    // Add task definition information as a ZNRecord.
+    // Add task definition information as a DynamicTaskConfig.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
     DynamicTaskConfig taskConfig =
@@ -213,6 +222,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
+      // Wait for the workflow to either complete or fail.
       TaskState finalState =
           driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);

@@ -188,25 +188,31 @@ public class ParticipantManager {
       LOG.info("auto registration is false for cluster" + _clusterName);
     }
 
+    InstanceConfig instanceConfig;
     if (!ZKUtil.isInstanceSetup(_zkclient, _clusterName, _instanceName, _instanceType)) {
       if (!autoJoin) {
         throw new HelixException("Initial cluster structure is not set up for instance: "
             + _instanceName + ", instanceType: " + _instanceType);
-      } else {
-        if (!autoRegistration) {
-          LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
-          _helixAdmin.addInstance(_clusterName, HelixUtil.composeInstanceConfig(_instanceName));
-        } else {
-          LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
-          CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
-          String domain = cloudInstanceInformation
-              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
-
-          InstanceConfig instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
-          instanceConfig.setDomain(domain);
-          _helixAdmin.addInstance(_clusterName, instanceConfig);
-        }
       }
+      if (!autoRegistration) {
+        LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+      } else {
+        LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
+        CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
+        String domain = cloudInstanceInformation
+            .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+        instanceConfig.setDomain(domain);
+      }
+      instanceConfig
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
+      _helixAdmin.addInstance(_clusterName, instanceConfig);
+    } else {
+      _configAccessor.getInstanceConfig(_clusterName, _instanceName)
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
     }
   }
 

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -278,43 +280,17 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * simpler than the CRUSH based rebalancer.
    */
   private String computeFaultZone(ClusterConfig clusterConfig, InstanceConfig instanceConfig) {
-    if (!clusterConfig.isTopologyAwareEnabled()) {
-      // Instance name is the default fault zone if topology awareness is false.
-      return instanceConfig.getInstanceName();
-    }
-    String topologyStr = clusterConfig.getTopology();
-    String faultZoneType = clusterConfig.getFaultZoneType();
-    if (topologyStr == null || faultZoneType == null) {
-      LOG.debug("Topology configuration is not complete. Topology define: {}, Fault Zone Type: {}",
-          topologyStr, faultZoneType);
-      // Use the instance name, or the deprecated ZoneId field (if exists) as the default fault
-      // zone.
-      String zoneId = instanceConfig.getZoneId();
-      return zoneId == null ? instanceConfig.getInstanceName() : zoneId;
-    } else {
-      // Get the fault zone information from the complete topology definition.
-      String[] topologyKeys = topologyStr.trim().split("/");
-      if (topologyKeys.length == 0 || Arrays.stream(topologyKeys)
-          .noneMatch(type -> type.equals(faultZoneType))) {
-        throw new HelixException(
-            "The configured topology definition is empty or does not contain the fault zone type.");
-      }
+    LinkedHashMap<String, String> instanceTopologyMap = Topology
+        .computeInstanceTopologyMap(clusterConfig, instanceConfig.getInstanceName(), instanceConfig,
+            true /*earlyQuitTillFaultZone*/);
 
-      Map<String, String> domainAsMap = instanceConfig.getDomainAsMap();
-      StringBuilder faultZoneStringBuilder = new StringBuilder();
-      for (String key : topologyKeys) {
-        if (!key.isEmpty()) {
-          // if a key does not exist in the instance domain config, apply the default domain value.
-          faultZoneStringBuilder.append(domainAsMap.getOrDefault(key, "Default_" + key));
-          if (key.equals(faultZoneType)) {
-            break;
-          } else {
-            faultZoneStringBuilder.append('/');
-          }
-        }
-      }
-      return faultZoneStringBuilder.toString();
+    StringBuilder faultZoneStringBuilder = new StringBuilder();
+    for (Map.Entry<String, String> entry : instanceTopologyMap.entrySet()) {
+      faultZoneStringBuilder.append(entry.getValue());
+      faultZoneStringBuilder.append('/');
     }
+    faultZoneStringBuilder.setLength(faultZoneStringBuilder.length() - 1);
+    return faultZoneStringBuilder.toString();
   }
 
   /**

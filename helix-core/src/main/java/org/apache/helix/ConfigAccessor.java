@@ -945,7 +945,7 @@ public class ConfigAccessor {
    * replaced with the value of the same field in given config if it presents. If there is new field
    * in given config but not in current config, the field will be added into the current config..
    * The list fields and map fields will be replaced as a single entry.
-   * The current Cluster config will be replaced with the given clusterConfig. WARNING: This is not
+   * The current instanceConfig will be replaced with the given instanceConfig. WARNING: This is not
    * thread-safe or concurrent updates safe.
    * *
    *

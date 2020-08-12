@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -634,5 +635,20 @@ public class InstanceConfig extends HelixProperty {
       config.setHostName(instanceId);
     }
     return config;
+  }
+
+  /**
+   * Validate if the topology related settings (Domain or ZoneId) in the given instanceConfig
+   * are valid and align with current clusterConfig.
+   * This function should be called when instance added to cluster or caller updates instanceConfig.
+   *
+   * @throws IllegalArgumentException
+   */
+  public boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
+      String instanceName) {
+    //IllegalArgumentException will be thrown here if the input is not valid.
+    Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
+        false /*earlyQuitForFaultZone*/);
+    return true;
   }
 }

@@ -23,9 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,10 +56,12 @@ public class Topology {
   private final ClusterConfig _clusterConfig;
   private static final String DEFAULT_DOMAIN_PREFIX = "Helix_default_";
 
-  private String _faultZoneType;
-  private String _endNodeType;
-  private LinkedHashSet<String> _clusterTopologyKeys;
-  private Map<String, String> _defaultDomainPathValues = new HashMap<>();
+  static class ClusterTopologyConfig {
+    String endNodeType;
+    String faultZoneType;
+    LinkedHashMap<String, String> topologyKeyDefaultValue = new LinkedHashMap<>();
+  }
+  private ClusterTopologyConfig _clusterTopologyConfig;
 
   public Topology(final List<String> allNodes, final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
@@ -79,51 +79,17 @@ public class Topology {
           _allInstances.removeAll(_instanceConfigMap.keySet())));
     }
     _clusterConfig = clusterConfig;
-    _clusterTopologyKeys = new LinkedHashSet<>();
+    _clusterTopologyConfig = getClusterTopologySetting(clusterConfig);
 
-    if (clusterConfig.isTopologyAwareEnabled()) {
-      String topologyDef = _clusterConfig.getTopology();
-      if (topologyDef != null) {
-        // Customized cluster topology definition is configured.
-        String[] topologyKeys = topologyDef.trim().split("/");
-        int lastValidTypeIdx = 0;
-        for (int i = 0; i < topologyKeys.length; i++) {
-          if (topologyKeys[i].length() != 0) {
-            _clusterTopologyKeys.add(topologyKeys[i]);
-            _defaultDomainPathValues.put(topologyKeys[i], DEFAULT_DOMAIN_PREFIX + topologyKeys[i]);
-            lastValidTypeIdx = i;
-          }
-        }
-        if (_clusterTopologyKeys.size() == 0) {
-          throw new HelixException("Invalid cluster topology definition " + topologyDef);
-        }
-        _endNodeType = topologyKeys[lastValidTypeIdx];
-        _faultZoneType = clusterConfig.getFaultZoneType();
-        if (_faultZoneType == null) {
-          _faultZoneType = _endNodeType;
-        } else if (!_clusterTopologyKeys.contains(_faultZoneType)) {
-          throw new HelixException(String
-              .format("Invalid fault zone type %s, not present in topology definition %s.",
-                  _faultZoneType, topologyDef));
-        }
-      } else {
-        // Use default cluster topology definition, i,e. /root/zone/instance
-        _endNodeType = Types.INSTANCE.name();
-        _faultZoneType = Types.ZONE.name();
-      }
-    } else {
-      _endNodeType = Types.INSTANCE.name();
-      _faultZoneType = Types.INSTANCE.name();
-    }
     _root = createClusterTree();
   }
 
   public String getEndNodeType() {
-    return _endNodeType;
+    return _clusterTopologyConfig.endNodeType;
   }
 
   public String getFaultZoneType() {
-    return _faultZoneType;
+    return _clusterTopologyConfig.faultZoneType;
   }
 
   public Node getRootNode() {
@@ -169,7 +135,8 @@ public class Topology {
     return newRoot;
   }
 
-  private static Node cloneTree(Node root, Map<Node, Integer> newNodeWeight, Set<Node> failedNodes) {
+  private static Node cloneTree(Node root, Map<Node, Integer> newNodeWeight,
+      Set<Node> failedNodes) {
     Node newRoot = root.clone();
     if (newNodeWeight.containsKey(root)) {
       newRoot.setWeight(newNodeWeight.get(root));
@@ -204,8 +171,9 @@ public class Topology {
       InstanceConfig insConfig = _instanceConfigMap.get(instanceName);
       try {
         LinkedHashMap<String, String> instanceTopologyMap =
-            computeInstanceTopologyMap(_clusterConfig.isTopologyAwareEnabled(), instanceName,
-                insConfig, _clusterTopologyKeys);
+            computeInstanceTopologyMapHelper(_clusterConfig.isTopologyAwareEnabled(), instanceName,
+                insConfig, _clusterTopologyConfig.topologyKeyDefaultValue,
+                null /*faultZoneForEarlyQuit*/);
         int weight = insConfig.getWeight();
         if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
           weight = DEFAULT_NODE_WEIGHT;
@@ -231,19 +199,66 @@ public class Topology {
   }
 
   /**
-   * This function returns a LinkedHashMap<String, String> object representing
-   * the topology path for an instance.
-   * LinkedHashMap is used here since the order of the path needs to be preserved
-   * when creating the topology tree.
+   * Populate faultZone, endNodetype and and a LinkedHashMap containing pathKeys default values for
+   * clusterConfig.Topology. The LinkedHashMap will be empty if clusterConfig.Topology is unset.
    *
-   * @return an LinkedHashMap object representing the topology path for the input instance.
+   * @return an Instance of Topology.ClusterTopologyConfig.
    */
-  private LinkedHashMap<String, String> computeInstanceTopologyMap(boolean isTopologyAwareEnabled,
-      String instanceName, InstanceConfig instanceConfig, LinkedHashSet<String> clusterTopologyKeys)
+  private static ClusterTopologyConfig getClusterTopologySetting(ClusterConfig clusterConfig) {
+
+    ClusterTopologyConfig clusterTopologyConfig = new ClusterTopologyConfig();
+    if (clusterConfig.isTopologyAwareEnabled()) {
+      String topologyDef = clusterConfig.getTopology();
+      if (topologyDef != null) {
+        String[] topologyKeys = topologyDef.trim().split("/");
+        int lastValidTypeIdx = 0;
+        for (int i = 0; i < topologyKeys.length; i++) {
+          if (topologyKeys[i].length() != 0) {
+            clusterTopologyConfig.topologyKeyDefaultValue
+                .put(topologyKeys[i], DEFAULT_DOMAIN_PREFIX + topologyKeys[i]);
+            lastValidTypeIdx = i;
+          }
+        }
+        if (clusterTopologyConfig.topologyKeyDefaultValue.size() == 0) {
+          throw new IllegalArgumentException("Invalid cluster topology definition " + topologyDef);
+        }
+        clusterTopologyConfig.endNodeType = topologyKeys[lastValidTypeIdx];
+        String faultZoneType = clusterConfig.getFaultZoneType();
+        if (faultZoneType == null) {
+          clusterTopologyConfig.faultZoneType = clusterTopologyConfig.endNodeType;
+        } else if (!clusterTopologyConfig.topologyKeyDefaultValue.containsKey(faultZoneType)) {
+          throw new HelixException(String
+              .format("Invalid fault zone type %s, not present in topology definition %s.",
+                  faultZoneType, clusterConfig.getTopology()));
+        } else {
+          clusterTopologyConfig.faultZoneType = faultZoneType;
+        }
+      } else {
+        // Use default cluster topology definition, i,e. /root/zone/instance
+        clusterTopologyConfig.endNodeType = Types.INSTANCE.name();
+        clusterTopologyConfig.faultZoneType = Types.ZONE.name();
+      }
+    } else {
+      clusterTopologyConfig.endNodeType = Types.INSTANCE.name();
+      clusterTopologyConfig.faultZoneType = Types.INSTANCE.name();
+    }
+    return clusterTopologyConfig;
+  }
+
+  /**
+   * @param clusterTopologyKeyDefaultValue  a LinkedHashMap where keys are cluster topology path and
+   *                                       values are their corresponding default value. The entries
+   *                                        are ordered by ClusterConfig.topology setting.
+   * @param faultZoneForEarlyQuit   this flag is set to true only if caller wants the path
+   *                                to faultZone instead the whole path for the instance.
+   */
+  private static LinkedHashMap<String, String> computeInstanceTopologyMapHelper(
+      boolean isTopologyAwareEnabled, String instanceName, InstanceConfig instanceConfig,
+      LinkedHashMap<String, String> clusterTopologyKeyDefaultValue, String faultZoneForEarlyQuit)
       throws IllegalArgumentException {
     LinkedHashMap<String, String> instanceTopologyMap = new LinkedHashMap<>();
     if (isTopologyAwareEnabled) {
-      if (clusterTopologyKeys.size() == 0) {
+      if (clusterTopologyKeyDefaultValue.size() == 0) {
         // Return a ordered map using default cluster topology definition, i,e. /root/zone/instance
         String zone = instanceConfig.getZoneId();
         if (zone == null) {
@@ -252,6 +267,9 @@ public class Topology {
                   instanceName));
         }
         instanceTopologyMap.put(Types.ZONE.name(), zone);
+        if (faultZoneForEarlyQuit != null) {
+          return instanceTopologyMap;
+        }
         instanceTopologyMap.put(Types.INSTANCE.name(), instanceName);
       } else {
         /*
@@ -265,21 +283,24 @@ public class Topology {
                   instanceName));
         }
         int numOfMatchedKeys = 0;
-        for (String key : clusterTopologyKeys) {
+        for (String key : clusterTopologyKeyDefaultValue.keySet()) {
           // if a key does not exist in the instance domain config, using the default domain value.
           String value = domainAsMap.get(key);
           if (value == null || value.length() == 0) {
-            value = _defaultDomainPathValues.get(key);
+            value = clusterTopologyKeyDefaultValue.get(key);
           } else {
             numOfMatchedKeys++;
           }
           instanceTopologyMap.put(key, value);
+          if (key.equals(faultZoneForEarlyQuit)) {
+            return instanceTopologyMap;
+          }
         }
         if (numOfMatchedKeys != domainAsMap.size()) {
           logger.warn(
               "Key-value pairs in InstanceConfig.Domain {} do not align with keys in ClusterConfig.Topology "
                   + "{}, using default domain value instead", instanceConfig.getDomainAsString(),
-              clusterTopologyKeys.toString());
+              clusterTopologyKeyDefaultValue.keySet());
         }
       }
     } else {
@@ -287,6 +308,30 @@ public class Topology {
       instanceTopologyMap.put(Types.INSTANCE.name(), instanceName);
     }
     return instanceTopologyMap;
+  }
+
+  /**
+   * This function returns a LinkedHashMap<String, String> object representing
+   * the topology path for an instance.
+   * LinkedHashMap is used here since the order of the path needs to be preserved
+   * when creating the topology tree.
+   *
+   * @param clusterConfig         clusterConfig of the given cluster.
+   * @param instanceName          name of the instance.
+   * @param instanceConfig        instanceConfig to be checked.
+   * @param earlyQuitForFaultZone Set to true if we only need the path till faultZone.
+   *
+   * @return an LinkedHashMap object representing the topology path for the input instance.
+   * @throws IllegalArgumentException if input is not valid.
+   */
+  public static LinkedHashMap<String, String> computeInstanceTopologyMap(
+      ClusterConfig clusterConfig, String instanceName, InstanceConfig instanceConfig,
+      boolean earlyQuitForFaultZone) {
+    ClusterTopologyConfig clusterTopologyConfig = getClusterTopologySetting(clusterConfig);
+    String faultZoneForEarlyQuit =
+        earlyQuitForFaultZone ? clusterTopologyConfig.faultZoneType : null;
+    return computeInstanceTopologyMapHelper(clusterConfig.isTopologyAwareEnabled(), instanceName,
+        instanceConfig, clusterTopologyConfig.topologyKeyDefaultValue, faultZoneForEarlyQuit);
   }
 
   /**
@@ -304,7 +349,7 @@ public class Topology {
       if (!current.hasChild(pathValue)) {
         buildNewNode(pathValue, path, current, instanceName, instanceWeight,
             liveInstances.contains(instanceName), pathNodes);
-      } else if (path.equals(_endNodeType)) {
+      } else if (path.equals(_clusterTopologyConfig.endNodeType)) {
         throw new HelixException(
             "Failed to add topology node because duplicate leaf nodes are not allowed. Duplicate node name: "
                 + pathValue);
@@ -321,7 +366,7 @@ public class Topology {
     n.setType(type);
     n.setParent(parent);
     // if it is leaf node, create an InstanceNode instead
-    if (type.equals(_endNodeType)) {
+    if (type.equals(_clusterTopologyConfig.endNodeType)) {
       n = new InstanceNode(n, instanceName);
       if (isLiveInstance) {
         // node is alive

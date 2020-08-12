@@ -41,6 +41,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
@@ -310,20 +311,34 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
     InstanceConfig instanceConfig = new InstanceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
+
     try {
       switch (command) {
-      case update:
-        configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
-        break;
-      case delete:
-        HelixConfigScope instanceScope =
-            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
-                .forCluster(clusterId).forParticipant(instanceName).build();
-        configAccessor.remove(instanceScope, record);
-        break;
-      default:
-        return badRequest(String.format("Unsupported command: %s", command));
+        case update:
+          /*
+           * The new instanceConfig will be merged with existing one.
+           * Even if the instance is disabled, non-valid instance topology config will cause rebalance
+           * failure. We are doing the check whenever user updates InstanceConfig.
+           */
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
+          configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+          break;
+        case delete:
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
+          HelixConfigScope instanceScope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+                  .forCluster(clusterId).forParticipant(instanceName).build();
+          configAccessor.remove(instanceScope, record);
+          break;
+        default:
+          return badRequest(String.format("Unsupported command: %s", command));
       }
+    } catch (IllegalArgumentException ex) {
+      LOG.error(String.format("Invalid topology setting for Instance : {}. Fail the config update",
+          instanceName), ex);
+      return serverError(ex);
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
@@ -543,5 +558,24 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
   private boolean validInstance(JsonNode node, String instanceName) {
     return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
+  }
+
+  private boolean validateDeltaTopologySettingInInstanceConfig(String clusterName,
+      String instanceName, ConfigAccessor configAccessor, InstanceConfig newInstanceConfig,
+      Command command) {
+    InstanceConfig originalInstanceConfigCopy =
+        configAccessor.getInstanceConfig(clusterName, instanceName);
+    if (command == Command.delete) {
+      for (Map.Entry<String, String> entry : newInstanceConfig.getRecord().getSimpleFields()
+          .entrySet()) {
+        originalInstanceConfigCopy.getRecord().getSimpleFields().remove(entry.getKey());
+      }
+    } else {
+      originalInstanceConfigCopy.getRecord().update(newInstanceConfig.getRecord());
+    }
+
+    return originalInstanceConfigCopy
+        .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
+            instanceName);
   }
 }

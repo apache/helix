@@ -299,7 +299,7 @@ public class TaskStateModel extends StateModel {
     } catch (ClassNotFoundException e) {
       LOG.error("Failed to load Task class " + className + " for new task in instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalStateException("Null TaskFactory for task");
+      throw new IllegalStateException("Class not found for task");
     }
   }
 
@@ -314,14 +314,15 @@ public class TaskStateModel extends StateModel {
         .exists(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH, 0)) {
       return;
     }
-    // Read ZNRecord containing task definition information.
+
+    // Read DynamicTaskConfig containing task definition information.
     DynamicTaskConfig taskConfig = new DynamicTaskConfig(
         _manager.getHelixDataAccessor().getBaseDataAccessor()
             .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null, 0));
     if (taskConfig.getTaskConfigZNRecord() == null) {
       LOG.error("Failed to read ZNRecord for task " + command + " for instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalStateException("No ZNRecord for task " + command);
+      throw new IllegalArgumentException("No ZNRecord for task " + command);
     }
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
@@ -334,19 +335,18 @@ public class TaskStateModel extends StateModel {
       loadClass(classLoader, taskClass);
     }
 
-    // Import and instantiate TaskFactory class
-    TaskFactory taskFactory;
     try {
-      taskFactory =
+      // Import and instantiate TaskFactory class
+      TaskFactory taskFactory =
           (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
+
+      // Register the TaskFactory.
+      _taskFactoryRegistry.put(command, taskFactory);
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Failed to instantiate TaskFactory class for new task in instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
       throw new IllegalStateException("Failed to instantiate TaskFactory for task");
     }
-
-    // Register the TaskFactory.
-    _taskFactoryRegistry.put(command, taskFactory);
   }
 
   private void startTask(Message msg, String taskPartition) {

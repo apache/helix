@@ -150,6 +150,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Assert.assertFalse(_metadataStore.getBaseline().isEmpty());
     Assert.assertFalse(_metadataStore.getBestPossibleAssignment().isEmpty());
     // Calculate with empty resource list. The rebalancer shall clean up all the assignment status.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.IDEAL_STATE));
+    clusterData.getIdealStates().clear();
     newIdealStates = rebalancer
         .computeNewIdealStates(clusterData, Collections.emptyMap(), new CurrentStateOutput());
     Assert.assertTrue(newIdealStates.isEmpty());

@@ -36,9 +36,11 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
+import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -66,6 +68,7 @@ public class TestWagedRebalance extends ZkTestBase {
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   protected ClusterControllerManager _controller;
+  protected AssignmentMetadataStore _assignmentMetadataStore;
 
   List<MockParticipantManager> _participants = new ArrayList<>();
   Map<String, String> _nodeToTagMap = new HashMap<>();
@@ -103,6 +106,23 @@ public class TestWagedRebalance extends ZkTestBase {
     _controller.syncStart();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
+
+    // It's a hacky way to workaround the package restriction. Note that we still want to hide the
+    // AssignmentMetadataStore constructor to prevent unexpected update to the assignment records.
+    _assignmentMetadataStore =
+        new AssignmentMetadataStore(new ZkBucketDataAccessor(ZK_ADDR), CLUSTER_NAME) {
+          public Map<String, ResourceAssignment> getBaseline() {
+            // Ensure this metadata store always read from the ZK without using cache.
+            super.reset();
+            return super.getBaseline();
+          }
+
+          public synchronized Map<String, ResourceAssignment> getBestPossibleAssignment() {
+            // Ensure this metadata store always read from the ZK without using cache.
+            super.reset();
+            return super.getBestPossibleAssignment();
+          }
+        };
   }
 
   protected void addInstanceConfig(String storageNodeName, int seqNo, int tagCount) {
@@ -118,7 +138,8 @@ public class TestWagedRebalance extends ZkTestBase {
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica);
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -315,8 +336,7 @@ public class TestWagedRebalance extends ZkTestBase {
     Thread.sleep(300);
 
     validate(newReplicaFactor);
-    ev =
-        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+    ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
     Assert.assertEquals(ev.getPartitionSet().size(), PARTITIONS + 2);
   }
 
@@ -412,7 +432,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.getClusterManagementTool()
           .enableInstance(CLUSTER_NAME, p.getInstanceName(), false);
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
-
     }
 
     int j = 0;
@@ -490,7 +509,8 @@ public class TestWagedRebalance extends ZkTestBase {
           IdealState idealState =
               _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
           idealState.setMaxPartitionsPerInstance(1);
-          _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, idealState);
+          _gSetupTool.getClusterManagementTool()
+              .setResourceIdealState(CLUSTER_NAME, db, idealState);
         }
         _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
         _allDBs.add(db);
@@ -546,7 +566,8 @@ public class TestWagedRebalance extends ZkTestBase {
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica, _replica);
+      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+          _replica);
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
@@ -653,6 +674,36 @@ public class TestWagedRebalance extends ZkTestBase {
     Assert.assertFalse(newEV.equals(oldEV));
   }
 
+  @Test(dependsOnMethods = "test")
+  public void testRecreateSameResource() throws InterruptedException {
+    String dbName = "Test-DB-" + TestHelper.getTestMethodName();
+    createResourceWithWagedRebalance(CLUSTER_NAME, dbName,
+        BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
+    _allDBs.add(dbName);
+    // waiting for the DBs being dropped.
+    Thread.sleep(300);
+    validate(_replica);
+
+    // Record the current Ideal State and Resource Config for recreating.
+    IdealState is =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+
+    // Drop preserved the DB.
+    _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, dbName);
+    _allDBs.remove(dbName);
+    // waiting for the DBs being dropped.
+    Thread.sleep(100);
+    validate(_replica);
+
+    // Recreate the DB.
+    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, is);
+    _allDBs.add(dbName);
+    // waiting for the DBs to be recreated.
+    Thread.sleep(100);
+    validate(_replica);
+  }
+
   private void validate(int expectedReplica) {
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
@@ -665,6 +716,7 @@ public class TestWagedRebalance extends ZkTestBase {
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, expectedReplica);
     }
+    _clusterVerifier.close();
   }
 
   /**
@@ -702,6 +754,12 @@ public class TestWagedRebalance extends ZkTestBase {
     } finally {
       _clusterVerifier.close();
     }
+
+    // Verify the DBs are all removed and the persisted assignment records are cleaned up.
+    Assert.assertEquals(
+        _gSetupTool.getClusterManagementTool().getResourcesInCluster(CLUSTER_NAME).size(), 0);
+    Assert.assertTrue(_assignmentMetadataStore.getBestPossibleAssignment().isEmpty());
+    Assert.assertTrue(_assignmentMetadataStore.getBaseline().isEmpty());
   }
 
   @AfterClass

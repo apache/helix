@@ -20,6 +20,7 @@ package org.apache.helix.integration.rebalancer.WagedRebalancer;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -304,6 +305,19 @@ public class TestWagedRebalance extends ZkTestBase {
     ExternalView ev =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
     Assert.assertEquals(ev.getPartitionSet().size(), PARTITIONS + 1);
+
+    // Customize the partition list instead of calling rebalance.
+    // So there is no other changes in the IdealState. The rebalancer shall still trigger
+    // new baseline calculation in this case.
+    is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+    is.setPreferenceList(dbName + "_customizedPartition", Collections.EMPTY_LIST);
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
+    Thread.sleep(300);
+
+    validate(newReplicaFactor);
+    ev =
+        _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
+    Assert.assertEquals(ev.getPartitionSet().size(), PARTITIONS + 2);
   }
 
   @Test(dependsOnMethods = "test")

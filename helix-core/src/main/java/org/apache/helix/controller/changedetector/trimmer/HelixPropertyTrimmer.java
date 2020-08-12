@@ -19,7 +19,7 @@ package org.apache.helix.controller.changedetector.trimmer;
  * under the License.
  */
 
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -57,38 +57,49 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
    * @param originalProperty
    */
   protected ZNRecord doTrim(T originalProperty) {
+    ZNRecord originalZNRecord = originalProperty.getRecord();
     ZNRecord trimmedZNRecord = new ZNRecord(originalProperty.getId());
-    for (Map.Entry<FieldType, Set<String>> fieldEntry : getNonTrimmableFields(
-        originalProperty).entrySet()) {
+    Map<FieldType, Set<String>> nonTrimmableFields = getNonTrimmableFields(originalProperty);
+
+    // Ensure the keys of all map fields and list fields are preserved even after the trim.
+    // The keys of list and map fields are relatively stable and contain important information. So
+    // they should not be trimmed.
+    originalZNRecord.getMapFields().keySet().stream()
+        .forEach(key -> trimmedZNRecord.setMapField(key, Collections.EMPTY_MAP));
+    originalZNRecord.getListFields().keySet().stream()
+        .forEach(key -> trimmedZNRecord.setListField(key, Collections.EMPTY_LIST));
+
+    // Copy the non-trimmable values to the trimmed record.
+    for (Map.Entry<FieldType, Set<String>> fieldEntry : nonTrimmableFields.entrySet()) {
       FieldType fieldType = fieldEntry.getKey();
       Set<String> fieldKeySet = fieldEntry.getValue();
       if (null == fieldKeySet || fieldKeySet.isEmpty()) {
         continue;
       }
       switch (fieldType) {
-      case SIMPLE_FIELD:
-        fieldKeySet.stream().forEach(fieldKey -> {
-          String value = originalProperty.getRecord().getSimpleField(fieldKey);
-          if (null != value) {
-            trimmedZNRecord.setSimpleField(fieldKey, value);
-          }
-        });
-      case LIST_FIELD:
-        fieldKeySet.stream().forEach(fieldKey -> {
-          List<String> values = originalProperty.getRecord().getListField(fieldKey);
-          if (null != values) {
-            trimmedZNRecord.setListField(fieldKey, values);
-          }
-        });
-      case MAP_FIELD:
-        fieldKeySet.stream().forEach(fieldKey -> {
-          Map<String, String> valueMap = originalProperty.getRecord().getMapField(fieldKey);
-          if (null != valueMap) {
-            trimmedZNRecord.setMapField(fieldKey, valueMap);
-          }
-        });
-      default:
-        break;
+        case SIMPLE_FIELD:
+          fieldKeySet.stream().forEach(fieldKey -> {
+            if (originalZNRecord.getSimpleFields().containsKey(fieldKey)) {
+              trimmedZNRecord.setSimpleField(fieldKey, originalZNRecord.getSimpleField(fieldKey));
+            }
+          });
+          break;
+        case LIST_FIELD:
+          fieldKeySet.stream().forEach(fieldKey -> {
+            if (originalZNRecord.getListFields().containsKey(fieldKey)) {
+              trimmedZNRecord.setListField(fieldKey, originalZNRecord.getListField(fieldKey));
+            }
+          });
+          break;
+        case MAP_FIELD:
+          fieldKeySet.stream().forEach(fieldKey -> {
+            if (originalZNRecord.getMapFields().containsKey(fieldKey)) {
+              trimmedZNRecord.setMapField(fieldKey, originalZNRecord.getMapField(fieldKey));
+            }
+          });
+          break;
+        default:
+          break;
       }
     }
     return trimmedZNRecord;

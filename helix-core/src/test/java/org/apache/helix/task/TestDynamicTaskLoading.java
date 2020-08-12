@@ -112,7 +112,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+      TaskState finalState =
+          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.COMPLETED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -138,7 +139,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+      TaskState finalState =
+          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -157,7 +159,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+      TaskState finalState =
+          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -183,7 +186,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+      TaskState finalState =
+          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -209,7 +213,8 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+      TaskState finalState =
+          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());

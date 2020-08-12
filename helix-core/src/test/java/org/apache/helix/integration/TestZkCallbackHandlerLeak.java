@@ -545,7 +545,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         }, manager.getInstanceName(), manager.getSessionId());
       }
     }
-    
+
     ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)

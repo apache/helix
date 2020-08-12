@@ -69,9 +69,9 @@ public class TestDistControllerElection extends ZkUnitTestBase {
         new MockZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _gZkClient);
     GenericHelixController controller0 = new GenericHelixController();
 
+
     List<HelixTimerTask> timerTasks = Collections.emptyList();
-    DistributedLeaderElection election =
-        new DistributedLeaderElection(manager, controller0, timerTasks);
+    DistributedLeaderElection election = new DistributedLeaderElection(manager, controller0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
     try {
       context.setType(NotificationContext.Type.INIT);
@@ -107,7 +107,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       accessor.removeProperty(keyBuilder.controllerLeader());
       TestHelper.dropCluster(clusterName, _gZkClient);
     }
-
     System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
@@ -154,8 +153,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     }
 
     manager =
-        new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
-            _gZkClient);
+          new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
+              _gZkClient);
     GenericHelixController controller1 = new GenericHelixController();
     election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);
@@ -175,6 +174,9 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       controller1.shutdown();
     }
 
+    accessor.removeProperty(keyBuilder.controllerLeader());
+
+    TestHelper.dropCluster(clusterName, _gZkClient);
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -200,7 +202,6 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     } catch (HelixException ex) {
       // expected
     }
-
     participant0.shutdown();
     manager.disconnect();
     TestHelper.dropCluster(clusterName, _gZkClient);
@@ -224,6 +225,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       ZKHelixManager manager =
           new ZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, ZK_ADDR);
       GenericHelixController controller0 = new GenericHelixController();
+      controllers.add(controller0);
       DistributedLeaderElection election =
           new DistributedLeaderElection(manager, controller0, Collections.EMPTY_LIST);
       controllers.add(controller0);

@@ -20,6 +20,7 @@ package org.apache.helix.examples;
  */
 
 import java.io.File;
+import java.net.InetAddress;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -124,7 +125,7 @@ public class ExampleProcess {
     Option hostOption =
         OptionBuilder.withLongOpt(hostAddress).withDescription("Provide host name").create();
     hostOption.setArgs(1);
-    hostOption.setRequired(true);
+    hostOption.setRequired(false);
     hostOption.setArgName("Host name (Required)");
 
     Option portOption =
@@ -204,7 +205,7 @@ public class ExampleProcess {
       zkConnectString = cmd.getOptionValue(zkServer);
       clusterName = cmd.getOptionValue(cluster);
 
-      String host = cmd.getOptionValue(hostAddress);
+      String host = InetAddress.getLocalHost().getHostAddress();
       String portString = cmd.getOptionValue(hostPort);
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;

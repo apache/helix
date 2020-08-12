@@ -40,14 +40,14 @@ public class LocalJarLoader implements JarLoader {
     File taskJarFile = new File(jarPath);
     if (!taskJarFile.exists() || taskJarFile.isDirectory()) {
       LOG.error("Failed to find JAR " + jarPath + " for new task.");
-      throw new IllegalStateException("No JAR for task");
+      throw new IllegalArgumentException("No JAR for task");
     }
 
     try {
       return taskJarFile.toURI().toURL();
     } catch (MalformedURLException e) {
       LOG.error("Failed to open JAR " + jarPath + " for new task.");
-      throw new IllegalStateException("Malformed JAR URL for task");
+      throw new IllegalArgumentException("Malformed JAR URL for task");
     }
   }
 }

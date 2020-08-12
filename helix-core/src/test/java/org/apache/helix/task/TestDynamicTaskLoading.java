@@ -39,7 +39,6 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -54,7 +53,6 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @BeforeMethod
   public void beforeMethod() throws Exception {
-    //super.beforeClass();
     _gSetupTool.addCluster(_clusterName, true);
 
     _manager = HelixManagerFactory
@@ -74,16 +72,6 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
     _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, null);
     _controller.syncStart();
-  }
-
-  private ZNRecord createTaskConfig(String id, String jar, String version, List<String> taskClasses,
-      String taskFactory) {
-    ZNRecord configZnRecord = new ZNRecord(id);
-    configZnRecord.setSimpleField(TaskConstants.TASK_JAR_FILE_KEY, jar);
-    configZnRecord.setSimpleField(TaskConstants.TASK_VERSION_KEY, version);
-    configZnRecord.setListField(TaskConstants.TASK_CLASSES_KEY, taskClasses);
-    configZnRecord.setSimpleField(TaskConstants.TASK_FACTORY_KEY, taskFactory);
-    return configZnRecord;
   }
 
   private void removePathIfExists(String path) {
@@ -110,13 +98,13 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     // Add task definition information as a ZNRecord.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
-    ZNRecord configZnRecord =
-        createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
+    DynamicTaskConfig taskConfig =
+        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .create(path, configZnRecord, AccessOption.PERSISTENT);
+        .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
 
     // Submit workflow
     TaskDriver driver = new TaskDriver(_manager);
@@ -124,7 +112,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.COMPLETED);
+      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.COMPLETED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -136,13 +124,13 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     // Add task definition information as a ZNRecord.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
-    ZNRecord configZnRecord =
-        createTaskConfig("Reindex", "src/test/resources/Random.jar", "1.0.0", taskClasses,
+    DynamicTaskConfig taskConfig =
+        new DynamicTaskConfig("Reindex", "src/test/resources/Random.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .create(path, configZnRecord, AccessOption.PERSISTENT);
+        .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
 
     // Submit workflow
     TaskDriver driver = new TaskDriver(_manager);
@@ -150,7 +138,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.FAILED);
+      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -160,7 +148,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
   @Test
   public void testDynamicTaskLoadingNonexistingTaskConfig() throws Exception {
     // Remove task config ZNRecord if it exists.
-    String path = TaskConstants.TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
     removePathIfExists(path);
 
     // Submit workflow
@@ -169,7 +157,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.FAILED);
+      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -181,13 +169,13 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     // Add task definition information as a ZNRecord.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.RandomTask");
-    ZNRecord configZnRecord =
-        createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
+    DynamicTaskConfig taskConfig =
+        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .create(path, configZnRecord, AccessOption.PERSISTENT);
+        .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
 
     // Submit workflow
     TaskDriver driver = new TaskDriver(_manager);
@@ -195,7 +183,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.FAILED);
+      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());
@@ -207,13 +195,13 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     // Add task definition information as a ZNRecord.
     List<String> taskClasses = new ArrayList<String>();
     taskClasses.add("com.mycompany.mocktask.MockTask");
-    ZNRecord configZnRecord =
-        createTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
+    DynamicTaskConfig taskConfig =
+        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
             "com.mycompany.mocktask.RandomTaskFactory");
-    String path = TaskConstants.TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .create(path, configZnRecord, AccessOption.PERSISTENT);
+        .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
 
     // Submit workflow
     TaskDriver driver = new TaskDriver(_manager);
@@ -221,7 +209,7 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     try {
-      TaskState finalState = driver.pollForWorkflowState(workflowName, 2000, TaskState.FAILED);
+      TaskState finalState = driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
       AssertJUnit.assertEquals(finalState, TaskState.FAILED);
     } catch (HelixException e) {
       AssertJUnit.fail(e.getMessage());

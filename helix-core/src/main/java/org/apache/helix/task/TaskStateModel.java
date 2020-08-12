@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -34,7 +34,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.task.api.JarLoader;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.task.api.LocalJarLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -310,13 +310,15 @@ public class TaskStateModel extends StateModel {
    */
   private void loadNewTask(String command) {
     // If the path for dynamic tasks doesn't exist, skip loading the task
-    if (!_manager.getHelixDataAccessor().getBaseDataAccessor().exists(TaskConstants.TASK_PATH, 0)) {
+    if (!_manager.getHelixDataAccessor().getBaseDataAccessor()
+        .exists(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH, 0)) {
       return;
     }
     // Read ZNRecord containing task definition information.
-    ZNRecord taskConfig = _manager.getHelixDataAccessor().getBaseDataAccessor()
-        .get(TaskConstants.TASK_PATH + "/" + command, null, 0);
-    if (taskConfig == null) {
+    DynamicTaskConfig taskConfig = new DynamicTaskConfig(
+        _manager.getHelixDataAccessor().getBaseDataAccessor()
+            .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null, 0));
+    if (taskConfig.getTaskConfigZNRecord() == null) {
       LOG.error("Failed to read ZNRecord for task " + command + " for instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
       throw new IllegalStateException("No ZNRecord for task " + command);
@@ -324,19 +326,19 @@ public class TaskStateModel extends StateModel {
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
     JarLoader jarLoader = new LocalJarLoader();
-    URL taskJarUrl = jarLoader.openJar(taskConfig.getSimpleField(TaskConstants.TASK_JAR_FILE_KEY));
+    URL taskJarUrl = jarLoader.loadJar(taskConfig.getJarFilePath());
 
     // Import Task(s) class(es).
     URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
-    for (String taskClass : taskConfig.getListField(TaskConstants.TASK_CLASSES_KEY)) {
+    for (String taskClass : taskConfig.getTaskClassesFqns()) {
       loadClass(classLoader, taskClass);
     }
 
     // Import and instantiate TaskFactory class
     TaskFactory taskFactory;
     try {
-      taskFactory = (TaskFactory) loadClass(classLoader,
-          taskConfig.getSimpleField(TaskConstants.TASK_FACTORY_KEY)).newInstance();
+      taskFactory =
+          (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Failed to instantiate TaskFactory class for new task in instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");

@@ -72,7 +72,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _failedTopStateHandoffCounter;
   private SimpleDynamicMetric<Long> _maxSinglePartitionTopStateHandoffDuration;
   @Deprecated
-  private SimpleDynamicMetric<Long> _totalMessageReceived; // This should be counter but it is not now
+  private SimpleDynamicMetric<Long> _totalMessageReceived; // This should be counter since the value behavior is ever-increasing
   private SimpleDynamicMetric<Long> _totalMessageReceivedCounter;
   // Histograms
   private HistogramDynamicMetric _partitionTopStateHandoffDurationGauge;

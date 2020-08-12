@@ -20,18 +20,19 @@ package org.apache.helix.controller.changedetector.trimmer;
  */
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
+
 /**
  * An abstract class that contains the common logic to trim HelixProperty by removing unnecessary
  * fields.
  */
 public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
-
   /**
    * The possible Helix-aware field types in the HelixProperty.
    */
@@ -41,9 +42,25 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
 
   /**
    * @param property
-   * @return a map contains the field keys of all non-trimmable fields that need to be kept.
+   * @return a map contains the field keys of all non-trimmable field values that need to be kept.
    */
   protected abstract Map<FieldType, Set<String>> getNonTrimmableFields(T property);
+
+  /**
+   * By default, ensure the keys of all map fields and list fields are preserved even after the
+   * trim. The keys of list and map fields are relatively stable and contain important information.
+   * So they should not be trimmed.
+   * Extend to override this behavior if necessary.
+   * @param property
+   * @return a map contains all non-trimmable field keys that need to be kept.
+   *         Note that the values will be trimmed.
+   */
+  protected Map<FieldType, Set<String>> getNonTrimmableKeys(T property) {
+    Map<FieldType, Set<String>> nonTrimmableKeys = new HashMap<>();
+    nonTrimmableKeys.put(FieldType.MAP_FIELD, property.getRecord().getMapFields().keySet());
+    nonTrimmableKeys.put(FieldType.LIST_FIELD, property.getRecord().getListFields().keySet());
+    return nonTrimmableKeys;
+  }
 
   /**
    * @param property
@@ -61,17 +78,27 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
   protected ZNRecord doTrim(T originalProperty) {
     ZNRecord originalZNRecord = originalProperty.getRecord();
     ZNRecord trimmedZNRecord = new ZNRecord(originalProperty.getId());
-    Map<FieldType, Set<String>> nonTrimmableFields = getNonTrimmableFields(originalProperty);
-
-    // Ensure the keys of all map fields and list fields are preserved even after the trim.
-    // The keys of list and map fields are relatively stable and contain important information. So
-    // they should not be trimmed.
-    originalZNRecord.getMapFields().keySet().stream()
-        .forEach(key -> trimmedZNRecord.setMapField(key, Collections.EMPTY_MAP));
-    originalZNRecord.getListFields().keySet().stream()
-        .forEach(key -> trimmedZNRecord.setListField(key, Collections.EMPTY_LIST));
 
     // Copy the non-trimmable values to the trimmed record.
+    // Note to copy the values first. Or if the key-only copy happens first, the value copy will
+    // skip to avoid implicit overwrite.
+    copyNonTrimmableInfo(originalZNRecord, trimmedZNRecord, getNonTrimmableFields(originalProperty),
+        false);
+    // Copy the non-trimmable keys (ignore the values) to the trimmed record.
+    copyNonTrimmableInfo(originalZNRecord, trimmedZNRecord, getNonTrimmableKeys(originalProperty),
+        true);
+    return trimmedZNRecord;
+  }
+
+  /**
+   * Copy the non trimmable information to the trimmed ZNRecord.
+   * @param originalZNRecord
+   * @param trimmedZNRecord
+   * @param nonTrimmableFields
+   * @param trimValue if true, the value will not be copied. Only the keys will be kept.
+   */
+  private void copyNonTrimmableInfo(ZNRecord originalZNRecord, ZNRecord trimmedZNRecord,
+      Map<FieldType, Set<String>> nonTrimmableFields, boolean trimValue) {
     for (Map.Entry<FieldType, Set<String>> fieldEntry : nonTrimmableFields.entrySet()) {
       FieldType fieldType = fieldEntry.getKey();
       Set<String> fieldKeySet = fieldEntry.getValue();
@@ -82,21 +109,24 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
         case SIMPLE_FIELD:
           fieldKeySet.stream().forEach(fieldKey -> {
             if (originalZNRecord.getSimpleFields().containsKey(fieldKey)) {
-              trimmedZNRecord.setSimpleField(fieldKey, originalZNRecord.getSimpleField(fieldKey));
+              trimmedZNRecord.getSimpleFields().putIfAbsent(fieldKey,
+                  trimValue ? null : originalZNRecord.getSimpleField(fieldKey));
             }
           });
           break;
         case LIST_FIELD:
           fieldKeySet.stream().forEach(fieldKey -> {
             if (originalZNRecord.getListFields().containsKey(fieldKey)) {
-              trimmedZNRecord.setListField(fieldKey, originalZNRecord.getListField(fieldKey));
+              trimmedZNRecord.getListFields().putIfAbsent(fieldKey,
+                  trimValue ? Collections.EMPTY_LIST : originalZNRecord.getListField(fieldKey));
             }
           });
           break;
         case MAP_FIELD:
           fieldKeySet.stream().forEach(fieldKey -> {
             if (originalZNRecord.getMapFields().containsKey(fieldKey)) {
-              trimmedZNRecord.setMapField(fieldKey, originalZNRecord.getMapField(fieldKey));
+              trimmedZNRecord.getMapFields().putIfAbsent(fieldKey,
+                  trimValue ? Collections.EMPTY_MAP : originalZNRecord.getMapField(fieldKey));
             }
           });
           break;
@@ -104,6 +134,5 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
           break;
       }
     }
-    return trimmedZNRecord;
   }
 }

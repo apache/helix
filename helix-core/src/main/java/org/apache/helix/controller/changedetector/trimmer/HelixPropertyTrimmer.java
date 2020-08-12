@@ -51,6 +51,8 @@ public abstract class HelixPropertyTrimmer<T extends HelixProperty> {
    */
   public abstract T trimProperty(T property);
 
+  // TODO: Simplify or remove the trim logic when we clearly separate the input and output ZNode.
+  // TODO: e.g. Resource Config for user input and the Ideal State for the Helix output.
   /**
    * Return a ZNrecord as the trimmed copy of the original property.
    * Note that we are NOT doing deep copy to avoid performance impact.

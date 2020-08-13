@@ -19,6 +19,7 @@ package org.apache.helix.controller.changedetector.trimmer;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,10 +43,12 @@ import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.when;
 
+
 public class TestHelixPropoertyTimmer {
   private final String CLUSTER_NAME = "CLUSTER";
   private final String INSTANCE_NAME = "INSTANCE";
   private final String RESOURCE_NAME = "RESOURCE";
+  private final String PARTITION_NAME = "DEFAULT_PARTITION";
 
   private final Set<HelixConstants.ChangeType> _changeTypes = new HashSet<>();
   private final Map<String, InstanceConfig> _instanceConfigMap = new HashMap<>();
@@ -66,16 +69,39 @@ public class TestHelixPropoertyTimmer {
     _changeTypes.add(HelixConstants.ChangeType.RESOURCE_CONFIG);
     _changeTypes.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
 
-    _instanceConfigMap.put(INSTANCE_NAME, new InstanceConfig(INSTANCE_NAME));
+    InstanceConfig instanceConfig = new InstanceConfig(INSTANCE_NAME);
+    instanceConfig.setInstanceEnabledForPartition(RESOURCE_NAME, PARTITION_NAME, false);
+    fillKeyValues(instanceConfig);
+    _instanceConfigMap.put(INSTANCE_NAME, instanceConfig);
+
     IdealState idealState = new IdealState(RESOURCE_NAME);
     idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+    idealState.setPreferenceList(PARTITION_NAME, new ArrayList<>());
+    idealState.setPartitionState(PARTITION_NAME, INSTANCE_NAME, "LEADER");
+    fillKeyValues(idealState);
     _idealStateMap.put(RESOURCE_NAME, idealState);
-    _resourceConfigMap.put(RESOURCE_NAME, new ResourceConfig(RESOURCE_NAME));
+
+    ResourceConfig resourceConfig = new ResourceConfig(RESOURCE_NAME);
+    Map<String, List<String>> configPreferenceList = new HashMap<>();
+    configPreferenceList.put(PARTITION_NAME, new ArrayList<>());
+    resourceConfig.setPreferenceLists(configPreferenceList);
+    fillKeyValues(resourceConfig);
+    _resourceConfigMap.put(RESOURCE_NAME, resourceConfig);
+
     _clusterConfig = new ClusterConfig(CLUSTER_NAME);
+    fillKeyValues(_clusterConfig);
 
     _dataProvider =
         getMockDataProvider(_changeTypes, _instanceConfigMap, _idealStateMap, _resourceConfigMap,
             _clusterConfig);
+  }
+
+  // Fill the testing helix property to ensure that we have at least one sample in every types of data.
+  private void fillKeyValues(HelixProperty helixProperty) {
+    helixProperty.getRecord().setSimpleField("MockFieldKey", "MockValue");
+    helixProperty.getRecord()
+        .setMapField("MockFieldKey", Collections.singletonMap("MockKey", "MockValue"));
+    helixProperty.getRecord().setListField("MockFieldKey", Collections.singletonList("MockValue"));
   }
 
   private ResourceControllerDataProvider getMockDataProvider(
@@ -110,6 +136,9 @@ public class TestHelixPropoertyTimmer {
           IdealStateTrimmer.getInstance().getNonTrimmableFields(idealState), idealState,
           HelixConstants.ChangeType.IDEAL_STATE, detector, _dataProvider);
 
+      modifyListMapfieldKeysAndVerifyDetector(idealState, HelixConstants.ChangeType.IDEAL_STATE,
+          detector, _dataProvider);
+
       // Additional test to ensure Ideal State map/list fields are detected correctly according to
       // the rebalance mode.
       // For the following test, we can only focus on the smaller scope defined by the following map.
@@ -119,37 +148,35 @@ public class TestHelixPropoertyTimmer {
       idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
       // refresh the detector cache after modification to avoid unexpected change detected.
       detector.updateSnapshots(_dataProvider);
-      overwriteFieldMap.put(FieldType.LIST_FIELD, Collections.singleton("partitionList_SEMI_AUTO"));
+      overwriteFieldMap.put(FieldType.LIST_FIELD, Collections.singleton(PARTITION_NAME));
       changeNonTrimmableValuesAndVerifyDetector(overwriteFieldMap, idealState,
           HelixConstants.ChangeType.IDEAL_STATE, detector, _dataProvider);
 
-      // CUSTOMZIED: List and Map fields are non-trimmable
+      // CUSTOMZIED: Map fields are non-trimmable
       idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
       // refresh the detector cache after modification to avoid unexpected change detected.
       detector.updateSnapshots(_dataProvider);
       overwriteFieldMap.clear();
-      overwriteFieldMap
-          .put(FieldType.LIST_FIELD, Collections.singleton("partitionList_CUSTOMIZED"));
-      overwriteFieldMap.put(FieldType.MAP_FIELD, Collections.singleton("partitionMap_CUSTOMIZED"));
+      overwriteFieldMap.put(FieldType.MAP_FIELD, Collections.singleton(PARTITION_NAME));
       changeNonTrimmableValuesAndVerifyDetector(overwriteFieldMap, idealState,
           HelixConstants.ChangeType.IDEAL_STATE, detector, _dataProvider);
     }
     // 3. Resource Config
     for (ResourceConfig resourceConfig : _resourceConfigMap.values()) {
-      // Add a non-trimmable preference list to the resource config, this change should be detected as well.
-      Map<String, List<String>> preferenceList = new HashMap<>();
-      preferenceList.put("partitionList_ResourceConfig", Collections.emptyList());
-      resourceConfig.setPreferenceLists(preferenceList);
-      // refresh the detector cache after modification to avoid unexpected change detected.
-      detector.updateSnapshots(_dataProvider);
       changeNonTrimmableValuesAndVerifyDetector(
           ResourceConfigTrimmer.getInstance().getNonTrimmableFields(resourceConfig), resourceConfig,
+          HelixConstants.ChangeType.RESOURCE_CONFIG, detector, _dataProvider);
+
+      modifyListMapfieldKeysAndVerifyDetector(resourceConfig,
           HelixConstants.ChangeType.RESOURCE_CONFIG, detector, _dataProvider);
     }
     // 4. Instance Config
     for (InstanceConfig instanceConfig : _instanceConfigMap.values()) {
       changeNonTrimmableValuesAndVerifyDetector(
           InstanceConfigTrimmer.getInstance().getNonTrimmableFields(instanceConfig), instanceConfig,
+          HelixConstants.ChangeType.INSTANCE_CONFIG, detector, _dataProvider);
+
+      modifyListMapfieldKeysAndVerifyDetector(instanceConfig,
           HelixConstants.ChangeType.INSTANCE_CONFIG, detector, _dataProvider);
     }
   }
@@ -176,27 +203,43 @@ public class TestHelixPropoertyTimmer {
       // refresh the detector cache after modification to avoid unexpected change detected.
       detector.updateSnapshots(_dataProvider);
       changeTrimmableValuesAndVerifyDetector(
-          new FieldType[] { FieldType.SIMPLE_FIELD, FieldType.MAP_FIELD }, idealState, detector,
+          new FieldType[]{FieldType.SIMPLE_FIELD, FieldType.MAP_FIELD}, idealState, detector,
           _dataProvider);
 
       // CUSTOMZIED: List and Map fields are non-trimmable
       idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
       // refresh the detector cache after modification to avoid unexpected change detected.
       detector.updateSnapshots(_dataProvider);
-      changeTrimmableValuesAndVerifyDetector(new FieldType[] { FieldType.SIMPLE_FIELD }, idealState,
-          detector, _dataProvider);
+      changeTrimmableValuesAndVerifyDetector(
+          new FieldType[]{FieldType.SIMPLE_FIELD, FieldType.LIST_FIELD}, idealState, detector,
+          _dataProvider);
     }
     // 3. Resource Config
     for (ResourceConfig resourceConfig : _resourceConfigMap.values()) {
       // Preference lists in the list fields are non-trimmable
       changeTrimmableValuesAndVerifyDetector(
-          new FieldType[] { FieldType.SIMPLE_FIELD, FieldType.MAP_FIELD }, resourceConfig, detector,
+          new FieldType[]{FieldType.SIMPLE_FIELD, FieldType.MAP_FIELD}, resourceConfig, detector,
           _dataProvider);
     }
     // 4. Instance Config
     for (InstanceConfig instanceConfig : _instanceConfigMap.values()) {
       changeTrimmableValuesAndVerifyDetector(FieldType.values(), instanceConfig, detector,
           _dataProvider);
+    }
+  }
+
+  private void modifyListMapfieldKeysAndVerifyDetector(HelixProperty helixProperty,
+      HelixConstants.ChangeType expectedChangeType, ResourceChangeDetector detector,
+      ResourceControllerDataProvider dataProvider) {
+    helixProperty.getRecord()
+        .setListField(helixProperty.getId() + "NewListField", Collections.singletonList("foobar"));
+    helixProperty.getRecord()
+        .setMapField(helixProperty.getId() + "NewMapField", Collections.singletonMap("foo", "bar"));
+    detector.updateSnapshots(dataProvider);
+    for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
+      Assert.assertEquals(detector.getChangesByType(changeType).size(),
+          changeType == expectedChangeType ? 1 : 0,
+          String.format("Any key changes in the List or Map fields shall be detected!"));
     }
   }
 
@@ -207,17 +250,17 @@ public class TestHelixPropoertyTimmer {
     for (FieldType type : nonTrimmableFieldMap.keySet()) {
       for (String fieldKey : nonTrimmableFieldMap.get(type)) {
         switch (type) {
-        case LIST_FIELD:
-          helixProperty.getRecord().setListField(fieldKey, Collections.singletonList("foobar"));
-          break;
-        case MAP_FIELD:
-          helixProperty.getRecord().setMapField(fieldKey, Collections.singletonMap("foo", "bar"));
-          break;
-        case SIMPLE_FIELD:
-          helixProperty.getRecord().setSimpleField(fieldKey, "foobar");
-          break;
-        default:
-          Assert.fail("Unknown field type " + type.name());
+          case LIST_FIELD:
+            helixProperty.getRecord().setListField(fieldKey, Collections.singletonList("foobar"));
+            break;
+          case MAP_FIELD:
+            helixProperty.getRecord().setMapField(fieldKey, Collections.singletonMap("foo", "bar"));
+            break;
+          case SIMPLE_FIELD:
+            helixProperty.getRecord().setSimpleField(fieldKey, "foobar");
+            break;
+          default:
+            Assert.fail("Unknown field type " + type.name());
         }
         detector.updateSnapshots(dataProvider);
         for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {
@@ -238,19 +281,28 @@ public class TestHelixPropoertyTimmer {
       ResourceControllerDataProvider dataProvider) {
     for (FieldType type : trimmableFieldTypes) {
       switch (type) {
-      case LIST_FIELD:
-        helixProperty.getRecord()
-            .setListField("TrimmableListField", Collections.singletonList("foobar"));
-        break;
-      case MAP_FIELD:
-        helixProperty.getRecord()
-            .setMapField("TrimmableMapField", Collections.singletonMap("foo", "bar"));
-        break;
-      case SIMPLE_FIELD:
-        helixProperty.getRecord().setSimpleField("TrimmableSimpleField", "foobar");
-        break;
-      default:
-        Assert.fail("Unknown field type " + type.name());
+        case LIST_FIELD:
+          // Modify value if key exists.
+          // Note if adding new keys, then the change will be detected regardless of the content.
+          helixProperty.getRecord().getListFields().keySet().stream().forEach(key -> {
+            helixProperty.getRecord().setListField(key,
+                Collections.singletonList("new-foobar" + System.currentTimeMillis()));
+          });
+          break;
+        case MAP_FIELD:
+          // Modify value if key exists.
+          // Note if adding new keys, then the change will be detected regardless of the content.
+          helixProperty.getRecord().getMapFields().keySet().stream().forEach(key -> {
+            helixProperty.getRecord().setMapField(key,
+                Collections.singletonMap("new-foo", "bar" + System.currentTimeMillis()));
+          });
+          break;
+        case SIMPLE_FIELD:
+          helixProperty.getRecord()
+              .setSimpleField("TrimmableSimpleField", "foobar" + System.currentTimeMillis());
+          break;
+        default:
+          Assert.fail("Unknown field type " + type.name());
       }
       detector.updateSnapshots(dataProvider);
       for (HelixConstants.ChangeType changeType : HelixConstants.ChangeType.values()) {

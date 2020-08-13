@@ -73,10 +73,9 @@ public class IdealStateTrimmer extends HelixPropertyTrimmer<IdealState> {
     // They are fixed and considered as part of the cluster topology.
     switch (idealState.getRebalanceMode()) {
     case CUSTOMIZED:
-      // For CUSTOMZIED resources, both list and map fields are user configured partition state
-      // assignment. So they are not trimmable.
+      // For CUSTOMZIED resources, map fields are user configured partition state assignment. So
+      // they are not trimmable.
       nonTrimmableFields.put(FieldType.MAP_FIELD, idealState.getRecord().getMapFields().keySet());
-      nonTrimmableFields.put(FieldType.LIST_FIELD, idealState.getRecord().getListFields().keySet());
       break;
     case SEMI_AUTO:
       // For SEMI_AUTO resources, list fields are user configured partition placement. So it is not

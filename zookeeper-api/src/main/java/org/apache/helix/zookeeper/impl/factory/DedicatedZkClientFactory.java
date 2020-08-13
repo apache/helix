@@ -19,8 +19,6 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
-import java.io.IOException;
-
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -40,7 +38,7 @@ public class DedicatedZkClientFactory extends HelixZkClientFactory {
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
-      throws IOException, InvalidRoutingDataException {
+      throws InvalidRoutingDataException {
     return new DedicatedZkClient(connectionConfig, clientConfig);
   }
 

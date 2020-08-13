@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
@@ -60,7 +59,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
-      throws IOException, InvalidRoutingDataException {
+      throws InvalidRoutingDataException {
     // Note, the logic sharing connectionManager logic is inside SharedZkClient, similar to innerSharedZkClient.
     return new SharedZkClient(connectionConfig, clientConfig);
   }

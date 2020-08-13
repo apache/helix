@@ -30,6 +30,9 @@ import org.apache.helix.msdcommon.datamodel.TrieRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.exception.MultiZkException;
+import org.apache.helix.zookeeper.impl.client.SharedZkClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -39,6 +42,8 @@ import org.apache.helix.zookeeper.exception.MultiZkException;
  * 3. provides public methods for reading routing data from various sources (configurable)
  */
 public class RoutingDataManager {
+  private static Logger LOG = LoggerFactory.getLogger(RoutingDataManager.class);
+
   /** HTTP call to MSDS is used to fetch routing data by default */
   private String _defaultMsdsEndpoint =
       System.getProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
@@ -188,9 +193,11 @@ public class RoutingDataManager {
     try {
       return (RoutingDataReader) Class.forName(routingDataReaderType.getClassName()).newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-      throw new MultiZkException(
-          "RoutingDataManager: failed to instantiate RoutingDataReader! RoutingDataReaderType: "
-              + routingDataReaderType, e);
+      String errMsg =
+          "RoutingDataManager::resolveRoutingDataReader: failed to instantiate RoutingDataReader! "
+              + "RoutingDataReaderType: " + routingDataReaderType;
+      LOG.error(errMsg, e);
+      throw new MultiZkException(errMsg, e);
     }
   }
 

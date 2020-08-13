@@ -4,6 +4,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -14,8 +15,6 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -83,12 +82,11 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
   }
 
   @Test(dependsOnMethods = "testInstanceAutoJoin")
-  public void testAutoRegistrationShouldFailWhenWaitingResponse() throws Exception {
+  public void testAutoRegistration() throws Exception {
     // Create CloudConfig object and add to config
     CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
     cloudConfigBuilder.setCloudEnabled(true);
     cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
-    cloudConfigBuilder.setCloudID("TestID");
     CloudConfig cloudConfig = cloudConfigBuilder.build();
 
     HelixManager manager = _participants[0];
@@ -110,14 +108,23 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance3);
     autoParticipant.syncStart();
 
-    Assert.assertTrue(null == manager.getHelixDataAccessor()
-        .getProperty(accessor.keyBuilder().liveInstance(instance3)));
+    // if the test is run in cloud environment, auto registration will succeed and live instance
+    // will be added, otherwise, auto registration will fail and instance config will not be
+    // populated. An exception will be thrown.
     try {
       manager.getConfigAccessor().getInstanceConfig(CLUSTER_NAME, instance3);
-      fail(
-          "Exception should be thrown because the instance cannot be added to the cluster due to the disconnection with Azure endpoint");
+      Assert.assertTrue(TestHelper.verify(() -> {
+        if (null == manager.getHelixDataAccessor()
+            .getProperty(accessor.keyBuilder().liveInstance(instance3))) {
+          return false;
+        }
+        return true;
+      }, 2000));
     } catch (HelixException e) {
-
+      Assert.assertTrue(null == manager.getHelixDataAccessor()
+          .getProperty(accessor.keyBuilder().liveInstance(instance3)));
     }
+
+    autoParticipant.syncStop();
   }
 }

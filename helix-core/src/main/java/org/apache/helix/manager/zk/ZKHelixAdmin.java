@@ -127,8 +127,8 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   /**
    * There are 2 realm-aware modes to connect to ZK:
-   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>,
-   * it will connect on multi-realm mode;
+   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>
+   * , or zkAddress is null, it will connect on multi-realm mode;
    * 2. otherwise, it will connect on single-realm mode to the <code>zkAddress</code> provided.
    *
    * @param zkAddress ZK address
@@ -146,7 +146,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     RealmAwareZkClient zkClient;
 
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       try {
         zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);

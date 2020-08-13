@@ -1337,7 +1337,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   static RealmAwareZkClient buildRealmAwareZkClientWithDefaultConfigs(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       // If the multi ZK config is enabled, use multi-realm mode with FederatedZkClient
       try {
         return new FederatedZkClient(

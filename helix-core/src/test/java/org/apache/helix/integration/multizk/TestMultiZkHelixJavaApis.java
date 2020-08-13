@@ -36,6 +36,9 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
@@ -346,10 +349,64 @@ public class TestMultiZkHelixJavaApis {
   }
 
   /**
+   * Test creation of HelixManager and makes sure it connects correctly.
+   */
+  @Test(dependsOnMethods = "testCreateParticipants")
+  public void testZKHelixManager() throws Exception {
+    String clusterName = "CLUSTER_1";
+    String participantName = "HelixManager";
+    InstanceConfig instanceConfig = new InstanceConfig(participantName);
+    _zkHelixAdmin.addInstance(clusterName, instanceConfig);
+
+    RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+    // Try with a connection config without ZK realm sharding key set (should fail)
+    RealmAwareZkClient.RealmAwareZkConnectionConfig invalidZkConnectionConfig =
+        connectionConfigBuilder.build();
+    RealmAwareZkClient.RealmAwareZkConnectionConfig validZkConnectionConfig =
+        connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
+    HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
+    try {
+      HelixManager invalidManager = HelixManagerFactory
+          .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
+              propertyBuilder.setRealmAWareZkConnectionConfig(invalidZkConnectionConfig).build());
+      Assert.fail("Should see a HelixException here because the connection config doesn't have the "
+          + "sharding key set!");
+    } catch (HelixException e) {
+      // Expected
+    }
+
+    // Connect as a participant
+    HelixManager managerParticipant = HelixManagerFactory
+        .getZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null,
+            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
+    managerParticipant.connect();
+
+    // Connect as an administrator
+    HelixManager managerAdministrator = HelixManagerFactory
+        .getZKHelixManager(clusterName, participantName, InstanceType.ADMINISTRATOR, null,
+            propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build());
+    managerAdministrator.connect();
+
+    // Perform assert checks to make sure the manager can read and register itself as a participant
+    InstanceConfig instanceConfigRead = managerAdministrator.getClusterManagmentTool()
+        .getInstanceConfig(clusterName, participantName);
+    Assert.assertNotNull(instanceConfigRead);
+    Assert.assertEquals(instanceConfig.getInstanceName(), participantName);
+    Assert.assertNotNull(managerAdministrator.getHelixDataAccessor().getProperty(
+        managerAdministrator.getHelixDataAccessor().keyBuilder().liveInstance(participantName)));
+
+    // Clean up
+    managerParticipant.disconnect();
+    managerAdministrator.disconnect();
+    _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
+  }
+
+  /**
    * Test that clusters and instances are set up properly.
    * Helix Java APIs tested in this method is ZkUtil.
    */
-  @Test(dependsOnMethods = "testCreateParticipants")
+  @Test(dependsOnMethods = "testZKHelixManager")
   public void testZkUtil() {
     CLUSTER_LIST.forEach(cluster -> {
       _zkHelixAdmin.getInstancesInCluster(cluster).forEach(instance -> ZKUtil
@@ -820,8 +877,7 @@ public class TestMultiZkHelixJavaApis {
         new ClusterSetup.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
-      verifyMsdsZkRealm(CLUSTER_ONE, true,
-          () -> firstClusterSetup.addCluster(CLUSTER_ONE, false));
+      verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstClusterSetup.addCluster(CLUSTER_ONE, false));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
           () -> firstClusterSetup.addCluster(CLUSTER_FOUR, false));
 
@@ -856,8 +912,7 @@ public class TestMultiZkHelixJavaApis {
         new ZKHelixAdmin.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
-      verifyMsdsZkRealm(CLUSTER_ONE, true,
-          () -> firstHelixAdmin.enableCluster(CLUSTER_ONE, true));
+      verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstHelixAdmin.enableCluster(CLUSTER_ONE, true));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
           () -> firstHelixAdmin.enableCluster(CLUSTER_FOUR, true));
 
@@ -880,8 +935,7 @@ public class TestMultiZkHelixJavaApis {
         new ConfigAccessor.Builder().setRealmAwareZkConnectionConfig(connectionConfig).build();
 
     try {
-      verifyMsdsZkRealm(CLUSTER_ONE, true,
-          () -> firstConfigAccessor.getClusterConfig(CLUSTER_ONE));
+      verifyMsdsZkRealm(CLUSTER_ONE, true, () -> firstConfigAccessor.getClusterConfig(CLUSTER_ONE));
       verifyMsdsZkRealm(CLUSTER_FOUR, false,
           () -> firstConfigAccessor.getClusterConfig(CLUSTER_FOUR));
 

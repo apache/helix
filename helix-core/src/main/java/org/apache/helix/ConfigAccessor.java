@@ -113,7 +113,7 @@ public class ConfigAccessor {
     _usesExternalZkClient = false;
 
     // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),

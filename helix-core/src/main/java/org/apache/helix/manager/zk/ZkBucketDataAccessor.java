@@ -83,7 +83,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param versionTTLms in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
+      LOG.warn(
+          "ZkBucketDataAccessor: either multi-zk enabled or zkAddr is null - "
+              + "starting ZkBucketDataAccessor in multi-zk mode!");
       try {
         // Create realm-aware ZkClient.
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =

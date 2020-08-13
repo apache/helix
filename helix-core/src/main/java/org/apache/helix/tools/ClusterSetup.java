@@ -156,7 +156,7 @@ public class ClusterSetup {
   @Deprecated
   public ClusterSetup(String zkServerAddress) {
     // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkServerAddress == null) {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),

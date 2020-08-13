@@ -19,19 +19,15 @@ package org.apache.helix;
  * under the License.
  */
 
-/**
- * factory that creates cluster managers
- *
- * for zk-based cluster managers, the getZKXXX(..zkClient) that takes a zkClient parameter
- *   are intended for session expiry test purpose
- */
 import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Obtain one of a set of Helix cluster managers, organized by the backing system.
+ * factory that creates cluster managers.
  */
 public final class HelixManagerFactory {
   private static final Logger LOG = LoggerFactory.getLogger(HelixManagerFactory.class);
@@ -65,4 +61,20 @@ public final class HelixManagerFactory {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener);
   }
 
+  /**
+   * Construct a ZkHelixManager using the HelixManagerProperty instance given.
+   * HelixManagerProperty given must contain a valid ZkConnectionConfig.
+   * @param clusterName
+   * @param instanceName
+   * @param type
+   * @param stateListener
+   * @param helixManagerProperty must contain a valid ZkConnectionConfig
+   * @return
+   */
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
+    return new ZKHelixManager(clusterName, instanceName, type, null, stateListener,
+        helixManagerProperty);
+  }
 }

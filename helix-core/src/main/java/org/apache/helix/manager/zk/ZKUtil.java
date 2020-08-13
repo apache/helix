@@ -614,7 +614,7 @@ public final class ZKUtil {
    * @return
    */
   private static RealmAwareZkClient getHelixZkClient(String zkAddr) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
       try {
         // Create realm-aware ZkClient.
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
@@ -626,8 +626,8 @@ public final class ZKUtil {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
     }
-    if (zkAddr == null || zkAddr.isEmpty()) {
-      throw new HelixException("ZK Address given is either null or empty!");
+    if (zkAddr.isEmpty()) {
+      throw new HelixException("ZK Address given is empty!");
     }
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());

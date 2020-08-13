@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -73,7 +74,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private ZkSerializer _zkSerializer;
   private RealmAwareZkClient _zkClient;
   private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
-  private ScheduledFuture _gcTaskFuture = null;
+  private Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
 
   /**
    * Constructor that allows a custom bucket size.
@@ -239,6 +240,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     if (!_zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
       throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
     }
+    synchronized (this) {
+      _gcTaskFutureMap.remove(path);
+    }
   }
 
   @Override
@@ -337,17 +341,17 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   }
 
   private synchronized void updateGCTimer(String rootPath, long currentVersion) {
-    if (_gcTaskFuture != null) {
-      _gcTaskFuture.cancel(false);
+    if (_gcTaskFutureMap.containsKey(rootPath)) {
+      _gcTaskFutureMap.remove(rootPath).cancel(false);
     }
     // Schedule the gc task with TTL
-    _gcTaskFuture = GC_THREAD.schedule(() -> {
+    _gcTaskFutureMap.put(rootPath, GC_THREAD.schedule(() -> {
       try {
         deleteStaleVersions(rootPath, currentVersion);
       } catch (Exception ex) {
         LOG.error("Failed to delete the stale versions.", ex);
       }
-    }, _versionTTLms, TimeUnit.MILLISECONDS);
+    }, _versionTTLms, TimeUnit.MILLISECONDS));
   }
 
   /**

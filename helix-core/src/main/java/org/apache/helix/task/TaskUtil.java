@@ -787,7 +787,7 @@ public class TaskUtil {
       JobConfig jobConfig = workflowControllerDataProvider.getJobConfig(job);
       JobContext jobContext = workflowControllerDataProvider.getJobContext(job);
       TaskState jobState = jobStates.get(job);
-      if (isJobExpired(job, jobConfig, jobContext, jobStates.get(job))) {
+      if (isJobExpired(job, jobConfig, jobContext, jobState)) {
         expiredJobs.add(job);
 
         // Failed jobs propagation

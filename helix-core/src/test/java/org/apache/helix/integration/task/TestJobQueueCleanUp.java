@@ -60,7 +60,8 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     Assert.assertEquals(_driver.getWorkflowConfig(queueName).getJobDag().size(), 0);
   }
 
-  @Test public void testJobQueueNotCleanupRunningJobs() throws InterruptedException {
+  @Test(dependsOnMethods = "testJobQueueCleanUp")
+  public void testJobQueueNotCleanupRunningJobs() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     JobConfig.Builder jobBuilder =
@@ -79,7 +80,7 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     Assert.assertEquals(_driver.getWorkflowConfig(queueName).getJobDag().size(), 2);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testJobQueueNotCleanupRunningJobs")
   public void testJobQueueAutoCleanUp() throws Exception {
     int capacity = 10;
     String queueName = TestHelper.getTestMethodName();
@@ -125,5 +126,66 @@ public class TestJobQueueCleanUp extends TaskTestBase {
       Assert.assertNull(ctx);
     }
 
+  }
+
+  @Test(dependsOnMethods = "testJobQueueAutoCleanUp")
+  public void testJobQueueFailedCleanUp() throws Exception {
+    int capacity = 10;
+    String queueName = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName, capacity);
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(builder.getWorkflowConfig());
+    cfgBuilder.setJobPurgeInterval(1000);
+    builder.setWorkflowConfig(cfgBuilder.build());
+
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2).setJobCommandConfigMap(
+            ImmutableMap.of(MockTask.SUCCESS_COUNT_BEFORE_FAIL, "0"))
+            .setExpiry(200L).setTerminalStateExpiry(200L);
+    for (int i = 0; i < capacity; i++) {
+      builder.enqueueJob("JOB" + i, jobBuilder);
+    }
+    _driver.start(builder.build());
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowConfig config = _driver.getWorkflowConfig(queueName);
+      return config.getJobDag().getAllNodes().isEmpty();
+    }, TestHelper.WAIT_DURATION));
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext context = _driver.getWorkflowContext(queueName);
+      return context.getJobStates().isEmpty();
+    }, TestHelper.WAIT_DURATION));
+  }
+
+
+  @Test(dependsOnMethods = "testJobQueueFailedCleanUp")
+  public void testJobQueueTimedOutCleanUp() throws Exception {
+    int capacity = 10;
+    String queueName = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName, capacity);
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(builder.getWorkflowConfig());
+    cfgBuilder.setJobPurgeInterval(1000);
+    builder.setWorkflowConfig(cfgBuilder.build());
+
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2).setTimeout(100)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000"))
+            .setTerminalStateExpiry(200L);
+    for (int i = 0; i < capacity; i++) {
+      builder.enqueueJob("JOB" + i, jobBuilder);
+    }
+    _driver.start(builder.build());
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowConfig config = _driver.getWorkflowConfig(queueName);
+      return config.getJobDag().getAllNodes().isEmpty();
+    }, TestHelper.WAIT_DURATION));
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext context = _driver.getWorkflowContext(queueName);
+      return context.getJobStates().isEmpty();
+    }, TestHelper.WAIT_DURATION));
   }
 }

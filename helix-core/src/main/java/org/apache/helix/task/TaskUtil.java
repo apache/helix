@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -733,10 +734,29 @@ public class TaskUtil {
     if (workflowContext != null) {
       Map<String, TaskState> jobStates = workflowContext.getJobStates();
       for (String job : workflowConfig.getJobDag().getAllNodes()) {
+        if (expiredJobs.contains(job)) {
+          continue;
+        }
         JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
         JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
-        if (isJobExpired(job, jobConfig, jobContext, jobStates.get(job))) {
+        TaskState jobState = jobStates.get(job);
+        if (isJobExpired(job, jobConfig, jobContext, jobState)) {
           expiredJobs.add(job);
+
+          // Failed jobs propagation
+          if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+            Stack<String> childrenJobs = new Stack<>();
+            workflowConfig.getJobDag().getDirectChildren(job).forEach(childrenJobs::push);
+            while (!childrenJobs.isEmpty()) {
+              String childJob = childrenJobs.pop();
+              // Failed and without context means it's failed due to parental job failure
+              if (!expiredJobs.contains(childJob) && jobStates.get(childJob) == TaskState.FAILED
+                  && TaskUtil.getJobContext(propertyStore, childJob) == null) {
+                expiredJobs.add(childJob);
+                workflowConfig.getJobDag().getDirectChildren(childJob).forEach(childrenJobs::push);
+              }
+            }
+          }
         }
       }
     }
@@ -761,10 +781,29 @@ public class TaskUtil {
     Set<String> expiredJobs = new HashSet<>();
     Map<String, TaskState> jobStates = workflowContext.getJobStates();
     for (String job : workflowConfig.getJobDag().getAllNodes()) {
+      if (expiredJobs.contains(job)) {
+        continue;
+      }
       JobConfig jobConfig = workflowControllerDataProvider.getJobConfig(job);
       JobContext jobContext = workflowControllerDataProvider.getJobContext(job);
-      if (isJobExpired(job, jobConfig, jobContext, jobStates.get(job))) {
+      TaskState jobState = jobStates.get(job);
+      if (isJobExpired(job, jobConfig, jobContext, jobState)) {
         expiredJobs.add(job);
+
+        // Failed jobs propagation
+        if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+          Stack<String> childrenJobs = new Stack<>();
+          workflowConfig.getJobDag().getDirectChildren(job).forEach(childrenJobs::push);
+          while (!childrenJobs.isEmpty()) {
+            String childJob = childrenJobs.pop();
+            // Failed and without context means it's failed due to parental job failure
+            if (!expiredJobs.contains(childJob) && jobStates.get(childJob) == TaskState.FAILED
+                && workflowControllerDataProvider.getJobContext(childJob) == null) {
+              expiredJobs.add(childJob);
+              workflowConfig.getJobDag().getDirectChildren(childJob).forEach(childrenJobs::push);
+            }
+          }
+        }
       }
     }
     return expiredJobs;
@@ -783,10 +822,16 @@ public class TaskUtil {
           jobName);
       return true;
     }
+    if (jobContext == null || jobContext.getFinishTime() == WorkflowContext.UNFINISHED) {
+      return false;
+    }
+    long jobFinishTime = jobContext.getFinishTime();
     long expiry = jobConfig.getExpiry();
-    return jobContext != null && jobState == TaskState.COMPLETED
-        && jobContext.getFinishTime() != WorkflowContext.UNFINISHED
-        && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry;
+    long terminalStateExpiry = jobConfig.getTerminalStateExpiry();
+    return jobState == TaskState.COMPLETED && System.currentTimeMillis() >= jobFinishTime + expiry
+        || (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT)
+        && terminalStateExpiry > 0
+        && System.currentTimeMillis() >= jobFinishTime + terminalStateExpiry;
   }
 
   /**

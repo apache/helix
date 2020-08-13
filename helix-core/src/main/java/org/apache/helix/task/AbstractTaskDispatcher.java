@@ -906,7 +906,7 @@ public abstract class AbstractTaskDispatcher {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
-    scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
+    scheduleJobCleanUp(jobConfigMap.get(jobName).getExpiry(), workflowConfig, currentTime);
 
     // Job has completed successfully so report ControllerInducedDelay
     JobConfig jobConfig = jobConfigMap.get(jobName);
@@ -930,17 +930,18 @@ public abstract class AbstractTaskDispatcher {
       workflowContext.setFinishTime(currentTime);
       updateWorkflowMonitor(workflowContext, workflowConfig);
     }
-    scheduleJobCleanUp(jobConfigMap.get(jobName), workflowConfig, currentTime);
+    scheduleJobCleanUp(jobConfigMap.get(jobName).getTerminalStateExpiry(), workflowConfig,
+        currentTime);
   }
 
-  protected void scheduleJobCleanUp(JobConfig jobConfig, WorkflowConfig workflowConfig,
+  protected void scheduleJobCleanUp(long expiry, WorkflowConfig workflowConfig,
       long currentTime) {
     long currentScheduledTime =
         _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1 ? Long.MAX_VALUE
             : _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId());
-    if (currentTime + jobConfig.getExpiry() < currentScheduledTime) {
+    if (currentTime + expiry < currentScheduledTime) {
       _rebalanceScheduler.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
-          currentTime + jobConfig.getExpiry());
+          currentTime + expiry);
     }
   }
 

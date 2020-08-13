@@ -19,7 +19,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -120,7 +119,7 @@ public abstract class ZkHelixClusterVerifier
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         _zkClient = DedicatedZkClientFactory.getInstance()
             .buildZkClient(connectionConfigBuilder.build(), clientConfig);
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
         // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
         // found
         throw new HelixException("ZkHelixClusterVerifier: failed to create ZkClient!", e);
@@ -375,7 +374,7 @@ public abstract class ZkHelixClusterVerifier
           // First, try to create a RealmAwareZkClient that's a DedicatedZkClient
           return DedicatedZkClientFactory.getInstance()
               .buildZkClient(connectionConfig, clientConfig);
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        } catch (InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("ZkHelixClusterVerifier: failed to create ZkClient!", e);
         }
       } else {

@@ -29,7 +29,7 @@ public class RoutingSystemPropertyKeys {
    * re-read the routing data from the routing data source upon ZK path sharding key cache miss.
    */
   public static final String UPDATE_ROUTING_DATA_ON_CACHE_MISS =
-      "update.routing.data.on.cache.miss.enabled";
+      "routing.data.update.on.cache.miss.enabled";
 
   /**
    * The interval to use between routing data updates from the routing data source.

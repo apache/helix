@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -312,17 +313,21 @@ public class TaskStateModel extends StateModel {
     // If the path for dynamic tasks doesn't exist, skip loading the task
     if (!_manager.getHelixDataAccessor().getBaseDataAccessor()
         .exists(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH, 0)) {
-      return;
+      LOG.error("Path for dynamic tasks doesn't exist!");
+      throw new IllegalStateException("Path for dynamic tasks doesn't exist!");
     }
 
     // Read DynamicTaskConfig containing task definition information.
     DynamicTaskConfig taskConfig = new DynamicTaskConfig(
         _manager.getHelixDataAccessor().getBaseDataAccessor()
-            .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null, 0));
+            .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null,
+                ~AccessOption.THROW_EXCEPTION_IFNOTEXIST));
     if (taskConfig.getTaskConfigZNRecord() == null) {
       LOG.error("Failed to read ZNRecord for task " + command + " for instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalArgumentException("No ZNRecord for task " + command);
+      throw new IllegalArgumentException(
+          "Failed to read ZNRecord for task " + command + " for instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
     }
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
@@ -335,18 +340,21 @@ public class TaskStateModel extends StateModel {
       loadClass(classLoader, taskClass);
     }
 
+    TaskFactory taskFactory;
     try {
       // Import and instantiate TaskFactory class.
-      TaskFactory taskFactory =
+      taskFactory =
           (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
-
-      // Register the TaskFactory.
-      _taskFactoryRegistry.put(command, taskFactory);
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Failed to instantiate TaskFactory class for new task in instance " + _manager
           .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalStateException("Failed to instantiate TaskFactory for task");
+      throw new IllegalStateException(
+          "Failed to instantiate TaskFactory class for new task in instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
     }
+
+    // Register the TaskFactory.
+    _taskFactoryRegistry.put(command, taskFactory);
   }
 
   private void startTask(Message msg, String taskPartition) {

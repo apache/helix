@@ -39,38 +39,46 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.testng.AssertJUnit;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+/**
+ * Unit tests for dynamically-loaded tasks. Different scenarios
+ * for success and failure are tested. Failure scenarios include
+ * non-existing JAR file, non-existing DynamicTaskConfig in
+ * ZooKeeper, non-existing Task class, and non-existing
+ * TaskFactory class.
+ */
 public class TestDynamicTaskLoading extends ZkTestBase {
-  private final String _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
-  private static final String _instanceName = "localhost_12913";
+  private static final String CLUSTER_NAME = CLUSTER_PREFIX + "_TestDynamicTaskLoading";
+  private static final String INSTANCE_NAME = "localhost_12913";
+  protected final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   private HelixManager _manager;
   private MockParticipantManager _participant;
   private ClusterControllerManager _controller;
 
   @BeforeMethod
   public void beforeMethod() throws Exception {
-    _gSetupTool.addCluster(_clusterName, true);
+    _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     _manager = HelixManagerFactory
-        .getZKHelixManager(_clusterName, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
 
-    _gSetupTool.addInstanceToCluster(_clusterName, _instanceName);
-    _participant = new MockParticipantManager(ZK_ADDR, _clusterName, _instanceName);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, INSTANCE_NAME);
+    _participant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, INSTANCE_NAME);
     StateModelFactory<StateModel> stateModelFactory =
-        new MasterSlaveStateModelFactory(_instanceName, 0);
+        new MasterSlaveStateModelFactory(INSTANCE_NAME);
     StateMachineEngine stateMach = _participant.getStateMachineEngine();
-    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
+    stateMach.registerStateModelFactory(MASTER_SLAVE_STATE_MODEL, stateModelFactory);
     Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
     _participant.getStateMachineEngine().registerStateModelFactory(TaskConstants.STATE_MODEL_NAME,
         new TaskStateModelFactory(_participant, taskFactoryReg));
     _participant.syncStart();
 
-    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, null);
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, null);
     _controller.syncStart();
   }
 
@@ -100,13 +108,19 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @Test
   public void testDynamicTaskLoading() throws Exception {
+    String taskCommand = "Reindex";
+    String taskJarPath = "src/test/resources/Reindex.jar";
+    String taskVersion = "1.0.0";
+    String fullyQualifiedTaskClassName = "com.mycompany.mocktask.MockTask";
+    String fullyQualifiedTaskFactoryClassName = "com.mycompany.mocktask.MockTaskFactory";
+
     // Add task definition information as a DynamicTaskConfig.
-    List<String> taskClasses = new ArrayList<String>();
-    taskClasses.add("com.mycompany.mocktask.MockTask");
+    List<String> taskClasses = new ArrayList();
+    taskClasses.add(fullyQualifiedTaskClassName);
     DynamicTaskConfig taskConfig =
-        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
-            "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
+        new DynamicTaskConfig(taskCommand, taskJarPath, taskVersion, taskClasses,
+            fullyQualifiedTaskFactoryClassName);
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
@@ -116,25 +130,27 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     String workflowName = TestHelper.getTestMethodName();
     submitWorkflow(workflowName, driver);
 
-    try {
-      // Wait for the workflow to either complete or fail.
-      TaskState finalState =
-          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
-      AssertJUnit.assertEquals(finalState, TaskState.COMPLETED);
-    } catch (HelixException e) {
-      AssertJUnit.fail(e.getMessage());
-    }
+    // Wait for the workflow to either complete or fail.
+    TaskState finalState =
+        driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(finalState, TaskState.COMPLETED);
   }
 
   @Test
   public void testDynamicTaskLoadingNonexistingJar() throws Exception {
+    String taskCommand = "Reindex";
+    String taskJarPath = "src/test/resources/Random.jar";
+    String taskVersion = "1.0.0";
+    String fullyQualifiedTaskClassName = "com.mycompany.mocktask.MockTask";
+    String fullyQualifiedTaskFactoryClassName = "com.mycompany.mocktask.MockTaskFactory";
+
     // Add task definition information as a DynamicTaskConfig.
-    List<String> taskClasses = new ArrayList<String>();
-    taskClasses.add("com.mycompany.mocktask.MockTask");
+    List<String> taskClasses = new ArrayList();
+    taskClasses.add(fullyQualifiedTaskClassName);
     DynamicTaskConfig taskConfig =
-        new DynamicTaskConfig("Reindex", "src/test/resources/Random.jar", "1.0.0", taskClasses,
-            "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
+        new DynamicTaskConfig(taskCommand, taskJarPath, taskVersion, taskClasses,
+            fullyQualifiedTaskFactoryClassName);
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
@@ -144,20 +160,18 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     String workflowName = TestHelper.getTestMethodName();
     submitWorkflow(workflowName, driver);
 
-    try {
-      // Wait for the workflow to either complete or fail.
-      TaskState finalState =
-          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
-      AssertJUnit.assertEquals(finalState, TaskState.FAILED);
-    } catch (HelixException e) {
-      AssertJUnit.fail(e.getMessage());
-    }
+    // Wait for the workflow to either complete or fail.
+    TaskState finalState =
+        driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(finalState, TaskState.FAILED);
   }
 
   @Test
   public void testDynamicTaskLoadingNonexistingTaskConfig() throws Exception {
+    String taskCommand = "Reindex";
+
     // Remove task config ZNRecord if it exists.
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
     removePathIfExists(path);
 
     // Submit workflow
@@ -165,25 +179,27 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     String workflowName = TestHelper.getTestMethodName();
     submitWorkflow(workflowName, driver);
 
-    try {
-      // Wait for the workflow to either complete or fail.
-      TaskState finalState =
-          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
-      AssertJUnit.assertEquals(finalState, TaskState.FAILED);
-    } catch (HelixException e) {
-      AssertJUnit.fail(e.getMessage());
-    }
+    // Wait for the workflow to either complete or fail.
+    TaskState finalState =
+        driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(finalState, TaskState.FAILED);
   }
 
   @Test
   public void testDynamicTaskLoadingNonexistingTaskClass() throws Exception {
+    String taskCommand = "Reindex";
+    String taskJarPath = "src/test/resources/Random.jar";
+    String taskVersion = "1.0.0";
+    String fullyQualifiedTaskClassName = "com.mycompany.mocktask.RandomTask";
+    String fullyQualifiedTaskFactoryClassName = "com.mycompany.mocktask.MockTaskFactory";
+
     // Add task definition information as a DynamicTaskConfig.
-    List<String> taskClasses = new ArrayList<String>();
-    taskClasses.add("com.mycompany.mocktask.RandomTask");
+    List<String> taskClasses = new ArrayList();
+    taskClasses.add(fullyQualifiedTaskClassName);
     DynamicTaskConfig taskConfig =
-        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
-            "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
+        new DynamicTaskConfig(taskCommand, taskJarPath, taskVersion, taskClasses,
+            fullyQualifiedTaskFactoryClassName);
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
@@ -193,25 +209,27 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     String workflowName = TestHelper.getTestMethodName();
     submitWorkflow(workflowName, driver);
 
-    try {
-      // Wait for the workflow to either complete or fail.
-      TaskState finalState =
-          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
-      AssertJUnit.assertEquals(finalState, TaskState.FAILED);
-    } catch (HelixException e) {
-      AssertJUnit.fail(e.getMessage());
-    }
+    // Wait for the workflow to either complete or fail.
+    TaskState finalState =
+        driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(finalState, TaskState.FAILED);
   }
 
   @Test
   public void testDynamicTaskLoadingNonexistingTaskFactory() throws Exception {
+    String taskCommand = "Reindex";
+    String taskJarPath = "src/test/resources/Random.jar";
+    String taskVersion = "1.0.0";
+    String fullyQualifiedTaskClassName = "com.mycompany.mocktask.MockTask";
+    String fullyQualifiedTaskFactoryClassName = "com.mycompany.mocktask.RandomTaskFactory";
+
     // Add task definition information as a DynamicTaskConfig.
-    List<String> taskClasses = new ArrayList<String>();
-    taskClasses.add("com.mycompany.mocktask.MockTask");
+    List<String> taskClasses = new ArrayList();
+    taskClasses.add(fullyQualifiedTaskClassName);
     DynamicTaskConfig taskConfig =
-        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
-            "com.mycompany.mocktask.RandomTaskFactory");
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
+        new DynamicTaskConfig(taskCommand, taskJarPath, taskVersion, taskClasses,
+            fullyQualifiedTaskFactoryClassName);
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
     removePathIfExists(path);
     _manager.getHelixDataAccessor().getBaseDataAccessor()
         .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
@@ -221,14 +239,10 @@ public class TestDynamicTaskLoading extends ZkTestBase {
     String workflowName = TestHelper.getTestMethodName();
     submitWorkflow(workflowName, driver);
 
-    try {
-      // Wait for the workflow to either complete or fail.
-      TaskState finalState =
-          driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
-      AssertJUnit.assertEquals(finalState, TaskState.FAILED);
-    } catch (HelixException e) {
-      AssertJUnit.fail(e.getMessage());
-    }
+    // Wait for the workflow to either complete or fail.
+    TaskState finalState =
+        driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(finalState, TaskState.FAILED);
   }
 
   @AfterMethod
@@ -246,6 +260,6 @@ public class TestDynamicTaskLoading extends ZkTestBase {
         ((TaskStateModelFactory) stateModelFactory).shutdownNow();
       }
     }
-    deleteCluster(_clusterName);
+    deleteCluster(CLUSTER_NAME);
   }
 }

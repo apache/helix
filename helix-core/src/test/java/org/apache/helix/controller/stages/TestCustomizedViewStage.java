@@ -59,8 +59,14 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[]{0, 1}, new String[]{"TestDB"}, 1, 2);
-    setupLiveInstances(clusterName, new int[]{0, 1});
+    setupIdealState(clusterName, new int[] {
+        0, 1
+    }, new String[] {
+        "TestDB"
+    }, 1, 2);
+    setupLiveInstances(clusterName, new int[] {
+        0, 1
+    });
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);

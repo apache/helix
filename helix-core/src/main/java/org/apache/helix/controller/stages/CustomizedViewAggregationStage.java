@@ -20,13 +20,13 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -36,7 +36,6 @@ import org.apache.helix.common.caches.CustomizedViewCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
-import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CustomizedView;
@@ -95,7 +94,6 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       List<CustomizedView> updatedCustomizedViews = new ArrayList<>();
       Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps = new HashMap<>();
       Map<String, CustomizedView> curCustomizedViews = new HashMap<>();
-      Map<String, CustomizedView> curCustomizedViewsCopy = new HashMap<>();
       CustomizedViewCache customizedViewCache = customizedViewCacheMap.get(stateType);
       if (customizedViewCache != null) {
         curCustomizedViews = customizedViewCache.getCustomizedViewMap();
@@ -104,7 +102,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       for (Resource resource : resourceMap.values()) {
         try {
           computeCustomizedStateView(resource, stateType, customizedStateOutput, curCustomizedViews,
-              updatedCustomizedViews, updatedStartTimestamps, curCustomizedViewsCopy);
+              updatedCustomizedViews, updatedStartTimestamps);
         } catch (HelixException ex) {
           LogUtil.logError(LOG, _eventId,
               "Failed to calculate customized view for resource " + resource.getResourceName()
@@ -120,12 +118,9 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       // add/update customized-views from zk and cache
       if (updatedCustomizedViews.size() > 0) {
         boolean[] success = dataAccessor.setChildren(keys, updatedCustomizedViews);
+        reportLatency(event, updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
+            success);
         cache.updateCustomizedViews(stateType, updatedCustomizedViews);
-        asyncReportLatency(cache.getAsyncTasksThreadPool(),
-            event.getAttribute(AttributeName.clusterStatusMonitor.name()),
-            new ArrayList<>(updatedCustomizedViews), curCustomizedViewsCopy,
-            new HashMap<>(updatedStartTimestamps), success, System.currentTimeMillis(),
-            event.getClusterName());
       }
 
       // remove stale customized views from zk and cache
@@ -147,8 +142,7 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       CustomizedStateOutput customizedStateOutput,
       final Map<String, CustomizedView> curCustomizedViews,
       List<CustomizedView> updatedCustomizedViews,
-      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
-      Map<String, CustomizedView> curCustomizedViewsCopy) {
+      Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps) {
     String resourceName = resource.getResourceName();
     CustomizedView view = new CustomizedView(resource.getResourceName());
 
@@ -170,31 +164,66 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
       updatedCustomizedViews.add(view);
       updatedStartTimestamps.put(resourceName,
           customizedStateOutput.getResourceStartTimeMap(stateType, resourceName));
-      curCustomizedViewsCopy.put(resourceName,
-          curCustomizedView == null ? new CustomizedView(resourceName)
-              : new CustomizedView(curCustomizedView.getRecord()));
     }
   }
 
-  private void asyncReportLatency(ExecutorService threadPool,
-      ClusterStatusMonitor clusterStatusMonitor, List<CustomizedView> updatedCustomizedViews,
+  private void reportLatency(ClusterEvent event, List<CustomizedView> updatedCustomizedViews,
       Map<String, CustomizedView> curCustomizedViews,
       Map<String, Map<Partition, Map<String, Long>>> updatedStartTimestamps,
-      boolean[] updateSuccess, long curTime, String clusterName) {
+      boolean[] updateSuccess) {
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     if (clusterStatusMonitor == null) {
       return;
     }
+    long curTime = System.currentTimeMillis();
+    String clusterName = event.getClusterName();
     CustomizedViewMonitor customizedViewMonitor =
         clusterStatusMonitor.getOrCreateCustomizedViewMonitor(clusterName);
-    AbstractBaseStage.asyncExecute(threadPool, () -> {
-      try {
-        customizedViewMonitor
-            .reportLatency(updatedCustomizedViews, curCustomizedViews, updatedStartTimestamps,
-                updateSuccess, curTime, clusterName);
-      } catch (Exception e) {
-        LOG.warn("Failed to report UpdateToAggregationLatency metric on cluster " + clusterName, e);
+
+    for (int i = 0; i < updatedCustomizedViews.size(); i++) {
+      CustomizedView newCV = updatedCustomizedViews.get(i);
+      String resourceName = newCV.getResourceName();
+
+      if (!updateSuccess[i]) {
+        LOG.warn("Customized views are not updated successfully for resource {} on cluster {}",
+            resourceName, clusterName);
+        continue;
       }
-      return null;
-    });
+
+      CustomizedView oldCV =
+          curCustomizedViews.getOrDefault(resourceName, new CustomizedView(resourceName));
+
+      Map<String, Map<String, String>> newPartitionStateMaps = newCV.getRecord().getMapFields();
+      Map<String, Map<String, String>> oldPartitionStateMaps = oldCV.getRecord().getMapFields();
+      Map<Partition, Map<String, Long>> partitionStartTimeMaps =
+          updatedStartTimestamps.getOrDefault(resourceName, Collections.emptyMap());
+
+      for (Map.Entry<String, Map<String, String>> partitionStateMapEntry : newPartitionStateMaps
+          .entrySet()) {
+        String partitionName = partitionStateMapEntry.getKey();
+        Map<String, String> newStateMap = partitionStateMapEntry.getValue();
+        Map<String, String> oldStateMap =
+            oldPartitionStateMaps.getOrDefault(partitionName, Collections.emptyMap());
+        if (!newStateMap.equals(oldStateMap)) {
+          Map<String, Long> partitionStartTimeMap = partitionStartTimeMaps
+              .getOrDefault(new Partition(partitionName), Collections.emptyMap());
+
+          for (Map.Entry<String, String> stateMapEntry : newStateMap.entrySet()) {
+            String instanceName = stateMapEntry.getKey();
+            if (!stateMapEntry.getValue().equals(oldStateMap.get(instanceName))) {
+              long timestamp = partitionStartTimeMap.get(instanceName);
+              if (timestamp > 0) {
+                customizedViewMonitor.recordUpdateToAggregationLatency(curTime - timestamp);
+              } else {
+                LOG.warn(
+                    "Failed to find customized state update time stamp for resource {} partition {}, instance {}, on cluster {} the number should be positive.",
+                    resourceName, partitionName, instanceName, clusterName);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

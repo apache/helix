@@ -334,6 +334,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  /**
+   * Lazy initialization of customized view monitor
+   * @param clusterName the cluster name of the cluster to be monitored
+   * @return a customized view monitor instance
+   */
   public synchronized CustomizedViewMonitor getOrCreateCustomizedViewMonitor(String clusterName) {
     if (_customizedViewMonitor == null) {
       _customizedViewMonitor = new CustomizedViewMonitor(clusterName);

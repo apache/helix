@@ -109,7 +109,7 @@ public class AzureCloudInstanceInformationProcessor
       CloseableHttpResponse response = _closeableHttpClient.execute(httpGet);
       if (response == null || response.getStatusLine().getStatusCode() != 200) {
         String errorMsg = String.format(
-            "Failed to get an HTTP Response for the request. Response: {}. Status code: {}",
+            "Failed to get an HTTP Response for the request. Response: %s. Status code: %s",
             (response == null ? "NULL" : response.getStatusLine().getReasonPhrase()),
             response.getStatusLine().getStatusCode());
         throw new HelixException(errorMsg);
@@ -119,7 +119,7 @@ public class AzureCloudInstanceInformationProcessor
       return responseString;
     } catch (IOException e) {
       throw new HelixException(
-          String.format("Failed to get Azure cloud instance information from url {}", url), e);
+          String.format("Failed to get Azure cloud instance information from url %s", url), e);
     }
   }
 
@@ -153,7 +153,7 @@ public class AzureCloudInstanceInformationProcessor
       }
     } catch (IOException e) {
       throw new HelixException(
-          String.format("Error in parsing cloud instance information: {}", response, e));
+          String.format("Error in parsing cloud instance information: %s", response, e));
     }
     return azureCloudInstanceInformation;
   }

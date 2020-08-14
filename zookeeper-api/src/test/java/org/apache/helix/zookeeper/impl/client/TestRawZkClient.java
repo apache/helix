@@ -247,7 +247,7 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.unsubscribeStateChanges(listener);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testZkClientMonitor()
       throws Exception {
     final String TEST_KEY = "testZkClientMonitor";

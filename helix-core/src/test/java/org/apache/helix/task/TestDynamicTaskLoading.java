@@ -53,7 +53,7 @@ import org.testng.annotations.Test;
 public class TestDynamicTaskLoading extends ZkTestBase {
   private static final String CLUSTER_NAME = CLUSTER_PREFIX + "_TestDynamicTaskLoading";
   private static final String INSTANCE_NAME = "localhost_12913";
-  protected final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
+  private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   private HelixManager _manager;
   private MockParticipantManager _participant;
   private ClusterControllerManager _controller;

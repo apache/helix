@@ -253,16 +253,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
-    if (resourceMap.isEmpty()) {
-      LOG.debug(
-          "There is no resource to be rebalanced by {}. Reset the persisted assignment state if any.",
-          this.getClass().getSimpleName());
-      // Clean up the persisted assignment records so if the resources are added back to WAGED, they
-      // will be recalculated as a new one.
-      clearAssignmentMetadata();
-      return Collections.emptyMap();
-    }
-
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
     validateInput(clusterData, resourceMap);
 
@@ -464,18 +454,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
           throw new HelixRebalanceException("Failed to execute new Baseline calculation.",
               HelixRebalanceException.Type.FAILED_TO_CALCULATE, e);
         }
-      }
-    }
-  }
-
-  private void clearAssignmentMetadata() {
-    if (_assignmentMetadataStore != null) {
-      try {
-        _writeLatency.startMeasuringLatency();
-        _assignmentMetadataStore.clearAssignmentMetadata();
-        _writeLatency.endMeasuringLatency();
-      } catch (Exception ex) {
-        LOG.error("Failed to clear the assignment metadata.", ex);
       }
     }
   }

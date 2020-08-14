@@ -292,7 +292,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       } else {
         failureResources.add(resource.getResourceName());
         LogUtil.logWarn(logger, _eventId, String
-            .format("Failed to calculate best possible states for %s.",
+            .format("The calculated best possible states for %s is empty or invalid.",
                 resource.getResourceName()));
       }
     }

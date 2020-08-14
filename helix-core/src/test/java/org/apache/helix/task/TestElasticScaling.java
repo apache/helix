@@ -1,5 +1,24 @@
 package org.apache.helix.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,8 +58,7 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
   }
   private void monitorZK(HelixManager tmpManager, TaskDriver driver, int testTime) {
     try {
-      FileWriter file = new FileWriter("/home/rabashiz/plot/demo.csv", true);
-      //file.write("Time,Workflows,Live Instances\n");
+      FileWriter file = new FileWriter("../demo/elastic-scaling/demo.csv", true);
       int time = 0;
       long startTime = System.currentTimeMillis();
       long currentTime = startTime;
@@ -64,7 +82,7 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
     JobConfig.Builder job = new JobConfig.Builder();
     job.setJobCommandConfigMap(Collections.singletonMap(org.apache.helix.integration.task.MockTask.JOB_DELAY, jobDelay));
     Workflow.Builder workflow = new Workflow.Builder(workflowName);
-    //workflow.setExpiry(1);
+    workflow.setExpiry(1);
     job.setWorkflow(workflowName);
     TaskConfig taskConfig =
         new TaskConfig(MockTask.TASK_COMMAND, new HashMap<String, String>(), null, null);
@@ -81,7 +99,7 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
     tmpManager.connect();
 
     // Add task definition information as a DynamicTaskConfig.
-    List<String> taskClasses = new ArrayList<String>();
+    List<String> taskClasses = new ArrayList();
     taskClasses.add("com.mycompany.mocktask.MockTask");
     DynamicTaskConfig taskConfig =
         new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,

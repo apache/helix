@@ -61,6 +61,11 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @BeforeMethod
   public void beforeMethod() throws Exception {
+    // BeforeMethod is required (as opposed to BeforeClass)
+    // to make sure each test starts with a fresh state.
+    // This is important because we are testing dynamically
+    // loading classes, and the tests would break if the
+    // classes are already loaded.
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     _manager = HelixManagerFactory
@@ -247,6 +252,11 @@ public class TestDynamicTaskLoading extends ZkTestBase {
 
   @AfterMethod
   public void afterMethod() {
+    // AfterMethod is required (as opposed to AfterClass)
+    // to make sure each test erases all of its state.
+    // This is important because we are testing dynamically
+    // loading classes, and the tests would break if the
+    // classes are already loaded.
     _controller.syncStop();
     _manager.disconnect();
     _participant.syncStop();

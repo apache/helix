@@ -298,9 +298,11 @@ public class TaskStateModel extends StateModel {
     try {
       return classLoader.loadClass(className);
     } catch (ClassNotFoundException e) {
-      LOG.error("Failed to load Task class " + className + " for new task in instance " + _manager
-          .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalStateException("Class not found for task");
+      String errorMessage =
+          "Failed to load Task class " + className + " for new task in instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
     }
   }
 
@@ -313,8 +315,9 @@ public class TaskStateModel extends StateModel {
     // If the path for dynamic tasks doesn't exist, skip loading the task
     if (!_manager.getHelixDataAccessor().getBaseDataAccessor()
         .exists(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH, 0)) {
-      LOG.error("Path for dynamic tasks doesn't exist!");
-      throw new IllegalStateException("Path for dynamic tasks doesn't exist!");
+      String errorMessage = "Path for dynamic tasks doesn't exist!";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
     }
 
     // Read DynamicTaskConfig containing task definition information.
@@ -323,11 +326,11 @@ public class TaskStateModel extends StateModel {
             .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null,
                 ~AccessOption.THROW_EXCEPTION_IFNOTEXIST));
     if (taskConfig.getTaskConfigZNRecord() == null) {
-      LOG.error("Failed to read ZNRecord for task " + command + " for instance " + _manager
-          .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalArgumentException(
+      String errorMessage =
           "Failed to read ZNRecord for task " + command + " for instance " + _manager
-              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalArgumentException(errorMessage);
     }
 
     // Open the JAR file containing Task(s) and TaskFactory classes.
@@ -346,11 +349,11 @@ public class TaskStateModel extends StateModel {
       taskFactory =
           (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
     } catch (InstantiationException | IllegalAccessException e) {
-      LOG.error("Failed to instantiate TaskFactory class for new task in instance " + _manager
-          .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
-      throw new IllegalStateException(
+      String errorMessage =
           "Failed to instantiate TaskFactory class for new task in instance " + _manager
-              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".");
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
     }
 
     // Register the TaskFactory.

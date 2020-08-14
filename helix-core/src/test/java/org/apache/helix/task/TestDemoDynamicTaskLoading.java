@@ -118,7 +118,7 @@ public class TestDemoDynamicTaskLoading extends ZkTestBase {
     submitWorkflow(workflowName, driver);
 
     // Wait for the workflow to either complete or fail.
-    Thread.sleep(100000);
+    //Thread.sleep(100000);
     TaskState finalState =
         driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.FAILED);
     Assert.assertEquals(finalState, TaskState.COMPLETED);

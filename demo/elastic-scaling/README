@@ -1,0 +1,68 @@
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*
+
+This directory contains the YAML manifests for Kubernetes
+objects, Dockerfiles for Docker images of Helix components,
+and the Python script for visualization used in the demo for
+elastic Task Framework. Note that this demo dynamically loads
+the task it runs. If you want statically loaded tasks, you
+need to register the task you want to execute in the
+org.apache.helix.manager.zk.ParticipantManager constructor.
+To run the demo, follow these steps:
+
+1. Start a Kubernetes cluster. You can use Minikube for the
+   purposes of this demo. In that case, if it is not already
+   installed, you should first by following directions found
+   at https://kubernetes.io/docs/tasks/tools/install-minikube/
+
+2. Run the following commands. Wait for the Kubernetes objects
+   related to each command to stabilize before you run the
+   commands in the next step. You can check the status of the
+   objects in the Kubernetes dashboard. If you are using
+   minikube, you can access the dashboard by running
+   "minikube dashboard" in a separate terminal.
+
+   You also need to have kubectl installed to run these
+   commands. Instructions to do so can be found at:
+   https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+   a. Deploy ZooKeeper:
+      > kubectl apply -f helix-zookeeper-deployment.yaml
+
+   b. Deploy REST server:
+      > kubectl apply -f helix-rest-deployment.yaml
+
+   c. Create a cluster called "MYCLUSTER" and add Helix
+      Controller and Participant Deployments to it:
+      > curl -X PUT http://172.17.0.3:30000/admin/v2/clusters/MYCLUSTER
+      > kubectl apply -f helix-controller-deployment.yaml
+      > kubectl apply -f helix-participant-deployment.yaml
+
+   d. Deploy custom metrics server and create Horizontal Pod
+      Autoscaler. Source code for custom metrics server and
+      instructions on how to build it can be fount at
+      https://github.com/rabashizade/custom-metrics-apiserver
+      > kubectl apply -f testing-adapter.yaml
+      > kubectl apply -f hpa.yaml
+
+3. (Optional) Run plot.py in a separate terminal for
+   visualization.
+
+4. Run the test script in
+   org.apache.helix.task.TestElasticScaling.

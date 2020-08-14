@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helix-rest-deployment
+  labels:
+    app: rest-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rest
+  template:
+    metadata:
+      labels:
+        app: rest
+    spec:
+      volumes:
+      - name: host-volume
+        hostPath:
+          path: /home/docker
+      containers:
+      - image: rabashizade/helix-rest:1.1
+        name: helix-rest
+        volumeMounts:
+        - mountPath: /tmp
+          name: host-volume
+        command: ["/bin/sh", "-c", "/target/helix-rest-pkg/bin/run-rest-admin.sh --port 30000 --zkSvr helix-zookeeper-service-internal:2199 2>&1 > /tmp/rest.log"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: helix-rest-service
+spec:
+  type: NodePort
+  selector:
+    app: rest
+  ports:
+  - protocol: TCP
+    port: 30000
+    nodePort: 30000

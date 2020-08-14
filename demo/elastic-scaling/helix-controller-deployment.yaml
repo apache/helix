@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helix-controller-deployment
+  labels:
+    app: controller-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      labels:
+        app: controller
+    spec:
+      volumes:
+      - name: host-volume
+        hostPath:
+          path: /home/docker
+      containers:
+      - image: rabashizade/helix-core:1.3
+        name: helix-controller
+        volumeMounts:
+        - mountPath: /tmp
+          name: host-volume
+        command: ["/bin/sh", "-c", "/target/helix-core-pkg/bin/run-helix-controller.sh --zkSvr helix-zookeeper-service-internal:2199 --cluster MYCLUSTER 2>&1 > /tmp/controller.log"]

@@ -228,6 +228,13 @@ public abstract class ZkHelixClusterVerifier
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
   }
 
+  protected boolean _isLogMore = false;
+
+  public boolean verifyByPolling(boolean logMore) {
+    _isLogMore = logMore;
+    return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
+  }
+
   public void close() {
     if (_zkClient != null && !_usesExternalZkClient) {
       _zkClient.close();

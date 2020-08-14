@@ -70,9 +70,8 @@ public class CustomizedStateOutput {
     return Collections.emptyMap();
   }
 
-  public Map<String, Map<Partition, Map<String, Long>>> getStartTimeMap(String stateType) {
-    return Collections
-        .unmodifiableMap(_startTimeMap.getOrDefault(stateType, Collections.emptyMap()));
+  private Map<String, Map<Partition, Map<String, Long>>> getStartTimeMap(String stateType) {
+    return _startTimeMap.getOrDefault(stateType, Collections.emptyMap());
   }
 
   /**

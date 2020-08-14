@@ -78,8 +78,6 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   }
 
   public void recordUpdateToAggregationLatency(long latency) {
-    if (_updateToAggregationLatencyGauge != null) {
-      _updateToAggregationLatencyGauge.updateValue(latency);
-    }
+    _updateToAggregationLatencyGauge.updateValue(latency);
   }
 }

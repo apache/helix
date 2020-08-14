@@ -29,5 +29,6 @@ public enum MonitorDomainNames {
   HelixCallback,
   RoutingTableProvider,
   CLMParticipantReport,
-  Rebalancer
+  Rebalancer,
+  AggregatedView
 }

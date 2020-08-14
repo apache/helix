@@ -96,6 +96,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   protected final ConcurrentHashMap<String, ClusterEventMonitor> _clusterEventMonitorMap =
       new ConcurrentHashMap<>();
 
+  private CustomizedViewMonitor _customizedViewMonitor;
+
   /**
    * PerInstanceResource monitor map: beanName->monitor
    */
@@ -330,6 +332,23 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     if (monitor != null) {
       monitor.reportDuration(duration);
     }
+  }
+
+  /**
+   * Lazy initialization of customized view monitor
+   * @param clusterName the cluster name of the cluster to be monitored
+   * @return a customized view monitor instance
+   */
+  public synchronized CustomizedViewMonitor getOrCreateCustomizedViewMonitor(String clusterName) {
+    if (_customizedViewMonitor == null) {
+      _customizedViewMonitor = new CustomizedViewMonitor(clusterName);
+      try {
+        _customizedViewMonitor.register();
+      } catch (JMException e) {
+        LOG.error("Failed to register CustomizedViewMonitorMBean for cluster " + _clusterName, e);
+      }
+    }
+    return _customizedViewMonitor;
   }
 
   private ClusterEventMonitor getOrCreateClusterEventMonitor(String phase) {

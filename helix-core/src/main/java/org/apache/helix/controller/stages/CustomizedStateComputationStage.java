@@ -32,7 +32,6 @@ import org.apache.helix.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CustomizedStateComputationStage extends AbstractBaseStage {
   private static Logger LOG = LoggerFactory.getLogger(CustomizedStateComputationStage.class);
 
@@ -85,7 +84,8 @@ public class CustomizedStateComputationStage extends AbstractBaseStage {
         if (partition != null) {
           customizedStateOutput
               .setCustomizedState(customizedStateType, resourceName, partition, instanceName,
-                  customizedState.getState(partitionName));
+                  customizedState.getState(partitionName),
+                  customizedState.getStartTime(partitionName));
         }
       }
     }

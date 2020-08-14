@@ -26,30 +26,35 @@ import java.util.Set;
 
 import org.apache.helix.model.Partition;
 
-
 public class CustomizedStateOutput {
   // stateType -> (resourceName -> (Partition -> (instanceName -> customizedState)))
   private final Map<String, Map<String, Map<Partition, Map<String, String>>>> _customizedStateMap;
+  // stateType -> (resourceName -> (Partition -> (instanceName -> startTime)))
+  private final Map<String, Map<String, Map<Partition, Map<String, Long>>>> _startTimeMap;
 
   public CustomizedStateOutput() {
     _customizedStateMap = new HashMap<>();
+    _startTimeMap = new HashMap<>();
   }
 
   public void setCustomizedState(String stateType, String resourceName, Partition partition,
+      String instanceName, String state, Long startTime) {
+    setCurrentState(stateType, resourceName, partition, instanceName, state);
+    setStartTime(stateType, resourceName, partition, instanceName, startTime);
+  }
+
+  private void setCurrentState(String stateType, String resourceName, Partition partition,
       String instanceName, String state) {
-    if (!_customizedStateMap.containsKey(stateType)) {
-      _customizedStateMap
-          .put(stateType, new HashMap<String, Map<Partition, Map<String, String>>>());
-    }
-    if (!_customizedStateMap.get(stateType).containsKey(resourceName)) {
-      _customizedStateMap.get(stateType)
-          .put(resourceName, new HashMap<Partition, Map<String, String>>());
-    }
-    if (!_customizedStateMap.get(stateType).get(resourceName).containsKey(partition)) {
-      _customizedStateMap.get(stateType).get(resourceName)
-          .put(partition, new HashMap<String, String>());
-    }
-    _customizedStateMap.get(stateType).get(resourceName).get(partition).put(instanceName, state);
+    _customizedStateMap.computeIfAbsent(stateType, k -> new HashMap<>())
+        .computeIfAbsent(resourceName, k -> new HashMap<>())
+        .computeIfAbsent(partition, k -> new HashMap<>()).put(instanceName, state);
+  }
+
+  private void setStartTime(String stateType, String resourceName, Partition partition,
+      String instanceName, Long startTime) {
+    _startTimeMap.computeIfAbsent(stateType, k -> new HashMap<>())
+        .computeIfAbsent(resourceName, k -> new HashMap<>())
+        .computeIfAbsent(partition, k -> new HashMap<>()).put(instanceName, startTime);
   }
 
   /**
@@ -63,6 +68,10 @@ public class CustomizedStateOutput {
       return Collections.unmodifiableMap(_customizedStateMap.get(stateType));
     }
     return Collections.emptyMap();
+  }
+
+  private Map<String, Map<Partition, Map<String, Long>>> getStartTimeMap(String stateType) {
+    return _startTimeMap.getOrDefault(stateType, Collections.emptyMap());
   }
 
   /**
@@ -112,6 +121,12 @@ public class CustomizedStateOutput {
       return getPartitionCustomizedStateMap(stateType, resourceName, partition).get(instanceName);
     }
     return null;
+  }
+
+  public Map<Partition, Map<String, Long>> getResourceStartTimeMap(String stateType,
+      String resourceName) {
+    return Collections.unmodifiableMap(
+        getStartTimeMap(stateType).getOrDefault(resourceName, Collections.emptyMap()));
   }
 
   public Set<String> getAllStateTypes() {

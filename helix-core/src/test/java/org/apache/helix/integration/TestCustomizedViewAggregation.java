@@ -222,7 +222,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
             Map<String, Map<String, String>> localPerResourceCustomizedView = localSnapshot
                 .getOrDefault(resourceCustomizedView.getResourceName(), Maps.newHashMap());
 
-            if (resourceStateMap.isEmpty() && !localPerResourceCustomizedView.isEmpty()) {
+            if (resourceStateMap.size() != localPerResourceCustomizedView.size()) {
               return false;
             }
 
@@ -252,7 +252,7 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
         }
         return true;
       }
-    }, 12000);
+    }, TestHelper.WAIT_DURATION);
 
     Assert.assertTrue(result);
   }
@@ -422,6 +422,8 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     Map<String, String> perPartitionCustomizedState = _customizedStateProvider_participant1
         .getPerPartitionCustomizedState(CustomizedStateType.TYPE_A.name(), RESOURCE_1,
             PARTITION_10);
+    // Remove this field because it's automatically updated for monitoring purpose and we don't need to compare it
+    perPartitionCustomizedState.remove(CustomizedState.CustomizedStateProperty.START_TIME.name());
     Map<String, String> actualPerPartitionCustomizedState = Maps.newHashMap();
     actualPerPartitionCustomizedState
         .put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(),

@@ -49,7 +49,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
   protected static final int PARTITIONS = 5;
   // TODO: remove this wait time once we have a better way to determine if the rebalance has been
   // TODO: done as a reaction of the test operations.
-  protected static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1000;
+  protected static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 3000;
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;

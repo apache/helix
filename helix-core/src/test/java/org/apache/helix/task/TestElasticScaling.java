@@ -38,7 +38,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestElasticScaling extends TaskSynchronizedTestBase {
   private static final String DEFAULT_QUOTA_TYPE = "DEFAULT";
 
@@ -48,24 +47,26 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
     super.beforeClass();
   }
 
-
   private void sleep(int time) {
     long sleepStartTime = System.currentTimeMillis();
     long sleepCurrentTime = sleepStartTime;
-    while(sleepCurrentTime - sleepStartTime < time) {
+    while (sleepCurrentTime - sleepStartTime < time) {
       sleepCurrentTime = System.currentTimeMillis();
     }
   }
+
   private void monitorZK(HelixManager tmpManager, TaskDriver driver, int testTime) {
     try {
-      FileWriter file = new FileWriter("../demo/elastic-scaling/demo.csv", true);
+      String traceFilePath = "../demo/elastic-scaling/demo.csv";
+      FileWriter file = new FileWriter(traceFilePath, true);
       int time = 0;
       long startTime = System.currentTimeMillis();
       long currentTime = startTime;
-      while(currentTime - startTime < testTime) {
+      while (currentTime - startTime < testTime) {
         sleep(1000);
         int workflows = driver.getWorkflows().size();
-        int liveInstances = tmpManager.getHelixDataAccessor().getChildNames(tmpManager.getHelixDataAccessor().keyBuilder().liveInstances()).size();
+        int liveInstances = tmpManager.getHelixDataAccessor()
+            .getChildNames(tmpManager.getHelixDataAccessor().keyBuilder().liveInstances()).size();
         file.write(time + "," + workflows + "," + liveInstances + "\n");
         file.flush();
         ++time;
@@ -73,14 +74,14 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
       }
       file.close();
     } catch (IOException e) {
-      System.out.println("An error occurred.");
-      e.printStackTrace();
+      throw new IllegalStateException(e.getMessage());
     }
   }
 
   private void submitTestWorkflow(String workflowName, TaskDriver driver, String jobDelay) {
     JobConfig.Builder job = new JobConfig.Builder();
-    job.setJobCommandConfigMap(Collections.singletonMap(org.apache.helix.integration.task.MockTask.JOB_DELAY, jobDelay));
+    job.setJobCommandConfigMap(
+        Collections.singletonMap(org.apache.helix.integration.task.MockTask.JOB_DELAY, jobDelay));
     Workflow.Builder workflow = new Workflow.Builder(workflowName);
     workflow.setExpiry(1);
     job.setWorkflow(workflowName);
@@ -94,25 +95,32 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
 
   @Test
   public void testMockParticipantTaskRegistration() throws Exception {
-    HelixManager tmpManager = HelixManagerFactory.getZKHelixManager("MYCLUSTER", "Admin",
-        InstanceType.ADMINISTRATOR, "172.17.0.3:30100");
+    String clusterName = "MYCLUSTER";
+    String zkAddr = "172.17.0.3:30100";
+    String taskCommand = "Reindex";
+    String taskJarPath = "src/test/resources/Reindex.jar";
+    String taskVersion = "1.0.0";
+    String fullyQualifiedTaskClassName = "com.mycompany.mocktask.MockTask";
+    String fullyQualifiedTaskFactoryClassName = "com.mycompany.mocktask.MockTaskFactory";
+
+    HelixManager tmpManager = HelixManagerFactory.getZKHelixManager(clusterName, "Admin", InstanceType.ADMINISTRATOR, zkAddr);
     tmpManager.connect();
 
     // Add task definition information as a DynamicTaskConfig.
     List<String> taskClasses = new ArrayList();
-    taskClasses.add("com.mycompany.mocktask.MockTask");
-    DynamicTaskConfig taskConfig =
-        new DynamicTaskConfig("Reindex", "src/test/resources/Reindex.jar", "1.0.0", taskClasses,
-            "com.mycompany.mocktask.MockTaskFactory");
-    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/Reindex";
-    tmpManager.getHelixDataAccessor().getBaseDataAccessor()
-        .create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
+    taskClasses.add(fullyQualifiedTaskClassName);
+    DynamicTaskConfig taskConfig = new DynamicTaskConfig(taskCommand, taskJarPath, taskVersion, taskClasses, fullyQualifiedTaskFactoryClassName);
+    String path = TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + taskCommand;
+    tmpManager.getHelixDataAccessor().getBaseDataAccessor().create(path, taskConfig.getTaskConfigZNRecord(), AccessOption.PERSISTENT);
 
-    ClusterConfig clusterConfig = tmpManager.getConfigAccessor().getClusterConfig("MYCLUSTER"); // Retrieve ClusterConfig
-    clusterConfig.resetTaskQuotaRatioMap(); // Optional: you may want to reset the quota config before creating a new quota config
-    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1); // Define the default quota (DEFAULT_QUOTA_TYPE = "DEFAULT")
-    clusterConfig.setTaskQuotaRatio("A", 39); // Define quota type A
-    tmpManager.getConfigAccessor().setClusterConfig("MYCLUSTER", clusterConfig); // Set the new ClusterConfig
+    // Set Default quota to 1 to easier see autoscaling happening
+    ClusterConfig clusterConfig = tmpManager.getConfigAccessor().getClusterConfig(clusterName);
+    clusterConfig.resetTaskQuotaRatioMap();
+    clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE,1);
+    clusterConfig.setTaskQuotaRatio("A", 39);
+
+    // Launch another thread to monitor the cluster
+    tmpManager.getConfigAccessor().setClusterConfig(clusterName, clusterConfig);
     TaskDriver driver = new TaskDriver(tmpManager);
     ExecutorService service = Executors.newFixedThreadPool(1);
     CountDownLatch latch = new CountDownLatch(1);
@@ -120,6 +128,8 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
       monitorZK(tmpManager, driver, 200000);
       latch.countDown();
     });
+
+    // Submit workflows for the demo
     sleep(1000);
     for (int i = 0; i < 15; i++) {
       submitTestWorkflow("Workflow" + i, driver, "15000");

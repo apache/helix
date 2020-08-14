@@ -94,7 +94,7 @@ public class TestElasticScaling extends TaskSynchronizedTestBase {
   }
 
   @Test
-  public void testMockParticipantTaskRegistration() throws Exception {
+  public void testElasticScaling() throws Exception {
     String clusterName = "MYCLUSTER";
     String zkAddr = "172.17.0.3:30100";
     String taskCommand = "Reindex";

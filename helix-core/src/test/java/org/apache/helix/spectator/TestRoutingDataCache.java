@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 
 public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
-
+  @Test
   public void testUpdateOnNotification() {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 

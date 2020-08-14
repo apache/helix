@@ -435,7 +435,7 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.delete(TEST_PATH);
   }
 
-  @Test(dependsOnMethods = "testZkClientMonitor")
+  @Test(dependsOnMethods = "testZkClientMonitor", enabled = false)
   void testPendingRequestGauge()
       throws Exception {
     final String TEST_KEY = "testPendingRequestGauge";
@@ -484,7 +484,7 @@ public class TestRawZkClient extends ZkTestBase {
   /*
    * Tests session expiry and session expire counter for the helix's IZkStateListener.
    */
-  @Test(dependsOnMethods = "testZkClientMonitor")
+  @Test(dependsOnMethods = "testZkClientMonitor", enabled = false)
   void testSessionExpireCount() throws Exception {
     final String TEST_KEY = "testSessionExpireCount";
 

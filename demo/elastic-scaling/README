@@ -54,6 +54,10 @@ To run the demo, follow these steps:
       > kubectl apply -f helix-controller-deployment.yaml
       > kubectl apply -f helix-participant-deployment.yaml
 
+      NOTE: Minikube IP is assumed to be 172.17.0.3. You need
+      to change this IP to your Minikube's instance's IP, and
+      also use that IP in org.apache.helix.task.TestElasticScaling.
+
    d. Deploy custom metrics server and create Horizontal Pod
       Autoscaler. Source code for custom metrics server and
       instructions on how to build it can be fount at

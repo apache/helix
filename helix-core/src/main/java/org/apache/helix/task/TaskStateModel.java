@@ -19,18 +19,23 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.task.api.JarLoader;
+import org.apache.helix.task.api.LocalJarLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,6 +288,78 @@ public class TaskStateModel extends StateModel {
     }
   }
 
+  /**
+   * Loads className using classLoader
+   * @param classLoader
+   * @param className
+   * @return Class className loaded by classLoader
+   */
+  private Class loadClass(URLClassLoader classLoader, String className) {
+    try {
+      return classLoader.loadClass(className);
+    } catch (ClassNotFoundException e) {
+      String errorMessage =
+          "Failed to load Task class " + className + " for new task in instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
+    }
+  }
+
+  /**
+   * Loads Task and TaskFactory classes for command input from
+   * a JAR file, and registers the TaskFactory in _taskFactoryRegistry.
+   * @param command The command indicating what task to be loaded
+   */
+  private void loadNewTask(String command) {
+    // If the path for dynamic tasks doesn't exist, skip loading the task
+    if (!_manager.getHelixDataAccessor().getBaseDataAccessor()
+        .exists(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH, 0)) {
+      String errorMessage = "Path for dynamic tasks doesn't exist!";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
+    }
+
+    // Read DynamicTaskConfig containing task definition information.
+    DynamicTaskConfig taskConfig = new DynamicTaskConfig(
+        _manager.getHelixDataAccessor().getBaseDataAccessor()
+            .get(TaskConstants.DYNAMICALLY_LOADED_TASK_PATH + "/" + command, null,
+                ~AccessOption.THROW_EXCEPTION_IFNOTEXIST));
+    if (taskConfig.getTaskConfigZNRecord() == null) {
+      String errorMessage =
+          "Failed to read ZNRecord for task " + command + " for instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalArgumentException(errorMessage);
+    }
+
+    // Open the JAR file containing Task(s) and TaskFactory classes.
+    JarLoader jarLoader = new LocalJarLoader();
+    URL taskJarUrl = jarLoader.loadJar(taskConfig.getJarFilePath());
+
+    // Import Task(s) class(es).
+    URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{taskJarUrl});
+    for (String taskClass : taskConfig.getTaskClassesFqns()) {
+      loadClass(classLoader, taskClass);
+    }
+
+    TaskFactory taskFactory;
+    try {
+      // Import and instantiate TaskFactory class.
+      taskFactory =
+          (TaskFactory) loadClass(classLoader, taskConfig.getTaskFactoryFqn()).newInstance();
+    } catch (InstantiationException | IllegalAccessException e) {
+      String errorMessage =
+          "Failed to instantiate TaskFactory class for new task in instance " + _manager
+              .getInstanceName() + " in cluster " + _manager.getClusterName() + ".";
+      LOG.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
+    }
+
+    // Register the TaskFactory.
+    _taskFactoryRegistry.put(command, taskFactory);
+  }
+
   private void startTask(Message msg, String taskPartition) {
     JobConfig cfg = TaskUtil.getJobConfig(_manager, msg.getResourceName());
     TaskConfig taskConfig = null;
@@ -313,9 +390,12 @@ public class TaskStateModel extends StateModel {
     callbackContext.setTaskConfig(taskConfig);
 
     // Create a task instance with this command
-    if (command == null || _taskFactoryRegistry == null
-        || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException("No callback implemented(or not registered) for task " + command);
+    if (command == null || _taskFactoryRegistry == null) {
+      throw new IllegalStateException("Null command for task " + command);
+    }
+    // If the task isn't registered, load the appropriate Task and TaskFactory classes
+    if (!_taskFactoryRegistry.containsKey(command)) {
+      loadNewTask(command);
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);

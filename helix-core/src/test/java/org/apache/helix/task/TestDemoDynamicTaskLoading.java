@@ -78,7 +78,7 @@ public class TestDemoDynamicTaskLoading extends ZkTestBase {
   }
 
   /**
-   * Submit a workflow consisting of a job with a MockTask task.
+   * Submit a workflow consisting of a job with a DemoTask task.
    * @param workflowName name of the workflow
    * @param driver {@link TaskDriver} to submit workflowName to
    */

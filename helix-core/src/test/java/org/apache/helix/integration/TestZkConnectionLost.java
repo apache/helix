@@ -66,6 +66,8 @@ public class TestZkConnectionLost extends TaskTestBase {
   private ClusterSetup _setupTool;
   private HelixZkClient _zkClient;
 
+  private static final int RESTART_CNT = 2;
+
   @BeforeClass
   public void beforeClass() throws Exception {
     ZkServer zkServer = TestHelper.startZkServer(_zkAddr);
@@ -220,7 +222,7 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   private void restartZkServer() throws ExecutionException, InterruptedException {
     // shutdown and restart zk for a couple of times
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < RESTART_CNT; i++) {
       Executors.newSingleThreadExecutor().submit(() -> {
         try {
           Thread.sleep(300);

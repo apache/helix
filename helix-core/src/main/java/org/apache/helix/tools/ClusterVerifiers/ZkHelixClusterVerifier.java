@@ -19,6 +19,8 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -230,9 +232,9 @@ public abstract class ZkHelixClusterVerifier
 
   protected boolean _isLogMore = false;
 
-  public boolean verifyByPolling(boolean logMore) {
+  public boolean verifyByPolling(int timeout, int period,  boolean logMore) {
     _isLogMore = logMore;
-    return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
+    return verifyByPolling(timeout, period);
   }
 
   public void close() {

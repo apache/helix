@@ -50,6 +50,10 @@ public abstract class ZkHelixClusterVerifier
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
   protected static int DEFAULT_TIMEOUT = 300 * 1000;
   protected static int DEFAULT_PERIOD = 500;
+  // COOL_DOWN before starting vefiyByPool
+  // The goal is to make sure waiting for controller pipeline starts at least one cycle
+  // to update ideal state.
+  protected static int DEFAULT_COOLDOWN = 2000 * 1000;
 
   protected final RealmAwareZkClient _zkClient;
   // true if ZkHelixClusterVerifier was instantiated with a RealmAwareZkClient, false otherwise
@@ -204,6 +208,7 @@ public abstract class ZkHelixClusterVerifier
     waitTillVerify();
 
     try {
+      Thread.sleep(DEFAULT_COOLDOWN);
       long start = System.currentTimeMillis();
       boolean success;
       do {

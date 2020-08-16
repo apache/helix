@@ -160,7 +160,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       admin.enableInstance(CLUSTER_NAME, instance, true);
     }
     admin.enableMaintenanceMode(CLUSTER_NAME, false);
-
+    
     Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 

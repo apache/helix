@@ -74,7 +74,7 @@ public class TaskDriver {
   private static final Logger LOG = LoggerFactory.getLogger(TaskDriver.class);
 
   /** Default time out for monitoring workflow or job state */
-  private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
+  private final static int DEFAULT_TIMEOUT = 15 * 60 * 1000; /* 15 mins, same as default in TestNg.xml */
 
   /** Default sleep time for requests */
   private final static long DEFAULT_SLEEP = 1000L; /* 1 second */

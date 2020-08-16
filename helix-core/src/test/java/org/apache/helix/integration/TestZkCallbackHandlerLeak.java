@@ -200,7 +200,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test
+  @Test()
   public void testCbHandlerLeakOnControllerSessionExpiry() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
@@ -412,7 +412,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test
+  @Test(timeOut = 1800 * 1000)
   public void testCurrentStatePathLeakingByAsycRemoval() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -655,7 +655,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // the same time as participant.
     // Currently there are many places to register watch in Zookeeper over the evolution of Helix
     // and ZkClient. We plan for further simplify the logic of watch installation next.
-    boolean result = TestHelper.verify(()-> {
+    boolean result = TestHelper.verify(()->
       Map<String, List<String>> wPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
       return wPaths.get("existWatches").size() == 1;
     }, TestHelper.WAIT_DURATION);

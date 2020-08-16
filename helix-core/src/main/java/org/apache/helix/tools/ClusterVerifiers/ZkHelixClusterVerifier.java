@@ -269,7 +269,7 @@ public abstract class ZkHelixClusterVerifier
         }
       }
     } catch (Exception e) {
-      LOG.error("Exception in verifier", e);
+      LOG.error("Exception {} in verifier {}", e, e.getStackTrace());
     }
 
     // clean up

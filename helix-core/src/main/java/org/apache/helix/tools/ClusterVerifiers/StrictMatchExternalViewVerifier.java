@@ -268,7 +268,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       }
       return true;
     } catch (Exception e) {
-      LOG.error("exception in verification", e);
+      LOG.error("exception {} in verification, stack trace {}", e, e.getStackTrace());
       return false;
     }
   }

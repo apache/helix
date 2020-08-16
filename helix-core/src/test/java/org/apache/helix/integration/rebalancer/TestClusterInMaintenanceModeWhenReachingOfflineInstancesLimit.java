@@ -190,7 +190,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
-    
+
     // Verify there is rebalance error logged
     checkForRebalanceError(true);
   }

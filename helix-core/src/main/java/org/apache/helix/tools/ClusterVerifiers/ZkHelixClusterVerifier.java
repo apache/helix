@@ -53,7 +53,7 @@ public abstract class ZkHelixClusterVerifier
   // COOL_DOWN before starting vefiyByPool
   // The goal is to make sure waiting for controller pipeline starts at least one cycle
   // to update ideal state.
-  protected static int DEFAULT_COOLDOWN = 2000 * 1000;
+  protected static int DEFAULT_COOLDOWN = 2 * 1000;
 
   protected final RealmAwareZkClient _zkClient;
   // true if ZkHelixClusterVerifier was instantiated with a RealmAwareZkClient, false otherwise

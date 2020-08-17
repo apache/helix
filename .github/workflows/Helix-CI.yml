@@ -20,15 +20,22 @@ jobs:
       run: mvn clean install -Dmaven.test.skip.exec=true
     - name: Test metrics-common
       run: cd metrics-common; mvn test
+      if: ${{ success() || failure() }}
     - name: Test metadata-store-directory-common
       run: cd metadata-store-directory-common; mvn test
+      if: ${{ success() || failure() }}
     - name: Test zookeeper-api
       run: cd zookeeper-api; mvn test
+      if: ${{ success() || failure() }}
     - name: Test helix-common
       run: cd helix-common; mvn test
+      if: ${{ success() || failure() }}
     - name: Test helix-lock
       run: cd helix-lock; mvn test
+      if: ${{ success() || failure() }}
     - name: Test helix-rest
       run: cd helix-rest; mvn test
+      if: ${{ success() || failure() }}
     - name: Test helix-core
       run: cd helix-core; mvn test
+      if: ${{ success() || failure() }}

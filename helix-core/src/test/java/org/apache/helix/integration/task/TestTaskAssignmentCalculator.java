@@ -19,6 +19,8 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +46,10 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
@@ -100,6 +105,21 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _driver = new TaskDriver(_manager);
 
     _jobCommandMap = Maps.newHashMap();
+  }
+
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext) {
+    long startTime = System.currentTimeMillis();
+    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    testContext.setAttribute("StartTime", System.currentTimeMillis());
+  }
+
+  @AfterMethod
+  public void endTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    long endTime = System.currentTimeMillis();
+    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+        + (endTime - startTime) + "ms.");
   }
 
   /**

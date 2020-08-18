@@ -22,10 +22,10 @@ package org.apache.helix.webapp.resources;
 import java.io.IOException;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;

@@ -36,8 +36,14 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
@@ -45,14 +51,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -344,8 +344,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return JSONRepresentation(workflowContextNode);
   }
 
-  private void getWorkflowConfigNode(
-      ObjectNode workflowConfigNode, ZNRecord record) {
+  private void getWorkflowConfigNode(ObjectNode workflowConfigNode, ZNRecord record) {
     for (Map.Entry<String, String> entry : record.getSimpleFields().entrySet()) {
       if (!entry.getKey().equals(WorkflowConfig.WorkflowConfigProperty.Dag)) {
         workflowConfigNode.put(entry.getKey(), JsonNodeFactory.instance.textNode(entry.getValue()));
@@ -353,8 +352,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
     }
   }
 
-  private void getWorkflowContextNode(
-      ObjectNode workflowContextNode, ZNRecord record) {
+  private void getWorkflowContextNode(ObjectNode workflowContextNode, ZNRecord record) {
     if (record.getMapFields() != null) {
       for (String fieldName : record.getMapFields().keySet()) {
         JsonNode node = OBJECT_MAPPER.valueToTree(record.getMapField(fieldName));

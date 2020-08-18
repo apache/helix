@@ -23,12 +23,12 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -61,8 +61,8 @@ public class InstanceResource extends ServerResource {
     return presentation;
   }
 
-  StringRepresentation getInstanceRepresentation() throws JsonGenerationException,
-                                                          JsonMappingException, IOException {
+  StringRepresentation getInstanceRepresentation()
+      throws JsonGenerationException, JsonMappingException, IOException {
     String clusterName =
         ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
     String instanceName =

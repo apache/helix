@@ -76,8 +76,7 @@ public class Dag {
     }
 
     public String toJson() throws Exception {
-      ObjectMapper
-          mapper = new ObjectMapper();
+      ObjectMapper mapper = new ObjectMapper();
       return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
     }
 

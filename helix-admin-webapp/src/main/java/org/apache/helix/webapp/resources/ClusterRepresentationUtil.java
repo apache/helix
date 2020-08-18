@@ -28,6 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixDataAccessor;
@@ -36,16 +40,12 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 
@@ -94,9 +94,8 @@ public class ClusterRepresentationUtil {
   }
 
   public static String getInstancePropertiesAsString(ZkClient zkClient, String clusterName,
-      PropertyKey propertyKey, MediaType mediaType) throws
-                                                    JsonGenerationException,
-                                                    JsonMappingException, IOException {
+      PropertyKey propertyKey, MediaType mediaType)
+      throws JsonGenerationException, JsonMappingException, IOException {
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
@@ -119,16 +118,14 @@ public class ClusterRepresentationUtil {
     return ObjectToJson(record);
   }
 
-  public static String ZNRecordToJson(ZNRecord record) throws
-                                                       JsonGenerationException,
-                                                       JsonMappingException, IOException {
+  public static String ZNRecordToJson(ZNRecord record)
+      throws JsonGenerationException, JsonMappingException, IOException {
     return ObjectToJson(record);
   }
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
       JsonMappingException, IOException {
-    ObjectMapper
-        mapper = new ObjectMapper();
+    ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
     StringWriter sw = new StringWriter();
@@ -144,8 +141,7 @@ public class ClusterRepresentationUtil {
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString)
       throws JsonParseException, JsonMappingException, IOException {
     StringReader sr = new StringReader(jsonString);
-    ObjectMapper
-        mapper = new ObjectMapper();
+    ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(sr, clazz);
 
   }

@@ -21,10 +21,10 @@ package org.apache.helix.zookeeper.datamodel.serializer;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**

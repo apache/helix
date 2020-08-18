@@ -35,6 +35,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -50,10 +54,6 @@ import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,8 +193,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
           InstancesAccessor.InstanceHealthSelectionBase.valueOf(
-              node.get(InstancesAccessor.InstancesProperties.selection_base.name())
-                  .textValue());
+              node.get(InstancesAccessor.InstancesProperties.selection_base.name()).textValue());
       List<String> instances = OBJECT_MAPPER
           .readValue(node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
               OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));

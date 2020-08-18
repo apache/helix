@@ -30,10 +30,11 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -50,8 +51,7 @@ import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
 import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;
 import org.apache.helix.webapp.resources.JsonParameters;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.restlet.Component;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -74,8 +74,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
   String _tag1 = "tag1123";
   String _tag2 = "tag212334";
 
-  public static String ObjectToJson(Object object) throws JsonGenerationException,
-                                                          JsonMappingException, IOException {
+  public static String ObjectToJson(Object object)
+      throws JsonGenerationException, JsonMappingException, IOException {
     ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
 

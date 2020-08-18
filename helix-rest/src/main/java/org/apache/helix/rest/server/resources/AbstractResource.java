@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.server.auditlog.AuditLog;
-import com.fasterxml.jackson.databind.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

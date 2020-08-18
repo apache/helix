@@ -1232,12 +1232,14 @@ public class TaskDriver {
     Set<TaskState> allowedStates = new HashSet<>(Arrays.asList(states));
     // Wait for state
     long st = System.currentTimeMillis();
+    long ct = 0;
     do {
       Thread.sleep(timeToSleep);
       ctx = getWorkflowContext(workflowName);
+      ct =  System.currentTimeMillis();
     } while ((ctx == null || ctx.getJobState(jobName) == null
         || !allowedStates.contains(ctx.getJobState(jobName)))
-        && System.currentTimeMillis() < st + timeout);
+        && ct < st + timeout);
 
     if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
       WorkflowConfig wfcfg = getWorkflowConfig(workflowName);

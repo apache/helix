@@ -180,6 +180,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testAbortTaskForWorkflowFail() throws InterruptedException {
+    _runCounts.clear();
     failTask = true;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
@@ -203,7 +204,11 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
       }
     }
 
-    Assert.assertEquals(abortedTask, 4);
+    // Note, the starting tasks messages are send out at the same time.
+    // There is no guarante only one task would fail. In fact 5 tasks run in parallel in
+    // 5 instances. There can be multiple task failing.
+    Assert.assertTrue(abortedTask <= 4);
+    Assert.assertEquals(_runCounts.size(), 5);
   }
 
   private class TaskOne extends MockTask {
@@ -213,16 +218,18 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
       super(context);
 
       // Initialize the count for this instance if not already done
-      if (!_runCounts.containsKey(instanceName)) {
-        _runCounts.put(instanceName, 0);
-      }
+      _runCounts.putIfAbsent(instanceName, 0);
       _instanceName = instanceName;
     }
 
     @Override
     public TaskResult run() {
-      _invokedClasses.add(getClass().getName());
-      _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+      // make sure concurrent run task won't lose updates.
+      // in fact, each instance update its own slot, should have not confict. Still this is right way.
+      synchronized (_runCounts) {
+        _invokedClasses.add(getClass().getName());
+        _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+      }
       if (failTask) {
         return new TaskResult(TaskResult.Status.FAILED, "");
       }

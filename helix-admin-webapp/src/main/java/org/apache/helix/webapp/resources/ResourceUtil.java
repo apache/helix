@@ -47,7 +47,7 @@ public class ResourceUtil {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceUtil.class);
   private static final String EMPTY_ZNRECORD_STRING =
       objectToJson(ClusterRepresentationUtil.EMPTY_ZNRECORD);
-
+  private static ObjectMapper mapper = new ObjectMapper();
   /**
    * Key enums for getting values from request
    */
@@ -108,7 +108,6 @@ public class ResourceUtil {
   }
 
   private static String objectToJson(Object object) {
-    ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
     StringWriter sw = new StringWriter();

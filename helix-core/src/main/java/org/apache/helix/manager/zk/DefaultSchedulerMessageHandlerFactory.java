@@ -60,7 +60,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
   public static final String SCHEDULER_TASK_QUEUE = "SchedulerTaskQueue";
   public static final String CONTROLLER_MSG_ID = "controllerMsgId";
   public static final int TASKQUEUE_BUCKET_NUM = 10;
-
+  private static ObjectMapper mapper = new ObjectMapper();
   public static class SchedulerAsyncCallback extends AsyncCallback {
     StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
     Message _originalMessage;
@@ -281,7 +281,6 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
 
       // Parse the criteria
       StringReader sr = new StringReader(_message.getRecord().getSimpleField("Criteria"));
-      ObjectMapper mapper = new ObjectMapper();
       Criteria recipientCriteria;
       try {
         recipientCriteria = mapper.readValue(sr, Criteria.class);

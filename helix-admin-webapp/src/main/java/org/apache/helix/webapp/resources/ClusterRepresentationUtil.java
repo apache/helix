@@ -51,6 +51,7 @@ import org.restlet.data.MediaType;
 
 public class ClusterRepresentationUtil {
   public static final ZNRecord EMPTY_ZNRECORD = new ZNRecord("EMPTY_ZNRECORD");
+  private static ObjectMapper mapper = new ObjectMapper();
 
   public static String getClusterPropertyAsString(ZkClient zkClient, String clusterName,
       PropertyKey propertyKey, MediaType mediaType)
@@ -125,7 +126,6 @@ public class ClusterRepresentationUtil {
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
       JsonMappingException, IOException {
-    ObjectMapper mapper = new ObjectMapper();
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
     StringWriter sw = new StringWriter();
@@ -141,7 +141,6 @@ public class ClusterRepresentationUtil {
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString)
       throws JsonParseException, JsonMappingException, IOException {
     StringReader sr = new StringReader(jsonString);
-    ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(sr, clazz);
 
   }
@@ -149,7 +148,6 @@ public class ClusterRepresentationUtil {
   public static Map<String, String> JsonToMap(String jsonString) throws JsonParseException,
       JsonMappingException, IOException {
     StringReader sr = new StringReader(jsonString);
-    ObjectMapper mapper = new ObjectMapper();
 
     TypeReference<TreeMap<String, String>> typeRef = new TypeReference<TreeMap<String, String>>() {
     };

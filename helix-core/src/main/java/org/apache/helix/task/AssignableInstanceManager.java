@@ -46,6 +46,7 @@ public class AssignableInstanceManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(AssignableInstanceManager.class);
   public static final int QUOTA_TYPE_NOT_EXIST = -1;
+  private static ObjectMapper mapper = new ObjectMapper();
   // Instance name -> AssignableInstance
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
@@ -569,7 +570,6 @@ public class AssignableInstanceManager {
    */
   public void logQuotaProfileJSON(boolean onlyDisplayIfFull) {
     // Create a String to use as the log for quota status
-    ObjectMapper mapper = new ObjectMapper();
     JsonNode instanceNode = mapper.createObjectNode();
 
     // Loop through all instances

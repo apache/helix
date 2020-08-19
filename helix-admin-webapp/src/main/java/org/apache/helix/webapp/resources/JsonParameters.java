@@ -95,6 +95,7 @@ public class JsonParameters {
   // extra parameters map
   final Map<String, ZNRecord> _extraParameterMap = new HashMap<String, ZNRecord>();
 
+  private static ObjectMapper mapper = new ObjectMapper();
   public JsonParameters(Representation entity) throws Exception {
     this(new Form(entity));
 
@@ -110,7 +111,6 @@ public class JsonParameters {
     }
 
     // get extra parameters in ZNRecord format
-    ObjectMapper mapper = new ObjectMapper();
     String newIdealStateString = form.getFirstValue(NEW_IDEAL_STATE, true);
 
     if (newIdealStateString != null) {

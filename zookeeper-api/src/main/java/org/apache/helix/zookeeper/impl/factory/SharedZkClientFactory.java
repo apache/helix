@@ -117,6 +117,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   private void cleanupConnectionManager(ZkConnectionManager zkConnectionManager) {
     synchronized (_connectionManagerPool) {
       zkConnectionManager.close(true);
+      _connectionManagerPool.remove(zkConnectionManager);
     }
   }
 

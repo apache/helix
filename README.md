@@ -23,6 +23,8 @@ under the License.
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.helix/helix)](https://helix.apache.org)
 [![License](https://img.shields.io/github/license/apache/helix)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
+![Helix Logo](https://helix.apache.org/images/helix-logo.jpg)
+
 Helix is part of the Apache Software Foundation. 
 
 Project page: http://helix.apache.org/

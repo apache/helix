@@ -299,8 +299,6 @@ public class TestRawZkClient extends ZkTestBase {
     }, TestHelper.WAIT_DURATION);
 
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 1);
-    //Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter"), 1);
-    //Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max"), 1);
 
     zkClient.exists(TEST_ROOT);
 

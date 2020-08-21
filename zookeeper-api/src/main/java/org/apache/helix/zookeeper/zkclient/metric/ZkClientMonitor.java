@@ -96,6 +96,12 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
             (monitorKey + (monitorInstanceName == null ? "" : "." + monitorInstanceName)));
   }
 
+  public void setAndInitZkEventThreadMonitor(ZkEventThread zkEventThread) {
+    if (_zkEventThreadMetric == null) {
+      _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
+    }
+  }
+
   @Override
   public DynamicMBeanProvider register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();

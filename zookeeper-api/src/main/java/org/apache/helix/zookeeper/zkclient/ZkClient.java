@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -124,11 +125,6 @@ public class ZkClient implements Watcher {
   private volatile boolean _closed;
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
-
-  final private String _monitorKey;
-  final private String _monitorType;
-  final private String _monitorInstanceName;
-  final private boolean _monitorRootPathOnly;
 
   private AtomicBoolean _syncDone = new AtomicBoolean(false);
 
@@ -230,10 +226,14 @@ public class ZkClient implements Watcher {
     _asyncCallRetryThread.start();
     LOG.debug("ZkClient created with _uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
-    _monitorType = monitorType;
-    _monitorKey = monitorKey;
-    _monitorInstanceName = monitorInstanceName;
-    _monitorRootPathOnly = monitorRootPathOnly;
+    if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
+        .isEmpty()) {
+      _monitor =
+          new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
+              _eventThread);
+    } else {
+      LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
+    }
 
     connect(connectionTimeout, this);
   }
@@ -1279,6 +1279,7 @@ public class ZkClient implements Watcher {
         });
   }
 
+  @VisibleForTesting
   public boolean getSyncStatus() {
     return _syncDone.get();
   }
@@ -2160,19 +2161,13 @@ public class ZkClient implements Watcher {
 
       LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
 
-      // initiate monitor
-      try {
-        if (_monitorKey != null && !_monitorKey.isEmpty() && _monitorType != null && !_monitorType
-            .isEmpty()) {
-          _monitor =
-              new ZkClientMonitor(_monitorType, _monitorKey, _monitorInstanceName, _monitorRootPathOnly,
-                  _eventThread);
+      if (_monitor != null) {
+        _monitor.setAndInitZkEventThreadMonitor(_eventThread);
+        try {
           _monitor.register();
-        } else {
-          LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
+        } catch (JMException e) {
+          LOG.error("Error in creating ZkClientMonitor {}!", e);
         }
-      } catch (JMException e) {
-        LOG.error("Error in creating ZkClientMonitor", e);
       }
 
       if (isManagingZkConnection()) {

@@ -25,10 +25,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Dag {
   private Map<String, Node> nodes = new HashMap<String, Dag.Node>();
+  private static ObjectMapper mapper = new ObjectMapper();
 
   public static class Node {
     private String id;
@@ -71,13 +72,11 @@ public class Dag {
     }
 
     public static Node fromJson(String json) throws Exception {
-      ObjectMapper mapper = new ObjectMapper();
       return mapper.readValue(json, Node.class);
     }
 
     public String toJson() throws Exception {
-      ObjectMapper mapper = new ObjectMapper();
-      return mapper.defaultPrettyPrintingWriter().writeValueAsString(this);
+      return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
     }
 
     public void setId(String id) {
@@ -106,13 +105,11 @@ public class Dag {
   }
 
   public static Dag fromJson(String json) throws Exception {
-    ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(json, Dag.class);
   }
 
   public String toJson() throws Exception {
-    ObjectMapper mapper = new ObjectMapper();
-    return mapper.defaultPrettyPrintingWriter().writeValueAsString(this);
+    return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
   }
 
   public Map<String, Node> getNodes() {

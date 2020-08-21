@@ -31,10 +31,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.server.auditlog.AuditLog;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,8 +158,7 @@ public class AbstractResource {
 
   protected static String toJson(Object object)
       throws IOException {
-    SerializationConfig serializationConfig = OBJECT_MAPPER.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+    OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
 
     StringWriter sw = new StringWriter();
     OBJECT_MAPPER.writeValue(sw, object);

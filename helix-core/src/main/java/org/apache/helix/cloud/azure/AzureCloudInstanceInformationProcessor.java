@@ -24,8 +24,10 @@ import java.io.InterruptedIOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.net.ssl.SSLException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.cloud.CloudInstanceInformationProcessor;
@@ -37,8 +39,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,9 +139,9 @@ public class AzureCloudInstanceInformationProcessor
       JsonNode jsonNode = mapper.readTree(response);
       JsonNode computeNode = jsonNode.path(COMPUTE);
       if (!computeNode.isMissingNode()) {
-        String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
-        String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
-        String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
+        String vmName = computeNode.path(INSTANCE_NAME).textValue();
+        String platformFaultDomain = computeNode.path(DOMAIN).textValue();
+        String vmssName = computeNode.path(INSTANCE_SET_NAME).textValue();
         String azureTopology = AzureConstants.AZURE_TOPOLOGY;
         String[] parts = azureTopology.trim().split("/");
         //The hostname will be filled in by each participant

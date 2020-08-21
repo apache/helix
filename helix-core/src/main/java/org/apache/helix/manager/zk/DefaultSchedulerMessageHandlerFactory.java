@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixDataAccessor;
@@ -36,7 +37,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -46,7 +46,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.util.StatusUpdateUtil;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +60,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
   public static final String SCHEDULER_TASK_QUEUE = "SchedulerTaskQueue";
   public static final String CONTROLLER_MSG_ID = "controllerMsgId";
   public static final int TASKQUEUE_BUCKET_NUM = 10;
-
+  private static ObjectMapper mapper = new ObjectMapper();
   public static class SchedulerAsyncCallback extends AsyncCallback {
     StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
     Message _originalMessage;
@@ -281,7 +281,6 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
 
       // Parse the criteria
       StringReader sr = new StringReader(_message.getRecord().getSimpleField("Criteria"));
-      ObjectMapper mapper = new ObjectMapper();
       Criteria recipientCriteria;
       try {
         recipientCriteria = mapper.readValue(sr, Criteria.class);

@@ -22,13 +22,14 @@ package org.apache.helix.zookeeper.datamodel.serializer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -186,10 +187,10 @@ public class TestZNRecordSerializeWriteSizeLimit {
   // Returns raw serialized bytes before being compressed.
   private byte[] serialize(Object data) {
     ObjectMapper mapper = new ObjectMapper();
-    SerializationConfig serializationConfig = mapper.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+    mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte[] serializedBytes = new byte[0];
 

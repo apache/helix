@@ -22,13 +22,13 @@ package org.apache.helix.webapp.resources;
 import java.io.IOException;
 import java.util.Arrays;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;

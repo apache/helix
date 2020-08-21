@@ -26,6 +26,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
@@ -36,9 +39,6 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +46,7 @@ public class AssignableInstanceManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(AssignableInstanceManager.class);
   public static final int QUOTA_TYPE_NOT_EXIST = -1;
+  private static ObjectMapper mapper = new ObjectMapper();
   // Instance name -> AssignableInstance
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
@@ -569,7 +570,6 @@ public class AssignableInstanceManager {
    */
   public void logQuotaProfileJSON(boolean onlyDisplayIfFull) {
     // Create a String to use as the log for quota status
-    ObjectMapper mapper = new ObjectMapper();
     JsonNode instanceNode = mapper.createObjectNode();
 
     // Loop through all instances

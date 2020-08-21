@@ -32,6 +32,8 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -40,7 +42,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -49,8 +50,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.rest.server.resources.helix.ResourceAccessor;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.type.TypeReference;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -203,7 +203,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Map<String, String> healthStatus =
-        OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>() {
+        OBJECT_MAPPER.convertValue(node, new TypeReference<Map<String, String>>() {
         });
 
     Assert.assertEquals(healthStatus.get("p0"), "HEALTHY");
@@ -292,7 +292,7 @@ public class TestResourceAccessor extends AbstractTestClass {
 
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Map<String, String> healthStatus =
-        OBJECT_MAPPER.readValue(node, new TypeReference<Map<String, String>>() {
+        OBJECT_MAPPER.convertValue(node, new TypeReference<Map<String, String>>() {
         });
 
     Assert.assertEquals(healthStatus.get(resourceNameHealthy), "HEALTHY");

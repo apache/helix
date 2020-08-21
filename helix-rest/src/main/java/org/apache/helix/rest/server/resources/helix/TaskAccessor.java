@@ -29,9 +29,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
-import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

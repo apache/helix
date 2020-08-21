@@ -17,8 +17,14 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Apache Helix
----------------
+# Apache Helix
+
+[![Github Build](https://github.com/apache/helix/workflows/build/badge.svg)](https://github.com/apache/helix/actions?query=workflow%3Abuild)
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.helix/helix)](https://helix.apache.org)
+[![License](https://img.shields.io/github/license/apache/helix)](http://www.apache.org/licenses/LICENSE-2.0.txt)
+
+![Helix Logo](https://helix.apache.org/images/helix-logo.jpg)
+
 Helix is part of the Apache Software Foundation. 
 
 Project page: http://helix.apache.org/
@@ -27,11 +33,12 @@ Mailing list: http://helix.apache.org/mail-lists.html
 
 ### Build
 
-mvn clean install package -DskipTests
+```bash
+mvn clean install -Dmaven.test.skip=true
+```
 
+## WHAT IS HELIX
 
-WHAT IS HELIX
---------------
 Helix is a generic cluster management framework used for automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features: 
 
 1. Automatic assignment of resource/partition to nodes
@@ -40,6 +47,3 @@ Helix is a generic cluster management framework used for automatic management of
 4. Dynamic addition of nodes to the cluster
 5. Pluggable distributed state machine to manage the state of a resource via state transitions
 6. Automatic load balancing and throttling of transitions 
-
------
- 

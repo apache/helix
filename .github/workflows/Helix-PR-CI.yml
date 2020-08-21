@@ -25,22 +25,22 @@ jobs:
       run: mvn clean install -Dmaven.test.skip.exec=true
     - name: Test metrics-common
       run: cd metrics-common; mvn test
-      if: contains(steps.file-diff.outputs.all, 'metrics-common')
+      if: ${{ contains(steps.file-diff.outputs.all, 'metrics-common') && (success() || failure()) }}
     - name: Test metadata-store-directory-common
       run: cd metadata-store-directory-common; mvn test
-      if: contains(steps.file-diff.outputs.all, 'metadata-store-directory-common')
+      if: ${{ contains(steps.file-diff.outputs.all, 'metadata-store-directory-common') && (success() || failure()) }}
     - name: Test zookeeper-api
       run: cd zookeeper-api; mvn test
-      if: contains(steps.file-diff.outputs.all, 'zookeeper-api')
+      if: ${{ contains(steps.file-diff.outputs.all, 'zookeeper-api') && (success() || failure()) }}
     - name: Test helix-common
       run: cd helix-common; mvn test
-      if: contains(steps.file-diff.outputs.all, 'helix-common')
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-common') && (success() || failure()) }}
     - name: Test helix-lock
       run: cd helix-lock; mvn test
-      if: contains(steps.file-diff.outputs.all, 'helix-lock')
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-lock') && (success() || failure()) }}
     - name: Test helix-rest
       run: cd helix-rest; mvn test
-      if: contains(steps.file-diff.outputs.all, 'helix-rest')
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-rest') && (success() || failure()) }}
     - name: Test helix-core
       run: cd helix-core; mvn test
-      if: contains(steps.file-diff.outputs.all, 'helix-core')
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-core') && (success() || failure()) }}

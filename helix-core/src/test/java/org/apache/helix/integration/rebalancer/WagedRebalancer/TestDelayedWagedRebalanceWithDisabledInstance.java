@@ -36,6 +36,7 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
   // create test DBs, wait it converged and return externalviews
   protected Map<String, ExternalView> createTestDBs(long delayTime)
       throws InterruptedException {
+    System.out.println("TestDelayedWagedRebalanceWithDisabledInstance createTestDbs called!");
     Map<String, ExternalView> externalViews = new HashMap<>();
     int i = 0;
     for (String stateModel : TestStateModels) {
@@ -54,7 +55,6 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
     return externalViews;
   }
 
-  /*
   @Test
   public void testDelayedPartitionMovement() {
     System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDelayedPartitionMovement");
@@ -69,7 +69,6 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
     System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInResource");
   }
-  */
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testDelayedPartitionMovementWithClusterConfigedDelay()

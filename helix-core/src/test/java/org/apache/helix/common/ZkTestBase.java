@@ -243,7 +243,7 @@ public class ZkTestBase {
   @BeforeMethod
   public void beforeTest(Method testMethod, ITestContext testContext) {
     long startTime = System.currentTimeMillis();
-    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    System.out.println("START " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
   }
 
@@ -251,7 +251,7 @@ public class ZkTestBase {
   public void endTest(Method testMethod, ITestContext testContext) {
     Long startTime = (Long) testContext.getAttribute("StartTime");
     long endTime = System.currentTimeMillis();
-    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+    System.out.println("END " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
         + (endTime - startTime) + "ms.");
   }
 

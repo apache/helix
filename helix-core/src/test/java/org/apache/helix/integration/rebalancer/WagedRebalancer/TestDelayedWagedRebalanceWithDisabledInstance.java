@@ -57,25 +57,34 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
   /*
   @Test
   public void testDelayedPartitionMovement() {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDelayedPartitionMovement");
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDelayedPartitionMovement");
   }
 
   @Test
   public void testDisableDelayRebalanceInResource() {
     // Waged Rebalancer takes cluster level delay config only. Skip this test.
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInResource");
+    // Waged Rebalancer takes cluster level delay config only. Skip this test.
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInResource");
   }
   */
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testDelayedPartitionMovementWithClusterConfigedDelay()
       throws Exception {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDelayedPartitionMovementWithClusterConfigedDelay");
     super.testDelayedPartitionMovementWithClusterConfigedDelay();
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDelayedPartitionMovementWithClusterConfigedDelay");
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovementWithClusterConfigedDelay"})
   public void testMinimalActiveReplicaMaintain()
       throws Exception {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testMinimalActiveReplicaMaintain");
     super.testMinimalActiveReplicaMaintain();
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testMinimalActiveReplicaMaintain");
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
@@ -86,18 +95,24 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
   @Test(dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testPartitionMovementAfterDelayTime()
       throws Exception {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testPartitionMovementAfterDelayTime");
     super.testPartitionMovementAfterDelayTime();
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testPartitionMovementAfterDelayTime");
   }
 
   @Test(dependsOnMethods = {"testDisableDelayRebalanceInResource"})
   public void testDisableDelayRebalanceInCluster()
       throws Exception {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInCluster");
     super.testDisableDelayRebalanceInCluster();
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInCluster");
   }
 
   @Test(dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
   public void testDisableDelayRebalanceInInstance()
       throws Exception {
+    System.out.println("START TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInCluster");
     super.testDisableDelayRebalanceInInstance();
+    System.out.println("END TestDelayedWagedRebalanceWithDisabledInstance::testDisableDelayRebalanceInCluster");
   }
 }

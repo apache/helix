@@ -105,16 +105,20 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
    */
   @Test
   public void testDelayedPartitionMovement() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovement");
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
     validateDelayedMovements(externalViewsBefore);
+    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovement");
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovementWithClusterConfigedDelay");
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
+    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovementWithClusterConfigedDelay");
   }
 
   /**
@@ -123,6 +127,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
    */
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
   public void testMinimalActiveReplicaMaintain() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testMinimalActiveReplicaMaintain");
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
@@ -137,6 +142,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
+    System.out.println("START TestDelayedAutoRebalance::testMinimalActiveReplicaMaintain");
   }
 
   /**
@@ -144,6 +150,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
    */
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testPartitionMovementAfterDelayTime() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testPartitionMovementAfterDelayTime");
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     long delay = 4000;
@@ -160,10 +167,12 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
+    System.out.println("START TestDelayedAutoRebalance::testPartitionMovementAfterDelayTime");
   }
 
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testDisableDelayRebalanceInResource() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInResource");
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
@@ -192,10 +201,12 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
             _participants.get(0).getInstanceName(), false);
       }
     }
+    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInResource");
   }
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInResource"})
   public void testDisableDelayRebalanceInCluster() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInCluster");
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
@@ -212,10 +223,12 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
+    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInCluster");
   }
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
   public void testDisableDelayRebalanceInInstance() throws Exception {
+    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInInstance");
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
@@ -231,10 +244,12 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       }
     }
     enableDelayRebalanceInInstance(_gZkClient, CLUSTER_NAME, disabledInstanceName, true);
+    System.out.println("END TestDelayedAutoRebalance::testDisableDelayRebalanceInInstance");
   }
 
   @AfterMethod
   public void afterTest() throws InterruptedException {
+    System.out.println("enter TestDelayedAutoRebalance::afterTest");
     // delete all DBs create in last test
     for (String db : _testDBs) {
       _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, db);
@@ -245,6 +260,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
 
   @BeforeMethod
   public void beforeTest() {
+    System.out.println("enter TestDelayedAutoRebalance::beforeTest");
     // restart any participant that has been disconnected from last test.
     for (int i = 0; i < _participants.size(); i++) {
       if (!_participants.get(i).isConnected()) {

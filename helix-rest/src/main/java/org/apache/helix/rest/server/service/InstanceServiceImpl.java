@@ -22,7 +22,6 @@ package org.apache.helix.rest.server.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,10 +160,8 @@ public class InstanceServiceImpl implements InstanceService {
     Map<String, Future<StoppableCheck>> helixInstanceChecks =
         instances.stream().collect(Collectors.toMap(Function.identity(),
             instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance))));
-
     List<String> instancesForCustomInstanceLevelChecks =
-        filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks,
-            StoppableCheck.Category.HELIX_OWN_CHECK);
+        filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
     if (instancesForCustomInstanceLevelChecks.isEmpty()) {
       // if all instances failed at helix custom level checks
       return finalStoppableChecks;
@@ -184,11 +181,8 @@ public class InstanceServiceImpl implements InstanceService {
             .collect(Collectors.toMap(Function.identity(),
                 instance -> POOL.submit(() -> performCustomInstanceCheck(clusterId, instance,
                     restConfig.getBaseUrl(instance), customPayLoads))));
-
     List<String> instancesForCustomPartitionLevelChecks =
-        filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks,
-            StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
-
+        filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
     if (!instancesForCustomPartitionLevelChecks.isEmpty()) {
       Map<String, StoppableCheck> instancePartitionLevelChecks = performPartitionsCheck(
           instancesForCustomPartitionLevelChecks, restConfig, customPayLoads);
@@ -204,7 +198,7 @@ public class InstanceServiceImpl implements InstanceService {
 
   private List<String> filterInstancesForNextCheck(
       Map<String, Future<StoppableCheck>> futureStoppableCheckByInstance,
-      Map<String, StoppableCheck> finalStoppableCheckByInstance, StoppableCheck.Category category) {
+      Map<String, StoppableCheck> finalStoppableCheckByInstance) {
     List<String> instancesForNextCheck = new ArrayList<>();
     for (Map.Entry<String, Future<StoppableCheck>> entry : futureStoppableCheckByInstance
         .entrySet()) {
@@ -219,12 +213,7 @@ public class InstanceServiceImpl implements InstanceService {
           instancesForNextCheck.add(instance);
         }
       } catch (InterruptedException | ExecutionException e) {
-        LOG.warn("Failed to get StoppableChecks in parallel. Instance: {}. Caused by {}", instance,
-            e.getMessage());
-        // Add instance not stoppable and reason as return so API response has error message
-        List<String> failedCheck = Collections.singletonList(e.getCause().getMessage());
-        finalStoppableCheckByInstance
-            .put(instance, new StoppableCheck(false, failedCheck, category));
+        LOG.error("Failed to get StoppableChecks in parallel. Instance: {}", instance, e);
       }
     }
 
@@ -289,12 +278,23 @@ public class InstanceServiceImpl implements InstanceService {
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
       case INVALID_CONFIG:
-        healthStatus.put(HealthCheck.INVALID_CONFIG.name(),
-            InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
-        if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
-          LOG.error("The instance {} doesn't have valid configuration", instanceName);
+        boolean validConfig;
+        try {
+          validConfig =
+              InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName);
+        } catch (HelixException e) {
+          validConfig = false;
+          LOG.warn("Cluster {} instance {} doesn't have valid config: {}", clusterId, instanceName,
+              e.getMessage());
+        }
+
+        // TODO: should add reason to request response
+        healthStatus.put(HealthCheck.INVALID_CONFIG.name(), validConfig);
+        if (!validConfig) {
+          // No need to do remaining health checks.
           return healthStatus;
         }
+        break;
       case INSTANCE_NOT_ENABLED:
         healthStatus.put(HealthCheck.INSTANCE_NOT_ENABLED.name(),
             InstanceValidationUtil.isEnabled(_dataAccessor, instanceName));

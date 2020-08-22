@@ -41,6 +41,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -428,7 +429,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
   @Test(dependsOnMethods = "testIgnoreNonTopologyChanges", timeOut = 30 * 60 * 1000)
   public void testResetSnapshots() {
     // ensure the cluster converged before the test to ensure IS is not modified unexpectedly
-    HelixClusterVerifier _clusterVerifier =
+
+    ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setDeactivatedNodeAwareness(true)
             .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))

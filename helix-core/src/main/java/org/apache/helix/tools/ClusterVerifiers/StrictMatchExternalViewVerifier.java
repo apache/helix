@@ -205,6 +205,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Override
   protected boolean verifyState() {
     try {
+      if (_isLogMore) {
+        System.out.println("---- enter verifyState!");
+      }
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
       // read cluster once and do verification
       ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
@@ -221,6 +224,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
+      if (_isLogMore) {
+        System.out.println("---- before verify live instance!");
+      }
       // verify live instances.
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
         Set<String> actualLiveNodes = cache.getLiveInstances().keySet();
@@ -229,18 +235,27 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
+      if (_isLogMore) {
+        System.out.println("---- before retrieve external view!");
+      }
       Map<String, ExternalView> extViews =
           _accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null) {
         extViews = Collections.emptyMap();
       }
 
+      if (_isLogMore) {
+        System.out.println("---- before filter resources");
+      }
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
         idealStates.keySet().retainAll(_resources);
         extViews.keySet().retainAll(_resources);
       }
 
+      if (_isLogMore) {
+        System.out.println("---- before add empty idealState");
+      }
       // if externalView is not empty and idealState doesn't exist
       // add empty idealState for the resource
       for (String resource : extViews.keySet()) {
@@ -250,6 +265,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       for (String resourceName : idealStates.keySet()) {
+        if (_isLogMore) {
+          System.out.println("---- for each resource:" + resourceName);
+        }
         ExternalView extView = extViews.get(resourceName);
         IdealState idealState = idealStates.get(resourceName);
         if (extView == null) {
@@ -268,7 +286,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       }
       return true;
     } catch (Exception e) {
-      LOG.error("exception {} in verification, stack trace {}", e, e.getStackTrace());
+      LOG.error("exception {} in verification, stack trace {}", e, Arrays.asList(e.getStackTrace()));
       return false;
     }
   }

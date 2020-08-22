@@ -140,7 +140,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
 
     String instance = _participants.get(i).getInstanceName();
     admin.enableInstance(CLUSTER_NAME, instance, false);
-
+    
     ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)

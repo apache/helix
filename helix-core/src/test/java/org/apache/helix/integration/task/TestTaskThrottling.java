@@ -57,7 +57,7 @@ public class TestTaskThrottling extends TaskTestBase {
    */
   @Test
   public void testTaskThrottle() throws Exception {
-    int numTasks = 30 * _numNodes; // 60 tasks
+    int numTasks = 30 * _numNodes; // 60 tasks 
     int perNodeTaskLimitation = 5;
 
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);
@@ -95,7 +95,7 @@ public class TestTaskThrottling extends TaskTestBase {
     // Expect 10 tasks
     Assert.assertTrue(TestHelper.verify(
         () -> (countRunningPartition(flow2, jobName2) == (_numNodes * perNodeTaskLimitation)),
-        TestHelper.WAIT_DURATION));
+        2 * TestHelper.WAIT_DURATION));
 
     _driver.stop(flow2.getName());
     _driver.pollForWorkflowState(flow2.getName(), TaskState.STOPPED);

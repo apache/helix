@@ -411,6 +411,8 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
     // Routing table: Type A, Type B, Type C
     setAggregationEnabledTypes(Arrays.asList(CustomizedStateType.TYPE_A));
     // This is commented out as a work around to pass the test
+    // The validation of config change will be done combined with the next several customized state changes
+    // The next validation should only show TYPE_A states aggregated in customized view
     // Until we fix the issue in routing table provider https://github.com/apache/helix/issues/1296
 //    validateAggregationSnapshot();
 

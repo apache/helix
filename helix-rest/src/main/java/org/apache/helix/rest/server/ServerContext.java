@@ -41,6 +41,7 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
@@ -133,7 +134,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
                   new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
               // If MSDS endpoint is set for this namespace, use that instead.
               if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint);
+                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
+                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
               }
               _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
                   new RealmAwareZkClient.RealmAwareZkClientConfig()

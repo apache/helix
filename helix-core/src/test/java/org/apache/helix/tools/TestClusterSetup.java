@@ -356,7 +356,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // add fake liveInstance
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = new Builder(clusterName);
     LiveInstance liveInstance = new LiveInstance("localhost_12918");
     liveInstance.setSessionId("session_0");
@@ -422,7 +422,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     ClusterSetup.processCommandLineArgs(new String[] {
         "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "false"
     });
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(ZK_ADDR);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -506,7 +506,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestID");

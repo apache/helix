@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -39,19 +38,19 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.cloud.azure.AzureConstants;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
-import org.apache.helix.model.CloudConfig;
-import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -65,9 +64,6 @@ import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableMap;
-import com.sun.research.ws.wadl.HTTPMethods;
 
 public class TestClusterAccessor extends AbstractTestClass {
 
@@ -591,7 +587,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -671,7 +667,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -701,7 +697,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.CREATED.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertFalse(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -760,7 +756,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig("TestCloud");
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -809,14 +805,14 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
     // Read CloudConfig from Zookeeper and make sure it has been created
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNotNull(cloudConfigFromZk);
     String urlBase = "clusters/" + clusterName + "/cloudconfig/";
     delete(urlBase, Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and make sure it has been removed
-    _configAccessor = new ConfigAccessor(ZK_ADDR);
+    _configAccessor = new ConfigAccessor(_gZkClient);
     cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNull(cloudConfigFromZk);
 
@@ -847,7 +843,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
     // Read CloudConfig from Zookeeper and make sure it has been created
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNotNull(cloudConfigFromZk);
 
@@ -860,7 +856,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode());
 
     // Read CloudConfig from Zookeeper and make sure it has been removed
-    _configAccessor = new ConfigAccessor(ZK_ADDR);
+    _configAccessor = new ConfigAccessor(_gZkClient);
     cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNull(cloudConfigFromZk.getCloudID());
     Assert.assertNull(cloudConfigFromZk.getCloudProvider());

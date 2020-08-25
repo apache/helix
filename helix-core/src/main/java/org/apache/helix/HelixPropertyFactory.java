@@ -22,6 +22,10 @@ package org.apache.helix;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.client.DedicatedZkClientFactory;
+import org.apache.helix.manager.zk.client.HelixZkClient;
 import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +51,11 @@ public final class HelixPropertyFactory {
    * Clients may override these values.
    */
   public HelixManagerProperty getHelixManagerProperty(String zkAddress, String clusterName) {
-    ConfigAccessor configAccessor = new ConfigAccessor(zkAddress);
+    HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+    clientConfig.setZkSerializer(new ZNRecordSerializer());
+    HelixZkClient zkClient = DedicatedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), clientConfig);
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     CloudConfig cloudConfig;
     // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
     // up yet, constructing a new ZKHelixManager should not throw an exception

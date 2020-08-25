@@ -216,7 +216,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");
@@ -260,7 +260,7 @@ public class TestConfigAccessor extends ZkUnitTestBase {
     _clusterSetup.addCluster(clusterName, false, cloudConfigInit);
 
     // Read CloudConfig from Zookeeper and check the content
-    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
     CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
     Assert.assertEquals(cloudConfigFromZk.getCloudID(), "TestCloudID");

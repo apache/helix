@@ -569,7 +569,7 @@ public class ConfigAccessor {
    * @return The instance of {@link CloudConfig}
    */
   public CloudConfig getCloudConfig(String clusterName) {
-    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException(
           String.format("Failed to get config. cluster: %s is not setup.", clusterName));
     }
@@ -591,7 +591,7 @@ public class ConfigAccessor {
    * @param cloudConfig
    */
   public void deleteCloudConfigFields(String clusterName, CloudConfig cloudConfig) {
-    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("fail to delete cloud config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -610,7 +610,7 @@ public class ConfigAccessor {
   }
 
   private void updateCloudConfig(String clusterName, CloudConfig cloudConfig, boolean overwrite) {
-    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("Fail to update cloud config. cluster: " + clusterName + " is NOT setup.");
     }
 
@@ -619,9 +619,9 @@ public class ConfigAccessor {
     String zkPath = scope.getZkPath();
 
     if (overwrite) {
-      ZKUtil.createOrReplace(_zkClient, zkPath, cloudConfig.getRecord(), true);
+      ZKUtil.createOrReplace(zkClient, zkPath, cloudConfig.getRecord(), true);
     } else {
-      ZKUtil.createOrUpdate(_zkClient, zkPath, cloudConfig.getRecord(), true, true);
+      ZKUtil.createOrUpdate(zkClient, zkPath, cloudConfig.getRecord(), true, true);
     }
   }
 

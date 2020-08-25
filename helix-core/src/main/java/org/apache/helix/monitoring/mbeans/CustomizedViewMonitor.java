@@ -43,7 +43,6 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   private HistogramDynamicMetric _updateToAggregationLatencyGauge;
   public static final String UPDATE_TO_AGGREGATION_LATENCY_GAUGE =
       "UpdateToAggregationLatencyGauge";
-  private ClusterStatusMonitor _clusterStatusMonitor;
   private static final String TYPE_KEY = "Type";
   private static final String CLUSTER_KEY = "Cluster";
   private static final String CUSTOMIZED_VIEW = "CustomizedView";
@@ -51,8 +50,8 @@ public class CustomizedViewMonitor extends DynamicMBeanProvider {
   public CustomizedViewMonitor(String clusterName) {
     _clusterName = clusterName;
     _sensorName = String
-        .format("%s:%s=%s,%s=%s", MonitorDomainNames.AggregatedView.name(), TYPE_KEY,
-            CUSTOMIZED_VIEW, CLUSTER_KEY, _clusterName);
+        .format("%s.%s.%s", MonitorDomainNames.AggregatedView.name(),
+            CUSTOMIZED_VIEW, _clusterName);
     _updateToAggregationLatencyGauge =
         new HistogramDynamicMetric(UPDATE_TO_AGGREGATION_LATENCY_GAUGE, new Histogram(
             new SlidingTimeWindowArrayReservoir(getResetIntervalInMs(), TimeUnit.MILLISECONDS)));

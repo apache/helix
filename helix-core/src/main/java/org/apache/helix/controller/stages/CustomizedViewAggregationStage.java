@@ -211,12 +211,15 @@ public class CustomizedViewAggregationStage extends AbstractAsyncBaseStage {
 
           for (Map.Entry<String, String> stateMapEntry : newStateMap.entrySet()) {
             String instanceName = stateMapEntry.getKey();
-            if (!stateMapEntry.getValue().equals(oldStateMap.get(instanceName))) {
-              long timestamp = partitionStartTimeMap.get(instanceName);
-              if (timestamp > 0) {
+            String newVal = stateMapEntry.getValue();
+            // We do not calculate the latency for deleting customized state
+            // So new value shouldn't be empty
+            if (!newVal.isEmpty() && !newVal.equals(oldStateMap.get(instanceName))) {
+              Long timestamp = partitionStartTimeMap.get(instanceName);
+              if (timestamp != null && timestamp > 0) {
                 customizedViewMonitor.recordUpdateToAggregationLatency(curTime - timestamp);
               } else {
-                LOG.warn(
+                LOG.info(
                     "Failed to find customized state update time stamp for resource {} partition {}, instance {}, on cluster {} the number should be positive.",
                     resourceName, partitionName, instanceName, clusterName);
               }

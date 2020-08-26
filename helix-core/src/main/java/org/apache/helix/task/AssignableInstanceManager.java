@@ -238,8 +238,12 @@ public class AssignableInstanceManager {
             String taskState = instanceCurrentStateEntry.getValue();
             // If a task in in INIT or RUNNING state on the instance, this task should occupy one
             // quota from this instance.
-            if (taskState.equals(TaskPartitionState.INIT.name())
-                || taskState.equals(TaskPartitionState.RUNNING.name())) {
+            if (taskState == null) {
+              LOG.warn("CurrentState is null for job {}, task {} on instance {}", resourceName,
+                  taskId, assignedInstance);
+            }
+            if (TaskPartitionState.INIT.name().equals(taskState)
+                || TaskPartitionState.RUNNING.name().equals(taskState)) {
               assignTaskToInstance(assignedInstance, jobConfig, taskId, quotaType);
             }
           }
@@ -256,7 +260,7 @@ public class AssignableInstanceManager {
             String messageToState = instancePendingMessageEntry.getValue().getToState();
             // If there is a pending message on the instance which has ToState of RUNNING, the task
             // will run on the instance soon. So the task needs to occupy one quota on this instance.
-            if (messageToState.equals(TaskPartitionState.RUNNING.name())
+            if (TaskPartitionState.RUNNING.name().equals(messageToState)
                 && !TaskPartitionState.INIT.name().equals(
                     currentStateOutput.getCurrentState(resourceName, partition, assignedInstance))
                 && !TaskPartitionState.RUNNING.name().equals(currentStateOutput

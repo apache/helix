@@ -146,7 +146,10 @@ public class ZkTestBase {
     try {
       zkServer.start();
     } catch (Exception e) {
+      // Give user a hint of what can be wrong. Otherwise, Intellij will not print out
+      // this exception and skip all the test.
       e.printStackTrace();
+      throw e;
     }
     return zkServer;
   }

@@ -105,7 +105,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+  protected BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Map<String, Map<String, String>> errStates, Set<String> resources,
       Set<String> expectLiveInstances) {
     super(zkClient, clusterName);
@@ -224,11 +224,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   @Override
   protected synchronized boolean verifyState() {
     try {
+      LOG.debug("Verifier start verifyState at {}", System.currentTimeMillis());
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
 
       _dataProvider.requireFullRefresh();
       _dataProvider.refresh(_accessor);
       _dataProvider.setClusterEventId("ClusterStateVerifier");
+
+      LOG.debug("Verifier finished dataProvider full refresh at {}", System.currentTimeMillis());
 
       Map<String, IdealState> idealStates = new HashMap<>(_dataProvider.getIdealStates());
 
@@ -245,12 +248,16 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
           return false;
         }
       }
+      
+      LOG.debug("Verifier finished live instances at {}", System.currentTimeMillis());
 
       Map<String, ExternalView> extViews =
           _accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null) {
         extViews = Collections.emptyMap();
       }
+
+      LOG.debug("Verifier finished retrieving external views at {}", System.currentTimeMillis());
 
       // Filter resources if requested
       if (_resources != null && !_resources.isEmpty()) {
@@ -295,6 +302,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       for (String resourceName : idealStates.keySet()) {
+        LOG.debug("verifier start verifiying resource {} at {}", resourceName, System.currentTimeMillis());
+
         IdealState is = idealStates.get(resourceName);
         ExternalView extView = extViews.get(resourceName);
         if (extView == null) {
@@ -319,6 +328,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
 
         boolean result = verifyExternalView(extView, bpStateMap, stateModelDef);
+        LOG.debug("verifier finished verifiying resource {} at {}", resourceName, System.currentTimeMillis());
+
         if (!result) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView

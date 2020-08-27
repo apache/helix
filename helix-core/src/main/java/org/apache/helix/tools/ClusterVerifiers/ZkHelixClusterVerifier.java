@@ -19,6 +19,7 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -197,8 +198,10 @@ public abstract class ZkHelixClusterVerifier
         }
         TimeUnit.MILLISECONDS.sleep(period);
       } while ((System.currentTimeMillis() - start) <= timeout);
+      LOG.error("verifier timeout out with timeout {},. stack trace {} ",
+          timeout, Arrays.asList(Thread.currentThread().getStackTrace()));
     } catch (Exception e) {
-      LOG.error("Exception in verifier", e);
+      LOG.error("Exception in verifier {}", e);
     }
     return false;
   }
@@ -234,10 +237,14 @@ public abstract class ZkHelixClusterVerifier
         if (!success) {
           // make a final try if timeout
           success = verifyState();
+          if (!success) {
+            LOG.error("verifyByCallback failed due to timeout, with stack trace {}",
+                Arrays.asList(Thread.currentThread().getStackTrace()));
+          }
         }
       }
     } catch (Exception e) {
-      LOG.error("Exception in verifier", e);
+      LOG.error("Exception in verifier {}", e);
     }
 
     // clean up

@@ -45,23 +45,6 @@ public class TestTaskDriver extends TaskTestBase {
   }
 
   @Test
-  public void testGetTargetTaskThreadPoolSize() {
-    String validInstanceName = _participants[0].getInstanceName();
-    InstanceConfig instanceConfig =
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, validInstanceName);
-    instanceConfig.setTargetTaskThreadPoolSize(TEST_THREAD_POOL_SIZE);
-    _configAccessor.setInstanceConfig(CLUSTER_NAME, validInstanceName, instanceConfig);
-
-    Assert.assertEquals(_taskDriver.getTargetTaskThreadPoolSize(validInstanceName),
-        TEST_THREAD_POOL_SIZE);
-  }
-
-  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSize", expectedExceptions = IllegalArgumentException.class)
-  public void testGetTargetTaskThreadPoolSizeWrongInstanceName() {
-    _taskDriver.getTargetTaskThreadPoolSize(NON_EXISTENT_INSTANCE_NAME);
-  }
-
-  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSizeWrongInstanceName")
   public void testSetTargetTaskThreadPoolSize() {
     String validInstanceName = _participants[0].getInstanceName();
     _taskDriver.setTargetTaskThreadPoolSize(validInstanceName, TEST_THREAD_POOL_SIZE);
@@ -77,15 +60,19 @@ public class TestTaskDriver extends TaskTestBase {
   }
 
   @Test(dependsOnMethods = "testSetTargetTaskThreadPoolSizeWrongInstanceName")
-  public void testGetGlobalTargetTaskThreadPoolSize() {
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
-    clusterConfig.setGlobalTargetTaskThreadPoolSize(TEST_THREAD_POOL_SIZE);
-    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+  public void testGetTargetTaskThreadPoolSize() {
+    String validInstanceName = _participants[0].getInstanceName();
 
-    Assert.assertEquals(_taskDriver.getGlobalTargetTaskThreadPoolSize(), TEST_THREAD_POOL_SIZE);
+    Assert.assertEquals(_taskDriver.getTargetTaskThreadPoolSize(validInstanceName),
+        TEST_THREAD_POOL_SIZE);
   }
 
-  @Test(dependsOnMethods = "testGetGlobalTargetTaskThreadPoolSize")
+  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSize", expectedExceptions = IllegalArgumentException.class)
+  public void testGetTargetTaskThreadPoolSizeWrongInstanceName() {
+    _taskDriver.getTargetTaskThreadPoolSize(NON_EXISTENT_INSTANCE_NAME);
+  }
+
+  @Test(dependsOnMethods = "testGetTargetTaskThreadPoolSizeWrongInstanceName")
   public void testSetGlobalTargetTaskThreadPoolSize() {
     _taskDriver.setGlobalTargetTaskThreadPoolSize(TEST_THREAD_POOL_SIZE);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -94,6 +81,11 @@ public class TestTaskDriver extends TaskTestBase {
   }
 
   @Test(dependsOnMethods = "testSetGlobalTargetTaskThreadPoolSize")
+  public void testGetGlobalTargetTaskThreadPoolSize() {
+    Assert.assertEquals(_taskDriver.getGlobalTargetTaskThreadPoolSize(), TEST_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetGlobalTargetTaskThreadPoolSize")
   public void testGetCurrentTaskThreadPoolSize() {
     String validInstanceName = _participants[0].getInstanceName();
 

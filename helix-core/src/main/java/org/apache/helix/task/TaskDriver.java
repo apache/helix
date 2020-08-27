@@ -1177,6 +1177,7 @@ public class TaskDriver {
   public void setTargetTaskThreadPoolSize(String instanceName, int targetTaskThreadPoolSize) {
     InstanceConfig instanceConfig = getInstanceConfig(instanceName);
     instanceConfig.setTargetTaskThreadPoolSize(targetTaskThreadPoolSize);
+    _accessor.setProperty(_accessor.keyBuilder().instanceConfig(instanceName), instanceConfig);
   }
 
   private InstanceConfig getInstanceConfig(String instanceName) {
@@ -1211,6 +1212,7 @@ public class TaskDriver {
   public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize) {
     ClusterConfig clusterConfig = getClusterConfig();
     clusterConfig.setGlobalTargetTaskThreadPoolSize(globalTargetTaskThreadPoolSize);
+    _accessor.setProperty(_accessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 
   private ClusterConfig getClusterConfig() {

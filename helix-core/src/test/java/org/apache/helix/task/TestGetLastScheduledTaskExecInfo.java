@@ -75,6 +75,10 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
 
     // Stop and delete the queue
     _driver.stop(queueName);
+    TestHelper.verify(() -> {
+      WorkflowContext workflowContext = _driver.getWorkflowContext(queueName);
+      return workflowContext.getWorkflowState().equals(TaskState.STOPPED);
+    }, TestHelper.WAIT_DURATION);
     _driver.deleteAndWaitForCompletion(queueName, DELETE_DELAY);
 
     // Start the new queue with new task configuration.

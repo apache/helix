@@ -48,6 +48,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.JobMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
+import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -518,7 +519,7 @@ public abstract class AbstractTaskDispatcher {
     }
     _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.TIMED_OUT);
     _rebalanceScheduler.removeScheduledRebalance(jobResource);
-    TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+    RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }
 
   protected void failJob(String jobName, WorkflowContext workflowContext, JobContext jobContext,
@@ -534,7 +535,7 @@ public abstract class AbstractTaskDispatcher {
     }
     _clusterStatusMonitor.updateJobCounters(jobConfigMap.get(jobName), TaskState.FAILED);
     _rebalanceScheduler.removeScheduledRebalance(jobName);
-    TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
+    RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }
 
   // Compute real assignment from theoretical calculation with applied throttling
@@ -936,6 +937,10 @@ public abstract class AbstractTaskDispatcher {
 
   protected void scheduleJobCleanUp(long expiry, WorkflowConfig workflowConfig,
       long currentTime) {
+    if (expiry < 0) {
+      // If the expiry is negative, it's an invalid clean up. Return.
+      return;
+    }
     long currentScheduledTime =
         _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1 ? Long.MAX_VALUE
             : _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId());

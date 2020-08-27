@@ -33,7 +33,10 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.WorkflowConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,9 +77,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
               cache.getResourceConfig(resourceName));
           resourceMap.put(resourceName, resource);
 
-          if (!idealState.isValid() && !isTaskCache
-              || idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
-              || !idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && !isTaskCache) {
+          if (!isTaskCache && (!idealState.isValid() || !idealState.getStateModelDefRef()
+              .equals(TaskConstants.STATE_MODEL_NAME))) {
             resourceToRebalance.put(resourceName, resource);
           }
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
@@ -94,6 +96,43 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
         for (String partition : partitionSet) {
           addPartition(partition, resourceName, resourceMap);
+        }
+      }
+    }
+
+    // Add TaskFramework resources from workflow and job configs as Task Framework will no longer
+    // use IdealState
+    if (isTaskCache) {
+      WorkflowControllerDataProvider taskDataCache =
+          event.getAttribute(AttributeName.ControllerDataProvider.name());
+      for (Map.Entry<String, WorkflowConfig> workflowConfigEntry : taskDataCache
+          .getWorkflowConfigMap().entrySet()) {
+        // always overwrite, because the resource could be created by IS
+        String resourceName = workflowConfigEntry.getKey();
+        WorkflowConfig workflowConfig = workflowConfigEntry.getValue();
+        addResourceConfigToResourceMap(resourceName, workflowConfig, cache.getClusterConfig(),
+            resourceMap, resourceToRebalance);
+        addPartition(resourceName, resourceName, resourceMap);
+      }
+
+      for (Map.Entry<String, JobConfig> jobConfigEntry : taskDataCache.getJobConfigMap()
+          .entrySet()) {
+        // always overwrite, because the resource could be created by IS
+        String resourceName = jobConfigEntry.getKey();
+        JobConfig jobConfig = jobConfigEntry.getValue();
+        addResourceConfigToResourceMap(resourceName, jobConfig, cache.getClusterConfig(),
+            resourceMap, resourceToRebalance);
+        int numPartitions = jobConfig.getTaskConfigMap().size();
+        if (numPartitions == 0 && idealStates != null) {
+          IdealState targetIs = idealStates.get(jobConfig.getTargetResource());
+          if (targetIs == null) {
+            LOG.warn("Target resource does not exist for job " + resourceName);
+          } else {
+            numPartitions = targetIs.getPartitionSet().size();
+          }
+        }
+        for (int i = 0; i < numPartitions; i++) {
+          addPartition(resourceName + "_" + i, resourceName, resourceMap);
         }
       }
     }
@@ -184,5 +223,22 @@ public class ResourceComputationStage extends AbstractBaseStage {
     Resource resource = resourceMap.get(resourceName);
     resource.addPartition(partition);
 
+  }
+
+  private void addResourceConfigToResourceMap(String resourceName, ResourceConfig resourceConfig,
+      ClusterConfig clusterConfig, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance) {
+    Resource resource = new Resource(resourceName, clusterConfig, resourceConfig);
+    resourceMap.put(resourceName, resource);
+    resource.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
+    resource.setStateModelFactoryName(resourceConfig.getStateModelFactoryName());
+    boolean batchMessageMode = resourceConfig.getBatchMessageMode();
+    if (clusterConfig != null) {
+      batchMessageMode |= clusterConfig.getBatchMessageMode();
+    }
+    resource.setBatchMessageMode(batchMessageMode);
+    resource.setResourceGroupName(resourceConfig.getResourceGroupName());
+    resource.setResourceTag(resourceConfig.getInstanceGroupTag());
+    resourceToRebalance.put(resourceName, resource);
   }
 }

@@ -110,17 +110,6 @@ public class TaskSchedulingStage extends AbstractBaseStage {
       restOfResources.remove(jobName);
     }
 
-    // Current rest of resources including: only current state left over ones
-    // Original resource map contains workflows + jobs + other invalid resources
-    // After removing workflows + jobs, only leftover ones will go over old rebalance pipeline.
-    for (Resource resource : restOfResources.values()) {
-      if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
-        failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId,
-            "Failed to calculate best possible states for " + resource.getResourceName());
-      }
-    }
-
     return output;
   }
 

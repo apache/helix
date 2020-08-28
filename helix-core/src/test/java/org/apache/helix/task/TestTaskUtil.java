@@ -24,9 +24,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -35,6 +40,9 @@ import static org.mockito.Mockito.when;
 
 
 public class TestTaskUtil extends TaskTestBase {
+  // This value has to be different from the default value to verify correctness
+  private static final int TEST_TARGET_TASK_THREAD_POOL_SIZE =
+      TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
 
   @Test
   public void testGetExpiredJobsFromCache() {
@@ -181,5 +189,87 @@ public class TestTaskUtil extends TaskTestBase {
     Assert.assertEquals(TaskUtil
         .getExpiredJobsFromCache(workflowControllerDataProvider, workflow.getWorkflowConfig(),
             workflowContext), expectedJobs);
+  }
+
+  @Test
+  public void testGetTaskThreadPoolSize() {
+    MockParticipantManager anyParticipantManager = _participants[0];
+
+    InstanceConfig instanceConfig =
+        InstanceConfig.toInstanceConfig(anyParticipantManager.getInstanceName());
+    instanceConfig.setTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    anyParticipantManager.getConfigAccessor()
+        .setInstanceConfig(anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName(), instanceConfig);
+
+    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
+    clusterConfig.setGlobalTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE + 1);
+    anyParticipantManager.getConfigAccessor()
+        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
+        TEST_TARGET_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetTaskThreadPoolSize")
+  public void testGetTaskThreadPoolSizeInstanceConfigUndefined() {
+    MockParticipantManager anyParticipantManager = _participants[0];
+
+    InstanceConfig instanceConfig =
+        InstanceConfig.toInstanceConfig(anyParticipantManager.getInstanceName());
+    anyParticipantManager.getConfigAccessor()
+        .setInstanceConfig(anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName(), instanceConfig);
+
+    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
+    clusterConfig.setGlobalTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    anyParticipantManager.getConfigAccessor()
+        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
+        TEST_TARGET_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeInstanceConfigUndefined")
+  public void testGetTaskThreadPoolSizeInstanceConfigDoesNotExist() {
+    MockParticipantManager anyParticipantManager = _participants[0];
+
+    HelixDataAccessor helixDataAccessor = anyParticipantManager.getHelixDataAccessor();
+    helixDataAccessor.removeProperty(
+        helixDataAccessor.keyBuilder().instanceConfig(anyParticipantManager.getInstanceName()));
+
+    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
+    clusterConfig.setGlobalTargetTaskThreadPoolSize(TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    anyParticipantManager.getConfigAccessor()
+        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
+        TEST_TARGET_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeInstanceConfigDoesNotExist")
+  public void testGetTaskThreadPoolSizeClusterConfigUndefined() {
+    MockParticipantManager anyParticipantManager = _participants[0];
+
+    ClusterConfig clusterConfig = new ClusterConfig(anyParticipantManager.getClusterName());
+    anyParticipantManager.getConfigAccessor()
+        .setClusterConfig(anyParticipantManager.getClusterName(), clusterConfig);
+
+    Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName()),
+        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetTaskThreadPoolSizeClusterConfigUndefined", expectedExceptions = HelixException.class)
+  public void testGetTaskThreadPoolSizeClusterConfigDoesNotExist() {
+    MockParticipantManager anyParticipantManager = _participants[0];
+
+    HelixDataAccessor helixDataAccessor = anyParticipantManager.getHelixDataAccessor();
+    helixDataAccessor.removeProperty(helixDataAccessor.keyBuilder().clusterConfig());
+    TaskUtil.getTargetThreadPoolSize(anyParticipantManager.getZkClient(),
+        anyParticipantManager.getClusterName(), anyParticipantManager.getInstanceName());
   }
 }

@@ -33,18 +33,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.helix.AccessOption;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
+import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
@@ -1122,5 +1128,53 @@ public class TaskUtil {
         LOG.warn("Error occurred while trying to remove workflow context for {}.", workflowName);
       }
     }
+  }
+
+  /**
+   * Get target thread pool size from InstanceConfig first; if InstanceConfig doesn't exist or the
+   * value is undefined, try ClusterConfig; if the value is undefined in ClusterConfig, fall back
+   * to the default value.
+   * @param zkClient - ZooKeeper connection for config reading
+   * @param clusterName - the cluster name for InstanceConfig and ClusterConfig
+   * @param instanceName - the instance name for InstanceConfig
+   * @return target thread pool size
+   */
+  public static int getTargetThreadPoolSize(RealmAwareZkClient zkClient, String clusterName,
+      String instanceName) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+
+    // Check instance config first for thread pool size
+    if (ZKUtil.isInstanceSetup(zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
+      if (instanceConfig != null) {
+        int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
+        // Reject negative values. The pool size is only negative when it's not set in
+        // InstanceConfig, or when the users bypassed the setter logic in InstanceConfig. We treat
+        // negative values as the value is not set, and continue with ClusterConfig.
+        if (targetTaskThreadPoolSize >= 0) {
+          return targetTaskThreadPoolSize;
+        }
+      } else {
+        LOG.warn(
+            "Got null as InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. ",
+            instanceName, clusterName);
+      }
+    }
+
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    if (clusterConfig != null) {
+      int globalTargetTaskThreadPoolSize = clusterConfig.getGlobalTargetTaskThreadPoolSize();
+      // Reject negative values. The pool size is only negative when it's not set in
+      // ClusterConfig, or when the users bypassed the setter logic in ClusterConfig. We treat
+      // negative values as the value is not set, and continue with the default value.
+      if (globalTargetTaskThreadPoolSize >= 0) {
+        return globalTargetTaskThreadPoolSize;
+      }
+    } else {
+      LOG.warn("Got null as ClusterConfig for cluster {}. Returning default value: {}. ",
+          clusterName, TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+    }
+
+    return TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE;
   }
 }

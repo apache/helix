@@ -28,7 +28,10 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -139,6 +142,47 @@ public class TestParticipantManager extends ZkTestBase {
           && newLiveInstance.getStat().getCreationTime() != originalCreationTime
           && newLiveInstance.getEphemeralOwner().equals(sessionTwo);
     }, TestHelper.WAIT_DURATION);
+
+    // Clean up.
+    manager.syncStop();
+    deleteCluster(clusterName);
+  }
+
+  @Test(dependsOnMethods = "testSessionExpiryCreateLiveInstance")
+  public void testCurrentTaskThreadPoolSizeCreation() throws Exception {
+    // Using a pool sized different from the default value to verify correctness
+    final int testThreadPoolSize = TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
+
+    final String className = TestHelper.getTestClassName();
+    final String methodName = TestHelper.getTestMethodName();
+    final String clusterName = className + "_" + methodName;
+
+    final ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName,
+        new ZkBaseDataAccessor.Builder<ZNRecord>().setZkAddress(ZK_ADDR).build());
+    final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
+    final String instanceName = "localhost_12918";
+    final MockParticipantManager manager =
+        new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+
+    InstanceConfig instanceConfig = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    instanceConfig.setTargetTaskThreadPoolSize(testThreadPoolSize);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), instanceConfig);
+
+    manager.syncStart();
+
+    final LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceName));
+    Assert.assertNotNull(liveInstance);
+    Assert.assertEquals(liveInstance.getCurrentTaskThreadPoolSize(), testThreadPoolSize);
 
     // Clean up.
     manager.syncStop();

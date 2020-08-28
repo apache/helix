@@ -99,11 +99,9 @@ public class TestTaskCurrentStateNull extends TaskTestBase {
           .get(jobCurrentStatePath1, new Stat(), AccessOption.PERSISTENT);
       ZNRecord recordJob2 = _manager.getHelixDataAccessor().getBaseDataAccessor()
           .get(jobCurrentStatePath2, new Stat(), AccessOption.PERSISTENT);
-      ZNRecord recordTask = _manager.getHelixDataAccessor().getBaseDataAccessor()
-          .get(jobCurrentStatePath2, new Stat(), AccessOption.PERSISTENT);
       Map<String, String> taskCurrentState = null;
-      if (recordTask != null){
-        taskCurrentState = recordTask.getMapField(namespacedJobName2 + "_0");
+      if (recordJob2 != null){
+        taskCurrentState = recordJob2.getMapField(namespacedJobName2 + "_0");
       }
       return (recordJob1 != null && recordJob2 != null && taskCurrentState != null);
     }, TestHelper.WAIT_DURATION);

@@ -278,12 +278,23 @@ public class InstanceServiceImpl implements InstanceService {
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
       case INVALID_CONFIG:
-        healthStatus.put(HealthCheck.INVALID_CONFIG.name(),
-            InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
-        if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
-          LOG.error("The instance {} doesn't have valid configuration", instanceName);
+        boolean validConfig;
+        try {
+          validConfig =
+              InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName);
+        } catch (HelixException e) {
+          validConfig = false;
+          LOG.warn("Cluster {} instance {} doesn't have valid config: {}", clusterId, instanceName,
+              e.getMessage());
+        }
+
+        // TODO: should add reason to request response
+        healthStatus.put(HealthCheck.INVALID_CONFIG.name(), validConfig);
+        if (!validConfig) {
+          // No need to do remaining health checks.
           return healthStatus;
         }
+        break;
       case INSTANCE_NOT_ENABLED:
         healthStatus.put(HealthCheck.INSTANCE_NOT_ENABLED.name(),
             InstanceValidationUtil.isEnabled(_dataAccessor, instanceName));

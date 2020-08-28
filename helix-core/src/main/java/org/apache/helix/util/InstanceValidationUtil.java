@@ -146,7 +146,9 @@ public class InstanceValidationUtil {
   }
 
   /**
-   * Method to check if the instance has valid configuration
+   * Method to check if the instance has valid configuration.
+   * Instance stability check requires PERSIST_INTERMEDIATE_ASSIGNMENT turned on!
+   *
    * @param dataAccessor
    * @param clusterId
    * @param instanceName
@@ -154,7 +156,17 @@ public class InstanceValidationUtil {
    */
   public static boolean hasValidConfig(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey propertyKey = dataAccessor.keyBuilder().instanceConfig(instanceName);
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    if (clusterConfig == null) {
+      throw new HelixException("Cluster config is missing in cluster " + clusterId);
+    }
+    if (!clusterConfig.isPersistIntermediateAssignment()) {
+      throw new HelixException(String.format(
+          "Cluster config %s is not turned on, which is required for instance stability check.",
+          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString()));
+    }
+    PropertyKey propertyKey = keyBuilder.instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
     return instanceConfig != null && instanceConfig.isValid();
   }
@@ -249,21 +261,12 @@ public class InstanceValidationUtil {
   /**
    * Check instance is already in the stable state. Here stable means all the ideal state mapping
    * matches external view (view of current state).
-   * It requires PERSIST_INTERMEDIATE_ASSIGNMENT turned on!
    * @param dataAccessor
    * @param instanceName
    * @return
    */
   public static boolean isInstanceStable(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
-    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
-    if (clusterConfig == null) {
-      throw new HelixException("Missing cluster config!");
-    }
-    if (!clusterConfig.isPersistIntermediateAssignment()) {
-      throw new HelixException("isInstanceStable needs persist assignment on!");
-    }
-
     List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());
     for (String idealStateName : idealStateNames) {
       IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));

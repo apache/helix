@@ -72,9 +72,9 @@ public interface InstanceService {
         /**
          * Pre-defined list of checks to test if an instance is in healthy running state
          */
-        public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST =
-                ImmutableList.of(HealthCheck.INSTANCE_NOT_ALIVE, HealthCheck.INSTANCE_NOT_ENABLED,
-                        HealthCheck.INSTANCE_NOT_STABLE, HealthCheck.EMPTY_RESOURCE_ASSIGNMENT);
+        public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST = ImmutableList
+            .of(INVALID_CONFIG, INSTANCE_NOT_ALIVE, INSTANCE_NOT_ENABLED, INSTANCE_NOT_STABLE,
+                EMPTY_RESOURCE_ASSIGNMENT);
     }
 
     /**

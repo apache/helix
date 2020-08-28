@@ -59,7 +59,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-
 public class TestInstanceService {
   private static final String TEST_CLUSTER = "TestCluster";
   private static final String TEST_INSTANCE = "instance0.linkedin.com_1235";

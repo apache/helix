@@ -279,7 +279,7 @@ public class TestInstanceValidationUtil {
     clusterConfig.setPersistIntermediateAssignment(false);
     when(mock.dataAccessor.getProperty(any(PropertyKey.class))).thenReturn(clusterConfig);
 
-    InstanceValidationUtil.isInstanceStable(mock.dataAccessor, TEST_INSTANCE);
+    InstanceValidationUtil.hasValidConfig(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE);
   }
 
   @Test(expectedExceptions = HelixException.class)

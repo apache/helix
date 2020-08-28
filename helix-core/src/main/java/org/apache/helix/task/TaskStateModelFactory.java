@@ -138,8 +138,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // manager. We cannot use the connection within manager because some users connect the manager
     // after registering the state model factory (in which case we cannot use manager's connection),
     // and some connect the manager before registering the state model factory (in which case we
-    //can use manager's connection). We need to think about the right order and determine if we
-    //want to enforce it, which may cause backward incompatibility.
+    // can use manager's connection). We need to think about the right order and determine if we
+    // want to enforce it, which may cause backward incompatibility.
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
 

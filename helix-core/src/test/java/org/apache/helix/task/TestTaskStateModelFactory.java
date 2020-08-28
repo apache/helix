@@ -31,7 +31,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -80,7 +80,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
         "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
 
-    HttpRoutingDataReader.reset();
+    RoutingDataManager.getInstance().reset();
     RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
     Assert.assertEquals(TaskUtil
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),

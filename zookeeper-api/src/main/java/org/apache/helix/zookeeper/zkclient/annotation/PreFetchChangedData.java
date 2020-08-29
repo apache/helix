@@ -25,14 +25,20 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * An annotation used to prefetch changed data for
  * {@link org.apache.helix.zookeeper.zkclient.IZkDataListener} in ZkClient.
+ * By default, prefetch is enabled: when ZkClient handles a data change event,
+ * ZkClient will read data and pass data object to
+ * {@link org.apache.helix.zookeeper.zkclient.IZkDataListener#handleDataChange(String, Object)}.
+ * By default, prefetch is disabled: ZkClient will not read data, so data object is passed as null.
  * <p>
  * Example:
  * <pre>
  * {@code @PreFetch(enabled = false)}
  *  public class MyCallback implements IZkDataListener
  * </pre>
+ *
  * {@code @PreFetch(enabled = false)} means data will not be prefetched in ZkClient before
- * handling data change.
+ * handling data change: data is null in
+ * {@link org.apache.helix.zookeeper.zkclient.IZkDataListener#handleDataChange(String, Object)}
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PreFetchChangedData {

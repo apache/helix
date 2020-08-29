@@ -43,9 +43,9 @@ public class TestPrefetchChangedData extends ZkTestBase {
       zkClient.subscribeDataChanges(path, dataListener);
       zkClient.writeData(path, "v2");
 
-      countDownLatch.await(3L, TimeUnit.SECONDS);
+      Assert.assertTrue(countDownLatch.await(3L, TimeUnit.SECONDS));
 
-      Assert.assertTrue(dataListener.isDataPreFetched);
+      Assert.assertTrue(dataListener.isDataPreFetched());
     } finally {
       zkClient.unsubscribeAll();
       zkClient.delete(path);
@@ -66,9 +66,9 @@ public class TestPrefetchChangedData extends ZkTestBase {
       zkClient.subscribeDataChanges(path, dataListener);
       zkClient.writeData(path, "v2");
 
-      countDownLatch.await(3L, TimeUnit.SECONDS);
+      Assert.assertTrue(countDownLatch.await(3L, TimeUnit.SECONDS));
 
-      Assert.assertFalse(dataListener.isDataPreFetched);
+      Assert.assertFalse(dataListener.isDataPreFetched());
     } finally {
       zkClient.unsubscribeAll();
       zkClient.delete(path);

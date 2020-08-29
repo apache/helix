@@ -28,7 +28,7 @@ import java.lang.annotation.RetentionPolicy;
  * By default, prefetch is enabled: when ZkClient handles a data change event,
  * ZkClient will read data and pass data object to
  * {@link org.apache.helix.zookeeper.zkclient.IZkDataListener#handleDataChange(String, Object)}.
- * By default, prefetch is disabled: ZkClient will not read data, so data object is passed as null.
+ * If disabled({@code false}): ZkClient will not read data, so data object is passed as null.
  * <p>
  * Example:
  * <pre>

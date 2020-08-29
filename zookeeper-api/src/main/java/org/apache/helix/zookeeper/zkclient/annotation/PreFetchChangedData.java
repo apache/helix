@@ -22,8 +22,19 @@ package org.apache.helix.zookeeper.zkclient.annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-
+/**
+ * An annotation used to prefetch changed data for
+ * {@link org.apache.helix.zookeeper.zkclient.IZkDataListener} in ZkClient.
+ * <p>
+ * Example:
+ * <pre>
+ * {@code @PreFetch(enabled = false)}
+ *  public class MyCallback implements IZkDataListener
+ * </pre>
+ * {@code @PreFetch(enabled = false)} means data will not be prefetched in ZkClient before
+ * handling data change.
+ */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface PreFetch {
+public @interface PreFetchChangedData {
   boolean enabled() default true;
 }

@@ -143,14 +143,7 @@ public class ZkTestBase {
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     System.out.println("Starting ZK server at " + zkAddress);
-    try {
-      zkServer.start();
-    } catch (Exception e) {
-      // Give user a hint of what can be wrong. Otherwise, Intellij will not print out
-      // this exception and skip all the test.
-      e.printStackTrace();
-      throw e;
-    }
+    zkServer.start();
     return zkServer;
   }
 }

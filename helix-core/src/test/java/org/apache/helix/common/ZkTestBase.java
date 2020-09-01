@@ -133,7 +133,7 @@ public class ZkTestBase {
         java.lang.management.ManagementFactory.getOperatingSystemMXBean();
     long physicalMemorySize = os.getTotalPhysicalMemorySize();
     System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
-
+    
     long MB = 1024 * 1024;
     Runtime runtime = Runtime.getRuntime();
     long free = runtime.freeMemory()/MB;

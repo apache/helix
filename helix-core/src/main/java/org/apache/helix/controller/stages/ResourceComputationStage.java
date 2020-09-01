@@ -62,6 +62,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     Map<String, Resource> resourceMap = new LinkedHashMap<>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
+    Map<String, Resource> taskResourcesToDrop = new LinkedHashMap<>();
 
     boolean isTaskCache = cache instanceof WorkflowControllerDataProvider;
 
@@ -169,12 +170,13 @@ public class ResourceComputationStage extends AbstractBaseStage {
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
-            if (resource.getStateModelDefRef() == null && !isTaskCache
-                || resource.getStateModelDefRef() != null && (
-                resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
-                    || !resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)
-                    && !isTaskCache)) {
+            if (!isTaskCache && (resource.getStateModelDefRef() == null
+                || !TaskConstants.STATE_MODEL_NAME.equals(resource.getStateModelDefRef()))) {
               resourceToRebalance.put(resourceName, resource);
+            } else if (isTaskCache && TaskConstants.STATE_MODEL_NAME
+                .equals(resource.getStateModelDefRef())) {
+              // If a task current state exists without configs, it needs to be cleaned up
+              taskResourcesToDrop.put(resourceName, resource);
             }
 
             IdealState idealState = idealStates.get(resourceName);
@@ -202,6 +204,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
+    if (isTaskCache) {
+      event.addAttribute(AttributeName.TASK_RESOURCES_TO_DROP.name(), taskResourcesToDrop);
+    }
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

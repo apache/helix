@@ -40,6 +40,7 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConstants;
@@ -101,6 +102,14 @@ public class TaskSchedulingStage extends AbstractBaseStage {
     for (String jobName : cache.getTaskDataCache().getDispatchedJobs()) {
       updateResourceMap(jobName, resourceMap, output.getPartitionStateMap(jobName).partitionSet());
       restOfResources.remove(jobName);
+    }
+
+    Map<String, Resource> taskResourcesToDrop =
+        event.getAttribute(AttributeName.TASK_RESOURCES_TO_DROP.name());
+    for (String resourceName : taskResourcesToDrop.keySet()) {
+      ResourceAssignment emptyAssignment =
+          _workflowDispatcher.buildEmptyAssignment(resourceName, currentStateOutput);
+      _workflowDispatcher.updateBestPossibleStateOutput(resourceName, emptyAssignment, output);
     }
 
     return output;

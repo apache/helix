@@ -20,6 +20,7 @@ package org.apache.helix.model;
  */
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
@@ -43,10 +44,11 @@ import org.slf4j.LoggerFactory;
 public class TrieClusterTopology {
   private static Logger logger = LoggerFactory.getLogger(TrieClusterTopology.class);
   private static final String DELIMITER = "/";
-  private static final String CONNECTOR = "_";
+  private static final String CONNECTOR = ":";
 
   private final TrieNode _rootNode;
   private final String[] _topologyKeys;
+  private final String _faultZoneType;
 
   public TrieClusterTopology(final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
@@ -55,43 +57,102 @@ public class TrieClusterTopology {
           instanceConfigMap == null ? liveNodes : liveNodes.removeAll(instanceConfigMap.keySet())));
     }
     // A list of all keys in cluster topology, e.g., a cluster topology defined as
-    // /group/zone/rack/instance will return ["group", "zone", "rack", "instance"].
+    // /group/zone/rack/host will return ["group", "zone", "rack", "host"].
     _topologyKeys = Arrays.asList(clusterConfig.getTopology().trim().split(DELIMITER)).stream()
         .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
-    _rootNode = new TrieNode(new HashMap<>(), DELIMITER);
+    _faultZoneType = clusterConfig.getFaultZoneType();
+    _rootNode = new TrieNode(new HashMap<>(), "", "ROOT");
     constructTrie(instanceConfigMap);
   }
 
   /**
    * Return the topology of a cluster as a map. The key of the map is the first level of
-   * domain, and the value is a set of string that represents the path to each end node in that
-   * domain. E.g., assume the topology is defined as /group/zone/rack/instance, the result may be {
-   * ["group_0": {"zone_0/rack_0/instance_0", "zone_1/rack_1/instance_1"}], ["group_1": {"zone_1
-   * /rack_1/instance_1", "zone_1/rack_1/instance_2"}]}
+   * domain, and the value is a list of string that represents the path to each end node in that
+   * domain. E.g., assume the topology is defined as /group/zone/rack/host, the result may be {
+   * ["/group:0": {"/zone:0/rack:0/host:0", "/zone:1/rack:1/host:1"}], ["/group:1": {"/zone:1
+   * /rack:1/host:1", "/zone:1/rack:1/host:2"}]}
    */
-  public Map<String, Set<String>> getClusterTopology() {
+  public Map<String, List<String>> getClusterTopology() {
     return getTopologyUnderDomain(new HashMap<>());
   }
 
   /**
    * Return the topology under a certain domain as a map. The key of the returned map is the next
-   * level domain, and the value is a set of string that represents the path to each end node in
+   * level domain, and the value is a list of string that represents the path to each end node in
    * that domain.
    * @param domain A map defining the domain name and its value, e.g. {["group": "1"], ["zone",
    *               "2"]}
-   * @return the topology under the given domain, e.g. {["rack_0": {"instance_0", "instance_1"},
-   * ["rack_1": {"instance_2", "instance_3"}]}
+   * @return the topology under the given domain, e.g. {["/group:1/zone:2/rack:0": {"/host:0",
+   * "/host:1"}, ["/group:1/zone:2/rack:1": {"/host:2", "/host:3"}]}
    */
-  public Map<String, Set<String>> getTopologyUnderDomain(Map<String, String> domain) {
+  public Map<String, List<String>> getTopologyUnderDomain(Map<String, String> domain) {
     LinkedHashMap<String, String> orderedDomain = validateAndOrderDomain(domain);
     TrieNode startNode = getStartNode(orderedDomain);
     Map<String, TrieNode> children = startNode.getChildren();
-    Map<String, Set<String>> results = new HashMap<>();
+    Map<String, List<String>> results = new HashMap<>();
     children.entrySet().forEach(child -> {
-      String key = child.getKey();
-      results.put(key,
-          truncatePath(getPathUnderNode(child.getValue()), child.getValue().getPath() + DELIMITER));
+      results.put(startNode.getPath() + DELIMITER + child.getKey(),
+          truncatePath(getPathUnderNode(child.getValue()), child.getValue().getPath()));
     });
+    return results;
+  }
+
+  /**
+   * Return the topology under a certain path as a map. The key of the returned map is the next
+   * level domain, and the value is a list of string that represents the path to each end node in
+   * that domain.
+   * @param path a path to a certain Trie node, e.g. /group:1/zone:2
+   * @return the topology under the given domain, e.g. {["/group:1/zone:2/rack:0": {"/host:0",
+   * "/host:1"}, ["/group:1/zone:2/rack:1": {"/host:2", "/host:3"}]}
+   */
+  public Map<String, List<String>> getTopologyUnderPath(String path) {
+    Map<String, String> domain = convertPathToDomain(path);
+    return getTopologyUnderDomain(domain);
+  }
+
+  /**
+   * Return the full topology of a certain domain type.
+   * @param domainType a specific type of domain, e.g. zone
+   * @return the topology of the given domain type, e.g. {["/group:0/zone:0": {"rack:0/host:0",
+   * "rack:1/host:1"}, ["/group:0/zone:1": {"/rack:0:host:2", "/rack:1/host:3"}]}
+   */
+  public Map<String, List<String>> getTopologyUnderDomainType(String domainType) {
+    if (domainType.equals(_topologyKeys[0])) {
+      return getClusterTopology();
+    }
+    Map<String, List<String>> results = new HashMap<>();
+    String parentDomainType = null;
+    for (int i = 1; i < _topologyKeys.length; i++) {
+      if (_topologyKeys[i].equals(domainType)) {
+        parentDomainType = _topologyKeys[i - 1];
+        break;
+      }
+    }
+    // get all the starting nodes for the domain type
+    List<TrieNode> startNodes = getStartNodes(parentDomainType);
+    for (TrieNode startNode : startNodes) {
+      results.putAll(getTopologyUnderPath(startNode.getPath()));
+    }
+    return results;
+  }
+
+  /**
+   * Return all the end nodes under fault zone type. The key of the returned map is the next
+   * level domain, and the value is a list of string that represents the path to each end node in
+   * that domain.
+   * @return , e.g. if the fault zone is "zone", it may return {["/group:0/zone:0": {"rack:0/host
+   * :0", "rack:1/host:1"}, ["/group:0/zone:1": {"/rack:0:host:2", "/rack:1/host:3"}]}
+   */
+  public Map<String, List<String>> getInstancesUnderFaultZone() {
+    return getTopologyUnderDomainType(_faultZoneType);
+  }
+
+  private Map<String, String> convertPathToDomain(String path) {
+    Map<String, String> results = new HashMap<>();
+    for (String part : path.substring(1).split(DELIMITER)) {
+      results.put(part.substring(0, part.indexOf(CONNECTOR)),
+          part.substring(part.indexOf(CONNECTOR) + 1));
+    }
     return results;
   }
 
@@ -123,8 +184,8 @@ public class TrieClusterTopology {
    * @param toRemovePath The path from root to current node. It should be removed so that users
    *                     can get a better view.
    */
-  private Set<String> truncatePath(Set<String> paths, String toRemovePath) {
-    Set<String> results = new HashSet<>();
+  private List<String> truncatePath(Set<String> paths, String toRemovePath) {
+    List<String> results = new ArrayList<>();
     paths.forEach(path -> {
       String truncatedPath = path.replace(toRemovePath, "");
       results.add(truncatedPath);
@@ -169,6 +230,24 @@ public class TrieClusterTopology {
     return curNode;
   }
 
+  private List<TrieNode> getStartNodes(String domain) {
+    List<TrieNode> results = new ArrayList<>();
+    TrieNode curNode = _rootNode;
+    Deque<TrieNode> nodeStack = new ArrayDeque<>();
+    nodeStack.push(curNode);
+    while (!nodeStack.isEmpty()) {
+      curNode = nodeStack.pop();
+      if (curNode.getDomainType().equals(domain)) {
+        results.add(curNode);
+      } else {
+        for (TrieNode child : curNode.getChildren().values()) {
+          nodeStack.push(child);
+        }
+      }
+    }
+    return results;
+  }
+
   private void removeInvalidInstanceConfig(Map<String, InstanceConfig> instanceConfigMap) {
     Set<String> toRemoveConfig = new HashSet<>();
     for (String instanceName : instanceConfigMap.keySet()) {
@@ -180,8 +259,8 @@ public class TrieClusterTopology {
         for (String key : _topologyKeys) {
           String value = domainAsMap.get(key);
           if (value == null || value.length() == 0) {
-            logger.info(String.format("Domain %s for instance %s is not set",
-                domainAsMap.get(key), instanceName));
+            logger.info(String.format("Domain %s for instance %s is not set", domainAsMap.get(key),
+                instanceName));
             toRemoveConfig.add(instanceName);
             break;
           }
@@ -209,7 +288,7 @@ public class TrieClusterTopology {
         path = path + DELIMITER + key;
         TrieNode nextNode = curNode.getChildren().get(key);
         if (nextNode == null) {
-          nextNode = new TrieNode(new HashMap<>(), path);
+          nextNode = new TrieNode(new HashMap<>(), path, _topologyKeys[i]);
         }
         curNode.addChild(key, nextNode);
         curNode = nextNode;
@@ -224,9 +303,12 @@ public class TrieClusterTopology {
     // the complete path/prefix leading to the current node.
     private final String _path;
 
-    TrieNode(Map<String, TrieNode> children, String path) {
+    private final String _domainType;
+
+    TrieNode(Map<String, TrieNode> children, String path, String domainType) {
       _children = children;
       _path = path;
+      _domainType = domainType;
     }
 
     public Map<String, TrieNode> getChildren() {
@@ -235,6 +317,10 @@ public class TrieClusterTopology {
 
     public String getPath() {
       return _path;
+    }
+
+    public String getDomainType() {
+      return _domainType;
     }
 
     public void addChild(String key, TrieNode node) {

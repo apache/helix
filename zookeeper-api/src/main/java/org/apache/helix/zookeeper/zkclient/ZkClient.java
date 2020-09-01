@@ -38,7 +38,7 @@ import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
+import org.apache.helix.zookeeper.zkclient.annotation.PreFetchChangedData;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallMonitorContext;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryCallContext;
@@ -319,7 +319,7 @@ public class ZkClient implements Watcher {
   }
 
   private boolean isPrefetchEnabled(IZkDataListener dataListener) {
-    PreFetch preFetch = dataListener.getClass().getAnnotation(PreFetch.class);
+    PreFetchChangedData preFetch = dataListener.getClass().getAnnotation(PreFetchChangedData.class);
     if (preFetch != null) {
       return preFetch.enabled();
     }
@@ -328,7 +328,7 @@ public class ZkClient implements Watcher {
     try {
       Method method = dataListener.getClass()
           .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
-      PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
+      PreFetchChangedData preFetchInMethod = method.getAnnotation(PreFetchChangedData.class);
       if (preFetchInMethod != null) {
         return preFetchInMethod.enabled();
       }

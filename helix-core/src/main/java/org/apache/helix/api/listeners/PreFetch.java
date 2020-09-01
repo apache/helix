@@ -23,9 +23,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * This annotation has been deprecated. Use PreFetch in zookeeper-api module instead.
+ * An annotation used to prefetch data for listeners (eg. LiveInstanceChangeListener)
+ * in callback handler.
  */
-@Deprecated
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PreFetch {
   boolean enabled() default true;

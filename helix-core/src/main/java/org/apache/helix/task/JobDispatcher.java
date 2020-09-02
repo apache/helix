@@ -94,6 +94,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           "Workflow %s or job %s is already in final state, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
       finishJobInRuntimeJobDag(_dataProvider.getTaskDataCache(), workflowResource, jobName);
+      // New pipeline trigger for workflow status update
       RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
       _rebalanceScheduler.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -288,6 +289,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED,
           jobCtx.getFinishTime() - jobCtx.getStartTime());
       _rebalanceScheduler.removeScheduledRebalance(jobResource);
+      // New pipeline trigger for workflow status update
       RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }

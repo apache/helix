@@ -173,10 +173,13 @@ public class ResourceComputationStage extends AbstractBaseStage {
             if (!isTaskCache && (resource.getStateModelDefRef() == null
                 || !TaskConstants.STATE_MODEL_NAME.equals(resource.getStateModelDefRef()))) {
               resourceToRebalance.put(resourceName, resource);
-            } else if (isTaskCache && TaskConstants.STATE_MODEL_NAME
+            }
+
+            if (isTaskCache && TaskConstants.STATE_MODEL_NAME
                 .equals(resource.getStateModelDefRef())) {
               // If a task current state exists without configs, it needs to be cleaned up
               taskResourcesToDrop.put(resourceName, resource);
+              resourceToRebalance.put(resourceName, resource);
             }
 
             IdealState idealState = idealStates.get(resourceName);

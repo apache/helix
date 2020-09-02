@@ -48,10 +48,10 @@ public class AzureCloudInstanceInformationProcessor
       LoggerFactory.getLogger(AzureCloudInstanceInformationProcessor.class);
   private final CloseableHttpClient _closeableHttpClient;
   private final HelixCloudProperty _helixCloudProperty;
-  private final String COMPUTE = "compute";
-  private final String INSTANCE_NAME = "name";
-  private final String DOMAIN = "platformFaultDomain";
-  private final String INSTANCE_SET_NAME = "vmScaleSetName";
+  private static final String COMPUTE = "compute";
+  private static final String INSTANCE_NAME = "name";
+  private static final String DOMAIN = "platformFaultDomain";
+  private static final String INSTANCE_SET_NAME = "vmScaleSetName";
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
     _helixCloudProperty = helixCloudProperty;

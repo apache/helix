@@ -49,14 +49,14 @@ public class AzureCloudInstanceInformationProcessor
   private final CloseableHttpClient _closeableHttpClient;
   private final HelixCloudProperty _helixCloudProperty;
   private final String COMPUTE = "compute";
-  private final String INSTANCE_NAME = "vmId";
+  private final String INSTANCE_NAME = "name";
   private final String DOMAIN = "platformFaultDomain";
   private final String INSTANCE_SET_NAME = "vmScaleSetName";
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
     _helixCloudProperty = helixCloudProperty;
 
-    RequestConfig requestConifg = RequestConfig.custom()
+    RequestConfig requestConfig = RequestConfig.custom()
         .setConnectionRequestTimeout((int) helixCloudProperty.getCloudRequestTimeout())
         .setConnectTimeout((int) helixCloudProperty.getCloudConnectionTimeout()).build();
 
@@ -69,7 +69,7 @@ public class AzureCloudInstanceInformationProcessor
         };
 
     //TODO: we should regularize the way how httpClient should be used throughout Helix. e.g. Helix-rest could also use in the same way
-    _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConifg)
+    _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig)
         .setRetryHandler(httpRequestRetryHandler).build();
   }
 
@@ -153,7 +153,7 @@ public class AzureCloudInstanceInformationProcessor
       }
     } catch (IOException e) {
       throw new HelixException(
-          String.format("Error in parsing cloud instance information: %s", response, e));
+          String.format("Error in parsing cloud instance information: %s", response), e);
     }
     return azureCloudInstanceInformation;
   }

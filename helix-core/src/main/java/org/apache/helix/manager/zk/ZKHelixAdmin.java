@@ -78,6 +78,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.TrieClusterTopology;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -1166,6 +1167,43 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public Map<String, List<String>> getClusterTopology(String clusterName) {
+    logger.info("Get cluster topology for cluster {}.", clusterName);
+    TrieClusterTopology trie = getTrieClusterTopology(clusterName);
+    return trie.getClusterTopology();
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderDomain(String clusterName,
+      Map<String, String> domain) {
+    logger.info("Get topology for cluster {}, under domain {}.", clusterName, domain);
+    TrieClusterTopology trie = getTrieClusterTopology(clusterName);
+    return trie.getTopologyUnderDomain(domain);
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderPath(String clusterName, String path) {
+    logger.info("Get topology for cluster {}, under path {}.", clusterName, path);
+    TrieClusterTopology trie = getTrieClusterTopology(clusterName);
+    return trie.getTopologyUnderPath(path);
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderDomainType(String clusterName,
+      String domainType) {
+    logger.info("Get topology for cluster {}, under domain type {}.", clusterName, domainType);
+    TrieClusterTopology trie = getTrieClusterTopology(clusterName);
+    return trie.getTopologyUnderDomainType(domainType);
+  }
+
+  @Override
+  public Map<String, List<String>> getInstancesUnderFaultZone(String clusterName) {
+    logger.info("Get instances for cluster {}, under cluster fault zone type.", clusterName);
+    TrieClusterTopology trie = getTrieClusterTopology(clusterName);
+    return trie.getInstancesUnderFaultZone();
+  }
+
+  @Override
   public List<String> getStateModelDefs(String clusterName) {
     return _zkClient.getChildren(PropertyPathBuilder.stateModelDef(clusterName));
   }
@@ -2036,5 +2074,28 @@ public class ZKHelixAdmin implements HelixAdmin {
           createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
               _zkAddress), false);
     }
+  }
+
+  private TrieClusterTopology getTrieClusterTopology(String clusterName) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    String path = PropertyPathBuilder.instanceConfig(clusterName);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
+    for (ZNRecord record : znRecords) {
+      if (record != null) {
+        InstanceConfig instanceConfig = new InstanceConfig(record);
+        instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
+      }
+    }
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances(), true);
+    List<String> liveNodes = new ArrayList<>();
+    liveInstances.forEach(liveInstance -> liveNodes.add(liveInstance.getInstanceName()));
+
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    return new TrieClusterTopology(liveNodes, instanceConfigMap, clusterConfig);
   }
 }

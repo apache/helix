@@ -355,6 +355,33 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override
+  public Map<String, List<String>> getClusterTopology(String clusterName) {
+    return null;
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderDomain(String clusterName,
+      Map<String, String> domain) {
+    return null;
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderPath(String clusterName, String path) {
+    return null;
+  }
+
+  @Override
+  public Map<String, List<String>> getTopologyUnderDomainType(String clusterName,
+      String domainType) {
+    return null;
+  }
+
+  @Override
+  public Map<String, List<String>> getInstancesUnderFaultZone(String clusterName) {
+    return null;
+  }
+
   @Override public List<String> getStateModelDefs(String clusterName) {
     return null;
   }

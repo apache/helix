@@ -155,7 +155,19 @@ public class InstanceValidationUtil {
    */
   public static boolean hasValidConfig(HelixDataAccessor dataAccessor, String clusterId,
       String instanceName) {
-    PropertyKey propertyKey = dataAccessor.keyBuilder().instanceConfig(instanceName);
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    if (clusterConfig == null) {
+      _logger.error("Cluster config is missing in cluster " + clusterId);
+      return false;
+    }
+    if (!clusterConfig.isPersistIntermediateAssignment()) {
+      _logger.error(
+          "Cluster config %s is not turned on, which is required for instance stability check.",
+          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString());
+      return false;
+    }
+    PropertyKey propertyKey = keyBuilder.instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
     return instanceConfig != null && instanceConfig.isValid();
   }

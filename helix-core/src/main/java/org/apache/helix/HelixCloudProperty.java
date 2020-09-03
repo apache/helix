@@ -37,7 +37,7 @@ public class HelixCloudProperty {
   private static final Logger LOG = LoggerFactory.getLogger(HelixCloudProperty.class.getName());
   private static final String AZURE_CLOUD_PROPERTY_FILE = SystemPropertyKeys.AZURE_CLOUD_PROPERTIES;
   private static final String CLOUD_INFO_SOURCE = "cloud_info_source";
-  private static final String CLOUD_INFO_PROCESSFOR_NAME = "cloud_info_processor_name";
+  private static final String CLOUD_INFO_PROCESSOR_NAME = "cloud_info_processor_name";
   private static final String CLOUD_MAX_RETRY = "cloud_max_retry";
   private static final String CONNECTION_TIMEOUT_MS = "connection_timeout_ms";
   private static final String REQUEST_TIMEOUT_MS = "request_timeout_ms";
@@ -74,7 +74,7 @@ public class HelixCloudProperty {
    * @param
    */
   public HelixCloudProperty(CloudConfig cloudConfig) {
-    setCloudEndabled(cloudConfig.isCloudEnabled());
+    setCloudEnabled(cloudConfig.isCloudEnabled());
     if (cloudConfig.isCloudEnabled()) {
       setCloudId(cloudConfig.getCloudID());
       setCloudProvider(cloudConfig.getCloudProvider());
@@ -93,7 +93,7 @@ public class HelixCloudProperty {
         LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
         setCloudInfoSources(
             Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
-        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSFOR_NAME));
+        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME));
         setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
         setCloudConnectionTimeout(Long.valueOf(azureProperties.getProperty(CONNECTION_TIMEOUT_MS)));
         setCloudRequestTimeout(Long.valueOf(azureProperties.getProperty(REQUEST_TIMEOUT_MS)));
@@ -145,7 +145,7 @@ public class HelixCloudProperty {
     return _customizedCloudProperties;
   }
 
-  public void setCloudEndabled(boolean isCloudEnabled) {
+  public void setCloudEnabled(boolean isCloudEnabled) {
     _isCloudEnabled = isCloudEnabled;
   }
 

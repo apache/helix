@@ -38,6 +38,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
@@ -125,7 +126,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
     try {
       String db1 = "TestDB-1";
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db1, NUM_PARTITIONS, "MasterSlave",
-          IdealState.RebalanceMode.FULL_AUTO.name());
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       long startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
@@ -143,7 +144,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       // add new DB
       String db2 = "TestDB-2";
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, NUM_PARTITIONS, "MasterSlave",
-          IdealState.RebalanceMode.FULL_AUTO.name());
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
@@ -218,7 +219,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       // current state change.
       String db = "TestDB-" + TestHelper.getTestMethodName();
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, NUM_PARTITIONS, "MasterSlave",
-          IdealState.RebalanceMode.FULL_AUTO.name());
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, NUM_REPLICAS);
       ZkHelixClusterVerifier clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();

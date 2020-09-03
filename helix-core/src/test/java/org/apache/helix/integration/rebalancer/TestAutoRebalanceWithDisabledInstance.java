@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
@@ -41,7 +42,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   public void beforeClass() throws Exception {
     super.beforeClass();
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB_2, _PARTITIONS, STATE_MODEL,
-        RebalanceMode.FULL_AUTO.name());
+        RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceResource(CLUSTER_NAME, TEST_DB_2, _replica);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

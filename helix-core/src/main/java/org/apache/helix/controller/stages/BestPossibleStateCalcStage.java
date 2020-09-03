@@ -35,8 +35,8 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
@@ -446,7 +446,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         if (customizedRebalancer != null) {
           rebalancer = customizedRebalancer;
         } else {
-          rebalancer = new AutoRebalancer();
+          rebalancer = new DelayedAutoRebalancer();
         }
       }
       break;

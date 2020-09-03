@@ -29,6 +29,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
@@ -101,14 +102,17 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
         int varyNum = _partitionVary ? 10 * i : 0;
         String db = WorkflowGenerator.DEFAULT_TGT_DB + i;
         clusterSetup.addResourceToCluster(CLUSTER_NAME, db, _numPartitions + varyNum,
-            MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.toString());
+            MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.toString(),
+            CrushEdRebalanceStrategy.class.getName());
         clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, db, _numReplicas);
         _testDbs.add(db);
       }
     } else {
       if (_instanceGroupTag) {
-        clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
-            _numPartitions, "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
+        clusterSetup
+            .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numPartitions,
+                "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name(),
+                CrushEdRebalanceStrategy.class.getName());
         IdealState idealState = clusterSetup.getClusterManagementTool()
             .getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
         idealState.setInstanceGroupTag("TESTTAG0");
@@ -116,7 +120,8 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
             WorkflowGenerator.DEFAULT_TGT_DB, idealState);
       } else {
         clusterSetup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
-            _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
+            _numPartitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name(),
+            CrushEdRebalanceStrategy.class.getName());
       }
       clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
           _numReplicas);

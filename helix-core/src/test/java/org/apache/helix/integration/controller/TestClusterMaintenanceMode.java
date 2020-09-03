@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -104,7 +105,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
   public void testMaintenanceModeAddNewResource() {
     _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME,
         newResourceAddedDuringMaintenanceMode, 7, "MasterSlave",
-        IdealState.RebalanceMode.FULL_AUTO.name());
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME,
         newResourceAddedDuringMaintenanceMode, 3);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());

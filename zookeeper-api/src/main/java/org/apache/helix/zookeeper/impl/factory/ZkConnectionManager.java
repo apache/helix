@@ -23,9 +23,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.SharedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
@@ -33,7 +33,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * NOTE: DO NOT USE THIS CLASS DIRECTLY. Use ZkClientFactories instead.
@@ -48,12 +47,12 @@ import org.slf4j.LoggerFactory;
  * While multiple Shared ZkClients can use single connection manager if possible.
  */
 public class ZkConnectionManager extends ZkClient {
-  private static Logger LOG = LoggerFactory.getLogger(ZkConnectionManager.class);
   // Client type that is used in monitor, and metrics.
   private final static String MONITOR_TYPE = "ZkConnectionManager";
-  private final String _monitorKey;
+  private static Logger LOG = LoggerFactory.getLogger(ZkConnectionManager.class);
   // Set of all registered watchers
   protected final Set<Watcher> _sharedWatchers = new HashSet<>();
+  private final String _monitorKey;
 
   /**
    * Construct and init a ZkConnection Manager.
@@ -130,6 +129,10 @@ public class ZkConnectionManager extends ZkClient {
     }
     super.close();
     LOG.info("ZkConnection {} was closed.", _monitorKey);
+  }
+
+  protected boolean hasSharedWatchers() {
+    return _sharedWatchers != null && _sharedWatchers.size() > 0;
   }
 
   protected void cleanupInactiveWatchers() {

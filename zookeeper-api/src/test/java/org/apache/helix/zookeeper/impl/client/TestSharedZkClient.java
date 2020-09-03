@@ -43,7 +43,6 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
   @Test
   public void testCreateEphemeralFailure() {
     _realmAwareZkClient.setZkSerializer(new ZNRecordSerializer());
-
     // Create a dummy ZNRecord
     ZNRecord znRecord = new ZNRecord("DummyRecord");
     znRecord.setSimpleField("Dummy", "Value");
@@ -66,4 +65,16 @@ public class TestSharedZkClient extends RealmAwareZkClientFactoryTestBase {
       // this is expected.
     }
   }
+
+   /*
+   Tests clean up of closed connection from pool
+   Use cases tested
+     -Not removal of connection when there is a active watchers
+     -Removal of connection when there are no active watchers
+   */
+   @Test
+    public void testCleanupOfClosedConnectionFromConnectionManager(){
+     // SharedZkClientFactory.getInstance().buildZkClient();
+     // _realmAwareZkClientFactory.buildZkClient();
+   }
 }

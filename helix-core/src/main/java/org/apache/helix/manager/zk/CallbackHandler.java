@@ -75,6 +75,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
@@ -141,6 +142,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   // indicated whether this CallbackHandler is ready to serve event callback from ZkClient.
   private boolean _ready = false;
+
+  private static final boolean BUCKETIZE_ZNRECORD_ENABLED = Boolean
+      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_BUCKETIZE_ZNRECORD_ENABLED, "true"));
 
   static {
     SubscribeChangeEventProcessor = new DedupEventProcessor<CallbackHandler, SubscribeChangeEvent>(
@@ -632,31 +636,34 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             case CUSTOMIZED_VIEW:
             case TARGET_EXTERNAL_VIEW: {
               // check if bucketized
-              BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-              List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 0, 0);
-              for (ZNRecord record : records) {
-                HelixProperty property = new HelixProperty(record);
-                String childPath = path + "/" + record.getId();
+              if (BUCKETIZE_ZNRECORD_ENABLED) {
+                BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+                List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 0, 0);
+                for (ZNRecord record : records) {
+                  HelixProperty property = new HelixProperty(record);
+                  String childPath = path + "/" + record.getId();
 
-                int bucketSize = property.getBucketSize();
-                if (bucketSize > 0) {
-                  // subscribe both data-change and child-change on bucketized parent node
-                  // data-change gives a delete-callback which is used to remove watch
-                  List<String> bucketizedChildNames = subscribeChildChange(childPath, callbackType);
-                  subscribeDataChange(childPath, callbackType);
+                  int bucketSize = property.getBucketSize();
+                  if (bucketSize > 0) {
+                    // subscribe both data-change and child-change on bucketized parent node
+                    // data-change gives a delete-callback which is used to remove watch
+                    subscribeChildChange(childPath, callbackType);
+                    subscribeDataChange(childPath, callbackType);
 
-                  // subscribe data-change on bucketized child
-                  if (bucketizedChildNames != null) {
-                    for (String bucketizedChildName : bucketizedChildNames) {
-                      String bucketizedChildPath = childPath + "/" + bucketizedChildName;
-                      subscribeDataChange(bucketizedChildPath, callbackType);
+                    // subscribe data-change on bucketized child
+                    List<String> bucketizedChildNames = _zkClient.getChildren(childPath);
+                    if (bucketizedChildNames != null) {
+                      for (String bucketizedChildName : bucketizedChildNames) {
+                        String bucketizedChildPath = childPath + "/" + bucketizedChildName;
+                        subscribeDataChange(bucketizedChildPath, callbackType);
+                      }
                     }
+                  } else {
+                    subscribeDataChange(childPath, callbackType);
                   }
-                } else {
-                  subscribeDataChange(childPath, callbackType);
                 }
-              }
-              break;
+                break;
+              } // else case uses default branch.
             }
             default: {
               if (children != null) {
@@ -758,10 +765,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
         // only needed for bucketized parent, but OK if we don't have child-change
         // watch on the bucketized parent path
-        logger.info("CallbackHandler {}, {} unsubscribe child-change. path: {}, listener: {}",
-            _uid, _manager.getInstanceName(), dataPath, _listener);
-        _zkClient.unsubscribeChildChanges(dataPath, this);
         // No need to invoke() since this event will handled by child-change on parent-node
+        if (BUCKETIZE_ZNRECORD_ENABLED) {
+          logger
+              .info("CallbackHandler {}, {} unsubscribe child-change. path: {}, listener: {}", _uid,
+                  _manager.getInstanceName(), dataPath, _listener);
+          _zkClient.unsubscribeChildChanges(dataPath, this);
+        }
       }
     } catch (Exception e) {
       String msg = "exception in handling data-delete-change. path: " + dataPath + ", listener: "

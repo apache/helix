@@ -41,6 +41,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordAssembler;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
@@ -59,6 +60,9 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
+
+  private static final boolean BUCKETIZE_ZNRECORD_ENABLED = Boolean
+      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_BUCKETIZE_ZNRECORD_ENABLED, "true"));
 
   public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
     this(clusterName, null, baseDataAccessor);
@@ -143,6 +147,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     case EXTERNALVIEW:
       // check if bucketized
       if (value.getBucketSize() > 0) {
+        if (!BUCKETIZE_ZNRECORD_ENABLED) {
+          throw new HelixMetaDataAccessException(
+              "Can't write bucktized ZNode " + path + " because Bucktize feature "
+                  + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
+        }
         // set parent node
         ZNRecord metaRecord = new ZNRecord(value.getId());
         metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
@@ -251,6 +260,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
           int bucketSize = property.getBucketSize();
           if (bucketSize > 0) {
+            if (!BUCKETIZE_ZNRECORD_ENABLED) {
+              throw new HelixMetaDataAccessException(
+                  "Can't read bucktized ZNode " + path + " because Bucktize feature "
+                      + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
+            }
             // @see HELIX-574
             // clean up list and map fields in case we write to parent node by mistake
             property.getRecord().getMapFields().clear();
@@ -309,6 +323,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
         int bucketSize = property.getBucketSize();
         if (bucketSize > 0) {
+          if (!BUCKETIZE_ZNRECORD_ENABLED) {
+            throw new HelixMetaDataAccessException(
+                "Can't read bucktized ZNode " + path + " because Bucktize feature "
+                    + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
+          }
           // @see HELIX-574
           // clean up list and map fields in case we write to parent node by mistake
           property.getRecord().getMapFields().clear();
@@ -428,8 +447,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
             int bucketSize = property.getBucketSize();
             if (bucketSize > 0) {
-              // TODO: fix this if record.id != pathName
               String childPath = parentPath + "/" + record.getId();
+              if (!BUCKETIZE_ZNRECORD_ENABLED) {
+                throw new HelixMetaDataAccessException(
+                    "Can't read bucktized ZNode " + childPath + " because Bucktize feature "
+                        + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
+              }
+              // TODO: fix this if record.id != pathName
               List<ZNRecord> childRecords;
               if (throwException) {
                 childRecords = _baseDataAccessor.getChildren(childPath, null, options, 1, 0);
@@ -541,7 +565,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
         if (value.getBucketSize() == 0) {
           records.add(value.getRecord());
         } else {
-
+          if (!BUCKETIZE_ZNRECORD_ENABLED) {
+            throw new HelixMetaDataAccessException(
+                "Can't write bucktized ZNode " + path + " because Bucktize feature "
+                    + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
+          }
           ZNRecord metaRecord = new ZNRecord(value.getId());
           metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
           records.add(metaRecord);

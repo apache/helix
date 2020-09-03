@@ -37,6 +37,12 @@ public class ZkSystemPropertyKeys {
       "zk.serializer.znrecord.auto-compress.enabled";
 
   /**
+   * Setting this property to true enables ZNode bucketization.
+   */
+  public static final String ZK_BUCKETIZE_ZNRECORD_ENABLED =
+      "zk.bucketize.znrecord.enabled";
+
+  /**
    * This is property that defines the maximum write size in bytes for ZKRecord's two serializers
    * before serialized data is ready to be written to ZK. This property applies to
    * 1. {@link org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer}

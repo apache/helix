@@ -538,7 +538,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  private void subscribeChildChange(String path, NotificationContext.Type callbackType) {
+  private List<String> subscribeChildChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
       if (logger.isDebugEnabled()) {
@@ -559,12 +559,15 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       if (!childrenSubscribeResult.isInstalled()) {
         logger.info("CallbackHandler {} subscribe data path {} failed!", _uid, path);
       }
+      return childrenSubscribeResult.getChildren();
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("CallbackHandler{}, {} unsubscribe child-change. path: {}, listener: {}",
           _uid ,_manager.getInstanceName(), path, _listener);
 
       _zkClient.unsubscribeChildChanges(path, this);
     }
+
+    return null;
   }
 
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
@@ -597,23 +600,21 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   private void subscribeForChanges(NotificationContext.Type callbackType, String path,
       boolean watchChild) {
-    logger.info("CallbackHandler {} Subscribing changes listener to path: {}, type: {}, listener: {}",
-        _uid, path, callbackType, _listener);
+    logger.info("CallbackHandler {} subscribing changes listener to path: {}, callback type: {}, "
+            + "event types: {}, listener: {}, watchChild: {}",
+        _uid, path, callbackType, _eventTypes, _listener, watchChild);
 
     long start = System.currentTimeMillis();
     if (_eventTypes.contains(EventType.NodeDataChanged)
         || _eventTypes.contains(EventType.NodeCreated)
         || _eventTypes.contains(EventType.NodeDeleted)) {
-      logger.info("CallbackHandler{} Subscribing data change listener to path: {}", _uid, path);
+      logger.info("CallbackHandler {} subscribing data change listener to path: {}", _uid, path);
       subscribeDataChange(path, callbackType);
     }
 
     if (_eventTypes.contains(EventType.NodeChildrenChanged)) {
-      logger.info("CallbackHandler{}, Subscribing child change listener to path: {}", _uid, path);
-      subscribeChildChange(path, callbackType);
+      List<String> children = subscribeChildChange(path, callbackType);
       if (watchChild) {
-        logger.info("CallbackHandler{}, Subscribing data change listener to all children for path: {}", _uid, path);
-
         try {
           switch (_changeType) {
             case CURRENT_STATE:
@@ -633,11 +634,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
                 if (bucketSize > 0) {
                   // subscribe both data-change and child-change on bucketized parent node
                   // data-change gives a delete-callback which is used to remove watch
-                  subscribeChildChange(childPath, callbackType);
+                  List<String> bucketizedChildNames = subscribeChildChange(childPath, callbackType);
                   subscribeDataChange(childPath, callbackType);
 
                   // subscribe data-change on bucketized child
-                  List<String> bucketizedChildNames = _zkClient.getChildren(childPath);
                   if (bucketizedChildNames != null) {
                     for (String bucketizedChildName : bucketizedChildNames) {
                       String bucketizedChildPath = childPath + "/" + bucketizedChildName;
@@ -651,10 +651,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               break;
             }
             default: {
-              List<String> childNames = _zkClient.getChildren(path);
-              if (childNames != null) {
-                for (String childName : childNames) {
-                  String childPath = path + "/" + childName;
+              // When callback type is FINALIZE, subscribeChildChange doesn't
+              // get children list. We need to read children to unsubscribe data change listeners.
+              if (callbackType == Type.FINALIZE) {
+                children = _zkClient.getChildren(path);
+              }
+              if (children != null) {
+                for (String child : children) {
+                  String childPath = path + "/" + child;
                   subscribeDataChange(childPath, callbackType);
                 }
               }

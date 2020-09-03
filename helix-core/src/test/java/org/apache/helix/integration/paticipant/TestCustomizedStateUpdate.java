@@ -87,7 +87,8 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Map<String, Map<String, String>> mapView = customizedState.getRecord().getMapFields();
     Assert.assertEquals(mapView.keySet().size(), 1);
     Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME1);
-    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 2);
+    // Updated 2 fields + START_TIME field is automatically updated for monitoring
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 3);
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
@@ -103,7 +104,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     mapView = customizedState.getRecord().getMapFields();
     Assert.assertEquals(mapView.keySet().size(), 1);
     Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME1);
-    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 2);
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 3);
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("PREVIOUS_STATE"), "END_OF_PUSH_RECEIVED");
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
@@ -120,7 +121,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     mapView = customizedState.getRecord().getMapFields();
     Assert.assertEquals(mapView.keySet().size(), 1);
     Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME1);
-    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 2);
+    Assert.assertEquals(mapView.get(PARTITION_NAME1).keySet().size(), 3);
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("PREVIOUS_STATE"), "END_OF_PUSH_RECEIVED");
     Assert.assertEquals(mapView.get(PARTITION_NAME1).get("CURRENT_STATE"), "COMPLETED");
 
@@ -141,13 +142,13 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
 
     Map<String, String> partitionMap1 = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
-    Assert.assertEquals(partitionMap1.keySet().size(), 2);
+    Assert.assertEquals(partitionMap1.keySet().size(), 3);
     Assert.assertEquals(partitionMap1.get("PREVIOUS_STATE"), "END_OF_PUSH_RECEIVED");
     Assert.assertEquals(partitionMap1.get("CURRENT_STATE"), "COMPLETED");
 
     Map<String, String> partitionMap2 = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME2);
-    Assert.assertEquals(partitionMap2.keySet().size(), 2);
+    Assert.assertEquals(partitionMap2.keySet().size(), 3);
     Assert.assertEquals(partitionMap2.get("PREVIOUS_STATE"), "STARTED");
     Assert.assertEquals(partitionMap2.get("CURRENT_STATE"), "END_OF_PUSH_RECEIVED");
 
@@ -170,6 +171,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     // get customized state
     CustomizedState customizedState =
         _mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME);
+    // START_TIME field is automatically updated for monitoring
     Assert.assertEquals(
         customizedState.getPartitionStateMap(CustomizedState.CustomizedStateProperty.CURRENT_STATE)
             .size(), 1);
@@ -178,8 +180,8 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     Assert.assertEquals(customizedState
         .getPartitionStateMap(CustomizedState.CustomizedStateProperty.PREVIOUS_STATE), map);
     Assert.assertEquals(
-        customizedState.getPartitionStateMap(CustomizedState.CustomizedStateProperty.START_TIME),
-        map);
+        customizedState.getPartitionStateMap(CustomizedState.CustomizedStateProperty.START_TIME).size(),
+        1);
     Assert.assertEquals(
         customizedState.getPartitionStateMap(CustomizedState.CustomizedStateProperty.END_TIME),
         map);
@@ -192,6 +194,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     map.put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), PARTITION_STATE);
     Map<String, String> partitionCustomizedState = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
+    partitionCustomizedState.remove(CustomizedState.CustomizedStateProperty.START_TIME.name());
     Assert.assertEquals(partitionCustomizedState, map);
     Assert.assertNull(_mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME2));
@@ -218,6 +221,7 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     map.put(CustomizedState.CustomizedStateProperty.CURRENT_STATE.name(), null);
     Map<String, String> partitionCustomizedState = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
+    partitionCustomizedState.remove(CustomizedState.CustomizedStateProperty.START_TIME.name());
     Assert.assertEquals(partitionCustomizedState, map);
     Assert.assertNull(_mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME2));
@@ -244,7 +248,8 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     // get per partition customized state
     Map<String, String> partitionCustomizedState = _mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME1);
-    Assert.assertEquals(partitionCustomizedState.size(), 0);
+    // START_TIME field is automatically updated for monitoring
+    Assert.assertEquals(partitionCustomizedState.size(), 1);
     Assert.assertNull(_mockProvider
         .getPerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME2));
   }

@@ -9,7 +9,7 @@ package org.apache.helix.integration;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -110,7 +110,7 @@ public class TestDrop extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Drop TestDB0
@@ -176,7 +176,7 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
+        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
@@ -249,7 +249,7 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
+        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should invoke error->dropped transition
@@ -372,7 +372,7 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkAddr(ZK_ADDR).setErrStates(errStateMap).build();
+        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
@@ -432,7 +432,7 @@ public class TestDrop extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // add schemata resource group

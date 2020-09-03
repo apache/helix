@@ -10,7 +10,7 @@ package org.apache.helix.rest.server;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,7 +20,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,13 +41,14 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
@@ -134,13 +134,14 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
                   new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
               // If MSDS endpoint is set for this namespace, use that instead.
               if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setMsdsEndpoint(_msdsEndpoint);
+                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
+                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
               }
               _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
                   new RealmAwareZkClient.RealmAwareZkClientConfig()
                       .setZkSerializer(new ZNRecordSerializer()));
               LOG.info("ServerContext: FederatedZkClient created successfully!");
-            } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+            } catch (InvalidRoutingDataException | IllegalStateException e) {
               throw new HelixException("Failed to create FederatedZkClient!", e);
             }
           } else {
@@ -323,8 +324,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       LOG.info("ServerContext: Resetting ZK resources due to routing data change! Routing ZK: {}",
           _zkAddr);
       try {
-        // Reset HttpRoutingDataReader's cache
-        HttpRoutingDataReader.reset();
+        // Reset RoutingDataManager's cache
+        RoutingDataManager.getInstance().reset();
         // All Helix APIs will be closed implicitly because ZkClient is closed
         if (_zkClient != null && !_zkClient.isClosed()) {
           _zkClient.close();

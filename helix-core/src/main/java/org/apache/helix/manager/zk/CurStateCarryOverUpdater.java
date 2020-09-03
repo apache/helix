@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -61,19 +61,11 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
     }
 
     for (String partitionName : _lastCurState.getPartitionStateMap().keySet()) {
-      // For tasks, we preserve previous session's CurrentStates and set RequestState to DROPPED so
-      // that they will be dropped by the Controller
-      if (_lastCurState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-        curState.setState(partitionName, _lastCurState.getState(partitionName));
-        curState.setRequestedState(partitionName, TaskPartitionState.DROPPED.name());
-      } else {
         // carry-over only when current-state does not exist for regular Helix resource partitions
         if (curState.getState(partitionName) == null) {
           curState.setState(partitionName, _initState);
         }
-      }
     }
     return curState.getRecord();
   }
-
 }

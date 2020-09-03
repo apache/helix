@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,6 +22,7 @@ package org.apache.helix.model;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,8 @@ public class LiveInstance extends HelixProperty {
     HELIX_VERSION,
     LIVE_INSTANCE,
     ZKPROPERTYTRANSFERURL,
-    RESOURCE_CAPACITY
+    RESOURCE_CAPACITY,
+    CURRENT_TASK_THREAD_POOL_SIZE
   }
 
   /**
@@ -188,6 +190,25 @@ public class LiveInstance extends HelixProperty {
    */
   public void setWebserviceUrl(String url) {
     _record.setSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString(), url);
+  }
+
+  /**
+   * Get the current task thread pool size of the instance. For backward compatibility, return
+   * DEFAULT_TASK_THREAD_POOL_SIZE if it's not defined
+   * @return the current task thread pool size
+   */
+  public int getCurrentTaskThreadPoolSize() {
+    return _record.getIntField(LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(),
+        TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+  }
+
+  /**
+   * Set the current task thread pool size of the instance
+   * @param currentTaskThreadPoolSize the current task thread pool size
+   */
+  public void setCurrentTaskThreadPoolSize(int currentTaskThreadPoolSize) {
+    _record.setIntField(LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(),
+        currentTaskThreadPoolSize);
   }
 
   @Override

@@ -1,14 +1,23 @@
-/**
- * Copyright 2010 the original author or authors.
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
 package org.apache.helix.zookeeper.zkclient;
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -22,13 +31,15 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
-import org.apache.helix.zookeeper.zkclient.annotation.PreFetch;
+import org.apache.helix.zookeeper.zkclient.annotation.PreFetchChangedData;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallMonitorContext;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryCallContext;
@@ -63,7 +74,6 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * "Native ZkClient": not to be used directly.
  *
@@ -72,8 +82,22 @@ import org.slf4j.LoggerFactory;
  * WARN: Do not use this class directly, use {@link org.apache.helix.zookeeper.impl.client.ZkClient} instead.
  */
 public class ZkClient implements Watcher {
-  private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
-  private static long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+  private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+
+  private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
+
+  // If number of children exceeds this limit, getChildren() should not retry on connection loss.
+  // This is a workaround for exiting retry on connection loss because of large number of children.
+  // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
+  // TODO: remove it once we have a better way to exit retry for this case
+  private static final int NUM_CHILDREN_LIMIT = 100 * 1000;
+
+  private static final boolean SYNC_ON_SESSION = Boolean.parseBoolean(
+      System.getProperty(ZkSystemPropertyKeys.ZK_AUTOSYNC_ENABLED, "true"));
+  private static final String SYNC_PATH = "/";
+
+  private static AtomicLong UID = new AtomicLong(0);
+  private long _uid;
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -187,6 +211,9 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
+
+    _uid = UID.getAndIncrement();
+
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -194,6 +221,7 @@ public class ZkClient implements Watcher {
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
     _asyncCallRetryThread.start();
+    LOG.debug("ZkClient created with _uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
     connect(connectionTimeout, this);
 
@@ -292,7 +320,7 @@ public class ZkClient implements Watcher {
   }
 
   private boolean isPrefetchEnabled(IZkDataListener dataListener) {
-    PreFetch preFetch = dataListener.getClass().getAnnotation(PreFetch.class);
+    PreFetchChangedData preFetch = dataListener.getClass().getAnnotation(PreFetchChangedData.class);
     if (preFetch != null) {
       return preFetch.enabled();
     }
@@ -301,7 +329,7 @@ public class ZkClient implements Watcher {
     try {
       Method method = dataListener.getClass()
           .getMethod(callbackMethod.getName(), callbackMethod.getParameterTypes());
-      PreFetch preFetchInMethod = method.getAnnotation(PreFetch.class);
+      PreFetchChangedData preFetchInMethod = method.getAnnotation(PreFetchChangedData.class);
       if (preFetchInMethod != null) {
         return preFetchInMethod.enabled();
       }
@@ -980,11 +1008,33 @@ public class ZkClient implements Watcher {
 
   protected List<String> getChildren(final String path, final boolean watch) {
     long startT = System.currentTimeMillis();
+
     try {
       List<String> children = retryUntilConnected(new Callable<List<String>>() {
+        private int connectionLossRetryCount = 0;
+
         @Override
         public List<String> call() throws Exception {
-          return getConnection().getChildren(path, watch);
+          try {
+            return getConnection().getChildren(path, watch);
+          } catch (ConnectionLossException e) {
+            // Issue: https://github.com/apache/helix/issues/962
+            // Connection loss might be caused by an excessive number of children.
+            // Infinitely retrying connecting may cause high GC in ZK server and kill ZK server.
+            // This is a workaround to check numChildren to have a chance to exit retry loop.
+            // Check numChildren stat every other 3 connection loss, because there is a higher
+            // possibility that connection loss is caused by other factors such as network
+            // connectivity, session expired, etc.
+            // TODO: remove this check once we have a better way to exit infinite retry
+            ++connectionLossRetryCount;
+            if (connectionLossRetryCount >= 3) {
+              checkNumChildrenLimit(path);
+              connectionLossRetryCount = 0;
+            }
+
+            // Re-throw the ConnectionLossException for retryUntilConnected() to catch and retry.
+            throw e;
+          }
         }
       });
       record(path, null, startT, ZkClientMonitor.AccessType.READ);
@@ -1188,20 +1238,79 @@ public class ZkClient implements Watcher {
     }
   }
 
+  private void doAsyncSync(final ZooKeeper zk, final String path, final long startT,
+      final ZkAsyncCallbacks.SyncCallbackHandler cb) {
+    zk.sync(path, cb,
+        new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, true) {
+          @Override
+          protected void doRetry() throws Exception {
+            doAsyncSync(zk, path, System.currentTimeMillis(), cb);
+          }
+        });
+  }
+
+  /*
+   *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
+   *  The reason we do this is that we want to ensure each new session event is preceded with exactly
+   *  one sync() to server. The sync() is to make sure the server would not see stale data.
+   *
+   *  ZooKeeper client object has an invariant of each object has one session. With this invariant
+   *  we can achieve each one sync() to server upon new session establishment. The reasoning is:
+   *  issueSync() is called when fireNewSessionEvents() which in under eventLock of ZkClient. Thus
+   *  we are guaranteed the ZooKeeper object passed in would have the new incoming sessionId. If by
+   *  the time sync() is invoked, the session expires. The sync() would fail with a stale session.
+   *  This is exactly what we want. The newer session would ensure another fireNewSessionEvents.
+   */
+  private boolean issueSync(ZooKeeper zk) {
+    String sessionId = Long.toHexString(zk.getSessionId());
+    ZkAsyncCallbacks.SyncCallbackHandler callbackHandler =
+        new ZkAsyncCallbacks.SyncCallbackHandler(sessionId);
+
+    final long startT = System.currentTimeMillis();
+    doAsyncSync(zk, SYNC_PATH, startT, callbackHandler);
+
+    callbackHandler.waitForSuccess();
+
+    KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
+    if (code == KeeperException.Code.OK) {
+      LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
+          code);
+      return true;
+    }
+
+    // Not retryable error, including session expiration; return false.
+    return false;
+  }
+
   private void fireNewSessionEvents() {
     // only managing zkclient fire handleNewSession event
     if (!isManagingZkConnection()) {
       return;
     }
     final String sessionId = getHexSessionId();
-    for (final IZkStateListener stateListener : _stateListener) {
-      _eventThread.send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
 
+    if (SYNC_ON_SESSION) {
+      final ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
+      _eventThread.send(new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
+          sessionId) {
         @Override
         public void run() throws Exception {
-          stateListener.handleNewSession(sessionId);
+          if (issueSync(zk) == false) {
+            LOG.warn("Failed to call sync() on new session {}", sessionId);
+          }
         }
       });
+    }
+
+    for (final IZkStateListener stateListener : _stateListener) {
+      _eventThread
+          .send(new ZkEventThread.ZkEvent("New session event sent to " + stateListener, sessionId) {
+
+            @Override
+            public void run() throws Exception {
+              stateListener.handleNewSession(sessionId);
+            }
+          });
     }
   }
 
@@ -1548,6 +1657,8 @@ public class ZkClient implements Watcher {
         } catch (Exception e) {
           throw ExceptionUtil.convertToRuntimeException(e);
         }
+
+        LOG.debug("Retrying operation, caused by {}", retryCauseCode);
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
@@ -2014,6 +2125,8 @@ public class ZkClient implements Watcher {
       _eventThread = new ZkEventThread(zkConnection.getServers());
       _eventThread.start();
 
+      LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
+
       if (isManagingZkConnection()) {
         zkConnection.connect(watcher);
         LOG.debug("Awaiting connection to Zookeeper server");
@@ -2340,6 +2453,27 @@ public class ZkClient implements Watcher {
   private void validateCurrentThread() {
     if (_zookeeperEventThread != null && Thread.currentThread() == _zookeeperEventThread) {
       throw new IllegalArgumentException("Must not be done in the zookeeper event thread.");
+    }
+  }
+
+  private void checkNumChildrenLimit(String path) throws KeeperException {
+    Stat stat = getStat(path);
+    if (stat == null) {
+      return;
+    }
+
+    if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
+      LOG.error("Failed to get children for path {} because of connection loss. "
+              + "Number of children {} exceeds limit {}, aborting retry.", path,
+          stat.getNumChildren(),
+          NUM_CHILDREN_LIMIT);
+      // MarshallingErrorException could represent transport error: exceeding the
+      // Jute buffer size. So use it to exit retry loop and tell that zk is not able to
+      // transport the data because packet length is too large.
+      throw new KeeperException.MarshallingErrorException();
+    } else {
+      LOG.debug("Number of children {} is less than limit {}, not exiting retry.",
+          stat.getNumChildren(), NUM_CHILDREN_LIMIT);
     }
   }
 }

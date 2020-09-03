@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -253,16 +253,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   public Map<String, IdealState> computeNewIdealStates(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap, final CurrentStateOutput currentStateOutput)
       throws HelixRebalanceException {
-    if (resourceMap.isEmpty()) {
-      LOG.debug(
-          "There is no resource to be rebalanced by {}. Reset the persisted assignment state if any.",
-          this.getClass().getSimpleName());
-      // Clean up the persisted assignment records so if the resources are added back to WAGED, they
-      // will be recalculated as a new one.
-      clearAssignmentMetadata();
-      return Collections.emptyMap();
-    }
-
     LOG.info("Start computing new ideal states for resources: {}", resourceMap.keySet().toString());
     validateInput(clusterData, resourceMap);
 
@@ -468,18 +458,6 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     }
   }
 
-  private void clearAssignmentMetadata() {
-    if (_assignmentMetadataStore != null) {
-      try {
-        _writeLatency.startMeasuringLatency();
-        _assignmentMetadataStore.clearAssignmentMetadata();
-        _writeLatency.endMeasuringLatency();
-      } catch (Exception ex) {
-        LOG.error("Failed to clear the assignment metadata.", ex);
-      }
-    }
-  }
-
   /**
    * Calculate and update the Baseline assignment
    * @param clusterModel
@@ -643,11 +621,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private Map<String, ResourceAssignment> getBaselineAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
-    Map<String, ResourceAssignment> currentBaseline = Collections.emptyMap();
+    Map<String, ResourceAssignment> currentBaseline = new HashMap<>();
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBaseline = assignmentMetadataStore.getBaseline();
+        currentBaseline = new HashMap<>(assignmentMetadataStore.getBaseline());
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
@@ -655,11 +633,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
-    if (currentBaseline.isEmpty()) {
-      LOG.warn("The current baseline assignment record is empty. Use the current states instead.");
-      currentBaseline = currentStateOutput.getAssignment(resources);
-    }
     currentBaseline.keySet().retainAll(resources);
+
+    // For resources without baseline, fall back to current state  assignments
+    Set<String> missingResources = new HashSet<>(resources);
+    missingResources.removeAll(currentBaseline.keySet());
+    currentBaseline.putAll(currentStateOutput.getAssignment(missingResources));
+
     return currentBaseline;
   }
 
@@ -674,11 +654,11 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   protected Map<String, ResourceAssignment> getBestPossibleAssignment(
       AssignmentMetadataStore assignmentMetadataStore, CurrentStateOutput currentStateOutput,
       Set<String> resources) throws HelixRebalanceException {
-    Map<String, ResourceAssignment> currentBestAssignment = Collections.emptyMap();
+    Map<String, ResourceAssignment> currentBestAssignment = new HashMap<>();
     if (assignmentMetadataStore != null) {
       try {
         _stateReadLatency.startMeasuringLatency();
-        currentBestAssignment = assignmentMetadataStore.getBestPossibleAssignment();
+        currentBestAssignment = new HashMap<>(assignmentMetadataStore.getBestPossibleAssignment());
         _stateReadLatency.endMeasuringLatency();
       } catch (Exception ex) {
         throw new HelixRebalanceException(
@@ -686,12 +666,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
             HelixRebalanceException.Type.INVALID_REBALANCER_STATUS, ex);
       }
     }
-    if (currentBestAssignment.isEmpty()) {
-      LOG.warn(
-          "The current best possible assignment record is empty. Use the current states instead.");
-      currentBestAssignment = currentStateOutput.getAssignment(resources);
-    }
     currentBestAssignment.keySet().retainAll(resources);
+
+    // For resources without best possible states, fall back to current state  assignments
+    Set<String> missingResources = new HashSet<>(resources);
+    missingResources.removeAll(currentBestAssignment.keySet());
+    currentBestAssignment.putAll(currentStateOutput.getAssignment(missingResources));
+
     return currentBestAssignment;
   }
 

@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -52,6 +52,8 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -164,7 +166,7 @@ public class ParticipantManager {
     boolean autoJoin = false;
     boolean autoRegistration = false;
 
-    // Read "allowParticipantAutoJoin" flag to see if an instance can auto join to the cluster
+    // Read "allowParticipantAutoJoin" field to see if an instance can auto join to the cluster
     try {
       HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
           .forCluster(_manager.getClusterName()).build();
@@ -181,31 +183,37 @@ public class ParticipantManager {
     try {
       autoRegistration =
           Boolean.valueOf(_helixManagerProperty.getHelixCloudProperty().getCloudEnabled());
-      LOG.info("instance: " + _instanceName + " auto-register " + _clusterName + " is "
+      LOG.info("instance: " + _instanceName + " auto-registering " + _clusterName + " is "
           + autoRegistration);
     } catch (Exception e) {
       LOG.info("auto registration is false for cluster" + _clusterName);
     }
 
+    InstanceConfig instanceConfig;
     if (!ZKUtil.isInstanceSetup(_zkclient, _clusterName, _instanceName, _instanceType)) {
       if (!autoJoin) {
         throw new HelixException("Initial cluster structure is not set up for instance: "
             + _instanceName + ", instanceType: " + _instanceType);
-      } else {
-        if (!autoRegistration) {
-          LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
-          _helixAdmin.addInstance(_clusterName, HelixUtil.composeInstanceConfig(_instanceName));
-        } else {
-          LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
-          CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
-          String domain = cloudInstanceInformation
-              .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
-
-          InstanceConfig instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
-          instanceConfig.setDomain(domain);
-          _helixAdmin.addInstance(_clusterName, instanceConfig);
-        }
       }
+      if (!autoRegistration) {
+        LOG.info(_instanceName + " is auto-joining cluster: " + _clusterName);
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+      } else {
+        LOG.info(_instanceName + " is auto-registering cluster: " + _clusterName);
+        CloudInstanceInformation cloudInstanceInformation = getCloudInstanceInformation();
+        String domain = cloudInstanceInformation
+            .get(CloudInstanceInformation.CloudInstanceField.FAULT_DOMAIN.name()) + _instanceName;
+        instanceConfig = HelixUtil.composeInstanceConfig(_instanceName);
+        instanceConfig.setDomain(domain);
+      }
+      instanceConfig
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
+      _helixAdmin.addInstance(_clusterName, instanceConfig);
+    } else {
+      _configAccessor.getInstanceConfig(_clusterName, _instanceName)
+          .validateTopologySettingInInstanceConfig(_configAccessor.getClusterConfig(_clusterName),
+              _instanceName);
     }
   }
 
@@ -241,6 +249,8 @@ public class ParticipantManager {
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_manager.getVersion());
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
+    liveInstance.setCurrentTaskThreadPoolSize(
+        TaskUtil.getTargetThreadPoolSize(_zkclient, _clusterName, _instanceName));
 
     // LiveInstanceInfoProvider liveInstanceInfoProvider = _manager._liveInstanceInfoProvider;
     if (_liveInstanceInfoProvider != null) {
@@ -350,6 +360,12 @@ public class ParticipantManager {
                   + lastCurState);
           continue;
         }
+
+        // If the the current state is related to tasks, there is no need to carry it over to new session.
+        if (stateModelDefRef.equals(TaskConstants.STATE_MODEL_NAME)) {
+          continue;
+        }
+
         StateModelDefinition stateModel =
             _dataAccessor.getProperty(_keyBuilder.stateModelDef(stateModelDefRef));
 

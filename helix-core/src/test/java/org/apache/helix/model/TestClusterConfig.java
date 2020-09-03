@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -62,12 +62,41 @@ public class TestClusterConfig {
 
     Assert.assertEquals(keys, testConfig.getRecord()
         .getListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name()));
+
+    testConfig.setInstanceCapacityKeys(Collections.emptyList());
+
+    Assert.assertEquals(testConfig.getRecord()
+            .getListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name()),
+        Collections.emptyList());
+
+    testConfig.setInstanceCapacityKeys(null);
+
+    Assert.assertTrue(testConfig.getRecord()
+        .getListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name()) == null);
+  }
+
+  @Test
+  public void testGetGlobalTargetTaskThreadPoolSize() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.getRecord().setIntField(
+        ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(), 100);
+
+    Assert.assertEquals(testConfig.getGlobalTargetTaskThreadPoolSize(), 100);
+  }
+
+  @Test
+  public void testSetGlobalTargetTaskThreadPoolSize() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setGlobalTargetTaskThreadPoolSize(100);
+
+    Assert.assertEquals(testConfig.getRecord().getIntField(
+        ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
-  public void testSetCapacityKeysEmptyList() {
+  public void testSetGlobalTargetTaskThreadPoolSizeIllegalArgument() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setInstanceCapacityKeys(Collections.emptyList());
+    testConfig.setGlobalTargetTaskThreadPoolSize(-1);
   }
 
   @Test
@@ -119,6 +148,17 @@ public class TestClusterConfig {
     Assert.assertEquals(testConfig.getRecord()
             .getMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name()),
         mapFieldData);
+
+    testConfig.setGlobalRebalancePreference(Collections.emptyMap());
+
+    Assert.assertEquals(testConfig.getRecord()
+            .getMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name()),
+        Collections.emptyMap());
+
+    testConfig.setGlobalRebalancePreference(null);
+
+    Assert.assertTrue(testConfig.getRecord()
+        .getMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name()) == null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -165,17 +205,17 @@ public class TestClusterConfig {
 
     Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
         DEFAULT_INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
-  }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
-  public void testSetInstanceCapacityMapEmpty() {
-    Map<String, Integer> capacityDataMap = new HashMap<>();
-
-    ClusterConfig testConfig = new ClusterConfig("testConfig");
     // The following operation can be done, this will clear the default values
-    testConfig.setDefaultInstanceCapacityMap(capacityDataMap);
-    // The following operation will fail
+    testConfig.setDefaultInstanceCapacityMap(Collections.emptyMap());
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_INSTANCE_CAPACITY_MAP.name()), Collections.emptyMap());
+
     testConfig.setDefaultInstanceCapacityMap(null);
+
+    Assert.assertTrue(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_INSTANCE_CAPACITY_MAP.name()) == null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")
@@ -220,17 +260,17 @@ public class TestClusterConfig {
 
     Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
         DEFAULT_PARTITION_WEIGHT_MAP.name()), weightDataMapString);
-  }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data is null")
-  public void testSetPartitionWeightMapEmpty() {
-    Map<String, Integer> weightDataMap = new HashMap<>();
-
-    ClusterConfig testConfig = new ClusterConfig("testConfig");
     // The following operation can be done, this will clear the default values
-    testConfig.setDefaultPartitionWeightMap(weightDataMap);
-    // The following operation will fail
+    testConfig.setDefaultPartitionWeightMap(Collections.emptyMap());
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_PARTITION_WEIGHT_MAP.name()), Collections.emptyMap());
+
     testConfig.setDefaultPartitionWeightMap(null);
+
+    Assert.assertTrue(testConfig.getRecord().getMapField(ClusterConfig.ClusterConfigProperty.
+        DEFAULT_PARTITION_WEIGHT_MAP.name()) == null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Default capacity data contains a negative value: item3 = -3")
@@ -264,12 +304,48 @@ public class TestClusterConfig {
     // Default value is empty
     Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), Collections.EMPTY_MAP);
     // Test set
-    Map<String, String> resolverMap = ImmutableMap.of(MasterSlaveSMD.name,
-        MockAbnormalStateResolver.class.getName());
+    Map<String, String> resolverMap =
+        ImmutableMap.of(MasterSlaveSMD.name, MockAbnormalStateResolver.class.getName());
     testConfig.setAbnormalStateResolverMap(resolverMap);
     Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), resolverMap);
     // Test empty the map
     testConfig.setAbnormalStateResolverMap(Collections.emptyMap());
     Assert.assertEquals(testConfig.getAbnormalStateResolverMap(), Collections.EMPTY_MAP);
+
+    testConfig.setAbnormalStateResolverMap(null);
+    Assert.assertTrue(testConfig.getRecord()
+        .getMapField(ClusterConfig.ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name())
+        == null);
+  }
+
+  @Test
+  public void testSetInvalidAbnormalStatesResolverConfig() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+
+    Map<String, String> resolverMap = new HashMap<>();
+    resolverMap.put(null, MockAbnormalStateResolver.class.getName());
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put("", MockAbnormalStateResolver.class.getName());
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put(MasterSlaveSMD.name, null);
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+
+    resolverMap.clear();
+    resolverMap.put(MasterSlaveSMD.name, "");
+    trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+  }
+
+  private void trySetInvalidAbnormalStatesResolverMap(ClusterConfig testConfig,
+      Map<String, String> resolverMap) {
+    try {
+      testConfig.setAbnormalStateResolverMap(resolverMap);
+      Assert.fail("Invalid resolver setup shall fail.");
+    } catch (IllegalArgumentException ex) {
+      // expected
+    }
   }
 }

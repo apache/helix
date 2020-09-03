@@ -9,7 +9,7 @@ package org.apache.helix.rest.server;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,12 +31,12 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -45,7 +45,7 @@ import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.helix.rest.server.resources.helix.InstancesAccessor;
 import org.apache.helix.rest.server.resources.helix.PerInstanceAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
-import org.codehaus.jackson.JsonNode;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -88,7 +88,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
     System.out.println("End test :" + TestHelper.getTestMethodName());
@@ -117,7 +117,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 1);
 
@@ -126,7 +126,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
             .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     node = OBJECT_MAPPER.readTree(body);
     newMessageCount =
-        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).getIntValue();
+        node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();
 
     Assert.assertEquals(newMessageCount, 0);
     System.out.println("End test :" + TestHelper.getTestMethodName());
@@ -157,7 +157,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     String instancesCfg = node.get(PerInstanceAccessor.PerInstanceProperties.config.name()).toString();
     Assert.assertNotNull(instancesCfg);
-    boolean isHealth = node.get("health").getBooleanValue();
+    boolean isHealth = node.get("health").booleanValue();
     Assert.assertFalse(isHealth);
 
     InstanceConfig instanceConfig = new InstanceConfig(toZNRecord(instancesCfg));
@@ -410,6 +410,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "checkUpdateFails")
   public void testValidateWeightForInstance()
       throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Empty out ClusterConfig's weight key setting and InstanceConfig's capacity maps for testing
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.getRecord()
@@ -436,7 +437,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     JsonNode node = OBJECT_MAPPER.readTree(body);
     // Must have the result saying (true) because there's no capacity keys set
     // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
 
     // Define keys in ClusterConfig
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
@@ -462,6 +463,58 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     node = OBJECT_MAPPER.readTree(body);
     // Must have the results saying they are all valid (true) because capacity keys are set
     // in ClusterConfig
-    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.getBooleanValue()));
+    node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  /**
+   * Test the sanity check when updating the instance config.
+   * The config is validated at rest server side.
+   */
+  @Test(dependsOnMethods = "testValidateWeightForInstance")
+  public void testValidateDeltaInstanceConfigForUpdate() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // Enable Topology aware for the cluster
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.getRecord()
+        .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
+            new ArrayList<>());
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/Rack/Sub-Rack/Host/Instance");
+    clusterConfig.setFaultZoneType("Host");
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    String instanceName = CLUSTER_NAME + "localhost_12918";
+    InstanceConfig instanceConfig = _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName);
+
+    // Update InstanceConfig with Topology Info
+    String domain = "Rack=rack1, Sub-Rack=Sub-Rack1, Host=Host-1";
+    ZNRecord record = instanceConfig.getRecord();
+    record.getSimpleFields().put(InstanceConfig.InstanceConfigProperty.DOMAIN.name(), domain);
+
+    // Add these fields by way of "update"
+    Entity entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    Response response = new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/configs?command=update&doSanityCheck=true")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    // Check that the fields have been added
+    Assert.assertEquals(response.getStatus(), 200);
+    // Check the cluster config is updated
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, instanceName).getDomainAsString(), domain);
+
+    // set domain to an invalid value
+    record.getSimpleFields()
+        .put(InstanceConfig.InstanceConfigProperty.DOMAIN.name(), "InvalidDomainValue");
+    entity =
+        Entity.entity(OBJECT_MAPPER.writeValueAsString(record), MediaType.APPLICATION_JSON_TYPE);
+    // Updating using an invalid domain value should return a non-OK response
+    new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}/configs?command=update&doSanityCheck=true")
+        .expectedReturnStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

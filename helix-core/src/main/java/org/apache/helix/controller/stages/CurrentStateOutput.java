@@ -9,7 +9,7 @@ package org.apache.helix.controller.stages;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -193,7 +193,7 @@ public class CurrentStateOutput {
     }
     return null;
   }
-  
+
   public Long getEndTime(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, Long>> partitionInfo = _currentStateEndTimeMap.get(resourceName);
     if (partitionInfo != null) {
@@ -273,7 +273,7 @@ public class CurrentStateOutput {
   }
 
   /**
-   * Given resource, returns current state map (parition -> instance -> currentState)
+   * Given resource, returns current state map (partition -> instance -> currentState)
    * @param resourceName
    * @return
    */
@@ -333,6 +333,18 @@ public class CurrentStateOutput {
       if (map.containsKey(partition)) {
         return map.get(partition);
       }
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Given resource, returns pending message map (partition -> instance -> message)
+   * @param resourceName
+   * @return
+   */
+  public Map<Partition, Map<String, Message>> getPendingMessageMap(String resourceName) {
+    if (_pendingMessageMap.containsKey(resourceName)) {
+      return _pendingMessageMap.get(resourceName);
     }
     return Collections.emptyMap();
   }

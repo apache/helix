@@ -9,7 +9,7 @@ package org.apache.helix.webapp.resources;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,12 +21,12 @@ package org.apache.helix.webapp.resources;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
@@ -64,8 +64,8 @@ public class CurrentStateResource extends ServerResource {
   }
 
   StringRepresentation getInstanceCurrentStateRepresentation(String clusterName,
-      String instanceName, String resourceGroup) throws JsonGenerationException,
-      JsonMappingException, IOException {
+      String instanceName, String resourceGroup)
+      throws JsonGenerationException, JsonMappingException, IOException {
     ZkClient zkClient = (ZkClient) getRequest().getAttributes().get(RestAdminApplication.ZKCLIENT);
     String instanceSessionId =
         ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);

@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +39,7 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
@@ -52,9 +52,8 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.PathBasedZkSerializer;
-import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
@@ -1337,12 +1336,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   static RealmAwareZkClient buildRealmAwareZkClientWithDefaultConfigs(
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress,
       ZkClientType zkClientType) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       // If the multi ZK config is enabled, use multi-realm mode with FederatedZkClient
       try {
         return new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
-      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalStateException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on multi-realm mode.", e);
       }
     }

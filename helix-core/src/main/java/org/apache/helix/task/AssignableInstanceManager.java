@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,15 +26,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +46,7 @@ public class AssignableInstanceManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(AssignableInstanceManager.class);
   public static final int QUOTA_TYPE_NOT_EXIST = -1;
+  private static ObjectMapper mapper = new ObjectMapper();
   // Instance name -> AssignableInstance
   private Map<String, AssignableInstance> _assignableInstanceMap;
   // TaskID -> TaskAssignResult TODO: Hunter: Move this if not needed
@@ -174,6 +179,178 @@ public class AssignableInstanceManager {
     LOG.info(
         "AssignableInstanceManager built AssignableInstances from scratch based on contexts in TaskDataCache due to Controller switch or ClusterConfig change.");
     computeGlobalThreadBasedCapacity();
+  }
+
+  /**
+   * Builds AssignableInstances and restores TaskAssignResults from scratch by reading from
+   * CurrentState. It re-computes current quota profile for each AssignableInstance.
+   * If a task current state is INIT or RUNNING or if there is a pending message which it's ToState
+   * is RUNNING, the task/partition will be assigned to AssignableInstances of the instance.
+   * @param clusterConfig
+   * @param taskDataCache
+   * @param liveInstances
+   * @param instanceConfigs
+   * @param currentStateOutput
+   * @param resourceMap
+   */
+  public void buildAssignableInstancesFromCurrentState(ClusterConfig clusterConfig,
+      TaskDataCache taskDataCache, Map<String, LiveInstance> liveInstances,
+      Map<String, InstanceConfig> instanceConfigs, CurrentStateOutput currentStateOutput,
+      Map<String, Resource> resourceMap) {
+    _assignableInstanceMap.clear();
+    _taskAssignResultMap.clear();
+
+    // Create all AssignableInstance objects based on what's in liveInstances
+    for (Map.Entry<String, LiveInstance> liveInstanceEntry : liveInstances.entrySet()) {
+      // Prepare instance-specific metadata
+      String instanceName = liveInstanceEntry.getKey();
+      LiveInstance liveInstance = liveInstanceEntry.getValue();
+      if (!instanceConfigs.containsKey(instanceName)) {
+        continue; // Ill-formatted input; skip over this instance
+      }
+      InstanceConfig instanceConfig = instanceConfigs.get(instanceName);
+
+      // Create an AssignableInstance
+      AssignableInstance assignableInstance =
+          new AssignableInstance(clusterConfig, instanceConfig, liveInstance);
+      _assignableInstanceMap.put(instanceConfig.getInstanceName(), assignableInstance);
+      LOG.debug("AssignableInstance created for instance: {}", instanceName);
+    }
+
+    Map<String, JobConfig> jobConfigMap = taskDataCache.getJobConfigMap();
+
+    // Update task profiles by traversing all CurrentStates
+    for (Map.Entry<String, Resource> resourceEntry : resourceMap.entrySet()) {
+      String resourceName = resourceEntry.getKey();
+      if (resourceEntry.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+        JobConfig jobConfig = jobConfigMap.get(resourceName);
+        JobContext jobContext = taskDataCache.getJobContext(resourceName);
+        String quotaType = getQuotaType(jobConfig);
+        Map<Partition, Map<String, String>> currentStateMap =
+            currentStateOutput.getCurrentStateMap(resourceName);
+        for (Map.Entry<Partition, Map<String, String>> currentStateMapEntry : currentStateMap
+            .entrySet()) {
+          Partition partition = currentStateMapEntry.getKey();
+          String taskId = getTaskID(jobConfig, jobContext, partition);
+          for (Map.Entry<String, String> instanceCurrentStateEntry : currentStateMapEntry.getValue()
+              .entrySet()) {
+            String assignedInstance = instanceCurrentStateEntry.getKey();
+            String taskState = instanceCurrentStateEntry.getValue();
+            // If a task in in INIT or RUNNING state on the instance, this task should occupy one
+            // quota from this instance.
+            if (taskState == null) {
+              LOG.warn("CurrentState is null for job {}, task {} on instance {}", resourceName,
+                  taskId, assignedInstance);
+            }
+            if (TaskPartitionState.INIT.name().equals(taskState)
+                || TaskPartitionState.RUNNING.name().equals(taskState)) {
+              assignTaskToInstance(assignedInstance, jobConfig, taskId, quotaType);
+            }
+          }
+        }
+        Map<Partition, Map<String, Message>> pendingMessageMap =
+            currentStateOutput.getPendingMessageMap(resourceName);
+        for (Map.Entry<Partition, Map<String, Message>> pendingMessageMapEntry : pendingMessageMap
+            .entrySet()) {
+          Partition partition = pendingMessageMapEntry.getKey();
+          String taskId = getTaskID(jobConfig, jobContext, partition);
+          for (Map.Entry<String, Message> instancePendingMessageEntry : pendingMessageMapEntry
+              .getValue().entrySet()) {
+            String assignedInstance = instancePendingMessageEntry.getKey();
+            String messageToState = instancePendingMessageEntry.getValue().getToState();
+            // If there is a pending message on the instance which has ToState of RUNNING, the task
+            // will run on the instance soon. So the task needs to occupy one quota on this instance.
+            if (TaskPartitionState.RUNNING.name().equals(messageToState)
+                && !TaskPartitionState.INIT.name().equals(
+                    currentStateOutput.getCurrentState(resourceName, partition, assignedInstance))
+                && !TaskPartitionState.RUNNING.name().equals(currentStateOutput
+                    .getCurrentState(resourceName, partition, assignedInstance))) {
+              assignTaskToInstance(assignedInstance, jobConfig, taskId, quotaType);
+            }
+          }
+        }
+      }
+    }
+    LOG.info(
+        "AssignableInstanceManager built AssignableInstances from scratch based on CurrentState.");
+    computeGlobalThreadBasedCapacity();
+  }
+
+  /**
+   * Assign the task to the instance's Assignable Instance
+   * @param instance
+   * @param jobConfig
+   * @param taskId
+   * @param quotaType
+   */
+  private void assignTaskToInstance(String instance, JobConfig jobConfig, String taskId,
+      String quotaType) {
+    if (_assignableInstanceMap.containsKey(instance)) {
+      TaskConfig taskConfig = getTaskConfig(jobConfig, taskId);
+      AssignableInstance assignableInstance = _assignableInstanceMap.get(instance);
+      TaskAssignResult taskAssignResult =
+          assignableInstance.restoreTaskAssignResult(taskId, taskConfig, quotaType);
+      if (taskAssignResult.isSuccessful()) {
+        _taskAssignResultMap.put(taskId, taskAssignResult);
+        LOG.debug("TaskAssignResult restored for taskId: {}, assigned on instance: {}", taskId,
+            instance);
+      }
+    } else {
+      LOG.debug(
+          "While building AssignableInstance map, discovered that the instance a task is assigned to is no "
+              + "longer a LiveInstance! TaskAssignResult will not be created and no resource will be taken "
+              + "up for this task. TaskId: {}, Instance: {}",
+          taskId, instance);
+    }
+  }
+
+  /**
+   * Extract the quota type information of the Job
+   * @param jobConfig
+   * @return
+   */
+  private String getQuotaType(JobConfig jobConfig) {
+    // If jobConfig is null (job has been deleted but participant has not dropped the task yet), use
+    // default quota for the task
+    if (jobConfig == null || jobConfig.getJobType() == null) {
+      return AssignableInstance.DEFAULT_QUOTA_TYPE;
+    }
+    return jobConfig.getJobType();
+  }
+
+  /**
+   * Calculate the TaskID based on the JobConfig and JobContext information
+   * @param jobConfig
+   * @param jobContext
+   * @param partition
+   * @return
+   */
+  private String getTaskID(JobConfig jobConfig, JobContext jobContext, Partition partition) {
+    if (jobConfig == null || jobContext == null) {
+      // If JobConfig or JobContext is null, use the partition name
+      return partition.getPartitionName();
+    }
+    int taskIndex = TaskUtil.getPartitionId(partition.getPartitionName());
+    String taskId = jobContext.getTaskIdForPartition(taskIndex);
+    if (taskId == null) {
+      // For targeted tasks, taskId will be null
+      // We instead use pName (see FixedTargetTaskAssignmentCalculator)
+      taskId = String.format("%s_%s", jobConfig.getJobId(), taskIndex);
+    }
+    return taskId;
+  }
+
+  /**
+   * A method that return the task config a task based on the JonConfig information
+   * @param jobConfig
+   * @param taskId
+   * @return
+   */
+  private TaskConfig getTaskConfig (JobConfig jobConfig, String taskId) {
+    if (jobConfig == null){
+      return new TaskConfig(null, null, taskId, null);
+    }
+    return jobConfig.getTaskConfig(taskId);
   }
 
   /**
@@ -397,7 +574,6 @@ public class AssignableInstanceManager {
    */
   public void logQuotaProfileJSON(boolean onlyDisplayIfFull) {
     // Create a String to use as the log for quota status
-    ObjectMapper mapper = new ObjectMapper();
     JsonNode instanceNode = mapper.createObjectNode();
 
     // Loop through all instances

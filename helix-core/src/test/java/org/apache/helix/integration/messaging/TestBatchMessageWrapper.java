@@ -9,7 +9,7 @@ package org.apache.helix.integration.messaging;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -112,7 +112,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
 
       // wait for each participant to complete state transitions, so we have deterministic results
       ZkHelixClusterVerifier _clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+          new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
       Assert.assertTrue(_clusterVerifier.verifyByPolling(),
           "participant: " + instanceName + " fails to complete all transitions");
     }

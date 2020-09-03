@@ -9,7 +9,7 @@ package org.apache.helix.tools.ClusterVerifiers;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -111,7 +110,7 @@ public abstract class ZkHelixClusterVerifier
       throw new IllegalArgumentException("ZkHelixClusterVerifier: clusterName is null or empty!");
     }
     // If the multi ZK config is enabled, use DedicatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
       try {
         RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
@@ -120,7 +119,7 @@ public abstract class ZkHelixClusterVerifier
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         _zkClient = DedicatedZkClientFactory.getInstance()
             .buildZkClient(connectionConfigBuilder.build(), clientConfig);
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
         // Note: IllegalStateException is for HttpRoutingDataReader if MSDS endpoint cannot be
         // found
         throw new HelixException("ZkHelixClusterVerifier: failed to create ZkClient!", e);
@@ -370,12 +369,12 @@ public abstract class ZkHelixClusterVerifier
     protected RealmAwareZkClient createZkClient(RealmAwareZkClient.RealmMode realmMode,
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig, String zkAddress) {
-      if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
         try {
           // First, try to create a RealmAwareZkClient that's a DedicatedZkClient
           return DedicatedZkClientFactory.getInstance()
               .buildZkClient(connectionConfig, clientConfig);
-        } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+        } catch (InvalidRoutingDataException | IllegalStateException e) {
           throw new HelixException("ZkHelixClusterVerifier: failed to create ZkClient!", e);
         }
       } else {

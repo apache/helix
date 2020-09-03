@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -356,20 +356,6 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     admin.addResource(_manager.getClusterName(), jobResource, numPartitions,
         TaskConstants.STATE_MODEL_NAME);
 
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-
-    // Set the job configuration
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    HelixProperty resourceConfig = new HelixProperty(jobResource);
-    resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
-    Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
-    if (taskConfigMap != null) {
-      for (TaskConfig taskConfig : taskConfigMap.values()) {
-        resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
-      }
-    }
-    accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
-
     // Push out new ideal state based on number of target partitions
     IdealStateBuilder builder = new CustomModeISBuilder(jobResource);
     builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
@@ -588,7 +574,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // Only remove from cache when remove all workflow success. Otherwise, batch write will
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
         // and jobs will rescheduled again.
-        removeContextsAndPreviousAssignment(workflow, jobs, _clusterDataCache.getTaskDataCache());
+        removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
       }
     } else {
       LOG.info("Did not clean up workflow " + workflow
@@ -596,12 +582,11 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
   }
 
-  private void removeContextsAndPreviousAssignment(String workflow, Set<String> jobs,
+  private void removeContexts(String workflow, Set<String> jobs,
       TaskDataCache cache) {
     if (jobs != null) {
       for (String job : jobs) {
         cache.removeContext(job);
-        cache.removePrevAssignment(job);
       }
     }
     cache.removeContext(workflow);

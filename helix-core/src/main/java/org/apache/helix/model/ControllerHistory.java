@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,9 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.codehaus.jackson.map.ObjectMapper;
+
 
 /**
  * The history of instances that have served as the leader controller

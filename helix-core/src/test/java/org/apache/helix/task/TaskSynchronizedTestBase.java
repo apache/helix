@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,6 +33,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.mock.statemodel.MockTaskStateModelFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -201,6 +202,9 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
             stateMachine.getStateModelFactory(TaskConstants.STATE_MODEL_NAME);
         if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
           ((TaskStateModelFactory) stateModelFactory).shutdownNow();
+        }
+        if (stateModelFactory != null && (stateModelFactory instanceof MockTaskStateModelFactory)) {
+          ((MockTaskStateModelFactory) stateModelFactory).shutdownNow();
         }
       }
     }

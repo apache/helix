@@ -9,7 +9,7 @@ package org.apache.helix.rest.server.resources.helix;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,6 +35,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -50,10 +54,6 @@ import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,7 +144,7 @@ public class InstancesAccessor extends AbstractHelixResource {
 
   @POST
   public Response instancesOperations(@PathParam("clusterId") String clusterId,
-      @QueryParam("command") String command, String content) {
+      @QueryParam("skipZKRead") String skipZKRead, @QueryParam("command") String command, String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -172,7 +172,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, false);
         break;
       case stoppable:
-        return batchGetStoppableInstances(clusterId, node);
+        return batchGetStoppableInstances(clusterId, node, Boolean.valueOf(skipZKRead));
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
@@ -188,13 +188,12 @@ public class InstancesAccessor extends AbstractHelixResource {
     return OK();
   }
 
-  private Response batchGetStoppableInstances(String clusterId, JsonNode node) throws IOException {
+  private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
           InstancesAccessor.InstanceHealthSelectionBase.valueOf(
-              node.get(InstancesAccessor.InstancesProperties.selection_base.name())
-                  .getValueAsText());
+              node.get(InstancesAccessor.InstancesProperties.selection_base.name()).textValue());
       List<String> instances = OBJECT_MAPPER
           .readValue(node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
               OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
@@ -202,7 +201,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       List<String> orderOfZone = null;
       String customizedInput = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).getTextValue();
+        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
       }
 
       if (node.get(InstancesAccessor.InstancesProperties.zone_order.name()) != null) {
@@ -218,9 +217,9 @@ public class InstancesAccessor extends AbstractHelixResource {
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
-          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)), getConfigAccessor());
-      ClusterService clusterService =
-          new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)),
+              getConfigAccessor(), skipZKRead);
+      ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {
       case zone_based:

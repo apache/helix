@@ -1,0 +1,46 @@
+# Run the mininum required tests for pull requests.
+
+name: Helix PR CI
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  pull_request_CI:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Get Changed Files
+      uses: lots0logs/gh-action-get-changed-files@2.1.4
+      with:
+        token: ${{ github.token }}
+      id: file-diff
+    - name: Build with Maven
+      run: mvn clean install -Dmaven.test.skip.exec=true
+    - name: Test metrics-common
+      run: cd metrics-common; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'metrics-common') && (success() || failure()) }}
+    - name: Test metadata-store-directory-common
+      run: cd metadata-store-directory-common; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'metadata-store-directory-common') && (success() || failure()) }}
+    - name: Test zookeeper-api
+      run: cd zookeeper-api; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'zookeeper-api') && (success() || failure()) }}
+    - name: Test helix-common
+      run: cd helix-common; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-common') && (success() || failure()) }}
+    - name: Test helix-lock
+      run: cd helix-lock; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-lock') && (success() || failure()) }}
+    - name: Test helix-rest
+      run: cd helix-rest; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-rest') && (success() || failure()) }}
+    - name: Test helix-core
+      run: cd helix-core; mvn -q test
+      if: ${{ contains(steps.file-diff.outputs.all, 'helix-core') && (success() || failure()) }}

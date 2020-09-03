@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixException;
@@ -83,7 +82,7 @@ public class GenericBaseDataAccessorBuilder<B extends GenericBaseDataAccessorBui
       case MULTI_REALM:
         try {
           zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-        } catch (IOException | InvalidRoutingDataException e) {
+        } catch (InvalidRoutingDataException e) {
           throw new HelixException("Not able to connect on multi-realm mode.", e);
         }
         break;

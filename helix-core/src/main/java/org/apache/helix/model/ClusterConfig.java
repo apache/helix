@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -115,7 +115,14 @@ public class ClusterConfig extends HelixProperty {
      * Configure the abnormal partition states resolver classes for the corresponding state model.
      * <State Model Def Name, Full Path of the Resolver Class Name>
      */
-    ABNORMAL_STATES_RESOLVER_MAP
+    ABNORMAL_STATES_RESOLVER_MAP,
+
+    // The target size of task thread pools for each participant. If participants specify their
+    // individual pool sizes in their InstanceConfig's, this value will NOT be used; if participants
+    // don't specify their individual pool sizes, this value will be used for all participants; if
+    // none of participants or the cluster define pool sizes,
+    // TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
+    GLOBAL_TARGET_TASK_THREAD_POOL_SIZE
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -143,6 +150,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
+  private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -706,13 +714,45 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the required Instance Capacity Keys.
-   * @param capacityKeys
+   * @param capacityKeys - the capacity key list.
+   *                     If null, the capacity keys item will be removed from the config.
    */
   public void setInstanceCapacityKeys(List<String> capacityKeys) {
-    if (capacityKeys == null || capacityKeys.isEmpty()) {
-      throw new IllegalArgumentException("The input instance capacity key list is empty.");
+    if (capacityKeys == null) {
+      _record.getListFields().remove(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name());
     }
     _record.setListField(ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(), capacityKeys);
+  }
+
+  /**
+   * Get the global target size of task thread pools. This values applies to all participants in
+   * the cluster; it's only used if participants don't specify their individual pool sizes in their
+   * InstanceConfig's. If none of participants or the cluster define pool sizes,
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
+   * @return the global target size of task thread pool
+   */
+  public int getGlobalTargetTaskThreadPoolSize() {
+    return _record
+        .getIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),
+            GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
+  }
+
+  /**
+   * Set the global target size of task thread pools for this cluster. This values applies to all
+   * participants in the cluster; it's only used if participants don't specify their individual
+   * pool sizes in their InstanceConfig's. If none of participants or the cluster define pool sizes,
+   * TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
+   * @param globalTargetTaskThreadPoolSize - the new global target task thread pool size
+   * @throws IllegalArgumentException - when the provided new thread pool size is negative
+   */
+  public void setGlobalTargetTaskThreadPoolSize(int globalTargetTaskThreadPoolSize)
+      throws IllegalArgumentException {
+    if (globalTargetTaskThreadPoolSize < 0) {
+      throw new IllegalArgumentException("globalTargetTaskThreadPoolSize must be non-negative!");
+    }
+    _record
+        .setIntField(ClusterConfig.ClusterConfigProperty.GLOBAL_TARGET_TASK_THREAD_POOL_SIZE.name(),
+            globalTargetTaskThreadPoolSize);
   }
 
   /**
@@ -744,7 +784,8 @@ public class ClusterConfig extends HelixProperty {
    * If the instance capacity is not configured in either Instance Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
    * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   *                         If null, the default capacity map item will be removed from the config.
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    */
   public void setDefaultInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
@@ -769,7 +810,8 @@ public class ClusterConfig extends HelixProperty {
    * If the partition weight is not configured in either Resource Config nor Cluster Config, the
    * cluster topology is considered invalid. So the rebalancer may stop working.
    * @param weightDataMap - map of partition weight data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is empty
+   *                      If null, the default weight map item will be removed from the config.
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    */
   public void setDefaultPartitionWeightMap(Map<String, Integer> weightDataMap)
       throws IllegalArgumentException {
@@ -788,39 +830,43 @@ public class ClusterConfig extends HelixProperty {
   private void setDefaultCapacityMap(ClusterConfigProperty capacityPropertyType,
       Map<String, Integer> capacityDataMap) throws IllegalArgumentException {
     if (capacityDataMap == null) {
-      throw new IllegalArgumentException("Default capacity data is null");
+      _record.getMapFields().remove(capacityPropertyType.name());
+    } else {
+      Map<String, String> data = new HashMap<>();
+      capacityDataMap.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() < 0) {
+          throw new IllegalArgumentException(String
+              .format("Default capacity data contains a negative value: %s = %d", entry.getKey(),
+                  entry.getValue()));
+        }
+        data.put(entry.getKey(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(capacityPropertyType.name(), data);
     }
-    Map<String, String> data = new HashMap<>();
-    capacityDataMap.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() < 0) {
-        throw new IllegalArgumentException(String
-            .format("Default capacity data contains a negative value: %s = %d", entry.getKey(),
-                entry.getValue()));
-      }
-      data.put(entry.getKey(), Integer.toString(entry.getValue()));
-    });
-    _record.setMapField(capacityPropertyType.name(), data);
   }
 
   /**
    * Set the global rebalancer's assignment preference.
    * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weight.
    *                   The ratio of the configured weights will determine the rebalancer's behavior.
+   *                   If null, the preference item will be removed from the config.
    */
   public void setGlobalRebalancePreference(Map<GlobalRebalancePreferenceKey, Integer> preference) {
-    Map<String, String> preferenceMap = new HashMap<>();
-
-    preference.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() > MAX_REBALANCE_PREFERENCE
-          || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
-        throw new IllegalArgumentException(String
-            .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
-                entry.getKey().name(), entry.getValue()));
-      }
-      preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
-    });
-
-    _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+    if (preference == null) {
+      _record.getMapFields().remove(ClusterConfigProperty.REBALANCE_PREFERENCE.name());
+    } else {
+      Map<String, String> preferenceMap = new HashMap<>();
+      preference.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() > MAX_REBALANCE_PREFERENCE
+            || entry.getValue() < MIN_REBALANCE_PREFERENCE) {
+          throw new IllegalArgumentException(String
+              .format("Invalid global rebalance preference configuration. Key %s, Value %d.",
+                  entry.getKey().name(), entry.getValue()));
+        }
+        preferenceMap.put(entry.getKey().name(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preferenceMap);
+    }
   }
 
   /**
@@ -859,14 +905,24 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the abnormal state resolver class map.
+   * @param resolverMap - the resolver map
+   *                    If null, the resolver map item will be removed from the config.
    */
   public void setAbnormalStateResolverMap(Map<String, String> resolverMap) {
-    if (resolverMap.values().stream()
-        .anyMatch(className -> className == null || className.isEmpty())) {
-      throw new IllegalArgumentException(
-          "Invalid Abnormal State Resolver Map definition. Class name cannot be empty.");
+    if (resolverMap == null) {
+      _record.getMapFields().remove(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name());
+    } else {
+      if (resolverMap.entrySet().stream().anyMatch(e -> {
+        String stateModelDefName = e.getKey();
+        String className = e.getValue();
+        return stateModelDefName == null || stateModelDefName.isEmpty() || className == null
+            || className.isEmpty();
+      })) {
+        throw new IllegalArgumentException(
+            "Invalid Abnormal State Resolver Map definition. StateModel definition name and the resolver class name cannot be null or empty.");
+      }
+      _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
     }
-    _record.setMapField(ClusterConfigProperty.ABNORMAL_STATES_RESOLVER_MAP.name(), resolverMap);
   }
 
   public Map<String, String> getAbnormalStateResolverMap() {

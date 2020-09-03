@@ -9,7 +9,7 @@ package org.apache.helix.rest.server.service;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -72,9 +72,9 @@ public interface InstanceService {
         /**
          * Pre-defined list of checks to test if an instance is in healthy running state
          */
-        public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST =
-                ImmutableList.of(HealthCheck.INSTANCE_NOT_ALIVE, HealthCheck.INSTANCE_NOT_ENABLED,
-                        HealthCheck.INSTANCE_NOT_STABLE, HealthCheck.EMPTY_RESOURCE_ASSIGNMENT);
+        public static List<HealthCheck> STARTED_AND_HEALTH_CHECK_LIST = ImmutableList
+            .of(INVALID_CONFIG, INSTANCE_NOT_ALIVE, INSTANCE_NOT_ENABLED, INSTANCE_NOT_STABLE,
+                EMPTY_RESOURCE_ASSIGNMENT);
     }
 
     /**

@@ -37,6 +37,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
@@ -48,9 +51,6 @@ import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKeysByRealm;
 import org.apache.helix.rest.server.resources.AbstractResource;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

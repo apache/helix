@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -167,7 +167,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
         accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_0"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 0);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 0);
-    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 3);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 4);
 
     manager.disconnect();
 
@@ -180,7 +180,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_1"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
-    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 4);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
 
     manager.disconnect();
 
@@ -193,7 +193,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_2"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
-    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 6);
     Assert.assertFalse(liveInstance.getEphemeralOwner().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
 
@@ -208,7 +208,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
-    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 6);
     Assert.assertFalse(liveInstance.getEphemeralOwner().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     String sessionId = liveInstance.getEphemeralOwner();
@@ -219,7 +219,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
-    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 6);
     Assert.assertFalse(liveInstance.getEphemeralOwner().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     Assert.assertFalse(sessionId.equals(liveInstance.getEphemeralOwner()));

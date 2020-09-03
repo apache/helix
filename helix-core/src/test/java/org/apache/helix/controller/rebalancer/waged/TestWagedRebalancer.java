@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -34,6 +34,8 @@ import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.constraints.MockRebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AbstractTestClusterModel;
+import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
+import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
@@ -46,7 +48,10 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -54,6 +59,8 @@ import org.testng.annotations.Test;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestWagedRebalancer extends AbstractTestClusterModel {
@@ -143,6 +150,9 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Assert.assertFalse(_metadataStore.getBaseline().isEmpty());
     Assert.assertFalse(_metadataStore.getBestPossibleAssignment().isEmpty());
     // Calculate with empty resource list. The rebalancer shall clean up all the assignment status.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.IDEAL_STATE));
+    clusterData.getIdealStates().clear();
     newIdealStates = rebalancer
         .computeNewIdealStates(clusterData, Collections.emptyMap(), new CurrentStateOutput());
     Assert.assertTrue(newIdealStates.isEmpty());
@@ -238,6 +248,90 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Assert.assertEquals(
         droppedIdealState.getInstanceStateMap(droppingPartitionName).get(droppingFromInstance),
         "DROPPED");
+  }
+
+  @Test(dependsOnMethods = "testRebalance")
+  public void testPartialBaselineAvailability() throws IOException, HelixRebalanceException {
+    Map<String, ResourceAssignment> testResourceAssignmentMap = new HashMap<>();
+    ZNRecord mappingNode = new ZNRecord(_resourceNames.get(0));
+    HashMap<String, String> mapping = new HashMap<>();
+    mapping.put(_partitionNames.get(0), "MASTER");
+    mappingNode.setMapField(_testInstanceId, mapping);
+    testResourceAssignmentMap.put(_resourceNames.get(0), new ResourceAssignment(mappingNode));
+
+    _metadataStore.reset();
+    _metadataStore.persistBaseline(testResourceAssignmentMap);
+    _metadataStore.persistBestPossibleAssignment(testResourceAssignmentMap);
+
+    // Test algorithm that passes along the best possible assignment
+    RebalanceAlgorithm algorithm = Mockito.mock(RebalanceAlgorithm.class);
+    when(algorithm.calculate(any())).thenAnswer(new Answer<OptimalAssignment>() {
+      @Override
+      public OptimalAssignment answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        ClusterModel argClusterModel = (ClusterModel) args[0];
+
+        OptimalAssignment optimalAssignment = Mockito.mock(OptimalAssignment.class);
+        when(optimalAssignment.getOptimalResourceAssignment())
+            .thenReturn(argClusterModel.getContext().getBestPossibleAssignment());
+        new OptimalAssignment();
+        return optimalAssignment;
+      }
+    });
+
+    WagedRebalancer rebalancer = new WagedRebalancer(_metadataStore, algorithm, Optional.empty());
+
+    // Generate the input for the rebalancer.
+    ResourceControllerDataProvider clusterData = setupClusterDataCache();
+    Map<String, Resource> resourceMap = clusterData.getIdealStates().entrySet().stream()
+        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().stream()
+              .forEach(partition -> resource.addPartition(partition));
+          return resource;
+        }));
+    // Mocking the change types for triggering a baseline rebalance.
+    when(clusterData.getRefreshedChangeTypes())
+        .thenReturn(Collections.singleton(HelixConstants.ChangeType.CLUSTER_CONFIG));
+
+    // Mock a current state
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    currentStateOutput.setCurrentState(_resourceNames.get(1), new Partition(_partitionNames.get(1)),
+        _testInstanceId, "SLAVE");
+    // Record current states into testBaseline; the logic should have loaded current state into
+    // baseline as a fallback mechanism
+    ZNRecord mappingNode2 = new ZNRecord(_resourceNames.get(1));
+    HashMap<String, String> mapping2 = new HashMap<>();
+    mapping2.put(_testInstanceId, "SLAVE");
+    mappingNode2.setMapField(_partitionNames.get(1), mapping2);
+    testResourceAssignmentMap.put(_resourceNames.get(1), new ResourceAssignment(mappingNode2));
+
+    // Call compute, calculate() should have been called twice in global and partial rebalance
+    rebalancer.computeNewIdealStates(clusterData, resourceMap, currentStateOutput);
+    ArgumentCaptor<ClusterModel> argumentCaptor = ArgumentCaptor.forClass(ClusterModel.class);
+    verify(algorithm, times(2)).calculate(argumentCaptor.capture());
+
+    // In the first execution, the past baseline is loaded into the new best possible state
+    Map<String, ResourceAssignment> firstCallBestPossibleAssignment =
+        argumentCaptor.getAllValues().get(0).getContext().getBestPossibleAssignment();
+    Assert.assertEquals(firstCallBestPossibleAssignment.size(), testResourceAssignmentMap.size());
+    Assert.assertEquals(firstCallBestPossibleAssignment, testResourceAssignmentMap);
+    // In the second execution, the result from the algorithm (which is just the best possible
+    // state) is loaded as the baseline, and the best possible state is from persisted + current state
+    Map<String, ResourceAssignment> secondCallBaselineAssignment =
+        argumentCaptor.getAllValues().get(1).getContext().getBaselineAssignment();
+    Map<String, ResourceAssignment> secondCallBestPossibleAssignment =
+        argumentCaptor.getAllValues().get(1).getContext().getBestPossibleAssignment();
+    Assert.assertEquals(secondCallBaselineAssignment.size(), testResourceAssignmentMap.size());
+    Assert.assertEquals(secondCallBaselineAssignment, testResourceAssignmentMap);
+    Assert.assertEquals(secondCallBestPossibleAssignment.size(), testResourceAssignmentMap.size());
+    Assert.assertEquals(secondCallBestPossibleAssignment, testResourceAssignmentMap);
+
+    Assert.assertEquals(_metadataStore.getBaseline().size(), testResourceAssignmentMap.size());
+    Assert.assertEquals(_metadataStore.getBestPossibleAssignment().size(),
+        testResourceAssignmentMap.size());
+    Assert.assertEquals(_metadataStore.getBaseline(), testResourceAssignmentMap);
+    Assert.assertEquals(_metadataStore.getBestPossibleAssignment(), testResourceAssignmentMap);
   }
 
   @Test(dependsOnMethods = "testRebalance", expectedExceptions = HelixRebalanceException.class, expectedExceptionsMessageRegExp = "Input contains invalid resource\\(s\\) that cannot be rebalanced by the WAGED rebalancer. \\[Resource1\\] Failure Type: INVALID_INPUT")

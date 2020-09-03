@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -109,48 +109,58 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
     // Otherwise the nodes named with version number will be ordered in a different alphabet order.
     // This might hide some bugs in the GC code。
     int count = 5;
+    int pathCount = 2;
 
     Assert.assertTrue(VERSION_TTL_MS > 100,
         "This test should be executed with the TTL more than 100ms.");
-    // Write "count" times
-    for (int i = 0; i < count; i++) {
-      _bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record));
+
+    try {
+      // Write "count + 1" times, so the latest version will be "count"
+      for (int i = 0; i < count + 1; i++) {
+        for (int j = 0; j < pathCount; j++) {
+          _bucketDataAccessor.compressedBucketWrite(PATH + j, new HelixProperty(record));
+        }
+      }
+
+      for (int j = 0; j < pathCount; j++) {
+        String path = PATH + j;
+        // Last known good version number should be "count"
+        byte[] binarySuccessfulWriteVer = _zkBaseDataAccessor.get(path + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
+        long lastSuccessfulWriteVer = Long.parseLong(new String(binarySuccessfulWriteVer));
+        Assert.assertEquals(lastSuccessfulWriteVer, count);
+
+        // Last write version should be "count"
+        byte[] binaryWriteVer = _zkBaseDataAccessor.get(path + "/" + LAST_WRITE_KEY, null, AccessOption.PERSISTENT);
+        long writeVer = Long.parseLong(new String(binaryWriteVer));
+        Assert.assertEquals(writeVer, count);
+
+        // Test that all previous versions have been deleted
+        // Use Verifier because GC can take ZK delay
+        Assert.assertTrue(TestHelper.verify(() -> {
+          List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
+          return children.size() == 3 && children.containsAll(ImmutableList
+              .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY, new Long(lastSuccessfulWriteVer).toString()));
+        }, VERSION_TTL_MS * 2));
+
+        // Wait one more TTL to ensure that the GC has been done.
+        Thread.sleep(VERSION_TTL_MS);
+        List<String> children = _zkBaseDataAccessor.getChildNames(path, AccessOption.PERSISTENT);
+        Assert.assertTrue(children.size() == 3 && children.containsAll(ImmutableList
+            .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY, new Long(lastSuccessfulWriteVer).toString())));
+      }
+    } finally {
+      for (int j = 0; j < pathCount; j++) {
+        _bucketDataAccessor.compressedBucketDelete(PATH + j);
+      }
     }
-
-    // Last known good version number should be "count"
-    byte[] binarySuccessfulWriteVer = _zkBaseDataAccessor
-        .get(PATH + "/" + LAST_SUCCESSFUL_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long lastSuccessfulWriteVer = Long.parseLong(new String(binarySuccessfulWriteVer));
-    Assert.assertEquals(lastSuccessfulWriteVer, count);
-
-    // Last write version should be "count"
-    byte[] binaryWriteVer =
-        _zkBaseDataAccessor.get(PATH + "/" + LAST_WRITE_KEY, null, AccessOption.PERSISTENT);
-    long writeVer = Long.parseLong(new String(binaryWriteVer));
-    Assert.assertEquals(writeVer, count);
-
-    // Test that all previous versions have been deleted
-    // Use Verifier because GC can take ZK delay
-    Assert.assertTrue(TestHelper.verify(() -> {
-      List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
-      return children.size() == 3 && children.containsAll(ImmutableList
-          .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY,
-              new Long(lastSuccessfulWriteVer).toString()));
-    }, VERSION_TTL_MS * 2));
-
-    // Wait one more TTL to ensure that the GC has been done.
-    Thread.sleep(VERSION_TTL_MS);
-    List<String> children = _zkBaseDataAccessor.getChildNames(PATH, AccessOption.PERSISTENT);
-    Assert.assertTrue(children.size() == 3 && children.containsAll(ImmutableList
-        .of(LAST_SUCCESSFUL_WRITE_KEY, LAST_WRITE_KEY,
-            new Long(lastSuccessfulWriteVer).toString())));
   }
 
   /**
    * The record written in {@link #testCompressedBucketWrite()} is the same record that was written.
    */
   @Test(dependsOnMethods = "testMultipleWrites")
-  public void testCompressedBucketRead() {
+  public void testCompressedBucketRead() throws IOException {
+    _bucketDataAccessor.compressedBucketWrite(PATH, new HelixProperty(record));
     HelixProperty readRecord = _bucketDataAccessor.compressedBucketRead(PATH, HelixProperty.class);
     Assert.assertEquals(readRecord.getRecord().getSimpleField(NAME_KEY), NAME_KEY);
     Assert.assertEquals(readRecord.getRecord().getListField(NAME_KEY), LIST_FIELD);

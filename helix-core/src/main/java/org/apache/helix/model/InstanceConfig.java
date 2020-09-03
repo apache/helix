@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,9 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Splitter;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -56,11 +56,13 @@ public class InstanceConfig extends HelixProperty {
     DOMAIN,
     DELAY_REBALANCE_ENABLED,
     MAX_CONCURRENT_TASK,
-    INSTANCE_CAPACITY_MAP
+    INSTANCE_CAPACITY_MAP,
+    TARGET_TASK_THREAD_POOL_SIZE
   }
 
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
+  private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -517,6 +519,30 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
+   * Get the target size of task thread pool.
+   * @return the target size of task thread pool
+   */
+  public int getTargetTaskThreadPoolSize() {
+    return _record
+        .getIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
+            TARGET_TASK_THREAD_POOL_SIZE_NOT_SET);
+  }
+
+  /**
+   * Set the target size of task thread pool.
+   * @param targetTaskThreadPoolSize - the new target task thread pool size
+   * @throws IllegalArgumentException - when the provided new thread pool size is negative
+   */
+  public void setTargetTaskThreadPoolSize(int targetTaskThreadPoolSize)
+      throws IllegalArgumentException {
+    if (targetTaskThreadPoolSize < 0) {
+      throw new IllegalArgumentException("targetTaskThreadPoolSize must be non-negative!");
+    }
+    _record.setIntField(InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(),
+        targetTaskThreadPoolSize);
+  }
+
+  /**
    * Get the instance capacity information from the map fields.
    * @return data map if it exists, or empty map
    */
@@ -534,7 +560,8 @@ public class InstanceConfig extends HelixProperty {
   /**
    * Set the instance capacity information with an Integer mapping.
    * @param capacityDataMap - map of instance capacity data
-   * @throws IllegalArgumentException - when any of the data value is a negative number or when the map is incomplete
+   *                        If null, the capacity map item will be removed from the config.
+   * @throws IllegalArgumentException - when any of the data value is a negative number
    *
    * This information is required by the global rebalancer.
    * @see <a href="Rebalance Algorithm">
@@ -547,21 +574,19 @@ public class InstanceConfig extends HelixProperty {
   public void setInstanceCapacityMap(Map<String, Integer> capacityDataMap)
       throws IllegalArgumentException {
     if (capacityDataMap == null) {
-      throw new IllegalArgumentException("Capacity Data is null");
+      _record.getMapFields().remove(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name());
+    } else {
+      Map<String, String> capacityData = new HashMap<>();
+      capacityDataMap.entrySet().stream().forEach(entry -> {
+        if (entry.getValue() < 0) {
+          throw new IllegalArgumentException(String
+              .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
+                  entry.getValue()));
+        }
+        capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
+      });
+      _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
     }
-
-    Map<String, String> capacityData = new HashMap<>();
-
-    capacityDataMap.entrySet().stream().forEach(entry -> {
-      if (entry.getValue() < 0) {
-        throw new IllegalArgumentException(String
-            .format("Capacity Data contains a negative value: %s = %d", entry.getKey(),
-                entry.getValue()));
-      }
-      capacityData.put(entry.getKey(), Integer.toString(entry.getValue()));
-    });
-
-    _record.setMapField(InstanceConfigProperty.INSTANCE_CAPACITY_MAP.name(), capacityData);
   }
 
   @Override
@@ -636,5 +661,20 @@ public class InstanceConfig extends HelixProperty {
       config.setHostName(instanceId);
     }
     return config;
+  }
+
+  /**
+   * Validate if the topology related settings (Domain or ZoneId) in the given instanceConfig
+   * are valid and align with current clusterConfig.
+   * This function should be called when instance added to cluster or caller updates instanceConfig.
+   *
+   * @throws IllegalArgumentException
+   */
+  public boolean validateTopologySettingInInstanceConfig(ClusterConfig clusterConfig,
+      String instanceName) {
+    //IllegalArgumentException will be thrown here if the input is not valid.
+    Topology.computeInstanceTopologyMap(clusterConfig, instanceName, this,
+        false /*earlyQuitForFaultZone*/);
+    return true;
   }
 }

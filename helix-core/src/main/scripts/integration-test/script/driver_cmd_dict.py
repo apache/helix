@@ -54,9 +54,9 @@ cmd_ret_pattern={    # the pattern when the call is considered return successful
     "storage-node_start":re.compile("Espresso service started")
    ,"router_start":re.compile("Espresso service started")
    ,"cluster-manager_start":re.compile("No Messages to process")
-   ,"mock-storage_start":re.compile("Mock storage started") 
-   ,"dummy-process_start":re.compile("Dummy process started") 
-   ,"mock-health-report-process_start":re.compile("MockHealthReportParticipant process started") 
+   ,"mock-storage_start":re.compile("Mock storage started")
+   ,"dummy-process_start":re.compile("Dummy process started")
+   ,"mock-health-report-process_start":re.compile("MockHealthReportParticipant process started")
 }
 
 # the mapping of option to the java options, if not give, then use directly
@@ -92,7 +92,7 @@ direct_java_call_jvm_args={
    ,"jvm_max_heap_size":["-Xmx","512m"]
    ,"jvm_min_heap_size":["-Xms","100m"]
    ,"jvm_gc_log":["-Xloggc:",""]
-   ,"jvm_args":["",""] 
+   ,"jvm_args":["",""]
    ,"log4j_file":["-Dlog4j.configuration=file://",""]   # this is only for cluster manager
 }
 direct_java_call_jvm_args_ordered=[
@@ -111,8 +111,8 @@ ant_call_option_mapping={
    ,"config":"config.file"
    ,"jvm_direct_memory_size":"jvm.direct.memory.size"
    ,"jvm_max_heap_size":"jvm.max.heap.size"
-   ,"jvm_gc_log":"jvm.gc.log" 
-   ,"jvm_args":"jvm.args" 
+   ,"jvm_gc_log":"jvm.gc.log"
+   ,"jvm_args":"jvm.args"
    ,"cmdline_props":"cmdline.props"
    ,"cmdline_args":"config.cmdline"
    ,"relay_host":"relay.host"
@@ -123,7 +123,7 @@ ant_call_option_mapping={
    ,"consumer_event_pattern":"consumer.event.pattern"
    ,"http_port":"http.port"
    ,"checkpoint_dir":"checkpoint.dir"
-#   ,"db_relay_config":"db.relay.config" 
+#   ,"db_relay_config":"db.relay.config"
 }
 
 # class path
@@ -144,8 +144,8 @@ cmd_direct_call={
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/org/restlet/org.restlet/1.1.10/org.restlet-1.1.10.jar"
       ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"
@@ -164,8 +164,8 @@ cmd_direct_call={
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
@@ -185,8 +185,8 @@ cmd_direct_call={
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
@@ -208,8 +208,8 @@ cmd_direct_call={
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/org/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
@@ -231,8 +231,8 @@ cmd_direct_call={
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
+      ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/org/restlet/org.restlet/1.1.10/org.restlet-1.1.10.jar"
       ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"

@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,26 +26,33 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.apache.helix.AccessOption;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
+import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -733,26 +740,104 @@ public class TaskUtil {
     if (workflowContext != null) {
       Map<String, TaskState> jobStates = workflowContext.getJobStates();
       for (String job : workflowConfig.getJobDag().getAllNodes()) {
-        JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
-        JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
-        if (jobConfig == null) {
-          LOG.error(String.format(
-              "Job %s exists in JobDAG but JobConfig is missing! Job might have been deleted manually from the JobQueue: %s, or left in the DAG due to a failed clean-up attempt from last purge.",
-              job, workflowConfig.getWorkflowId()));
-          // Add the job name to expiredJobs so that purge operation will be tried again on this job
-          expiredJobs.add(job);
+        if (expiredJobs.contains(job)) {
           continue;
         }
-        long expiry = jobConfig.getExpiry();
-        if (jobContext != null && jobStates.get(job) == TaskState.COMPLETED) {
-          if (jobContext.getFinishTime() != WorkflowContext.UNFINISHED
-              && System.currentTimeMillis() >= jobContext.getFinishTime() + expiry) {
-            expiredJobs.add(job);
+        JobConfig jobConfig = TaskUtil.getJobConfig(dataAccessor, job);
+        JobContext jobContext = TaskUtil.getJobContext(propertyStore, job);
+        TaskState jobState = jobStates.get(job);
+        if (isJobExpired(job, jobConfig, jobContext, jobState)) {
+          expiredJobs.add(job);
+
+          // Failed jobs propagation
+          if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+            Stack<String> childrenJobs = new Stack<>();
+            workflowConfig.getJobDag().getDirectChildren(job).forEach(childrenJobs::push);
+            while (!childrenJobs.isEmpty()) {
+              String childJob = childrenJobs.pop();
+              // Failed and without context means it's failed due to parental job failure
+              if (!expiredJobs.contains(childJob) && jobStates.get(childJob) == TaskState.FAILED
+                  && TaskUtil.getJobContext(propertyStore, childJob) == null) {
+                expiredJobs.add(childJob);
+                workflowConfig.getJobDag().getDirectChildren(childJob).forEach(childrenJobs::push);
+              }
+            }
           }
         }
       }
     }
     return expiredJobs;
+  }
+
+  /**
+   * Based on a workflow's config or context, create a set of jobs that are either expired, which
+   * means they are COMPLETED and have passed their expiration time, or don't have JobConfigs,
+   * meaning that the job might have been deleted manually from the a job queue, or is left in the
+   * DAG due to a failed clean-up attempt from last purge. The difference between this function and
+   * getExpiredJobs() is that this function gets JobConfig and JobContext from a
+   * WorkflowControllerDataProvider instead of Zk.
+   * @param workflowControllerDataProvider
+   * @param workflowConfig
+   * @param workflowContext
+   * @return
+   */
+  public static Set<String> getExpiredJobsFromCache(
+      WorkflowControllerDataProvider workflowControllerDataProvider, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext) {
+    Set<String> expiredJobs = new HashSet<>();
+    Map<String, TaskState> jobStates = workflowContext.getJobStates();
+    for (String job : workflowConfig.getJobDag().getAllNodes()) {
+      if (expiredJobs.contains(job)) {
+        continue;
+      }
+      JobConfig jobConfig = workflowControllerDataProvider.getJobConfig(job);
+      JobContext jobContext = workflowControllerDataProvider.getJobContext(job);
+      TaskState jobState = jobStates.get(job);
+      if (isJobExpired(job, jobConfig, jobContext, jobState)) {
+        expiredJobs.add(job);
+
+        // Failed jobs propagation
+        if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+          Stack<String> childrenJobs = new Stack<>();
+          workflowConfig.getJobDag().getDirectChildren(job).forEach(childrenJobs::push);
+          while (!childrenJobs.isEmpty()) {
+            String childJob = childrenJobs.pop();
+            // Failed and without context means it's failed due to parental job failure
+            if (!expiredJobs.contains(childJob) && jobStates.get(childJob) == TaskState.FAILED
+                && workflowControllerDataProvider.getJobContext(childJob) == null) {
+              expiredJobs.add(childJob);
+              workflowConfig.getJobDag().getDirectChildren(childJob).forEach(childrenJobs::push);
+            }
+          }
+        }
+      }
+    }
+    return expiredJobs;
+  }
+
+  /*
+   * Checks if a job is expired and should be purged. This includes a special case when jobConfig
+   * is null. That happens when a job might have been deleted manually from the a job queue, or is
+   * left in the DAG due to a failed clean-up attempt from last purge.
+   */
+  private static boolean isJobExpired(String jobName, JobConfig jobConfig, JobContext jobContext,
+      TaskState jobState) {
+    if (jobConfig == null) {
+      LOG.warn(
+          "Job {} exists in JobDAG but JobConfig is missing! It's treated as expired and will be purged.",
+          jobName);
+      return true;
+    }
+    if (jobContext == null || jobContext.getFinishTime() == WorkflowContext.UNFINISHED) {
+      return false;
+    }
+    long jobFinishTime = jobContext.getFinishTime();
+    long expiry = jobConfig.getExpiry();
+    long terminalStateExpiry = jobConfig.getTerminalStateExpiry();
+    return jobState == TaskState.COMPLETED && System.currentTimeMillis() >= jobFinishTime + expiry
+        || (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT)
+        && terminalStateExpiry > 0
+        && System.currentTimeMillis() >= jobFinishTime + terminalStateExpiry;
   }
 
   /**
@@ -977,72 +1062,119 @@ public class TaskUtil {
   }
 
   /**
-   * Clean up all jobs that are COMPLETED and passes its expiry time.
-   * @param workflowConfig
-   * @param workflowContext
+   * Clean up all jobs that are marked as expired.
    */
-  public static void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext, HelixManager manager,
-      RebalanceScheduler rebalanceScheduler) {
-    if (workflowContext == null) {
-      LOG.warn(String.format("Workflow %s context does not exist!", workflow));
-      return;
+  public static void purgeExpiredJobs(String workflow, Set<String> expiredJobs,
+      HelixManager manager, RebalanceScheduler rebalanceScheduler) {
+    Set<String> failedJobRemovals = new HashSet<>();
+    for (String job : expiredJobs) {
+      if (!TaskUtil
+          .removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(), job)) {
+        failedJobRemovals.add(job);
+        LOG.warn("Failed to clean up expired and completed jobs from workflow {}!", workflow);
+      }
+      rebalanceScheduler.removeScheduledRebalance(job);
     }
-    long purgeInterval = workflowConfig.getJobPurgeInterval();
-    long currentTime = System.currentTimeMillis();
-    final Set<String> expiredJobs = Sets.newHashSet();
-    if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
-      expiredJobs.addAll(TaskUtil.getExpiredJobs(manager.getHelixDataAccessor(),
-          manager.getHelixPropertyStore(), workflowConfig, workflowContext));
-      if (expiredJobs.isEmpty()) {
-        LOG.info("No job to purge for the queue " + workflow);
+
+    // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
+    // removal will be tried again at next purge
+    expiredJobs.removeAll(failedJobRemovals);
+
+    if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs, true)) {
+      LOG.warn("Error occurred while trying to remove jobs {} from the workflow {}!", expiredJobs,
+          workflow);
+    }
+
+    if (expiredJobs.size() > 0) {
+      // Update workflow context will be in main pipeline not here. Otherwise, it will cause
+      // concurrent write issue. It is possible that jobs got purged but there is no event to
+      // trigger the pipeline to clean context.
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      List<String> resourceConfigs =
+          accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+      if (resourceConfigs.size() > 0) {
+        RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
       } else {
-        LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
-        Set<String> failedJobRemovals = new HashSet<>();
-        for (String job : expiredJobs) {
-          if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
-              job)) {
-            failedJobRemovals.add(job);
-            LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
-          }
-          rebalanceScheduler.removeScheduledRebalance(job);
-        }
-
-        // If the job removal failed, make sure we do NOT prematurely delete it from DAG so that the
-        // removal will be tried again at next purge
-        expiredJobs.removeAll(failedJobRemovals);
-
-        if (!TaskUtil.removeJobsFromDag(manager.getHelixDataAccessor(), workflow, expiredJobs,
-            true)) {
-          LOG.warn("Error occurred while trying to remove jobs + " + expiredJobs
-              + " from the workflow " + workflow);
-        }
-
-        if (expiredJobs.size() > 0) {
-          // Update workflow context will be in main pipeline not here. Otherwise, it will cause
-          // concurrent write issue. It is possible that jobs got purged but there is no event to
-          // trigger the pipeline to clean context.
-          HelixDataAccessor accessor = manager.getHelixDataAccessor();
-          List<String> resourceConfigs =
-              accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
-          if (resourceConfigs.size() > 0) {
-            RebalanceUtil.scheduleOnDemandPipeline(manager.getClusterName(), 0L);
-          } else {
-            LOG.warn(
-                "No resource config to trigger rebalance for clean up contexts for" + expiredJobs);
-          }
-        }
+        LOG.warn("No resource config to trigger rebalance for clean up contexts for {}!",
+            expiredJobs);
       }
     }
-    setNextJobPurgeTime(workflow, currentTime, purgeInterval, rebalanceScheduler, manager);
   }
 
-  private static void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval,
-      RebalanceScheduler rebalanceScheduler, HelixManager manager) {
-    long nextPurgeTime = currentTime + purgeInterval;
-    long currentScheduledTime = rebalanceScheduler.getRebalanceTime(workflow);
-    if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
-      rebalanceScheduler.scheduleRebalance(manager, workflow, nextPurgeTime);
+  /**
+   * The function that removes IdealStates and workflow contexts of the workflows that need to be
+   * deleted.
+   * @param toBePurgedWorkflows
+   * @param manager
+   */
+  public static void workflowGarbageCollection(final Set<String> toBePurgedWorkflows,
+      final HelixManager manager) {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
+
+    for (String workflowName : toBePurgedWorkflows) {
+      LOG.warn(
+          "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowContext and IdealState!!",
+          workflowName);
+
+      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
+      if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
+        LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
+            workflowName);
+        continue;
+      }
+
+      if (!removeWorkflowContext(propertyStore, workflowName)) {
+        LOG.warn("Error occurred while trying to remove workflow context for {}.", workflowName);
+      }
     }
+  }
+
+  /**
+   * Get target thread pool size from InstanceConfig first; if InstanceConfig doesn't exist or the
+   * value is undefined, try ClusterConfig; if the value is undefined in ClusterConfig, fall back
+   * to the default value.
+   * @param zkClient - ZooKeeper connection for config reading
+   * @param clusterName - the cluster name for InstanceConfig and ClusterConfig
+   * @param instanceName - the instance name for InstanceConfig
+   * @return target thread pool size
+   */
+  public static int getTargetThreadPoolSize(RealmAwareZkClient zkClient, String clusterName,
+      String instanceName) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+
+    // Check instance config first for thread pool size
+    if (ZKUtil.isInstanceSetup(zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
+      if (instanceConfig != null) {
+        int targetTaskThreadPoolSize = instanceConfig.getTargetTaskThreadPoolSize();
+        // Reject negative values. The pool size is only negative when it's not set in
+        // InstanceConfig, or when the users bypassed the setter logic in InstanceConfig. We treat
+        // negative values as the value is not set, and continue with ClusterConfig.
+        if (targetTaskThreadPoolSize >= 0) {
+          return targetTaskThreadPoolSize;
+        }
+      } else {
+        LOG.warn(
+            "Got null as InstanceConfig for instance {} in cluster {}. Continuing with ClusterConfig. ",
+            instanceName, clusterName);
+      }
+    }
+
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    if (clusterConfig != null) {
+      int globalTargetTaskThreadPoolSize = clusterConfig.getGlobalTargetTaskThreadPoolSize();
+      // Reject negative values. The pool size is only negative when it's not set in
+      // ClusterConfig, or when the users bypassed the setter logic in ClusterConfig. We treat
+      // negative values as the value is not set, and continue with the default value.
+      if (globalTargetTaskThreadPoolSize >= 0) {
+        return globalTargetTaskThreadPoolSize;
+      }
+    } else {
+      LOG.warn("Got null as ClusterConfig for cluster {}. Returning default value: {}. ",
+          clusterName, TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+    }
+
+    return TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE;
   }
 }

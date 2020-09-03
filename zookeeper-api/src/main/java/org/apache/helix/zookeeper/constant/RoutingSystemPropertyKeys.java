@@ -1,4 +1,4 @@
-package org.apache.helix.zookeeper.zkclient.annotation;
+package org.apache.helix.zookeeper.constant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.zookeeper.zkclient.annotation;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,11 +19,20 @@ package org.apache.helix.zookeeper.zkclient.annotation;
  * under the License.
  */
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+/**
+ * This class contains various routing-related system property keys for multi-zk clients.
+ */
+public class RoutingSystemPropertyKeys {
 
+  /**
+   * If enabled, FederatedZkClient (multiZkClient) will invalidate the cached routing data and
+   * re-read the routing data from the routing data source upon ZK path sharding key cache miss.
+   */
+  public static final String UPDATE_ROUTING_DATA_ON_CACHE_MISS =
+      "routing.data.update.on.cache.miss.enabled";
 
-@Retention(RetentionPolicy.RUNTIME)
-public @interface PreFetch {
-  boolean enabled() default true;
+  /**
+   * The interval to use between routing data updates from the routing data source.
+   */
+  public static final String ROUTING_DATA_UPDATE_INTERVAL_MS = "routing.data.update.interval.ms";
 }

@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,7 +20,6 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,7 +34,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -77,7 +75,6 @@ public class TestTargetedTaskStateChange {
    * different instances.
    * Scenario:
    * Instance0: Slave, Instance1: Master, Instance2: Slave
-   * PreviousAssignment of Task: Instance0: Running
    * CurrentState: Instance0: Running, Instance1: Running
    * Expected paMap: Instance0 -> Dropped
    */
@@ -91,14 +88,12 @@ public class TestTargetedTaskStateChange {
     when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
     when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
     when(mock._cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
-    when(mock._cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
-        .thenReturn(mock._resourceAssignment);
     when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
     when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(true);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateOrMessageChange()).thenReturn(true);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())
@@ -114,12 +109,9 @@ public class TestTargetedTaskStateChange {
   }
 
   /**
-   * This test checks the behaviour of the controller while there is one current state which is
-   * different from
-   * Previous Assignment information.
+   * This test checks the behaviour of the controller while there is one current state.
    * Scenario:
    * Instance0: Slave, Instance1: Master, Instance2: Slave
-   * PreviousAssignment of Task: Instance0: Dropped
    * CurrentState: Instance0: Running
    * Expected paMap: Instance1 -> Running
    */
@@ -133,14 +125,12 @@ public class TestTargetedTaskStateChange {
     when(mock._cache.getIdealStates()).thenReturn(mock._idealStates);
     when(mock._cache.getEnabledLiveInstances()).thenReturn(_liveInstances.keySet());
     when(mock._cache.getInstanceConfigMap()).thenReturn(_instanceConfigs);
-    when(mock._cache.getTaskDataCache().getPreviousAssignment(JOB_NAME))
-        .thenReturn(mock._resourceAssignment2);
     when(mock._cache.getClusterConfig()).thenReturn(_clusterConfig);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME)).thenReturn(mock._runtimeJobDag);
     _assignableInstanceManager.buildAssignableInstances(_clusterConfig, mock._taskDataCache,
         _liveInstances, _instanceConfigs);
     when(mock._cache.getAssignableInstanceManager()).thenReturn(_assignableInstanceManager);
-    when(mock._cache.getExistsLiveInstanceOrCurrentStateChange()).thenReturn(false);
+    when(mock._cache.getExistsLiveInstanceOrCurrentStateOrMessageChange()).thenReturn(false);
     Set<String> inflightJobDag = new HashSet<>();
     inflightJobDag.add(JOB_NAME);
     when(mock._taskDataCache.getRuntimeJobDag(WORKFLOW_NAME).getInflightJobList())
@@ -291,15 +281,6 @@ public class TestTargetedTaskStateChange {
     return currentStateOutput;
   }
 
-  private ResourceAssignment preparePreviousAssignment(String instance, String state) {
-    ResourceAssignment prevAssignment = new ResourceAssignment(JOB_NAME);
-    Map<String, String> replicaMap = new HashMap<>();
-    replicaMap.put(instance, state);
-    Partition taskPartition = new Partition(JOB_NAME + "_" + PARTITION_NAME);
-    prevAssignment.addReplicaMap(taskPartition, replicaMap);
-    return prevAssignment;
-  }
-
   private class MockTestInformation {
     private static final String SLAVE_INSTANCE = INSTANCE_PREFIX + "0";
     private static final String MASTER_INSTANCE = INSTANCE_PREFIX + "1";
@@ -316,10 +297,6 @@ public class TestTargetedTaskStateChange {
         SLAVE_INSTANCE, TaskPartitionState.RUNNING.name(), TaskPartitionState.RUNNING.name());
     private CurrentStateOutput _currentStateOutput2 =
         prepareCurrentState2(MASTER_INSTANCE, TaskPartitionState.RUNNING.name());
-    private ResourceAssignment _resourceAssignment =
-        preparePreviousAssignment(SLAVE_INSTANCE, TaskPartitionState.RUNNING.name());
-    private ResourceAssignment _resourceAssignment2 =
-        preparePreviousAssignment(SLAVE_INSTANCE, TaskPartitionState.DROPPED.name());
     private TaskDataCache _taskDataCache = mock(TaskDataCache.class);
     private RuntimeJobDag _runtimeJobDag = mock(RuntimeJobDag.class);
 

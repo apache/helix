@@ -35,28 +35,33 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.constant.TestConstants;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestHttpRoutingDataReader extends ZkTestBase {
+public class TestRoutingDataManager extends ZkTestBase {
   private MockMetadataStoreDirectoryServer _msdsServer;
-  private final String _host = "localhost";
-  private final int _port = 1991;
-  private final String _namespace = "TestHttpRoutingDataReader";
+  private static final String HOST = "localhost";
+  private static final int PORT = 1991;
+  private static final String NAMESPACE = "TestRoutingDataManager";
+  private static final String MSDS_ENDPOINT =
+      "http://" + HOST + ":" + PORT + "/admin/v2/namespaces/" + NAMESPACE;
 
   @BeforeClass
   public void beforeClass() throws IOException {
     // Start MockMSDS
-    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace,
+    _msdsServer = new MockMetadataStoreDirectoryServer(HOST, PORT, NAMESPACE,
         TestConstants.FAKE_ROUTING_DATA);
     _msdsServer.startServer();
 
     // Register the endpoint as a System property
-    String msdsEndpoint = "http://" + _host + ":" + _port + "/admin/v2/namespaces/" + _namespace;
-    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, msdsEndpoint);
+    System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY, MSDS_ENDPOINT);
+
+    // Reset RoutingDataManager
+    RoutingDataManager.getInstance().reset();
   }
 
   @AfterClass
@@ -65,15 +70,15 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
   }
 
   @Test
-  public void testGetRawRoutingData() throws IOException {
-    Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
+  public void testGetRawRoutingData() {
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getInstance().getRawRoutingData();
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
   }
 
   @Test(dependsOnMethods = "testGetRawRoutingData")
-  public void testGetMetadataStoreRoutingData() throws IOException, InvalidRoutingDataException {
-    MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
+  public void testGetMetadataStoreRoutingData() throws InvalidRoutingDataException {
+    MetadataStoreRoutingData data = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,
@@ -96,12 +101,12 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
 
     // Kill MSDS and restart with a new mapping
     _msdsServer.stopServer();
-    _msdsServer = new MockMetadataStoreDirectoryServer(_host, _port, _namespace, newRoutingData);
+    _msdsServer = new MockMetadataStoreDirectoryServer(HOST, PORT, NAMESPACE, newRoutingData);
     _msdsServer.startServer();
 
     // HttpRoutingDataReader should still return old data because it's static
     // Make sure the results don't contain the new realm
-    Map<String, List<String>> rawRoutingData = HttpRoutingDataReader.getRawRoutingData();
+    Map<String, List<String>> rawRoutingData = RoutingDataManager.getInstance().getRawRoutingData();
     Assert.assertFalse(rawRoutingData.containsKey(newRealm));
 
     // Remove newRealm and check for equality
@@ -110,7 +115,7 @@ public class TestHttpRoutingDataReader extends ZkTestBase {
     TestConstants.FAKE_ROUTING_DATA.forEach((realm, keys) -> Assert
         .assertEquals(new HashSet(rawRoutingData.get(realm)), new HashSet(keys)));
 
-    MetadataStoreRoutingData data = HttpRoutingDataReader.getMetadataStoreRoutingData();
+    MetadataStoreRoutingData data = RoutingDataManager.getInstance().getMetadataStoreRoutingData();
     Map<String, String> allMappings = data.getAllMappingUnderPath("/");
     Map<String, Set<String>> groupedMappings = allMappings.entrySet().stream().collect(Collectors
         .groupingBy(Map.Entry::getValue,

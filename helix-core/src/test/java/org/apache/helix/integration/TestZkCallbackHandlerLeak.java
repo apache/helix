@@ -9,7 +9,7 @@ package org.apache.helix.integration;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -90,7 +90,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
     final MockParticipantManager participantManagerToExpire = participants[1];
 
@@ -234,7 +234,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
     final MockParticipantManager participantManager = participants[0];
 
@@ -567,7 +567,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     System.out.println(participantToExpire.getInstanceName() + " oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // check manager#hanlders

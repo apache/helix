@@ -9,7 +9,7 @@ package org.apache.helix.integration.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,28 +27,20 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskCallbackContext;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
@@ -56,6 +48,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
@@ -65,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
  * sent when there are two CurrentStates.
  */
 public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
-  private static final String DATABASE = WorkflowGenerator.DEFAULT_TGT_DB;
+  private static final String DATABASE = "TestDB_" + TestHelper.getTestClassName();
   protected HelixDataAccessor _accessor;
   private PropertyKey.Builder _keyBuilder;
   private static final AtomicInteger CANCEL_COUNT = new AtomicInteger(0);
@@ -98,33 +91,29 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     }
   }
 
+  @AfterClass()
+  public void afterClass() throws Exception {
+    super.afterClass();
+  }
+
   @Test
   public void testTargetedTaskTwoCurrentStates() throws Exception {
-    String jobQueueName = TestHelper.getTestMethodName();
-
-    _accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    _keyBuilder = _accessor.keyBuilder();
-    ClusterConfig clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
-    clusterConfig.setPersistIntermediateAssignment(true);
-    clusterConfig.setRebalanceTimePeriod(10000L);
-    _accessor.setProperty(_keyBuilder.clusterConfig(), clusterConfig);
-
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DATABASE, _numPartitions,
+        MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.SEMI_AUTO.name());
+    _gSetupTool.rebalanceResource(CLUSTER_NAME, DATABASE, 3);
     List<String> preferenceList = new ArrayList<>();
     preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
     preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
     preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
-    // Change the Rebalance Mode to SEMI_AUTO
-    IdealState idealState =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DATABASE);
+    IdealState idealState = new IdealState(DATABASE);
     idealState.setPreferenceList(DATABASE + "_0", preferenceList);
-    idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
-    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, DATABASE,
-        idealState);
+    _gSetupTool.getClusterManagementTool().updateIdealState(CLUSTER_NAME, DATABASE, idealState);
 
     // [Participant0: localhost_12918, Participant1: localhost_12919, Participant2: localhost_12920]
     // Preference list [localhost_12919, localhost_12918, localhost_12920]
     // Status: [Participant1: Master, Participant0: Slave, Participant2: Slave]
     // Based on the above preference list and since is is SEMI_AUTO, localhost_12919 will be Master.
+    String jobQueueName = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder0 =
         new JobConfig.Builder().setWorkflow(jobQueueName).setTargetResource(DATABASE)
             .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
@@ -192,16 +181,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
       }
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isCurrentStateCreated);
-
-    String previousAssignmentPath = "/" + CLUSTER_NAME + "/PROPERTYSTORE/TaskRebalancer/"
-        + namespacedJobName + "/PreviousResourceAssignment";
-    ResourceAssignment prevAssignment = new ResourceAssignment(namespacedJobName);
-    Map<String, String> replicaMap = new HashMap<>();
-    replicaMap.put(instanceP0, TaskPartitionState.RUNNING.name());
-    Partition taskPartition = new Partition(namespacedJobName + "_0");
-    prevAssignment.addReplicaMap(taskPartition, replicaMap);
-    _manager.getHelixDataAccessor().getBaseDataAccessor().set(previousAssignmentPath,
-        prevAssignment.getRecord(), AccessOption.PERSISTENT);
 
     // Wait until the job is finished.
     _driver.pollForJobState(jobQueueName, namespacedJobName, TaskState.COMPLETED);

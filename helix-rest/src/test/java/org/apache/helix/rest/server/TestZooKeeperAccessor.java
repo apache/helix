@@ -9,7 +9,7 @@ package org.apache.helix.rest.server;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,7 +24,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.AccessOption;
@@ -57,7 +56,7 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
           throws ZkMarshallingError {
         return new String(bytes);
       }
-    });
+    }, ZkBaseDataAccessor.ZkClientType.DEDICATED);
   }
 
   @AfterClass
@@ -191,5 +190,32 @@ public class TestZooKeeperAccessor extends AbstractTestClass {
 
     // Clean up
     _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+  }
+
+  @Test
+  public void testDelete() {
+    String path = "/path";
+    String deletePath = path + "/delete";
+
+    try {
+      // 1. Create a persistent node. Delete shall fail.
+      _testBaseDataAccessor.create(deletePath, null, AccessOption.PERSISTENT);
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath)
+          .expectedReturnStatusCode(Response.Status.FORBIDDEN.getStatusCode()).delete(this);
+      Assert.assertTrue(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
+      // 2. Try to delete a non-exist ZNode
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath + "/foobar")
+          .expectedReturnStatusCode(Response.Status.NOT_FOUND.getStatusCode()).delete(this);
+      // 3. Create an ephemeral node. Delete shall be done successfully.
+      _testBaseDataAccessor.remove(deletePath, AccessOption.PERSISTENT);
+      _testBaseDataAccessor.create(deletePath, null, AccessOption.EPHEMERAL);
+      // Verify with the REST endpoint
+      new JerseyUriRequestBuilder("zookeeper{}").format(deletePath)
+          .expectedReturnStatusCode(Response.Status.OK.getStatusCode()).delete(this);
+      Assert.assertFalse(_testBaseDataAccessor.exists(deletePath, AccessOption.PERSISTENT));
+    } finally {
+      // Clean up
+      _testBaseDataAccessor.remove(path, AccessOption.PERSISTENT);
+    }
   }
 }

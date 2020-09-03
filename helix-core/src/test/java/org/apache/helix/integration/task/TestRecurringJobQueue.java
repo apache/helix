@@ -9,7 +9,7 @@ package org.apache.helix.integration.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -223,7 +223,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
   }
 
   @Test
-  public void testCreateStoppedQueue() throws InterruptedException {
+  public void testCreateStoppedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -238,12 +238,14 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     _driver.resume(queueName);
 
-    //TaskTestUtil.pollForWorkflowState(_driver, queueName, );
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    // ensure LAST_SCHEDULED_WORKFLOW field is written to Zookeeper
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+      return wCtx.getLastScheduledSingleWorkflow() != null;
+    }, TestHelper.WAIT_DURATION));
 
-    // ensure current schedule is started
-    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    _driver.pollForWorkflowState(wCtx.getLastScheduledSingleWorkflow(), TaskState.COMPLETED);
   }
 
   @Test

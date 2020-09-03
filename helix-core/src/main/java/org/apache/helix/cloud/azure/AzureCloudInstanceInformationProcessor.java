@@ -24,8 +24,10 @@ import java.io.InterruptedIOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.net.ssl.SSLException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.cloud.CloudInstanceInformationProcessor;
@@ -37,8 +39,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,15 +48,15 @@ public class AzureCloudInstanceInformationProcessor
       LoggerFactory.getLogger(AzureCloudInstanceInformationProcessor.class);
   private final CloseableHttpClient _closeableHttpClient;
   private final HelixCloudProperty _helixCloudProperty;
-  private final String COMPUTE = "compute";
-  private final String INSTANCE_NAME = "vmId";
-  private final String DOMAIN = "platformFaultDomain";
-  private final String INSTANCE_SET_NAME = "vmScaleSetName";
+  private static final String COMPUTE = "compute";
+  private static final String INSTANCE_NAME = "name";
+  private static final String DOMAIN = "platformFaultDomain";
+  private static final String INSTANCE_SET_NAME = "vmScaleSetName";
 
   public AzureCloudInstanceInformationProcessor(HelixCloudProperty helixCloudProperty) {
     _helixCloudProperty = helixCloudProperty;
 
-    RequestConfig requestConifg = RequestConfig.custom()
+    RequestConfig requestConfig = RequestConfig.custom()
         .setConnectionRequestTimeout((int) helixCloudProperty.getCloudRequestTimeout())
         .setConnectTimeout((int) helixCloudProperty.getCloudConnectionTimeout()).build();
 
@@ -69,7 +69,7 @@ public class AzureCloudInstanceInformationProcessor
         };
 
     //TODO: we should regularize the way how httpClient should be used throughout Helix. e.g. Helix-rest could also use in the same way
-    _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConifg)
+    _closeableHttpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig)
         .setRetryHandler(httpRequestRetryHandler).build();
   }
 
@@ -109,7 +109,7 @@ public class AzureCloudInstanceInformationProcessor
       CloseableHttpResponse response = _closeableHttpClient.execute(httpGet);
       if (response == null || response.getStatusLine().getStatusCode() != 200) {
         String errorMsg = String.format(
-            "Failed to get an HTTP Response for the request. Response: {}. Status code: {}",
+            "Failed to get an HTTP Response for the request. Response: %s. Status code: %s",
             (response == null ? "NULL" : response.getStatusLine().getReasonPhrase()),
             response.getStatusLine().getStatusCode());
         throw new HelixException(errorMsg);
@@ -119,7 +119,7 @@ public class AzureCloudInstanceInformationProcessor
       return responseString;
     } catch (IOException e) {
       throw new HelixException(
-          String.format("Failed to get Azure cloud instance information from url {}", url), e);
+          String.format("Failed to get Azure cloud instance information from url %s", url), e);
     }
   }
 
@@ -139,9 +139,9 @@ public class AzureCloudInstanceInformationProcessor
       JsonNode jsonNode = mapper.readTree(response);
       JsonNode computeNode = jsonNode.path(COMPUTE);
       if (!computeNode.isMissingNode()) {
-        String vmName = computeNode.path(INSTANCE_NAME).getTextValue();
-        String platformFaultDomain = computeNode.path(DOMAIN).getTextValue();
-        String vmssName = computeNode.path(INSTANCE_SET_NAME).getValueAsText();
+        String vmName = computeNode.path(INSTANCE_NAME).textValue();
+        String platformFaultDomain = computeNode.path(DOMAIN).textValue();
+        String vmssName = computeNode.path(INSTANCE_SET_NAME).textValue();
         String azureTopology = AzureConstants.AZURE_TOPOLOGY;
         String[] parts = azureTopology.trim().split("/");
         //The hostname will be filled in by each participant
@@ -153,7 +153,7 @@ public class AzureCloudInstanceInformationProcessor
       }
     } catch (IOException e) {
       throw new HelixException(
-          String.format("Error in parsing cloud instance information: {}", response, e));
+          String.format("Error in parsing cloud instance information: %s", response), e);
     }
     return azureCloudInstanceInformation;
   }

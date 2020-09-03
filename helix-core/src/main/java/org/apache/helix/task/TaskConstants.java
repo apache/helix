@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -49,4 +49,11 @@ public class TaskConstants {
   public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   public static final boolean DEFAULT_TASK_ENABLE_COMPRESSION = false;
+
+  /**
+   * The default task thread pool size that will be used to create thread pools if target thread
+   * pool sizes are not defined in InstanceConfig or ClusterConfig; also used as the current thread
+   * pool size default value if the current thread pool size is not defined in LiveInstance
+   */
+  public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
 }

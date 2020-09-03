@@ -68,6 +68,9 @@ public class CustomizedStateProvider {
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     ZNRecord record = new ZNRecord(resourceName);
+    // Update start time field for monitoring purpose, updated value is current time
+    customizedStateMap.put(CustomizedState.CustomizedStateProperty.START_TIME.name(),
+        String.valueOf(System.currentTimeMillis()));
     record.setMapField(partitionName, customizedStateMap);
     if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {
       throw new HelixException(String

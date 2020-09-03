@@ -9,7 +9,7 @@ package org.apache.helix.zookeeper.impl.factory;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.impl.factory;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
@@ -60,7 +59,7 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   public RealmAwareZkClient buildZkClient(
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
       RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
-      throws IOException, InvalidRoutingDataException {
+      throws InvalidRoutingDataException {
     // Note, the logic sharing connectionManager logic is inside SharedZkClient, similar to innerSharedZkClient.
     return new SharedZkClient(connectionConfig, clientConfig);
   }

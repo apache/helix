@@ -9,7 +9,7 @@ package org.apache.helix.rest.server.resources.helix;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,12 +36,15 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -56,10 +59,7 @@ import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +85,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
   @GET
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName,
+      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead,
       @DefaultValue("getInstance") @QueryParam("command") String command) {
     // Get the command. If not provided, the default would be "getInstance"
     Command cmd;
@@ -100,8 +100,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       ObjectMapper objectMapper = new ObjectMapper();
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
-      InstanceService instanceService = new InstanceServiceImpl(
-          new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+      InstanceService instanceService =
+          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
+              Boolean.valueOf(skipZKRead));
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
@@ -132,11 +133,12 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
   public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName) throws IOException {
+      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor());
+        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
+            Boolean.valueOf(skipZKRead));
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =
@@ -203,7 +205,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           return badRequest("Instance names are not match!");
         }
         admin.resetPartition(clusterId, instanceName,
-            node.get(PerInstanceProperties.resource.name()).getTextValue(), (List<String>) OBJECT_MAPPER
+            node.get(PerInstanceProperties.resource.name()).textValue(), (List<String>) OBJECT_MAPPER
                 .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory()
                         .constructCollectionType(List.class, String.class)));
@@ -230,7 +232,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         break;
       case enablePartitions:
         admin.enablePartition(true, clusterId, instanceName,
-            node.get(PerInstanceProperties.resource.name()).getTextValue(),
+            node.get(PerInstanceProperties.resource.name()).textValue(),
             (List<String>) OBJECT_MAPPER
                 .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory()
@@ -238,7 +240,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         break;
       case disablePartitions:
         admin.enablePartition(false, clusterId, instanceName,
-            node.get(PerInstanceProperties.resource.name()).getTextValue(),
+            node.get(PerInstanceProperties.resource.name()).textValue(),
             (List<String>) OBJECT_MAPPER
                 .readValue(node.get(PerInstanceProperties.partitions.name()).toString(),
                     OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
@@ -308,20 +310,34 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
     InstanceConfig instanceConfig = new InstanceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
+
     try {
       switch (command) {
-      case update:
-        configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
-        break;
-      case delete:
-        HelixConfigScope instanceScope =
-            new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
-                .forCluster(clusterId).forParticipant(instanceName).build();
-        configAccessor.remove(instanceScope, record);
-        break;
-      default:
-        return badRequest(String.format("Unsupported command: %s", command));
+        case update:
+          /*
+           * The new instanceConfig will be merged with existing one.
+           * Even if the instance is disabled, non-valid instance topology config will cause rebalance
+           * failure. We are doing the check whenever user updates InstanceConfig.
+           */
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
+          configAccessor.updateInstanceConfig(clusterId, instanceName, instanceConfig);
+          break;
+        case delete:
+          validateDeltaTopologySettingInInstanceConfig(clusterId, instanceName, configAccessor,
+              instanceConfig, command);
+          HelixConfigScope instanceScope =
+              new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+                  .forCluster(clusterId).forParticipant(instanceName).build();
+          configAccessor.remove(instanceScope, record);
+          break;
+        default:
+          return badRequest(String.format("Unsupported command: %s", command));
       }
+    } catch (IllegalArgumentException ex) {
+      LOG.error(String.format("Invalid topology setting for Instance : {}. Fail the config update",
+          instanceName), ex);
+      return serverError(ex);
     } catch (HelixException ex) {
       return notFound(ex.getMessage());
     } catch (Exception ex) {
@@ -540,6 +556,25 @@ public class PerInstanceAccessor extends AbstractHelixResource {
   }
 
   private boolean validInstance(JsonNode node, String instanceName) {
-    return instanceName.equals(node.get(Properties.id.name()).getValueAsText());
+    return instanceName.equals(node.get(Properties.id.name()).textValue());
+  }
+
+  private boolean validateDeltaTopologySettingInInstanceConfig(String clusterName,
+      String instanceName, ConfigAccessor configAccessor, InstanceConfig newInstanceConfig,
+      Command command) {
+    InstanceConfig originalInstanceConfigCopy =
+        configAccessor.getInstanceConfig(clusterName, instanceName);
+    if (command == Command.delete) {
+      for (Map.Entry<String, String> entry : newInstanceConfig.getRecord().getSimpleFields()
+          .entrySet()) {
+        originalInstanceConfigCopy.getRecord().getSimpleFields().remove(entry.getKey());
+      }
+    } else {
+      originalInstanceConfigCopy.getRecord().update(newInstanceConfig.getRecord());
+    }
+
+    return originalInstanceConfigCopy
+        .validateTopologySettingInInstanceConfig(configAccessor.getClusterConfig(clusterName),
+            instanceName);
   }
 }

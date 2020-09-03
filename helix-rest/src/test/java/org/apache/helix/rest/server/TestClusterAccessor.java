@@ -9,7 +9,7 @@ package org.apache.helix.rest.server;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,6 +31,9 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.sun.research.ws.wadl.HTTPMethods;
 import org.apache.helix.ConfigAccessor;
@@ -62,9 +65,6 @@ import org.apache.helix.rest.server.resources.helix.ClusterAccessor;
 import org.apache.helix.rest.server.util.JerseyUriRequestBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -303,7 +303,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     boolean maintenance =
-        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue();
+        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).booleanValue();
     Assert.assertTrue(maintenance);
 
     // Check that we could retrieve maintenance signal correctly
@@ -325,7 +325,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     body = get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
     node = OBJECT_MAPPER.readTree(body);
     Assert.assertFalse(
-        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).getBooleanValue());
+        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).booleanValue());
 
     get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);

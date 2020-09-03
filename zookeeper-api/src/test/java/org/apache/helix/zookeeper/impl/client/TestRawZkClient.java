@@ -23,6 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,15 +49,18 @@ import org.apache.helix.zookeeper.zkclient.IZkStateListener;
 import org.apache.helix.zookeeper.zkclient.ZkConnection;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkTimeoutException;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
 import org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
@@ -64,7 +68,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 
 public class TestRawZkClient extends ZkTestBase {
   private final String TEST_TAG = "test_monitor";
@@ -284,7 +287,8 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 0);
+    // account for doAsyncSync()
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
 
     // Test exists
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 0);
@@ -408,8 +412,8 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 2);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(name, "PendingCallbackGauge"), 0);
 
     // Simulate a delayed callback
@@ -553,6 +557,39 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   /*
+   * This test validates that when ZK_AUTOSYNC_ENABLED_DEFAULT is enabled, sync() would be issued
+   * before handleNewSession. ZKclient would not see stale data.
+   */
+  @Test
+  public void testAutoSyncWithNewSessionEstablishment() throws Exception {
+    final String path = "/" + TestHelper.getTestMethodName();
+    final String data = "Hello Helix 2";
+
+    // Wait until the ZkClient has got a new session.
+    Assert.assertTrue(_zkClient.waitUntilConnected(1, TimeUnit.SECONDS));
+
+    try {
+      // Create node.
+      _zkClient.create(path, data, CreateMode.PERSISTENT);
+    } catch (Exception ex) {
+      Assert.fail("Failed to create ephemeral node.", ex);
+    }
+
+    // Expire the original session.
+    ZkTestHelper.expireSession(_zkClient);
+
+    // Verify the node is created and its data is correct.
+    Stat stat = new Stat();
+    String nodeData = null;
+    try {
+       nodeData = _zkClient.readData(path, stat, true);
+    } catch (ZkException e) {
+      Assert.fail("fail to read data");
+    }
+    Assert.assertEquals(nodeData, data, "Data is not correct.");
+  }
+
+  /*
    * This test checks that ephemeral creation fails because the expected zk session does not match
    * the actual zk session.
    * How this test does is:
@@ -564,7 +601,6 @@ public class TestRawZkClient extends ZkTestBase {
   @Test
   public void testCreateEphemeralWithMismatchedSession()
       throws Exception {
-    final String className = TestHelper.getTestClassName();
     final String methodName = TestHelper.getTestMethodName();
 
     final long originalSessionId = _zkClient.getSessionId();
@@ -843,8 +879,7 @@ public class TestRawZkClient extends ZkTestBase {
     } catch (ZkSessionMismatchedException expected) {
       Assert.assertEquals(expected.getMessage(),
           "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
-              + "invalidSessionId. Actual: "
-              + sessionId);
+              + "invalidSessionId. Actual: " + sessionId);
     }
 
     Assert.assertFalse(zkClient.exists(path));
@@ -858,5 +893,54 @@ public class TestRawZkClient extends ZkTestBase {
 
     TestHelper.verify(() -> zkClient.delete(path), TestHelper.WAIT_DURATION);
     zkClient.close();
+  }
+
+  /*
+   * Tests getChildren() when there are an excessive number of children and connection loss happens,
+   * the operation should terminate and exit retry loop.
+   */
+  @Test(timeOut = 30 * 1000L)
+  public void testGetChildrenOnLargeNumChildren() throws Exception {
+    final String methodName = TestHelper.getTestMethodName();
+    System.out.println("Start test: " + methodName);
+    // Create 110K children to make packet length of children exceed 4 MB
+    // and cause connection loss for getChildren() operation
+    String path = "/" + methodName;
+
+    _zkClient.createPersistent(path);
+
+    for (int i = 0; i < 110; i++) {
+      List<Op> ops = new ArrayList<>(1000);
+      for (int j = 0; j < 1000; j++) {
+        String childPath = path + "/" + UUID.randomUUID().toString();
+        // Create ephemeral nodes so closing zkClient deletes them for cleanup
+        ops.add(
+            Op.create(childPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
+      }
+      // Reduce total creation time by batch creating znodes
+      _zkClient.multi(ops);
+    }
+
+    try {
+      _zkClient.getChildren(path);
+      Assert.fail("Should not successfully get children because of connection loss.");
+    } catch (ZkException expected) {
+      Assert.assertEquals(expected.getMessage(),
+          "org.apache.zookeeper.KeeperException$MarshallingErrorException: "
+              + "KeeperErrorCode = MarshallingError");
+    } finally {
+      // Delete children ephemeral znodes
+      _zkClient.close();
+      _zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+
+      Assert.assertTrue(TestHelper.verify(() -> {
+        try {
+          return _zkClient.delete(path);
+        } catch (ZkException e) {
+          return false;
+        }
+      }, TestHelper.WAIT_DURATION));
+    }
+    System.out.println("End test: " + methodName);
   }
 }

@@ -9,7 +9,7 @@ package org.apache.helix.zookeeper.datamodel.serializer;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,20 +24,22 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class ZNRecordSerializer implements ZkSerializer {
   private static Logger LOG = LoggerFactory.getLogger(ZNRecordSerializer.class);
+  private static ObjectMapper mapper = new ObjectMapper();
 
   private static int getListFieldBound(ZNRecord record) {
     int max = Integer.MAX_VALUE;
@@ -76,11 +78,10 @@ public class ZNRecordSerializer implements ZkSerializer {
     }
 
     // do serialization
-    ObjectMapper mapper = new ObjectMapper();
-    SerializationConfig serializationConfig = mapper.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+    mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte[] serializedBytes;
     boolean isCompressed = false;
@@ -122,11 +123,9 @@ public class ZNRecordSerializer implements ZkSerializer {
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
-    ObjectMapper mapper = new ObjectMapper();
-    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+    mapper.enable(MapperFeature.AUTO_DETECT_SETTERS);
+    mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     try {
       //decompress the data if its already compressed
       if (GZipCompressionUtil.isCompressed(bytes)) {

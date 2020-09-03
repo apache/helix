@@ -9,7 +9,7 @@ package org.apache.helix.integration.rebalancer.CrushRebalancers;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -131,7 +131,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -164,7 +164,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -203,7 +203,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     }
     Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -244,10 +244,10 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
+    Thread.sleep(1000);
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 

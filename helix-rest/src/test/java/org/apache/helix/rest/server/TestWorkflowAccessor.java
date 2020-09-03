@@ -1,5 +1,24 @@
 package org.apache.helix.rest.server;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +28,8 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.TestHelper;
 import org.apache.helix.rest.server.resources.helix.WorkflowAccessor;
@@ -18,8 +39,6 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskExecutionInfo;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -68,7 +87,7 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         .equals(new TaskExecutionInfo(null, null, null, TaskExecutionInfo.TIMESTAMP_NOT_SET)));
     String workflowId =
         node.get(WorkflowAccessor.WorkflowProperties.WorkflowConfig.name()).get("WorkflowID")
-            .getTextValue();
+            .textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -80,7 +99,7 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/configs", null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    String workflowId = node.get("WorkflowID").getTextValue();
+    String workflowId = node.get("WorkflowID").textValue();
     Assert.assertEquals(workflowId, WORKFLOW_NAME);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -92,7 +111,7 @@ public class TestWorkflowAccessor extends AbstractTestClass {
     String body = get("clusters/" + CLUSTER_NAME + "/workflows/" + WORKFLOW_NAME + "/context", null,
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
-    Assert.assertEquals(node.get("STATE").getTextValue(),
+    Assert.assertEquals(node.get("STATE").textValue(),
         TaskState.IN_PROGRESS.name());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }

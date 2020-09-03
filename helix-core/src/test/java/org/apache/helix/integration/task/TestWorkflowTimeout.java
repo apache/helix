@@ -9,7 +9,7 @@ package org.apache.helix.integration.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -102,18 +102,23 @@ public class TestWorkflowTimeout extends TaskTestBase {
   }
 
   @Test
-  public void testWorkflowTimeoutWhenWorkflowCompleted() throws InterruptedException {
+  public void testWorkflowTimeoutWhenWorkflowCompleted() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
+    long expiry = 2000L;
     _jobBuilder.setWorkflow(workflowName);
     _jobBuilder.setJobCommandConfigMap(Collections.<String, String> emptyMap());
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName)
         .setWorkflowConfig(new WorkflowConfig.Builder(workflowName).setTimeout(0).build())
-        .addJob(JOB_NAME, _jobBuilder).setExpiry(2000L);
+        .addJob(JOB_NAME, _jobBuilder).setExpiry(expiry);
 
+    // Since workflow's Timeout is 0, the workflow goes to TIMED_OUT state right away
+    long startTime = System.currentTimeMillis();
     _driver.start(workflowBuilder.build());
-    // Pause the queue
-    Thread.sleep(2500);
-    Assert.assertNull(_driver.getWorkflowConfig(workflowName));
-    Assert.assertNull(_driver.getJobContext(workflowName));
+
+    Assert.assertTrue(TestHelper.verify(() -> (_driver.getWorkflowConfig(workflowName) == null
+        && _driver.getWorkflowContext(workflowName) == null), TestHelper.WAIT_DURATION));
+
+    long cleanUpTime = System.currentTimeMillis();
+    Assert.assertTrue(cleanUpTime - startTime >= expiry);
   }
 }

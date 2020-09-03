@@ -9,7 +9,7 @@ package org.apache.helix.mock.statemodel;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixManager;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskFactory;
@@ -41,7 +42,7 @@ public class MockTaskStateModelFactory extends StateModelFactory<MockTaskStateMo
     _taskExecutor = Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
       @Override
       public Thread newThread(Runnable r) {
-        return new Thread(r, "TaskStateModel-thread-pool");
+        return new Thread(r, "Mock-TaskStateModel-thread-pool");
       }
     });
   }
@@ -61,5 +62,10 @@ public class MockTaskStateModelFactory extends StateModelFactory<MockTaskStateMo
 
   public boolean isTerminated() {
     return _taskExecutor.isTerminated();
+  }
+
+  @VisibleForTesting
+  public void shutdownNow() {
+    _taskExecutor.shutdownNow();
   }
 }

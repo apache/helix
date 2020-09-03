@@ -9,7 +9,7 @@ package org.apache.helix.messaging.handling;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
@@ -107,6 +108,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private static Logger LOG = LoggerFactory.getLogger(HelixTaskExecutor.class);
 
+  private static AtomicLong thread_uid = new AtomicLong(0);
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
@@ -175,7 +177,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
 
-    _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
+    _timer = new Timer("HelixTaskExecutor_timer", true); // created as a daemon timer thread to handle task timeout
 
     _isShuttingDown = false;
 
@@ -209,7 +211,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     if (prevItem == null) {
       ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize, new ThreadFactory() {
         @Override public Thread newThread(Runnable r) {
-          return new Thread(r, "HelixTaskExecutor-message_handle_thread");
+          return new Thread(r, "HelixTaskExecutor-message_handle_thread_" + thread_uid.getAndIncrement());
         }
       });
       ExecutorService prevExecutor = _executorMap.putIfAbsent(type, newPool);

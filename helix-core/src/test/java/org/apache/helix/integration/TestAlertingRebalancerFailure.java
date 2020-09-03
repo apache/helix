@@ -9,7 +9,7 @@ package org.apache.helix.integration;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -122,7 +122,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkAddr(ZK_ADDR).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // disable then enable the resource to ensure no rebalancing error is generated during this
@@ -163,7 +163,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkAddr(ZK_ADDR).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verifyByPolling());
 
@@ -220,7 +220,7 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         CrushRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkAddr(ZK_ADDR).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
     Assert.assertTrue(verifier.verifyByPolling());
     // Verify there is no rebalance error logged
     Assert.assertNull(accessor.getProperty(errorNodeKey));

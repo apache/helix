@@ -9,7 +9,7 @@ package org.apache.helix.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -64,10 +64,20 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   }
 
   @Override
+  @Deprecated
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
-      final JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
+    return getTaskAssignment(currStateOutput, instances, jobCfg, jobContext, workflowCfg,
+        workflowCtx, partitionSet, idealStateMap);
+  }
+
+  @Override
+  public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
+      Collection<String> instances, JobConfig jobCfg, final JobContext jobContext,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
+      Map<String, IdealState> idealStateMap) {
 
     if (jobCfg.getTargetResource() != null) {
       LOG.error(

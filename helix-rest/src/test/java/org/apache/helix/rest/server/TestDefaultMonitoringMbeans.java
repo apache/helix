@@ -28,7 +28,6 @@ import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.ws.rs.core.Response;
@@ -83,26 +82,20 @@ public class TestDefaultMonitoringMbeans extends AbstractTestClass {
   }
 
   @Test
-  public void testMBeanApplicationName()
-      throws MalformedObjectNameException {
+  public void testMBeanApplicationName() throws Exception {
     Set<String> namespaces =
         new HashSet<>(Arrays.asList(HelixRestNamespace.DEFAULT_NAMESPACE_NAME, TEST_NAMESPACE));
     MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-    Set<ObjectName> objectNames =
-        mBeanServer.queryNames(new ObjectName(DEFAULT_METRIC_DOMAIN + ":*"), null);
 
-    Set<String> appNames = new HashSet<>();
-    for (ObjectName mBeanName : objectNames) {
-      appNames.add(mBeanName.getKeyProperty("type"));
-    }
+    TestHelper.verify(() -> {
+      Set<ObjectName> objectNames =
+          mBeanServer.queryNames(new ObjectName(DEFAULT_METRIC_DOMAIN + ":*"), null);
 
-    Assert.assertEquals(appNames.size(), namespaces.size(), String
-        .format("appNames: %s does't have the same size as namespaces: %s.", appNames, namespaces));
-
-    for (String appName : appNames) {
-      Assert.assertTrue(namespaces.contains(appName), String
-          .format("Application name: %s is not one of the namespaces: %s.", appName, namespaces));
-      namespaces.remove(appName);
-    }
+      Set<String> appNames = new HashSet<>();
+      for (ObjectName mBeanName : objectNames) {
+        appNames.add(mBeanName.getKeyProperty("type"));
+      }
+      return namespaces.equals(appNames);
+    }, TestHelper.WAIT_DURATION);
   }
 }

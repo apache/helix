@@ -9,7 +9,7 @@ package org.apache.helix.monitoring.mbeans.dynamicMBeans;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNameProvider {
   protected final Logger _logger = LoggerFactory.getLogger(getClass());
-  protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // Reset time every hour
+  protected static final long DEFAULT_RESET_INTERVAL_MS = 60 * 1000; // Reset time every minute
   private static final String HELIX_MONITOR_TIME_WINDOW_LENGTH_MS =
       "helix.monitor.slidingTimeWindow.ms";
   private static final String SENSOR_NAME_TAG = "SensorName";

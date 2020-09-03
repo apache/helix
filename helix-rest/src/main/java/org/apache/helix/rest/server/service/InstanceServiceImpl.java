@@ -9,7 +9,7 @@ package org.apache.helix.rest.server.service;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -61,6 +61,7 @@ public class InstanceServiceImpl implements InstanceService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
+  private boolean _skipZKRead;
 
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
     _dataAccessor = dataAccessor;
@@ -68,12 +69,18 @@ public class InstanceServiceImpl implements InstanceService {
     _customRestClient = CustomRestClientFactory.get();
   }
 
+  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor, boolean skipZKRead) {
+    this(dataAccessor,configAccessor);
+    this._skipZKRead = skipZKRead;
+  }
+
   @VisibleForTesting
   InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient) {
+      CustomRestClient customRestClient, boolean skipZKRead) {
     _dataAccessor = dataAccessor;
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
+    _skipZKRead = skipZKRead;
   }
 
   @Override
@@ -239,7 +246,7 @@ public class InstanceServiceImpl implements InstanceService {
   private Map<String, StoppableCheck> performPartitionsCheck(List<String> instances,
       RESTConfig restConfig, Map<String, String> customPayLoads) {
     Map<String, Map<String, Boolean>> allPartitionsHealthOnLiveInstance =
-        _dataAccessor.getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads);
+        _dataAccessor.getAllPartitionsHealthOnLiveInstance(restConfig, customPayLoads, _skipZKRead);
     List<ExternalView> externalViews =
         _dataAccessor.getChildValues(_dataAccessor.keyBuilder().externalViews(), true);
     Map<String, StoppableCheck> instanceStoppableChecks = new HashMap<>();
@@ -271,12 +278,23 @@ public class InstanceServiceImpl implements InstanceService {
     for (HealthCheck healthCheck : healthChecks) {
       switch (healthCheck) {
       case INVALID_CONFIG:
-        healthStatus.put(HealthCheck.INVALID_CONFIG.name(),
-            InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName));
-        if (!healthStatus.get(HealthCheck.INVALID_CONFIG.name())) {
-          LOG.error("The instance {} doesn't have valid configuration", instanceName);
+        boolean validConfig;
+        try {
+          validConfig =
+              InstanceValidationUtil.hasValidConfig(_dataAccessor, clusterId, instanceName);
+        } catch (HelixException e) {
+          validConfig = false;
+          LOG.warn("Cluster {} instance {} doesn't have valid config: {}", clusterId, instanceName,
+              e.getMessage());
+        }
+
+        // TODO: should add reason to request response
+        healthStatus.put(HealthCheck.INVALID_CONFIG.name(), validConfig);
+        if (!validConfig) {
+          // No need to do remaining health checks.
           return healthStatus;
         }
+        break;
       case INSTANCE_NOT_ENABLED:
         healthStatus.put(HealthCheck.INSTANCE_NOT_ENABLED.name(),
             InstanceValidationUtil.isEnabled(_dataAccessor, instanceName));

@@ -9,7 +9,7 @@ package org.apache.helix.integration;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -64,7 +64,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numNodes = 2;
     _numReplicas = 2;
     _verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();

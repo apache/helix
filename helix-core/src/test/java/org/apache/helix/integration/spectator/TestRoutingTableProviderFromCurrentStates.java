@@ -9,7 +9,7 @@ package org.apache.helix.integration.spectator;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -131,7 +131,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
 
       Thread.sleep(1000L);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
       Assert.assertTrue(clusterVerifier.verifyByPolling());
       validatePropagationLatency(PropertyType.CURRENTSTATES,
           System.currentTimeMillis() - startTime);
@@ -221,7 +221,7 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
           IdealState.RebalanceMode.FULL_AUTO.name());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, NUM_REPLICAS);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
       Assert.assertTrue(clusterVerifier.verifyByPolling(5000, 500));
       // 2. Process one event, so the current state will be refreshed with the new DB partitions
       routingTableCS.proceedNewEventHandling();

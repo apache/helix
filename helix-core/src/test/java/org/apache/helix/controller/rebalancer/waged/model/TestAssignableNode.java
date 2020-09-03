@@ -9,7 +9,7 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -211,7 +211,7 @@ public class TestAssignableNode extends AbstractTestClusterModel {
 
     AssignableNode node = new AssignableNode(testCache.getClusterConfig(),
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
-    Assert.assertEquals(node.getFaultZone(), "Default_zone");
+    Assert.assertEquals(node.getFaultZone(), "Helix_default_zone");
   }
 
   @Test

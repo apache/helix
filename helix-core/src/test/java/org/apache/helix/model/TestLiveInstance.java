@@ -1,4 +1,4 @@
-package org.apache.helix.manager.zk;
+package org.apache.helix.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,14 +35,26 @@ import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.task.TaskConstants;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZKLiveInstanceData extends ZkUnitTestBase {
+public class TestLiveInstance extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+
+  @BeforeClass()
+  public void beforeClass() throws Exception {
+    _gSetupTool.addCluster(clusterName, true);
+    _gSetupTool
+        .addInstancesToCluster(clusterName, new String[] { "localhost:54321", "localhost:54322" });
+  }
+
+  @AfterClass()
+  public void afterClass() throws Exception {
+    deleteCluster(clusterName);
+  }
 
   @Test
   public void testDataChange() throws Exception {
@@ -101,23 +113,6 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
     Assert.assertTrue(instances.isEmpty(), "Expecting an empty list of live instance");
 
     adminManager.disconnect();
-
-  }
-
-  @BeforeClass()
-  public void beforeClass() throws Exception {
-    _gSetupTool.addCluster(clusterName, true);
-    _gSetupTool
-        .addInstancesToCluster(clusterName, new String[] { "localhost:54321", "localhost:54322" });
-  }
-
-  @AfterClass()
-  public void afterClass() throws Exception {
-    deleteCluster(clusterName);
-  }
-
-  private String[] getArgs(String... args) {
-    return args;
   }
 
   private List<LiveInstance> deepCopy(List<LiveInstance> instances) {
@@ -126,5 +121,29 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
       result.add(new LiveInstance(instance.getRecord()));
     }
     return result;
+  }
+
+  @Test(dependsOnMethods = "testDataChange")
+  public void testGetCurrentTaskThreadPoolSize() {
+    LiveInstance testLiveInstance = new LiveInstance("testId");
+    testLiveInstance.getRecord()
+        .setIntField(LiveInstance.LiveInstanceProperty.CURRENT_TASK_THREAD_POOL_SIZE.name(), 100);
+
+    Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), 100);
+  }
+
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSize")
+  public void testGetCurrentTaskThreadPoolSizeDefault() {
+    LiveInstance testLiveInstance = new LiveInstance("testId");
+
+    Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE);
+  }
+
+  @Test(dependsOnMethods = "testGetCurrentTaskThreadPoolSizeDefault")
+  public void testSetCurrentTaskThreadPoolSize() {
+    LiveInstance testLiveInstance = new LiveInstance("testId");
+    testLiveInstance.setCurrentTaskThreadPoolSize(100);
+
+    Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), 100);
   }
 }

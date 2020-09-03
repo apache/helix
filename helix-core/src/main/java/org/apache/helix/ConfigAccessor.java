@@ -9,7 +9,7 @@ package org.apache.helix;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,8 +29,8 @@ import java.util.TreeMap;
 
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CloudConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope;
@@ -40,8 +39,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StringTemplate;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -113,14 +112,14 @@ public class ConfigAccessor {
     _usesExternalZkClient = false;
 
     // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
             new RealmAwareZkClient.RealmAwareZkClientConfig()
                 .setZkSerializer(new ZNRecordSerializer()));
         return;
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
         throw new HelixException("Failed to create ConfigAccessor!", e);
       }
     }
@@ -945,7 +944,7 @@ public class ConfigAccessor {
    * replaced with the value of the same field in given config if it presents. If there is new field
    * in given config but not in current config, the field will be added into the current config..
    * The list fields and map fields will be replaced as a single entry.
-   * The current Cluster config will be replaced with the given clusterConfig. WARNING: This is not
+   * The current instanceConfig will be replaced with the given instanceConfig. WARNING: This is not
    * thread-safe or concurrent updates safe.
    * *
    *

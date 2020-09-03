@@ -9,7 +9,7 @@ package org.apache.helix.integration.task;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -101,6 +101,72 @@ public class TestWorkflowContextWithoutConfig extends TaskTestBase {
       return (wCtx == null && wCfg == null && idealState != null);
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(workflowContextNotCreated);
+  }
+
+  @Test
+  public void testWorkflowContextGarbageCollection() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    Workflow.Builder builder1 = createSimpleWorkflowBuilder(workflowName);
+    _driver.start(builder1.build());
+
+    // Wait until workflow is created and IN_PROGRESS state.
+    _driver.pollForWorkflowState(workflowName, TaskState.IN_PROGRESS);
+
+    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
+    // workflow
+    Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
+    Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
+    Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
+
+    String workflowContextPath =
+        "/" + CLUSTER_NAME + "/PROPERTYSTORE/TaskRebalancer/" + workflowName + "/Context";
+
+    ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor().get(workflowContextPath,
+        null, AccessOption.PERSISTENT);
+    Assert.assertNotNull(record);
+
+    // Wait until workflow is completed.
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+
+    // Verify that WorkflowConfig, WorkflowContext, and IdealState are removed after workflow got
+    // expired.
+    boolean workflowExpired = TestHelper.verify(() -> {
+      WorkflowContext wCtx = _driver.getWorkflowContext(workflowName);
+      WorkflowConfig wCfg = _driver.getWorkflowConfig(workflowName);
+      IdealState idealState = _admin.getResourceIdealState(CLUSTER_NAME, workflowName);
+      return (wCtx == null && wCfg == null && idealState == null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(workflowExpired);
+
+    _controller.syncStop();
+
+    // Write workflow context to ZooKeeper
+    _manager.getHelixDataAccessor().getBaseDataAccessor().set(workflowContextPath, record,
+        AccessOption.PERSISTENT);
+
+    // Verify context is written back to ZK.
+    record = _manager.getHelixDataAccessor().getBaseDataAccessor().get(workflowContextPath,
+        null, AccessOption.PERSISTENT);
+    Assert.assertNotNull(record);
+
+    // start controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
+    // Create and start new workflow just to make sure controller is running and new workflow is
+    // scheduled successfully.
+    String workflowName2 = TestHelper.getTestMethodName() + "_2";
+    Workflow.Builder builder2 = createSimpleWorkflowBuilder(workflowName2);
+    _driver.start(builder2.build());
+    _driver.pollForWorkflowState(workflowName2, TaskState.COMPLETED);
+
+    // Verify that WorkflowContext will be deleted
+    boolean contextDeleted = TestHelper.verify(() -> {
+      WorkflowContext wCtx = _driver.getWorkflowContext(workflowName);
+      return (wCtx == null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(contextDeleted);
   }
 
   private Workflow.Builder createSimpleWorkflowBuilder(String workflowName) {

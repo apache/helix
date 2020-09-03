@@ -9,7 +9,7 @@ package org.apache.helix.model;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,14 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -91,26 +90,26 @@ public class TestInstanceConfig {
         "item2", 2,
         "item3", 3);
 
-    Map<String, String> capacityDataMapString = ImmutableMap.of("item1", "1",
-        "item2", "2",
-        "item3", "3");
+    Map<String, String> capacityDataMapString =
+        ImmutableMap.of("item1", "1", "item2", "2", "item3", "3");
 
     InstanceConfig testConfig = new InstanceConfig("testConfig");
     testConfig.setInstanceCapacityMap(capacityDataMap);
 
     Assert.assertEquals(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
         INSTANCE_CAPACITY_MAP.name()), capacityDataMapString);
-  }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data is null")
-  public void testSetInstanceCapacityMapEmpty() {
-    Map<String, Integer> capacityDataMap = new HashMap<>();
-
-    InstanceConfig testConfig = new InstanceConfig("testConfig");
     // This operation shall be done. This will clear the instance capacity map in the InstanceConfig
-    testConfig.setInstanceCapacityMap(capacityDataMap);
-    // This operation will fall.
+    testConfig.setInstanceCapacityMap(Collections.emptyMap());
+
+    Assert.assertEquals(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
+        INSTANCE_CAPACITY_MAP.name()), Collections.emptyMap());
+
+    // This operation shall be done. This will remove the instance capacity map in the InstanceConfig
     testConfig.setInstanceCapacityMap(null);
+
+    Assert.assertTrue(testConfig.getRecord().getMapField(InstanceConfig.InstanceConfigProperty.
+        INSTANCE_CAPACITY_MAP.name()) == null);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class,
@@ -122,5 +121,29 @@ public class TestInstanceConfig {
 
     InstanceConfig testConfig = new InstanceConfig("testConfig");
     testConfig.setInstanceCapacityMap(capacityDataMap);
+  }
+
+  @Test
+  public void testGetTargetTaskThreadPoolSize() {
+    InstanceConfig testConfig = new InstanceConfig("testConfig");
+    testConfig.getRecord().setIntField(
+        InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(), 100);
+
+    Assert.assertEquals(testConfig.getTargetTaskThreadPoolSize(), 100);
+  }
+
+  @Test
+  public void testSetTargetTaskThreadPoolSize() {
+    InstanceConfig testConfig = new InstanceConfig("testConfig");
+    testConfig.setTargetTaskThreadPoolSize(100);
+
+    Assert.assertEquals(testConfig.getRecord().getIntField(
+        InstanceConfig.InstanceConfigProperty.TARGET_TASK_THREAD_POOL_SIZE.name(), -1), 100);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testSetTargetTaskThreadPoolSizeIllegalArgument() {
+    InstanceConfig testConfig = new InstanceConfig("testConfig");
+    testConfig.setTargetTaskThreadPoolSize(-1);
   }
 }

@@ -9,7 +9,7 @@ package org.apache.helix.controller.stages;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -292,7 +292,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       } else {
         failureResources.add(resource.getResourceName());
         LogUtil.logWarn(logger, _eventId, String
-            .format("Failed to calculate best possible states for %s.",
+            .format("The calculated best possible states for %s is empty or invalid.",
                 resource.getResourceName()));
       }
     }

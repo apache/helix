@@ -9,7 +9,7 @@ package org.apache.helix.integration.controller;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -34,8 +36,6 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.type.TypeFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -382,6 +382,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    */
   private static Map<String, String> convertStringToMap(String value) throws IOException {
     return new ObjectMapper().readValue(value,
-        TypeFactory.mapType(HashMap.class, String.class, String.class));
+        TypeFactory.defaultInstance().constructMapType(HashMap.class, String.class, String.class));
   }
 }

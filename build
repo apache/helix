@@ -18,4 +18,5 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-mvn clean install -Dmaven.test.skip.exec=true
+
+mvn clean install -Dmaven.test.skip=true

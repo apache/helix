@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -30,6 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BucketDataAccessor;
@@ -47,7 +49,6 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   private ZkSerializer _zkSerializer;
   private RealmAwareZkClient _zkClient;
   private ZkBaseDataAccessor<byte[]> _zkBaseDataAccessor;
-  private ScheduledFuture _gcTaskFuture = null;
+  private Map<String, ScheduledFuture> _gcTaskFutureMap = new HashMap<>();
 
   /**
    * Constructor that allows a custom bucket size.
@@ -82,7 +83,10 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param versionTTLms in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
+      LOG.warn(
+          "ZkBucketDataAccessor: either multi-zk enabled or zkAddr is null - "
+              + "starting ZkBucketDataAccessor in multi-zk mode!");
       try {
         // Create realm-aware ZkClient.
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
@@ -90,7 +94,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         _zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
     } else {
@@ -239,6 +243,9 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
     if (!_zkBaseDataAccessor.remove(path, AccessOption.PERSISTENT)) {
       throw new HelixException(String.format("Failed to delete the bucket data! Path: %s", path));
     }
+    synchronized (this) {
+      _gcTaskFutureMap.remove(path);
+    }
   }
 
   @Override
@@ -337,17 +344,17 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   }
 
   private synchronized void updateGCTimer(String rootPath, long currentVersion) {
-    if (_gcTaskFuture != null) {
-      _gcTaskFuture.cancel(false);
+    if (_gcTaskFutureMap.containsKey(rootPath)) {
+      _gcTaskFutureMap.remove(rootPath).cancel(false);
     }
     // Schedule the gc task with TTL
-    _gcTaskFuture = GC_THREAD.schedule(() -> {
+    _gcTaskFutureMap.put(rootPath, GC_THREAD.schedule(() -> {
       try {
         deleteStaleVersions(rootPath, currentVersion);
       } catch (Exception ex) {
         LOG.error("Failed to delete the stale versions.", ex);
       }
-    }, _versionTTLms, TimeUnit.MILLISECONDS);
+    }, _versionTTLms, TimeUnit.MILLISECONDS));
   }
 
   /**

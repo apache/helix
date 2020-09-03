@@ -9,7 +9,7 @@ package org.apache.helix.zookeeper.impl.client;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +27,6 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkConnection;
@@ -68,12 +66,10 @@ public class DedicatedZkClient implements RealmAwareZkClient {
    * such as CRUD, change callback, and ephemeral operations for a single ZkRealmShardingKey.
    * @param connectionConfig
    * @param clientConfig
-   * @throws IOException
    * @throws InvalidRoutingDataException
    */
   public DedicatedZkClient(RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig,
-      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig)
-      throws IOException, InvalidRoutingDataException {
+      RealmAwareZkClient.RealmAwareZkClientConfig clientConfig) throws InvalidRoutingDataException {
     if (connectionConfig == null) {
       throw new IllegalArgumentException("RealmAwareZkConnectionConfig cannot be null!");
     }
@@ -82,15 +78,7 @@ public class DedicatedZkClient implements RealmAwareZkClient {
     }
     _connectionConfig = connectionConfig;
     _clientConfig = clientConfig;
-
-    // Get the routing data from a static Singleton HttpRoutingDataReader
-    String msdsEndpoint = connectionConfig.getMsdsEndpoint();
-    if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
-      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData();
-    } else {
-      _metadataStoreRoutingData = HttpRoutingDataReader.getMetadataStoreRoutingData(msdsEndpoint);
-    }
-
+    _metadataStoreRoutingData = RealmAwareZkClient.getMetadataStoreRoutingData(connectionConfig);
     _zkRealmShardingKey = connectionConfig.getZkRealmShardingKey();
     if (_zkRealmShardingKey == null || _zkRealmShardingKey.isEmpty()) {
       throw new IllegalArgumentException(

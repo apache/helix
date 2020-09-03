@@ -9,7 +9,7 @@ package org.apache.helix.webapp.resources;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -28,10 +28,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.HelixException;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.tools.ClusterSetup;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.restlet.data.Form;
 import org.restlet.representation.Representation;
 
@@ -95,6 +95,7 @@ public class JsonParameters {
   // extra parameters map
   final Map<String, ZNRecord> _extraParameterMap = new HashMap<String, ZNRecord>();
 
+  private static ObjectMapper mapper = new ObjectMapper();
   public JsonParameters(Representation entity) throws Exception {
     this(new Form(entity));
 
@@ -110,7 +111,6 @@ public class JsonParameters {
     }
 
     // get extra parameters in ZNRecord format
-    ObjectMapper mapper = new ObjectMapper();
     String newIdealStateString = form.getFirstValue(NEW_IDEAL_STATE, true);
 
     if (newIdealStateString != null) {

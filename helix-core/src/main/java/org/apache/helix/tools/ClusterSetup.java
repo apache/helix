@@ -9,7 +9,7 @@ package org.apache.helix.tools;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,12 +40,10 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.cloud.azure.AzureConstants;
-import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.cloud.azure.AzureConstants;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -156,13 +154,13 @@ public class ClusterSetup {
   @Deprecated
   public ClusterSetup(String zkServerAddress) {
     // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-    if (Boolean.parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkServerAddress == null) {
       try {
         _zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(),
             new RealmAwareZkClient.RealmAwareZkClientConfig()
                 .setZkSerializer(new ZNRecordSerializer()));
-      } catch (IOException | InvalidRoutingDataException | IllegalStateException e) {
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
         throw new HelixException("Failed to create ConfigAccessor!", e);
       }
     } else {

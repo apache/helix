@@ -9,7 +9,7 @@ package org.apache.helix.integration.rebalancer;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -76,7 +76,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);

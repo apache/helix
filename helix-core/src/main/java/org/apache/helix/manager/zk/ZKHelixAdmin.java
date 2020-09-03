@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -83,11 +83,12 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
-import org.apache.helix.zookeeper.util.HttpRoutingDataReader;
+import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
@@ -127,8 +128,8 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   /**
    * There are 2 realm-aware modes to connect to ZK:
-   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>,
-   * it will connect on multi-realm mode;
+   * 1. if system property {@link SystemPropertyKeys#MULTI_ZK_ENABLED} is set to <code>"true"</code>
+   * , or zkAddress is null, it will connect on multi-realm mode;
    * 2. otherwise, it will connect on single-realm mode to the <code>zkAddress</code> provided.
    *
    * @param zkAddress ZK address
@@ -146,11 +147,11 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     RealmAwareZkClient zkClient;
 
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       try {
         zkClient = new FederatedZkClient(
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build(), clientConfig);
-      } catch (IllegalStateException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalStateException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on multi-realm mode.", e);
       }
     } else {
@@ -964,18 +965,18 @@ public class ZKHelixAdmin implements HelixAdmin {
         || _zkClient instanceof FederatedZkClient) {
       // If on multi-zk mode, we retrieve cluster information from Metadata Store Directory Service.
       Map<String, List<String>> realmToShardingKeys;
-      String msdsEndpoint = _zkClient.getRealmAwareZkConnectionConfig().getMsdsEndpoint();
-      try {
-        if (msdsEndpoint == null || msdsEndpoint.isEmpty()) {
-          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData();
-        } else {
-          realmToShardingKeys = HttpRoutingDataReader.getRawRoutingData(msdsEndpoint);
-        }
-      } catch (IOException e) {
-        throw new HelixException(
-            "ZKHelixAdmin: Failed to read raw routing data from Metadata Store Directory Service! MSDS endpoint used: "
-                + msdsEndpoint, e);
+      String routingDataSourceEndpoint =
+          _zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceEndpoint();
+      if (routingDataSourceEndpoint == null || routingDataSourceEndpoint.isEmpty()) {
+        // If endpoint is not given explicitly, use HTTP and the endpoint set in System Properties
+        realmToShardingKeys = RoutingDataManager.getInstance().getRawRoutingData();
+      } else {
+        realmToShardingKeys = RoutingDataManager.getInstance().getRawRoutingData(
+            RoutingDataReaderType
+                .lookUp(_zkClient.getRealmAwareZkConnectionConfig().getRoutingDataSourceType()),
+            routingDataSourceEndpoint);
       }
+
       if (realmToShardingKeys == null || realmToShardingKeys.isEmpty()) {
         return Collections.emptyList();
       }

@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -239,6 +239,24 @@ under the License.
       <id>hulee</id>
       <name>Hunter Lee</name>
       <email>hulee@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>alizamus</id>
+      <name>Ali Reza Zamani</name>
+      <email>alizamus@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>hzlu</id>
+      <name>Huizhi Lu</name>
+      <email>hzlu@apache.org</email>
       <roles>
         <role>Committer</role>
       </roles>
@@ -641,6 +659,7 @@ under the License.
             <excludes>
               <exclude>website/**</exclude>
               <exclude>.reviewboardrc</exclude>
+              <exclude>.github/**</exclude>
               <exclude>scripts/**</exclude>
             </excludes>
           </configuration>
@@ -869,6 +888,7 @@ under the License.
                   <excludes>
                     <exclude>.gitignore</exclude>
                     <exclude>.git/**</exclude>
+                    <exclude>.github/**</exclude>
                     <exclude>*.sh</exclude>
                     <exclude>.git/**</exclude>
                     <exclude>.idea/**</exclude>
@@ -876,11 +896,14 @@ under the License.
                     <exclude>**/*.iml</exclude>
                     <exclude>**/*.project</exclude>
                     <exclude>**/*.classpath</exclude>
+                    <exclude>**/*.json</exclude>
                     <exclude>.repository/**</exclude>
                     <exclude>test-output/**</exclude>
                     <exclude>src/test/resources/static_view.txt</exclude>
                     <exclude>src/main/scripts/integration-test/script/.metadata_infra</exclude>
                     <exclude>helix-dev-release/**</exclude>
+                    <exclude>helix-front/**</exclude>
+                    <exclude>website/**</exclude>
                     <exclude>DEPENDENCIES</exclude>
                   </excludes>
                 </configuration>

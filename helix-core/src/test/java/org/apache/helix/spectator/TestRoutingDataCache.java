@@ -9,7 +9,7 @@ package org.apache.helix.spectator;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,20 +24,21 @@ import java.util.Map;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.MockZkHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
-  @Test()
-  public void testUpdateOnNotification() throws Exception {
+  @Test
+  public void testUpdateOnNotification() {
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -87,7 +88,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
     Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     accessor.clearReadCounters();
@@ -128,43 +129,60 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
   @Test
   public void testCurrentStatesSelectiveUpdate() {
-    String clusterName = "CLUSTER_" + TestHelper.getTestClassName();
-    MockZkHelixDataAccessor accessor =
-        new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
-    RoutingDataCache cache = new RoutingDataCache(clusterName, PropertyType.CURRENTSTATES);
+    // Add a live instance to the cluster so the original cluster is not affected
+    // by stopping a participant.
+    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + NODE_NR);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instanceName);
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+    participant.syncStart();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
-    // Empty current states map before refreshing.
-    Assert.assertTrue(cache.getCurrentStatesMap().isEmpty());
+    try {
+      MockZkHelixDataAccessor accessor =
+          new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
+      RoutingDataCache cache = new RoutingDataCache(CLUSTER_NAME, PropertyType.CURRENTSTATES);
 
-    // 1. Initial cache refresh.
-    cache.refresh(accessor);
-    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV1 =
-        cache.getCurrentStatesMap();
+      // Empty current states map before refreshing.
+      Assert.assertTrue(cache.getCurrentStatesMap().isEmpty());
 
-    // Current states map is not empty and size equals to number of live instances.
-    Assert.assertFalse(currentStatesV1.isEmpty());
-    Assert.assertEquals(currentStatesV1.size(), _participants.length);
+      // 1. Initial cache refresh.
+      cache.refresh(accessor);
+      Map<String, Map<String, Map<String, CurrentState>>> currentStatesV1 =
+          cache.getCurrentStatesMap();
 
-    // 2. Without any change, refresh routing data cache.
-    cache.refresh(accessor);
-    // Because of no current states change, current states cache doesn't refresh.
-    Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV1);
+      // Current states map is not empty and size equals to number of live instances.
+      Assert.assertFalse(currentStatesV1.isEmpty());
+      Assert.assertEquals(currentStatesV1.size(), _participants.length + 1);
 
-    // 3. Stop one participant to make live instance change and refresh routing data cache.
-    _participants[0].syncStop();
-    cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
-    cache.refresh(accessor);
-    Map<String, Map<String, Map<String, CurrentState>>> currentStatesV2 =
-        cache.getCurrentStatesMap();
+      // 2. Without any change, refresh routing data cache.
+      cache.refresh(accessor);
+      // Because of no current states change, current states cache doesn't refresh.
+      Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV1);
 
-    // Current states cache should refresh and change.
-    Assert.assertFalse(currentStatesV2.isEmpty());
-    Assert.assertEquals(currentStatesV2.size(), _participants.length - 1);
-    Assert.assertFalse(currentStatesV1.equals(currentStatesV2));
+      // 3. Stop one participant to make live instance change and refresh routing data cache.
+      participant.syncStop();
 
-    cache.refresh(accessor);
+      cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
+      cache.refresh(accessor);
+      Map<String, Map<String, Map<String, CurrentState>>> currentStatesV2 =
+          cache.getCurrentStatesMap();
 
-    // No change.
-    Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV2);
+      // Current states cache should refresh and change.
+      Assert.assertFalse(currentStatesV2.isEmpty());
+      Assert.assertEquals(currentStatesV2.size(), _participants.length);
+      Assert.assertFalse(currentStatesV1.equals(currentStatesV2));
+
+      cache.refresh(accessor);
+
+      // No change.
+      Assert.assertEquals(cache.getCurrentStatesMap(), currentStatesV2);
+    } finally {
+      _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
+      _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, instanceName);
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
+      Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    }
   }
 }

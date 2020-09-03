@@ -9,7 +9,7 @@ package org.apache.helix.manager.zk;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -614,7 +613,7 @@ public final class ZKUtil {
    * @return
    */
   private static RealmAwareZkClient getHelixZkClient(String zkAddr) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
       try {
         // Create realm-aware ZkClient.
         RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
@@ -622,12 +621,12 @@ public final class ZKUtil {
         RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
             new RealmAwareZkClient.RealmAwareZkClientConfig();
         return new FederatedZkClient(connectionConfig, clientConfig);
-      } catch (IllegalArgumentException | IOException | InvalidRoutingDataException e) {
+      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
         throw new HelixException("Not able to connect on realm-aware mode", e);
       }
     }
-    if (zkAddr == null || zkAddr.isEmpty()) {
-      throw new HelixException("ZK Address given is either null or empty!");
+    if (zkAddr.isEmpty()) {
+      throw new HelixException("ZK Address given is empty!");
     }
     HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
     clientConfig.setZkSerializer(new ZNRecordSerializer());

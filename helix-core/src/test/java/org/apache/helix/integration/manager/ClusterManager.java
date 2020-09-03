@@ -9,7 +9,7 @@ package org.apache.helix.integration.manager;
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,6 +21,7 @@ package org.apache.helix.integration.manager;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -32,6 +33,9 @@ import org.slf4j.LoggerFactory;
 public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = LoggerFactory.getLogger(ClusterControllerManager.class);
   private static final int DISCONNECT_WAIT_TIME_MS = 3000;
+
+  private static AtomicLong UID = new AtomicLong(10000);
+  private long _uid;
 
   private final String _clusterName;
   private final String _instanceName;
@@ -51,6 +55,7 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
     _clusterName = clusterName;
     _instanceName = instanceName;
     _type = type;
+    _uid = UID.getAndIncrement();
   }
 
   public void syncStop() {
@@ -74,7 +79,8 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
 
     _watcher = new Thread(this);
     _watcher.setName(String
-        .format("ClusterManager_Watcher_%s_%s_%s", _clusterName, _instanceName, _type.name()));
+        .format("ClusterManager_Watcher_%s_%s_%s_%d", _clusterName, _instanceName, _type.name(), _uid));
+    LOG.debug("ClusterManager_watcher_{}_{}_{}_{} started, stacktrace {}", _clusterName, _instanceName, _type.name(), _uid, Thread.currentThread().getStackTrace());
     _watcher.start();
 
     try {

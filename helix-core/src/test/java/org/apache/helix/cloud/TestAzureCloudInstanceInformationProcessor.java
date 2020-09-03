@@ -64,6 +64,6 @@ public class TestAzureCloudInstanceInformationProcessor extends MockHttpClient {
     Assert.assertEquals(
         azureCloudInstanceInformation
             .get(CloudInstanceInformation.CloudInstanceField.INSTANCE_NAME.name()),
-        "d2b921cc-c16c-41f7-a86d-a445eac6ec26");
+        "test-helix_1");
   }
 }

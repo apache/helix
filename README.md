@@ -34,7 +34,7 @@ Mailing list: http://helix.apache.org/mail-lists.html
 ### Build
 
 ```bash
-mvn clean install -Dmaven.test.skip=true
+mvn clean install -Dmaven.test.skip.exec=true
 ```
 
 ## WHAT IS HELIX

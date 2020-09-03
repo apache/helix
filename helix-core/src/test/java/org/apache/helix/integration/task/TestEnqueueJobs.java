@@ -19,7 +19,9 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.JobConfig;
@@ -135,10 +137,18 @@ public class TestEnqueueJobs extends TaskTestBase {
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
             .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "10000"));
 
+    _driver.waitToStop(queueName, 5000L);
+
     // Add 4 jobs to the queue
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     for (int i = 0; i < numberOfJobsAddedBeforeControllerSwitch; i++) {
-      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+      jobNames.add("JOB" + i);
+      jobBuilders.add(jobBuilder);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+
+    _driver.resume(queueName);
 
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedBeforeControllerSwitch; i++) {
@@ -150,9 +160,13 @@ public class TestEnqueueJobs extends TaskTestBase {
     _controller.syncStop();
 
     // Add 3 more jobs to the queue which should run in parallel after the Controller is started
+    jobNames.clear();
+    jobBuilders.clear();
     for (int i = numberOfJobsAddedBeforeControllerSwitch; i < totalNumberOfJobs; i++) {
-      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+      jobNames.add("JOB" + i);
+      jobBuilders.add(jobBuilder);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -195,10 +209,18 @@ public class TestEnqueueJobs extends TaskTestBase {
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
             .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "1000"));
 
+    _driver.waitToStop(queueName, 5000L);
+
     // Add 4 jobs to the queue
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {
-      _driver.enqueueJob(queueName, "JOB" + i, jobBuilder);
+      jobNames.add("JOB" + i);
+      jobBuilders.add(jobBuilder);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+
+    _driver.resume(queueName);
 
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {

@@ -159,12 +159,14 @@ public class InstanceValidationUtil {
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
     ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
     if (clusterConfig == null) {
-      throw new HelixException("Cluster config is missing in cluster " + clusterId);
+      _logger.error("Cluster config is missing in cluster " + clusterId);
+      return false;
     }
     if (!clusterConfig.isPersistIntermediateAssignment()) {
-      throw new HelixException(String.format(
+      _logger.error(String.format(
           "Cluster config %s is not turned on, which is required for instance stability check.",
           ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString()));
+      return false;
     }
     PropertyKey propertyKey = keyBuilder.instanceConfig(instanceName);
     InstanceConfig instanceConfig = dataAccessor.getProperty(propertyKey);
@@ -267,6 +269,10 @@ public class InstanceValidationUtil {
    */
   public static boolean isInstanceStable(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    if (clusterConfig == null) {
+      throw new HelixException("Missing cluster config!");
+    }
     List<String> idealStateNames = dataAccessor.getChildNames(keyBuilder.idealStates());
     for (String idealStateName : idealStateNames) {
       IdealState idealState = dataAccessor.getProperty(keyBuilder.idealStates(idealStateName));

@@ -43,6 +43,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doReturn;
@@ -216,7 +217,14 @@ public class TestInstanceValidationUtil {
   @Test
   public void TestHasValidConfig_true() {
     Mock mock = new Mock();
-    when(mock.dataAccessor.getProperty(any(PropertyKey.class)))
+    PropertyKey.Builder keyBuilder = mock.dataAccessor.keyBuilder();
+    PropertyKey clusterProperty = keyBuilder.clusterConfig();
+    ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER);
+    clusterConfig.setPersistIntermediateAssignment(true);
+    when(mock.dataAccessor.getProperty(eq(clusterProperty)))
+        .thenReturn(clusterConfig);
+    PropertyKey instanceProperty = keyBuilder.instanceConfig(TEST_INSTANCE);
+    when(mock.dataAccessor.getProperty(eq(instanceProperty)))
         .thenReturn(new InstanceConfig(TEST_INSTANCE));
 
     Assert.assertTrue(
@@ -272,14 +280,14 @@ public class TestInstanceValidationUtil {
         InstanceValidationUtil.hasErrorPartitions(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE));
   }
 
-  @Test(expectedExceptions = HelixException.class)
-  public void TestIsInstanceStable_exception_whenPersistAssignmentOff() {
+  @Test
+  public void TestIsInstanceStable_NoException_whenPersistAssignmentOff() {
     Mock mock = new Mock();
     ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER);
     clusterConfig.setPersistIntermediateAssignment(false);
     when(mock.dataAccessor.getProperty(any(PropertyKey.class))).thenReturn(clusterConfig);
 
-    InstanceValidationUtil.hasValidConfig(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE);
+    InstanceValidationUtil.isInstanceStable(mock.dataAccessor, TEST_INSTANCE);
   }
 
   @Test(expectedExceptions = HelixException.class)

@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestInstanceValidationUtil{
+public class TestInstanceValidationUtilInRest{
   private static final String RESOURCE_NAME = "TestResource";
   private static final String TEST_CLUSTER = "TestCluster";
 

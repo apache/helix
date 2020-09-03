@@ -538,6 +538,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
+  /*
+   * If callback type is INIT or CALLBACK, subscribes child change listener to the path
+   * and returns the path's children names. The children list might be null when the path
+   * doesn't exist or callback type is other than INIT/CALLBACK.
+   */
   private List<String> subscribeChildChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
         || callbackType == NotificationContext.Type.CALLBACK) {
@@ -551,14 +556,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       // Later, CALLBACK type, the CallbackHandler already registered the watch and knows the
       // path was created. Here, to avoid leaking path in ZooKeeper server, we would not let
       // CallbackHandler to install exists watch, namely watch for path not existing.
-      // Note when path is removed, the CallbackHanler would remove itself from ZkHelixManager too
+      // Note when path is removed, the CallbackHandler would remove itself from ZkHelixManager too
       // to avoid leaking a CallbackHandler.
-      ChildrenSubscribeResult childrenSubscribeResult = _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
+      ChildrenSubscribeResult childrenSubscribeResult =
+          _zkClient.subscribeChildChanges(path, this, callbackType != Type.INIT);
       logger.debug("CallbackHandler {} subscribe data path {} result {}", _uid, path,
           childrenSubscribeResult.isInstalled());
       if (!childrenSubscribeResult.isInstalled()) {
         logger.info("CallbackHandler {} subscribe data path {} failed!", _uid, path);
       }
+      // getChildren() might be null: when path doesn't exist.
       return childrenSubscribeResult.getChildren();
     } else if (callbackType == NotificationContext.Type.FINALIZE) {
       logger.info("CallbackHandler{}, {} unsubscribe child-change. path: {}, listener: {}",

@@ -166,7 +166,7 @@ public class ParticipantManager {
     boolean autoJoin = false;
     boolean autoRegistration = false;
 
-    // Read "allowParticipantAutoJoin" flag to see if an instance can auto join to the cluster
+    // Read "allowParticipantAutoJoin" field to see if an instance can auto join to the cluster
     try {
       HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
           .forCluster(_manager.getClusterName()).build();
@@ -183,7 +183,7 @@ public class ParticipantManager {
     try {
       autoRegistration =
           Boolean.valueOf(_helixManagerProperty.getHelixCloudProperty().getCloudEnabled());
-      LOG.info("instance: " + _instanceName + " auto-register " + _clusterName + " is "
+      LOG.info("instance: " + _instanceName + " auto-registering " + _clusterName + " is "
           + autoRegistration);
     } catch (Exception e) {
       LOG.info("auto registration is false for cluster" + _clusterName);

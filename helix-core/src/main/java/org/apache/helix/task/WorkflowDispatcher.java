@@ -329,6 +329,20 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   }
 
   /**
+   * Jobs that are missing corresponding JobConfigs or WorkflowConfigs or WorkflowContexts need to
+   * be dropped
+   */
+  public void processJobForDrop(String resourceName, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput) {
+    JobConfig jobConfig = _clusterDataCache.getJobConfig(resourceName);
+    if (jobConfig == null || _clusterDataCache.getWorkflowConfig(jobConfig.getWorkflow()) == null
+        || _clusterDataCache.getWorkflowContext(jobConfig.getWorkflow()) == null) {
+      ResourceAssignment emptyAssignment = buildEmptyAssignment(resourceName, currentStateOutput);
+      updateBestPossibleStateOutput(resourceName, emptyAssignment, bestPossibleStateOutput);
+    }
+  }
+
+  /**
    * Check if a workflow is ready to schedule, and schedule a rebalance if it is not
    * @param workflow the Helix resource associated with the workflow
    * @param workflowCfg the workflow to check

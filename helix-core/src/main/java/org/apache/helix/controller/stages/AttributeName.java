@@ -22,7 +22,6 @@ package org.apache.helix.controller.stages;
 public enum AttributeName {
   RESOURCES,
   RESOURCES_TO_REBALANCE,
-  TASK_RESOURCES_TO_DROP,
   BEST_POSSIBLE_STATE,
   CURRENT_STATE,
   CUSTOMIZED_STATE,

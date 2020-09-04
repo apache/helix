@@ -1157,7 +1157,7 @@ public abstract class AbstractTaskDispatcher {
     return true;
   }
 
-  public ResourceAssignment buildEmptyAssignment(String name,
+  protected ResourceAssignment buildEmptyAssignment(String name,
       CurrentStateOutput currStateOutput) {
     ResourceAssignment assignment = new ResourceAssignment(name);
     Set<Partition> partitions = currStateOutput.getCurrentStateMappedPartitions(name);

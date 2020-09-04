@@ -104,12 +104,12 @@ public class TaskSchedulingStage extends AbstractBaseStage {
       restOfResources.remove(jobName);
     }
 
-    Map<String, Resource> taskResourcesToDrop =
-        event.getAttribute(AttributeName.TASK_RESOURCES_TO_DROP.name());
-    for (String resourceName : taskResourcesToDrop.keySet()) {
-      ResourceAssignment emptyAssignment =
-          _workflowDispatcher.buildEmptyAssignment(resourceName, currentStateOutput);
-      _workflowDispatcher.updateBestPossibleStateOutput(resourceName, emptyAssignment, output);
+    // Jobs that exist in current states but are missing corresponding JobConfigs or WorkflowConfigs
+    // or WorkflowContexts need to be cleaned up. Note that restOfResources can only be jobs,
+    // because workflow resources are created based on Configs only - workflows don't have
+    // CurrentStates
+    for (String resourceName : restOfResources.keySet()) {
+      _workflowDispatcher.processJobForDrop(resourceName, currentStateOutput, output);
     }
 
     return output;

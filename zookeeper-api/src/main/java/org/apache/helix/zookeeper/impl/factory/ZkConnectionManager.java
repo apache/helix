@@ -115,13 +115,19 @@ public class ZkConnectionManager extends ZkClient {
     close(false);
   }
 
-  protected synchronized void close(boolean skipIfWatched) {
+  /**
+   * closes connection when there are no shared watcher
+   *
+   * @param skipIfWatched when true skips closing connection
+   * returns true when the connection is closed
+   */
+  protected synchronized boolean close(boolean skipIfWatched) {
     cleanupInactiveWatchers();
     if (_sharedWatchers != null && _sharedWatchers.size() > 0) {
       if (skipIfWatched) {
         LOG.debug("Skip closing ZkConnection due to existing watchers. Watcher count {}.",
             _sharedWatchers.size());
-        return;
+        return false;
       } else {
         throw new ZkClientException(
             "Cannot close the connection when there are still shared watchers listen on the event.");
@@ -129,10 +135,7 @@ public class ZkConnectionManager extends ZkClient {
     }
     super.close();
     LOG.info("ZkConnection {} was closed.", _monitorKey);
-  }
-
-  protected boolean hasSharedWatchers() {
-    return _sharedWatchers != null && _sharedWatchers.size() > 0;
+    return true;
   }
 
   protected void cleanupInactiveWatchers() {

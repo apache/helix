@@ -116,8 +116,8 @@ public class SharedZkClientFactory extends HelixZkClientFactory {
   // to avoid race condition.
   private void cleanupConnectionManager(ZkConnectionManager zkConnectionManager) {
     synchronized (_connectionManagerPool) {
-      zkConnectionManager.close(true);
-      if (!zkConnectionManager.hasSharedWatchers()) {
+      boolean canClose = zkConnectionManager.close(true);
+      if (canClose) {
         _connectionManagerPool.remove(zkConnectionManager);
       }
     }

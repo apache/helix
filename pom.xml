@@ -735,7 +735,7 @@
               See also: properties section and profiles section.
         -->
         <configuration>
-          <argLine>-Xms1024m -Xmx1024m</argLine>
+          <argLine>-Xms4096m -Xmx4096m</argLine>
           <suiteXmlFiles>
             <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
           </suiteXmlFiles>

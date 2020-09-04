@@ -690,9 +690,11 @@ public class TaskDriver {
   }
 
   /**
+   * TODO: IdealStates are no longer used by Task Framework. This function deletes IdealStates for
+   * TODO: backward compatability purpose; this behavior will be removed later.
    * Public synchronized method to wait for a delete operation to fully complete with timeout.
    * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
-   * its WorkflowConfig and WorkflowContext have all been deleted.
+   * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.
    * @param workflow workflow/jobqueue name
    * @param timeout duration to give to delete operation to completion
    */
@@ -705,11 +707,13 @@ public class TaskDriver {
     BaseDataAccessor baseDataAccessor = _accessor.getBaseDataAccessor();
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
 
+    String idealStatePath = keyBuilder.idealStates(workflow).getPath();
     String workflowConfigPath = keyBuilder.resourceConfig(workflow).getPath();
     String workflowContextPath = keyBuilder.workflowContext(workflow).getPath();
 
     while (System.currentTimeMillis() <= endTime) {
-      if (baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
+      if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)
+          || baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
           || baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
         Thread.sleep(1000);
       } else {
@@ -719,6 +723,9 @@ public class TaskDriver {
 
     // Deletion failed: check which step of deletion failed to complete and create an error message
     StringBuilder failed = new StringBuilder();
+    if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)) {
+      failed.append("IdealState ");
+    }
     if (baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)) {
       failed.append("WorkflowConfig ");
     }

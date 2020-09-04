@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +63,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     Map<String, Resource> resourceMap = new LinkedHashMap<>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
-    Map<String, Resource> taskResourcesToDrop = new LinkedHashMap<>();
+    Map<String, Resource> taskResourcesToDrop = new HashMap<>();
 
     boolean isTaskCache = cache instanceof WorkflowControllerDataProvider;
 
@@ -106,36 +107,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
     if (isTaskCache) {
       WorkflowControllerDataProvider taskDataCache =
           event.getAttribute(AttributeName.ControllerDataProvider.name());
-      for (Map.Entry<String, WorkflowConfig> workflowConfigEntry : taskDataCache
-          .getWorkflowConfigMap().entrySet()) {
-        // always overwrite, because the resource could be created by IS
-        String resourceName = workflowConfigEntry.getKey();
-        WorkflowConfig workflowConfig = workflowConfigEntry.getValue();
-        addResourceConfigToResourceMap(resourceName, workflowConfig, cache.getClusterConfig(),
-            resourceMap, resourceToRebalance);
-        addPartition(resourceName, resourceName, resourceMap);
-      }
-
-      for (Map.Entry<String, JobConfig> jobConfigEntry : taskDataCache.getJobConfigMap()
-          .entrySet()) {
-        // always overwrite, because the resource could be created by IS
-        String resourceName = jobConfigEntry.getKey();
-        JobConfig jobConfig = jobConfigEntry.getValue();
-        addResourceConfigToResourceMap(resourceName, jobConfig, cache.getClusterConfig(),
-            resourceMap, resourceToRebalance);
-        int numPartitions = jobConfig.getTaskConfigMap().size();
-        if (numPartitions == 0 && idealStates != null) {
-          IdealState targetIs = idealStates.get(jobConfig.getTargetResource());
-          if (targetIs == null) {
-            LOG.warn("Target resource does not exist for job " + resourceName);
-          } else {
-            numPartitions = targetIs.getPartitionSet().size();
-          }
-        }
-        for (int i = 0; i < numPartitions; i++) {
-          addPartition(resourceName + "_" + i, resourceName, resourceMap);
-        }
-      }
+      processWorkflowConfigs(taskDataCache, resourceMap, resourceToRebalance);
+      processJobConfigs(taskDataCache, resourceMap, resourceToRebalance, idealStates);
     }
 
     // It's important to get partitions from CurrentState as well since the
@@ -209,6 +182,51 @@ public class ResourceComputationStage extends AbstractBaseStage {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
     if (isTaskCache) {
       event.addAttribute(AttributeName.TASK_RESOURCES_TO_DROP.name(), taskResourcesToDrop);
+    }
+  }
+
+  /*
+   * Construct Resources based on WorkflowConfigs and add them to the two resource maps
+   */
+  private void processWorkflowConfigs(WorkflowControllerDataProvider taskDataCache, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance) {
+    for (Map.Entry<String, WorkflowConfig> workflowConfigEntry : taskDataCache
+        .getWorkflowConfigMap().entrySet()) {
+      // The resource could have been created by IS - always overwrite with config values
+      String resourceName = workflowConfigEntry.getKey();
+      WorkflowConfig workflowConfig = workflowConfigEntry.getValue();
+      addResourceConfigToResourceMap(resourceName, workflowConfig, taskDataCache.getClusterConfig(),
+          resourceMap, resourceToRebalance);
+      addPartition(resourceName, resourceName, resourceMap);
+    }
+  }
+
+  /*
+   * Construct Resources based on JobConfigs and add them to the two resource maps
+   */
+  private void processJobConfigs(WorkflowControllerDataProvider taskDataCache, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance, Map<String, IdealState> idealStates) {
+    for (Map.Entry<String, JobConfig> jobConfigEntry : taskDataCache.getJobConfigMap()
+        .entrySet()) {
+      // always overwrite, because the resource could be created by IS
+      String resourceName = jobConfigEntry.getKey();
+      JobConfig jobConfig = jobConfigEntry.getValue();
+      addResourceConfigToResourceMap(resourceName, jobConfig, taskDataCache.getClusterConfig(),
+          resourceMap, resourceToRebalance);
+      int numPartitions = jobConfig.getTaskConfigMap().size();
+      // If there is no task config, this is a targeted job. We get task counts based on target
+      // resource IdealState
+      if (numPartitions == 0 && idealStates != null) {
+        IdealState targetIs = idealStates.get(jobConfig.getTargetResource());
+        if (targetIs == null) {
+          LOG.warn("Target resource " + jobConfig.getTargetResource() + " does not exist for job " + resourceName);
+        } else {
+          numPartitions = targetIs.getPartitionSet().size();
+        }
+      }
+      for (int i = 0; i < numPartitions; i++) {
+        addPartition(resourceName + "_" + i, resourceName, resourceMap);
+      }
     }
   }
 

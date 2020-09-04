@@ -519,6 +519,7 @@ public abstract class AbstractTaskDispatcher {
     }
     _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.TIMED_OUT);
     _rebalanceScheduler.removeScheduledRebalance(jobResource);
+    TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     // New pipeline trigger for workflow status update
     RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }
@@ -536,6 +537,7 @@ public abstract class AbstractTaskDispatcher {
     }
     _clusterStatusMonitor.updateJobCounters(jobConfigMap.get(jobName), TaskState.FAILED);
     _rebalanceScheduler.removeScheduledRebalance(jobName);
+    TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
     // New pipeline trigger for workflow status update
     RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }

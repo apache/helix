@@ -595,6 +595,64 @@ public class TaskUtil {
   }
 
   /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
+   * Cleans up IdealState and external view associated with a job.
+   * @param accessor
+   * @param job
+   * @return True if remove success, otherwise false
+   */
+  @Deprecated
+  protected static boolean cleanupJobIdealStateExtView(final HelixDataAccessor accessor,
+      String job) {
+    return cleanupIdealStateExtView(accessor, job);
+  }
+
+  /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
+   * Cleans up IdealState and external view associated with a workflow.
+   * @param accessor
+   * @param workflow
+   * @return True if remove success, otherwise false
+   */
+  @Deprecated
+  protected static boolean cleanupWorkflowIdealStateExtView(final HelixDataAccessor accessor,
+      String workflow) {
+    return cleanupIdealStateExtView(accessor, workflow);
+  }
+
+  /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
+   * Cleans up IdealState and external view associated with a job/workflow resource.
+   */
+  @Deprecated
+  private static boolean cleanupIdealStateExtView(final HelixDataAccessor accessor,
+      String workflowJobResource) {
+    boolean success = true;
+    PropertyKey isKey = accessor.keyBuilder().idealStates(workflowJobResource);
+    if (accessor.getPropertyStat(isKey) != null) {
+      if (!accessor.removeProperty(isKey)) {
+        LOG.warn(String.format(
+            "Error occurred while trying to remove IdealState for %s. Failed to remove node %s.",
+            workflowJobResource, isKey));
+        success = false;
+      }
+    }
+
+    // Delete external view
+    PropertyKey evKey = accessor.keyBuilder().externalView(workflowJobResource);
+    if (accessor.getPropertyStat(evKey) != null) {
+      if (!accessor.removeProperty(evKey)) {
+        LOG.warn(String.format(
+            "Error occurred while trying to remove ExternalView of resource %s. Failed to remove node %s.",
+            workflowJobResource, evKey));
+        success = false;
+      }
+    }
+
+    return success;
+  }
+
+  /**
    * Remove a workflow and all jobs for the workflow. This removes the workflow config, idealstate,
    * externalview and workflow contexts associated with this workflow, and all jobs information,
    * including their configs, context, IS and EV.
@@ -616,6 +674,12 @@ public class TaskUtil {
     if (!removeWorkflowConfig(accessor, workflow)) {
       LOG.warn(
           String.format("Error occurred while trying to remove workflow config for %s.", workflow));
+      return false;
+    }
+    if (!cleanupWorkflowIdealStateExtView(accessor, workflow)) {
+      LOG.warn(String.format(
+          "Error occurred while trying to remove workflow idealstate/externalview for %s.",
+          workflow));
       return false;
     }
     if (!removeWorkflowContext(propertyStore, workflow)) {
@@ -787,6 +851,11 @@ public class TaskUtil {
       HelixPropertyStore<ZNRecord> propertyStore, String job) {
     if (!removeJobConfig(accessor, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job config for %s.", job));
+      return false;
+    }
+    if (!cleanupJobIdealStateExtView(accessor, job)) {
+      LOG.warn(String.format(
+          "Error occurred while trying to remove job idealstate/externalview for %s.", job));
       return false;
     }
     if (!removeJobContext(propertyStore, job)) {
@@ -1047,6 +1116,13 @@ public class TaskUtil {
       LOG.warn(
           "WorkflowContext exists for workflow {}. However, Workflow Config is missing! Deleting the WorkflowContext and IdealState!!",
           workflowName);
+
+      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
+      if (!cleanupWorkflowIdealStateExtView(accessor, workflowName)) {
+        LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
+            workflowName);
+        continue;
+      }
 
       if (!removeWorkflowContext(propertyStore, workflowName)) {
         LOG.warn("Error occurred while trying to remove workflow context for {}.", workflowName);

@@ -56,10 +56,20 @@ public class TrieClusterTopology {
       throw new HelixException(String.format("Config for instances %s is not found!",
           instanceConfigMap == null ? liveNodes : liveNodes.removeAll(instanceConfigMap.keySet())));
     }
+
+    String topologyDef = clusterConfig.getTopology();
+    if (topologyDef == null) {
+      throw new HelixException(String.format("The topology of cluster %s is empty!",
+          clusterConfig.getClusterName()));
+    }
     // A list of all keys in cluster topology, e.g., a cluster topology defined as
     // /group/zone/rack/host will return ["group", "zone", "rack", "host"].
-    _topologyKeys = Arrays.asList(clusterConfig.getTopology().trim().split(DELIMITER)).stream()
+    _topologyKeys = Arrays.asList(topologyDef.trim().split(DELIMITER)).stream()
         .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
+    if (_topologyKeys.length == 0) {
+      throw new HelixException(String.format("The topology of cluster %s is not correctly defined",
+          clusterConfig.getClusterName()));
+    }
     _faultZoneType = clusterConfig.getFaultZoneType();
     _rootNode = new TrieNode(new HashMap<>(), "", "ROOT");
     constructTrie(instanceConfigMap);

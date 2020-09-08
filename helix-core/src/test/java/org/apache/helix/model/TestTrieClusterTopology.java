@@ -54,10 +54,22 @@ public class TestTrieClusterTopology {
     Map<String, InstanceConfig> emptyMap = new HashMap<>();
     try {
       new TrieClusterTopology(_instanceNames, emptyMap, _clusterConfig);
-      Assert.fail("Expecting Instance Config is not found exception");
+      Assert.fail("Expecting instance config not found exception");
     } catch (HelixException e) {
       Assert.assertTrue(e.getMessage().contains("is not found!"));
     }
+  }
+
+  @Test
+  public void testConstructionMissingTopology() {
+    _clusterConfig.setTopology(null);
+    try {
+      new TrieClusterTopology(_instanceNames, _instanceConfigMap, _clusterConfig);
+      Assert.fail("Expecting topology not set exception");
+    } catch (HelixException e) {
+      Assert.assertTrue(e.getMessage().contains("is empty!"));
+    }
+    _clusterConfig.setTopology("/group/zone/rack/host");
   }
 
   @Test
@@ -70,7 +82,7 @@ public class TestTrieClusterTopology {
   }
 
   @Test(dependsOnMethods = "testConstructionNormal")
-  public void testGetInstancesUnderInvalidzone() {
+  public void testGetInstancesUnderInvalidDomain() {
     Map<String, String> domains = new HashMap<>();
     domains.put("group", "1");
     domains.put("InvalidDomain", "2");
@@ -82,7 +94,7 @@ public class TestTrieClusterTopology {
     }
   }
 
-  @Test(dependsOnMethods = "testGetInstancesUnderInvalidzone")
+  @Test(dependsOnMethods = "testGetInstancesUnderInvalidDomain")
   public void testGetInstancesUnderzoneUnderInvalidDomain() {
     Map<String, String> domains = new HashMap<>();
     domains.put("group", "1");

@@ -92,7 +92,7 @@ It is also possible to configure everything directly from the command line. Here
 
 ```
 # Specify the script for OFFLINE --> ONLINE
-/helix-admin.sh --zkSvr localhost:2181 --setConfig CLUSTER clusterName OFFLINE-ONLINE.command="simpleHttpClient.py OFFLINE-ONLINE",OFFLINE-ONLINE.workingDir="/path/to/script", OFFLINE-ONLINE.command.pidfile="/path/to/pidfile"
+/helix-admin.sh --zkSvr localhost:2181 --setConfig CLUSTER clusterName OFFLINE-ONLINE.command="simpleHttpClient.py OFFLINE-ONLINE",OFFLINE-ONLINE.command.workingDir="/path/to/script", OFFLINE-ONLINE.command.pidfile="/path/to/pidfile"
 
 # Specify the script for ONLINE --> OFFLINE
 /helix-admin.sh --zkSvr localhost:2181 --setConfig CLUSTER clusterName ONLINE-OFFLINE.command="simpleHttpClient.py ONLINE-OFFLINE",ONLINE-OFFLINE.workingDir="/path/to/script", OFFLINE-ONLINE.command.pidfile="/path/to/pidfile"
@@ -105,7 +105,7 @@ Like in the Java configuration, it is also possible to specify a resource scope 
 
 ```
 # Specify the script for OFFLINE --> ONLINE
-/helix-admin.sh --zkSvr localhost:2181 --setConfig RESOURCE clusterName,resourceName OFFLINE-ONLINE.command="simpleHttpClient.py OFFLINE-ONLINE",OFFLINE-ONLINE.workingDir="/path/to/script", OFFLINE-ONLINE.command.pidfile="/path/to/pidfile"
+/helix-admin.sh --zkSvr localhost:2181 --setConfig RESOURCE clusterName,resourceName OFFLINE-ONLINE.command="simpleHttpClient.py OFFLINE-ONLINE",OFFLINE-ONLINE.command.workingDir="/path/to/script", OFFLINE-ONLINE.command.pidfile="/path/to/pidfile"
 ```
 
 ### Starting the Agent

@@ -921,10 +921,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             // discard the message. Controller will resend if this is a valid message
             throw new HelixException(String.format(
                 "Another state transition for %s:%s is in progress with msg: %s, p2p: %s, read: %d, current:%d. Discarding %s->%s message",
-                message.getResourceName(), message.getPartitionName(), msg.getMsgId(), String.valueOf(msg.isRelayMessage()),
-                msg.getReadTimeStamp(), System.currentTimeMillis(), message.getFromState(),
-                message.getToState()));
+                message.getResourceName(), message.getPartitionName(), msg.getMsgId(),
+                String.valueOf(msg.isRelayMessage()), msg.getReadTimeStamp(),
+                System.currentTimeMillis(), message.getFromState(), message.getToState()));
+          } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
+            //if (createHandler instanceof HelixStateTransitionHandler) {
+            Exception err = ((HelixStateTransitionHandler) createHandler).isMessageStaled();
+            if (err !=null) {
+              throw err;
+            }
           }
+           // }
 
           stateTransitionHandlers
               .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),

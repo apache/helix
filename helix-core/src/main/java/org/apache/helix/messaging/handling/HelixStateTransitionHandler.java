@@ -122,18 +122,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = null;
-    if (toState.equalsIgnoreCase(state)) {
-      // To state equals current state, we can just ignore the message
-      err = new HelixDuplicatedStateTransitionException(
-          String.format("Partition %s current state is same as toState (%s->%s) from message.",
-              partitionName, fromState, toState));
-    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
-      // If current state is neither toState nor fromState in message, there is a problem
-      err = new HelixStateMismatchException(String.format(
-          "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
-          state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
-    }
+    Exception err = isMessageStaled();
 
     if (err != null) {
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(),
@@ -461,6 +450,31 @@ public class HelixStateTransitionHandler extends MessageHandler {
       _stateModel.rollbackOnError(_message, _notificationContext, error);
     }
 
+  }
+
+  public Exception isMessageStaled() {
+    String state = _stateModel.getCurrentState() != null ? _stateModel.getCurrentState()
+        : _currentStateDelta.getState(_message.getPartitionName());
+    String fromState = _message.getFromState();
+    String toState = _message.getToState();
+    String partitionName = _message.getPartitionName();
+
+    //String err = null;
+
+    Exception err = null;
+    if (toState.equalsIgnoreCase(state)) {
+      // To state equals current state, we can just ignore the message
+      err = new HelixDuplicatedStateTransitionException(
+          String.format("Partition %s current state is same as toState (%s->%s) from message.",
+              partitionName, fromState, toState));
+    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
+      // If current state is neither toState nor fromState in message, there is a problem
+      err = new HelixStateMismatchException(String.format(
+          "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
+          state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
+    }
+
+    return err;
   }
 
   @Override

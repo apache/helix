@@ -78,7 +78,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+  protected StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
     super(zkClient, clusterName);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);

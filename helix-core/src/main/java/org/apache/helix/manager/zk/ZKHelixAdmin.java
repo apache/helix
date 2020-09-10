@@ -566,7 +566,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     INSTANCE_NON_EXISTENT("%s does not exist in cluster %s"),
     RESOURCE_NON_EXISTENT("resource %s is not added to cluster %s"),
     PARTITION_NON_EXISTENT("not all %s exist in cluster %s"),
-    PARTITION_NOT_ERROR("%s is NOT found in cluster %s"),
+    PARTITION_NOT_ERROR("%s is NOT found in cluster %s or not in ERROR state"),
     STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s");
 
     private String message;

@@ -19,7 +19,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;

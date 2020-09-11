@@ -66,7 +66,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances) {
-    this(zkClient, clusterName, resources, expectLiveInstances, false);
+    this(zkClient, clusterName, resources, expectLiveInstances, false, 0);
   }
 
   @Deprecated
@@ -78,9 +78,9 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
   }
 
-  protected StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
-    super(zkClient, clusterName);
+  private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int coolDown) {
+    super(zkClient, clusterName, coolDown);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
     _expectLiveInstances =
         expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
@@ -102,7 +102,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
       if (_zkClient != null) {
         return new StrictMatchExternalViewVerifier(_zkClient, _clusterName, _resources,
-            _expectLiveInstances, _isDeactivatedNodeAware);
+            _expectLiveInstances, _isDeactivatedNodeAware, _coolDown);
       }
 
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
@@ -115,7 +115,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       return new StrictMatchExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _resources,
-          _expectLiveInstances, _isDeactivatedNodeAware);
+          _expectLiveInstances, _isDeactivatedNodeAware, _coolDown);
     }
 
     public Builder(String clusterName) {

@@ -98,17 +98,17 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
-    super(zkClient, clusterName);
+    super(zkClient, clusterName, 0);
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
     _dataProvider = new ResourceControllerDataProvider();
   }
 
-  protected BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+  private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Map<String, Map<String, String>> errStates, Set<String> resources,
-      Set<String> expectLiveInstances) {
-    super(zkClient, clusterName);
+      Set<String> expectLiveInstances, int cooldown) {
+    super(zkClient, clusterName, cooldown);
     // Deep copy data from Builder
     _errStates = new HashMap<>();
     if (errStates != null) {
@@ -151,7 +151,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       return new BestPossibleExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _errStates, _resources,
-          _expectLiveInstances);
+          _expectLiveInstances, _coolDown);
     }
 
     public String getClusterName() {

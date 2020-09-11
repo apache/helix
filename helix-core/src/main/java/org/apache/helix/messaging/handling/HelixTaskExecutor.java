@@ -903,15 +903,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
           String messageTarget =
               getMessageTarget(message.getResourceName(), message.getPartitionName());
-          if (stateTransitionHandlers.containsKey(messageTarget)) {
-            // If there are 2 messages in same batch about same partition's state transition,
-            // the later one is discarded
-            Message duplicatedMessage = stateTransitionHandlers.get(messageTarget)._message;
-            throw new HelixException(String.format(
-                "Duplicated state transition message: %s. Existing: %s->%s; New (Discarded): %s->%s",
-                message.getMsgId(), duplicatedMessage.getFromState(),
-                duplicatedMessage.getToState(), message.getFromState(), message.getToState()));
-          } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())
+
+          if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())
               && isStateTransitionInProgress(messageTarget)) {
 
             String taskId = _messageTaskMap.get(messageTarget);
@@ -924,14 +917,24 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 message.getResourceName(), message.getPartitionName(), msg.getMsgId(),
                 String.valueOf(msg.isRelayMessage()), msg.getReadTimeStamp(),
                 System.currentTimeMillis(), message.getFromState(), message.getToState()));
-          } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
-            //if (createHandler instanceof HelixStateTransitionHandler) {
+          }
+          if (createHandler instanceof HelixStateTransitionHandler) {
+            // We only check from/to state if there is no ST task scheduled/executing.
+            // if (createHandler instanceof HelixStateTransitionHandler) {
             Exception err = ((HelixStateTransitionHandler) createHandler).isMessageStaled();
-            if (err !=null) {
+            if (err != null) {
               throw err;
             }
           }
-           // }
+          if (stateTransitionHandlers.containsKey(messageTarget)) {
+            // If there are 2 messages in same batch about same partition's state transition,
+            // the later one is discarded
+            Message duplicatedMessage = stateTransitionHandlers.get(messageTarget)._message;
+            throw new HelixException(String.format(
+                "Duplicated state transition message: %s. Existing: %s->%s; New (Discarded): %s->%s",
+                message.getMsgId(), duplicatedMessage.getFromState(),
+                duplicatedMessage.getToState(), message.getFromState(), message.getToState()));
+          }
 
           stateTransitionHandlers
               .put(getMessageTarget(message.getResourceName(), message.getPartitionName()),

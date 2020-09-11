@@ -107,17 +107,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         + _message.getToState() + ", relayedFrom: " + _message.getRelaySrcHost());
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-
     String partitionName = _message.getPartitionName();
-    String fromState = _message.getFromState();
-    String toState = _message.getToState();
-
-    // Verify the fromState and current state of the stateModel
-    // getting current state from state model will provide most up-to-date
-    // current state. In case current state is null, partition is in initial
-    // state and we are setting it in current state
-    String state = _stateModel.getCurrentState() != null ? _stateModel.getCurrentState()
-        : _currentStateDelta.getState(partitionName);
 
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
@@ -452,12 +442,19 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
   }
 
+  // Verify the fromState and current state of the stateModel.
   public Exception isMessageStaled() {
-    String state = _stateModel.getCurrentState() != null ? _stateModel.getCurrentState()
-        : _currentStateDelta.getState(_message.getPartitionName());
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
+
+
+    // state in _currentStateDelta uses current state from state model. It has the
+    // most up-to-date. current state. In case currentState in stateModel is null,
+    // partition is in initial state and we using it as current state.
+    // Defined in HelixStateMachineEngine.
+    String state =  _currentStateDelta.getState(partitionName);
+
 
     //String err = null;
 

@@ -210,9 +210,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
-            if (!isTaskCache && !TaskConstants.STATE_MODEL_NAME
-                .equals(resource.getStateModelDefRef())
-                || isTaskCache && TaskConstants.STATE_MODEL_NAME
+            // if state model def is null, it's added during resource pipeline; if it's not null,
+            // it's added when it matches the pipeline type
+            if (isTaskCache == TaskConstants.STATE_MODEL_NAME
                 .equals(resource.getStateModelDefRef())) {
               resourceToRebalance.put(resourceName, resource);
             }

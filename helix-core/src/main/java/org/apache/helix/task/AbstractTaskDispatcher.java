@@ -521,6 +521,7 @@ public abstract class AbstractTaskDispatcher {
     _rebalanceScheduler.removeScheduledRebalance(jobResource);
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     // New pipeline trigger for workflow status update
+    // TODO: Enhance the pipeline and remove this because this operation is expansive
     RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }
 
@@ -539,6 +540,7 @@ public abstract class AbstractTaskDispatcher {
     _rebalanceScheduler.removeScheduledRebalance(jobName);
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
     // New pipeline trigger for workflow status update
+    // TODO: Enhance the pipeline and remove this because this operation is expansive
     RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
   }
 

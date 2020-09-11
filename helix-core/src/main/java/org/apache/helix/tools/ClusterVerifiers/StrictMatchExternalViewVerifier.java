@@ -79,8 +79,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int coolDown) {
-    super(zkClient, clusterName, coolDown);
+      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int waitPeriodTillVerify) {
+    super(zkClient, clusterName, waitPeriodTillVerify);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
     _expectLiveInstances =
         expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
@@ -102,7 +102,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
       if (_zkClient != null) {
         return new StrictMatchExternalViewVerifier(_zkClient, _clusterName, _resources,
-            _expectLiveInstances, _isDeactivatedNodeAware, _coolDown);
+            _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify);
       }
 
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
@@ -115,7 +115,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       return new StrictMatchExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _resources,
-          _expectLiveInstances, _isDeactivatedNodeAware, _coolDown);
+          _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify);
     }
 
     public Builder(String clusterName) {
@@ -181,6 +181,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
   @Override
   public boolean verifyByZkCallback(long timeout) {
+    waitTillVerify();
+
     List<ClusterVerifyTrigger> triggers = new ArrayList<ClusterVerifyTrigger>();
 
     // setup triggers

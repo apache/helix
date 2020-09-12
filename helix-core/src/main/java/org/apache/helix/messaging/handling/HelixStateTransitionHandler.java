@@ -303,6 +303,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
       _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
           "Message handling task begin execute", manager);
+      System.out.println("[Xyy], Message handling task begin execute");
       message.setExecuteStartTimeStamp(System.currentTimeMillis());
 
       try {
@@ -457,6 +458,12 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
 
     //String err = null;
+
+    System.out.println(String.format(
+        "[Xyy] CurrentState: %s, Message: %s: %s->%s, Partition: %s, from: %s, to: %s",
+        _message.getMsgId(), state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
+
+
 
     Exception err = null;
     if (toState.equalsIgnoreCase(state)) {

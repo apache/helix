@@ -158,9 +158,15 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
 
     _driver.start(failWorkflowBuilder.build());
 
+   // _driver.pollForJobState(FAIL_WORKFLOW_NAME,
+   //     TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME), TaskState.NOT_STARTED);
+    //Assert.assertTrue(_driver.getWorkflowContext(FAIL_WORKFLOW_NAME) == null);
+
+    Thread.sleep(100);
     _driver.pollForJobState(FAIL_WORKFLOW_NAME,
-        TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME), TaskState.FAILED);
+               TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME), TaskState.FAILED);
     _driver.pollForWorkflowState(FAIL_WORKFLOW_NAME, TaskState.FAILED);
+
 
     JobContext jobContext =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(FAIL_WORKFLOW_NAME, FAIL_JOB_NAME));

@@ -251,11 +251,11 @@ public class TestHelixTaskExecutor {
       }
 
       @Override
-      public Exception isMessageStaled() {
+      public Exception isMessageStaled(boolean b) {
         if (!_testIsMessageStaled) {
           return null;
         } else {
-          return super.isMessageStaled();
+          return super.isMessageStaled(true);
         }
 
       }

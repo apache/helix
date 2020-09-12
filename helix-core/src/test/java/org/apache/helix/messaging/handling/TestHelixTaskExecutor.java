@@ -204,7 +204,6 @@ public class TestHelixTaskExecutor {
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
     private final String _msgType;
     private final long _delay;
-
     public TestStateTransitionHandlerFactory(String msgType) {
       this(msgType, -1);
     }
@@ -236,9 +235,9 @@ public class TestHelixTaskExecutor {
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
         if (_delay > 0) {
           System.out.println("Sleeping..." + _delay);
-          try {
+          try{
             Thread.sleep(_delay);
-          } catch (Exception ex) {
+          } catch (Exception e) {
             assert (false);
           }
         }
@@ -271,7 +270,7 @@ public class TestHelixTaskExecutor {
         currentStateDelta.setStateModelDefRef(message.getStateModelDef());
         currentStateDelta.setStateModelFactoryName(message.getStateModelFactoryName());
         currentStateDelta.setBucketSize(message.getBucketSize());
-
+        // set the current state same as to state in the message in test testStaledMessage.
         currentStateDelta.setState(message.getPartitionName(), "MASTER");
         return new TestStateTransitionMessageHandler(message, context, currentStateDelta);
       }
@@ -449,8 +448,7 @@ public class TestHelixTaskExecutor {
       msgList.add(msg);
     }
 
-    AssertJUnit
-        .assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
             nMsgs);
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);

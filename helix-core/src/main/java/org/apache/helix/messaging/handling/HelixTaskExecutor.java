@@ -69,7 +69,6 @@ import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -920,12 +919,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 System.currentTimeMillis(), message.getFromState(), message.getToState()));
           }
           if (createHandler instanceof HelixStateTransitionHandler) {
-            // We only check from/to state if there is no ST task scheduled/executing.
-            // if (createHandler instanceof HelixStateTransitionHandler) {
-            Exception err = ((HelixStateTransitionHandler) createHandler).isMessageStaled(true);
-            /*StateTransitionError error =
-                new StateTransitionError(MessageHandler.ErrorType.FRAMEWORK, MessageHandler.ErrorCode.ERROR, err);
-            _stateModel.rollbackOnError(_message, _notificationContext, error);*/
+            // We only check to state if there is no ST task scheduled/executing.
+            Exception err = ((HelixStateTransitionHandler) createHandler).isMessageStaled(true /*inSchedulerCheck*/);
             if (err != null) {
               throw err;
             }

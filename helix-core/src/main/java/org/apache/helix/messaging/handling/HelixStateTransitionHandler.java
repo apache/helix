@@ -38,10 +38,6 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
-import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
-import org.apache.helix.zookeeper.datamodel.ZNRecordDelta.MergeOperation;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -50,6 +46,10 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.StatusUpdateUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta.MergeOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,11 +112,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = isMessageStaled(false);
+    Exception err = isMessageStaled(false /*inSchedulerCheck*/);
 
     if (err != null) {
-      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(),
-          _manager);
+      _statusUpdateUtil
+          .logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
       logger.error(err.getMessage());
       throw err;
     }
@@ -443,34 +443,25 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   // Verify the fromState and current state of the stateModel.
-  public Exception isMessageStaled(boolean inSchedularCheck) {
+  public Exception isMessageStaled(boolean inSchedulerCheck) {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
-
 
     // state in _currentStateDelta uses current state from state model. It has the
     // most up-to-date. current state. In case currentState in stateModel is null,
     // partition is in initial state and we using it as current state.
     // Defined in HelixStateMachineEngine.
-    String state =  _currentStateDelta.getState(partitionName);
-
-
-    //String err = null;
-
-   /* System.out.println(String.format(
-        "[Xyy] CurrentState: %s, Message: %s: %s->%s, Partition: %s, from: %s, to: %s",
-        _message.getMsgId(), state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
-*/
-
+    String state = _currentStateDelta.getState(partitionName);
 
     Exception err = null;
     if (toState.equalsIgnoreCase(state)) {
       // To state equals current state, we can just ignore the message
-      err = new HelixDuplicatedStateTransitionException(
-          String.format("Partition %s current state is same as toState (%s->%s) from message.",
+      err = new HelixDuplicatedStateTransitionException(String
+          .format("Partition %s current state is same as toState (%s->%s) from message.",
               partitionName, fromState, toState));
-    } else if (!inSchedularCheck && fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
+    } else if (!inSchedulerCheck && fromState != null && !fromState.equals("*") && !fromState
+        .equalsIgnoreCase(state)) {
       // If current state is neither toState nor fromState in message, there is a problem
       err = new HelixStateMismatchException(String.format(
           "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",

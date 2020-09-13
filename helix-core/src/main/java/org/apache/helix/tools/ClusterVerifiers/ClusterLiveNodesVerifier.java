@@ -34,18 +34,20 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public ClusterLiveNodesVerifier(RealmAwareZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
-    super(zkclient, clusterName);
+    super(zkclient, clusterName, 0);
     _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
   private ClusterLiveNodesVerifier(RealmAwareZkClient zkClient, String clusterName,
-      Set<String> expectLiveNodes) {
-    super(zkClient, clusterName);
+      Set<String> expectLiveNodes, int waitPeriodTillVerify) {
+    super(zkClient, clusterName, waitPeriodTillVerify);
     _expectLiveNodes = expectLiveNodes == null ? new HashSet<>() : new HashSet<>(expectLiveNodes);
   }
 
   @Override
   public boolean verifyByZkCallback(long timeout) {
+    waitTillVerify();
+
     List<ClusterVerifyTrigger> triggers = new ArrayList<ClusterVerifyTrigger>();
     triggers.add(new ClusterVerifyTrigger(_keyBuilder.liveInstances(), false, true, true));
 
@@ -81,7 +83,7 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
       validate();
       return new ClusterLiveNodesVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
-              _realmAwareZkClientConfig, _zkAddress), _clusterName, _expectLiveNodes);
+              _realmAwareZkClientConfig, _zkAddress), _clusterName, _expectLiveNodes, _waitPeriodTillVerify);
     }
   }
 }

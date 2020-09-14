@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -867,17 +868,26 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 42; i++) {
+
       String hostname = "myhost" + i;
       String port = "9999";
       String instanceName = hostname + "_" + port;
       InstanceConfig instanceConfig = new InstanceConfig(instanceName);
       instanceConfig.setHostName(hostname);
       instanceConfig.setPort(port);
-      String domain =
-          String.format("group=%s,zone=%s,rack=%s,host=%s", "mygroup" + i%2,
-              "myzone" + i%4, "myrack" + i%4, hostname);
-      instanceConfig.setDomain(domain);
+      if (i == 40) {
+        instanceConfig.setDomain(String
+            .format("invaliddomain=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
+                "myrack" + i % 4, hostname));
+      } else if (i == 41) {
+        instanceConfig.setDomain("invaliddomain");
+      } else {
+        String domain = String
+            .format("group=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
+                "myrack" + i % 4, hostname);
+        instanceConfig.setDomain(domain);
+      }
       LiveInstance liveInstance = new LiveInstance(instanceName);
       liveInstance.setSessionId(UUID.randomUUID().toString());
       liveInstance.setHelixVersion(UUID.randomUUID().toString());
@@ -886,7 +896,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       admin.enableInstance(clusterName, instanceName, true);
     }
 
-    Map<String, List<String>> results = admin.getClusterTopology(clusterName);
+    Map<String, List<String>> results = admin.getAllTopology(clusterName);
     Assert.assertNotNull(results);
     Assert.assertEquals(results.size(), 2);
     Assert.assertTrue(results.containsKey("/group:mygroup0"));
@@ -894,36 +904,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(results.get("/group:mygroup0").size(), 20);
     Assert.assertEquals(results.get("/group:mygroup1").size(), 20);
 
-    Map<String, String> domains = new HashMap<>();
-    domains.put("zone", "myzone0");
-    domains.put("group", "mygroup0");
-    results = admin.getTopologyUnderDomain(clusterName, domains);
-    Assert.assertEquals(results.size(), 1);
-    Assert.assertTrue(results.containsKey("/group:mygroup0/zone:myzone0/rack:myrack0"));
-    Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").size(), 10);
-    Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").contains("/host"
-        + ":myhost0"));
-
-    String path = "/group:mygroup0/zone:myzone0";
-    results = admin.getTopologyUnderPath(clusterName, path);
-    Assert.assertEquals(results.size(), 1);
-    Assert.assertTrue(results.containsKey("/group:mygroup0/zone:myzone0/rack:myrack0"));
-    Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").size(), 10);
-    Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").contains("/host"
-        + ":myhost0"));
-
-    String domainType = "zone";
-    results = admin.getTopologyUnderDomainType(clusterName, domainType);
-    Assert.assertEquals(results.size(), 4);
-    Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0").size(), 10);
-    Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0").contains("/rack:myrack0/host"
-        + ":myhost0"));
-
     results = admin.getInstancesUnderFaultZone(clusterName);
     Assert.assertEquals(results.size(), 4);
     Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").size(), 10);
     Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").contains("/host"
         + ":myhost0"));
+
+    Assert.assertEquals(admin.getInvalidInstances(clusterName).size(), 2);
+    Assert.assertTrue(admin.getInvalidInstances(clusterName)
+        .containsAll(new HashSet<>(Arrays.asList("myhost40_9999", "myhost41_9999"))));
   }
 
   @Test

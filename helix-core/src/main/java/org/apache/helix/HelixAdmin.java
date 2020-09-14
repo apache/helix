@@ -426,36 +426,19 @@ public interface HelixAdmin {
    * Get the topology of a specific cluster
    * @param clusterName
    */
-  Map<String, List<String>> getClusterTopology(String clusterName);
-
-  /**
-   * Get the topology of a specific cluster under a given domain
-   * @param clusterName
-   * @param domain
-   */
-  Map<String, List<String>> getTopologyUnderDomain(String clusterName,
-      Map<String, String> domain);
-
-  /**
-   * Get the topology of a specific cluster under a given path
-   * @param clusterName
-   * @param path
-   */
-  Map<String, List<String>> getTopologyUnderPath(String clusterName, String path);
-
-  /**
-   * Get the topology of a specific cluster under a give domain type
-   * @param clusterName
-   * @param domainType
-   */
-  Map<String, List<String>> getTopologyUnderDomainType(String clusterName,
-      String domainType);
+  Map<String, List<String>> getAllTopology(String clusterName);
 
   /**
    * Get all the instances under the fault zone
    * @param clusterName
    */
   Map<String, List<String>> getInstancesUnderFaultZone(String clusterName);
+
+  /**
+   * Get all the instances whose domain config is not valid
+   * @param clusterName
+   */
+  List<String> getInvalidInstances(String clusterName);
 
   /**
    * Get a list of state model definitions in a cluster

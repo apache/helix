@@ -40,7 +40,6 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowContext;
@@ -83,14 +82,6 @@ public class TestTaskStage extends TaskTestBase {
     _driver.createQueue(queueBuilder.build());
     // Manually trigger a cache refresh
     cache.refresh(new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor));
-
-    // Create the IdealState ZNode for the jobs
-    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, _testJobPrefix + "0", 1,
-        TaskConstants.STATE_MODEL_NAME);
-    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, _testJobPrefix + "1", 1,
-        TaskConstants.STATE_MODEL_NAME);
-    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, _testJobPrefix + "2", 1,
-        TaskConstants.STATE_MODEL_NAME);
 
     // Create the context
     WorkflowContext wfCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
@@ -181,11 +172,10 @@ public class TestTaskStage extends TaskTestBase {
     TaskGarbageCollectionStage garbageCollectionStage = new TaskGarbageCollectionStage();
     garbageCollectionStage.process(_event);
 
-    // Check that IS and contexts have been purged for the 2 jobs in both old and new ZNode paths
-    // IdealState check
-    checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "0");
-    checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "1");
-    checkForIdealStateAndContextRemoval(_testWorkflow, _testJobPrefix + "2");
+    // Check that contexts have been purged for the 2 jobs in both old and new ZNode paths
+    checkForContextRemoval(_testWorkflow, _testJobPrefix + "0");
+    checkForContextRemoval(_testWorkflow, _testJobPrefix + "1");
+    checkForContextRemoval(_testWorkflow, _testJobPrefix + "2");
   }
 
   @Test(dependsOnMethods = "testPartialDataPurge")
@@ -217,8 +207,8 @@ public class TestTaskStage extends TaskTestBase {
     TaskGarbageCollectionStage garbageCollectionStage = new TaskGarbageCollectionStage();
     garbageCollectionStage.process(_event);
 
-    // Check that IS and contexts have been purged for the workflow
-    checkForIdealStateAndContextRemoval(_testWorkflow);
+    // Check that contexts have been purged for the workflow
+    checkForContextRemoval(_testWorkflow);
 
     worker.shutdown();
   }
@@ -231,23 +221,20 @@ public class TestTaskStage extends TaskTestBase {
     _baseAccessor.remove(newPath, AccessOption.PERSISTENT);
   }
 
-  private void checkForIdealStateAndContextRemoval(String workflow, String job) throws Exception {
+  private void checkForContextRemoval(String workflow, String job) throws Exception {
     // JobContexts in old ZNode path
     String oldPath =
         String.format("/%s/PROPERTYSTORE/TaskRebalancer/%s/Context", CLUSTER_NAME, job);
     String newPath = _keyBuilder.jobContextZNode(workflow, job).getPath();
 
     Assert.assertTrue(TestHelper.verify(
-        () -> !_baseAccessor.exists(_keyBuilder.idealStates(job).getPath(), AccessOption.PERSISTENT)
-            && !_baseAccessor.exists(oldPath, AccessOption.PERSISTENT) && !_baseAccessor
+        () -> !_baseAccessor.exists(oldPath, AccessOption.PERSISTENT) && !_baseAccessor
             .exists(newPath, AccessOption.PERSISTENT), 120000));
   }
 
-  private void checkForIdealStateAndContextRemoval(String workflow) throws Exception {
-    Assert.assertTrue(TestHelper.verify(() ->
-            !_baseAccessor.exists(_keyBuilder.idealStates(workflow).getPath(), AccessOption.PERSISTENT)
-                && !_baseAccessor
-                .exists(_keyBuilder.workflowContextZNode(workflow).getPath(), AccessOption.PERSISTENT),
+  private void checkForContextRemoval(String workflow) throws Exception {
+    Assert.assertTrue(TestHelper.verify(() -> !_baseAccessor
+            .exists(_keyBuilder.workflowContextZNode(workflow).getPath(), AccessOption.PERSISTENT),
         120000));
   }
 }

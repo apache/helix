@@ -68,8 +68,6 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
     Assert
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
-    Assert.assertNotNull(_manager.getClusterManagmentTool().getResourceIdealState(CLUSTER_NAME,
-        TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
 
     // The following force delete for the job should go through without getting an exception
     _driver.deleteJob(jobQueueName, "job2", true);
@@ -77,7 +75,5 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     // Check that the job has been force-deleted (fully gone from ZK)
     Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
     Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
-    Assert.assertNull(_manager.getClusterManagmentTool().getResourceIdealState(CLUSTER_NAME,
-        TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
   }
 }

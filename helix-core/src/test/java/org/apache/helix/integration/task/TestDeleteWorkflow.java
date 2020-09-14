@@ -63,7 +63,6 @@ public class TestDeleteWorkflow extends TaskTestBase {
     // queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
-    Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
 
     // Pause the Controller so that the job queue won't get deleted
     admin.enableCluster(CLUSTER_NAME, false);
@@ -84,7 +83,6 @@ public class TestDeleteWorkflow extends TaskTestBase {
     // Check that the deletion operation completed
     Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNull(_driver.getWorkflowContext(jobQueueName));
-    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
   }
 
   @Test
@@ -100,22 +98,18 @@ public class TestDeleteWorkflow extends TaskTestBase {
     _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
         TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
+    // Check that WorkflowConfig, WorkflowContext, JobConfig, and JobContext are indeed created for this job
     // queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
 
-    // Delete the idealstate of workflow
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuild = accessor.keyBuilder();
-    accessor.removeProperty(keyBuild.idealStates(jobQueueName));
-    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
-
-    // Attempt the deletion and and it should time out since idealstate does not exist anymore.
+    // Pause the Controller so that the job queue won't get deleted
+    admin.enableCluster(CLUSTER_NAME, false);
+    Thread.sleep(1000);
+    // Attempt the deletion and time out
     try {
       _driver.deleteAndWaitForCompletion(jobQueueName, DELETE_DELAY);
       Assert.fail(
@@ -123,7 +117,6 @@ public class TestDeleteWorkflow extends TaskTestBase {
     } catch (HelixException e) {
       // Pass
     }
-
     // delete forcefully
     _driver.delete(jobQueueName, true);
 
@@ -131,7 +124,6 @@ public class TestDeleteWorkflow extends TaskTestBase {
     Assert.assertNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
   }
 
   @Test
@@ -147,19 +139,16 @@ public class TestDeleteWorkflow extends TaskTestBase {
     _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job1"),
         TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this job
-    // queue
+    // Check that WorkflowConfig and WorkflowContext are indeed created for this job queue
     Assert.assertNotNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNotNull(_driver.getWorkflowContext(jobQueueName));
     Assert.assertNotNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNotNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
 
-    // Delete the idealstate, workflowconfig and context of workflow
+    // Delete the workflowconfig and context of workflow
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuild = accessor.keyBuilder();
-    accessor.removeProperty(keyBuild.idealStates(jobQueueName));
     accessor.removeProperty(keyBuild.resourceConfig(jobQueueName));
     accessor.removeProperty(keyBuild.workflowContext(jobQueueName));
 
@@ -169,15 +158,12 @@ public class TestDeleteWorkflow extends TaskTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Sometimes it's a ZK write fail - delete one more time to lower test failure rate
-    if (admin.getResourceIdealState(CLUSTER_NAME, jobQueueName) != null
-        || _driver.getWorkflowConfig(jobQueueName) != null
+    if (_driver.getWorkflowConfig(jobQueueName) != null
         || _driver.getWorkflowContext(jobQueueName) != null) {
-      accessor.removeProperty(keyBuild.idealStates(jobQueueName));
       accessor.removeProperty(keyBuild.resourceConfig(jobQueueName));
       accessor.removeProperty(keyBuild.workflowContext(jobQueueName));
     }
 
-    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME, jobQueueName));
     Assert.assertNull(_driver.getWorkflowConfig(jobQueueName));
     Assert.assertNull(_driver.getWorkflowContext(jobQueueName));
 
@@ -202,7 +188,5 @@ public class TestDeleteWorkflow extends TaskTestBase {
 
     Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
     Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
-    Assert.assertNull(admin.getResourceIdealState(CLUSTER_NAME,
-        TaskUtil.getNamespacedJobName(jobQueueName, "job1")));
   }
 }

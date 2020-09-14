@@ -84,6 +84,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
+      updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       cleanupWorkflow(workflow);
       return;
     }
@@ -126,6 +127,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Step 4: Handle finished workflows
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
       LOG.info("Workflow " + workflow + " is finished.");
+      updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       long expiryTime = workflowCfg.getExpiry();
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
@@ -149,19 +151,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       }
     }
 
-    // Update jobs already inflight
-    RuntimeJobDag runtimeJobDag = _clusterDataCache.getTaskDataCache().getRuntimeJobDag(workflow);
-    if (runtimeJobDag != null) {
-      for (String inflightJob : runtimeJobDag.getInflightJobList()) {
-        if (System.currentTimeMillis() >= workflowCtx.getJobStartTime(inflightJob)) {
-          processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
-        }
-      }
-    } else {
-      LOG.warn(String.format(
-          "Failed to find runtime job DAG for workflow %s, existing runtime jobs may not be processed correctly for it",
-          workflow));
-    }
+    updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
 
     // Step 5: handle workflow that should STOP
     // For workflows that have already reached final states, STOP should not take into effect.
@@ -185,6 +175,23 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
 
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
+  }
+
+  private void updateInflightJobs(String workflow, WorkflowContext workflowCtx,
+      CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleOutput) {
+    // Update jobs already inflight
+    RuntimeJobDag runtimeJobDag = _clusterDataCache.getTaskDataCache().getRuntimeJobDag(workflow);
+    if (runtimeJobDag != null) {
+      for (String inflightJob : runtimeJobDag.getInflightJobList()) {
+        if (System.currentTimeMillis() >= workflowCtx.getJobStartTime(inflightJob)) {
+          processJob(inflightJob, currentStateOutput, bestPossibleOutput, workflowCtx);
+        }
+      }
+    } else {
+      LOG.warn(String.format(
+          "Failed to find runtime job DAG for workflow %s, existing runtime jobs may not be processed correctly for it",
+          workflow));
+    }
   }
 
   public void assignWorkflow(String workflow, WorkflowConfig workflowCfg,
@@ -290,7 +297,6 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         // Time is not ready. Set a trigger and update the start time.
         // Check if the job is ready to be executed.
         if (System.currentTimeMillis() >= workflowCtx.getJobStartTime(job)) {
-          scheduleSingleJob(job, jobConfig);
           workflowCtx.setJobState(job, TaskState.NOT_STARTED);
           processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
           scheduledJobs++;
@@ -323,61 +329,17 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
   }
 
   /**
-   * Posts new job to cluster
+   * Jobs that are missing corresponding JobConfigs or WorkflowConfigs or WorkflowContexts need to
+   * be dropped
    */
-  private void scheduleSingleJob(String jobResource, JobConfig jobConfig) {
-    HelixAdmin admin = _manager.getClusterManagmentTool();
-
-    IdealState jobIS = admin.getResourceIdealState(_manager.getClusterName(), jobResource);
-    if (jobIS != null) {
-      LOG.info("Job " + jobResource + " idealstate already exists!");
-      return;
+  public void processJobForDrop(String resourceName, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput) {
+    JobConfig jobConfig = _clusterDataCache.getJobConfig(resourceName);
+    if (jobConfig == null || _clusterDataCache.getWorkflowConfig(jobConfig.getWorkflow()) == null
+        || _clusterDataCache.getWorkflowContext(jobConfig.getWorkflow()) == null) {
+      ResourceAssignment emptyAssignment = buildEmptyAssignment(resourceName, currentStateOutput);
+      updateBestPossibleStateOutput(resourceName, emptyAssignment, bestPossibleStateOutput);
     }
-
-    // Set up job resource based on partitions from target resource
-
-    // Create the UserContentStore for the job first
-    TaskUtil.createUserContent(_manager.getHelixPropertyStore(), jobResource,
-        new ZNRecord(TaskUtil.USER_CONTENT_NODE));
-
-    int numPartitions = jobConfig.getTaskConfigMap().size();
-    if (numPartitions == 0) {
-      IdealState targetIs =
-          admin.getResourceIdealState(_manager.getClusterName(), jobConfig.getTargetResource());
-      if (targetIs == null) {
-        LOG.warn("Target resource does not exist for job " + jobResource);
-        // do not need to fail here, the job will be marked as failure immediately when job starts
-        // running.
-      } else {
-        numPartitions = targetIs.getPartitionSet().size();
-      }
-    }
-
-    admin.addResource(_manager.getClusterName(), jobResource, numPartitions,
-        TaskConstants.STATE_MODEL_NAME);
-
-    // Push out new ideal state based on number of target partitions
-    IdealStateBuilder builder = new CustomModeISBuilder(jobResource);
-    builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
-    builder.setNumReplica(1);
-    builder.setNumPartitions(numPartitions);
-    builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
-
-    if (jobConfig.getInstanceGroupTag() != null) {
-      builder.setNodeGroup(jobConfig.getInstanceGroupTag());
-    }
-
-    if (jobConfig.isDisableExternalView()) {
-      builder.disableExternalView();
-    }
-
-    jobIS = builder.build();
-    for (int i = 0; i < numPartitions; i++) {
-      jobIS.getRecord().setListField(jobResource + "_" + i, new ArrayList<>());
-      jobIS.getRecord().setMapField(jobResource + "_" + i, new HashMap<>());
-    }
-    jobIS.setRebalancerClassName(JobRebalancer.class.getName());
-    admin.setResourceIdealState(_manager.getClusterName(), jobResource, jobIS);
   }
 
   /**

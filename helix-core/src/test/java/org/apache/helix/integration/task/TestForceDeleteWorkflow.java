@@ -102,8 +102,8 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
 
   @Test
   public void testDeleteCompletedWorkflowForcefully() throws Exception {
-    // Create a simple workflow and wait for its completion. Then delete the IdealState,
-    // WorkflowContext and WorkflowConfig using ForceDelete.
+    // Create a simple workflow and wait for its completion. Then delete the WorkflowContext and
+    // WorkflowConfig using ForceDelete.
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder builder = createCustomWorkflow(workflowName, SHORT_EXECUTION_TIME, "0");
     _driver.start(builder.build());
@@ -111,24 +111,20 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     // Wait until workflow is created and completed.
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
-    // workflow
+    // Check that WorkflowConfig and WorkflowContext are indeed created for this workflow
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
-    Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
 
     // Stop the Controller
     _controller.syncStop();
 
     _driver.delete(workflowName, true);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed deleted for this
-    // workflow.
+    // Check that WorkflowConfig and WorkflowContext are indeed deleted for this workflow.
     boolean isWorkflowDeleted = TestHelper.verify(() -> {
       WorkflowConfig wfcfg = _driver.getWorkflowConfig(workflowName);
       WorkflowContext wfctx = _driver.getWorkflowContext(workflowName);
-      IdealState is = _admin.getResourceIdealState(CLUSTER_NAME, workflowName);
-      return (wfcfg == null && wfctx == null && is == null);
+      return (wfcfg == null && wfctx == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
   }
@@ -136,7 +132,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   @Test(dependsOnMethods = "testDeleteCompletedWorkflowForcefully")
   public void testDeleteRunningWorkflowForcefully() throws Exception {
     // Create a simple workflow and wait until it reaches the Running state. Then delete the
-    // IdealState, WorkflowContext and WorkflowConfig using ForceDelete.
+    // WorkflowContext and WorkflowConfig using ForceDelete.
 
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -154,24 +150,20 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, "JOB0"),
         TaskState.IN_PROGRESS);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
-    // workflow
+    // Check that WorkflowConfig and WorkflowContext are indeed created for this workflow
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
-    Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
 
     // Stop the Controller
     _controller.syncStop();
 
     _driver.delete(workflowName, true);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed deleted for this
-    // workflow
+    // Check that WorkflowConfig and WorkflowContext are indeed deleted for this workflow.
     boolean isWorkflowDeleted = TestHelper.verify(() -> {
       WorkflowConfig wfcfg = _driver.getWorkflowConfig(workflowName);
       WorkflowContext wfctx = _driver.getWorkflowContext(workflowName);
-      IdealState is = _admin.getResourceIdealState(CLUSTER_NAME, workflowName);
-      return (wfcfg == null && wfctx == null && is == null);
+      return (wfcfg == null && wfctx == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
   }
@@ -179,7 +171,7 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
   @Test(dependsOnMethods = "testDeleteRunningWorkflowForcefully")
   public void testDeleteStoppedWorkflowForcefully() throws Exception {
     // Create a simple workflow. Stop the workflow and wait until it's fully stopped. Then delete
-    // the IdealState, WorkflowContext and WorkflowConfig using ForceDelete.
+    // the WorkflowContext and WorkflowConfig using ForceDelete.
 
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -210,24 +202,20 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
     }, 60 * 1000);
     Assert.assertTrue(areJobsStopped);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed created for this
-    // workflow.
+    // Check that WorkflowConfig and WorkflowContext are indeed created for this workflow.
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
-    Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
 
     // Stop the Controller
     _controller.syncStop();
 
     _driver.delete(workflowName, true);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed deleted for this
-    // workflow.
+    // Check that WorkflowConfig and WorkflowContext are indeed deleted for this workflow.
     boolean isWorkflowDeleted = TestHelper.verify(() -> {
       WorkflowConfig wfcfg = _driver.getWorkflowConfig(workflowName);
       WorkflowContext wfctx = _driver.getWorkflowContext(workflowName);
-      IdealState is = _admin.getResourceIdealState(CLUSTER_NAME, workflowName);
-      return (wfcfg == null && wfctx == null && is == null);
+      return (wfcfg == null && wfctx == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
   }
@@ -276,20 +264,17 @@ public class TestForceDeleteWorkflow extends TaskTestBase {
 
     Assert.assertNotNull(_driver.getWorkflowConfig(workflowName));
     Assert.assertNotNull(_driver.getWorkflowContext(workflowName));
-    Assert.assertNotNull(_admin.getResourceIdealState(CLUSTER_NAME, workflowName));
 
     // Stop the Controller.
     _controller.syncStop();
 
     _driver.delete(workflowName, true);
 
-    // Check that WorkflowConfig, WorkflowContext, and IdealState are indeed deleted for this
-    // workflow.
+    // Check that WorkflowConfig and WorkflowContext are indeed deleted for this workflow.
     boolean isWorkflowDeleted = TestHelper.verify(() -> {
       WorkflowConfig wfcfg = _driver.getWorkflowConfig(workflowName);
       WorkflowContext wfctx = _driver.getWorkflowContext(workflowName);
-      IdealState is = _admin.getResourceIdealState(CLUSTER_NAME, workflowName);
-      return (wfcfg == null && wfctx == null && is == null);
+      return (wfcfg == null && wfctx == null);
     }, 60 * 1000);
     Assert.assertTrue(isWorkflowDeleted);
   }

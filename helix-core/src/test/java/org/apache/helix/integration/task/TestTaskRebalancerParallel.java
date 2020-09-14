@@ -109,9 +109,8 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     for (int i = 0; i < PARALLEL_COUNT; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
       for (int j = 0; j < TASK_COUNT; j++) {
-        taskConfigs.add(
-            new TaskConfig.Builder().setTaskId("task_" + j).setCommand(MockTask.TASK_COMMAND)
-                .build());
+        taskConfigs.add(new TaskConfig.Builder().setTaskId("job_" + (i + 1) + "_task_" + j)
+            .setCommand(MockTask.TASK_COMMAND).build());
       }
       jobConfigBuilders.add(new JobConfig.Builder().addTaskConfigs(taskConfigs));
     }

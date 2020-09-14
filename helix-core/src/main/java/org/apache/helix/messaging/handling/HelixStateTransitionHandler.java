@@ -112,7 +112,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = isMessageStaled(false /*inSchedulerCheck*/);
+    Exception err = validateStaleMessage(false /*inSchedulerCheck*/);
 
     if (err != null) {
       _statusUpdateUtil
@@ -443,7 +443,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   // Verify the fromState and current state of the stateModel.
-  public Exception isMessageStaled(boolean inSchedulerCheck) {
+  public Exception validateStaleMessage(boolean inSchedulerCheck) {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();

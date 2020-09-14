@@ -250,11 +250,11 @@ public class TestHelixTaskExecutor {
       }
 
       @Override
-      public Exception isMessageStaled(boolean b) {
+      public Exception validateStaleMessage(boolean b) {
         if (!_testIsMessageStaled) {
           return null;
         } else {
-          return super.isMessageStaled(true);
+          return super.validateStaleMessage(true);
         }
 
       }
@@ -460,7 +460,7 @@ public class TestHelixTaskExecutor {
     Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
         0);
 
-    System.out.println("END TestHelixTaskExecutor.testDuplicatedMessage()");
+    System.out.println("END TestHelixTaskExecutor.testStaledMessage()");
   }
 
   @Test()

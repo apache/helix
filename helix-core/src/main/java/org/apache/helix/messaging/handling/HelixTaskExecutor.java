@@ -920,7 +920,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
           if (createHandler instanceof HelixStateTransitionHandler) {
             // We only check to state if there is no ST task scheduled/executing.
-            Exception err = ((HelixStateTransitionHandler) createHandler).isMessageStaled(true /*inSchedulerCheck*/);
+            Exception err = ((HelixStateTransitionHandler) createHandler).validateStaleMessage(true /*inSchedulerCheck*/);
             if (err != null) {
               throw err;
             }

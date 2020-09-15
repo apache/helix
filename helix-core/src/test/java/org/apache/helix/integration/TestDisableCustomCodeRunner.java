@@ -127,6 +127,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result);
 
+
     // Make sure callback is registered
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
@@ -159,7 +160,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     admin.enableResource(clusterName, customCodeRunnerResource, false);
 
     // Verify that states of custom-code runner are all OFFLINE
-    result = TestHelper.verify(() -> {
+    boolean result = TestHelper.verify(() -> {
       PropertyKey.Builder keyBuilder1 = accessor.keyBuilder();
 
       ExternalView extView1 =

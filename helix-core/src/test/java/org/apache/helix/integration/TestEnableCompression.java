@@ -120,7 +120,7 @@ public class TestEnableCompression extends ZkTestBase {
             .setExpectLiveInstances(expectedLiveInstances).setResources(expectedResources)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
-
+    
     boolean reuslt = verifier.verifyByPolling(ENABLE_COMPRESSION_WAIT, ENABLE_COMPRESSION_POLL_INTERVAL);
     Assert.assertTrue((reuslt));
 

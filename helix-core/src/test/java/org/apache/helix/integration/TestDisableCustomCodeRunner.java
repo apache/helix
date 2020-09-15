@@ -160,7 +160,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     admin.enableResource(clusterName, customCodeRunnerResource, false);
 
     // Verify that states of custom-code runner are all OFFLINE
-    boolean result = TestHelper.verify(() -> {
+    result = TestHelper.verify(() -> {
       PropertyKey.Builder keyBuilder1 = accessor.keyBuilder();
 
       ExternalView extView1 =

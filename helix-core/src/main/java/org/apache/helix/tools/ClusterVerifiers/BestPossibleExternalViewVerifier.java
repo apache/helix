@@ -239,9 +239,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   @Override
   protected synchronized boolean verifyState() {
     try {
-      if (_isLogMore) {
-        System.out.println("---- enter verifyState!");
-      }
       PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
 
       _dataProvider.requireFullRefresh();
@@ -254,9 +251,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       idealStates.entrySet()
           .removeIf(pair -> pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME));
 
-      if (_isLogMore) {
-        System.out.println("---- before verify instances !");
-      }
       // verify live instances.
       if (_expectLiveInstances != null && !_expectLiveInstances.isEmpty()) {
         Set<String> actualLiveNodes = _dataProvider.getLiveInstances().keySet();
@@ -267,9 +261,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
-      if (_isLogMore) {
-        System.out.println("---- before get extViews!");
-      }
       Map<String, ExternalView> extViews =
           _accessor.getChildValuesMap(keyBuilder.externalViews(), true);
       if (extViews == null) {
@@ -282,9 +273,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         extViews.keySet().retainAll(_resources);
       }
 
-      if (_isLogMore) {
-        System.out.println("---- before add empty idealstate if not there!");
-      }
       // if externalView is not empty and idealState doesn't exist
       // add empty idealState for the resource
       for (String resource : extViews.keySet()) {
@@ -296,17 +284,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
       }
 
-      if (_isLogMore) {
-        System.out.println("---- before calcualte bestPossOutput!");
-      }
       // calculate best possible state
       BestPossibleStateOutput bestPossOutput = calcBestPossState(_dataProvider, _resources);
       Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
           bestPossOutput.getStateMap();
 
-      if (_isLogMore) {
-        System.out.println("---- before set error states!");
-      }
       // set error states
       if (_errStates != null) {
         for (String resourceName : _errStates.keySet()) {
@@ -328,9 +310,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       }
 
       for (String resourceName : idealStates.keySet()) {
-        if (_isLogMore) {
-          System.out.println("---- Enter loop for resource " + resourceName);
-        }
         IdealState is = idealStates.get(resourceName);
         ExternalView extView = extViews.get(resourceName);
         if (extView == null) {

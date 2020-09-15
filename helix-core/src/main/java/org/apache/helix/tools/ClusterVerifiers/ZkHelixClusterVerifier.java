@@ -19,8 +19,6 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -50,10 +48,6 @@ public abstract class ZkHelixClusterVerifier
   private static Logger LOG = LoggerFactory.getLogger(ZkHelixClusterVerifier.class);
   protected static int DEFAULT_TIMEOUT = 300 * 1000;
   protected static int DEFAULT_PERIOD = 500;
-  // COOL_DOWN before starting vefiyByPool
-  // The goal is to make sure waiting for controller pipeline starts at least one cycle
-  // to update ideal state.
-  protected static int DEFAULT_COOLDOWN = 2 * 1000;
 
   protected final RealmAwareZkClient _zkClient;
   // true if ZkHelixClusterVerifier was instantiated with a RealmAwareZkClient, false otherwise
@@ -208,7 +202,6 @@ public abstract class ZkHelixClusterVerifier
     waitTillVerify();
 
     try {
-      Thread.sleep(DEFAULT_COOLDOWN);
       long start = System.currentTimeMillis();
       boolean success;
       do {
@@ -233,13 +226,6 @@ public abstract class ZkHelixClusterVerifier
    */
   public boolean verifyByPolling() {
     return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
-  }
-
-  protected boolean _isLogMore = false;
-
-  public boolean verifyByPolling(int timeout, int period,  boolean logMore) {
-    _isLogMore = logMore;
-    return verifyByPolling(timeout, period);
   }
 
   public void close() {
@@ -269,7 +255,7 @@ public abstract class ZkHelixClusterVerifier
         }
       }
     } catch (Exception e) {
-      LOG.error("Exception {} in verifier {}", e, e.getStackTrace());
+      LOG.error("Exception in verifier", e);
     }
 
     // clean up

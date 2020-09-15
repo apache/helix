@@ -631,11 +631,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       unregisterAllWorkflowsMonitor();
       unregisterAllJobs();
 
-      _liveInstances.clear();
-      _instances.clear();
-      _disabledInstances.clear();
-      _disabledPartitions.clear();
-      _oldDisabledPartitions.clear();
+      synchronized (_instanceMonitorMap) {
+        _liveInstances.clear();
+        _instances.clear();
+        _disabledInstances.clear();
+        _disabledPartitions.clear();
+        _oldDisabledPartitions.clear();
+      }
       _rebalanceFailure = false;
       _maxInstanceMsgQueueSize.set(0L);
       _totalPastDueMsgSize.set(0L);

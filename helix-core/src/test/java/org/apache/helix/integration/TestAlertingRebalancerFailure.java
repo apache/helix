@@ -43,6 +43,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
@@ -118,18 +119,25 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
 
   @Test
   public void testParticipantUnavailable() throws Exception {
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
+    IdealState idealState = new FullAutoModeISBuilder(testDb)
+        .setStateModel(BuiltInStateModelDefinitions.MasterSlave.name())
+        .setStateModelFactoryName("DEFAULT").setNumPartitions(5).setNumReplica(3)
+        .setRebalancerMode(IdealState.RebalanceMode.FULL_AUTO)
+        .setRebalancerClass("org.apache.helix.controller.rebalancer.DelayedAutoRebalancer")
+        .setRebalanceStrategy(
+            "org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy").build();
+
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, idealState);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
-    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setResources(new HashSet<>(Collections.singleton(testDb))).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // disable then enable the resource to ensure no rebalancing error is generated during this
     // process
     _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, testDb);
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, idealState);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verifyByPolling());
 

@@ -920,10 +920,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
           if (createHandler instanceof HelixStateTransitionHandler) {
             // We only check to state if there is no ST task scheduled/executing.
-            Exception err = ((HelixStateTransitionHandler) createHandler).validateStaleMessage(true /*inSchedulerCheck*/);
-            if (err != null) {
-              throw err;
-            }
+            ((HelixStateTransitionHandler) createHandler).precheckForStaleMessage();
           }
           if (stateTransitionHandlers.containsKey(messageTarget)) {
             // If there are 2 messages in same batch about same partition's state transition,
@@ -946,7 +943,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           nonStateTransitionContexts.add(msgWorkingContext);
         }
       } catch (Exception e) {
-        LOG.error("Failed to create message handler for " + message.getMsgId(), e);
+        LOG.error("Message " + message.getMsgId() + " cannot be processed: " + message.getRecord(),
+            e);
         String error =
             "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
 
@@ -954,7 +952,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
         message.setMsgState(MessageState.UNPROCESSABLE);
         removeMessageFromZK(accessor, message, instanceName);
-        LOG.error("Message cannot be processed: " + message.getRecord(), e);
         _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }

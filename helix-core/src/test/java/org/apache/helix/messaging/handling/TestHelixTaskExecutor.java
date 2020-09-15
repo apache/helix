@@ -250,13 +250,10 @@ public class TestHelixTaskExecutor {
       }
 
       @Override
-      public Exception validateStaleMessage(boolean b) {
-        if (!_testIsMessageStaled) {
-          return null;
-        } else {
-          return super.validateStaleMessage(true);
+      public void precheckForStaleMessage() throws Exception {
+        if (_testIsMessageStaled) {
+          super.precheckForStaleMessage();
         }
-
       }
     }
 

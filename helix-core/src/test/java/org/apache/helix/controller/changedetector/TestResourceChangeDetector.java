@@ -425,7 +425,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     }
   }
 
-  static final int WAIT_TIME = 20 * 60 * 1000;
+  static final int WAIT_TIME = 30 * 60 * 1000;
   @Test(dependsOnMethods = "testIgnoreNonTopologyChanges", timeOut = 30 * 60 * 1000)
   public void testResetSnapshots() {
     // ensure the cluster converged before the test to ensure IS is not modified unexpectedly

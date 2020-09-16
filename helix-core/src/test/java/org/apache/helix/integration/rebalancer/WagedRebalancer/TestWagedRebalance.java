@@ -391,7 +391,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-
     // Verify if the partitions get assigned
     validate(2);
 

@@ -32,7 +32,10 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestEnqueueJobs extends TaskTestBase {
@@ -41,6 +44,21 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
+  }
+
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext) {
+    long startTime = System.currentTimeMillis();
+    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    testContext.setAttribute("StartTime", System.currentTimeMillis());
+  }
+
+  @AfterMethod
+  public void endTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    long endTime = System.currentTimeMillis();
+    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+        + (endTime - startTime) + "ms.");
   }
 
   @Test
@@ -131,7 +149,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test
+  @Test(timeOut = 20 * 60 * 1000)
   public void testQueueParallelJobs() throws InterruptedException {
     final int parallelJobs = 3;
     final int numberOfJobsAddedBeforeControllerSwitch = 4;
@@ -165,6 +183,7 @@ public class TestEnqueueJobs extends TaskTestBase {
           TaskState.COMPLETED);
     }
 
+    System.out.println("Before stop controller");
     // Stop the Controller
     _controller.syncStop();
 
@@ -177,6 +196,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
+    System.out.println("before start controller");
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
@@ -188,6 +208,7 @@ public class TestEnqueueJobs extends TaskTestBase {
           TaskState.COMPLETED);
     }
 
+    System.out.println("after the poll");
     // Make sure the jobs have been running in parallel by checking the jobs start time and finish
     // time
     long maxStartTime = Long.MIN_VALUE;
@@ -202,7 +223,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     Assert.assertTrue(minFinishTime > maxStartTime);
   }
 
-  @Test
+  @Test(timeOut = 20 * 60 * 1000)
   public void testQueueJobsMaxCapacity() throws InterruptedException {
     final int numberOfJobsAddedInitially = 4;
     final int queueCapacity = 5;
@@ -231,12 +252,14 @@ public class TestEnqueueJobs extends TaskTestBase {
 
     _driver.resume(queueName);
 
+    System.out.println("before the polls");
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
           TaskState.COMPLETED);
     }
 
+    System.out.println("before enqueue for exception");
     boolean exceptionHappenedWhileAddingNewJob = false;
     try {
       // This call will produce the exception because 4 jobs have been already added
@@ -247,6 +270,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     Assert.assertTrue(exceptionHappenedWhileAddingNewJob);
 
+    System.out.println("after the exception");
     // Make sure that jobConfig has not been created
     JobConfig jobConfig =
         _driver.getJobConfig(TaskUtil.getNamespacedJobName(queueName, newJobName));

@@ -106,7 +106,11 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       createResourceWithDelayedRebalance(CLUSTER_NAME, db,
           BuiltInStateModelDefinitions.MasterSlave.name(), _PARTITIONS, 3, 3, -1);
     }
+<<<<<<< HEAD
 
+=======
+    // Thread.sleep(100);
+>>>>>>> 368c41dfa... first batch with waitTillVerify in bestpossible
     Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 

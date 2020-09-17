@@ -126,8 +126,6 @@ public class ZkClient implements Watcher {
   private PathBasedZkSerializer _pathBasedZkSerializer;
   private ZkClientMonitor _monitor;
 
-  private AtomicBoolean _syncDone = new AtomicBoolean(false);
-
   // To automatically retry the async operation, we need a separate thread other than the
   // ZkEventThread. Otherwise the retry request might block the normal event processing.
   protected final ZkAsyncRetryThread _asyncCallRetryThread;
@@ -236,6 +234,7 @@ public class ZkClient implements Watcher {
     }
 
     connect(connectionTimeout, this);
+
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -1279,10 +1278,6 @@ public class ZkClient implements Watcher {
         });
   }
 
-  @VisibleForTesting
-  public boolean getSyncStatus() {
-    return _syncDone.get();
-  }
 
   /*
    *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
@@ -1308,7 +1303,6 @@ public class ZkClient implements Watcher {
 
     KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
     if (code == KeeperException.Code.OK) {
-      _syncDone.set(true);
       LOG.info("sycnOnNewSession with sessionID {} async return code: {} and proceeds", sessionId,
           code);
       return true;
@@ -1327,7 +1321,6 @@ public class ZkClient implements Watcher {
 
     if (SYNC_ON_SESSION) {
       final ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
-      _syncDone.set(false);
       _eventThread.send(new ZkEventThread.ZkEvent("Sync call before new session event of session " + sessionId,
           sessionId) {
         @Override
@@ -2157,18 +2150,22 @@ public class ZkClient implements Watcher {
 
       IZkConnection zkConnection = getConnection();
       _eventThread = new ZkEventThread(zkConnection.getServers());
-      _eventThread.start();
-
-      LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
 
       if (_monitor != null) {
         _monitor.setAndInitZkEventThreadMonitor(_eventThread);
-        try {
-          _monitor.register();
-        } catch (JMException e) {
-          LOG.error("Error in creating ZkClientMonitor {}!", e);
-        }
       }
+
+      try {
+        if (_monitor != null) {
+          _monitor.register();
+        }
+      } catch (JMException e){
+        LOG.error("Error in creating ZkClientMonitor", e);
+      }
+
+      _eventThread.start();
+
+      LOG.debug("ZkClient created with _uid {}, _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
         zkConnection.connect(watcher);

@@ -288,21 +288,17 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
-    // account for doAsyncSync()
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
-
-    // Note, we need to wait here for the reason that doAsyncSync() blocks only the zkClient event thread. The main
-    // thread of zkClient would issue exits(TEST_ROOT) without blocking. The return of doAsyncSync() would be asyc
-    // to main thread. doAsyncSync() is a source of 1 read and main thread exists(TEST_ROOT) would be another.
-    TestHelper.verify(()->{
-      return ((org.apache.helix.zookeeper.zkclient.ZkClient)zkClient).getSyncStatus();
-    }, TestHelper.WAIT_DURATION);
-
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 1);
 
     zkClient.exists(TEST_ROOT);
 
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
+    // Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
+    // wait for both doAysncSync() finish and zkClient.exists(Test_ROOT) finish from 2 different threads.
+    // The condition would be ReadCounter is 2.
+    boolean verifyResult = TestHelper.verify(()->{
+       return (long) beanServer.getAttribute(rootname, "ReadCounter") == 2;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(verifyResult, " did not see 2 read yet");
+
     Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter") >= 0);
     Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max") >= 0);
 

@@ -103,7 +103,7 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
     JobContext jobContext =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
     for (int pId : jobContext.getPartitionSet()) {
-      // All tasks aborted because of job timeout
+      // All tasks aborted because of job timeout 
       Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
     }
   }

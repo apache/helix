@@ -22,14 +22,19 @@ package org.apache.helix.rest.server;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.ServletType;
+import org.apache.helix.rest.metrics.JmxReporter;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
@@ -160,6 +165,25 @@ public class HelixRestServer {
     cfg.register(new CORSFilter());
     cfg.register(new AuditLogFilter(_auditLoggers));
     return cfg;
+  }
+
+  /*
+   * Initialize metric registry and jmx reporter for each namespace.
+   */
+  private void initMetricRegistry(ResourceConfig cfg, String namespace) {
+    MetricRegistry metricRegistry = new MetricRegistry();
+    cfg.register(new InstrumentedResourceMethodApplicationListener(metricRegistry));
+    SharedMetricRegistries.add(namespace, metricRegistry);
+
+    // Add namespace key property to mbean object name
+    Hashtable<String, String> keyProperties = new Hashtable<String, String>() {{
+      put("namespace", namespace);
+    }};
+
+    JmxReporter.forRegistry(metricRegistry)
+        .withKeyProperties(keyProperties)
+        .build()
+        .start();
   }
 
   private void initServlet(ResourceConfig cfg, String servletPathSpec) {

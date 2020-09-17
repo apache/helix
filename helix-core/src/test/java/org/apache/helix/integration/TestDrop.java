@@ -267,10 +267,6 @@ public class TestDrop extends ZkTestBase {
         "--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"
     });
 
-<<<<<<< HEAD
-=======
-    // Thread.sleep(100L);
->>>>>>> e34dab535... second batch of waitTillVerify from bestpossible
     // make sure TestDB0_4 stay in ERROR state and is disabled
     Assert.assertTrue(verifier.verifyByPolling());
 

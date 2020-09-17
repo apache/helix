@@ -168,7 +168,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
     participants[1].getStateMachineEngine().registerStateModelFactory("Bootstrap",
         new BootstrapStateModelFactory());
     participants[1].syncStart();
-    
+
     result = verifier.verify();
     Assert.assertTrue(result);
 

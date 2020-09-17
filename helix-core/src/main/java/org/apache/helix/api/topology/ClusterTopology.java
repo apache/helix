@@ -36,11 +36,12 @@ import org.apache.helix.model.TrieNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.helix.model.ClusterTrie.CONNECTOR;
+import static org.apache.helix.model.ClusterTrie.DELIMITER;
+
 
 public class ClusterTopology {
   private static Logger logger = LoggerFactory.getLogger(ClusterTopology.class);
-  private static final String DELIMITER = "/";
-  private static final String CONNECTOR = ":";
 
   private final ClusterTrie _trieClusterTopology;
 
@@ -56,7 +57,7 @@ public class ClusterTopology {
    * ["/group:0": {"/zone:0/rack:0/host:0", "/zone:1/rack:1/host:1"}], ["/group:1": {"/zone:1
    * /rack:1/host:1", "/zone:1/rack:1/host:2"}]}
    */
-  public Map<String, List<String>> getAllTopology() {
+  public Map<String, List<String>> getTopologyMap() {
     return getTopologyUnderDomain(new HashMap<>());
   }
 
@@ -67,7 +68,7 @@ public class ClusterTopology {
    * @return , e.g. if the fault zone is "zone", it may return {["/group:0/zone:0": {"rack:0/host
    * :0", "rack:1/host:1"}, ["/group:0/zone:1": {"/rack:0:host:2", "/rack:1/host:3"}]}
    */
-  public Map<String, List<String>> getInstancesUnderFaultZone() {
+  public Map<String, List<String>> getFaultZoneMap() {
     String faultZone = _trieClusterTopology.getFaultZoneType();
     if (faultZone == null) {
       throw new IllegalArgumentException("The fault zone in cluster config is not defined");
@@ -112,7 +113,7 @@ public class ClusterTopology {
   private Map<String, List<String>> getTopologyUnderDomainType(String domainType) {
     String[] topologyKeys = _trieClusterTopology.getTopologyKeys();
     if (domainType.equals(topologyKeys[0])) {
-      return getAllTopology();
+      return getTopologyMap();
     }
     Map<String, List<String>> results = new HashMap<>();
     String parentDomainType = null;

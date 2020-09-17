@@ -30,6 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
@@ -356,17 +357,7 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public Map<String, List<String>> getAllTopology(String clusterName) {
-    return null;
-  }
-
-  @Override
-  public Map<String, List<String>> getInstancesUnderFaultZone(String clusterName) {
-    return null;
-  }
-
-  @Override
-  public List<String> getInvalidInstances(String clusterName) {
+  public ClusterTopology getClusterTopology(String clusterName) {
     return null;
   }
 

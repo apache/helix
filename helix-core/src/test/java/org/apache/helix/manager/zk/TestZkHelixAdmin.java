@@ -45,6 +45,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
@@ -896,22 +897,23 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       admin.enableInstance(clusterName, instanceName, true);
     }
 
-    Map<String, List<String>> results = admin.getAllTopology(clusterName);
-    Assert.assertNotNull(results);
+    ClusterTopology clusterTopology = admin.getClusterTopology(clusterName);
+    Assert.assertNotNull(clusterTopology);
+    Map<String, List<String>> results = clusterTopology.getTopologyMap();
     Assert.assertEquals(results.size(), 2);
     Assert.assertTrue(results.containsKey("/group:mygroup0"));
     Assert.assertTrue(results.containsKey("/group:mygroup1"));
     Assert.assertEquals(results.get("/group:mygroup0").size(), 20);
     Assert.assertEquals(results.get("/group:mygroup1").size(), 20);
 
-    results = admin.getInstancesUnderFaultZone(clusterName);
+    results = clusterTopology.getFaultZoneMap();
     Assert.assertEquals(results.size(), 4);
     Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").size(), 10);
     Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").contains("/host"
         + ":myhost0"));
 
-    Assert.assertEquals(admin.getInvalidInstances(clusterName).size(), 2);
-    Assert.assertTrue(admin.getInvalidInstances(clusterName)
+    Assert.assertEquals(clusterTopology.getInvalidInstances().size(), 2);
+    Assert.assertTrue(clusterTopology.getInvalidInstances()
         .containsAll(new HashSet<>(Arrays.asList("myhost40_9999", "myhost41_9999"))));
   }
 

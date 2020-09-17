@@ -1167,24 +1167,27 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public Map<String, List<String>> getAllTopology(String clusterName) {
-    logger.info("Get cluster topology for cluster {}.", clusterName);
-    ClusterTopology clusterTopology = getClusterTopology(clusterName);
-    return clusterTopology.getAllTopology();
-  }
+  public ClusterTopology getClusterTopology(String clusterName) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    String path = PropertyPathBuilder.instanceConfig(clusterName);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
+    for (ZNRecord record : znRecords) {
+      if (record != null) {
+        InstanceConfig instanceConfig = new InstanceConfig(record);
+        instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
+      }
+    }
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances(), true);
+    List<String> liveNodes = new ArrayList<>();
+    liveInstances.forEach(liveInstance -> liveNodes.add(liveInstance.getInstanceName()));
 
-  @Override
-  public Map<String, List<String>> getInstancesUnderFaultZone(String clusterName) {
-    logger.info("Get instances for cluster {}, under cluster fault zone type.", clusterName);
-    ClusterTopology clusterTopology = getClusterTopology(clusterName);
-    return clusterTopology.getInstancesUnderFaultZone();
-  }
-
-  @Override
-  public List<String> getInvalidInstances(String clusterName) {
-    logger.info("Get instances whose domain config is not valid for cluster {}", clusterName);
-    ClusterTopology clusterTopology = getClusterTopology(clusterName);
-    return clusterTopology.getInvalidInstances();
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    return new ClusterTopology(liveNodes, instanceConfigMap, clusterConfig);
   }
 
   @Override
@@ -2058,28 +2061,5 @@ public class ZKHelixAdmin implements HelixAdmin {
           createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
               _zkAddress), false);
     }
-  }
-
-  private ClusterTopology getClusterTopology(String clusterName) {
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
-    String path = PropertyPathBuilder.instanceConfig(clusterName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
-    for (ZNRecord record : znRecords) {
-      if (record != null) {
-        InstanceConfig instanceConfig = new InstanceConfig(record);
-        instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
-      }
-    }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances(), true);
-    List<String> liveNodes = new ArrayList<>();
-    liveInstances.forEach(liveInstance -> liveNodes.add(liveInstance.getInstanceName()));
-
-    ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    return new ClusterTopology(liveNodes, instanceConfigMap, clusterConfig);
   }
 }

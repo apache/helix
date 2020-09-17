@@ -37,10 +37,10 @@ import org.slf4j.LoggerFactory;
  * represents an instance in the cluster.
  */
 public class ClusterTrie {
-  private static Logger logger = LoggerFactory.getLogger(ClusterTrie.class);
-  private static final String DELIMITER = "/";
-  private static final String CONNECTOR = ":";
+  public static final String DELIMITER = "/";
+  public static final String CONNECTOR = ":";
 
+  private static Logger logger = LoggerFactory.getLogger(ClusterTrie.class);
   private TrieNode _rootNode;
   private String[] _topologyKeys;
   private String _faultZoneType;

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -426,19 +427,7 @@ public interface HelixAdmin {
    * Get the topology of a specific cluster
    * @param clusterName
    */
-  Map<String, List<String>> getAllTopology(String clusterName);
-
-  /**
-   * Get all the instances under the fault zone
-   * @param clusterName
-   */
-  Map<String, List<String>> getInstancesUnderFaultZone(String clusterName);
-
-  /**
-   * Get all the instances whose domain config is not valid
-   * @param clusterName
-   */
-  List<String> getInvalidInstances(String clusterName);
+  ClusterTopology getClusterTopology(String clusterName);
 
   /**
    * Get a list of state model definitions in a cluster

@@ -127,7 +127,6 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result);
 
-
     // Make sure callback is registered
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);

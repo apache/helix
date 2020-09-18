@@ -19,6 +19,8 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -221,18 +223,27 @@ public class TestTaskRebalancer extends TaskTestBase {
     _driver.createQueue(queue);
 
     // Enqueue jobs
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     Set<String> master = Sets.newHashSet("MASTER");
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
-    _driver.enqueueJob(queueName, "masterJob", job1);
-    _driver.enqueueJob(queueName, "slaveJob", job2);
+    jobNames.add("masterJob");
+    jobNames.add("slaveJob");
+    jobBuilders.add(job1);
+    jobBuilders.add(job2);
+    //_driver.enqueueJob(queueName, "masterJob", job1);
+    //_driver.enqueueJob(queueName, "slaveJob", job2);
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
+
+    // change back to 5 minutes
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);

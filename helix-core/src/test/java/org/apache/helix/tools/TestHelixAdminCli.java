@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.sun.source.tree.AssertTree;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -76,7 +75,7 @@ public class TestHelixAdminCli extends ZkTestBase {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("ClusterSetup should fail since /ClusterTest is not a valid name");
     } catch (Exception e) {
-      // OK
+      //  OK
     }
 
     // Add the grand cluster

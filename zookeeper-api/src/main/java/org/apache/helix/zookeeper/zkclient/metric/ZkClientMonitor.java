@@ -118,7 +118,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     if (_zkEventThreadMetric == null) {
       _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
       return true;
-    } 
+    }
     return false;
   }
 
@@ -135,7 +135,9 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     doRegister(attributeList, MBEAN_DESCRIPTION,
         getObjectName(_monitorType, _monitorKey, _monitorInstanceName));
     for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
-      _zkClientPathMonitorMap.get(path).register();
+      if (_zkClientPathMonitorMap.get(path) != null)  {
+        _zkClientPathMonitorMap.get(path).register();
+      }
     }
     return this;
   }

@@ -57,6 +57,8 @@ import org.slf4j.LoggerFactory;
  * <a href="https://github.com/dropwizard/metrics/blob/master/metrics-core/src/main/java/io/
  * dropwizard/metrics/JmxReporter.java">JmxReporter</a>
  * </pre>
+ * <p>
+ * It is recommended to be only used within Helix Rest.
  */
 public class JmxReporter implements Reporter, Closeable {
   /**
@@ -710,6 +712,12 @@ public class JmxReporter implements Reporter, Closeable {
       }
     }
 
+    /*
+     * Create an object name that must have "type" and "name" keys.
+     * And flexibly, extra keys can be added within keyProperties.
+     * Eg. object name: "org.apache.helix.rest:name=requests-count,type=counters,
+     * namespace=myNamespace"
+     */
     private ObjectName createName(String type, String name,
         Hashtable<String, String> keyProperties) {
       keyProperties.put(REST_JMX_TYPE_KEY, type);

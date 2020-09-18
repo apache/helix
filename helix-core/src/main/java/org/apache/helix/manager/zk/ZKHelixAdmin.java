@@ -1178,13 +1178,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
       }
     }
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances(), true);
-    List<String> liveNodes = new ArrayList<>();
-    liveInstances.forEach(liveInstance -> liveNodes.add(liveInstance.getInstanceName()));
-
+    path = PropertyPathBuilder.liveInstance(clusterName);
+    List<String> liveNodes = baseAccessor.getChildNames(path, 0);
     ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
     return new ClusterTopology(liveNodes, instanceConfigMap, clusterConfig);

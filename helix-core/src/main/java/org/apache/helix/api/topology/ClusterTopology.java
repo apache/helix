@@ -21,6 +21,7 @@ package org.apache.helix.api.topology;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,7 +47,7 @@ public class ClusterTopology {
   private final ClusterTrie _trieClusterTopology;
 
   public ClusterTopology(final List<String> liveNodes,
-      final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
+      final Map<String, InstanceConfig> instanceConfigMap, final ClusterConfig clusterConfig) {
     _trieClusterTopology = new ClusterTrie(liveNodes, instanceConfigMap, clusterConfig);
   }
 
@@ -58,7 +59,7 @@ public class ClusterTopology {
    * /rack:1/host:1", "/zone:1/rack:1/host:2"}]}
    */
   public Map<String, List<String>> getTopologyMap() {
-    return getTopologyUnderDomain(new HashMap<>());
+    return getTopologyUnderDomain(Collections.emptyMap());
   }
 
   /**
@@ -87,13 +88,13 @@ public class ClusterTopology {
    * Return the topology under a certain domain as a map. The key of the returned map is the next
    * level domain, and the value is a list of string that represents the path to each end node in
    * that domain.
-   * @param domain A map defining the domain name and its value, e.g. {["group": "1"], ["zone",
+   * @param domainMap A map defining the domain name and its value, e.g. {["group": "1"], ["zone",
    *               "2"]}
    * @return the topology under the given domain, e.g. {["/group:1/zone:2/rack:0": {"/host:0",
    * "/host:1"}, ["/group:1/zone:2/rack:1": {"/host:2", "/host:3"}]}
    */
-  private Map<String, List<String>> getTopologyUnderDomain(Map<String, String> domain) {
-    LinkedHashMap<String, String> orderedDomain = validateAndOrderDomain(domain);
+  private Map<String, List<String>> getTopologyUnderDomain(Map<String, String> domainMap) {
+    LinkedHashMap<String, String> orderedDomain = validateAndOrderDomain(domainMap);
     TrieNode startNode = getStartNode(orderedDomain);
     Map<String, TrieNode> children = startNode.getChildren();
     Map<String, List<String>> results = new HashMap<>();
@@ -150,18 +151,18 @@ public class ClusterTopology {
    * /group/zone/rack/instance, and domain is provided as {["zone": "1"], ["group", "2"]} will be
    * reordered in a LinkedinHashMap as {["group", "2"], ["zone": "1"]}
    */
-  private LinkedHashMap<String, String> validateAndOrderDomain(Map<String, String> domain) {
+  private LinkedHashMap<String, String> validateAndOrderDomain(Map<String, String> domainMap) {
     LinkedHashMap<String, String> orderedDomain = new LinkedHashMap<>();
-    if (domain == null) {
+    if (domainMap == null) {
       throw new IllegalArgumentException("The domain should not be null");
     }
     String[] topologyKeys = _trieClusterTopology.getTopologyKeys();
-    for (int i = 0; i < domain.size(); i++) {
-      if (!domain.containsKey(topologyKeys[i])) {
+    for (int i = 0; i < domainMap.size(); i++) {
+      if (!domainMap.containsKey(topologyKeys[i])) {
         throw new IllegalArgumentException(String
             .format("The input domain is not valid, the key %s is required", topologyKeys[i]));
       } else {
-        orderedDomain.put(topologyKeys[i], domain.get(topologyKeys[i]));
+        orderedDomain.put(topologyKeys[i], domainMap.get(topologyKeys[i]));
       }
     }
     return orderedDomain;
@@ -204,10 +205,10 @@ public class ClusterTopology {
     return resultMap;
   }
 
-  private TrieNode getStartNode(LinkedHashMap<String, String> domain) {
+  private TrieNode getStartNode(LinkedHashMap<String, String> domainMap) {
     TrieNode curNode = _trieClusterTopology.getRootNode();
     TrieNode nextNode;
-    for (Map.Entry<String, String> entry : domain.entrySet()) {
+    for (Map.Entry<String, String> entry : domainMap.entrySet()) {
       nextNode = curNode.getChildren().get(entry.getKey() + CONNECTOR + entry.getValue());
       if (nextNode == null) {
         throw new IllegalArgumentException(String
@@ -219,14 +220,14 @@ public class ClusterTopology {
     return curNode;
   }
 
-  private List<TrieNode> getStartNodes(String domain) {
+  private List<TrieNode> getStartNodes(String domainType) {
     List<TrieNode> results = new ArrayList<>();
     TrieNode curNode = _trieClusterTopology.getRootNode();
     Deque<TrieNode> nodeStack = new ArrayDeque<>();
     nodeStack.push(curNode);
     while (!nodeStack.isEmpty()) {
       curNode = nodeStack.pop();
-      if (curNode.getDomainType().equals(domain)) {
+      if (curNode.getNodeKey().equals(domainType)) {
         results.add(curNode);
       } else {
         for (TrieNode child : curNode.getChildren().values()) {

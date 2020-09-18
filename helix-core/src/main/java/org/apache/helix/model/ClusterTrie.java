@@ -49,11 +49,12 @@ public class ClusterTrie {
   public ClusterTrie(final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     validateInstanceConfig(liveNodes, instanceConfigMap);
-    validateClusterConfig(clusterConfig);
+    _topologyKeys = getTopologyDef(clusterConfig);
     _faultZoneType = clusterConfig.getFaultZoneType();
-    _rootNode = constructTrie(instanceConfigMap);
+    _invalidInstances = getInvalidInstancesFromConfig(instanceConfigMap, _topologyKeys);
+    instanceConfigMap.keySet().removeAll(_invalidInstances);
+    _rootNode = constructTrie(instanceConfigMap, _topologyKeys);
   }
-
 
   public TrieNode getRootNode() {
     return _rootNode;
@@ -71,26 +72,6 @@ public class ClusterTrie {
     return _invalidInstances;
   }
 
-  private void removeInvalidInstanceConfig(Map<String, InstanceConfig> instanceConfigMap) {
-    for (String instanceName : instanceConfigMap.keySet()) {
-      try {
-        Map<String, String> domainAsMap = instanceConfigMap.get(instanceName).getDomainAsMap();
-        for (String key : _topologyKeys) {
-          String value = domainAsMap.get(key);
-          if (value == null || value.length() == 0) {
-            logger.info(String.format("Domain %s for instance %s is not set", domainAsMap.get(key),
-                instanceName));
-            _invalidInstances.add(instanceName);
-            break;
-          }
-        }
-      } catch (IllegalArgumentException e) {
-        _invalidInstances.add(instanceName);
-      }
-    }
-    _invalidInstances.forEach(entry -> instanceConfigMap.remove(entry));
-  }
-
   private void validateInstanceConfig(final List<String> liveNodes,
       final Map<String, InstanceConfig> instanceConfigMap) {
     if (instanceConfigMap == null || !instanceConfigMap.keySet().containsAll(liveNodes)) {
@@ -102,31 +83,55 @@ public class ClusterTrie {
     }
   }
 
+  private List<String> getInvalidInstancesFromConfig(Map<String, InstanceConfig> instanceConfigMap,
+      final String[] topologyKeys) {
+    List<String> invalidInstances = new ArrayList<>();
+    for (String instanceName : instanceConfigMap.keySet()) {
+      try {
+        Map<String, String> domainAsMap = instanceConfigMap.get(instanceName).getDomainAsMap();
+        for (String key : topologyKeys) {
+          String value = domainAsMap.get(key);
+          if (value == null || value.length() == 0) {
+            logger.info(String.format("Domain %s for instance %s is not set", domainAsMap.get(key),
+                instanceName));
+            invalidInstances.add(instanceName);
+            break;
+          }
+        }
+      } catch (IllegalArgumentException e) {
+        invalidInstances.add(instanceName);
+      }
+    }
+    return invalidInstances;
+  }
+
   // Note that we do not validate whether topology-aware is enabled or fault zone type is
   // defined, as they do not block the construction of the trie
-  private void validateClusterConfig(ClusterConfig clusterConfig) {
-    String topologyDef = clusterConfig.getTopology();
-    if (topologyDef == null) {
+  private String[] getTopologyDef(ClusterConfig clusterConfig) {
+    String[] topologyDef;
+    String topologyDefInConfig = clusterConfig.getTopology();
+    if (topologyDefInConfig == null) {
       throw new HelixException(String.format("The topology of cluster %s is empty!",
           clusterConfig.getClusterName()));
     }
     // A list of all keys in cluster topology, e.g., a cluster topology defined as
     // /group/zone/rack/host will return ["group", "zone", "rack", "host"].
-    _topologyKeys = Arrays.asList(topologyDef.trim().split(DELIMITER)).stream()
+    topologyDef = Arrays.asList(topologyDefInConfig.trim().split(DELIMITER)).stream()
         .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
-    if (_topologyKeys.length == 0) {
+    if (topologyDef.length == 0) {
       throw new HelixException(String.format("The topology of cluster %s is not correctly defined",
           clusterConfig.getClusterName()));
     }
+    return topologyDef;
   }
 
   /**
    * Constructs a trie based on the provided instance config map. It loops through all instance
    * configs and constructs the trie in a top down manner.
    */
-  private TrieNode constructTrie(Map<String, InstanceConfig> instanceConfigMap) {
-    TrieNode rootNode = new TrieNode(new HashMap<>(), "", "ROOT");
-    removeInvalidInstanceConfig(instanceConfigMap);
+  private TrieNode constructTrie(Map<String, InstanceConfig> instanceConfigMap,
+      final String[] topologyKeys) {
+    TrieNode rootNode = new TrieNode("", "ROOT");
     Map<String, Map<String, String>> instanceDomainsMap = new HashMap<>();
     instanceConfigMap.entrySet().forEach(
         entry -> instanceDomainsMap.put(entry.getKey(), entry.getValue().getDomainAsMap()));
@@ -134,12 +139,12 @@ public class ClusterTrie {
     for (Map.Entry<String, Map<String, String>> entry : instanceDomainsMap.entrySet()) {
       TrieNode curNode = rootNode;
       String path = "";
-      for (int i = 0; i < _topologyKeys.length; i++) {
-        String key = _topologyKeys[i] + CONNECTOR + entry.getValue().get(_topologyKeys[i]);
+      for (int i = 0; i < topologyKeys.length; i++) {
+        String key = topologyKeys[i] + CONNECTOR + entry.getValue().get(topologyKeys[i]);
         path = path + DELIMITER + key;
         TrieNode nextNode = curNode.getChildren().get(key);
         if (nextNode == null) {
-          nextNode = new TrieNode(new HashMap<>(), path, _topologyKeys[i]);
+          nextNode = new TrieNode(path, topologyKeys[i]);
         }
         curNode.addChild(key, nextNode);
         curNode = nextNode;

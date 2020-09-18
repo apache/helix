@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -29,12 +30,12 @@ public class TrieNode {
   // the complete path/prefix leading to the current node.
   private final String _path;
 
-  private final String _domainType;
+  private final String _nodeKey;
 
-  TrieNode(Map<String, TrieNode> children, String path, String domainType) {
-    _children = children;
+  TrieNode(String path, String nodeKey) {
     _path = path;
-    _domainType = domainType;
+    _nodeKey = nodeKey;
+    _children = new HashMap<>();
   }
 
   public Map<String, TrieNode> getChildren() {
@@ -45,10 +46,13 @@ public class TrieNode {
     return _path;
   }
 
-  public String getDomainType() {
-    return _domainType;
+  public String getNodeKey() {
+    return _nodeKey;
   }
 
+  public void addChildrenMap(Map <String, TrieNode> children) {
+    _children = children;
+  }
   public void addChild(String key, TrieNode node) {
     _children.put(key, node);
   }

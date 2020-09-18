@@ -35,6 +35,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -47,6 +49,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.exceptions.HelixHealthException;
@@ -80,6 +83,8 @@ public class InstancesAccessor extends AbstractHelixResource {
     zone_based
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getAllInstances(@PathParam("clusterId") String clusterId,
       @DefaultValue("getAllInstances") @QueryParam("command") String command) {
@@ -142,6 +147,8 @@ public class InstancesAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   public Response instancesOperations(@PathParam("clusterId") String clusterId,
       @QueryParam("skipZKRead") String skipZKRead, @QueryParam("command") String command, String content) {

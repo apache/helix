@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.sun.source.tree.AssertTree;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -579,6 +580,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     Assert.assertTrue(result, "grand cluster not converging.");
 
     // deactivate cluster
+    System.out.println("testDeactivateCluster deavtive cluster " + clusterName);
     command = "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
         + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
@@ -588,6 +590,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     final String path = accessor.keyBuilder().controllerLeader().getPath();
     TestHelper.verify(() -> !_gZkClient.exists(path), 10000L);
 
+    System.out.println("validated leader path not existing " + clusterName);
     Assert.assertFalse(_gZkClient.exists(path),
         "leader should be gone after deactivate the cluster");
 
@@ -607,6 +610,15 @@ public class TestHelixAdminCli extends ZkTestBase {
         Thread.sleep(SLEEP_DURATION);
       }
     }
+
+    boolean leaderNotExists = TestHelper.verify(() -> {
+      boolean isLeaderExists = _gZkClient.exists(path);
+      if (isLeaderExists) {
+        System.out.println("mysteriou leader out");
+      }
+      return isLeaderExists == false;
+    }, 10000L);
+    Assert.assertTrue(leaderNotExists, " mysterious leader out!");
 
     command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s"));

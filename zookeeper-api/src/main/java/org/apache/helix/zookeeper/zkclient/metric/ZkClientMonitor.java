@@ -118,9 +118,8 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     if (_zkEventThreadMetric == null) {
       _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
       return true;
-    } else {
-      return false;
-    }
+    } 
+    return false;
   }
 
   @Override

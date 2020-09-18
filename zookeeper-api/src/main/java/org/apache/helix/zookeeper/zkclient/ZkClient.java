@@ -31,11 +31,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -235,6 +233,13 @@ public class ZkClient implements Watcher {
 
     connect(connectionTimeout, this);
 
+    try {
+      if (_monitor != null) {
+        _monitor.register();
+      }
+    } catch (JMException e){
+      LOG.error("Error in creating ZkClientMonitor", e);
+    }
   }
 
   public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
@@ -2152,15 +2157,10 @@ public class ZkClient implements Watcher {
       _eventThread = new ZkEventThread(zkConnection.getServers());
 
       if (_monitor != null) {
-        _monitor.setAndInitZkEventThreadMonitor(_eventThread);
-      }
-
-      try {
-        if (_monitor != null) {
-          _monitor.register();
+        boolean result = _monitor.setAndInitZkEventThreadMonitor(_eventThread);
+        if (!result) {
+          LOG.error("register _eventThread monitor failed due to an existing one");
         }
-      } catch (JMException e){
-        LOG.error("Error in creating ZkClientMonitor", e);
       }
 
       _eventThread.start();

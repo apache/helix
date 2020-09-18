@@ -38,9 +38,13 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.apache.helix.monitoring.mbeans.exception.MetricException;
 import org.apache.helix.zookeeper.zkclient.ZkEventThread;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ZkClientMonitor extends DynamicMBeanProvider {
+  private static final Logger LOG = LoggerFactory.getLogger(ZkClientMonitor.class);
+
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
   protected static final String MBEAN_DESCRIPTION = "Helix Zookeeper Client Monitor";
@@ -83,8 +87,22 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     _expiredSessionCounter = new SimpleDynamicMetric("ExpiredSessionCounter", 0l);
     _dataChangeEventCounter = new SimpleDynamicMetric("DataChangeEventCounter", 0l);
     _outstandingRequestGauge = new SimpleDynamicMetric("OutstandingRequestGauge", 0l);
+
     if (zkEventThread != null) {
-      _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
+      boolean result = setAndInitZkEventThreadMonitor(zkEventThread);
+      if (!result) {
+        LOG.error("register zkEventThreadMonitor failed due to an existing one.");
+      }
+    }
+
+    for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
+      // If monitor root path only, check if the current path is Root.
+      // Otherwise, add monitors for every path.
+      if (!_monitorRootOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
+        _zkClientPathMonitorMap.put(path,
+            new ZkClientPathMonitor(path, _monitorType, _monitorKey, _monitorInstanceName)
+        );
+      }
     }
   }
 
@@ -96,9 +114,12 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
             (monitorKey + (monitorInstanceName == null ? "" : "." + monitorInstanceName)));
   }
 
-  public void setAndInitZkEventThreadMonitor(ZkEventThread zkEventThread) {
+  public synchronized boolean setAndInitZkEventThreadMonitor(ZkEventThread zkEventThread) {
     if (_zkEventThreadMetric == null) {
       _zkEventThreadMetric = new ZkThreadMetric(zkEventThread);
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -115,13 +136,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     doRegister(attributeList, MBEAN_DESCRIPTION,
         getObjectName(_monitorType, _monitorKey, _monitorInstanceName));
     for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
-      // If monitor root path only, check if the current path is Root.
-      // Otherwise, add monitors for every path.
-      if (!_monitorRootOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
-        _zkClientPathMonitorMap.put(path,
-            new ZkClientPathMonitor(path, _monitorType, _monitorKey, _monitorInstanceName)
-                .register());
-      }
+      _zkClientPathMonitorMap.get(path).register();
     }
     return this;
   }

@@ -285,22 +285,26 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue(beanServer.isRegistered(idealStatename));
 
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 0);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "ExpiredSessionCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
 
+    boolean verifyResult = TestHelper.verify(()->{
+      return (long) beanServer.getAttribute(rootname, "ReadCounter") == 1;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(verifyResult, " did not see first sync() read");
+
+    Assert.assertEquals((long) beanServer.getAttribute(name, "StateChangeEventCounter"), 1);
+
+    long firstLatencyCounter =  (long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter");
+    long firstReadLatencyGauge = (long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max");
+    Assert.assertTrue(firstLatencyCounter >= 0);
+    Assert.assertTrue(firstReadLatencyGauge >= 0);
     zkClient.exists(TEST_ROOT);
 
-    // Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
-    // wait for both doAysncSync() finish and zkClient.exists(Test_ROOT) finish from 2 different threads.
-    // The condition would be ReadCounter is 2.
-    boolean verifyResult = TestHelper.verify(()->{
-       return (long) beanServer.getAttribute(rootname, "ReadCounter") == 2;
-    }, TestHelper.WAIT_DURATION);
-    Assert.assertTrue(verifyResult, " did not see 2 read yet");
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadCounter") == 2);
 
-    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter") >= 0);
-    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max") >= 0);
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter") >= firstLatencyCounter);
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max") >= firstReadLatencyGauge);
 
     // Test create
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "WriteCounter"), 0);

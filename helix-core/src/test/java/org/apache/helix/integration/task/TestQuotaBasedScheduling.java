@@ -527,11 +527,17 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
         .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
 
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
+
     for (int i = 0; i < 5; i++) {
       String jobName = "JOB_" + i;
       lastJobName = jobName;
-      _driver.enqueueJob(queueName, jobName, jobConfigBulider);
+      jobNames.add(jobName);
+      jobBuilders.add(jobConfigBulider);
+      // _driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Resume the queue briefly and stop again to add more jobs
     _driver.resume(queueName);
@@ -544,11 +550,17 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(_jobCommandMap).setJobType("B");
 
+    jobNames.clear();
+    jobBuilders.clear();
     for (int i = 5; i < 10; i++) {
       String jobName = "JOB_" + i;
       lastJobName = jobName;
-      _driver.enqueueJob(queueName, jobName, jobConfigBulider);
+      jobNames.add(jobName);
+      jobBuilders.add(jobConfigBulider);
+      //_driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+
     _driver.resume(queueName);
     _driver.pollForJobState(queueName, queueName + "_" + lastJobName, TaskState.COMPLETED);
 

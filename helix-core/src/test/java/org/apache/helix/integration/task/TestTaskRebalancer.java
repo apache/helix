@@ -243,7 +243,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
 
-    // change back to 5 minutes
+    System.out.println("testNamedQueue before pollForJobState");
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);

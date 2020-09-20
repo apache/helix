@@ -85,6 +85,11 @@ public abstract class AbstractTaskDispatcher {
     // Get AssignableInstanceMap for releasing resources for tasks in terminal states
     AssignableInstanceManager assignableInstanceManager = cache.getAssignableInstanceManager();
 
+    Set<Integer> allTasksToDrop = new HashSet<>();
+    for (Set<Integer> taskToDropForInstance: tasksToDrop.values()) {
+      allTasksToDrop.addAll(taskToDropForInstance);
+    }
+
     // Iterate through all instances
     for (String instance : currentInstanceToTaskAssignments.keySet()) {
       assignedPartitions.put(instance, new HashSet<>());
@@ -111,9 +116,7 @@ public abstract class AbstractTaskDispatcher {
 
       // We need to remove all task pId's to be dropped because we already made an assignment in
       // paMap above for them to be dropped. The following does this.
-      if (tasksToDrop.containsKey(instance)) {
-        pSet.removeAll(tasksToDrop.get(instance));
-      }
+      pSet.removeAll(allTasksToDrop);
 
       // Used to keep track of partitions that are in either INIT or DROPPED states
       Set<Integer> donePartitions = new TreeSet<>();

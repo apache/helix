@@ -259,7 +259,7 @@ public class TestHelixTaskExecutor {
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
-      if (message.getResourceName()!="testStaledMessageResource") {
+      if (!message.getResourceName().equals("testStaledMessageResource")) {
         return new TestStateTransitionMessageHandler(message, context);
       } else {
         CurrentState currentStateDelta = new CurrentState(message.getResourceName());

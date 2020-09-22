@@ -381,7 +381,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    *          are accounted for
    * @param jobName job name
    * @param tasksToDrop instance -> pId's, to gather all pIds that need to be dropped
-   * @return instance -> partitionIds from currentState, if the instance is still live
+   * @return instance -> partitionIds from currentState and pending messages, if the instance is
+   *         still live
    */
   protected static Map<String, SortedSet<Integer>> getCurrentInstanceToTaskAssignments(
       Iterable<String> liveInstances, CurrentStateOutput currStateOutput, String jobName,
@@ -416,6 +417,20 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             }
             tasksToDrop.get(instance).add(pId);
           }
+        }
+      }
+    }
+
+    Map<Partition, Map<String, Message>> pendingMessageMap =
+        currStateOutput.getPendingMessageMap(jobName);
+    for (Map.Entry<Partition, Map<String, Message>> pendingMessageMapEntry : pendingMessageMap
+        .entrySet()) {
+      for (Map.Entry<String, Message> instancePendingMessageEntry : pendingMessageMapEntry
+          .getValue().entrySet()) {
+        String instance = instancePendingMessageEntry.getKey();
+        int pId = TaskUtil.getPartitionId(pendingMessageMapEntry.getKey().getPartitionName());
+        if (result.containsKey(instance)) {
+          result.get(instance).add(pId);
         }
       }
     }

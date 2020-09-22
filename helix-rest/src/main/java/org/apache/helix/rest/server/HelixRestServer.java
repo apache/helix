@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
+import com.codahale.metrics.jmx.JmxReporter;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -57,6 +61,7 @@ public class HelixRestServer {
   private int _port;
   private String _urlPrefix;
   private Server _server;
+  private List<JmxReporter> _jmxReporterList;
   private List<HelixRestNamespace> _helixNamespaces;
   private ServletContextHandler _servletContextHandler;
   private List<AuditLogger> _auditLoggers;
@@ -90,6 +95,7 @@ public class HelixRestServer {
     _port = port;
     _urlPrefix = urlPrefix;
     _server = new Server(_port);
+    _jmxReporterList = new ArrayList<>();
     _auditLoggers = auditLoggers;
     _resourceConfigMap = new HashMap<>();
     _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
@@ -162,6 +168,24 @@ public class HelixRestServer {
     return cfg;
   }
 
+  /*
+   * Initialize metric registry and jmx reporter for each namespace.
+   */
+  private void initMetricRegistry(ResourceConfig cfg, String namespace) {
+    MetricRegistry metricRegistry = new MetricRegistry();
+    cfg.register(new InstrumentedResourceMethodApplicationListener(metricRegistry));
+    SharedMetricRegistries.add(namespace, metricRegistry);
+
+    // JmxReporter doesn't have an option to specify namespace for each servlet,
+    // we use a customized object name factory to get and insert namespace to object name.
+    JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
+        .inDomain("org.apache.helix.rest")
+        .createsObjectNamesWith(new HelixRestObjectNameFactory(namespace))
+        .build();
+    jmxReporter.start();
+    _jmxReporterList.add(jmxReporter);
+  }
+
   private void initServlet(ResourceConfig cfg, String servletPathSpec) {
     ServletHolder servlet = new ServletHolder(new ServletContainer(cfg));
     _servletContextHandler.addServlet(servlet, servletPathSpec);
@@ -197,6 +221,8 @@ public class HelixRestServer {
         LOG.error("Failed to stop Helix rest server, " + ex);
       }
     }
+    _jmxReporterList.forEach(JmxReporter::stop);
+    _jmxReporterList.clear();
     cleanupResourceConfigs();
   }
 

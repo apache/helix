@@ -36,6 +36,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -44,6 +46,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.apache.helix.HelixException;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
@@ -75,6 +78,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     clean
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getWorkflows(@PathParam("clusterId") String clusterId) {
     TaskDriver taskDriver = getTaskDriver(clusterId);
@@ -85,6 +90,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return JSONRepresentation(dataMap);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{workflowId}")
   public Response getWorkflow(@PathParam("clusterId") String clusterId,
@@ -120,6 +127,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{workflowId}")
   public Response createWorkflow(@PathParam("clusterId") String clusterId,
@@ -176,6 +185,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{workflowId}")
   public Response deleteWorkflow(@PathParam("clusterId") String clusterId,
@@ -192,6 +203,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{workflowId}")
   public Response updateWorkflow(@PathParam("clusterId") String clusterId,
@@ -223,6 +236,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{workflowId}/configs")
   public Response getWorkflowConfig(@PathParam("clusterId") String clusterId,
@@ -237,6 +252,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return JSONRepresentation(workflowConfigNode);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{workflowId}/configs")
   public Response updateWorkflowConfig(@PathParam("clusterId") String clusterId,
@@ -265,6 +282,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{workflowId}/userContent")
   public Response getWorkflowUserContent(
@@ -289,6 +308,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{workflowId}/userContent")
   public Response updateWorkflowUserContent(
@@ -330,6 +351,8 @@ public class WorkflowAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{workflowId}/context")
   public Response getWorkflowContext(@PathParam("clusterId") String clusterId,

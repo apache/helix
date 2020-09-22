@@ -37,6 +37,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -51,6 +53,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -74,6 +77,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     UNHEALTHY
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getResources(@PathParam("clusterId") String clusterId) {
     ObjectNode root = JsonNodeFactory.instance.objectNode();
@@ -105,6 +110,8 @@ public class ResourceAccessor extends AbstractHelixResource {
    * @param clusterId
    * @return JSON result
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("health")
   public Response getResourceHealth(@PathParam("clusterId") String clusterId) {
@@ -151,6 +158,8 @@ public class ResourceAccessor extends AbstractHelixResource {
    * @return JSON result
    * @throws IOException
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{resourceName}/health")
   public Response getPartitionHealth(@PathParam("clusterId") String clusterId,
@@ -159,6 +168,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return JSONRepresentation(computePartitionHealth(clusterId, resourceName));
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{resourceName}")
   public Response getResource(@PathParam("clusterId") String clusterId,
@@ -214,6 +225,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{resourceName}")
   public Response addResource(@PathParam("clusterId") String clusterId,
@@ -302,6 +315,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{resourceName}")
   public Response updateResource(@PathParam("clusterId") String clusterId,
@@ -350,6 +365,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{resourceName}")
   public Response deleteResource(@PathParam("clusterId") String clusterId,
@@ -364,6 +381,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{resourceName}/configs")
   public Response getResourceConfig(@PathParam("clusterId") String clusterId,
@@ -377,6 +396,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{resourceName}/configs")
   public Response updateResourceConfig(@PathParam("clusterId") String clusterId,
@@ -426,6 +447,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{resourceName}/idealState")
   public Response getResourceIdealState(@PathParam("clusterId") String clusterId,
@@ -439,6 +462,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{resourceName}/idealState")
   public Response updateResourceIdealState(@PathParam("clusterId") String clusterId,
@@ -487,6 +512,8 @@ public class ResourceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{resourceName}/externalView")
   public Response getResourceExternalView(@PathParam("clusterId") String clusterId,

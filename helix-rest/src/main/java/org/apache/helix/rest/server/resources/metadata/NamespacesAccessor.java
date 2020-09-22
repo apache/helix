@@ -26,13 +26,18 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.resources.AbstractResource;
 
 
 @Path("/namespaces")
 public class NamespacesAccessor extends AbstractResource {
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getHelixRestNamespaces() {
     @SuppressWarnings("unchecked")

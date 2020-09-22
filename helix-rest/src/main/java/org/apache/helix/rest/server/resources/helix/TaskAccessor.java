@@ -29,7 +29,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
@@ -39,6 +42,8 @@ import org.slf4j.LoggerFactory;
 public class TaskAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(TaskAccessor.class.getName());
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{taskPartitionId}/userContent")
   public Response getTaskUserContent(
@@ -66,6 +71,8 @@ public class TaskAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{taskPartitionId}/userContent")
   public Response updateTaskUserContent(

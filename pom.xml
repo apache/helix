@@ -440,6 +440,7 @@
     <SKIP_INTEGRATION_TESTS>true</SKIP_INTEGRATION_TESTS>
     <!-- Configuration for unit/integration tests section 1 of 3 (properties) ENDS HERE.-->
 
+    <metrics-jersey2.version>4.1.12.1</metrics-jersey2.version>
   </properties>
 
   <distributionManagement>

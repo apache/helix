@@ -30,11 +30,14 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.slf4j.Logger;
@@ -56,6 +59,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    * @return If the payload is ZNRecord format, return ZnRecord json response;
    *         Otherwise, return json object {<PATH>: raw string}
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{path: .+}")
   public Response getPropertyByPath(@PathParam("clusterId") String clusterId,
@@ -94,6 +99,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    * @param content
    * @return Response
    */
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{path: .+}")
   public Response putPropertyByPath(@PathParam("clusterId") String clusterId,
@@ -141,6 +148,8 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
    * @param path
    * @return
    */
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{path: .+}")
   public Response deletePropertyByPath(@PathParam("clusterId") String clusterId,

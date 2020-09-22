@@ -34,11 +34,14 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.HelixException;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConfig;
@@ -60,6 +63,8 @@ public class JobAccessor extends AbstractHelixResource {
     TASK_COMMAND
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getJobs(@PathParam("clusterId") String clusterId,
       @PathParam("workflowName") String workflowName) {
@@ -81,6 +86,8 @@ public class JobAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{jobName}")
   public Response getJob(@PathParam("clusterId") String clusterId,
@@ -107,6 +114,8 @@ public class JobAccessor extends AbstractHelixResource {
     return JSONRepresentation(jobMap);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{jobName}")
   public Response addJob(@PathParam("clusterId") String clusterId,
@@ -129,6 +138,8 @@ public class JobAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{jobName}")
   public Response deleteJob(@PathParam("clusterId") String clusterId,
@@ -146,6 +157,8 @@ public class JobAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{jobName}/configs")
   public Response getJobConfig(@PathParam("clusterId") String clusterId,
@@ -159,6 +172,8 @@ public class JobAccessor extends AbstractHelixResource {
     return badRequest("Job config for " + jobName + " does not exists");
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{jobName}/context")
   public Response getJobContext(@PathParam("clusterId") String clusterId,
@@ -173,6 +188,8 @@ public class JobAccessor extends AbstractHelixResource {
     return badRequest("Job context for " + jobName + " does not exists");
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{jobName}/userContent")
   public Response getJobUserContent(@PathParam("clusterId") String clusterId,
@@ -194,6 +211,8 @@ public class JobAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{jobName}/userContent")
   public Response updateJobUserContent(

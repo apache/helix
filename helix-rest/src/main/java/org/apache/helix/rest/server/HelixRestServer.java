@@ -222,7 +222,6 @@ public class HelixRestServer {
       }
     }
     _jmxReporterList.forEach(JmxReporter::stop);
-    _jmxReporterList.clear();
     cleanupResourceConfigs();
   }
 

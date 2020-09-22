@@ -22,6 +22,7 @@ package org.apache.helix.rest.server.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,10 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -58,9 +63,18 @@ public class InstanceServiceImpl implements InstanceService {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final ExecutorService POOL = Executors.newCachedThreadPool();
 
+  // Metric names for custom instance check
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_total");
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_error_total");
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUEST_DURATION =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_request_duration");
+
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
+  private String _namespace;
   private boolean _skipZKRead;
 
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
@@ -69,9 +83,16 @@ public class InstanceServiceImpl implements InstanceService {
     _customRestClient = CustomRestClientFactory.get();
   }
 
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor, boolean skipZKRead) {
-    this(dataAccessor,configAccessor);
+  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+      boolean skipZKRead) {
+    this(dataAccessor, configAccessor);
     this._skipZKRead = skipZKRead;
+  }
+
+  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+      boolean skipZKRead, String namespace) {
+    this(dataAccessor, configAccessor, skipZKRead);
+    this._namespace = namespace;
   }
 
   @VisibleForTesting
@@ -231,14 +252,22 @@ public class InstanceServiceImpl implements InstanceService {
   private StoppableCheck performCustomInstanceCheck(String clusterId, String instanceName,
       String baseUrl, Map<String, String> customPayLoads) {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
-    try {
-      return new StoppableCheck(
-          _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
+    MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
+    Counter requestsTotal = metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL);
+    Counter errorRequestsTotal = metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL);
+
+    try (final Timer.Context timer = metrics.timer(CUSTOM_INSTANCE_CHECK_HTTP_REQUEST_DURATION)
+        .time()) {
+      requestsTotal.inc();
+      Map<String, Boolean> instanceStoppableCheck =
+          _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads);
+      return new StoppableCheck(instanceStoppableCheck,
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     } catch (IOException ex) {
       LOG.error("Custom client side instance level health check for {}/{} failed.", clusterId,
           instanceName, ex);
-      return new StoppableCheck(false, Arrays.asList(instanceName),
+      errorRequestsTotal.inc();
+      return new StoppableCheck(false, Collections.singletonList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     }
   }

@@ -223,9 +223,9 @@ public class InstancesAccessor extends AbstractHelixResource {
           result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-      InstanceService instanceService =
-          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId)),
-              getConfigAccessor(), skipZKRead);
+      InstanceService instanceService = new InstanceServiceImpl(
+          new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId), getNamespace()),
+          getConfigAccessor(), skipZKRead, getNamespace());
       ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {

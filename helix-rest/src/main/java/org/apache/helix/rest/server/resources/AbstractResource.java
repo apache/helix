@@ -34,6 +34,8 @@ import javax.ws.rs.core.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixException;
+import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,5 +178,11 @@ public class AbstractResource {
     } catch (IllegalArgumentException ex) {
       throw new HelixException("Unknown command: " + commandStr);
     }
+  }
+
+  protected String getNamespace() {
+    HelixRestNamespace namespace =
+        (HelixRestNamespace) _application.getProperties().get(ContextPropertyKeys.METADATA.name());
+    return namespace.getName();
   }
 }

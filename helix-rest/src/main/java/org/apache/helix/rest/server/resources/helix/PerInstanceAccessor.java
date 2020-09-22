@@ -143,9 +143,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
-            Boolean.valueOf(skipZKRead));
+    InstanceService instanceService = new InstanceServiceImpl(
+        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor, getNamespace()),
+        getConfigAccessor(), Boolean.valueOf(skipZKRead));
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =

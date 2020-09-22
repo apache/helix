@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 
 public class ZkClientMonitor extends DynamicMBeanProvider {
-  private static final Logger LOG = LoggerFactory.getLogger(ZkClientMonitor.class);
 
   public static final String MONITOR_TYPE = "Type";
   public static final String MONITOR_KEY = "Key";
@@ -91,7 +90,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     if (zkEventThread != null) {
       boolean result = setAndInitZkEventThreadMonitor(zkEventThread);
       if (!result) {
-        LOG.error("register zkEventThreadMonitor failed due to an existing one.");
+        _logger.error("register zkEventThreadMonitor failed due to an existing one.");
       }
     }
 
@@ -134,11 +133,15 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
     doRegister(attributeList, MBEAN_DESCRIPTION,
         getObjectName(_monitorType, _monitorKey, _monitorInstanceName));
-    for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
-      if (_zkClientPathMonitorMap.get(path) != null)  {
-        _zkClientPathMonitorMap.get(path).register();
+    _zkClientPathMonitorMap.values().stream().forEach( monitor -> {
+      if (monitor != null) {
+        try {
+          monitor.register();
+        } catch (JMException e) {
+           _logger.error(" {} failed registration", monitor, e);
+        }
       }
-    }
+    });
     return this;
   }
 

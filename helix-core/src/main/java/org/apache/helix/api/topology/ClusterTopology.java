@@ -95,7 +95,7 @@ public class ClusterTopology {
    */
   private Map<String, List<String>> getTopologyUnderDomain(Map<String, String> domainMap) {
     LinkedHashMap<String, String> orderedDomain = validateAndOrderDomain(domainMap);
-    TrieNode startNode = getStartNode(orderedDomain);
+    TrieNode startNode = getNode(orderedDomain);
     Map<String, TrieNode> children = startNode.getChildren();
     Map<String, List<String>> results = new HashMap<>();
     children.entrySet().forEach(child -> {
@@ -205,7 +205,7 @@ public class ClusterTopology {
     return resultMap;
   }
 
-  private TrieNode getStartNode(LinkedHashMap<String, String> domainMap) {
+  private TrieNode getNode(LinkedHashMap<String, String> domainMap) {
     TrieNode curNode = _trieClusterTopology.getRootNode();
     TrieNode nextNode;
     for (Map.Entry<String, String> entry : domainMap.entrySet()) {

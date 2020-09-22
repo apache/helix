@@ -116,8 +116,9 @@ public class ClusterTrie {
     }
     // A list of all keys in cluster topology, e.g., a cluster topology defined as
     // /group/zone/rack/host will return ["group", "zone", "rack", "host"].
-    topologyDef = Arrays.asList(topologyDefInConfig.trim().split(DELIMITER)).stream()
-        .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
+    topologyDef =
+        Arrays.asList(topologyDefInConfig.trim().split(DELIMITER)).stream().map(str -> str.trim())
+            .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
     if (topologyDef.length == 0) {
       throw new HelixException(String.format("The topology of cluster %s is not correctly defined",
           clusterConfig.getClusterName()));

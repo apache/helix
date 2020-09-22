@@ -80,6 +80,20 @@ public class TestClusterTrie {
   }
 
   @Test
+  public void testConstructionNormalWithSpace() {
+    _clusterConfig.setTopology("/ group/ zone/rack/host");
+    try {
+      _trie = new ClusterTrie(_instanceNames, _instanceConfigMap, _clusterConfig);
+    } catch (HelixException e) {
+      Assert.fail("Not expecting HelixException");
+    }
+    String[] topologyDef = _trie.getTopologyKeys();
+    Assert.assertEquals(topologyDef[0], "group");
+    Assert.assertEquals(topologyDef[1], "zone");
+    _clusterConfig.setTopology("/group/zone/rack/host");
+  }
+
+  @Test
   public void testConstructionNormalWithInvalidConfig() {
     String instance = "invalidInstance";
     InstanceConfig config = new InstanceConfig(instance);

@@ -22,6 +22,7 @@ package org.apache.helix.integration.task;
 import java.util.Set;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
@@ -52,7 +53,7 @@ public class TestTaskThreadLeak extends TaskTestBase {
     for (int i = 0; i < 5; i++) {
       String db = TestHelper.getTestMethodName() + "_" + i;
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, db, 20, MASTER_SLAVE_STATE_MODEL,
-          IdealState.RebalanceMode.FULL_AUTO.name());
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, 1);
       JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(db)

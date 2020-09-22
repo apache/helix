@@ -33,6 +33,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -169,7 +170,8 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
   @Test(dependsOnMethods = "testParticipantUnavailable")
   public void testTagSetIncorrect() throws Exception {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name());
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name(),
+        CrushEdRebalanceStrategy.class.getName());
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, testDb, 3);

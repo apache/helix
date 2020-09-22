@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.statemodel.MockTaskStateModelFactory;
@@ -181,7 +182,7 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
   private void setupUnbalancedDB() throws InterruptedException {
     // Start with Full-Auto mode to create the partitions, Semi-Auto won't create partitions.
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, UNBALANCED_DB_NAME, 50, MASTER_SLAVE_STATE_MODEL,
-        IdealState.RebalanceMode.FULL_AUTO.toString());
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, UNBALANCED_DB_NAME, 1);
 
     // Set preference list to put all partitions to one instance.

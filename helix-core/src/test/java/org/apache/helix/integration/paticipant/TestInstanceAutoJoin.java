@@ -6,6 +6,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -45,7 +46,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline",
-        RebalanceMode.FULL_AUTO + "");
+        RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
 
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
@@ -93,7 +94,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, db3, 60, "OnlineOffline",
-        RebalanceMode.FULL_AUTO + "");
+        RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db3, 1);
     String instance3 = "localhost_279700";
 

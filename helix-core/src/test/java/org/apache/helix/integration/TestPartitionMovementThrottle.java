@@ -38,6 +38,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -137,7 +138,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (int i = 0; i < 5; i++) {
       String dbName = "TestDB-" + i;
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, 10, STATE_MODEL,
-          RebalanceMode.FULL_AUTO + "");
+          RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
       _dbs.add(dbName);
     }
@@ -170,8 +171,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     for (int i = 0; i < NODE_NR - 2; i++) {
       _participants[i].syncStart();
     }
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 10,
-        STATE_MODEL, RebalanceMode.FULL_AUTO.name());
+    _gSetupTool
+        .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 10, STATE_MODEL,
+            RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _replica);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -203,9 +205,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i].syncStart();
     }
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", 20,
-        STATE_MODEL, RebalanceMode.FULL_AUTO.name());
-    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY",
-        _replica);
+        STATE_MODEL, RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+    _gSetupTool
+        .rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", _replica);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
@@ -236,8 +238,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i].syncStart();
     }
     // Add resource: TestDB_ANY of 20 partitions
-    _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_OnlyANY",
-        20, STATE_MODEL, RebalanceMode.FULL_AUTO.name());
+    _gSetupTool
+        .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_OnlyANY", 20,
+            STATE_MODEL, RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     // Act the rebalance process
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_OnlyANY",
         _replica);

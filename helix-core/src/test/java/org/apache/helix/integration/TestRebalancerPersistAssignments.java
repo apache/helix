@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -85,7 +87,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     String testDb = "TestDB2-" + rebalanceMode.name();
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
+        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name(),
+        rebalanceMode.equals(RebalanceMode.FULL_AUTO) ? CrushEdRebalanceStrategy.class.getName()
+            : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
@@ -124,7 +128,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
+        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name(),
+        rebalanceMode.equals(RebalanceMode.FULL_AUTO) ? CrushEdRebalanceStrategy.class.getName()
+            : RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =

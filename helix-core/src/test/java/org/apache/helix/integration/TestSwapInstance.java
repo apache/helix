@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.model.IdealState;
 import org.testng.Assert;
@@ -45,7 +45,7 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
 
     // Create full-auto resource
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, "db-fa", 64, STATE_MODEL,
-        IdealState.RebalanceMode.FULL_AUTO.name(), RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY);
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "db-fa", _replica);
 
     // Wait for cluster converge

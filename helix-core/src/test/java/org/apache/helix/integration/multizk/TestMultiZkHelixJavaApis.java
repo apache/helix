@@ -447,7 +447,7 @@ public class TestMultiZkHelixJavaApis {
       for (int i = 0; i < numResources; i++) {
         String resource = cluster + "_" + resourceNamePrefix + i;
         _zkHelixAdmin.addResource(cluster, resource, numPartitions, "MasterSlave",
-            IdealState.RebalanceMode.FULL_AUTO.name());
+            IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
         _zkHelixAdmin.rebalance(cluster, resource, 3);
         resourceNames.add(resource);
 

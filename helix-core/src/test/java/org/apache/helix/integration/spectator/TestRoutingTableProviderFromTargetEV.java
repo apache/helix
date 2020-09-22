@@ -31,6 +31,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -69,7 +70,8 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     }
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_PARTITIONS,
-        MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
+        MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name(),
+        CrushEdRebalanceStrategy.class.getName());
 
     _gSetupTool
         .rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);

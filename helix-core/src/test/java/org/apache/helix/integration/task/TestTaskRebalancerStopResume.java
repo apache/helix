@@ -159,7 +159,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
-  @Test
+  @Test(enabled = false)
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 

@@ -113,7 +113,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
     try {
-      validateStaleMessage(false /*isPreCheck*/);
+      validateStaleMessage();
     } catch (Exception err) {
       _statusUpdateUtil
           .logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
@@ -443,7 +443,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   // Verify the fromState and current state of the stateModel.
-  private void validateStaleMessage (boolean isPreCheck) throws Exception {
+  public void validateStaleMessage() throws Exception {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
@@ -459,7 +459,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
       throw new HelixDuplicatedStateTransitionException(String
           .format("Partition %s current state is same as toState (%s->%s) from message.",
               partitionName, fromState, toState));
-    } else if (!isPreCheck && fromState != null && !fromState.equals("*") && !fromState
+    } else if (fromState != null && !fromState.equals("*") && !fromState
         .equalsIgnoreCase(state)) {
       // If current state is neither toState nor fromState in message, there is a problem
       throw new HelixStateMismatchException(String.format(
@@ -468,9 +468,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
   }
 
-  public void precheckForStaleMessage() throws Exception {
-    validateStaleMessage(true /*isPreCheck*/);
-  }
 
   @Override
   public void onTimeout() {

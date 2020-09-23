@@ -920,7 +920,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
           if (createHandler instanceof HelixStateTransitionHandler) {
             // We only check to state if there is no ST task scheduled/executing.
-            ((HelixStateTransitionHandler) createHandler).precheckForStaleMessage();
+            ((HelixStateTransitionHandler) createHandler).validateStaleMessage();
           }
           if (stateTransitionHandlers.containsKey(messageTarget)) {
             // If there are 2 messages in same batch about same partition's state transition,

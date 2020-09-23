@@ -152,10 +152,10 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _controller.syncStart();
 
     // start speculator
-    _routingTableProvider_default = new RoutingTableProvider();
     _spectator = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
+    _routingTableProvider_default = new RoutingTableProvider(_spectator);
     _spectator.addExternalViewChangeListener(_routingTableProvider_default);
     _spectator.addLiveInstanceChangeListener(_routingTableProvider_default);
     _spectator.addInstanceConfigChangeListener(_routingTableProvider_default);
@@ -187,9 +187,14 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _routingTableProvider_default
         .addRoutingTableChangeListener(routingTableChangeListener, null, true);
 
-    // Initial add listener should trigger the first execution of the
+    // Add a routing table provider listener should trigger an execution of the
     // listener callbacks
-    Assert.assertTrue(routingTableChangeListener.routingTableChangeReceived);
+    Assert.assertTrue(TestHelper.verify(() -> {
+      if (!routingTableChangeListener.routingTableChangeReceived) {
+        return false;
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION));
   }
 
   @Test(dependsOnMethods = { "testInvocation" })

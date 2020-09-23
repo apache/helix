@@ -431,32 +431,11 @@ public class RoutingTableProvider
         "Attach RoutingTableProviderChangeListener {}. The doInit value of this listener is {}",
         routingTableChangeListener.getClass().getName(), doInit);
     if (doInit) {
-      if (_sourceDataTypeMap.isEmpty()) {
-        routingTableChangeListener.onRoutingTableChange(getRoutingTableSnapshot(), context);
-      } else {
-        for (PropertyType propertyType : _sourceDataTypeMap.keySet()) {
-          switch (propertyType) {
-            case EXTERNALVIEW:
-            case TARGETEXTERNALVIEW:
-            case CURRENTSTATES:
-              routingTableChangeListener
-                  .onRoutingTableChange(getRoutingTableSnapshot(propertyType), context);
-              break;
-            case CUSTOMIZEDVIEW:
-              for (String customizedStateType : _sourceDataTypeMap
-                  .getOrDefault(PropertyType.CUSTOMIZEDVIEW, Collections.emptyList())) {
-                routingTableChangeListener.onRoutingTableChange(
-                    getRoutingTableSnapshot(PropertyType.CUSTOMIZEDVIEW, customizedStateType),
-                    context);
-              }
-              break;
-            default:
-              logger.warn("Unsupported source data type: {}, stop triggering callback!",
-                  propertyType);
-          }
-        }
+      final NotificationContext periodicRefreshContext = new NotificationContext(_helixManager);
+      periodicRefreshContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
+      _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance,
+          null);
       }
-    }
   }
 
   /**

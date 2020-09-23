@@ -110,14 +110,14 @@ public class ClusterTrie {
   private String[] getTopologyDef(ClusterConfig clusterConfig) {
     String[] topologyDef;
     String topologyDefInConfig = clusterConfig.getTopology();
-    if (topologyDefInConfig == null) {
-      throw new HelixException(String.format("The topology of cluster %s is empty!",
+    if (topologyDefInConfig == null || !topologyDefInConfig.trim().startsWith(DELIMITER)) {
+      throw new HelixException(String.format("The topology of cluster %s is invalid!",
           clusterConfig.getClusterName()));
     }
     // A list of all keys in cluster topology, e.g., a cluster topology defined as
     // /group/zone/rack/host will return ["group", "zone", "rack", "host"].
     topologyDef =
-        Arrays.asList(topologyDefInConfig.trim().split(DELIMITER)).stream().map(str -> str.trim())
+        Arrays.asList(topologyDefInConfig.split(DELIMITER)).stream().map(str -> str.trim())
             .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]);
     if (topologyDef.length == 0) {
       throw new HelixException(String.format("The topology of cluster %s is not correctly defined",
@@ -139,13 +139,13 @@ public class ClusterTrie {
 
     for (Map.Entry<String, Map<String, String>> entry : instanceDomainsMap.entrySet()) {
       TrieNode curNode = rootNode;
-      String path = "";
+      StringBuilder path = new StringBuilder();
       for (int i = 0; i < topologyKeys.length; i++) {
         String key = topologyKeys[i] + CONNECTOR + entry.getValue().get(topologyKeys[i]);
-        path = path + DELIMITER + key;
+        path.append(DELIMITER).append(key);
         TrieNode nextNode = curNode.getChildren().get(key);
         if (nextNode == null) {
-          nextNode = new TrieNode(path, topologyKeys[i]);
+          nextNode = new TrieNode(path.toString(), topologyKeys[i]);
         }
         curNode.addChild(key, nextNode);
         curNode = nextNode;

@@ -65,7 +65,19 @@ public class TestClusterTrie {
       new ClusterTrie(_instanceNames, _instanceConfigMap, _clusterConfig);
       Assert.fail("Expecting topology not set exception");
     } catch (HelixException e) {
-      Assert.assertTrue(e.getMessage().contains("is empty!"));
+      Assert.assertTrue(e.getMessage().contains("is invalid!"));
+    }
+    _clusterConfig.setTopology("/group/zone/rack/host");
+  }
+
+  @Test
+  public void testConstructionInvalidTopology() {
+    _clusterConfig.setTopology("invalidTopology");
+    try {
+      new ClusterTrie(_instanceNames, _instanceConfigMap, _clusterConfig);
+      Assert.fail("Expecting topology invalid exception");
+    } catch (HelixException e) {
+      Assert.assertTrue(e.getMessage().contains("is invalid!"));
     }
     _clusterConfig.setTopology("/group/zone/rack/host");
   }

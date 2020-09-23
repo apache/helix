@@ -50,9 +50,6 @@ public class TrieNode {
     return _nodeKey;
   }
 
-  public void addChildrenMap(Map <String, TrieNode> children) {
-    _children = children;
-  }
   public void addChild(String key, TrieNode node) {
     _children.put(key, node);
   }

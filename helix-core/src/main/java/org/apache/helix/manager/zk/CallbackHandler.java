@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.helix.BaseDataAccessor;
@@ -106,7 +105,7 @@ import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
 @PreFetchChangedData(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
-  private static AtomicLong CB_UID = new AtomicLong();
+  private static final AtomicLong CALLBACK_HANDLER_UI = new AtomicLong();
 
   private final long _uid;
   /**
@@ -228,7 +227,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           + monitor.getChangeType().name());
     }
 
-    _uid = CB_UID.getAndIncrement();
+    _uid = CALLBACK_HANDLER_UI.getAndIncrement();
 
 
     _manager = manager;

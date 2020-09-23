@@ -2217,7 +2217,7 @@ public class ZkClient implements Watcher {
   public void close() throws ZkInterruptedException {
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.trace("zkclient {} closing a zkclient. callStack: {} ", this._uid, Arrays.asList(calls));
+      LOG.trace("Closing a zkclient uid:{}, callStack: {} ", this._uid, Arrays.asList(calls));
     }
     getEventLock().lock();
     IZkConnection connection = getConnection();
@@ -2233,7 +2233,7 @@ public class ZkClient implements Watcher {
       _eventThread.interrupt();
       _eventThread.join(2000);
       if (isManagingZkConnection()) {
-        LOG.info("zkclient{}, Closing zkclient zk: {} ", this._uid, ((ZkConnection) connection).getZookeeper());
+        LOG.info("Closing zkclient uid:{}, zk:{}", this._uid, ((ZkConnection) connection).getZookeeper());
         connection.close();
       }
       _closed = true;
@@ -2270,7 +2270,7 @@ public class ZkClient implements Watcher {
       if (_monitor != null) {
         _monitor.unregister();
       }
-      LOG.info("Zkclient {} Closed zkclient", this._uid);
+      LOG.info("Closed zkclient with uid:{}", this._uid);
     }
   }
 

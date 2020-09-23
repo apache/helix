@@ -26,19 +26,21 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -54,7 +56,13 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
-        RebalanceMode.FULL_AUTO + "", 0, 25);
+        RebalanceMode.FULL_AUTO.name(), 0, 25);
+
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.setRebalancerClassName(AutoRebalancer.class.getName());
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
+
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
@@ -65,7 +73,10 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
+  }
 
+  @Test
+  public void testAutoRebalanceWithMaxParticipantCapacity() throws InterruptedException {
     HelixManager manager = _controller;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
@@ -204,10 +215,14 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
           cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
               .getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      return verifyBalanceExternalView(
-          accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
-          numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
-          cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
+      try {
+        return verifyBalanceExternalView(
+            accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
+            numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
+            cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
+      } catch (Exception e) {
+        return false;
+      }
     }
 
     @Override

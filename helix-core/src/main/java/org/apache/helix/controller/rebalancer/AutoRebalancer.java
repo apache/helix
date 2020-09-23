@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
+@Deprecated // Use the DelayedAutoRebalancer instead
 public class AutoRebalancer extends AbstractRebalancer<ResourceControllerDataProvider> {
   private static final Logger LOG = LoggerFactory.getLogger(AutoRebalancer.class);
 

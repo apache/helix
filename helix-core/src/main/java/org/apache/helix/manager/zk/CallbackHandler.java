@@ -105,7 +105,7 @@ import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
 @PreFetchChangedData(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
-  private static final AtomicLong CALLBACK_HANDLER_UI = new AtomicLong();
+  private static final AtomicLong CALLBACK_HANDLER_UID = new AtomicLong();
 
   private final long _uid;
   /**
@@ -227,7 +227,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           + monitor.getChangeType().name());
     }
 
-    _uid = CALLBACK_HANDLER_UI.getAndIncrement();
+    _uid = CALLBACK_HANDLER_UID.getAndIncrement();
 
 
     _manager = manager;

@@ -30,12 +30,12 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -43,6 +43,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 public class MockHelixAdmin implements HelixAdmin {
 
@@ -364,6 +365,11 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override public ExternalView getResourceExternalView(String clusterName, String resourceName) {
+    return null;
+  }
+
+  @Override public CustomizedView getResourceCustomizedView(String clusterName,
+      String resourceName) {
     return null;
   }
 

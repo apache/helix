@@ -64,6 +64,7 @@ import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -1082,6 +1083,14 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.externalView(resourceName));
+  }
+
+  @Override
+  public CustomizedView getResourceCustomizedView(String clusterName, String resourceName) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return accessor.getProperty(keyBuilder.customizedView(resourceName));
   }
 
   @Override

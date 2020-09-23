@@ -73,7 +73,6 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
 
     enablePersistBestPossibleAssignment(_gZkClient, clusterName, true);
 
-
     // start participants
     Random random = new Random();
     MockParticipantManager[] participants = new MockParticipantManager[n];

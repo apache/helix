@@ -84,7 +84,7 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
       participants[i].syncStart();
       Thread.sleep(Math.abs(random.nextInt()) % 500 + 500);
     }
-
+    
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();

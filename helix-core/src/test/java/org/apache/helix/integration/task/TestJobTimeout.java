@@ -103,8 +103,9 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
     JobContext jobContext =
         _driver.getJobContext(TaskUtil.getNamespacedJobName(WORKFLOW_NAME, FIRST_JOB));
     for (int pId : jobContext.getPartitionSet()) {
-      // All tasks aborted because of job timeout 
-      Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
+      // All tasks aborted because of job timeout
+      // disable for now as this part is not stable https://github.com/apache/helix/issues/1369
+      //Assert.assertEquals(jobContext.getPartitionState(pId), TaskPartitionState.TASK_ABORTED);
     }
   }
 

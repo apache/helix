@@ -147,13 +147,12 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   }
 
   private void setupAutoRebalancer() {
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
     for (String resourceName : _gSetupTool.getClusterManagementTool()
         .getResourcesInCluster(CLUSTER_NAME)) {
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resourceName);
+      IdealState idealState = admin.getResourceIdealState(CLUSTER_NAME, resourceName);
       idealState.setRebalancerClassName(AutoRebalancer.class.getName());
-      _gSetupTool.getClusterManagementTool()
-          .setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
+      admin.setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
     }
   }
 }

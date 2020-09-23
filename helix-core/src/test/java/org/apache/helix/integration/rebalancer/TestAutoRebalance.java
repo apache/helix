@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
@@ -236,13 +237,12 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   }
 
   private void setupAutoRebalancer() {
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
     for (String resourceName : _gSetupTool.getClusterManagementTool()
         .getResourcesInCluster(CLUSTER_NAME)) {
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, resourceName);
+      IdealState idealState = admin.getResourceIdealState(CLUSTER_NAME, resourceName);
       idealState.setRebalancerClassName(AutoRebalancer.class.getName());
-      _gSetupTool.getClusterManagementTool()
-          .setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
+      admin.setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
     }
   }
 

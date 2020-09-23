@@ -112,9 +112,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    try {
-      validateStaleMessage();
-    } catch (Exception err) {
+    Exception err = validateStaleMessageHelper();
+    if (err != null) {
       _statusUpdateUtil
           .logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
       logger.error(err.getMessage());
@@ -439,11 +438,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
       StateTransitionError error = new StateTransitionError(type, code, e);
       _stateModel.rollbackOnError(_message, _notificationContext, error);
     }
-
   }
 
   // Verify the fromState and current state of the stateModel.
-  public void validateStaleMessage() throws Exception {
+  private Exception validateStaleMessageHelper() {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
@@ -454,20 +452,27 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Defined in HelixStateMachineEngine.
     String state = _currentStateDelta.getState(partitionName);
 
+    Exception err = null;
     if (toState.equalsIgnoreCase(state)) {
       // To state equals current state, we can just ignore the message
-      throw new HelixDuplicatedStateTransitionException(String
+      err = new HelixDuplicatedStateTransitionException(String
           .format("Partition %s current state is same as toState (%s->%s) from message.",
               partitionName, fromState, toState));
-    } else if (fromState != null && !fromState.equals("*") && !fromState
-        .equalsIgnoreCase(state)) {
+    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
       // If current state is neither toState nor fromState in message, there is a problem
-      throw new HelixStateMismatchException(String.format(
+      err = new HelixStateMismatchException(String.format(
           "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
           state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
     }
+    return err;
   }
 
+  public void validateStaleMessage() throws Exception {
+    Exception err = validateStaleMessageHelper();
+    if (err != null) {
+      throw err;
+    }
+  }
 
   @Override
   public void onTimeout() {

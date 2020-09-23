@@ -943,16 +943,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           nonStateTransitionContexts.add(msgWorkingContext);
         }
       } catch (Exception e) {
-        LOG.error("Message " + message.getMsgId() + " cannot be processed: " + message.getRecord(),
-            e);
         String error =
-            "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
-
+            "Message " + message.getMsgId() + " cannot be processed: " + message.getRecord();
+        LOG.error(error, e);
         _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, manager);
 
         message.setMsgState(MessageState.UNPROCESSABLE);
         removeMessageFromZK(accessor, message, instanceName);
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+        _monitor.reportProcessedMessage(message,
+            ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 

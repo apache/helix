@@ -225,8 +225,6 @@ public class TestHelixTaskExecutor {
           CurrentState currentStateDelta) {
         super(null, null, message, context, currentStateDelta);
         _testIsMessageStaled = true;
-
-
       }
 
       @Override
@@ -235,7 +233,7 @@ public class TestHelixTaskExecutor {
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
         if (_delay > 0) {
           System.out.println("Sleeping..." + _delay);
-          try{
+          try {
             Thread.sleep(_delay);
           } catch (Exception e) {
             assert (false);
@@ -446,7 +444,7 @@ public class TestHelixTaskExecutor {
     }
 
     Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
-            nMsgs);
+        nMsgs);
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(instanceName, msgList, changeContext);

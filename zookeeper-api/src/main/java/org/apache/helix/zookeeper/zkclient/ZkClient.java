@@ -220,7 +220,7 @@ public class ZkClient implements Watcher {
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
     _asyncCallRetryThread.start();
-    LOG.debug("ZkClient created with uid {}, _asyncCallRetryThread id {}", this._uid, _asyncCallRetryThread.getId());
+    LOG.debug("ZkClient created with uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
     connect(connectionTimeout, this);
 
@@ -258,7 +258,7 @@ public class ZkClient implements Watcher {
     List<String> children = watchForChilds(path, skipWatchingNonExistNode);
     if (children == null && skipWatchingNonExistNode) {
       unsubscribeChildChanges(path, listener);
-      LOG.info("zkclient{}, watchForChilds failed to install no-existing watch and add listener. Path: {}", this._uid, path);
+      LOG.info("zkclient{}, watchForChilds failed to install no-existing watch and add listener. Path: {}", _uid, path);
       return new ChildrenSubscribeResult(children, false);
     }
 
@@ -289,7 +289,7 @@ public class ZkClient implements Watcher {
       if (prefetchEnabled) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("zkclient {} subscribed data changes for {}, listener {}, prefetch data {}",
-              this._uid, path, listener, prefetchEnabled);
+              _uid, path, listener, prefetchEnabled);
         }
       }
     }
@@ -299,12 +299,12 @@ public class ZkClient implements Watcher {
       // Now let us remove this handler.
       unsubscribeDataChanges(path, listener);
       LOG.info("zkclient {} watchForData failed to install no-existing path and thus add listener. Path: {}",
-          this._uid, path);
+          _uid, path);
       return false;
     }
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("zkclient {}, Subscribed data changes for {}", this._uid, path);
+      LOG.debug("zkclient {}, Subscribed data changes for {}", _uid, path);
     }
     return true;
   }
@@ -335,7 +335,7 @@ public class ZkClient implements Watcher {
       }
     } catch (NoSuchMethodException e) {
       LOG.warn("Zkclient {}, No method {} defined in listener {}",
-          this._uid, callbackMethod.getName(), dataListener.getClass().getCanonicalName());
+          _uid, callbackMethod.getName(), dataListener.getClass().getCanonicalName());
     }
 
     return true;
@@ -761,7 +761,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient {} create, path {}, time {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient {} create, path {}, time {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -963,7 +963,7 @@ public class ZkClient implements Watcher {
   public void process(WatchedEvent event) {
     long notificationTime = System.currentTimeMillis();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("zkclient {}, Received event: {} ", this._uid, event);
+      LOG.debug("zkclient {}, Received event: {} ", _uid, event);
     }
     _zookeeperEventThread = Thread.currentThread();
 
@@ -975,7 +975,7 @@ public class ZkClient implements Watcher {
             || event.getType() == EventType.NodeCreated
             || event.getType() == EventType.NodeChildrenChanged;
     if (event.getType() == EventType.NodeDeleted) {
-      LOG.debug("zkclient {}, Path {} is deleted", this._uid, event.getPath());
+      LOG.debug("zkclient {}, Path {} is deleted", _uid, event.getPath());
     }
 
     getEventLock().lock();
@@ -984,7 +984,7 @@ public class ZkClient implements Watcher {
       if (getShutdownTrigger()) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("zkclient {} ignoring event {}|{} since shutdown triggered",
-              this._uid, event.getType(), event.getPath());
+              _uid, event.getType(), event.getPath());
         }
         return;
       }
@@ -1020,7 +1020,7 @@ public class ZkClient implements Watcher {
       recordStateChange(stateChanged, dataChanged, sessionExpired);
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug("zkclient {} Leaving process event", this._uid);
+        LOG.debug("zkclient {} Leaving process event", _uid);
       }
     }
   }
@@ -1081,7 +1081,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient {} getChildren, path {} time: {} ms", this._uid, path, (endT - startT) );
+        LOG.trace("zkclient {} getChildren, path {} time: {} ms", _uid, path, (endT - startT) );
       }
     }
   }
@@ -1123,7 +1123,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient exists, path: {}, time: {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient exists, path: {}, time: {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -1146,7 +1146,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient exists, path: {}, time: {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient exists, path: {}, time: {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -1176,13 +1176,13 @@ public class ZkClient implements Watcher {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
         LOG.trace("zkclient getData (installWatchOnlyPathExist), path: {}, time: {} ms",
-            this._uid, path, (endT - startT));
+            _uid, path, (endT - startT));
       }
     }
   }
 
   protected void processStateChanged(WatchedEvent event) {
-    LOG.info("zkclient {}, zookeeper state changed ( {} )", this._uid, event.getState());
+    LOG.info("zkclient {}, zookeeper state changed ( {} )", _uid, event.getState());
     setCurrentState(event.getState());
     if (getShutdownTrigger()) {
       return;
@@ -1246,7 +1246,7 @@ public class ZkClient implements Watcher {
         reconnectException = e;
         long waitInterval = retryStrategy.getNextWaitInterval(retryCount++);
         LOG.warn("ZkClient {}, reconnect on expiring failed. Will retry after {} ms",
-            this._uid, waitInterval, e);
+            _uid, waitInterval, e);
         try {
           Thread.sleep(waitInterval);
         } catch (InterruptedException ex) {
@@ -1257,7 +1257,7 @@ public class ZkClient implements Watcher {
     }
 
     LOG.info("Zkclient {} unable to re-establish connection. Notifying consumer of the following exception:{}",
-        this._uid, reconnectException);
+        _uid, reconnectException);
     fireSessionEstablishmentError(reconnectException);
   }
 
@@ -1309,7 +1309,7 @@ public class ZkClient implements Watcher {
     KeeperException.Code code = KeeperException.Code.get(callbackHandler.getRc());
     if (code == KeeperException.Code.OK) {
       LOG.info("zkclient {}, sycnOnNewSession with sessionID {} async return code: {} and proceeds",
-          this._uid, sessionId, code);
+          _uid, sessionId, code);
       return true;
     }
 
@@ -1401,7 +1401,7 @@ public class ZkClient implements Watcher {
       return true;
     } catch (ZkClientException e) {
       LOG.error("zkcient {}, Failed to recursively delete path {}, exception {}",
-          this._uid, path, e);
+          _uid, path, e);
       return false;
     }
   }
@@ -1430,7 +1430,7 @@ public class ZkClient implements Watcher {
     try {
       delete(path);
     } catch (Exception e) {
-      LOG.error("zkclient {}, Failed to delete {}, exception {}", this._uid, path, e);
+      LOG.error("zkclient {}, Failed to delete {}, exception {}", _uid, path, e);
       throw new ZkClientException("Failed to delete " + path, e);
     }
   }
@@ -1439,7 +1439,7 @@ public class ZkClient implements Watcher {
     final String path = event.getPath();
     final boolean pathExists = event.getType() != EventType.NodeDeleted;
     if (EventType.NodeDeleted == event.getType()) {
-      LOG.debug("zkclient{}, Event NodeDeleted: {}", this._uid, event.getPath());
+      LOG.debug("zkclient{}, Event NodeDeleted: {}", _uid, event.getPath());
     }
 
     if (event.getType() == EventType.NodeChildrenChanged || event.getType() == EventType.NodeCreated
@@ -1512,7 +1512,7 @@ public class ZkClient implements Watcher {
         });
       }
     } catch (Exception e) {
-      LOG.error("zkclient {} Failed to fire data changed event for path: {}", this._uid, path, e);
+      LOG.error("zkclient {} Failed to fire data changed event for path: {}", _uid, path, e);
     }
   }
 
@@ -1548,7 +1548,7 @@ public class ZkClient implements Watcher {
         });
       }
     } catch (Exception e) {
-      LOG.error("zkclient {} Failed to fire child changed event. Unable to getChildren.", this._uid, e);
+      LOG.error("zkclient {} Failed to fire child changed event. Unable to getChildren.", _uid, e);
     }
   }
 
@@ -1556,7 +1556,7 @@ public class ZkClient implements Watcher {
       throws ZkInterruptedException {
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Waiting until znode {} becomes available.", this._uid, path);
+      LOG.debug("Waiting until znode {} becomes available.", _uid, path);
     }
     if (exists(path)) {
       return true;
@@ -1606,7 +1606,7 @@ public class ZkClient implements Watcher {
     validateCurrentThread();
     Date timeout = new Date(System.currentTimeMillis() + timeUnit.toMillis(time));
 
-    LOG.debug("zkclient {}, Waiting for keeper state {} ", this._uid, keeperState);
+    LOG.debug("zkclient {}, Waiting for keeper state {} ", _uid, keeperState);
     acquireEventLock();
     try {
       boolean stillWaiting = true;
@@ -1617,7 +1617,7 @@ public class ZkClient implements Watcher {
         stillWaiting = getEventLock().getStateChangedCondition().awaitUntil(timeout);
       }
       LOG.debug("zkclient {} State is {}",
-          this._uid, (_currentState == null ? "CLOSED" : _currentState));
+          _uid, (_currentState == null ? "CLOSED" : _currentState));
       return true;
     } catch (InterruptedException e) {
       throw new ZkInterruptedException(e);
@@ -1695,7 +1695,7 @@ public class ZkClient implements Watcher {
           throw ExceptionUtil.convertToRuntimeException(e);
         }
 
-        LOG.debug("zkclient {}, Retrying operation, caused by {}", this._uid,retryCauseCode);
+        LOG.debug("zkclient {}, Retrying operation, caused by {}", _uid,retryCauseCode);
         // before attempting a retry, check whether retry timeout has elapsed
         if (System.currentTimeMillis() - operationStartTime > _operationRetryTimeoutInMillis) {
           throw new ZkTimeoutException("Operation cannot be retried because of retry timeout ("
@@ -1758,18 +1758,18 @@ public class ZkClient implements Watcher {
       } catch (ZkNoNodeException e) {
         success = false;
         if (LOG.isDebugEnabled()) {
-          LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", this._uid, path);
+          LOG.debug("zkclient {}, Failed to delete path {}, znode does not exist!", _uid, path);
         }
       }
       record(path, null, startT, ZkClientMonitor.AccessType.WRITE);
     } catch (Exception e) {
       recordFailure(path, ZkClientMonitor.AccessType.WRITE);
-      LOG.warn("zkclient {}, Failed to delete path {}! ", this._uid, path, e);
+      LOG.warn("zkclient {}, Failed to delete path {}! ", _uid, path, e);
       throw e;
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient {} delete, path: {}, time {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient {} delete, path: {}, time {} ms", _uid, path, (endT - startT));
       }
     }
     return success;
@@ -1845,7 +1845,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient {}, getData, path {}, time {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient {}, getData, path {}, time {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -1922,7 +1922,7 @@ public class ZkClient implements Watcher {
     } finally {
       long endT = System.currentTimeMillis();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("zkclient {}, setData, path {}, time {} ms", this._uid, path, (endT - startT));
+        LOG.trace("zkclient {}, setData, path {}, time {} ms", _uid, path, (endT - startT));
       }
     }
   }
@@ -2054,7 +2054,7 @@ public class ZkClient implements Watcher {
       }
     } catch (ZkNoNodeException e) {
       // Do nothing, this is what we want as this is not going to leak watch in ZooKeeepr server.
-      LOG.info("zkclient {}, watchForData path not existing: {} ", this._uid, path);
+      LOG.info("zkclient {}, watchForData path not existing: {} ", _uid, path);
       return false;
     }
     return true;
@@ -2159,11 +2159,11 @@ public class ZkClient implements Watcher {
       _eventThread = new ZkEventThread(zkConnection.getServers());
       _eventThread.start();
 
-      LOG.debug("ZkClient {},  _eventThread {}", this._uid, _eventThread.getId());
+      LOG.debug("ZkClient {},  _eventThread {}", _uid, _eventThread.getId());
 
       if (isManagingZkConnection()) {
         zkConnection.connect(watcher);
-        LOG.debug("zkclient{} Awaiting connection to Zookeeper server", this._uid);
+        LOG.debug("zkclient{} Awaiting connection to Zookeeper server", _uid);
         if (!waitUntilConnected(maxMsToWaitUntilConnected, TimeUnit.MILLISECONDS)) {
           throw new ZkTimeoutException(
               "Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
@@ -2217,7 +2217,7 @@ public class ZkClient implements Watcher {
   public void close() throws ZkInterruptedException {
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.trace("Closing a zkclient uid:{}, callStack: {} ", this._uid, Arrays.asList(calls));
+      LOG.trace("Closing a zkclient uid:{}, callStack: {} ", _uid, Arrays.asList(calls));
     }
     getEventLock().lock();
     IZkConnection connection = getConnection();
@@ -2233,7 +2233,7 @@ public class ZkClient implements Watcher {
       _eventThread.interrupt();
       _eventThread.join(2000);
       if (isManagingZkConnection()) {
-        LOG.info("Closing zkclient uid:{}, zk:{}", this._uid, ((ZkConnection) connection).getZookeeper());
+        LOG.info("Closing zkclient uid:{}, zk:{}", _uid, ((ZkConnection) connection).getZookeeper());
         connection.close();
       }
       _closed = true;
@@ -2270,7 +2270,7 @@ public class ZkClient implements Watcher {
       if (_monitor != null) {
         _monitor.unregister();
       }
-      LOG.info("Closed zkclient with uid:{}", this._uid);
+      LOG.info("Closed zkclient with uid:{}", _uid);
     }
   }
 

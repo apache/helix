@@ -105,9 +105,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       ObjectMapper objectMapper = new ObjectMapper();
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
-      InstanceService instanceService =
-          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
-              Boolean.valueOf(skipZKRead));
+      InstanceService instanceService = new InstanceServiceImpl(
+          new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor, getNamespace()),
+          getConfigAccessor(), Boolean.valueOf(skipZKRead), getNamespace());
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
@@ -145,7 +145,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     InstanceService instanceService = new InstanceServiceImpl(
         new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor, getNamespace()),
-        getConfigAccessor(), Boolean.valueOf(skipZKRead));
+        getConfigAccessor(), Boolean.valueOf(skipZKRead), getNamespace());
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =

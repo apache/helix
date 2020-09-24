@@ -48,13 +48,15 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
+
+  private static final String REST_DOMAIN = "org.apache.helix.rest";
+
   // TODO: consider moving the following static context to ServerContext or any other place
   public static SSLContext REST_SERVER_SSL_CONTEXT;
 
@@ -139,6 +141,8 @@ public class HelixRestServer {
     ResourceConfig config = getResourceConfig(namespace, type);
     _resourceConfigMap.put(resourceConfigMapKey, config);
 
+    initMetricRegistry(config, namespace.getName());
+
     // Initialize servlet
     initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()));
   }
@@ -152,16 +156,13 @@ public class HelixRestServer {
     cfg.packages(type.getServletPackageArray());
     cfg.setApplicationName(namespace.getName());
 
-    // Enable the default statistical monitoring MBean for Jersey server
-    cfg.property(ServerProperties.MONITORING_STATISTICS_MBEANS_ENABLED, true);
     cfg.property(ContextPropertyKeys.SERVER_CONTEXT.name(),
         new ServerContext(namespace.getMetadataStoreAddress(), namespace.isMultiZkEnabled(),
             namespace.getMsdsEndpoint()));
     if (type == ServletType.DEFAULT_SERVLET) {
       cfg.property(ContextPropertyKeys.ALL_NAMESPACES.name(), _helixNamespaces);
-    } else {
-      cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
     }
+    cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
 
     cfg.register(new CORSFilter());
     cfg.register(new AuditLogFilter(_auditLoggers));
@@ -179,7 +180,7 @@ public class HelixRestServer {
     // JmxReporter doesn't have an option to specify namespace for each servlet,
     // we use a customized object name factory to get and insert namespace to object name.
     JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
-        .inDomain("org.apache.helix.rest")
+        .inDomain(REST_DOMAIN)
         .createsObjectNamesWith(new HelixRestObjectNameFactory(namespace))
         .build();
     jmxReporter.start();
@@ -222,6 +223,7 @@ public class HelixRestServer {
       }
     }
     _jmxReporterList.forEach(JmxReporter::stop);
+    _jmxReporterList.clear();
     cleanupResourceConfigs();
   }
 

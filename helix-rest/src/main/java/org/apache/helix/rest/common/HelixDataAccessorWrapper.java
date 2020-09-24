@@ -32,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
@@ -70,23 +69,33 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
 
   private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
   private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
-  private String _namespace;
+  protected String _namespace;
   protected CustomRestClient _restClient;
 
+  /**
+   * @deprecated Because a namespace is required, please use the other constructors.
+   *
+   * @param dataAccessor Zk Helix data accessor used to access ZK.
+   */
+  @Deprecated
   public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor) {
-    super(dataAccessor);
-    _restClient = CustomRestClientFactory.get();
+    this(dataAccessor, CustomRestClientFactory.get(), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
   }
 
   public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor, String namespace) {
-    super(dataAccessor);
-    _namespace = namespace;
-    _restClient = CustomRestClientFactory.get();
+    this(dataAccessor, CustomRestClientFactory.get(), namespace);
   }
 
-  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor, CustomRestClient customRestClient) {
+  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor,
+      CustomRestClient customRestClient) {
+    this(dataAccessor, customRestClient, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+  }
+
+  private HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor,
+      CustomRestClient customRestClient, String namespace) {
     super(dataAccessor);
     _restClient = customRestClient;
+    _namespace = namespace;
   }
 
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
@@ -188,17 +197,15 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   private Map<String, Boolean> getHealthStatusFromRest(String instance, List<String> partitions,
       RESTConfig restConfig, Map<String, String> customPayLoads) {
     MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
-    Counter requestsTotal = metrics.counter(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_TOTAL);
-    Counter errorRequestsTotal = metrics.counter(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_ERROR_TOTAL);
     try (final Timer.Context timer = metrics.timer(CUSTOM_PARTITION_CHECK_HTTP_REQUEST_DURATION)
         .time()) {
-      requestsTotal.inc();
+      metrics.counter(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_TOTAL).inc();
       return _restClient.getPartitionStoppableCheck(restConfig.getBaseUrl(instance), partitions,
           customPayLoads);
     } catch (IOException e) {
       LOG.error("Failed to get partition status on instance {}, partitions: {}", instance,
           partitions, e);
-      errorRequestsTotal.inc();
+      metrics.counter(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_ERROR_TOTAL).inc();
       return Collections.emptyMap();
     }
   }

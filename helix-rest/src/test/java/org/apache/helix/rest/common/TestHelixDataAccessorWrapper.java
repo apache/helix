@@ -71,6 +71,10 @@ public class TestHelixDataAccessorWrapper {
     void setRestClient(CustomRestClient restClient) {
       _restClient = restClient;
     }
+
+    void setNamespace(String namespace) {
+      _namespace = namespace;
+    }
   }
 
   @BeforeMethod
@@ -80,6 +84,7 @@ public class TestHelixDataAccessorWrapper {
     when(_restConfig.getBaseUrl(anyString())).thenReturn("http://localhost:1000");
     _restClient = mock(CustomRestClient.class);
     _dataAccessor.setRestClient(_restClient);
+    _dataAccessor.setNamespace("test");
 
     when(_restClient.getPartitionStoppableCheck(anyString(), anyList(), anyMap()))
         .thenAnswer((invocationOnMock) -> {

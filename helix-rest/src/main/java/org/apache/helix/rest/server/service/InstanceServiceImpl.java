@@ -21,7 +21,6 @@ package org.apache.helix.rest.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
@@ -51,6 +49,7 @@ import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
@@ -77,31 +76,30 @@ public class InstanceServiceImpl implements InstanceService {
   private String _namespace;
   private boolean _skipZKRead;
 
+  @Deprecated
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
-    _dataAccessor = dataAccessor;
-    _configAccessor = configAccessor;
-    _customRestClient = CustomRestClientFactory.get();
+    this(dataAccessor, configAccessor, false);
   }
 
+  @Deprecated
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead) {
-    this(dataAccessor, configAccessor);
-    this._skipZKRead = skipZKRead;
+    this(dataAccessor, configAccessor, skipZKRead, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
   }
 
   public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead, String namespace) {
-    this(dataAccessor, configAccessor, skipZKRead);
-    this._namespace = namespace;
+    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, namespace);
   }
 
   @VisibleForTesting
   InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient, boolean skipZKRead) {
+      CustomRestClient customRestClient, boolean skipZKRead, String namespace) {
     _dataAccessor = dataAccessor;
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
+    _namespace = namespace;
   }
 
   @Override
@@ -253,12 +251,10 @@ public class InstanceServiceImpl implements InstanceService {
       String baseUrl, Map<String, String> customPayLoads) {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
     MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
-    Counter requestsTotal = metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL);
-    Counter errorRequestsTotal = metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL);
 
     try (final Timer.Context timer = metrics.timer(CUSTOM_INSTANCE_CHECK_HTTP_REQUEST_DURATION)
         .time()) {
-      requestsTotal.inc();
+      metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL).inc();
       Map<String, Boolean> instanceStoppableCheck =
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads);
       return new StoppableCheck(instanceStoppableCheck,
@@ -266,7 +262,7 @@ public class InstanceServiceImpl implements InstanceService {
     } catch (IOException ex) {
       LOG.error("Custom client side instance level health check for {}/{} failed.", clusterId,
           instanceName, ex);
-      errorRequestsTotal.inc();
+      metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL).inc();
       return new StoppableCheck(false, Collections.singletonList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     }

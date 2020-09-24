@@ -541,7 +541,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   /*
    * If callback type is INIT or CALLBACK, subscribes child change listener to the path
    * and returns the path's children names. The children list might be null when the path
-   * doesn't exist or callback type is other than INIT/CALLBACK.
+   * doesn't exist or callback type is other than INIT/CALLBACK/FINALIZE.
    */
   private List<String> subscribeChildChange(String path, NotificationContext.Type callbackType) {
     if (callbackType == NotificationContext.Type.INIT
@@ -574,7 +574,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       _zkClient.unsubscribeChildChanges(path, this);
     }
 
-    return null;
+    return _zkClient.getChildren(path);
   }
 
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {
@@ -658,11 +658,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
               break;
             }
             default: {
-              // When callback type is FINALIZE, subscribeChildChange doesn't
-              // get children list. We need to read children to unsubscribe data change listeners.
-              if (callbackType == Type.FINALIZE) {
-                children = _zkClient.getChildren(path);
-              }
               if (children != null) {
                 for (String child : children) {
                   String childPath = path + "/" + child;

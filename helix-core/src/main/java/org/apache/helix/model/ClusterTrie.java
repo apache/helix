@@ -19,11 +19,16 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
@@ -70,6 +75,72 @@ public class ClusterTrie {
 
   public List<String> getInvalidInstances() {
     return _invalidInstances;
+  }
+
+  /**
+   * Return all the paths from a TrieNode as a set.
+   * @param node the node from where to collect all the nodes' paths.
+   * @return All the paths under the node.
+   */
+  public Set<String> getPathUnderNode(TrieNode node) {
+    Set<String> resultMap = new HashSet<>();
+    Deque<TrieNode> nodeStack = new ArrayDeque<>();
+    nodeStack.push(node);
+    while (!nodeStack.isEmpty()) {
+      node = nodeStack.pop();
+      if (node.getChildren().isEmpty()) {
+        resultMap.add(node.getPath());
+      } else {
+        for (TrieNode child : node.getChildren().values()) {
+          nodeStack.push(child);
+        }
+      }
+    }
+    return resultMap;
+  }
+
+  /**
+   * Get a specific node in the trie given a map of domain type and its value.
+   * @param domainMap a map of domain type and the corresponding value
+   * @return a trie node
+   */
+  public TrieNode getNode(LinkedHashMap<String, String> domainMap) {
+    TrieNode curNode = _rootNode;
+    TrieNode nextNode;
+    for (Map.Entry<String, String> entry : domainMap.entrySet()) {
+      nextNode = curNode.getChildren().get(entry.getKey() + CONNECTOR + entry.getValue());
+      if (nextNode == null) {
+        throw new IllegalArgumentException(String
+            .format("The input domain %s does not have the value %s", entry.getKey(),
+                entry.getValue()));
+      }
+      curNode = nextNode;
+    }
+    return curNode;
+  }
+
+  /**
+   * Get all the starting nodes for a certain domain type. E.g., if the domainType is "zone", it
+   * will return the list of trie nodes that represent zone:0, zone:1, zone:2, etc.
+   * @param domainType a specific domain type
+   * @return a list of trie nodes
+   */
+  public List<TrieNode> getStartNodes(String domainType) {
+    List<TrieNode> results = new ArrayList<>();
+    TrieNode curNode = _rootNode;
+    Deque<TrieNode> nodeStack = new ArrayDeque<>();
+    nodeStack.push(curNode);
+    while (!nodeStack.isEmpty()) {
+      curNode = nodeStack.pop();
+      if (curNode.getNodeKey().equals(domainType)) {
+        results.add(curNode);
+      } else {
+        for (TrieNode child : curNode.getChildren().values()) {
+          nodeStack.push(child);
+        }
+      }
+    }
+    return results;
   }
 
   private void validateInstanceConfig(final List<String> liveNodes,

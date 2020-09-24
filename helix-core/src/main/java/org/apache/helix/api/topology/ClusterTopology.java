@@ -19,12 +19,9 @@ package org.apache.helix.api.topology;
  * under the License.
  */
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,12 +92,13 @@ public class ClusterTopology {
    */
   private Map<String, List<String>> getTopologyUnderDomain(Map<String, String> domainMap) {
     LinkedHashMap<String, String> orderedDomain = validateAndOrderDomain(domainMap);
-    TrieNode startNode = getNode(orderedDomain);
+    TrieNode startNode = _trieClusterTopology.getNode(orderedDomain);
     Map<String, TrieNode> children = startNode.getChildren();
     Map<String, List<String>> results = new HashMap<>();
     children.entrySet().forEach(child -> {
       results.put(startNode.getPath() + DELIMITER + child.getKey(),
-          truncatePath(getPathUnderNode(child.getValue()), child.getValue().getPath()));
+          truncatePath(_trieClusterTopology.getPathUnderNode(child.getValue()),
+              child.getValue().getPath()));
     });
     return results;
   }
@@ -125,7 +123,7 @@ public class ClusterTopology {
       }
     }
     // get all the starting nodes for the domain type
-    List<TrieNode> startNodes = getStartNodes(parentDomainType);
+    List<TrieNode> startNodes = _trieClusterTopology.getStartNodes(parentDomainType);
     for (TrieNode startNode : startNodes) {
       results.putAll(getTopologyUnderPath(startNode.getPath()));
     }
@@ -180,61 +178,6 @@ public class ClusterTopology {
       String truncatedPath = path.replace(toRemovePath, "");
       results.add(truncatedPath);
     });
-    return results;
-  }
-
-  /**
-   * Return all the paths from a TrieNode as a set.
-   * @param node the node from where to collect all the nodes' paths.
-   * @return All the paths under the node.
-   */
-  private Set<String> getPathUnderNode(TrieNode node) {
-    Set<String> resultMap = new HashSet<>();
-    Deque<TrieNode> nodeStack = new ArrayDeque<>();
-    nodeStack.push(node);
-    while (!nodeStack.isEmpty()) {
-      node = nodeStack.pop();
-      if (node.getChildren().isEmpty()) {
-        resultMap.add(node.getPath());
-      } else {
-        for (TrieNode child : node.getChildren().values()) {
-          nodeStack.push(child);
-        }
-      }
-    }
-    return resultMap;
-  }
-
-  private TrieNode getNode(LinkedHashMap<String, String> domainMap) {
-    TrieNode curNode = _trieClusterTopology.getRootNode();
-    TrieNode nextNode;
-    for (Map.Entry<String, String> entry : domainMap.entrySet()) {
-      nextNode = curNode.getChildren().get(entry.getKey() + CONNECTOR + entry.getValue());
-      if (nextNode == null) {
-        throw new IllegalArgumentException(String
-            .format("The input domain %s does not have the value %s", entry.getKey(),
-                entry.getValue()));
-      }
-      curNode = nextNode;
-    }
-    return curNode;
-  }
-
-  private List<TrieNode> getStartNodes(String domainType) {
-    List<TrieNode> results = new ArrayList<>();
-    TrieNode curNode = _trieClusterTopology.getRootNode();
-    Deque<TrieNode> nodeStack = new ArrayDeque<>();
-    nodeStack.push(curNode);
-    while (!nodeStack.isEmpty()) {
-      curNode = nodeStack.pop();
-      if (curNode.getNodeKey().equals(domainType)) {
-        results.add(curNode);
-      } else {
-        for (TrieNode child : curNode.getChildren().values()) {
-          nodeStack.push(child);
-        }
-      }
-    }
     return results;
   }
 

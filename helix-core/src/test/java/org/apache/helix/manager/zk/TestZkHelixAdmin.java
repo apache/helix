@@ -42,20 +42,19 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CloudConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -68,6 +67,8 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.KeeperException;
@@ -293,6 +294,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     ExternalView resourceExternalView = tool.getResourceExternalView(clusterName, "resource");
     AssertJUnit.assertNull(resourceExternalView);
+
+    CustomizedView resourceCustomizedView = tool.getResourceCustomizedView(clusterName, "resource");
+    AssertJUnit.assertNull(resourceCustomizedView);
 
     // test config support
     // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)

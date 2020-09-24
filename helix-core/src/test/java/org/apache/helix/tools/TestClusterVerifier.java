@@ -27,6 +27,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.SleepTransition;
@@ -75,9 +76,11 @@ public class TestClusterVerifier extends ZkUnitTestBase {
         BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.SEMI_AUTO.toString());
 
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[2], NUM_PARTITIONS,
-        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString());
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString(),
+        CrushEdRebalanceStrategy.class.getName());
     _setupTool.addResourceToCluster(_clusterName, RESOURCES[3], NUM_PARTITIONS,
-        BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.FULL_AUTO.toString());
+        BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.FULL_AUTO.toString(),
+        CrushEdRebalanceStrategy.class.getName());
 
     // Enable persist best possible assignment
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);

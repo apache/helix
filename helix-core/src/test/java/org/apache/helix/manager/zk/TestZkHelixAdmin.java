@@ -23,8 +23,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -39,9 +42,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.model.CloudConfig;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -51,6 +56,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -117,7 +123,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     try {
       tool.addInstance(clusterName, config);
-      Assert.fail("should fail if add an alredy-existing instance");
+      Assert.fail("should fail if add an already-existing instance");
     } catch (HelixException e) {
       // OK
     }
@@ -573,5 +579,73 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     admin.removeCloudConfig(clusterName);
     cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
     Assert.assertNull(cloudConfigFromZk);
+  }
+
+  @Test
+  public void testGetDomainInformation() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    ClusterConfig clusterConfig = new ClusterConfig(clusterName);
+    clusterConfig.setTopologyAwareEnabled(true);
+    clusterConfig.setTopology("/group/zone/rack/host");
+    clusterConfig.setFaultZoneType("rack");
+
+    ConfigAccessor _configAccessor = new ConfigAccessor(_gZkClient);
+    _configAccessor.setClusterConfig(clusterName, clusterConfig);
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    for (int i = 0; i < 42; i++) {
+
+      String hostname = "myhost" + i;
+      String port = "9999";
+      String instanceName = hostname + "_" + port;
+      InstanceConfig instanceConfig = new InstanceConfig(instanceName);
+      instanceConfig.setHostName(hostname);
+      instanceConfig.setPort(port);
+      if (i == 40) {
+        instanceConfig.setDomain(String
+            .format("invaliddomain=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
+                "myrack" + i % 4, hostname));
+      } else if (i == 41) {
+        instanceConfig.setDomain("invaliddomain");
+      } else {
+        String domain = String
+            .format("group=%s,zone=%s,rack=%s,host=%s", "mygroup" + i % 2, "myzone" + i % 4,
+                "myrack" + i % 4, hostname);
+        instanceConfig.setDomain(domain);
+      }
+      LiveInstance liveInstance = new LiveInstance(instanceName);
+      liveInstance.setSessionId(UUID.randomUUID().toString());
+      liveInstance.setHelixVersion(UUID.randomUUID().toString());
+      accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+      admin.addInstance(clusterName, instanceConfig);
+      admin.enableInstance(clusterName, instanceName, true);
+    }
+
+    ClusterTopology clusterTopology = admin.getClusterTopology(clusterName);
+    Assert.assertNotNull(clusterTopology);
+    Map<String, List<String>> results = clusterTopology.getTopologyMap();
+    Assert.assertEquals(results.size(), 2);
+    Assert.assertTrue(results.containsKey("/group:mygroup0"));
+    Assert.assertTrue(results.containsKey("/group:mygroup1"));
+    Assert.assertEquals(results.get("/group:mygroup0").size(), 20);
+    Assert.assertEquals(results.get("/group:mygroup1").size(), 20);
+
+    results = clusterTopology.getFaultZoneMap();
+    Assert.assertEquals(results.size(), 4);
+    Assert.assertEquals(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").size(), 10);
+    Assert.assertTrue(results.get("/group:mygroup0/zone:myzone0/rack:myrack0").contains("/host"
+        + ":myhost0"));
+
+    Assert.assertEquals(clusterTopology.getInvalidInstances().size(), 2);
+    Assert.assertTrue(clusterTopology.getInvalidInstances()
+        .containsAll(new HashSet<>(Arrays.asList("myhost40_9999", "myhost41_9999"))));
   }
 }

@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -392,6 +393,12 @@ public interface HelixAdmin {
    * @param clusterName
    */
   void removeCloudConfig(String clusterName);
+
+  /**
+   * Get the topology of a specific cluster
+   * @param clusterName
+   */
+  ClusterTopology getClusterTopology(String clusterName);
 
   /**
    * Get a list of state model definitions in a cluster

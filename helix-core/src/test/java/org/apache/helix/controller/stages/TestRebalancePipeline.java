@@ -157,7 +157,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     Thread.sleep(2 * MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY);
     runPipeline(event, dataRefresh, false);
-    
+
     // Verify the stale message should be deleted
     Assert.assertTrue(TestHelper.verify(() -> {
       if (dataCache.getStaleMessages().size() != 0) {

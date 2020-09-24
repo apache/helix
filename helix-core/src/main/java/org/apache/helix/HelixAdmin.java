@@ -22,11 +22,13 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -442,6 +444,14 @@ public interface HelixAdmin {
    * @return ExternalView for the resource
    */
   ExternalView getResourceExternalView(String clusterName, String resourceName);
+
+  /**
+   * Get customized view for a resource
+   * @param clusterName
+   * @param resourceName
+   * @return customized for the resource
+   */
+  CustomizedView getResourceCustomizedView(String clusterName, String resourceName);
 
   /**
    * Drop a cluster

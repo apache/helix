@@ -96,7 +96,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
 
     for (ZkClientPathMonitor.PredefinedPath path : ZkClientPathMonitor.PredefinedPath.values()) {
       // If monitor root path only, check if the current path is Root.
-      // Otherwise, add monitors for every  path.
+      // Otherwise, add monitors for every path.
       if (!_monitorRootOnly || path.equals(ZkClientPathMonitor.PredefinedPath.Root)) {
         _zkClientPathMonitorMap.put(path,
             new ZkClientPathMonitor(path, _monitorType, _monitorKey, _monitorInstanceName)

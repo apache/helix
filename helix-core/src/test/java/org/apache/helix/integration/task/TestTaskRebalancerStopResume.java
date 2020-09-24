@@ -107,23 +107,31 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.createQueue(queue);
 
     // Enqueue jobs
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master)
         .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
-    _driver.enqueueJob(queueName, job1Name, job1);
+    jobNames.add(job1Name);
+    jobBuilders.add(job1);
+    //_driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job: " + job2Name);
-    _driver.enqueueJob(queueName, job2Name, job2);
+    jobNames.add(job2Name);
+    jobBuilders.add(job2);
+    _driver.enqueueJobs(queueName, jobNames,jobBuilders);
+    //_driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);
+
 
     // stop job1
     LOG.info("Pausing job-queue: " + queueName);

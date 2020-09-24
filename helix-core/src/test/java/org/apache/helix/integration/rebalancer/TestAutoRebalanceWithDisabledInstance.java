@@ -146,6 +146,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     return partitionSet;
   }
 
+  // Ensure that we are testing the AutoRebalancer.
   private void setupAutoRebalancer() {
     HelixAdmin admin = _gSetupTool.getClusterManagementTool();
     for (String resourceName : _gSetupTool.getClusterManagementTool()

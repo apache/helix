@@ -41,11 +41,14 @@ import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
+  private static Logger LOG = LoggerFactory.getLogger(TestAutoRebalancePartitionLimit.class);
 
   @Override
   @BeforeClass
@@ -58,6 +61,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
         RebalanceMode.FULL_AUTO.name(), 0, 25);
 
+    // Ensure that we are testing the AutoRebalancer.
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     idealState.setRebalancerClassName(AutoRebalancer.class.getName());
@@ -221,6 +225,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
             numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
             cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
       } catch (Exception e) {
+        LOG.debug("Verify failed due to {}", e.getStackTrace());
         return false;
       }
     }

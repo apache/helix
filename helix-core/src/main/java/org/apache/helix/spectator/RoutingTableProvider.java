@@ -422,19 +422,19 @@ public class RoutingTableProvider
    * Add RoutingTableChangeListener with user defined context
    * @param routingTableChangeListener
    * @param context user defined context
-   * @param doInit whether to trigger the initial callback during adding listener
+   * @param isTriggerCallback whether to trigger the initial callback during adding listener
    */
   public void addRoutingTableChangeListener(
-      final RoutingTableChangeListener routingTableChangeListener, Object context, boolean doInit) {
+      final RoutingTableChangeListener routingTableChangeListener, Object context,
+      boolean isTriggerCallback) {
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
-    logger.info(
-        "Attach RoutingTableProviderChangeListener {}. The doInit value of this listener is {}",
-        routingTableChangeListener.getClass().getName(), doInit);
-    if (doInit) {
+    logger.info("Attach RoutingTableProviderChangeListener {}.",
+        routingTableChangeListener.getClass().getName(), isTriggerCallback);
+    if (isTriggerCallback) {
+      logger.info("The isTriggerCallback value for the listener is true");
       final NotificationContext periodicRefreshContext = new NotificationContext(_helixManager);
       periodicRefreshContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
-      _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance,
-          null);
+      _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance, null);
       }
   }
 

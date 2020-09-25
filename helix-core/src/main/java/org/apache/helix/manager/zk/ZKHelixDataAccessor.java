@@ -147,11 +147,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     case EXTERNALVIEW:
       // check if bucketized
       if (value.getBucketSize() > 0) {
-        if (!BUCKETIZE_ZNRECORD_ENABLED) {
-          throw new HelixMetaDataAccessException(
-              "Can't write bucktized ZNode " + path + " because Bucktize feature "
-                  + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
-        }
+        validateBucketizedEnabled(path, false /*isRead*/);
         // set parent node
         ZNRecord metaRecord = new ZNRecord(value.getId());
         metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
@@ -196,6 +192,9 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     switch (type) {
       case CURRENTSTATES:
       case CUSTOMIZEDSTATES:
+        if (value.getBucketSize() > 0) {
+          validateBucketizedEnabled(path, false /*isRead*/);
+        }
         success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
         break;
       case STATUSUPDATES:
@@ -260,11 +259,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
           int bucketSize = property.getBucketSize();
           if (bucketSize > 0) {
-            if (!BUCKETIZE_ZNRECORD_ENABLED) {
-              throw new HelixMetaDataAccessException(
-                  "Can't read bucktized ZNode " + path + " because Bucktize feature "
-                      + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
-            }
+            validateBucketizedEnabled(path, true /*isRead*/);
             // @see HELIX-574
             // clean up list and map fields in case we write to parent node by mistake
             property.getRecord().getMapFields().clear();
@@ -323,11 +318,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
         int bucketSize = property.getBucketSize();
         if (bucketSize > 0) {
-          if (!BUCKETIZE_ZNRECORD_ENABLED) {
-            throw new HelixMetaDataAccessException(
-                "Can't read bucktized ZNode " + path + " because Bucktize feature "
-                    + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
-          }
+          validateBucketizedEnabled(path, true/*isRead*/);
           // @see HELIX-574
           // clean up list and map fields in case we write to parent node by mistake
           property.getRecord().getMapFields().clear();
@@ -448,11 +439,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
             int bucketSize = property.getBucketSize();
             if (bucketSize > 0) {
               String childPath = parentPath + "/" + record.getId();
-              if (!BUCKETIZE_ZNRECORD_ENABLED) {
-                throw new HelixMetaDataAccessException(
-                    "Can't read bucktized ZNode " + childPath + " because Bucktize feature "
-                        + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
-              }
+              validateBucketizedEnabled(childPath, true /*isRead*/);
               // TODO: fix this if record.id != pathName
               List<ZNRecord> childRecords;
               if (throwException) {
@@ -565,11 +552,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
         if (value.getBucketSize() == 0) {
           records.add(value.getRecord());
         } else {
-          if (!BUCKETIZE_ZNRECORD_ENABLED) {
-            throw new HelixMetaDataAccessException(
-                "Can't write bucktized ZNode " + path + " because Bucktize feature "
-                    + "is not enabled. Please check ZK system property ZK_BUCKETIZE_ZNRECORD_ENABLED.");
-          }
+          validateBucketizedEnabled(path, false /*isRead*/);
           ZNRecord metaRecord = new ZNRecord(value.getId());
           metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
           records.add(metaRecord);
@@ -627,5 +610,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
+  }
+
+  private void validateBucketizedEnabled(String path, boolean isRead) {
+    if (!BUCKETIZE_ZNRECORD_ENABLED) {
+      throw new HelixMetaDataAccessException(
+          "Can't " + (isRead ? "read" : "write") + " bucktized ZNode " + path
+              + " because Bucktize feature is not enabled. Please check ZK system property 'zk.bucketize.znrecord.enabled' .");
+    }
   }
 }

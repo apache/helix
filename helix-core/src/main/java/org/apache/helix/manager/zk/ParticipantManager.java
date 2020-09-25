@@ -400,7 +400,7 @@ public class ParticipantManager {
           }
 
         } else {
-          _dataAccessor.getBaseDataAccessor().update(curStatePath,
+          baseAccessor.update(curStatePath,
               new CurStateCarryOverUpdater(_sessionId, initState, lastCurState),
               AccessOption.PERSISTENT);
         }

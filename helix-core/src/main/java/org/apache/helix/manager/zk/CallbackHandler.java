@@ -642,28 +642,27 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
                 for (ZNRecord record : records) {
                   HelixProperty property = new HelixProperty(record);
                   String childPath = path + "/" + record.getId();
-
                   int bucketSize = property.getBucketSize();
+                  // Do data-change subscribe for both bucketized parent node and non-bucketized node.
+                  // For bucketized parent node, data-change gives a delete-callback to remove watch.
+                  subscribeDataChange(childPath, callbackType);
                   if (bucketSize > 0) {
-                    // subscribe both data-change and child-change on bucketized parent node
-                    // data-change gives a delete-callback which is used to remove watch
-                    subscribeChildChange(childPath, callbackType);
-                    subscribeDataChange(childPath, callbackType);
+                    // subscribe child-change on bucketized parent node.
+                    List<String> bucketizedChildNames =
+                        subscribeChildChange(childPath, callbackType);
 
                     // subscribe data-change on bucketized child
-                    List<String> bucketizedChildNames = _zkClient.getChildren(childPath);
                     if (bucketizedChildNames != null) {
                       for (String bucketizedChildName : bucketizedChildNames) {
                         String bucketizedChildPath = childPath + "/" + bucketizedChildName;
                         subscribeDataChange(bucketizedChildPath, callbackType);
                       }
                     }
-                  } else {
-                    subscribeDataChange(childPath, callbackType);
                   }
                 }
                 break;
-              } // else case uses default branch.
+              }
+              // go to default branch if bucketized feature is not enabled.
             }
             default: {
               if (children != null) {

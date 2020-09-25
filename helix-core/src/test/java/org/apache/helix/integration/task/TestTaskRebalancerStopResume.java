@@ -167,7 +167,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
@@ -183,7 +183,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
           .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
           .setTargetPartitionStates(Sets.newHashSet(targetPartition))
-          .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
+          .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, jobBuilder);

@@ -761,7 +761,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * been offline for longer than the user defined timeout window.
    * @param timeOutWindow - the timeout window; guaranteed to be non-negative
    */
-  private boolean isInstanceTimedOutDuringMaintenance(HelixDataAccessor accessor, String instance, long timeOutWindow) {
+  private boolean isInstanceTimedOutDuringMaintenance(HelixDataAccessor accessor, String instance,
+      long timeOutWindow) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey propertyKey = keyBuilder.participantHistory(instance);
     ParticipantHistory history = accessor.getProperty(propertyKey);

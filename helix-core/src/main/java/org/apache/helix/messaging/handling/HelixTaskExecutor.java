@@ -658,11 +658,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // this is a potential area to improve. https://github.com/apache/helix/issues/1245
 
     // some thing like STATE_TRANSITION.Key specific pool are not shut down.
-    for (String msgType : _executorMap.keySet()) {
-      ExecutorService pool = _executorMap.remove(msgType);
-      LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
-      shutdownAndAwaitTermination(pool);
-    }
+    // this is a potential area to improve. https://github.com/apache/helix/issues/1245
 
     StringBuilder sb = new StringBuilder();
     // Log all tasks that fail to terminate

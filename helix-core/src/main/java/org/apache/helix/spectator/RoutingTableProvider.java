@@ -429,9 +429,9 @@ public class RoutingTableProvider
       boolean isTriggerCallback) {
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
     logger.info("Attach RoutingTableProviderChangeListener {}.",
-        routingTableChangeListener.getClass().getName(), isTriggerCallback);
+        routingTableChangeListener.getClass().getName());
     if (isTriggerCallback) {
-      logger.info("The isTriggerCallback value for the listener is true");
+      logger.info("Force triggering a callback for the new listener in routing table provider");
       final NotificationContext periodicRefreshContext = new NotificationContext(_helixManager);
       periodicRefreshContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
       _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance, null);

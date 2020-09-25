@@ -250,6 +250,12 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
         _invokedClasses.add(getClass().getName());
         _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
       }
+      // this is to make sure task don't finish too quick
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        // ignore
+      }
       if (failTask) {
         return new TaskResult(TaskResult.Status.FAILED, "");
       }

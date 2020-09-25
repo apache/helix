@@ -68,6 +68,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * @param timeout the timeout period of the lock
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
+   * @param baseDataAccessor baseDataAccessor instance to do I/O against ZK with
    */
   private ZKDistributedNonblockingLock(String lockPath, Long timeout, String lockMsg, String userId,
       BaseDataAccessor<ZNRecord> baseDataAccessor) {

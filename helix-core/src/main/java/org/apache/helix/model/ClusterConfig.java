@@ -122,7 +122,13 @@ public class ClusterConfig extends HelixProperty {
     // don't specify their individual pool sizes, this value will be used for all participants; if
     // none of participants or the cluster define pool sizes,
     // TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE will be used to create pool sizes.
-    GLOBAL_TARGET_TASK_THREAD_POOL_SIZE
+    GLOBAL_TARGET_TASK_THREAD_POOL_SIZE,
+
+    // The time out window for offline nodes during maintenance mode; if an offline node has been
+    // offline for more than this specified time period, it's treated as offline for the rest of
+    // the maintenance mode's duration even when it comes online.
+    // The unit is milliseconds.
+    MAINTENANCE_OFFLINE_NODE_TIME_OUT
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -151,6 +157,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final long MAINTENANCE_OFFLINE_NODE_TIME_OUT_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -901,6 +908,29 @@ public class ClusterConfig extends HelixProperty {
   public boolean isGlobalRebalanceAsyncModeEnabled() {
     return _record.getBooleanField(ClusterConfigProperty.GLOBAL_REBALANCE_ASYNC_MODE.name(),
         DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
+  }
+
+  /**
+   * Set the time out window for offline nodes during maintenance mode. If an offline node has been
+   * offline for more than this specified time period, it's treated as offline for the rest of
+   * the maintenance mode's duration even when it comes online. This ensures no state transition
+   * occurring on said instance.
+   * @param timeOut timeout window in milliseconds. A negative value leads to no timeout checks
+   */
+  public void setMaintenanceOfflineNodeTimeOut(long timeOut) {
+    _record.setLongField(ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(), timeOut);
+  }
+
+  /**
+   * Get the time out window for offline nodes during maintenance mode. If an offline node has been
+   * offline for more than this specified time period, it's treated as offline for the rest of
+   * the maintenance mode's duration even when it comes online. This ensures no state transition
+   * occurring on said instance.
+   * @return timeout window in milliseconds
+   */
+  public long getMaintenanceOfflineNodeTimeOut() {
+    return _record.getLongField(ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(),
+        MAINTENANCE_OFFLINE_NODE_TIME_OUT_NOT_SET);
   }
 
   /**

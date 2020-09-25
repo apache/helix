@@ -109,6 +109,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
   private Set<String> _disabledInstanceSet = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
+  private Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
 
   public BaseControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER, AbstractDataCache.UNKNOWN_PIPELINE);
@@ -253,9 +254,34 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void refreshLiveInstances(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE).getAndSet(false)) {
+      // Keep a copy of old live instances in case of maintenance mode
+      Map<String, LiveInstance> oldLiveInstances = getLiveInstances();
       _liveInstanceCache.refresh(accessor);
       _updateInstanceOfflineTime = true;
       refreshedType.add(HelixConstants.ChangeType.LIVE_INSTANCE);
+
+      // If maintenance mode is enabled and timeout window is specified, filter 'new' live nodes
+      // for timed-out nodes
+      long timeOutWindow = _clusterConfig.getMaintenanceOfflineNodeTimeOut();
+      if (timeOutWindow >= 0 && isMaintenanceModeEnabled()) {
+        for (String instance : _liveInstanceCache.getPropertyMap().keySet()) {
+          // For every 'new' live node, check if it's timed-out
+          if (!oldLiveInstances.containsKey(instance) && isInstanceTimedOutDuringMaintenance(
+              accessor, instance, timeOutWindow)) {
+            _timedOutInstanceDuringMaintenance.add(instance);
+          }
+        }
+
+        // Remove all timed-out nodes that were recorded in this maintenance duration
+        for (String instance : _timedOutInstanceDuringMaintenance) {
+          _liveInstanceCache.deletePropertyByName(instance);
+        }
+      }
+
+      // If maintenance mode has exited, clear cached timed-out nodes
+      if (!isMaintenanceModeEnabled()) {
+        _timedOutInstanceDuringMaintenance.clear();
+      }
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
           .format("No live instance change for %s cluster, %s pipeline", _clusterName,
@@ -679,6 +705,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     List<String> offlineNodes =
         new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
     offlineNodes.removeAll(_liveInstanceCache.getPropertyMap().keySet());
+    // The timed-out instances during maintenance are online and not included in liveInstanceCache
+    offlineNodes.removeAll(_timedOutInstanceDuringMaintenance);
     _instanceOfflineTimeMap = new HashMap<>();
 
     for (String instance : offlineNodes) {
@@ -726,6 +754,40 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     if (_clusterConfig != null && _clusterConfig.getDisabledInstances() != null) {
       _disabledInstanceSet.addAll(_clusterConfig.getDisabledInstances().keySet());
     }
+  }
+
+  /*
+   * Check if the instance is timed-out during maintenance mode. An instance is timed-out if it has
+   * been offline for longer than the user defined timeout window.
+   * @param timeOutWindow - the timeout window; guaranteed to be non-negative
+   */
+  private boolean isInstanceTimedOutDuringMaintenance(HelixDataAccessor accessor, String instance, long timeOutWindow) {
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey propertyKey = keyBuilder.participantHistory(instance);
+    ParticipantHistory history = accessor.getProperty(propertyKey);
+
+    // Cannot use _instanceOfflineTimeMap. _instanceOfflineTimeMap is last updated in the previous
+    // pipeline execution; it is possible a new offline timestamp is updated after the previous
+    // pipeline execution, so we need the most updated timestamp.
+    long lastOfflineTime = history.getLastTimeInOfflineHistory();
+    // lastOfflineTime is only negative if there is no offline history or the time format is wrong.
+    // Since this instance is a 'new' live instance, not having offline history = first time created
+    // instance; during maintenance mode, no partition will be assigned to such a new instance,
+    // therefore it's okay to no time it out. The wrong format case shouldn't happen at all and will
+    // not be handled either.
+    if (lastOfflineTime < 0) {
+      return false;
+    }
+
+    long currentTime = System.currentTimeMillis();
+    if (currentTime - lastOfflineTime > timeOutWindow) {
+      LogUtil.logWarn(logger, getClusterEventId(), String.format(
+          "During maintenance mode, instance %s is timed-out due to its offline time. Current time: "
+              + "%s, Last offline time: %s, Timeout window: %s", instance, currentTime,
+          lastOfflineTime, timeOutWindow));
+      return true;
+    }
+    return false;
   }
 
   /**

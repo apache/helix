@@ -22,6 +22,7 @@ package org.apache.helix.model;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -43,7 +44,9 @@ public class ParticipantHistory extends HelixProperty {
   private static final String UNKNOWN_HOST_NAME = "UnknownHostname";
 
   private final static int HISTORY_SIZE = 20;
-  private enum ConfigProperty {
+  final static String HISTORY_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss:SSS";
+
+  enum ConfigProperty {
     TIME,
     DATE,
     SESSION,
@@ -113,6 +116,33 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
+   * Get the time when this node last goes offline in history. If the node does not have offline
+   * history or contains invalid date as the last element, return -1.
+   *
+   * @return
+   */
+  public long getLastTimeInOfflineHistory() {
+    List<String> offlineHistory = _record.getListField(ConfigProperty.OFFLINE.name());
+    if (offlineHistory == null || offlineHistory.isEmpty()) {
+      return -1;
+    }
+
+    String lastDate = offlineHistory.get(offlineHistory.size() - 1);
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(HISTORY_DATE_FORMAT);
+    simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    long lastOfflineTime;
+    try {
+      Date date = simpleDateFormat.parse(lastDate);
+      lastOfflineTime = date.getTime();
+    } catch (ParseException e) {
+      LOG.warn("Failed to parse the last element in OFFLINE history " + lastDate);
+      return -1;
+    }
+
+    return lastOfflineTime;
+  }
+
+  /**
    * Add record to session online history list
    */
   private void updateSessionHistory(String sessionId, String version, String hostname) {
@@ -133,7 +163,7 @@ public class ParticipantHistory extends HelixProperty {
     long timeMillis = System.currentTimeMillis();
     sessionEntry.put(ConfigProperty.TIME.name(), String.valueOf(timeMillis));
 
-    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(timeMillis));
     sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
@@ -154,7 +184,7 @@ public class ParticipantHistory extends HelixProperty {
       list.remove(0);
     }
 
-    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(time));
 

@@ -117,5 +117,11 @@ public class CustomizedStateProvider {
         return current;
       }
     }, existingState);
+    // remove the resource from customized state if all partitions are gone
+    if (_helixDataAccessor
+        .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
+        .getRecord().getMapFields().isEmpty()) {
+      _helixDataAccessor.removeProperty(propertyKey);
+    }
   }
 }

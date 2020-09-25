@@ -161,6 +161,11 @@ public class TestCustomizedStateUpdate extends ZkStandAloneCMTestBase {
     mapView = customizedState.getRecord().getMapFields();
     Assert.assertEquals(mapView.keySet().size(), 1);
     Assert.assertEquals(mapView.keySet().iterator().next(), PARTITION_NAME2);
+
+    _mockProvider
+        .deletePerPartitionCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME, PARTITION_NAME2);
+    customizedState = _mockProvider.getCustomizedState(CUSTOMIZE_STATE_NAME, RESOURCE_NAME);
+    Assert.assertNull(customizedState);
   }
 
   @Test

@@ -24,9 +24,11 @@ import java.util.Date;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.lock.DistributedLock;
 import org.apache.helix.lock.LockInfo;
 import org.apache.helix.lock.LockScope;
+import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -34,7 +36,9 @@ import org.apache.log4j.Logger;
 
 
 /**
- * Helix nonblocking lock implementation based on Zookeeper
+ * Helix nonblocking lock implementation based on Zookeeper.
+ * NOTE: do NOT use ephemeral nodes in this implementation because ephemeral mode is not supported
+ * in ZooScalability mode.
  */
 public class ZKDistributedNonblockingLock implements DistributedLock {
   private static final Logger LOG = Logger.getLogger(ZKDistributedNonblockingLock.class);
@@ -55,19 +59,18 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    */
   public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long timeout,
       String lockMsg, String userId) {
-    this(scope.getPath(), zkAddress, timeout, lockMsg, userId);
+    this(scope.getPath(), timeout, lockMsg, userId, new ZkBaseDataAccessor<ZNRecord>(zkAddress));
   }
 
   /**
    * Initialize the lock with user provided information, e.g., lock path under zookeeper, etc.
    * @param lockPath the path of the lock under Zookeeper
-   * @param zkAddress the zk address of the cluster
    * @param timeout the timeout period of the lock
    * @param lockMsg the reason for having this lock
    * @param userId a universal unique userId for lock owner identity
    */
-  private ZKDistributedNonblockingLock(String lockPath, String zkAddress, Long timeout,
-      String lockMsg, String userId) {
+  private ZKDistributedNonblockingLock(String lockPath, Long timeout, String lockMsg, String userId,
+      BaseDataAccessor<ZNRecord> baseDataAccessor) {
     _lockPath = lockPath;
     if (timeout < 0) {
       throw new IllegalArgumentException("The expiration time cannot be negative.");
@@ -75,7 +78,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
     _timeout = timeout;
     _lockMsg = lockMsg;
     _userId = userId;
-    _baseDataAccessor = new ZkBaseDataAccessor<>(zkAddress);
+    _baseDataAccessor = baseDataAccessor;
   }
 
   @Override
@@ -143,11 +146,61 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
       if (!(System.currentTimeMillis() < curLockInfo.getTimeout()) || isCurrentOwner()) {
         return _record;
       }
-      // For users who are not the lock owner and try to do an update on a lock that is held by someone else, exception thrown is to be caught by data accessor, and return false for the update
+      // For users who are not the lock owner and try to do an update on a lock that is held by
+      // someone else, exception thrown is to be caught by data accessor, and return false for
+      // the update
       LOG.error(
           "User " + _userId + " tried to update the lock at " + new Date(System.currentTimeMillis())
               + ". Lock path: " + _lockPath);
       throw new HelixException("User is not authorized to perform this operation.");
+    }
+  }
+
+  /**
+   * Builder class to use with ZKDistributedNonblockingLock.
+   */
+  public static class Builder extends GenericZkHelixApiBuilder<Builder> {
+    private String _lockPath;
+    private String _userId;
+    private long _timeout;
+    private String _lockMsg;
+
+    public Builder() {
+    }
+
+    public void setLockPath(String lockPath) {
+      _lockPath = lockPath;
+    }
+
+    public void setUserId(String userId) {
+      _userId = userId;
+    }
+
+    public void setTimeout(long timeout) {
+      _timeout = timeout;
+    }
+
+    public void setLockMsg(String lockMsg) {
+      _lockMsg = lockMsg;
+    }
+
+    public ZKDistributedNonblockingLock build() {
+      // Resolve which way we want to create BaseDataAccessor instance
+      BaseDataAccessor<ZNRecord> baseDataAccessor;
+      // If enabled via System.Properties config or the given zkAddress is null, use ZooScalability
+      if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || _zkAddress == null) {
+        // If the multi ZK config is enabled, use multi-realm mode with FederatedZkClient
+        baseDataAccessor = new ZkBaseDataAccessor.Builder<ZNRecord>().setRealmMode(_realmMode)
+            .setRealmAwareZkClientConfig(_realmAwareZkClientConfig)
+            .setRealmAwareZkConnectionConfig(_realmAwareZkConnectionConfig).setZkAddress(_zkAddress)
+            .build();
+      } else {
+        baseDataAccessor = new ZkBaseDataAccessor<>(_zkAddress);
+      }
+
+      // Return a ZKDistributedNonblockingLock instance
+      return new ZKDistributedNonblockingLock(_lockPath, _timeout, _lockMsg, _userId,
+          baseDataAccessor);
     }
   }
 }

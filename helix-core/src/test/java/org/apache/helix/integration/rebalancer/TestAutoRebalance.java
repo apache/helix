@@ -168,7 +168,6 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   public void testAutoRebalance() throws Exception {
     // kill 1 node
     _participants[0].syncStop();
-
     ZkHelixClusterVerifier verifierClusterTestDb = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setResources(new HashSet<>(Collections.singleton(TEST_DB)))
         .setZkClient(_gZkClient)

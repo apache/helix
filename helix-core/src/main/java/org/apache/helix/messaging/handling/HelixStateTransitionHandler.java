@@ -112,7 +112,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = validateStaleMessageHelper();
+    Exception err = staleMessageValidator();
     if (err != null) {
       _statusUpdateUtil
           .logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
@@ -441,7 +441,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   // Verify the fromState and current state of the stateModel.
-  private Exception validateStaleMessageHelper() {
+  public Exception staleMessageValidator() {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
@@ -465,13 +465,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
           state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
     }
     return err;
-  }
-
-  public void validateStaleMessage() throws Exception {
-    Exception err = validateStaleMessageHelper();
-    if (err != null) {
-      throw err;
-    }
   }
 
   @Override

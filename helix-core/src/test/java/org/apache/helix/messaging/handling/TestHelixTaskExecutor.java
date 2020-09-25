@@ -214,17 +214,10 @@ public class TestHelixTaskExecutor {
     }
 
     class TestStateTransitionMessageHandler extends HelixStateTransitionHandler {
-      boolean _testIsMessageStaled;
-
-      public TestStateTransitionMessageHandler(Message message, NotificationContext context) {
-        super(null, null, message, context, null);
-        _testIsMessageStaled = false;
-      }
 
       public TestStateTransitionMessageHandler(Message message, NotificationContext context,
           CurrentState currentStateDelta) {
         super(null, null, message, context, currentStateDelta);
-        _testIsMessageStaled = true;
       }
 
       @Override
@@ -248,27 +241,26 @@ public class TestHelixTaskExecutor {
       }
 
       @Override
-      public void validateStaleMessage() throws Exception {
-        if (_testIsMessageStaled) {
-          super.validateStaleMessage();
-        }
+      public Exception staleMessageValidator() {
+        return super.staleMessageValidator();
       }
     }
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
+      CurrentState currentStateDelta = new CurrentState(message.getResourceName());
+      currentStateDelta.setSessionId(message.getTgtSessionId());
+      currentStateDelta.setStateModelDefRef(message.getStateModelDef());
+      currentStateDelta.setStateModelFactoryName(message.getStateModelFactoryName());
+      currentStateDelta.setBucketSize(message.getBucketSize());
       if (!message.getResourceName().equals("testStaledMessageResource")) {
-        return new TestStateTransitionMessageHandler(message, context);
+        // set the current state same as from state in the message in test testStaledMessage.
+        currentStateDelta.setState(message.getPartitionName(), "SLAVE");
       } else {
-        CurrentState currentStateDelta = new CurrentState(message.getResourceName());
-        currentStateDelta.setSessionId(message.getTgtSessionId());
-        currentStateDelta.setStateModelDefRef(message.getStateModelDef());
-        currentStateDelta.setStateModelFactoryName(message.getStateModelFactoryName());
-        currentStateDelta.setBucketSize(message.getBucketSize());
         // set the current state same as to state in the message in test testStaledMessage.
         currentStateDelta.setState(message.getPartitionName(), "MASTER");
-        return new TestStateTransitionMessageHandler(message, context, currentStateDelta);
       }
+      return new TestStateTransitionMessageHandler(message, context, currentStateDelta);
     }
 
     @Override

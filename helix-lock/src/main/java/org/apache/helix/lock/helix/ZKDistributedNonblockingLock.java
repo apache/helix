@@ -161,7 +161,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
    * Builder class to use with ZKDistributedNonblockingLock.
    */
   public static class Builder extends GenericZkHelixApiBuilder<Builder> {
-    private String _lockPath;
+    private LockScope _lockScope;
     private String _userId;
     private long _timeout;
     private String _lockMsg;
@@ -169,8 +169,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
     public Builder() {
     }
 
-    public void setLockPath(String lockPath) {
-      _lockPath = lockPath;
+    public void setLockScope(LockScope lockScope) {
+      _lockScope = lockScope;
     }
 
     public void setUserId(String userId) {
@@ -200,7 +200,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
       }
 
       // Return a ZKDistributedNonblockingLock instance
-      return new ZKDistributedNonblockingLock(_lockPath, _timeout, _lockMsg, _userId,
+      return new ZKDistributedNonblockingLock(_lockScope.getPath(), _timeout, _lockMsg, _userId,
           baseDataAccessor);
     }
   }

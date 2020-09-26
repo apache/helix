@@ -19,6 +19,7 @@ package org.apache.helix.integration.paticipant;
  * under the License.
  */
 
+import java.net.InetAddress;
 import java.util.List;
 
 import org.apache.helix.HelixManager;
@@ -32,7 +33,8 @@ import org.testng.annotations.Test;
 
 public class TestInstanceHistory extends ZkStandAloneCMTestBase {
 
-  @Test() public void testInstanceHistory() throws Exception {
+  @Test()
+  public void testInstanceHistory() throws Exception {
     HelixManager manager = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     manager.connect();
@@ -43,6 +45,13 @@ public class TestInstanceHistory extends ZkStandAloneCMTestBase {
     Assert.assertNotNull(history);
     List<String> list = history.getRecord().getListField("HISTORY");
     Assert.assertEquals(list.size(), 1);
+
+    Assert.assertTrue(list.get(0).contains("SESSION=" + _participants[0].getSessionId()));
+    Assert.assertTrue(list.get(0).contains("VERSION=" + _participants[0].getVersion()));
+    Assert
+        .assertTrue(list.get(0).contains("HOST_NAME=" + InetAddress.getLocalHost().getHostName()));
+    Assert.assertTrue(list.get(0).contains("TIME="));
+    Assert.assertTrue(list.get(0).contains("DATE="));
 
     for (int i = 0; i <= 22; i++) {
       _participants[0].disconnect();

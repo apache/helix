@@ -109,16 +109,22 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     for (int i = 0; i < PARALLEL_COUNT; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
       for (int j = 0; j < TASK_COUNT; j++) {
-        taskConfigs.add(new TaskConfig.Builder().setTaskId("job_" + (i + 1) + "_task_" + j)
-            .setCommand(MockTask.TASK_COMMAND).build());
+        taskConfigs.add(new TaskConfig.Builder()
+            .setTaskId("job_" + (i + 1) + "_task_" + j)
+            .setCommand(MockTask.TASK_COMMAND)
+            .addConfig(MockTask.JOB_DELAY, "2000")
+            .build());
       }
       jobConfigBuilders.add(new JobConfig.Builder().addTaskConfigs(taskConfigs));
     }
 
     _driver.stop(queueName);
+    List<String> jobNames = new ArrayList<>();
     for (int i = 0; i < jobConfigBuilders.size(); ++i) {
-      _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
+      jobNames.add("job_" + (i + 1));
+      //_driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
+    _driver.enqueueJobs(queueName, jobNames, jobConfigBuilders);
     _driver.resume(queueName);
     Thread.sleep(2000);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));

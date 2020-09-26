@@ -125,6 +125,69 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusterTopology")
+  public void testGetClusterTopologyAndFaultZoneMap() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = "TestCluster_1";
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(18 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      instanceConfig.setDomain("helixZoneId=zone0,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+    }
+
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(23 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      instanceConfig.setDomain("helixZoneId=zone1,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+    }
+
+    ClusterConfig configDelta = new ClusterConfig(cluster);
+    configDelta.getRecord().setSimpleField("TOPOLOGY", "/helixZoneId/instance");
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
+
+    //get cluster topology map
+    String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
+    String topologyMapDef = get(topologyMapUrlBase, null, Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> topologyMap =
+        OBJECT_MAPPER.readValue(topologyMapDef, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertEquals(topologyMap.size(), 2);
+    Assert.assertTrue(topologyMap.get("/helixZoneId:zone0") instanceof List);
+    List<String> instances = (List<String>) topologyMap.get("/helixZoneId:zone0");
+    Assert.assertEquals(instances.size(), 5);
+
+    Assert.assertTrue(topologyMap.get("/helixZoneId:zone1") instanceof List);
+    instances = (List<String>) topologyMap.get("/helixZoneId:zone1");
+    Assert.assertEquals(instances.size(), 5);
+
+    configDelta = new ClusterConfig(cluster);
+    configDelta.getRecord().setSimpleField("FAULT_ZONE_TYPE", "helixZoneId");
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
+
+    //get cluster fault zone map
+    String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
+    String faultZoneMapDef = get(faultZoneUrlBase, null, Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> faultZoneMap =
+        OBJECT_MAPPER.readValue(faultZoneMapDef, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertEquals(faultZoneMap.size(), 2);
+    Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone0") instanceof List);
+    instances = (List<String>) faultZoneMap.get("/helixZoneId:zone0");
+    Assert.assertEquals(instances.size(), 5);
+
+    Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone1") instanceof List);
+    instances = (List<String>) faultZoneMap.get("/helixZoneId:zone1");
+    Assert.assertEquals(instances.size(), 5);
+  }
+
+  @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();

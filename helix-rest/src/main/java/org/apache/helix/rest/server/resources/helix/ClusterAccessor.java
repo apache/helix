@@ -442,6 +442,26 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK(objectMapper.writeValueAsString(clusterTopology));
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
+  @GET
+  @Path("{clusterId}/topologymap")
+  public Response getClusterTopologyMap(@PathParam("clusterId") String clusterId) {
+    HelixAdmin admin = getHelixAdmin();
+    Map<String, List<String>> topologyMap = admin.getClusterTopology(clusterId).getTopologyMap();
+    return JSONRepresentation(topologyMap);
+  }
+
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
+  @GET
+  @Path("{clusterId}/faultzonemap")
+  public Response getClusterFaultZoneMap(@PathParam("clusterId") String clusterId) {
+    HelixAdmin admin = getHelixAdmin();
+    Map<String, List<String>> topologyMap = admin.getClusterTopology(clusterId).getTopologyMap();
+    return JSONRepresentation(topologyMap);
+  }
+
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST

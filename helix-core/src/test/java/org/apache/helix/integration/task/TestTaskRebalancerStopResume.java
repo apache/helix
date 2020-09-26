@@ -431,6 +431,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"))
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job1: " + job1Name);
@@ -440,6 +441,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"))
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job2: " + job2Name);

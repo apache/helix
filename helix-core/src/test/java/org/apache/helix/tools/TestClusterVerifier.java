@@ -138,7 +138,7 @@ public class TestClusterVerifier extends ZkUnitTestBase {
 
     // Enable the partition back
     _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(),
-        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"))
+        FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
     // Make 1 instance non-live

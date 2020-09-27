@@ -96,6 +96,10 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     LogUtil.logInfo(logger, getClusterEventId(), String.format(
         "END: WorkflowControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
         getClusterName(), startTime, duration, getPipelineName()));
+    //To-be-removed
+    System.out.println(String.format(
+        "END: WorkflowControllerDataProvider.refresh() for cluster %s, pipleline %s, Cache resrouce config Content:%s",
+        getClusterName(), getPipelineName(),  getResourceConfigMap().toString()));
     dumpDebugInfo();
   }
 

@@ -19,7 +19,9 @@ package org.apache.helix.customizedstate;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
@@ -28,7 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.CustomizedState;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,18 +112,12 @@ public class CustomizedStateProvider {
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
-    _helixDataAccessor.updateProperty(propertyKey, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord current) {
-        current.getMapFields().remove(partitionName);
-        return current;
-      }
-    }, existingState);
-    // remove the resource from customized state if all partitions are gone
-    if (_helixDataAccessor
-        .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
-        .getRecord().getMapFields().isEmpty()) {
-      _helixDataAccessor.removeProperty(propertyKey);
-    }
+    ZNRecord rec = new ZNRecord(existingState.getId());
+    rec.getMapFields().put(partitionName, null);
+    ZNRecordDelta delta = new ZNRecordDelta(rec, ZNRecordDelta.MergeOperation.SUBTRACT);
+    List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
+    deltaList.add(delta);
+    existingState.setDeltaList(deltaList);
+    _helixDataAccessor.updateProperty(propertyKey, existingState);
   }
 }

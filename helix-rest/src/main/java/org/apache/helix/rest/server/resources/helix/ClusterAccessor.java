@@ -447,6 +447,9 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/topologymap")
   public Response getClusterTopologyMap(@PathParam("clusterId") String clusterId) {
+    if (!doesClusterExist(clusterId)) {
+      return notFound(String.format("Cluster %s does not exist", clusterId));
+    }
     HelixAdmin admin = getHelixAdmin();
     Map<String, List<String>> topologyMap = admin.getClusterTopology(clusterId).getTopologyMap();
     return JSONRepresentation(topologyMap);

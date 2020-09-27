@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -162,10 +163,22 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(topologyMap.get("/helixZoneId:zone0") instanceof List);
     List<String> instances = (List<String>) topologyMap.get("/helixZoneId:zone0");
     Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12918",
+            "/instance:TestCluster_1localhost_12919",
+            "/instance:TestCluster_1localhost_12920",
+            "/instance:TestCluster_1localhost_12921",
+            "/instance:TestCluster_1localhost_12922"))));
 
     Assert.assertTrue(topologyMap.get("/helixZoneId:zone1") instanceof List);
     instances = (List<String>) topologyMap.get("/helixZoneId:zone1");
     Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12923",
+            "/instance:TestCluster_1localhost_12924",
+            "/instance:TestCluster_1localhost_12925",
+            "/instance:TestCluster_1localhost_12926",
+            "/instance:TestCluster_1localhost_12927"))));
 
     configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("FAULT_ZONE_TYPE", "helixZoneId");
@@ -181,10 +194,22 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone0") instanceof List);
     instances = (List<String>) faultZoneMap.get("/helixZoneId:zone0");
     Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12918",
+            "/instance:TestCluster_1localhost_12919",
+            "/instance:TestCluster_1localhost_12920",
+            "/instance:TestCluster_1localhost_12921",
+            "/instance:TestCluster_1localhost_12922"))));
 
     Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone1") instanceof List);
     instances = (List<String>) faultZoneMap.get("/helixZoneId:zone1");
     Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12923",
+            "/instance:TestCluster_1localhost_12924",
+            "/instance:TestCluster_1localhost_12925",
+            "/instance:TestCluster_1localhost_12926",
+            "/instance:TestCluster_1localhost_12927"))));
   }
 
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")

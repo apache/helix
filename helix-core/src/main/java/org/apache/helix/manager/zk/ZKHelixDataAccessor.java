@@ -185,17 +185,18 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
     boolean success = false;
     switch (type) {
-    case CURRENTSTATES:
-      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
-      break;
-    case STATUSUPDATES:
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("Update status. path: " + key.getPath() + ", record: " + value.getRecord());
-      }
-      break;
-    default:
-      success = _baseDataAccessor.update(path, updater, options);
-      break;
+      case CURRENTSTATES:
+      case CUSTOMIZEDSTATES:
+        success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
+        break;
+      case STATUSUPDATES:
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("Update status. path: " + key.getPath() + ", record: " + value.getRecord());
+        }
+        break;
+      default:
+        success = _baseDataAccessor.update(path, updater, options);
+        break;
     }
     return success;
   }

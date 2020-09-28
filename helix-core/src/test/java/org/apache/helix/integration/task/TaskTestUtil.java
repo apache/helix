@@ -180,9 +180,9 @@ public class TaskTestUtil {
     boolean retVal =  maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
         .getParallelJobs() : true);
     if (!retVal) {
-      logger.error("maxRunningCount={}, workflowConfig.isJobQueue()={}, maxRunningCount={}, workflowConfig.getParallelJobs()={}, stack trace {}",
+      logger.error("maxRunningCount={}, workflowConfig.isJobQueue()={}, maxRunningCount={}, workflowConfig.getParallelJobs()={}, workFlowConfig={}, stack trace {}",
           maxRunningCount, workflowConfig.isJobQueue(), maxRunningCount, workflowConfig.getParallelJobs(),
-          Arrays.asList(Thread.currentThread().getStackTrace()));
+          workflowConfig);
     }
     return retVal;
   }

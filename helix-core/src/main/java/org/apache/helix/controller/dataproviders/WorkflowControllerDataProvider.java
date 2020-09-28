@@ -97,9 +97,18 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
         "END: WorkflowControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline",
         getClusterName(), startTime, duration, getPipelineName()));
     //To-be-removed
-    System.out.println(String.format(
-        "END: WorkflowControllerDataProvider.refresh() for cluster %s, pipleline %s, Cache resrouce config Content:%s",
-        getClusterName(), getPipelineName(),  getResourceConfigMap().toString()));
+    //System.out.println(String.format(
+    //    "END: WorkflowControllerDataProvider.refresh() for cluster %s, pipleline %s, Cache resrouce config Content:%s",
+    //    getClusterName(), getPipelineName(),  getResourceConfigMap().toString()));
+    String resourceMapStr = getResourceConfigMap().toString();
+    if (resourceMapStr.contains("stopDeleteJobAndResumeNamedQueue")
+    || resourceMapStr.contains("stopAndDeleteQueue")
+    || resourceMapStr.contains("stopDeleteJobAndResumeNamedQueue")
+    || resourceMapStr.contains("testWhenAllowOverlapJobAssignment")) {
+      LogUtil.logInfo(logger, getClusterEventId(), String.format(
+          "END: WorkflowControllerDataProvider.refresh() for cluster %s, started at %d took %d for %s pipeline, Cache resrouce config Content:%s ",
+          getClusterName(), startTime, duration, getPipelineName(), resourceMapStr.toString()));
+    }
     dumpDebugInfo();
   }
 

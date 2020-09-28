@@ -449,7 +449,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     jobBuilders.add(job2);
     _driver.enqueueJob(queueName, job2Name, job2);
 
-    // _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+    //_driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);

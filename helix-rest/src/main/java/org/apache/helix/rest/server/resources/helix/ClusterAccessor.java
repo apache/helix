@@ -461,8 +461,14 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}/faultzonemap")
   public Response getClusterFaultZoneMap(@PathParam("clusterId") String clusterId) {
     HelixAdmin admin = getHelixAdmin();
-    Map<String, List<String>> topologyMap = admin.getClusterTopology(clusterId).getTopologyMap();
-    return JSONRepresentation(topologyMap);
+    Map<String, List<String>> faultZoneMap;
+    try {
+      faultZoneMap =
+          admin.getClusterTopology(clusterId).getFaultZoneMap();
+    } catch (IllegalArgumentException ex) {
+      return badRequest(ex.getMessage());
+    }
+    return JSONRepresentation(faultZoneMap);
   }
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)

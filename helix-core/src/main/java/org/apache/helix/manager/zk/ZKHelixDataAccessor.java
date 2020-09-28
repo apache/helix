@@ -61,8 +61,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
 
-  private static final boolean BUCKETIZE_ZNRECORD_ENABLED = Boolean
-      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_BUCKETIZE_ZNRECORD_ENABLED, "true"));
+  private static final boolean ZNRECORD_BUCKETIZE_ENABLED = Boolean
+      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_ZNRECORD_BUCKETIZE_ENABLED, "true"));
 
   public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
     this(clusterName, null, baseDataAccessor);
@@ -613,10 +613,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   }
 
   private void validateBucketizedEnabled(String path, boolean isRead) {
-    if (!BUCKETIZE_ZNRECORD_ENABLED) {
+    if (!ZNRECORD_BUCKETIZE_ENABLED) {
       throw new HelixMetaDataAccessException(
           "Can't " + (isRead ? "read" : "write") + " bucktized ZNode " + path
-              + " because Bucktize feature is not enabled. Please check ZK system property 'zk.bucketize.znrecord.enabled' .");
+              + " because Bucktize feature is not enabled. Please check ZK system property: "
+              + ZkSystemPropertyKeys.ZK_ZNRECORD_BUCKETIZE_ENABLED);
     }
   }
 }

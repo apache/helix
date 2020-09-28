@@ -43,8 +43,8 @@ public class ZkSystemPropertyKeys {
    * <p>
    * The default value is "true" (enabled).
    */
-  public static final String ZK_BUCKETIZE_ZNRECORD_ENABLED =
-      "zk.bucketize.znrecord.enabled";
+  public static final String ZK_ZNRECORD_BUCKETIZE_ENABLED =
+      "zk.znrecord.bucketize.enabled";
 
   /**
    * This is property that defines the maximum write size in bytes for ZKRecord's two serializers

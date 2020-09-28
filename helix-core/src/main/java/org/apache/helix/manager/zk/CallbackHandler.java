@@ -143,8 +143,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   // indicated whether this CallbackHandler is ready to serve event callback from ZkClient.
   private boolean _ready = false;
 
-  private static final boolean BUCKETIZE_ZNRECORD_ENABLED = Boolean
-      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_BUCKETIZE_ZNRECORD_ENABLED, "true"));
+  private static final boolean ZNRECORD_BUCKETIZE_ENABLED = Boolean
+      .parseBoolean(System.getProperty(ZkSystemPropertyKeys.ZK_ZNRECORD_BUCKETIZE_ENABLED, "true"));
+  private static final ChangeType[] BUCKETIZED_TYPE =
+      new ChangeType[]{CURRENT_STATE, CUSTOMIZED_STATE, IDEAL_STATE, EXTERNAL_VIEW, CUSTOMIZED_VIEW, TARGET_EXTERNAL_VIEW};
+  private static final Set<ChangeType> BUCKETIZED_TYPE_SET =
+      new HashSet<>(Arrays.asList(BUCKETIZED_TYPE));
+
 
   static {
     SubscribeChangeEventProcessor = new DedupEventProcessor<CallbackHandler, SubscribeChangeEvent>(
@@ -628,50 +633,35 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       List<String> children = subscribeChildChange(path, callbackType);
       if (watchChild) {
         try {
-          switch (_changeType) {
-            case CURRENT_STATE:
-            case CUSTOMIZED_STATE:
-            case IDEAL_STATE:
-            case EXTERNAL_VIEW:
-            case CUSTOMIZED_VIEW:
-            case TARGET_EXTERNAL_VIEW: {
-              // check if bucketized
-              if (BUCKETIZE_ZNRECORD_ENABLED) {
-                BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-                List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 0, 0);
-                for (ZNRecord record : records) {
-                  HelixProperty property = new HelixProperty(record);
-                  String childPath = path + "/" + record.getId();
-                  int bucketSize = property.getBucketSize();
-                  // Do data-change subscribe for both bucketized parent node and non-bucketized node.
-                  // For bucketized parent node, data-change gives a delete-callback to remove watch.
-                  subscribeDataChange(childPath, callbackType);
-                  if (bucketSize > 0) {
-                    // subscribe child-change on bucketized parent node.
-                    List<String> bucketizedChildNames =
-                        subscribeChildChange(childPath, callbackType);
+          if (ZNRECORD_BUCKETIZE_ENABLED && BUCKETIZED_TYPE_SET.contains(_changeType)) {
+            BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+            List<ZNRecord> records = baseAccessor.getChildren(path, null, 0, 0, 0);
+            for (ZNRecord record : records) {
+              HelixProperty property = new HelixProperty(record);
+              String childPath = path + "/" + record.getId();
+              int bucketSize = property.getBucketSize();
+              // Do data-change subscribe for both bucketized parent node and non-bucketized node.
+              // For bucketized parent node, data-change gives a delete-callback to remove watch.
+              subscribeDataChange(childPath, callbackType);
+              if (bucketSize > 0) {
+                // subscribe child-change on bucketized parent node.
+                List<String> bucketizedChildNames = subscribeChildChange(childPath, callbackType);
 
-                    // subscribe data-change on bucketized child
-                    if (bucketizedChildNames != null) {
-                      for (String bucketizedChildName : bucketizedChildNames) {
-                        String bucketizedChildPath = childPath + "/" + bucketizedChildName;
-                        subscribeDataChange(bucketizedChildPath, callbackType);
-                      }
-                    }
+                // subscribe data-change on bucketized child
+                if (bucketizedChildNames != null) {
+                  for (String bucketizedChildName : bucketizedChildNames) {
+                    String bucketizedChildPath = childPath + "/" + bucketizedChildName;
+                    subscribeDataChange(bucketizedChildPath, callbackType);
                   }
                 }
-                break;
               }
-              // go to default branch if bucketized feature is not enabled.
             }
-            default: {
-              if (children != null) {
-                for (String child : children) {
-                  String childPath = path + "/" + child;
-                  subscribeDataChange(childPath, callbackType);
-                }
+          } else {
+            if (children != null) {
+              for (String child : children) {
+                String childPath = path + "/" + child;
+                subscribeDataChange(childPath, callbackType);
               }
-              break;
             }
           }
         } catch (ZkNoNodeException | HelixMetaDataAccessException e) {
@@ -765,7 +755,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         // only needed for bucketized parent, but OK if we don't have child-change
         // watch on the bucketized parent path
         // No need to invoke() since this event will handled by child-change on parent-node
-        if (BUCKETIZE_ZNRECORD_ENABLED) {
+        if (ZNRECORD_BUCKETIZE_ENABLED) {
           logger
               .info("CallbackHandler {}, {} unsubscribe child-change. path: {}, listener: {}", _uid,
                   _manager.getInstanceName(), dataPath, _listener);

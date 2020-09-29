@@ -37,7 +37,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
   @Test
   public void testZkConnectionManager() {
     final String TEST_ROOT = "/testZkConnectionManager/IDEALSTATES";
-    final String TEST_PATH = TEST_ROOT + TEST_NODE;
+    final String TEST_PATH = TEST_ROOT + TEST_NODE + TestHelper.getTestMethodName();
 
     ZkConnectionManager zkConnectionManager =
         new ZkConnectionManager(new ZkConnection(ZK_ADDR), HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
@@ -83,7 +83,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
   @Test(dependsOnMethods = "testZkConnectionManager")
   public void testSharingZkClient() throws Exception {
     final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES";
-    final String TEST_PATH = TEST_ROOT + TEST_NODE;
+    final String TEST_PATH = TEST_ROOT + TEST_NODE + TestHelper.getTestMethodName();
 
     // A factory just for this tests, this for avoiding the impact from other tests running in
     // parallel.
@@ -111,11 +111,13 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       @Override
       public void handleDataChange(String s, Object o) {
         notificationCountA[0]++;
+        System.out.println("sharedZkClient A increased n0 with path: " + s);
       }
 
       @Override
       public void handleDataDeleted(String s) {
         notificationCountA[1]++;
+        System.out.println("sharedZkClient A increased n1 with path: " + s);
       }
     });
     final int[] notificationCountB = {0, 0};
@@ -123,11 +125,13 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       @Override
       public void handleDataChange(String s, Object o) {
         notificationCountB[0]++;
+        System.out.println("sharedZkClient B increased n0 with path: " + s);
       }
 
       @Override
       public void handleDataDeleted(String s) {
         notificationCountB[1]++;
+        System.out.println("sharedZkClient B increased n0 with path: " + s);
       }
     });
 
@@ -141,6 +145,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(notificationCountB[1], 0);
 
     sharedZkClientA.deleteRecursively(TEST_ROOT);
+    System.out.println("Deleted test path:" + TEST_PATH);
     Assert.assertTrue(TestHelper.verify(() -> notificationCountB[1] == 1, TestHelper.WAIT_DURATION));
     Assert.assertEquals(notificationCountB[0], 1);
 

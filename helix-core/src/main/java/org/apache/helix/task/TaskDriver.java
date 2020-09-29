@@ -375,6 +375,20 @@ public class TaskDriver {
   }
 
   /**
+   * Adds a new job to the end an existing named queue.
+   * @param queue
+   * @param job
+   * @param jobBuilder
+   * @param waitTillWfgUpdate
+   * @throws Exception
+   */
+  public void enqueueJob(final String queue, final String job, JobConfig.Builder jobBuilder,
+      final long waitTillWfgUpdate) {
+    enqueueJobs(queue, Collections.singletonList(job), Collections.singletonList(jobBuilder),
+        waitTillWfgUpdate);
+  }
+
+  /**
    * Batch add jobs to queues that garantee
    * @param queue
    * @param jobs
@@ -382,6 +396,18 @@ public class TaskDriver {
    */
   public void enqueueJobs(final String queue, final List<String> jobs,
       final List<JobConfig.Builder> jobBuilders) {
+    enqueueJobs(queue, jobs, jobBuilders, 0);
+  }
+
+  /**
+   * Batch add jobs to queues that garantee
+   * @param queue
+   * @param jobs
+   * @param jobBuilders
+   * @param waitTillWfgUpdate
+   */
+  public void enqueueJobs(final String queue, final List<String> jobs,
+      final List<JobConfig.Builder> jobBuilders, final long waitTillWfgUpdate) {
 
     // Get the job queue config and capacity
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
@@ -444,9 +470,9 @@ public class TaskDriver {
     }
 
     try {
-      Thread.sleep(2000);
+      Thread.sleep(waitTillWfgUpdate);
     } catch (InterruptedException e){
-
+      LOG.warn("waitTillWfgUpdate interruptted!");
     }
 
     // update the job dag to append the job to the end of the queue.

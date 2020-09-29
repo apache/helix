@@ -41,6 +41,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
@@ -63,12 +64,10 @@ public class InstanceServiceImpl implements InstanceService {
   private static final ExecutorService POOL = Executors.newCachedThreadPool();
 
   // Metric names for custom instance check
-  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL =
-      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_total");
   private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL =
       MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_error_total");
-  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUEST_DURATION =
-      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_request_duration");
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_DURATION =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_duration");
 
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
@@ -77,25 +76,25 @@ public class InstanceServiceImpl implements InstanceService {
   private boolean _skipZKRead;
 
   @Deprecated
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor) {
     this(dataAccessor, configAccessor, false);
   }
 
   @Deprecated
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead) {
     this(dataAccessor, configAccessor, skipZKRead, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
   }
 
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead, String namespace) {
     this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, namespace);
   }
 
   @VisibleForTesting
-  InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+  InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       CustomRestClient customRestClient, boolean skipZKRead, String namespace) {
-    _dataAccessor = dataAccessor;
+    _dataAccessor = new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace);
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
@@ -252,9 +251,9 @@ public class InstanceServiceImpl implements InstanceService {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
     MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
 
-    try (final Timer.Context timer = metrics.timer(CUSTOM_INSTANCE_CHECK_HTTP_REQUEST_DURATION)
+    // Total requests metric is included as an attribute(Count) in timers
+    try (final Timer.Context timer = metrics.timer(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_DURATION)
         .time()) {
-      metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_TOTAL).inc();
       Map<String, Boolean> instanceStoppableCheck =
           _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads);
       return new StoppableCheck(instanceStoppableCheck,

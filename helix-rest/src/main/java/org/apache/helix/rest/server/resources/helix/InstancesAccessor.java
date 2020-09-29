@@ -48,7 +48,6 @@ import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
@@ -223,9 +222,9 @@ public class InstancesAccessor extends AbstractHelixResource {
           result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-      InstanceService instanceService = new InstanceServiceImpl(
-          new HelixDataAccessorWrapper((ZKHelixDataAccessor) getDataAccssor(clusterId), getNamespace()),
-          getConfigAccessor(), skipZKRead, getNamespace());
+      InstanceService instanceService =
+          new InstanceServiceImpl((ZKHelixDataAccessor) getDataAccssor(clusterId),
+              getConfigAccessor(), skipZKRead, getNamespace());
       ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {

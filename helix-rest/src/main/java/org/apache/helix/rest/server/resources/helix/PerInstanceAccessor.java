@@ -56,7 +56,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
@@ -105,9 +104,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       ObjectMapper objectMapper = new ObjectMapper();
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
-      InstanceService instanceService = new InstanceServiceImpl(
-          new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor, getNamespace()),
-          getConfigAccessor(), Boolean.valueOf(skipZKRead), getNamespace());
+      InstanceService instanceService =
+          new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+              Boolean.parseBoolean(skipZKRead), getNamespace());
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
@@ -143,9 +142,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    InstanceService instanceService = new InstanceServiceImpl(
-        new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor, getNamespace()),
-        getConfigAccessor(), Boolean.valueOf(skipZKRead), getNamespace());
+    InstanceService instanceService =
+        new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+            Boolean.parseBoolean(skipZKRead), getNamespace());
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =

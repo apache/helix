@@ -211,16 +211,14 @@ public class TestInstanceService {
 
     // Valid data only from ZK, pass the check
     InstanceService instanceServiceReadZK =
-        new MockInstanceServiceImpl(new HelixDataAccessorWrapper(zkHelixDataAccessor, _customRestClient),
-            _configAccessor, _customRestClient, false);
+        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, false);
     StoppableCheck stoppableCheck =
         instanceServiceReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertTrue(stoppableCheck.isStoppable());
 
     // Even ZK data is valid. Skip ZK read should fail the test.
     InstanceService instanceServiceWithoutReadZK =
-        new MockInstanceServiceImpl(new HelixDataAccessorWrapper(zkHelixDataAccessor, _customRestClient),
-            _configAccessor, _customRestClient, true);
+        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, true);
     stoppableCheck = instanceServiceWithoutReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertFalse(stoppableCheck.isStoppable());
   }
@@ -250,7 +248,7 @@ public class TestInstanceService {
   }
 
   class MockInstanceServiceImpl extends InstanceServiceImpl {
-    MockInstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
+    MockInstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
         CustomRestClient customRestClient, boolean skipZKRead) {
       super(dataAccessor, configAccessor, customRestClient, skipZKRead,
           HelixRestNamespace.DEFAULT_NAMESPACE_NAME);

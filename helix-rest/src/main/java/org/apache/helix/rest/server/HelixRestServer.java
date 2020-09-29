@@ -213,7 +213,7 @@ public class HelixRestServer {
     }
   }
 
-  public void shutdown() {
+  public synchronized void shutdown() {
     if (_server != null) {
       try {
         _server.stop();

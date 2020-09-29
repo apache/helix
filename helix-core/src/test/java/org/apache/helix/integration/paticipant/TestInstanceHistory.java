@@ -20,6 +20,7 @@ package org.apache.helix.integration.paticipant;
  */
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import org.apache.helix.HelixManager;
@@ -48,8 +49,16 @@ public class TestInstanceHistory extends ZkStandAloneCMTestBase {
 
     Assert.assertTrue(list.get(0).contains("SESSION=" + _participants[0].getSessionId()));
     Assert.assertTrue(list.get(0).contains("VERSION=" + _participants[0].getVersion()));
+
+    String hostname;
+    try {
+      hostname = InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException ex) {
+      hostname = "UnknownHostname";
+    }
     Assert
-        .assertTrue(list.get(0).contains("HOST_NAME=" + InetAddress.getLocalHost().getHostName()));
+        .assertTrue(list.get(0).contains("HOST=" + hostname));
+
     Assert.assertTrue(list.get(0).contains("TIME="));
     Assert.assertTrue(list.get(0).contains("DATE="));
 

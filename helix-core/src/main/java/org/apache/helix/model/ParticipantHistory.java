@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ParticipantHistory extends HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantHistory.class);
-  private static final String UNKNOWN_HOST_NAME = "UnknownHostName";
+  private static final String UNKNOWN_HOST_NAME = "UnknownHostname";
 
   private final static int HISTORY_SIZE = 20;
   private enum ConfigProperty {
@@ -51,7 +51,7 @@ public class ParticipantHistory extends HelixProperty {
     OFFLINE,
     VERSION,
     LAST_OFFLINE_TIME,
-    HOST_NAME
+    HOST
   }
 
   public static long ONLINE = -1;
@@ -138,7 +138,7 @@ public class ParticipantHistory extends HelixProperty {
     String dateTime = df.format(new Date(timeMillis));
     sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
     sessionEntry.put(ConfigProperty.VERSION.name(), version);
-    sessionEntry.put(ConfigProperty.HOST_NAME.name(), hostname);
+    sessionEntry.put(ConfigProperty.HOST.name(), hostname);
 
     list.add(sessionEntry.toString());
   }

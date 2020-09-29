@@ -132,6 +132,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   @Test
   public void testSchedulingWithoutQuota() throws InterruptedException {
     String workflowName = TestHelper.getTestMethodName();
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
@@ -144,8 +147,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
           .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobConfigBulider);
     }
-
     _driver.start(workflowBuilder.build());
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     for (int i = 0; i < 10; i++) {
@@ -161,6 +166,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testSchedulingUndefinedTypes() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
@@ -185,6 +192,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
 
     _driver.start(workflowBuilder.build());
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Check run counts for each quota type
@@ -199,6 +209,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testSchedulingWithQuota() throws InterruptedException {
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
@@ -230,6 +243,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     }
 
     _driver.start(workflowBuilder.build());
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Check job states
@@ -297,6 +313,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testSchedulingQuotaBottleneck() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
@@ -349,6 +367,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     workflowBuilder.addJob("JOB_C", jobBuilderC);
 
     _driver.start(workflowBuilder.build());
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     // Wait until JOB_A and JOB_B are done
     _driver.pollForJobState(workflowName, workflowName + "_JOB_A", TaskState.COMPLETED);
     _driver.pollForJobState(workflowName, workflowName + "_JOB_B", TaskState.COMPLETED);
@@ -369,6 +389,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testWorkflowStuck() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 10);
@@ -417,6 +439,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     workflowBuilder.addJob("JOB_DEFAULT", jobBuilderC);
 
     _driver.start(workflowBuilder.build());
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     // Wait until jobs are all in progress and saturated the thread pool
     _driver.pollForJobState(workflowName, workflowName + "_JOB_A", TaskState.IN_PROGRESS);
     _driver.pollForJobState(workflowName, workflowName + "_JOB_B", TaskState.IN_PROGRESS);
@@ -444,6 +469,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    */
   @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testThreadLeak() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
     clusterConfig.setTaskQuotaRatio(DEFAULT_QUOTA_TYPE, 1);
@@ -470,6 +497,8 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       _driver.start(workflow);
     }
 
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     // Wait until all workflows finish
     for (String workflowName : workflowNames) {
       _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED, TaskState.ABORTED,
@@ -491,9 +520,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    * Tests quota-based scheduling for a job queue with different quota types.
    * @throws InterruptedException
    */
-  // temp disable this one as this share the same root cause of #1365, tracked in #1386
-  @Test(dependsOnMethods = "testSchedulingWithoutQuota", enabled = false)
+  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testJobQueueScheduling() throws InterruptedException {
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     // First define quota config
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
     clusterConfig.resetTaskQuotaRatioMap();
@@ -513,6 +543,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     JobQueue.Builder queueBuild =
         new JobQueue.Builder(queueName).setWorkflowConfig(workflowConfigBuilder.build());
     JobQueue queue = queueBuild.build();
+
     _driver.createQueue(queue);
 
     // Stop the queue to add jobs to the queue
@@ -538,11 +569,13 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       // _driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     // Resume the queue briefly and stop again to add more jobs
     _driver.resume(queueName);
     _driver.stop(queueName);
 
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     // Run some jobs with quotaType B
     // First run some jobs with quotaType A
     taskConfigs = new ArrayList<>();
@@ -560,6 +593,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       //_driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     _driver.resume(queueName);
     _driver.pollForJobState(queueName, queueName + "_" + lastJobName, TaskState.COMPLETED);

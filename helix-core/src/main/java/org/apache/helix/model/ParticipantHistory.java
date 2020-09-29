@@ -19,6 +19,8 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ParticipantHistory extends HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(ParticipantHistory.class);
+  private static final String UNKNOWN_HOST_NAME = "UnknownHostname";
 
   private final static int HISTORY_SIZE = 20;
   private enum ConfigProperty {
@@ -47,7 +50,8 @@ public class ParticipantHistory extends HelixProperty {
     HISTORY,
     OFFLINE,
     VERSION,
-    LAST_OFFLINE_TIME
+    LAST_OFFLINE_TIME,
+    HOST
   }
 
   public static long ONLINE = -1;
@@ -76,7 +80,15 @@ public class ParticipantHistory extends HelixProperty {
    * @return
    */
   public void reportOnline(String sessionId, String version) {
-    updateSessionHistory(sessionId, version);
+    String hostname;
+    try {
+      hostname = InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+      LOG.error("Failed to get host name. Use {} for the participant history recording.",
+          UNKNOWN_HOST_NAME);
+      hostname = UNKNOWN_HOST_NAME;
+    }
+    updateSessionHistory(sessionId, version, hostname);
     _record.setSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name(), String.valueOf(ONLINE));
   }
 
@@ -103,7 +115,7 @@ public class ParticipantHistory extends HelixProperty {
   /**
    * Add record to session online history list
    */
-  private void updateSessionHistory(String sessionId, String version) {
+  private void updateSessionHistory(String sessionId, String version, String hostname) {
     List<String> list = _record.getListField(ConfigProperty.HISTORY.name());
     if (list == null) {
       list = new ArrayList<>();
@@ -126,6 +138,7 @@ public class ParticipantHistory extends HelixProperty {
     String dateTime = df.format(new Date(timeMillis));
     sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
     sessionEntry.put(ConfigProperty.VERSION.name(), version);
+    sessionEntry.put(ConfigProperty.HOST.name(), hostname);
 
     list.add(sessionEntry.toString());
   }

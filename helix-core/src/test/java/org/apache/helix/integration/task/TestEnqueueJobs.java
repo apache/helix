@@ -85,7 +85,7 @@ public class TestEnqueueJobs extends TaskTestBase {
         TaskState.COMPLETED);
   }
 
-  @Test(timeOut = 20 * 60 * 1000)
+  @Test()
   public void testJobQueueAddingJobsAtSametime() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
@@ -93,7 +93,6 @@ public class TestEnqueueJobs extends TaskTestBase {
         new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
 
-    System.out.println("before add jobs");
     // Adding jobs
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -107,12 +106,14 @@ public class TestEnqueueJobs extends TaskTestBase {
       jobNames.add("JOB" + i);
       jobBuilders.add(jobBuilder);
     }
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     // Add jobs as batch to the queue
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     _driver.resume(queueName);
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
-    System.out.println("before poll to job state");
+
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 4),
         TaskState.COMPLETED);
   }
@@ -120,6 +121,7 @@ public class TestEnqueueJobs extends TaskTestBase {
   @Test
   public void testJobSubmitGenericWorkflows() throws InterruptedException {
     String workflowName = TestHelper.getTestMethodName();
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2);
@@ -148,11 +150,12 @@ public class TestEnqueueJobs extends TaskTestBase {
     builder.addParentChildDependency("JOB2", "JOB3");
     builder.addParentChildDependency("JOB4", "JOB3");
     _driver.start(builder.build());
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test(timeOut = 20 * 60 * 1000)
+  @Test()
   public void testQueueParallelJobs() throws InterruptedException {
     final int parallelJobs = 3;
     final int numberOfJobsAddedBeforeControllerSwitch = 4;
@@ -176,9 +179,11 @@ public class TestEnqueueJobs extends TaskTestBase {
       jobNames.add("JOB" + i);
       jobBuilders.add(jobBuilder);
     }
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     _driver.resume(queueName);
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedBeforeControllerSwitch; i++) {
@@ -226,7 +231,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     Assert.assertTrue(minFinishTime > maxStartTime);
   }
 
-  @Test(timeOut = 20 * 60 * 1000)
+  @Test()
   public void testQueueJobsMaxCapacity() throws InterruptedException {
     final int numberOfJobsAddedInitially = 4;
     final int queueCapacity = 5;
@@ -251,18 +256,18 @@ public class TestEnqueueJobs extends TaskTestBase {
       jobNames.add("JOB" + i);
       jobBuilders.add(jobBuilder);
     }
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     _driver.resume(queueName);
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
-    System.out.println("before the polls");
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
           TaskState.COMPLETED);
     }
 
-    System.out.println("before enqueue for exception");
     boolean exceptionHappenedWhileAddingNewJob = false;
     try {
       // This call will produce the exception because 4 jobs have been already added
@@ -273,7 +278,6 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     Assert.assertTrue(exceptionHappenedWhileAddingNewJob);
 
-    System.out.println("after the exception");
     // Make sure that jobConfig has not been created
     JobConfig jobConfig =
         _driver.getJobConfig(TaskUtil.getNamespacedJobName(queueName, newJobName));

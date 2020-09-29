@@ -36,7 +36,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
 
     // Set timeout window to be 0 millisecond, causing any node that goes offline to time out
     ClusterConfig clusterConfig = helixDataAccessor.getProperty(keyBuilder.clusterConfig());
-    clusterConfig.setMaintenanceOfflineNodeTimeOut(0L);
+    clusterConfig.setOfflineNodeTimeOutForMaintenanceMode(0L);
     helixDataAccessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
 
     // Start and stop an instance, simulating a node offline situation
@@ -62,7 +62,8 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     // Cache refresh, the instance should not be included in liveInstanceCache
     resourceControllerDataProvider.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
     resourceControllerDataProvider.refresh(helixDataAccessor);
-    Assert.assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instanceName));
+    Assert.assertFalse(
+        resourceControllerDataProvider.getLiveInstances(true).containsKey(instanceName));
     // History wise, it should still be treated as online
     ParticipantHistory history =
         helixDataAccessor.getProperty(keyBuilder.participantHistory(instanceName));
@@ -76,6 +77,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     // Cache refresh, the instance should not be included in liveInstanceCache
     resourceControllerDataProvider.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
     resourceControllerDataProvider.refresh(helixDataAccessor);
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instanceName));
+    Assert.assertTrue(
+        resourceControllerDataProvider.getLiveInstances(true).containsKey(instanceName));
   }
 }

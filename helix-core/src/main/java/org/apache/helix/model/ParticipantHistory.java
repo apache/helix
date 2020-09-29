@@ -44,7 +44,7 @@ public class ParticipantHistory extends HelixProperty {
   private static final String UNKNOWN_HOST_NAME = "UnknownHostname";
 
   private final static int HISTORY_SIZE = 20;
-  final static String HISTORY_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss:SSS";
+  private final static String HISTORY_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss:SSS";
 
   enum ConfigProperty {
     TIME,

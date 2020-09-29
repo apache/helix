@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixConstants;
@@ -262,7 +263,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
       // If maintenance mode is enabled and timeout window is specified, filter 'new' live nodes
       // for timed-out nodes
-      long timeOutWindow = _clusterConfig.getMaintenanceOfflineNodeTimeOut();
+      long timeOutWindow = -1;
+      if (_clusterConfig != null) {
+        timeOutWindow = _clusterConfig.getOfflineNodeTimeOutForMaintenanceMode();
+      }
       if (timeOutWindow >= 0 && isMaintenanceModeEnabled()) {
         for (String instance : _liveInstanceCache.getPropertyMap().keySet()) {
           // For every 'new' live node, check if it's timed-out
@@ -271,16 +275,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
             _timedOutInstanceDuringMaintenance.add(instance);
           }
         }
-
-        // Remove all timed-out nodes that were recorded in this maintenance duration
-        for (String instance : _timedOutInstanceDuringMaintenance) {
-          _liveInstanceCache.deletePropertyByName(instance);
-        }
-      }
-
-      // If maintenance mode has exited, clear cached timed-out nodes
-      if (!isMaintenanceModeEnabled()) {
-        _timedOutInstanceDuringMaintenance.clear();
       }
     } else {
       LogUtil.logInfo(logger, getClusterEventId(), String
@@ -325,6 +319,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // The following flag is to guarantee that there's only one update per pineline run because we
     // check for whether maintenance recovery could happen twice every pipeline
     _hasMaintenanceSignalChanged = false;
+
+    // If maintenance mode has exited, clear cached timed-out nodes
+    if (!_isMaintenanceModeEnabled) {
+      _timedOutInstanceDuringMaintenance.clear();
+    }
   }
 
   private void updateIdealRuleMap() {
@@ -454,12 +453,31 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * Returns the LiveInstances for each of the instances that are curretnly up and running
+   * Returns the LiveInstances for each of the instances that are currently up and running
    * @return
    */
   public Map<String, LiveInstance> getLiveInstances() {
-    return _liveInstanceCache.getPropertyMap();
+    return getLiveInstances(false);
   }
+
+  /**
+   * Returns the LiveInstances for each of the instances that are currently up and running
+   * @param filterTimedOutInstances - Only set true during maintenance mode. If true, filter out
+   *                                instances that are timed-out during maintenance mode; instances
+   *                                are timed-out if they have been offline for a while before going
+   *                                live during maintenance mode.
+   * @return
+   */
+  public Map<String, LiveInstance> getLiveInstances(boolean filterTimedOutInstances) {
+    if (!filterTimedOutInstances) {
+      return _liveInstanceCache.getPropertyMap();
+    }
+
+    return _liveInstanceCache.getPropertyMap().entrySet().stream()
+        .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
 
   /**
    * Return the set of all instances names.

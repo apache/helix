@@ -18,7 +18,7 @@ public class TestParticipantHistory {
     ParticipantHistory participantHistory = new ParticipantHistory("testId");
     long currentTimeMillis = System.currentTimeMillis();
     List<String> offlineHistory = new ArrayList<>();
-    DateFormat df = new SimpleDateFormat(ParticipantHistory.HISTORY_DATE_FORMAT);
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(currentTimeMillis));
     offlineHistory.add(dateTime);

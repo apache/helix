@@ -299,22 +299,24 @@ public class TestClusterConfig {
   }
 
   @Test
-  public void testGetMaintenanceOfflineNodeTimeOut() {
+  public void testGetOfflineNodeTimeOutForMaintenanceMode() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.getRecord()
-        .setLongField(ClusterConfig.ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(),
-            10000L);
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForMaintenanceMode(), -1);
 
-    Assert.assertEquals(testConfig.getMaintenanceOfflineNodeTimeOut(), 10000L);
+    testConfig.getRecord()
+        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE
+                .name(),
+            10000L);
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForMaintenanceMode(), 10000L);
   }
 
   @Test
-  public void testSetMaintenanceOfflineNodeTimeOut() {
+  public void testSetOfflineNodeTimeOutForMaintenanceMode() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setMaintenanceOfflineNodeTimeOut(10000L);
-
+    testConfig.setOfflineNodeTimeOutForMaintenanceMode(10000L);
     Assert.assertEquals(testConfig.getRecord()
-        .getLongField(ClusterConfig.ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(),
+        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE
+                .name(),
             -1), 10000L);
   }
 

@@ -128,7 +128,7 @@ public class ClusterConfig extends HelixProperty {
     // offline for more than this specified time period, it's treated as offline for the rest of
     // the maintenance mode's duration even when it comes online.
     // The unit is milliseconds.
-    MAINTENANCE_OFFLINE_NODE_TIME_OUT
+    OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -157,7 +157,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
-  private static final long MAINTENANCE_OFFLINE_NODE_TIME_OUT_NOT_SET = -1;
+  private static final long OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -917,8 +917,9 @@ public class ClusterConfig extends HelixProperty {
    * occurring on said instance.
    * @param timeOut timeout window in milliseconds. A negative value leads to no timeout checks
    */
-  public void setMaintenanceOfflineNodeTimeOut(long timeOut) {
-    _record.setLongField(ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(), timeOut);
+  public void setOfflineNodeTimeOutForMaintenanceMode(long timeOut) {
+    _record.setLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE.name(),
+        timeOut);
   }
 
   /**
@@ -928,9 +929,10 @@ public class ClusterConfig extends HelixProperty {
    * occurring on said instance.
    * @return timeout window in milliseconds
    */
-  public long getMaintenanceOfflineNodeTimeOut() {
-    return _record.getLongField(ClusterConfigProperty.MAINTENANCE_OFFLINE_NODE_TIME_OUT.name(),
-        MAINTENANCE_OFFLINE_NODE_TIME_OUT_NOT_SET);
+  public long getOfflineNodeTimeOutForMaintenanceMode() {
+    return _record
+        .getLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE.name(),
+            OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET);
   }
 
   /**

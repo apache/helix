@@ -443,6 +443,12 @@ public class TaskDriver {
       }
     }
 
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e){
+
+    }
+
     // update the job dag to append the job to the end of the queue.
     DataUpdater<ZNRecord> updater = currentData -> {
       if (currentData == null) {

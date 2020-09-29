@@ -237,7 +237,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobDeleted(queueName, namedSpaceDeletedJob2);
 
     _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-    
+    // we need wait for pipeline really stop after processing the pause signal. Note
+    // there is a possibility that queue events in ZkClient would trigger controller
+    // cache read before disabling controller taking effects. Thus the write from
+    // _driver to add job may still cause the race condition that the controller sees
+    // later changes of workflow config without seeing all the job config change.
+    Thread.sleep(1000);
+
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
 

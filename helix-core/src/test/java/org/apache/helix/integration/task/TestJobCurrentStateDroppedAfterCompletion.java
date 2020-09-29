@@ -59,7 +59,7 @@ public class TestJobCurrentStateDroppedAfterCompletion extends TaskTestBase {
             .setWorkflow(jobQueueName)
             .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
 
-    // Job will timeout in 10 seconds because the the default value it 10 second for
+    // Task gets timed out in 10 seconds because the the default value is 10 seconds in
     // DEFAULT_JOB_CONFIG
     JobConfig.Builder jobBuilderTimedOut =
         JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setMaxAttemptsPerTask(1)

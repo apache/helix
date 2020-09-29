@@ -236,6 +236,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.deleteJob(queueName, deletedJob2);
     verifyJobDeleted(queueName, namedSpaceDeletedJob2);
 
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+    
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
 
@@ -253,6 +255,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     LOG.info("Enqueuing job: " + newJob);
     _driver.enqueueJob(queueName, newJob, job);
     currentJobNames.add(newJob);
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     // Ensure the jobs left are successful completed in the correct order
     long preJobFinish = 0;
@@ -433,7 +437,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
-    // Enqueue 2 jobs 
+    // Enqueue 2 jobs
     List<String> jobNames = new ArrayList<>();
     List<JobConfig.Builder> jobBuilders = new ArrayList<>();
 

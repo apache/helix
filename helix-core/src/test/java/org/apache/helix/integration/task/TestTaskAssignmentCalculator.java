@@ -131,6 +131,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     for (int i = 0; i < 20; i++) {
@@ -142,6 +145,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     }
 
     _driver.start(workflowBuilder.build());
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     Assert.assertEquals(_runCounts.size(), 5);
@@ -157,6 +163,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
@@ -171,6 +180,8 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     }
 
     _driver.start(workflowBuilder.build());
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     Assert.assertEquals(_runCounts.size(), 5);
@@ -181,6 +192,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(20);
@@ -193,6 +207,8 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
 
     workflowBuilder.addJob("JOB", jobBuilder);
     _driver.start(workflowBuilder.build());
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     Assert.assertEquals(_runCounts.size(), 5);
@@ -203,6 +219,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = true;
     String workflowName = TestHelper.getTestMethodName();
+
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     for (int i = 0; i < 5; i++) {
@@ -215,6 +234,8 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     }
 
     _driver.start(workflowBuilder.build());
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+
     _driver.pollForWorkflowState(workflowName, TaskState.FAILED);
 
     int abortedTask = 0;

@@ -140,6 +140,15 @@ public class TaskDriver {
    * @param flow
    */
   public void start(Workflow flow) {
+    start(flow, 0);
+  }
+
+  /**
+   * Schedules a new workflow
+   * @param flow
+   * @param waitTillWfgUpdate
+   */
+  public void start(Workflow flow, final long waitTillWfgUpdate) {
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
 
@@ -162,6 +171,12 @@ public class TaskDriver {
       addJobConfig(job, jobCfg);
     }
     newWorkflowConfig.setJobTypes(jobTypes);
+
+    try {
+      Thread.sleep(waitTillWfgUpdate);
+    } catch (InterruptedException e) {
+      LOG.warn("start workflow waitTillWfgUpdate interruptted!");
+    }
 
     // add workflow config.
     if (!TaskUtil.createWorkflowConfig(_accessor, flow.getName(), newWorkflowConfig)) {

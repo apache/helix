@@ -80,6 +80,7 @@ public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
   public static final long WAIT_DURATION = 60 * 1000L; // 60 seconds
   public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
+
   /**
    * Returns a unused random port.
    */

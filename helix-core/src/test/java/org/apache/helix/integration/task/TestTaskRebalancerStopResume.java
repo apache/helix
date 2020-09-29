@@ -137,7 +137,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // stop job1
     LOG.info("Pausing job-queue: " + queueName);
-    _driver.stop(queueName);
+    _driver.stop( queueName);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.STOPPED);
     _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 

@@ -169,20 +169,24 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
     public Builder() {
     }
 
-    public void setLockScope(LockScope lockScope) {
+    public Builder setLockScope(LockScope lockScope) {
       _lockScope = lockScope;
+      return this;
     }
 
-    public void setUserId(String userId) {
+    public Builder setUserId(String userId) {
       _userId = userId;
+      return this;
     }
 
-    public void setTimeout(long timeout) {
+    public Builder setTimeout(long timeout) {
       _timeout = timeout;
+      return this;
     }
 
-    public void setLockMsg(String lockMsg) {
+    public Builder setLockMsg(String lockMsg) {
       _lockMsg = lockMsg;
+      return this;
     }
 
     public ZKDistributedNonblockingLock build() {

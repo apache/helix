@@ -101,8 +101,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   public void stopAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
     JobQueue queue = new JobQueue.Builder(queueName).build();
@@ -119,6 +117,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     LOG.info("Enqueuing job: " + job1Name);
     jobNames.add(job1Name);
     jobBuilders.add(job1);
+    //_driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
@@ -128,8 +127,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     jobNames.add(job2Name);
     jobBuilders.add(job2);
     _driver.enqueueJobs(queueName, jobNames,jobBuilders);
-
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+    //_driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);
@@ -173,8 +171,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
@@ -195,8 +191,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     }
 
     _driver.createQueue(queueBuilder.build());
-
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
@@ -424,8 +418,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   public void stopAndDeleteQueue() throws Exception {
     final String queueName = TestHelper.getTestMethodName();
 
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg =
@@ -433,7 +425,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
-    // Enqueue 2 jobs 
+    // Enqueue 2 jobs
     List<String> jobNames = new ArrayList<>();
     List<JobConfig.Builder> jobBuilders = new ArrayList<>();
 
@@ -458,7 +450,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.enqueueJob(queueName, job2Name, job2);
 
     //_driver.enqueueJobs(queueName, jobNames, jobBuilders);
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);

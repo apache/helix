@@ -53,8 +53,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
   public void testWhenDisallowOverlapJobAssignment() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(false);
@@ -77,9 +75,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
       _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
     _driver.resume(queueName);
-
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
-
     Thread.sleep(1000L);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }
@@ -98,8 +93,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     ClusterLiveNodesVerifier verifier = new ClusterLiveNodesVerifier(_gZkClient, CLUSTER_NAME,
         Collections.singletonList(_participants[0].getInstanceName()));
     Assert.assertTrue(verifier.verifyByPolling());
-
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
 
     String queueName = TestHelper.getTestMethodName();
 
@@ -133,8 +126,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     }
     _driver.enqueueJobs(queueName, jobNames, jobConfigBuilders);
     _driver.resume(queueName);
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
-
     Thread.sleep(2000);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }

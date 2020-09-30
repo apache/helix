@@ -41,6 +41,7 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -83,7 +84,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
     when(liveInstances.values()).thenReturn(Arrays.asList(mockLiveInstance));
-    when(cache.getLiveInstances()).thenReturn(liveInstances);
+    when(cache.getLiveInstances(anyBoolean())).thenReturn(liveInstances);
     ClusterConfig clusterConfig = mock(ClusterConfig.class);
     when(cache.getClusterConfig()).thenReturn(clusterConfig);
     when(clusterConfig.isStateTransitionCancelEnabled()).thenReturn(true);

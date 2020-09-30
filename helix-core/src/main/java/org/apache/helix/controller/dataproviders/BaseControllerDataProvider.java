@@ -255,8 +255,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void refreshLiveInstances(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE).getAndSet(false)) {
-      // Keep a copy of old live instances in case of maintenance mode
-      Map<String, LiveInstance> oldLiveInstances = getLiveInstances();
+      // Keep a copy of old live instances for maintenance mode
+      Map<String, LiveInstance> oldLiveInstances = new HashMap<>();
+      if (isMaintenanceModeEnabled()) {
+        oldLiveInstances = getLiveInstances(true);
+      }
       _liveInstanceCache.refresh(accessor);
       _updateInstanceOfflineTime = true;
       refreshedType.add(HelixConstants.ChangeType.LIVE_INSTANCE);
@@ -723,8 +726,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     List<String> offlineNodes =
         new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
     offlineNodes.removeAll(_liveInstanceCache.getPropertyMap().keySet());
-    // The timed-out instances during maintenance are online and not included in liveInstanceCache
-    offlineNodes.removeAll(_timedOutInstanceDuringMaintenance);
     _instanceOfflineTimeMap = new HashMap<>();
 
     for (String instance : offlineNodes) {

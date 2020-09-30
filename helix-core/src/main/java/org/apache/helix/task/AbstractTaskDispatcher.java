@@ -1184,10 +1184,7 @@ public abstract class AbstractTaskDispatcher {
     JobConfig jobConfig = jobConfigMap.get(job);
 
     if (jobConfig == null) {
-      // LOG.error(String.format("The job config is missing for job %s", job));
-      // for #1283
-      LOG.error("The job config is missing for job {}, with stacktrace {}",
-          job, Arrays.asList( Thread.currentThread().getStackTrace()));
+      LOG.error(String.format("The job config is missing for job %s", job));
       return false;
     }
 

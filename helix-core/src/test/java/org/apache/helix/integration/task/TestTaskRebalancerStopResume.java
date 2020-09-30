@@ -116,7 +116,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   public void stopAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    // Create a queue
+    // Create a queue 
     LOG.info("Starting job-queue: " + queueName);
     JobQueue queue = new JobQueue.Builder(queueName).build();
     _driver.createQueue(queue);

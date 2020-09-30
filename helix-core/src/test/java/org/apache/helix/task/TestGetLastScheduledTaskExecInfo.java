@@ -28,6 +28,7 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.apache.helix.TestHelper;
@@ -43,8 +44,15 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
+    WorkflowConfig.disableJobPurge();
   }
 
+  @AfterClass
+  public void afterClass() throws Exception {
+    WorkflowConfig.enableJobPurge();
+    super.afterClass();
+  }
+  
   @Test
   public void testGetLastScheduledTaskExecInfo() throws Exception {
     // Start new queue that has one job with long tasks and record start time of the tasks

@@ -45,9 +45,23 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancer extends TaskTestBase {
+  @BeforeClass
+  public void beforeClass() throws Exception {
+    super.beforeClass();
+    WorkflowConfig.disableJobPurge();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    WorkflowConfig.enableJobPurge();
+    super.afterClass();
+  }
+
   @Test
   public void basic() throws Exception {
     basic(100);

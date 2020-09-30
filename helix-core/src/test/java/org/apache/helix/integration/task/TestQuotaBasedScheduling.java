@@ -50,6 +50,7 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -114,6 +115,14 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     _driver = new TaskDriver(_manager);
 
     _jobCommandMap = Maps.newHashMap();
+
+    WorkflowConfig.disableJobPurge();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    WorkflowConfig.disableJobPurge();
+    super.afterClass();
   }
 
   @BeforeMethod

@@ -37,7 +37,9 @@ import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -48,8 +50,14 @@ public class TestTaskThrottling extends TaskTestBase {
     setSingleTestEnvironment();
     _numNodes = 2;
     super.beforeClass();
+    WorkflowConfig.disableJobPurge();
   }
 
+  @AfterClass
+  public void afterClass() throws Exception {
+    WorkflowConfig.enableJobPurge();
+    super.afterClass();
+  }
   /**
    * This test has been disabled/deprecated because Task Framework 2.0 uses quotas that are meant to
    * throttle tasks.
@@ -57,7 +65,7 @@ public class TestTaskThrottling extends TaskTestBase {
    */
   @Test
   public void testTaskThrottle() throws Exception {
-    int numTasks = 30 * _numNodes; // 60 tasks 
+    int numTasks = 30 * _numNodes; // 60 tasks
     int perNodeTaskLimitation = 5;
 
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);

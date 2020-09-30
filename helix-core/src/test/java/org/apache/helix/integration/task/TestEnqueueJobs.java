@@ -35,6 +35,7 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
 import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -46,6 +47,14 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
+    WorkflowConfig.disableJobPurge();
+  }
+
+  @AfterClass
+  @Override
+  public void afterClass() throws Exception {
+    WorkflowConfig.enableJobPurge();
+    super.afterClass();
   }
 
   @BeforeMethod

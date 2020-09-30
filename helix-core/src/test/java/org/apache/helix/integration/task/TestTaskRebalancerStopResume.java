@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
@@ -51,11 +52,25 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancerStopResume extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
   private static final String JOB_RESOURCE = "SomeJob";
+
+  @BeforeClass
+  public void BeforeClass() throws Exception {
+    super.beforeClass();
+    WorkflowConfig.disableJobPurge();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    WorkflowConfig.enableJobPurge();
+    super.afterClass();
+  }
 
   @Test
   public void stopAndResume() throws Exception {

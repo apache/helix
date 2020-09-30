@@ -218,7 +218,6 @@ public class TestTaskRebalancer extends TaskTestBase {
   public void testNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     // Create a queue
     JobQueue queue = new JobQueue.Builder(queueName).build();
     _driver.createQueue(queue);
@@ -236,14 +235,15 @@ public class TestTaskRebalancer extends TaskTestBase {
     jobNames.add("slaveJob");
     jobBuilders.add(job1);
     jobBuilders.add(job2);
+    //_driver.enqueueJob(queueName, "masterJob", job1);
+    //_driver.enqueueJob(queueName, "slaveJob", job2);
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
-
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
 
+    System.out.println("testNamedQueue before pollForJobState");
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);

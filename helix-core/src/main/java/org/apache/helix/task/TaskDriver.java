@@ -140,15 +140,6 @@ public class TaskDriver {
    * @param flow
    */
   public void start(Workflow flow) {
-    start(flow, 0);
-  }
-
-  /**
-   * Schedules a new workflow
-   * @param flow
-   * @param waitTillWfgUpdate
-   */
-  public void start(Workflow flow, final long waitTillWfgUpdate) {
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
 
@@ -171,12 +162,6 @@ public class TaskDriver {
       addJobConfig(job, jobCfg);
     }
     newWorkflowConfig.setJobTypes(jobTypes);
-
-    try {
-      Thread.sleep(waitTillWfgUpdate);
-    } catch (InterruptedException e) {
-      LOG.warn("start workflow waitTillWfgUpdate interruptted!");
-    }
 
     // add workflow config.
     if (!TaskUtil.createWorkflowConfig(_accessor, flow.getName(), newWorkflowConfig)) {
@@ -390,20 +375,6 @@ public class TaskDriver {
   }
 
   /**
-   * Adds a new job to the end an existing named queue.
-   * @param queue
-   * @param job
-   * @param jobBuilder
-   * @param waitTillWfgUpdate
-   * @throws Exception
-   */
-  public void enqueueJob(final String queue, final String job, JobConfig.Builder jobBuilder,
-      final long waitTillWfgUpdate) {
-    enqueueJobs(queue, Collections.singletonList(job), Collections.singletonList(jobBuilder),
-        waitTillWfgUpdate);
-  }
-
-  /**
    * Batch add jobs to queues that garantee
    * @param queue
    * @param jobs
@@ -411,18 +382,6 @@ public class TaskDriver {
    */
   public void enqueueJobs(final String queue, final List<String> jobs,
       final List<JobConfig.Builder> jobBuilders) {
-    enqueueJobs(queue, jobs, jobBuilders, 0);
-  }
-
-  /**
-   * Batch add jobs to queues that garantee
-   * @param queue
-   * @param jobs
-   * @param jobBuilders
-   * @param waitTillWfgUpdate
-   */
-  public void enqueueJobs(final String queue, final List<String> jobs,
-      final List<JobConfig.Builder> jobBuilders, final long waitTillWfgUpdate) {
 
     // Get the job queue config and capacity
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
@@ -482,12 +441,6 @@ public class TaskDriver {
         String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
         TaskUtil.removeJobConfig(_accessor, namespacedJobName);
       }
-    }
-
-    try {
-      Thread.sleep(waitTillWfgUpdate);
-    } catch (InterruptedException e){
-      LOG.warn("waitTillWfgUpdate interruptted!");
     }
 
     // update the job dag to append the job to the end of the queue.
@@ -1447,7 +1400,8 @@ public class TaskDriver {
    * @param taskPartitionId task partition id
    * @param contentToAddOrUpdate map containing items to add or update
    */
-  public void addOrUpdateTaskUserContentMap(String workflowName, String jobName,
+  public void
+  addOrUpdateTaskUserContentMap(String workflowName, String jobName,
       String taskPartitionId, final Map<String, String> contentToAddOrUpdate) {
     String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     String namespacedTaskName = TaskUtil.getNamespacedTaskName(namespacedJobName, taskPartitionId);

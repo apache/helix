@@ -115,7 +115,6 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
    */
   private List<Long> setupTasks(String jobQueueName, int numTasks, long taskTimeout,
       int expectedScheduledTasks) throws Exception {
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     // Create a queue
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(jobQueueName);
 
@@ -133,7 +132,6 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
     jobConfig.addTaskConfigs(taskConfigs).setNumConcurrentTasksPerInstance(2);
     queueBuilder.enqueueJob("job_0", jobConfig);
     _driver.start(queueBuilder.build());
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
 
     _driver.pollForWorkflowState(jobQueueName, TaskState.IN_PROGRESS);
 

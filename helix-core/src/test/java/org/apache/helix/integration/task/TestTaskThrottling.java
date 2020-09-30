@@ -57,7 +57,7 @@ public class TestTaskThrottling extends TaskTestBase {
    */
   @Test
   public void testTaskThrottle() throws Exception {
-    int numTasks = 30 * _numNodes; // 60 tasks
+    int numTasks = 30 * _numNodes; // 60 tasks 
     int perNodeTaskLimitation = 5;
 
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);
@@ -65,9 +65,7 @@ public class TestTaskThrottling extends TaskTestBase {
     // 1. Job executed in the participants with no limitation
     String jobName1 = "Job1";
     Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     _driver.start(flow1);
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
     _driver.pollForJobState(flow1.getName(), TaskUtil.getNamespacedJobName(flow1.getName(), jobName1),
         TaskState.IN_PROGRESS);
 
@@ -90,9 +88,7 @@ public class TestTaskThrottling extends TaskTestBase {
 
     String jobName2 = "Job2";
     Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     _driver.start(flow2);
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
     _driver.pollForJobState(flow2.getName(), TaskUtil.getNamespacedJobName(flow2.getName(), jobName2),
         TaskState.IN_PROGRESS);
 
@@ -108,9 +104,7 @@ public class TestTaskThrottling extends TaskTestBase {
     jobConfig.setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
     String jobName3 = "Job3";
     Workflow flow3 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName3, jobConfig).build();
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     _driver.start(flow3);
-    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
     _driver.pollForJobState(flow3.getName(), TaskUtil.getNamespacedJobName(flow3.getName(), jobName3),
         TaskState.COMPLETED);
   }

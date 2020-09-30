@@ -31,12 +31,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.Timer;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,18 +59,38 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   public static final String IS_HEALTHY_KEY = "IS_HEALTHY";
   public static final String EXPIRY_KEY = "EXPIRE";
 
+  // Metric names for custom partition check
+  private static final String CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_ERROR_TOTAL = MetricRegistry
+      .name(InstanceService.class, "custom_partition_check_http_requests_error_total");
+  private static final String CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_DURATION =
+      MetricRegistry.name(InstanceService.class, "custom_partition_check_http_requests_duration");
+
   private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
   private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
+  protected String _namespace;
   protected CustomRestClient _restClient;
 
+  /**
+   * @deprecated Because a namespace is required, please use the other constructors.
+   *
+   * @param dataAccessor Zk Helix data accessor used to access ZK.
+   */
+  @Deprecated
   public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor) {
-    super(dataAccessor);
-    _restClient = CustomRestClientFactory.get();
+    this(dataAccessor, CustomRestClientFactory.get(), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
   }
 
-  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor, CustomRestClient customRestClient) {
+  @Deprecated
+  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor,
+      CustomRestClient customRestClient) {
+    this(dataAccessor, customRestClient, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+  }
+
+  public HelixDataAccessorWrapper(ZKHelixDataAccessor dataAccessor,
+      CustomRestClient customRestClient, String namespace) {
     super(dataAccessor);
     _restClient = customRestClient;
+    _namespace = namespace;
   }
 
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
@@ -166,12 +191,16 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
 
   private Map<String, Boolean> getHealthStatusFromRest(String instance, List<String> partitions,
       RESTConfig restConfig, Map<String, String> customPayLoads) {
-    try {
+    MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
+    // Total requests metric is included as an attribute(Count) in timers
+    try (final Timer.Context timer = metrics.timer(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_DURATION)
+        .time()) {
       return _restClient.getPartitionStoppableCheck(restConfig.getBaseUrl(instance), partitions,
           customPayLoads);
     } catch (IOException e) {
       LOG.error("Failed to get partition status on instance {}, partitions: {}", instance,
           partitions, e);
+      metrics.counter(CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_ERROR_TOTAL).inc();
       return Collections.emptyMap();
     }
   }

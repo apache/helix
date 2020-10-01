@@ -215,7 +215,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     DelayedTransition.setDelay(20);
     DelayedTransition.enableThrottleRecord();
 
-    // start another 3 nodes 
+    // start another 3 nodes
     for (int i = NODE_NR - 3; i < NODE_NR; i++) {
       _participants[i].syncStart();
     }

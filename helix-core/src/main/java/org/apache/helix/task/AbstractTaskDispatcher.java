@@ -128,6 +128,12 @@ public abstract class AbstractTaskDispatcher {
         // Check for pending state transitions on this (partition, instance). If there is a pending
         // state transition, we prioritize this pending state transition and set the assignment from
         // this pending state transition, essentially "waiting" until this pending message clears
+        // If there is a pending message, we should not continue to update the context because from
+        // controller prospective, state transition has not been completed yet if pending message
+        // still existed.
+        // If context gets updated here, controller might remove the job from RunTimeJobDAG which
+        // can cause the task's CurrentState not being removed when there is a pending message for
+        // that task.
         Message pendingMessage =
             currStateOutput.getPendingMessage(jobResource, new Partition(pName), instance);
         if (pendingMessage != null) {

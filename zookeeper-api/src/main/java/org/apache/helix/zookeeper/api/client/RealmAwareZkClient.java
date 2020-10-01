@@ -261,7 +261,10 @@ public interface RealmAwareZkClient {
 
   long getCreationTime(String path);
 
+  @Deprecated
   List<OpResult> multi(final Iterable<Op> ops);
+
+  List<OpResult> multiOps(final List<MultiOp> ops);
 
   // ZK state control
   boolean waitUntilConnected(long time, TimeUnit timeUnit);

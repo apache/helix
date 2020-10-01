@@ -32,9 +32,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.api.client.MultiOp;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -2310,18 +2312,72 @@ public class ZkClient implements Watcher {
     return listeners;
   }
 
+  @Deprecated
   public List<OpResult> multi(final Iterable<Op> ops) throws ZkException {
     if (ops == null) {
       throw new NullPointerException("ops must not be null.");
     }
+    return retryUntilConnected(() -> getConnection().multi(ops));
+  }
 
-    return retryUntilConnected(new Callable<List<OpResult>>() {
+  public List<OpResult> multiOps(final List<MultiOp> ops) throws ZkException {
+    if (ops == null) {
+      throw new NullPointerException("ops must not be null.");
+    }
 
-      @Override
-      public List<OpResult> call() throws Exception {
-        return getConnection().multi(ops);
+    long startT = System.currentTimeMillis();
+    try {
+      final Op[] zkOps = new Op[ops.size()];
+      // record the data byte arrays for metric reporting.
+      final byte[][] dataByteArrays = new byte[ops.size()][];
+
+      // Iterate each MultiOp object to transform them into Zookeeper.Op.
+      // Meanwhile, record the input data array for monitoring.
+      for (int i = 0; i < ops.size(); i++) {
+        // Effectively final the index for dataByte array recording
+        int cur = i;
+        zkOps[i] = ops.get(i).buildZkOp(new PathBasedZkSerializer() {
+          // It is hard to trigger serializer and validate the data array while we are using
+          // Zookeeper multi method. So combine the serializer and validate together in an
+          // anonymous class to make it work.
+          @Override
+          public byte[] serialize(Object data, String path) throws ZkMarshallingError {
+            final byte[] dataBytes = data == null ? null : getZkSerializer().serialize(data, path);
+            checkDataSizeLimit(dataBytes);
+            dataByteArrays[cur] = dataBytes;
+            return dataBytes;
+          }
+
+          @Override
+          public Object deserialize(byte[] bytes, String path) throws ZkMarshallingError {
+            throw new ZkClientException("deserialize should not be triggered in this usage.");
+          }
+        });
       }
-    });
+
+      List<OpResult> results =
+          retryUntilConnected(() -> getConnection().multi(Arrays.asList(zkOps)));
+      for (int i = 0; i < zkOps.length; i++) {
+        // Strict check might be needed to determine if a multiOp is write. But we don't do it now
+        // since,
+        // 1. We only support limited operations through the Helix multiOp method. All of them are
+        // real write operation.
+        // 2. ZK server logic tends to treat multiOps as write operations.
+        record(zkOps[i].getPath(), dataByteArrays[i], startT, ZkClientMonitor.AccessType.WRITE);
+      }
+      return results;
+    } catch (Exception e) {
+      for (MultiOp multiOp : ops) {
+        recordFailure(multiOp.getPath(), ZkClientMonitor.AccessType.WRITE);
+      }
+      throw e;
+    } finally {
+      long endT = System.currentTimeMillis();
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("zkclient {}, multiOps, paths {}, time {} ms", _uid,
+            ops.stream().map(op -> op.getPath()).collect(Collectors.toList()), (endT - startT));
+      }
+    }
   }
 
   /**

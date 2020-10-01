@@ -37,6 +37,7 @@ import javax.management.ObjectName;
 
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.zookeeper.api.client.MultiOp;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -906,6 +907,46 @@ public class TestRawZkClient extends ZkTestBase {
         }
       }, TestHelper.WAIT_DURATION));
     }
+    System.out.println("End test: " + methodName);
+  }
+
+  @Test
+  public void testMultiOps() {
+    final String methodName = TestHelper.getTestMethodName();
+    System.out.println("Start test: " + methodName);
+
+    String path = "/" + methodName;
+    String deletingPath = path + "/deleting";
+    String creatingPath = path + "/creating";
+
+    try {
+      _zkClient.createPersistent(deletingPath, true);
+
+      // 1. test multi ops failure, all the changes won't be persisted.
+      List<MultiOp> ops = new ArrayList<>();
+      ops.add(MultiOp.delete(deletingPath, -1));
+      ops.add(MultiOp.setData(creatingPath, "TestWrite", -1));
+      try {
+        _zkClient.multiOps(ops);
+        Assert.fail("MultiOps shall fail.");
+      } catch (Exception ex) {
+        // Expected error
+      }
+      Assert.assertTrue(_zkClient.exists(deletingPath));
+
+      // 2. test multi ops succeed. All changes shall be persisted.
+      ops.clear();
+      ops.add(MultiOp.delete(deletingPath, -1));
+      ops.add(MultiOp.create(creatingPath, null, CreateMode.PERSISTENT));
+      ops.add(MultiOp.setData(creatingPath, "TestWrite", -1));
+      _zkClient.multiOps(ops);
+      Assert.assertFalse(_zkClient.exists(deletingPath));
+      Assert.assertTrue(_zkClient.exists(creatingPath));
+      Assert.assertEquals(_zkClient.readData(creatingPath), "TestWrite");
+    } finally {
+      _zkClient.deleteRecursively(path);
+    }
+
     System.out.println("End test: " + methodName);
   }
 }

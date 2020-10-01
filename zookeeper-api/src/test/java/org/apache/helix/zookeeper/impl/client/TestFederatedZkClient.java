@@ -33,6 +33,7 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
+import org.apache.helix.zookeeper.api.client.MultiOp;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.constant.RoutingSystemPropertyKeys;
@@ -109,6 +110,16 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     try {
       _realmAwareZkClient.multi(ops);
       Assert.fail("multi() should not be supported.");
+    } catch (UnsupportedOperationException ex) {
+      Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
+    }
+
+    List<MultiOp> multiOps = Arrays
+        .asList(MultiOp.create(TEST_REALM_ONE_VALID_PATH, "test", CreateMode.PERSISTENT),
+            MultiOp.delete(TEST_REALM_ONE_VALID_PATH, -1));
+    try {
+      _realmAwareZkClient.multiOps(multiOps);
+      Assert.fail("multiOps() should not be supported.");
     } catch (UnsupportedOperationException ex) {
       Assert.assertTrue(ex.getMessage().startsWith(UNSUPPORTED_OPERATION_MESSAGE));
     }

@@ -27,6 +27,7 @@ import org.apache.helix.msdcommon.datamodel.MetadataStoreRoutingData;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.api.client.MultiOp;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
@@ -452,9 +453,15 @@ public class SharedZkClient implements RealmAwareZkClient {
     return _innerSharedZkClient.getCreationTime(path);
   }
 
+  @Deprecated
   @Override
   public List<OpResult> multi(Iterable<Op> ops) {
     return _innerSharedZkClient.multi(ops);
+  }
+
+  @Override
+  public List<OpResult> multiOps(final List<MultiOp> ops) {
+    return _innerSharedZkClient.multiOps(ops);
   }
 
   @Override

@@ -163,6 +163,13 @@ public class TestResourceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testExternalView")
+  public void testCustomizedView() {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/customizedView", null,
+        Response.Status.NOT_FOUND.getStatusCode(), true);
+  }
+
+  @Test(dependsOnMethods = "testExternalView")
   public void testPartitionHealth() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

@@ -47,6 +47,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -522,6 +523,21 @@ public class ResourceAccessor extends AbstractHelixResource {
     ExternalView externalView = admin.getResourceExternalView(clusterId, resourceName);
     if (externalView != null) {
       return JSONRepresentation(externalView.getRecord());
+    }
+
+    return notFound();
+  }
+
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
+  @GET
+  @Path("{resourceName}/customizedView")
+  public Response getResourceCustomizedView(@PathParam("clusterId") String clusterId,
+      @PathParam("resourceName") String resourceName) {
+    HelixAdmin admin = getHelixAdmin();
+    CustomizedView customizedView = admin.getResourceCustomizedView(clusterId, resourceName);
+    if (customizedView != null) {
+      return JSONRepresentation(customizedView.getRecord());
     }
 
     return notFound();

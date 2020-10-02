@@ -90,6 +90,9 @@ public class ClusterEvent {
     return _eventId;
   }
 
+  public boolean containsAttribute(String attrName) {
+    return _eventAttributeMap.containsKey(attrName);
+  }
 
   @SuppressWarnings("unchecked")
   public <T extends Object> T getAttribute(String attrName) {

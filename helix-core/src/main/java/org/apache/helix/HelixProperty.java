@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -40,17 +41,11 @@ import org.slf4j.LoggerFactory;
 public class HelixProperty {
   private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
-  // JVM level class bounded default znrecord and stat for default constructor.
-  private static final ZNRecord DEFAULT_ZNRECORD = new ZNRecord("DUMMY");
-  private static final Stat DEFAULT_STAT =
-      new Stat(DEFAULT_ZNRECORD.getVersion(), DEFAULT_ZNRECORD.getCreationTime(),
-          DEFAULT_ZNRECORD.getModifiedTime(), DEFAULT_ZNRECORD.getEphemeralOwner());
-
   public enum HelixPropertyAttribute {
     BUCKET_SIZE, BATCH_MESSAGE_MODE
   }
 
-  protected ZNRecord _record;
+  protected final ZNRecord _record;
 
   /**
    * Metadata of a HelixProperty
@@ -154,12 +149,7 @@ public class HelixProperty {
     }
   }
 
-  protected Stat _stat;
-
-  public HelixProperty() {
-    _record = DEFAULT_ZNRECORD;
-    _stat = DEFAULT_STAT;
-  }
+  private Stat _stat;
 
   /**
    * Initialize the property with an identifier
@@ -184,6 +174,15 @@ public class HelixProperty {
    */
   public HelixProperty(ZNRecord record, String id) {
     _record = new ZNRecord(record, id);
+    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
+        _record.getEphemeralOwner());
+  }
+
+  /*
+   * Only used by Message which needs to be session-aware.
+   */
+  protected HelixProperty(SessionAwareZNRecord record, String id) {
+    _record = record;
     _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
         _record.getEphemeralOwner());
   }

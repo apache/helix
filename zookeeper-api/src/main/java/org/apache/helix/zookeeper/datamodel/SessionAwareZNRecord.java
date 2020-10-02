@@ -19,7 +19,7 @@ package org.apache.helix.zookeeper.datamodel;
  * under the License.
  */
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A class represents a session aware ZNRecord: the ZNRecord should be written to zk by
@@ -36,10 +36,6 @@ public class SessionAwareZNRecord extends ZNRecord {
 
   public SessionAwareZNRecord(String id) {
     super(id);
-  }
-
-  public SessionAwareZNRecord(ZNRecord record) {
-    super(record);
   }
 
   public SessionAwareZNRecord(ZNRecord record, String id) {

@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
@@ -975,11 +974,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   @Override
   public boolean isLeader() {
-    return getSessionIdIfLead().isPresent();
+    return getSessionIdIfLead() != null;
   }
 
   @Override
-  public Optional<String> getSessionIdIfLead() {
+  public String getSessionIdIfLead() {
     String warnLogPrefix = String
         .format("Instance %s is not leader of cluster %s due to", _instanceName, _clusterName);
     if (_instanceType != InstanceType.CONTROLLER
@@ -987,12 +986,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       LOG.warn(String
           .format("%s instance type %s does not match to CONTROLLER/CONTROLLER_PARTICIPANT",
               warnLogPrefix, _instanceType.name()));
-      return Optional.empty();
+      return null;
     }
 
     if (!isConnected()) {
       LOG.warn(String.format("%s HelixManager is not connected", warnLogPrefix));
-      return Optional.empty();
+      return null;
     }
 
     try {
@@ -1005,7 +1004,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           // Ensure the same leader session is set and returned. If we get _session from helix
           // manager, _session might change after the check. This guarantees the session is
           // leader's session we checked.
-          return Optional.of(sessionId);
+          return sessionId;
         }
         LOG.warn(String
             .format("%s current session %s does not match leader session %s", warnLogPrefix,
@@ -1016,7 +1015,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     } catch (Exception e) {
       LOG.warn(String.format("%s exception happen when session check", warnLogPrefix), e);
     }
-    return Optional.empty();
+    return null;
   }
 
   @Override

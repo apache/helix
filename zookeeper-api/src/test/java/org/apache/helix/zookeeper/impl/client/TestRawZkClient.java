@@ -38,6 +38,7 @@ import javax.management.ObjectName;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -866,9 +867,10 @@ public class TestRawZkClient extends ZkTestBase {
     zkClient.setZkSerializer(new ZNRecordSerializer());
     String sessionId = Long.toHexString(zkClient.getSessionId());
     String path = "/" + TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
-    ZNRecord record = new ZNRecord("test");
-    record.setSimpleField("MSG_ID", "test");
-    record.setSimpleField("SRC_SESSION_ID", "invalidSessionId");
+    SessionAwareZNRecord record = new SessionAwareZNRecord("test");
+
+    // Set a dummy session id string to be mismatched with the real session id in ZkClient.
+    record.setExpectedSessionId("ExpectedSession");
     ZkAsyncCallbacks.CreateCallbackHandler createCallback =
         new ZkAsyncCallbacks.CreateCallbackHandler();
 
@@ -879,12 +881,13 @@ public class TestRawZkClient extends ZkTestBase {
     } catch (ZkSessionMismatchedException expected) {
       Assert.assertEquals(expected.getMessage(),
           "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
-              + "invalidSessionId. Actual: " + sessionId);
+              + "ExpectedSession. Actual: " + sessionId);
     }
 
     Assert.assertFalse(zkClient.exists(path));
 
-    record.setSimpleField("SRC_SESSION_ID", sessionId);
+    // A valid session should be able to create the znode.
+    record.setExpectedSessionId(sessionId);
     zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback);
     createCallback.waitForSuccess();
 

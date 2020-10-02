@@ -66,6 +66,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
     // The AsyncTasksThreadPool needs to be set, otherwise to start pending message cleanup job
     // will throw NPE and stop the pipeline. TODO: https://github.com/apache/helix/issues/1158
@@ -304,6 +305,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
 
     ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
@@ -402,6 +404,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
@@ -481,6 +484,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
@@ -552,8 +556,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = _className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
     final String resourceName = "testResource_" + methodName;
     final String partitionName = resourceName + "_0";
     String[] resourceGroups = new String[] {
@@ -612,7 +614,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
       Assert.fail("StageException should be thrown because controller leader session changed.");
     } catch (StageException e) {
       Assert.assertTrue(
-          e.getMessage().matches("Controller: .* lost leadership! Expected session: .*"));
+          e.getMessage().matches("Event session doesn't match controller .* Expected session: .*"));
     }
 
     // Verify the ST message not being sent out is the expected one to
@@ -629,7 +631,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   protected void setCurrentState(String clusterName, String instance, String resourceGroupName,

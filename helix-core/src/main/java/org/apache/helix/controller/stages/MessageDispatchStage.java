@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -79,13 +78,18 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
 
-    // An early check for expected leader session. If the sessions don't match, it means the
-    // controller's session changes, then messages should not be sent and pipeline should stop.
-    Optional<String> expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
-    if (!expectedSession.isPresent() || !expectedSession.get().equals(manager.getSessionId())) {
-      throw new StageException(String.format(
-          "Event session doesn't match controller %s session! Expected session: %s, actual: %s",
-          manager.getInstanceName(), expectedSession, manager.getSessionId()));
+    // Only expect tests' events don't have EVENT_SESSION, while all events in prod should have it.
+    if (!event.containsAttribute(AttributeName.EVENT_SESSION.name())) {
+      logger.info("Event {} does not have event session attribute", event.getEventId());
+    } else {
+      // An early check for expected leader session. If the sessions don't match, it means the
+      // controller's session changes, then messages should not be sent and pipeline should stop.
+      String expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
+      if (expectedSession == null || !expectedSession.equals(manager.getSessionId())) {
+        throw new StageException(String.format(
+            "Event session doesn't match controller %s session! Expected session: %s, actual: %s",
+            manager.getInstanceName(), expectedSession, manager.getSessionId()));
+      }
     }
 
     List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);

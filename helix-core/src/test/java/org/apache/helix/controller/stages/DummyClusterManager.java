@@ -207,7 +207,6 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public String getInstanceName() {
-    // TODO Auto-generated method stub
     return _instanceName;
   }
 

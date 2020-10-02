@@ -20,7 +20,6 @@ package org.apache.helix;
  */
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
@@ -424,10 +423,10 @@ public interface HelixManager {
    * Checks whether the cluster manager is leader and returns the session ID associated to the
    * connection of cluster data store, if and only if it is leader.
    *
-   * @return {@code Optional<String>} session ID is present inside the {@code Optional} object
-   * if the cluster manager is leader. Otherwise, returns an empty {@code Optional} object.
+   * @return {@code String} session ID is a valid string if the cluster manager is leader.
+   * Otherwise, returns null.
    */
-  default Optional<String> getSessionIdIfLead() {
+  default String getSessionIdIfLead() {
     throw new UnsupportedOperationException("Not implemented");
   }
 

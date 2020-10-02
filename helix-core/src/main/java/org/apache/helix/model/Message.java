@@ -137,8 +137,6 @@ public class Message extends HelixProperty {
     }
   };
 
-  // AtomicInteger _groupMsgCountDown = new AtomicInteger(1);
-
   /**
    * Instantiate a message
    * @param type the message category
@@ -154,8 +152,7 @@ public class Message extends HelixProperty {
    * @param msgId unique message identifier
    */
   public Message(String type, String msgId) {
-    _record = new SessionAwareZNRecord(msgId);
-    initStat();
+    super(new SessionAwareZNRecord(msgId), msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState(MessageState.NEW);
@@ -167,8 +164,7 @@ public class Message extends HelixProperty {
    * @param record a ZNRecord corresponding to a message
    */
   public Message(ZNRecord record) {
-    _record = new SessionAwareZNRecord(record);
-    initStat();
+    super(new SessionAwareZNRecord(record, record.getId()));
     if (getMsgState() == null) {
       setMsgState(MessageState.NEW);
     }
@@ -183,19 +179,20 @@ public class Message extends HelixProperty {
    * @param id unique message identifier
    */
   public Message(ZNRecord record, String id) {
-    _record = new SessionAwareZNRecord(record, id);
-    initStat();
+    super(new SessionAwareZNRecord(record, id));
     setMsgId(id);
   }
 
   /**
+   * @deprecated Not being used.
+   *
    * Instantiate a message with a new id
    * @param message message to be copied
    * @param id unique message identifier
    */
+  @Deprecated
   public Message(Message message, String id) {
-    _record = new SessionAwareZNRecord(message.getRecord(), id);
-    initStat();
+    super(new SessionAwareZNRecord(message.getRecord(), id));
     setMsgId(id);
   }
 
@@ -944,13 +941,6 @@ public class Message extends HelixProperty {
 
   private boolean isNullOrEmpty(String data) {
     return data == null || data.length() == 0 || data.trim().length() == 0;
-  }
-
-  private void initStat() {
-    _stat.setCreationTime(_record.getCreationTime());
-    _stat.setEphemeralOwner(_record.getEphemeralOwner());
-    _stat.setModifiedTime(_record.getModifiedTime());
-    _stat.setVersion(_record.getVersion());
   }
 
   @Override

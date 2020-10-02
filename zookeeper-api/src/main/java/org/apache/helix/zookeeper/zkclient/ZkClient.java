@@ -222,20 +222,22 @@ public class ZkClient implements Watcher {
     _asyncCallRetryThread.start();
     LOG.debug("ZkClient created with uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
+    if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
+        .isEmpty()) {
+      _monitor =
+          new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
+              _eventThread);
+    } else {
+      LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
+    }
+
     connect(connectionTimeout, this);
 
-    // initiate monitor
     try {
-      if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
-          .isEmpty()) {
-        _monitor =
-            new ZkClientMonitor(monitorType, monitorKey, monitorInstanceName, monitorRootPathOnly,
-                _eventThread);
+      if (_monitor != null) {
         _monitor.register();
-      } else {
-        LOG.info("ZkClient monitor key or type is not provided. Skip monitoring.");
       }
-    } catch (JMException e) {
+    } catch (JMException e){
       LOG.error("Error in creating ZkClientMonitor", e);
     }
   }
@@ -1284,6 +1286,7 @@ public class ZkClient implements Watcher {
         });
   }
 
+
   /*
    *  Note, issueSync takes a ZooKeeper (client) object and pass it to doAsyncSync().
    *  The reason we do this is that we want to ensure each new session event is preceded with exactly
@@ -2157,6 +2160,14 @@ public class ZkClient implements Watcher {
 
       IZkConnection zkConnection = getConnection();
       _eventThread = new ZkEventThread(zkConnection.getServers());
+
+      if (_monitor != null) {
+        boolean result = _monitor.setAndInitZkEventThreadMonitor(_eventThread);
+        if (!result) {
+          LOG.error("register _eventThread monitor failed due to an existing one");
+        }
+      }
+
       _eventThread.start();
 
       LOG.debug("ZkClient {},  _eventThread {}", _uid, _eventThread.getId());

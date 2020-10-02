@@ -531,11 +531,13 @@ public class ResourceAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
-  @Path("{resourceName}/customizedView")
+  @Path("{resourceName}/{customizedStateType}/customizedView")
   public Response getResourceCustomizedView(@PathParam("clusterId") String clusterId,
-      @PathParam("resourceName") String resourceName) {
+      @PathParam("resourceName") String resourceName,
+      @PathParam("customizedStateType") String customizedStateType) {
     HelixAdmin admin = getHelixAdmin();
-    CustomizedView customizedView = admin.getResourceCustomizedView(clusterId, resourceName);
+    CustomizedView customizedView =
+        admin.getResourceCustomizedView(clusterId, resourceName, customizedStateType);
     if (customizedView != null) {
       return JSONRepresentation(customizedView.getRecord());
     }

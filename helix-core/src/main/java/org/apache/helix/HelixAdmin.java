@@ -458,7 +458,8 @@ public interface HelixAdmin {
    * @param resourceName
    * @return customized for the resource
    */
-  CustomizedView getResourceCustomizedView(String clusterName, String resourceName);
+  CustomizedView getResourceCustomizedView(String clusterName, String resourceName,
+      String customizedStateType);
 
   /**
    * Drop a cluster

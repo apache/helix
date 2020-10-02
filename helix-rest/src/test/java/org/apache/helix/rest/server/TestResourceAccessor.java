@@ -44,6 +44,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -58,6 +59,7 @@ public class TestResourceAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String RESOURCE_NAME = CLUSTER_NAME + "_db_0";
   private final static String ANY_INSTANCE = "ANY_LIVEINSTANCE";
+  private final static String CUSTOMIZED_STATE_TYPE = "Customized_state_type_0";
 
   @Test
   public void testGetResources() throws IOException {
@@ -163,10 +165,19 @@ public class TestResourceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testExternalView")
-  public void testCustomizedView() {
+  public void testCustomizedView() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/customizedView", null,
-        Response.Status.NOT_FOUND.getStatusCode(), true);
+    ZNRecord znRecord = new ZNRecord("test_customizedView");
+    _baseAccessor
+        .set(PropertyPathBuilder.customizedView(CLUSTER_NAME, CUSTOMIZED_STATE_TYPE, RESOURCE_NAME),
+            znRecord, 1);
+    String body =
+        get("clusters/" + CLUSTER_NAME + "/resources/" + RESOURCE_NAME + "/" + CUSTOMIZED_STATE_TYPE
+            + "/customizedView", null, Response.Status.OK.getStatusCode(), true);
+    CustomizedView customizedView = new CustomizedView(toZNRecord(body));
+    Assert.assertEquals(customizedView, _gSetupTool.getClusterManagementTool()
+        .getResourceCustomizedView(CLUSTER_NAME, RESOURCE_NAME, CUSTOMIZED_STATE_TYPE));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
   @Test(dependsOnMethods = "testExternalView")

@@ -1087,11 +1087,12 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public CustomizedView getResourceCustomizedView(String clusterName, String resourceName) {
+  public CustomizedView getResourceCustomizedView(String clusterName, String resourceName,
+      String customizedStateType) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    return accessor.getProperty(keyBuilder.customizedView(resourceName));
+    return accessor.getProperty(keyBuilder.customizedView(customizedStateType, resourceName));
   }
 
   @Override

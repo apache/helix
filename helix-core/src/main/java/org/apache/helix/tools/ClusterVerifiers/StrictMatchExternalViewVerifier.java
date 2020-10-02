@@ -60,7 +60,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Set<String> expectLiveInstances) {
-    this(zkAddr, clusterName, resources, expectLiveInstances, false);
+    this(zkAddr, clusterName, resources, expectLiveInstances, false,0);
   }
 
   @Deprecated
@@ -71,8 +71,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
   @Deprecated
   private StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
-      Set<String> expectLiveInstances, boolean isDeactivatedNodeAware) {
-    super(zkAddr, clusterName);
+      Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int waitTillVerify) {
+    super(zkAddr, clusterName, waitTillVerify);
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
     _isDeactivatedNodeAware = isDeactivatedNodeAware;
@@ -108,7 +108,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
         // For backward-compatibility
         return new StrictMatchExternalViewVerifier(_zkAddress, _clusterName, _resources,
-            _expectLiveInstances, _isDeactivatedNodeAware);
+            _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify);
       }
 
       validate();

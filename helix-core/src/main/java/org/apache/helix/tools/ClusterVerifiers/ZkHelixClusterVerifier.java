@@ -107,7 +107,7 @@ public abstract class ZkHelixClusterVerifier
   }
 
   @Deprecated
-  public ZkHelixClusterVerifier(String zkAddr, String clusterName) {
+  public ZkHelixClusterVerifier(String zkAddr, String clusterName, int waitPeriodTillVerify) {
     if (clusterName == null || clusterName.isEmpty()) {
       throw new IllegalArgumentException("ZkHelixClusterVerifier: clusterName is null or empty!");
     }
@@ -138,7 +138,7 @@ public abstract class ZkHelixClusterVerifier
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
-    _waitPeriodTillVerify = 0;
+    _waitPeriodTillVerify = waitPeriodTillVerify;
   }
 
   /**

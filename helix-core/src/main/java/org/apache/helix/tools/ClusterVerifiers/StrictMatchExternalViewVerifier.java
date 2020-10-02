@@ -60,7 +60,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public StrictMatchExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Set<String> expectLiveInstances) {
-    this(zkAddr, clusterName, resources, expectLiveInstances, false,0);
+    this(zkAddr, clusterName, resources, expectLiveInstances, false, 0);
   }
 
   @Deprecated

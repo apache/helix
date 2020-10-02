@@ -299,7 +299,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     ExternalView resourceExternalView = tool.getResourceExternalView(clusterName, "resource");
     AssertJUnit.assertNull(resourceExternalView);
 
-    CustomizedView resourceCustomizedView = tool.getResourceCustomizedView(clusterName, "resource");
+    CustomizedView resourceCustomizedView = tool.getResourceCustomizedView(clusterName,"resource"
+        , "customizedStateType");
     AssertJUnit.assertNull(resourceCustomizedView);
 
     // test config support

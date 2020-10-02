@@ -49,6 +49,9 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     MockParticipantManager participant2 =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
     participant2.syncStart();
+    // New instance case: a new node that comes live before maintenance, shouldn't be timed-out
+    String newInstance = "NewInstance";
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newInstance);
 
     // Set timeout window to be 0 millisecond, causing any node that goes offline to time out
     ClusterConfig clusterConfig = _helixDataAccessor.getProperty(_keyBuilder.clusterConfig());
@@ -73,6 +76,9 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     participant1 = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance1);
     participant1.syncStart();
     Assert.assertNotNull(_helixDataAccessor.getProperty(_keyBuilder.liveInstance(instance1)));
+    MockParticipantManager newParticipant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newInstance);
+    newParticipant.syncStart();
 
     // Cache refresh
     ResourceControllerDataProvider resourceControllerDataProvider =
@@ -81,6 +87,8 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     Assert
         .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance1));
     Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance2));
+    Assert
+        .assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(newInstance));
     // History wise, all instances should still be treated as online
     ParticipantHistory history1 =
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instance1));

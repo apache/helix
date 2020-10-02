@@ -426,14 +426,14 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
 
-    // Create a queue 
+    // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg =
         new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
-    // Enqueue 2 jobs
+    // Enqueue 2 jobs 
     List<String> jobNames = new ArrayList<>();
     List<JobConfig.Builder> jobBuilders = new ArrayList<>();
 

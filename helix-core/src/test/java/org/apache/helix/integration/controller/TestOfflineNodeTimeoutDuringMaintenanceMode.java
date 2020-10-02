@@ -134,6 +134,12 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     // Expected: Timed-out (by waiting until current time to be at least T+20)
     String instance7 = "Instance7";
     instanceList.add(instance7);
+    // 8th case:
+    //  Online: [T-10, T+3, T+4, T+8, T+9, T+10]
+    //  Offline: [T+1, T+2, T+5, T+6, T+7]
+    // Expected: Not timed-out
+    String instance8 = "Instance8";
+    instanceList.add(instance8);
 
     ClusterConfig clusterConfig = _helixDataAccessor.getProperty(_keyBuilder.clusterConfig());
     clusterConfig.setOfflineNodeTimeOutForMaintenanceMode(10L);
@@ -160,6 +166,10 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         new long[]{currentTime + 1, -1, -1});
     addTimestampsToParticipantHistory(instance7, new long[]{currentTime + 1, -1, -1},
         new long[]{-1, -1, currentTime + 10});
+    addTimestampsToParticipantHistory(instance8, new long[]{
+            currentTime + 3, currentTime + 4, currentTime + 8, currentTime + 9, currentTime + 10},
+        new long[]{
+            currentTime + 1, currentTime + 2, currentTime + 5, currentTime + 6, currentTime + 7});
 
     // Sleep to make instance7 timed out. This ensures the refresh time to be at least
     // currentTime + 10 (last offline timestamp) + 10 (timeout window).
@@ -180,6 +190,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance6));
     Assert
         .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance7));
+    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance8));
   }
 
   /**

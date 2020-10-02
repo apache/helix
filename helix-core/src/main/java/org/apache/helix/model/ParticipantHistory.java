@@ -68,6 +68,20 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
+   * @return The list field for HISTORY
+   */
+  public List<String> getHistory() {
+    return _record.getListField(ConfigProperty.HISTORY.name());
+  }
+
+  /**
+   * @return The list field for OFFLINE
+   */
+  public List<String> getOffline() {
+    return _record.getListField(ConfigProperty.OFFLINE.name());
+  }
+
+  /**
    * Called when a participant went offline or is about to go offline.
    * This will update the offline timestamp in participant history.
    */
@@ -128,18 +142,7 @@ public class ParticipantHistory extends HelixProperty {
     }
 
     String lastDate = offlineHistory.get(offlineHistory.size() - 1);
-    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(HISTORY_DATE_FORMAT);
-    simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    long lastOfflineTime;
-    try {
-      Date date = simpleDateFormat.parse(lastDate);
-      lastOfflineTime = date.getTime();
-    } catch (ParseException e) {
-      LOG.warn("Failed to parse the last element in OFFLINE history " + lastDate);
-      return -1;
-    }
-
-    return lastOfflineTime;
+    return parseHistoryDateStringToLong(lastDate);
   }
 
   /**
@@ -163,10 +166,7 @@ public class ParticipantHistory extends HelixProperty {
     long timeMillis = System.currentTimeMillis();
     sessionEntry.put(ConfigProperty.TIME.name(), String.valueOf(timeMillis));
 
-    DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
-    df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    String dateTime = df.format(new Date(timeMillis));
-    sessionEntry.put(ConfigProperty.DATE.name(), dateTime);
+    sessionEntry.put(ConfigProperty.DATE.name(), parseHistoryDateLongToString(timeMillis));
     sessionEntry.put(ConfigProperty.VERSION.name(), version);
     sessionEntry.put(ConfigProperty.HOST.name(), hostname);
 
@@ -183,16 +183,73 @@ public class ParticipantHistory extends HelixProperty {
     if (list.size() == HISTORY_SIZE) {
       list.remove(0);
     }
-
-    DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
-    df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    String dateTime = df.format(new Date(time));
-
-    list.add(dateTime);
+    list.add(parseHistoryDateLongToString(time));
   }
 
   @Override
   public boolean isValid() {
     return true;
+  }
+
+  /**
+   * Parses a history date in string format to its millisecond representation.
+   * Returns -1 if parsing fails.
+   */
+  public static long parseHistoryDateStringToLong(String dateString) {
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(HISTORY_DATE_FORMAT);
+    simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    try {
+      Date date = simpleDateFormat.parse(dateString);
+      return date.getTime();
+    } catch (ParseException e) {
+      LOG.warn("Failed to parse participant history date string: " + dateString);
+      return -1;
+    }
+  }
+
+  /**
+   * Parses a history date in millisecond to string.
+   */
+  public static String parseHistoryDateLongToString(long dateLong) {
+    DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    return df.format(new Date(dateLong));
+  }
+
+  /**
+   * Parses the session entry map that has been converted to string back to a map.
+   * NOTE TO CALLER: This assumes the divider between entries is ", " and the divider between
+   * key/value is "="; if the string is malformed, parsing correctness is not guaranteed. Always
+   * check if a key is contained before using the key.
+   */
+  public static Map<String, String> parseSessionHistoryStringToMap(String sessionHistoryString) {
+    sessionHistoryString = sessionHistoryString.substring(1, sessionHistoryString.length() - 1);
+    Map<String, String> sessionHistoryMap = new HashMap<>();
+
+    for (String sessionHistoryKeyValuePair : sessionHistoryString.split(", ")) {
+      String[] keyValuePair = sessionHistoryKeyValuePair.split("=");
+      if (keyValuePair.length < 2) {
+        continue;
+      }
+      sessionHistoryMap.put(keyValuePair[0], keyValuePair[1]);
+    }
+
+    return sessionHistoryMap;
+  }
+
+  /**
+   * Take a string session history entry and extract the TIME field out of it. Return -1 if the TIME
+   * field doesn't exist or if the TIME field cannot be parsed to a long.
+   */
+  public static long extractTimeFromSessionHistoryString(String sessionHistoryString) {
+    Map<String, String> sessionHistoryMap = parseSessionHistoryStringToMap(sessionHistoryString);
+    if (!sessionHistoryMap.containsKey(ConfigProperty.TIME.name())) {
+      return -1;
+    }
+    try {
+      return Long.parseLong(sessionHistoryMap.get(ConfigProperty.TIME.name()));
+    } catch (NumberFormatException e) {
+      return -1;
+    }
   }
 }

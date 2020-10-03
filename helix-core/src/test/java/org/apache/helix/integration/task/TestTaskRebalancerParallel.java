@@ -43,12 +43,10 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     _numDbs = 4;
     _partitionVary = false;
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -64,6 +62,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(false);
+    cfgBuilder.setJobPurgeInterval(-1);
 
     JobQueue.Builder queueBuild =
         new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
@@ -107,6 +106,7 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(true);
+    cfgBuilder.setJobPurgeInterval(-1);
 
     JobQueue.Builder queueBuild = new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
     JobQueue queue = queueBuild.build();

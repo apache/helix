@@ -106,13 +106,10 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _driver = new TaskDriver(_manager);
 
     _jobCommandMap = Maps.newHashMap();
-
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -140,7 +137,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
 
     for (int i = 0; i < 20; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
@@ -169,6 +168,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 40; i++) {
@@ -190,7 +190,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
 
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(20);
     for (int i = 0; i < 20; i++) {
@@ -212,7 +214,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = true;
     String workflowName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
 
     for (int i = 0; i < 5; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);

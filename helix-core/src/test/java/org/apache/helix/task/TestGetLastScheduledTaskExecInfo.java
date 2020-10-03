@@ -44,15 +44,13 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
-  
+
   @Test
   public void testGetLastScheduledTaskExecInfo() throws Exception {
     // Start new queue that has one job with long tasks and record start time of the tasks
@@ -124,7 +122,10 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private List<Long> setupTasks(String jobQueueName, int numTasks, long taskTimeout,
       int expectedScheduledTasks) throws Exception {
     // Create a queue
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(jobQueueName);
+    queueBuilder.setWorkflowConfig(wfg);
 
     // Create and enqueue a job
     JobConfig.Builder jobConfig = new JobConfig.Builder();

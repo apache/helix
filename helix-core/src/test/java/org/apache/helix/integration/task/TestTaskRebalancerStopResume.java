@@ -63,12 +63,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   @BeforeClass
   public void BeforeClass() throws Exception {
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -78,8 +76,12 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);
@@ -97,7 +99,11 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   @Test
   public void stopAndResumeWorkflow() throws Exception {
     String workflow = "SomeWorkflow";
-    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow).build();
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow)
+        .setWorkflowConfig(wfg)
+        .build();
 
     LOG.info("Starting flow " + workflow);
     _driver.start(flow);
@@ -118,7 +124,11 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue : " + queueName);
-    JobQueue queue = new JobQueue.Builder(queueName).build();
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    JobQueue queue = new JobQueue.Builder(queueName)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.createQueue(queue);
 
     // Enqueue jobs
@@ -188,7 +198,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
+    queueBuilder.setWorkflowConfig(wfg);
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
@@ -436,7 +449,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg =
-        new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
+        new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES)
+            .setJobPurgeInterval(-1)
+            .build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
@@ -517,7 +532,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     final String workflowName = TestHelper.getTestMethodName();
 
     // Create a workflow
-    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
 
     // Add 2 jobs
     Map<String, String> jobCommandConfigMap = new HashMap<String, String>();

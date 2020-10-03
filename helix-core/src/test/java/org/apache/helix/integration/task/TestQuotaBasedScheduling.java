@@ -115,13 +115,10 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     _driver = new TaskDriver(_manager);
 
     _jobCommandMap = Maps.newHashMap();
-
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.disableJobPurge();
     super.afterClass();
   }
 
@@ -144,6 +141,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 10; i++) {
@@ -182,6 +180,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 10; i++) {
@@ -220,6 +219,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 5; i++) {
@@ -319,6 +319,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     // Create 3 jobs, 2 jobs of quotaType A and B with ShortTasks and 1 job of quotaType B with
@@ -390,6 +391,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     // JOB_A
@@ -516,6 +518,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(queueName);
     workflowConfigBuilder.setParallelJobs(1);
     workflowConfigBuilder.setAllowOverlapJobAssignment(false);
+    workflowConfigBuilder.setJobPurgeInterval(-1);
 
     // Create a job queue
     JobQueue.Builder queueBuild =
@@ -594,7 +597,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   private Workflow createWorkflow(String workflowName, boolean shouldOverlapJobAssign,
       String quotaType, int numJobs, int numTasks, String taskType) {
 
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(shouldOverlapJobAssign);
     workflowBuilder.setWorkflowConfig(configBuilder.build());

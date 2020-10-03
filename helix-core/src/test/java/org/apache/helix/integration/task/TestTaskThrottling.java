@@ -50,12 +50,10 @@ public class TestTaskThrottling extends TaskTestBase {
     setSingleTestEnvironment();
     _numNodes = 2;
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
   /**
@@ -71,8 +69,12 @@ public class TestTaskThrottling extends TaskTestBase {
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);
 
     // 1. Job executed in the participants with no limitation
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     String jobName1 = "Job1";
-    Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
+    Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.start(flow1);
     _driver.pollForJobState(flow1.getName(), TaskUtil.getNamespacedJobName(flow1.getName(), jobName1),
         TaskState.IN_PROGRESS);
@@ -95,7 +97,9 @@ public class TestTaskThrottling extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().setConfig(scope, properties);
 
     String jobName2 = "Job2";
-    Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
+    Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.start(flow2);
     _driver.pollForJobState(flow2.getName(), TaskUtil.getNamespacedJobName(flow2.getName(), jobName2),
         TaskState.IN_PROGRESS);
@@ -131,9 +135,14 @@ public class TestTaskThrottling extends TaskTestBase {
     setParticipantsCapacity(perNodeTaskLimitation);
 
     // schedule job1
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+
     String jobName1 = "PriorityJob1";
     Workflow flow1 =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig)
+            .setWorkflowConfig(wfg)
+            .build();
     _driver.start(flow1);
     _driver.pollForJobState(flow1.getName(),
         TaskUtil.getNamespacedJobName(flow1.getName(), jobName1), TaskState.IN_PROGRESS);

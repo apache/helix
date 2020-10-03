@@ -81,7 +81,7 @@ public class WorkflowConfig extends ResourceConfig {
   public static final boolean DEFAULT_JOB_QUEUE = false;
   public static final boolean DEFAULT_MONITOR_DISABLE = true;
   public static final boolean DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT = false;
-  protected static long DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000; // default 30 minutes
+  protected static final long DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000; // default 30 minutes
   private JobDag _jobDag;
 
   public WorkflowConfig(HelixProperty property) {
@@ -93,16 +93,6 @@ public class WorkflowConfig extends ResourceConfig {
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
         cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.getJobPurgeInterval(),
         cfg.isAllowOverlapJobAssignment(), cfg.getTimeout());
-  }
-
-  @VisibleForTesting
-  public static void disableJobPurge() {
-    DEFAULT_JOB_PURGE_INTERVAL = -1;
-  }
-
-  @VisibleForTesting
-  public static void enableJobPurge() {
-    DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000;
   }
 
   /* Member variables */

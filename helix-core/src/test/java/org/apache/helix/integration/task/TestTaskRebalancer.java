@@ -53,12 +53,10 @@ public class TestTaskRebalancer extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -80,7 +78,10 @@ public class TestTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName, jobBuilder)
+        .setWorkflowConfig(wfg)
         .setExpiry(expiry).build();
 
     _driver.start(flow);
@@ -125,8 +126,12 @@ public class TestTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
     _driver.start(flow);
 
     // Wait for job completion
@@ -178,8 +183,12 @@ public class TestTaskRebalancer extends TaskTestBase {
   @Test
   public void testRepeatedWorkflow() throws Exception {
     String workflowName = "SomeWorkflow";
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName).build();
+        WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName)
+            .setWorkflowConfig(wfg)
+            .build();
     new TaskDriver(_manager).start(flow);
 
     // Wait until the workflow completes
@@ -199,8 +208,12 @@ public class TestTaskRebalancer extends TaskTestBase {
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
         .setMaxAttemptsPerTask(2).setTimeoutPerTask(1); // This timeout needs to be very short
 
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
     _driver.start(flow);
 
     // Wait until the job reports failure.
@@ -233,7 +246,11 @@ public class TestTaskRebalancer extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
-    JobQueue queue = new JobQueue.Builder(queueName).build();
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    JobQueue queue = new JobQueue.Builder(queueName)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.createQueue(queue);
 
     // Enqueue jobs

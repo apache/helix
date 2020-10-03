@@ -47,13 +47,13 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
-    WorkflowConfig.disableJobPurge();
+    //WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   @Override
   public void afterClass() throws Exception {
-    WorkflowConfig.enableJobPurge();
+    //WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -76,7 +76,10 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void testJobQueueAddingJobsOneByOne() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1);
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
+        .setWorkflowId(queueName)
+        .setParallelJobs(1)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -99,7 +102,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder =
-        new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1);
+        new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
 
     System.out.println("before add jobs");
@@ -132,7 +136,9 @@ public class TestEnqueueJobs extends TaskTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2);
-    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
     for (int i = 0; i < 5; i++) {
       builder.addJob("JOB" + i, jobBuilder);
     }
@@ -169,7 +175,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
-        .setWorkflowId(queueName).setParallelJobs(parallelJobs).setAllowOverlapJobAssignment(true);
+        .setWorkflowId(queueName).setParallelJobs(parallelJobs).setAllowOverlapJobAssignment(true)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -244,7 +251,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder =
         new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1)
-            .setAllowOverlapJobAssignment(true).setCapacity(queueCapacity);
+            .setAllowOverlapJobAssignment(true).setCapacity(queueCapacity)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)

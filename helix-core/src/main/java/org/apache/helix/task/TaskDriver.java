@@ -1247,7 +1247,6 @@ public class TaskDriver {
           "Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
           workflowName, jobName, allowedStates, ctx == null ? "null" : ctx,
           ctx != null ? ctx.getJobState(jobName) : "null", wfcfg, jobConfig, jbCtx));
-
     }
 
     return ctx.getJobState(jobName);
@@ -1400,8 +1399,7 @@ public class TaskDriver {
    * @param taskPartitionId task partition id
    * @param contentToAddOrUpdate map containing items to add or update
    */
-  public void
-  addOrUpdateTaskUserContentMap(String workflowName, String jobName,
+  public void addOrUpdateTaskUserContentMap(String workflowName, String jobName,
       String taskPartitionId, final Map<String, String> contentToAddOrUpdate) {
     String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     String namespacedTaskName = TaskUtil.getNamespacedTaskName(namespacedJobName, taskPartitionId);

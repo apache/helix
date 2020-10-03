@@ -176,7 +176,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-
+    
     // created as a daemon timer thread to handle task timeout
     _timer = new Timer("HelixTaskExecutor_Timer", true);
 
@@ -655,9 +655,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
     }
     // threads pool specific to STATE_TRANSITION.Key specific pool are not shut down.
-    // this is a potential area to improve. https://github.com/apache/helix/issues/1245
-
-    // some thing like STATE_TRANSITION.Key specific pool are not shut down.
     // this is a potential area to improve. https://github.com/apache/helix/issues/1245
 
     StringBuilder sb = new StringBuilder();

@@ -837,7 +837,6 @@ public class TaskUtil {
       LOG.warn(
           "Job {} exists in JobDAG but JobConfig is missing! It's treated as expired and will be purged.",
           jobName);
-      System.out.println(String.format("Job %s exists in jobdag bug job config missing, expire the job", jobName));
       return true;
     }
     if (jobContext == null || jobContext.getFinishTime() == WorkflowContext.UNFINISHED) {

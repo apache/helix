@@ -187,7 +187,7 @@ public class TestMultiZkHelixJavaApis {
         if (stateMachine != null) {
           StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
           if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
-            ((TaskStateModelFactory) stateModelFactory).shutdownNow();
+            ((TaskStateModelFactory) stateModelFactory).shutdown();
           }
         }
       });

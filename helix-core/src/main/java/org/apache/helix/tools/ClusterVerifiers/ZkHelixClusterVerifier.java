@@ -58,6 +58,7 @@ public abstract class ZkHelixClusterVerifier
   protected final HelixDataAccessor _accessor;
   protected final PropertyKey.Builder _keyBuilder;
   private CountDownLatch _countdown;
+  protected final int _waitPeriodTillVerify;
 
   private ExecutorService _verifyTaskThreadPool =
       Executors.newSingleThreadExecutor(r -> new Thread(r, "ZkHelixClusterVerifier-verify_thread"));
@@ -93,7 +94,7 @@ public abstract class ZkHelixClusterVerifier
     }
   }
 
-  protected ZkHelixClusterVerifier(RealmAwareZkClient zkClient, String clusterName) {
+  protected ZkHelixClusterVerifier(RealmAwareZkClient zkClient, String clusterName, int waitPeriodTillVerify) {
     if (zkClient == null || clusterName == null) {
       throw new IllegalArgumentException("requires zkClient|clusterName");
     }
@@ -102,6 +103,7 @@ public abstract class ZkHelixClusterVerifier
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
+    _waitPeriodTillVerify = waitPeriodTillVerify;
   }
 
   @Deprecated
@@ -136,6 +138,7 @@ public abstract class ZkHelixClusterVerifier
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
+    _waitPeriodTillVerify = 0;
   }
 
   /**
@@ -178,6 +181,15 @@ public abstract class ZkHelixClusterVerifier
     return verifyByZkCallback(DEFAULT_TIMEOUT);
   }
 
+  protected void waitTillVerify() {
+    try {
+      if (_waitPeriodTillVerify != 0) {
+        Thread.sleep(_waitPeriodTillVerify);
+      }
+    } catch (InterruptedException e) {
+      LOG.error("cooldown in verifyByPolling interrupted");
+    }
+  }
   /**
    * Verify the cluster by periodically polling the cluster status and verify.
    * The method will be blocked at most {@code timeout}.
@@ -187,6 +199,8 @@ public abstract class ZkHelixClusterVerifier
    * @return
    */
   public boolean verifyByPolling(long timeout, long period) {
+    waitTillVerify();
+
     try {
       long start = System.currentTimeMillis();
       boolean success;
@@ -197,6 +211,7 @@ public abstract class ZkHelixClusterVerifier
         }
         TimeUnit.MILLISECONDS.sleep(period);
       } while ((System.currentTimeMillis() - start) <= timeout);
+      LOG.error("verifier timeout out with timeout {}", timeout);
     } catch (Exception e) {
       LOG.error("Exception in verifier", e);
     }
@@ -234,6 +249,9 @@ public abstract class ZkHelixClusterVerifier
         if (!success) {
           // make a final try if timeout
           success = verifyState();
+          if (!success) {
+            LOG.error("verifyByCallback failed due to timeout {}", timeout);
+          }
         }
       }
     } catch (Exception e) {
@@ -319,6 +337,8 @@ public abstract class ZkHelixClusterVerifier
   }
 
   protected abstract static class Builder<B extends Builder<B>> extends GenericZkHelixApiBuilder<B> {
+    protected int _waitPeriodTillVerify;
+
     public Builder() {
       // Note: ZkHelixClusterVerifier is a single-realm API, so RealmMode is assumed to be
       // SINGLE-REALM
@@ -333,6 +353,11 @@ public abstract class ZkHelixClusterVerifier
     @Deprecated
     public B setZkAddr(String zkAddress) {
       return setZkAddress(zkAddress);
+    }
+
+    public B setWaitTillVerify(int waitPeriod) {
+      _waitPeriodTillVerify = waitPeriod;
+      return (B) this;
     }
 
     public String getClusterName() {

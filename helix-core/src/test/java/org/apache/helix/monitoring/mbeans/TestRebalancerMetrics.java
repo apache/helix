@@ -128,8 +128,10 @@ public class TestRebalancerMetrics extends BaseStageTest {
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     setupLiveInstances(4);
 
-    runStage(event, new ReadClusterDataStage());
+
     ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
+    cache.clearCachedResourceAssignments();
+    runStage(event, new ReadClusterDataStage());
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());

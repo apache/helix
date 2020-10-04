@@ -169,9 +169,6 @@ public class TaskDriver {
           "Failed to add workflow configuration for workflow %s. It's possible that a workflow of the same name already exists or there was a connection issue. JobConfig deletion attempted but failed for the following jobs: %s",
           flow.getName(), failedJobRemoval));
     }
-
-    // Finally add workflow resource.
-    addWorkflowResource(flow.getName());
   }
 
   /**
@@ -527,10 +524,6 @@ public class TaskDriver {
       }
       throw new HelixException("Failed to enqueue job");
     }
-
-    // This is to make it back-compatible with old Helix task driver.
-    addWorkflowResourceIfNecessary(queue);
-
   }
 
   /**
@@ -573,40 +566,6 @@ public class TaskDriver {
     }
 
     TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, jobs, true);
-  }
-
-  /** Posts new workflow resource to cluster */
-  private void addWorkflowResource(String workflow) {
-    // Add workflow resource
-    _admin.addResource(_clusterName, workflow, 1, TaskConstants.STATE_MODEL_NAME);
-
-    IdealState is = buildWorkflowIdealState(workflow);
-    TaskUtil.createUserContent(_propertyStore, workflow, new ZNRecord(TaskUtil.USER_CONTENT_NODE));
-
-    _admin.setResourceIdealState(_clusterName, workflow, is);
-  }
-
-  /**
-   * Posts new workflow resource to cluster if it does not exist
-   */
-  private void addWorkflowResourceIfNecessary(String workflow) {
-    IdealState is = _admin.getResourceIdealState(_clusterName, workflow);
-    if (is == null) {
-      addWorkflowResource(workflow);
-    }
-  }
-
-  private IdealState buildWorkflowIdealState(String workflow) {
-    CustomModeISBuilder IsBuilder = new CustomModeISBuilder(workflow);
-    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1).setNumPartitions(1)
-        .setStateModel(TaskConstants.STATE_MODEL_NAME).disableExternalView();
-
-    IdealState is = IsBuilder.build();
-    is.getRecord().setListField(workflow, new ArrayList<>());
-    is.getRecord().setMapField(workflow, new HashMap<>());
-    is.setRebalancerClassName(WorkflowRebalancer.class.getName());
-
-    return is;
   }
 
   /**
@@ -734,6 +693,8 @@ public class TaskDriver {
   }
 
   /**
+   * TODO: IdealStates are no longer used by Task Framework. This function deletes IdealStates for
+   * TODO: backward compatability purpose; this behavior will be removed later.
    * Public synchronized method to wait for a delete operation to fully complete with timeout.
    * When this method returns, it means that a queue (workflow) has been completely deleted, meaning
    * its IdealState, WorkflowConfig, and WorkflowContext have all been deleted.

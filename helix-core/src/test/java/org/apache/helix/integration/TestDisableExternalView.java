@@ -23,8 +23,8 @@ import java.util.Date;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -33,6 +33,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -77,14 +78,14 @@ public class TestDisableExternalView extends ZkTestBase {
     _gSetupTool.addCluster(CLUSTER_NAME, true);
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB1, _PARTITIONS, STATE_MODEL,
-        IdealState.RebalanceMode.FULL_AUTO + "");
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
 
     IdealState idealState = _admin.getResourceIdealState(CLUSTER_NAME, TEST_DB1);
     idealState.setDisableExternalView(true);
     _admin.setResourceIdealState(CLUSTER_NAME, TEST_DB1, idealState);
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB2, _PARTITIONS, STATE_MODEL,
-        IdealState.RebalanceMode.FULL_AUTO + "");
+        IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
 
     for (int i = 0; i < NODE_NR; i++) {
       instances[i] = PARTICIPANT_PREFIX + "_" + (START_PORT + i);

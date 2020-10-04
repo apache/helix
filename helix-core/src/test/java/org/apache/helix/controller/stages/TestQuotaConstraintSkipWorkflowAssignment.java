@@ -51,12 +51,11 @@ public class TestQuotaConstraintSkipWorkflowAssignment extends TaskTestBase {
   public void testQuotaConstraintSkipWorkflowAssignment() throws Exception {
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     WorkflowControllerDataProvider cache = new WorkflowControllerDataProvider(CLUSTER_NAME);
-    JobConfig.Builder job = new JobConfig.Builder();
-
-    job.setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "100000"));
     TaskDriver driver = new TaskDriver(_manager);
     for (int i = 0; i < 10; i++) {
       Workflow.Builder workflow = new Workflow.Builder("Workflow" + i);
+      JobConfig.Builder job = new JobConfig.Builder();
+      job.setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "100000"));
       job.setWorkflow("Workflow" + i);
       TaskConfig taskConfig =
           new TaskConfig(MockTask.TASK_COMMAND, new HashMap<String, String>(), null, null);

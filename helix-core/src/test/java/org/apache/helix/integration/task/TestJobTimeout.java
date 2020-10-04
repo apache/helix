@@ -74,7 +74,7 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
             .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
             .setCommand(MockTask.TASK_COMMAND)
             .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999")) // task stuck
-            .setTimeout(10);
+            .setTimeout(2000L);
 
     JobConfig.Builder secondJobBuilder =
         new JobConfig.Builder().setWorkflow(WORKFLOW_NAME).setTargetResource(DB_NAME)

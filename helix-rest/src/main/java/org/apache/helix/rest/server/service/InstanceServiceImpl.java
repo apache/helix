@@ -21,7 +21,7 @@ package org.apache.helix.rest.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +32,16 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
@@ -46,6 +50,7 @@ import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.util.InstanceValidationUtil;
@@ -58,29 +63,42 @@ public class InstanceServiceImpl implements InstanceService {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final ExecutorService POOL = Executors.newCachedThreadPool();
 
+  // Metric names for custom instance check
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_error_total");
+  private static final String CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_DURATION =
+      MetricRegistry.name(InstanceService.class, "custom_instance_check_http_requests_duration");
+
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
+  private String _namespace;
   private boolean _skipZKRead;
 
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor) {
-    _dataAccessor = dataAccessor;
-    _configAccessor = configAccessor;
-    _customRestClient = CustomRestClientFactory.get();
+  @Deprecated
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor) {
+    this(dataAccessor, configAccessor, false);
   }
 
-  public InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor, boolean skipZKRead) {
-    this(dataAccessor,configAccessor);
-    this._skipZKRead = skipZKRead;
+  @Deprecated
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
+      boolean skipZKRead) {
+    this(dataAccessor, configAccessor, skipZKRead, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+  }
+
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
+      boolean skipZKRead, String namespace) {
+    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, namespace);
   }
 
   @VisibleForTesting
-  InstanceServiceImpl(HelixDataAccessorWrapper dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient, boolean skipZKRead) {
-    _dataAccessor = dataAccessor;
+  InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
+      CustomRestClient customRestClient, boolean skipZKRead, String namespace) {
+    _dataAccessor = new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace);
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
+    _namespace = namespace;
   }
 
   @Override
@@ -231,14 +249,20 @@ public class InstanceServiceImpl implements InstanceService {
   private StoppableCheck performCustomInstanceCheck(String clusterId, String instanceName,
       String baseUrl, Map<String, String> customPayLoads) {
     LOG.info("Perform instance level client side health checks for {}/{}", clusterId, instanceName);
-    try {
-      return new StoppableCheck(
-          _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads),
+    MetricRegistry metrics = SharedMetricRegistries.getOrCreate(_namespace);
+
+    // Total requests metric is included as an attribute(Count) in timers
+    try (final Timer.Context timer = metrics.timer(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_DURATION)
+        .time()) {
+      Map<String, Boolean> instanceStoppableCheck =
+          _customRestClient.getInstanceStoppableCheck(baseUrl, customPayLoads);
+      return new StoppableCheck(instanceStoppableCheck,
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     } catch (IOException ex) {
       LOG.error("Custom client side instance level health check for {}/{} failed.", clusterId,
           instanceName, ex);
-      return new StoppableCheck(false, Arrays.asList(instanceName),
+      metrics.counter(CUSTOM_INSTANCE_CHECK_HTTP_REQUESTS_ERROR_TOTAL).inc();
+      return new StoppableCheck(false, Collections.singletonList(instanceName),
           StoppableCheck.Category.CUSTOM_INSTANCE_CHECK);
     }
   }

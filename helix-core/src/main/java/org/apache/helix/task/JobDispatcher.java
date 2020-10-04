@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -85,7 +86,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // completed)
     TaskState workflowState = workflowCtx.getWorkflowState();
     TaskState jobState = workflowCtx.getJobState(jobName);
-    // The job is already in a final state (completed/failed).
+    // Do not include workflowState == TIMED_OUT here, as later logic needs to handle this case
     if (workflowState == TaskState.FAILED || workflowState == TaskState.COMPLETED
         || jobState == TaskState.FAILED || jobState == TaskState.COMPLETED
         || jobState == TaskState.TIMED_OUT) {
@@ -94,6 +95,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           workflowResource, jobName, workflowState, jobState));
       finishJobInRuntimeJobDag(_dataProvider.getTaskDataCache(), workflowResource, jobName);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
+      // New pipeline trigger for workflow status update
+      // TODO: Enhance the pipeline and remove this because this operation is expansive
+      RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
       _rebalanceScheduler.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
@@ -288,6 +292,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           jobCtx.getFinishTime() - jobCtx.getStartTime());
       _rebalanceScheduler.removeScheduledRebalance(jobResource);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+      // New pipeline trigger for workflow status update
+      // TODO: Enhance the pipeline and remove this because this operation is expansive
+      RebalanceUtil.scheduleOnDemandPipeline(_manager.getClusterName(),0L,false);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
@@ -298,6 +305,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       handleJobTimeout(jobCtx, workflowCtx, jobResource, jobCfg);
       finishJobInRuntimeJobDag(cache.getTaskDataCache(), workflowConfig.getWorkflowId(),
           jobResource);
+      scheduleJobCleanUp(jobCfg.getTerminalStateExpiry(), workflowConfig, currentTime);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
 
@@ -373,7 +381,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
    *          are accounted for
    * @param jobName job name
    * @param tasksToDrop instance -> pId's, to gather all pIds that need to be dropped
-   * @return instance -> partitionIds from currentState, if the instance is still live
+   * @return instance -> partitionIds from currentState and pending messages, if the instance is
+   *         still live
    */
   protected static Map<String, SortedSet<Integer>> getCurrentInstanceToTaskAssignments(
       Iterable<String> liveInstances, CurrentStateOutput currStateOutput, String jobName,
@@ -408,6 +417,20 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             }
             tasksToDrop.get(instance).add(pId);
           }
+        }
+      }
+    }
+
+    Map<Partition, Map<String, Message>> pendingMessageMap =
+        currStateOutput.getPendingMessageMap(jobName);
+    for (Map.Entry<Partition, Map<String, Message>> pendingMessageMapEntry : pendingMessageMap
+        .entrySet()) {
+      for (Map.Entry<String, Message> instancePendingMessageEntry : pendingMessageMapEntry
+          .getValue().entrySet()) {
+        String instance = instancePendingMessageEntry.getKey();
+        int pId = TaskUtil.getPartitionId(pendingMessageMapEntry.getKey().getPartitionName());
+        if (result.containsKey(instance)) {
+          result.get(instance).add(pId);
         }
       }
     }

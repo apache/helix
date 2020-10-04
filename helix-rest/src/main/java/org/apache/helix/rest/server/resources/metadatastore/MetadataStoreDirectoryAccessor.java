@@ -37,6 +37,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -46,6 +48,7 @@ import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HelixRestUtils;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
@@ -80,6 +83,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    *
    * @return Json response of all namespaces.
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-namespaces")
   public Response getAllNamespaces() {
@@ -97,6 +102,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    *
    * @return Json representation of all realms.
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-realms")
   public Response getAllMetadataStoreRealms(@QueryParam("sharding-key") String shardingKey) {
@@ -120,6 +127,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("/metadata-store-realms/{realm}")
   public Response addMetadataStoreRealm(@PathParam("realm") String realm) {
@@ -134,6 +143,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return created();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("/metadata-store-realms/{realm}")
   public Response deleteMetadataStoreRealm(@PathParam("realm") String realm) {
@@ -173,6 +184,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    * @param prefix Query param in endpoint path: prefix substring of sharding key.
    * @return Json representation for the sharding keys.
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/sharding-keys")
   public Response getShardingKeys(@QueryParam("prefix") String prefix) {
@@ -206,6 +219,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    *   } ]
    * }
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/routing-data")
   public Response getRoutingData() {
@@ -227,6 +242,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return JSONRepresentation(responseMap);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("/routing-data")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -258,6 +275,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
    * @param prefix Query param in endpoint path: prefix substring of sharding key.
    * @return All path-based sharding keys in the queried realm.
    */
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("/metadata-store-realms/{realm}/sharding-keys")
   public Response getRealmShardingKeys(@PathParam("realm") String realm,
@@ -276,6 +295,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response addShardingKey(@PathParam("realm") String realm,
@@ -294,6 +315,8 @@ public class MetadataStoreDirectoryAccessor extends AbstractResource {
     return created();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("/metadata-store-realms/{realm}/sharding-keys/{sharding-key: .+}")
   public Response deleteShardingKey(@PathParam("realm") String realm,

@@ -294,6 +294,10 @@ public class RoutingTableProvider
    * @param sourceDataTypeMap
    */
   private void validateSourceDataTypeMap(Map<PropertyType, List<String>> sourceDataTypeMap) {
+    if (sourceDataTypeMap == null) {
+      throw new IllegalArgumentException(
+          "The sourceDataTypeMap of Routing Table Provider should not be null");
+    }
     for (PropertyType propertyType : sourceDataTypeMap.keySet()) {
       if (propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
           && sourceDataTypeMap.get(propertyType).size() == 0) {
@@ -302,10 +306,10 @@ public class RoutingTableProvider
       }
       if (!propertyType.equals(PropertyType.CUSTOMIZEDVIEW)
           && sourceDataTypeMap.get(propertyType).size() != 0) {
-        logger.error("Type has been used in addition to the propertyType {} !",
-            propertyType.name());
-        throw new HelixException(
-            String.format("Type %s has been used in addition to the propertyType %s !",
+        logger
+            .error("Type has been used in addition to the propertyType {} !", propertyType.name());
+        throw new HelixException(String
+            .format("Type %s has been used in addition to the propertyType %s !",
                 sourceDataTypeMap.get(propertyType), propertyType.name()));
       }
     }
@@ -403,6 +407,7 @@ public class RoutingTableProvider
     return snapshots;
   }
 
+
   /**
    * Add RoutingTableChangeListener with user defined context
    * @param routingTableChangeListener
@@ -410,9 +415,27 @@ public class RoutingTableProvider
    */
   public void addRoutingTableChangeListener(
       final RoutingTableChangeListener routingTableChangeListener, Object context) {
+    addRoutingTableChangeListener(routingTableChangeListener, context, false);
+  }
+
+  /**
+   * Add RoutingTableChangeListener with user defined context
+   * @param routingTableChangeListener
+   * @param context user defined context
+   * @param isTriggerCallback whether to trigger the initial callback during adding listener
+   */
+  public void addRoutingTableChangeListener(
+      final RoutingTableChangeListener routingTableChangeListener, Object context,
+      boolean isTriggerCallback) {
     _routingTableChangeListenerMap.put(routingTableChangeListener, new ListenerContext(context));
-    logger.info("Attach RoutingTableProviderChangeListener {}",
+    logger.info("Attach RoutingTableProviderChangeListener {}.",
         routingTableChangeListener.getClass().getName());
+    if (isTriggerCallback) {
+      logger.info("Force triggering a callback for the new listener in routing table provider");
+      final NotificationContext periodicRefreshContext = new NotificationContext(_helixManager);
+      periodicRefreshContext.setType(NotificationContext.Type.PERIODIC_REFRESH);
+      _routerUpdater.queueEvent(periodicRefreshContext, ClusterEventType.PeriodicalRebalance, null);
+      }
   }
 
   /**

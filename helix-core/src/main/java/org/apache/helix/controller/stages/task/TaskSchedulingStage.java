@@ -34,26 +34,20 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
-import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.task.TaskRebalancer;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.task.WorkflowDispatcher;
 import org.apache.helix.task.assigner.AssignableInstance;
-import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,115 +104,15 @@ public class TaskSchedulingStage extends AbstractBaseStage {
       restOfResources.remove(jobName);
     }
 
-    // Current rest of resources including: only current state left over ones
-    // Original resource map contains workflows + jobs + other invalid resources
-    // After removing workflows + jobs, only leftover ones will go over old rebalance pipeline.
-    for (Resource resource : restOfResources.values()) {
-      if (!computeResourceBestPossibleState(event, cache, currentStateOutput, resource, output)) {
-        failureResources.add(resource.getResourceName());
-        LogUtil.logWarn(logger, _eventId,
-            "Failed to calculate best possible states for " + resource.getResourceName());
-      }
+    // Jobs that exist in current states but are missing corresponding JobConfigs or WorkflowConfigs
+    // or WorkflowContexts need to be cleaned up. Note that restOfResources can only be jobs,
+    // because workflow resources are created based on Configs only - workflows don't have
+    // CurrentStates
+    for (String resourceName : restOfResources.keySet()) {
+      _workflowDispatcher.processJobForDrop(resourceName, currentStateOutput, output);
     }
 
     return output;
-  }
-
-
-  private boolean computeResourceBestPossibleState(ClusterEvent event, WorkflowControllerDataProvider cache,
-      CurrentStateOutput currentStateOutput, Resource resource, BestPossibleStateOutput output) {
-    // for each ideal state
-    // read the state model def
-    // for each resource
-    // get the preference list
-    // for each instanceName check if its alive then assign a state
-
-    String resourceName = resource.getResourceName();
-    LogUtil.logDebug(logger, _eventId, "Processing resource:" + resourceName);
-    // Ideal state may be gone. In that case we need to get the state model name
-    // from the current state
-    IdealState idealState = cache.getIdealState(resourceName);
-    if (idealState == null) {
-      // if ideal state is deleted, use an empty one
-      LogUtil.logInfo(logger, _eventId, "resource:" + resourceName + " does not exist anymore");
-      idealState = new IdealState(resourceName);
-      idealState.setStateModelDefRef(resource.getStateModelDefRef());
-    }
-
-    // Skip the resources are not belonging to task pipeline
-    if (!idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-      LogUtil.logWarn(logger, _eventId, String
-          .format("Resource %s should not be processed by %s pipeline", resourceName,
-              cache.getPipelineName()));
-      return false;
-    }
-
-    Rebalancer rebalancer = null;
-    String rebalancerClassName = idealState.getRebalancerClassName();
-    if (rebalancerClassName != null) {
-      if (logger.isDebugEnabled()) {
-        LogUtil.logDebug(logger, _eventId,
-            "resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
-      }
-      try {
-        rebalancer = Rebalancer.class
-            .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
-      } catch (Exception e) {
-        LogUtil.logError(logger, _eventId,
-            "Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
-      }
-    }
-
-    MappingCalculator mappingCalculator = null;
-    if (rebalancer != null) {
-      try {
-        mappingCalculator = MappingCalculator.class.cast(rebalancer);
-      } catch (ClassCastException e) {
-        LogUtil.logWarn(logger, _eventId,
-            "Rebalancer does not have a mapping calculator, defaulting to SEMI_AUTO, resource: "
-                + resourceName);
-      }
-    } else {
-      // Create dummy rebalancer for dropping existing current states
-      rebalancer = new SemiAutoRebalancer();
-      mappingCalculator = new SemiAutoRebalancer();
-    }
-
-    if (rebalancer instanceof TaskRebalancer) {
-      TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
-      taskRebalancer.setClusterStatusMonitor(
-          (ClusterStatusMonitor) event.getAttribute(AttributeName.clusterStatusMonitor.name()));
-    }
-    ResourceAssignment partitionStateAssignment = null;
-    try {
-      HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
-      rebalancer.init(manager);
-        partitionStateAssignment = mappingCalculator
-            .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
-        _workflowDispatcher.updateBestPossibleStateOutput(resource.getResourceName(), partitionStateAssignment, output);
-
-        // Check if calculation is done successfully
-        return true;
-      } catch (Exception e) {
-        LogUtil
-            .logError(logger, _eventId, "Error computing assignment for resource " + resourceName + ". Skipping.", e);
-        // TODO : remove this part after debugging NPE
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(String
-            .format("HelixManager is null : %s\n", event.getAttribute("helixmanager") == null));
-        sb.append(String.format("Rebalancer is null : %s\n", rebalancer == null));
-        sb.append(String.format("Calculated idealState is null : %s\n", idealState == null));
-        sb.append(String.format("MappingCaculator is null : %s\n", mappingCalculator == null));
-        sb.append(
-            String.format("PartitionAssignment is null : %s\n", partitionStateAssignment == null));
-        sb.append(String.format("Output is null : %s\n", output == null));
-
-        LogUtil.logError(logger, _eventId, sb.toString());
-      }
-
-    // Exception or rebalancer is not found
-    return false;
   }
 
   class WorkflowObject implements Comparable<WorkflowObject> {

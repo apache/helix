@@ -35,6 +35,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +56,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.service.InstanceService;
@@ -83,6 +85,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     instanceTags
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getInstanceById(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead,
@@ -101,8 +105,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
       InstanceService instanceService =
-          new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
-              Boolean.valueOf(skipZKRead));
+          new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+              Boolean.parseBoolean(skipZKRead), getNamespace());
       InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
@@ -129,6 +133,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -137,8 +143,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     ObjectMapper objectMapper = new ObjectMapper();
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     InstanceService instanceService =
-        new InstanceServiceImpl(new HelixDataAccessorWrapper((ZKHelixDataAccessor) dataAccessor), getConfigAccessor(),
-            Boolean.valueOf(skipZKRead));
+        new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+            Boolean.parseBoolean(skipZKRead), getNamespace());
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =
@@ -151,6 +157,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return OK(objectMapper.writeValueAsString(stoppableCheck));
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   public Response addInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, String content) {
@@ -173,6 +181,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   public Response updateInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @QueryParam("command") String command,
@@ -256,6 +266,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   public Response deleteInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) {
@@ -270,6 +282,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("configs")
   public Response getInstanceConfig(@PathParam("clusterId") String clusterId,
@@ -285,6 +299,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("configs")
   public Response updateInstanceConfig(@PathParam("clusterId") String clusterId,
@@ -348,6 +364,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("resources")
   public Response getResourcesOnInstance(@PathParam("clusterId") String clusterId,
@@ -375,6 +393,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET @Path("resources/{resourceName}")
   public Response getResourceOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
@@ -396,6 +416,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("errors")
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
@@ -433,6 +455,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("errors/{sessionId}/{resourceName}/{partitionName}")
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
@@ -449,6 +473,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("history")
   public Response getHistoryOnInstance(@PathParam("clusterId") String clusterId,
@@ -462,6 +488,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("messages")
   public Response getMessagesOnInstance(@PathParam("clusterId") String clusterId,
@@ -506,6 +534,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("messages/{messageId}")
   public Response getMessageOnInstance(@PathParam("clusterId") String clusterId,
@@ -520,6 +550,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("healthreports")
   public Response getHealthReportsOnInstance(@PathParam("clusterId") String clusterId,
@@ -540,6 +572,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     return JSONRepresentation(root);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("healthreports/{reportName}")
   public Response getHealthReportsOnInstance(

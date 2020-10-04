@@ -25,9 +25,12 @@ import java.util.Set;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
+import org.apache.helix.controller.rebalancer.AutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -41,7 +44,8 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   public void beforeClass() throws Exception {
     super.beforeClass();
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB_2, _PARTITIONS, STATE_MODEL,
-        RebalanceMode.FULL_AUTO.name());
+        RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+    setupAutoRebalancer();
     _gSetupTool.rebalanceResource(CLUSTER_NAME, TEST_DB_2, _replica);
 
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
@@ -140,5 +144,16 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
       }
     }
     return partitionSet;
+  }
+
+  // Ensure that we are testing the AutoRebalancer.
+  private void setupAutoRebalancer() {
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+    for (String resourceName : _gSetupTool.getClusterManagementTool()
+        .getResourcesInCluster(CLUSTER_NAME)) {
+      IdealState idealState = admin.getResourceIdealState(CLUSTER_NAME, resourceName);
+      idealState.setRebalancerClassName(AutoRebalancer.class.getName());
+      admin.setResourceIdealState(CLUSTER_NAME, resourceName, idealState);
+    }
   }
 }

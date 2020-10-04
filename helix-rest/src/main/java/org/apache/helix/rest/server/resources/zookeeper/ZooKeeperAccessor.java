@@ -29,6 +29,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.base.Enums;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
@@ -36,6 +38,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.rest.common.ContextPropertyKeys;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.zookeeper.data.Stat;
@@ -60,6 +63,8 @@ public class ZooKeeperAccessor extends AbstractResource {
     getStat
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response get(@PathParam("path") String path, @QueryParam("command") String commandStr) {
     ZooKeeperCommand cmd = getZooKeeperCommandIfPresent(commandStr);
@@ -97,6 +102,8 @@ public class ZooKeeperAccessor extends AbstractResource {
     }
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   public Response delete(@PathParam("path") String path) {
     // Lazily initialize ZkBaseDataAccessor

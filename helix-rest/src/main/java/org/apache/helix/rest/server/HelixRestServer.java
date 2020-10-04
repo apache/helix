@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
+import com.codahale.metrics.jmx.JmxReporter;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
@@ -44,19 +48,22 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
+
+  private static final String REST_DOMAIN = "org.apache.helix.rest";
+
   // TODO: consider moving the following static context to ServerContext or any other place
   public static SSLContext REST_SERVER_SSL_CONTEXT;
 
   private int _port;
   private String _urlPrefix;
   private Server _server;
+  private List<JmxReporter> _jmxReporterList;
   private List<HelixRestNamespace> _helixNamespaces;
   private ServletContextHandler _servletContextHandler;
   private List<AuditLogger> _auditLoggers;
@@ -90,6 +97,7 @@ public class HelixRestServer {
     _port = port;
     _urlPrefix = urlPrefix;
     _server = new Server(_port);
+    _jmxReporterList = new ArrayList<>();
     _auditLoggers = auditLoggers;
     _resourceConfigMap = new HashMap<>();
     _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
@@ -133,6 +141,8 @@ public class HelixRestServer {
     ResourceConfig config = getResourceConfig(namespace, type);
     _resourceConfigMap.put(resourceConfigMapKey, config);
 
+    initMetricRegistry(config, namespace.getName());
+
     // Initialize servlet
     initServlet(config, String.format(type.getServletPathSpecTemplate(), namespace.getName()));
   }
@@ -146,20 +156,35 @@ public class HelixRestServer {
     cfg.packages(type.getServletPackageArray());
     cfg.setApplicationName(namespace.getName());
 
-    // Enable the default statistical monitoring MBean for Jersey server
-    cfg.property(ServerProperties.MONITORING_STATISTICS_MBEANS_ENABLED, true);
     cfg.property(ContextPropertyKeys.SERVER_CONTEXT.name(),
         new ServerContext(namespace.getMetadataStoreAddress(), namespace.isMultiZkEnabled(),
             namespace.getMsdsEndpoint()));
     if (type == ServletType.DEFAULT_SERVLET) {
       cfg.property(ContextPropertyKeys.ALL_NAMESPACES.name(), _helixNamespaces);
-    } else {
-      cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
     }
+    cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
 
     cfg.register(new CORSFilter());
     cfg.register(new AuditLogFilter(_auditLoggers));
     return cfg;
+  }
+
+  /*
+   * Initialize metric registry and jmx reporter for each namespace.
+   */
+  private void initMetricRegistry(ResourceConfig cfg, String namespace) {
+    MetricRegistry metricRegistry = new MetricRegistry();
+    cfg.register(new InstrumentedResourceMethodApplicationListener(metricRegistry));
+    SharedMetricRegistries.add(namespace, metricRegistry);
+
+    // JmxReporter doesn't have an option to specify namespace for each servlet,
+    // we use a customized object name factory to get and insert namespace to object name.
+    JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
+        .inDomain(REST_DOMAIN)
+        .createsObjectNamesWith(new HelixRestObjectNameFactory(namespace))
+        .build();
+    jmxReporter.start();
+    _jmxReporterList.add(jmxReporter);
   }
 
   private void initServlet(ResourceConfig cfg, String servletPathSpec) {
@@ -188,7 +213,7 @@ public class HelixRestServer {
     }
   }
 
-  public void shutdown() {
+  public synchronized void shutdown() {
     if (_server != null) {
       try {
         _server.stop();
@@ -197,6 +222,8 @@ public class HelixRestServer {
         LOG.error("Failed to stop Helix rest server, " + ex);
       }
     }
+    _jmxReporterList.forEach(JmxReporter::stop);
+    _jmxReporterList.clear();
     cleanupResourceConfigs();
   }
 

@@ -35,8 +35,8 @@ import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
@@ -347,36 +347,39 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       LogUtil.logError(logger, _eventId, "Error computing assignment for resource " + resourceName
           + ". no rebalancer found. rebalancer: " + rebalancer + " mappingCalculator: "
           + mappingCalculator);
-    }
-
-    if (rebalancer != null && mappingCalculator != null) {
-      ResourceAssignment partitionStateAssignment = null;
+    } else {
       try {
         HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
         rebalancer.init(manager);
         idealState =
             rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
 
-        output.setPreferenceLists(resourceName, idealState.getPreferenceLists());
+        // Check if calculation is done successfully
+        if (!checkBestPossibleStateCalculation(idealState)) {
+          LogUtil.logWarn(logger, _eventId,
+              "The calculated idealState is not valid, resource: " + resourceName);
+          return false;
+        }
 
         // Use the internal MappingCalculator interface to compute the final assignment
         // The next release will support rebalancers that compute the mapping from start to finish
-        partitionStateAssignment = mappingCalculator
+        ResourceAssignment partitionStateAssignment = mappingCalculator
             .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
 
         if (partitionStateAssignment == null) {
           LogUtil.logWarn(logger, _eventId,
-              "PartitionStateAssignment is null, resource: " + resourceName);
+              "The calculated partitionStateAssignment is null, resource: " + resourceName);
           return false;
         }
 
+        // Set the calculated result to the output.
+        output.setPreferenceLists(resourceName, idealState.getPreferenceLists());
         for (Partition partition : resource.getPartitions()) {
           Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);
         }
 
-        // Check if calculation is done successfully
-        return checkBestPossibleStateCalculation(idealState);
+        return true;
       } catch (HelixException e) {
         // No eligible instance is found.
         LogUtil.logError(logger, _eventId, e.getMessage());
@@ -443,7 +446,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         if (customizedRebalancer != null) {
           rebalancer = customizedRebalancer;
         } else {
-          rebalancer = new AutoRebalancer();
+          rebalancer = new DelayedAutoRebalancer();
         }
       }
       break;

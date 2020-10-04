@@ -601,30 +601,36 @@ public class TaskUtil {
   }
 
   /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
    * Cleans up IdealState and external view associated with a job.
    * @param accessor
    * @param job
    * @return True if remove success, otherwise false
    */
+  @Deprecated
   protected static boolean cleanupJobIdealStateExtView(final HelixDataAccessor accessor,
       String job) {
     return cleanupIdealStateExtView(accessor, job);
   }
 
   /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
    * Cleans up IdealState and external view associated with a workflow.
    * @param accessor
    * @param workflow
    * @return True if remove success, otherwise false
    */
+  @Deprecated
   protected static boolean cleanupWorkflowIdealStateExtView(final HelixDataAccessor accessor,
       String workflow) {
     return cleanupIdealStateExtView(accessor, workflow);
   }
 
   /**
+   * TODO: Task Framework no longer uses IdealState; this is left in for backward compability
    * Cleans up IdealState and external view associated with a job/workflow resource.
    */
+  @Deprecated
   private static boolean cleanupIdealStateExtView(final HelixDataAccessor accessor,
       String workflowJobResource) {
     boolean success = true;

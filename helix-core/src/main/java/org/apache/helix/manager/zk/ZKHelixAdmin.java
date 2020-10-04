@@ -51,6 +51,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -64,6 +65,7 @@ import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateConfig;
+import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
@@ -566,7 +568,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     INSTANCE_NON_EXISTENT("%s does not exist in cluster %s"),
     RESOURCE_NON_EXISTENT("resource %s is not added to cluster %s"),
     PARTITION_NON_EXISTENT("not all %s exist in cluster %s"),
-    PARTITION_NOT_ERROR("%s is NOT found in cluster %s"),
+    PARTITION_NOT_ERROR("%s is NOT found in cluster %s or not in ERROR state"),
     STATE_MODEL_NON_EXISTENT("%s is NOT found in cluster %s");
 
     private String message;
@@ -1085,6 +1087,15 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public CustomizedView getResourceCustomizedView(String clusterName, String resourceName,
+      String customizedStateType) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return accessor.getProperty(keyBuilder.customizedView(customizedStateType, resourceName));
+  }
+
+  @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
       StateModelDefinition stateModel) {
     addStateModelDef(clusterName, stateModelDef, stateModel, false);
@@ -1154,6 +1165,25 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     accessor.removeProperty(keyBuilder.cloudConfig());
+  }
+
+  @Override
+  public ClusterTopology getClusterTopology(String clusterName) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    String path = PropertyPathBuilder.instanceConfig(clusterName);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
+    for (ZNRecord record : znRecords) {
+      if (record != null) {
+        InstanceConfig instanceConfig = new InstanceConfig(record);
+        instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
+      }
+    }
+    path = PropertyPathBuilder.liveInstance(clusterName);
+    List<String> liveNodes = baseAccessor.getChildNames(path, 0);
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    return new ClusterTopology(liveNodes, instanceConfigMap, clusterConfig);
   }
 
   @Override

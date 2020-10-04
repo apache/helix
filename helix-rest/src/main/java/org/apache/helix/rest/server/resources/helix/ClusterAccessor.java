@@ -34,6 +34,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.codahale.metrics.annotation.ResponseMetered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -57,6 +59,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
@@ -86,6 +89,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     clusterName
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   public Response getClusters() {
     HelixAdmin helixAdmin = getHelixAdmin();
@@ -97,6 +102,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(dataMap);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}")
   public Response getClusterInfo(@PathParam("clusterId") String clusterId) {
@@ -133,6 +140,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(clusterInfo);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{clusterId}")
   public Response createCluster(@PathParam("clusterId") String clusterId,
@@ -167,6 +176,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return created();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{clusterId}")
   public Response deleteCluster(@PathParam("clusterId") String clusterId) {
@@ -186,6 +197,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
@@ -276,6 +289,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/configs")
   public Response getClusterConfig(@PathParam("clusterId") String clusterId) {
@@ -298,6 +313,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{clusterId}/customized-state-config")
   public Response addCustomizedStateConfig(@PathParam("clusterId") String clusterId,
@@ -327,6 +344,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{clusterId}/customized-state-config")
   public Response removeCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
@@ -347,6 +366,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/customized-state-config")
   public Response getCustomizedStateConfig(@PathParam("clusterId") String clusterId) {
@@ -365,6 +386,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}/customized-state-config")
   public Response updateCustomizedStateConfig(@PathParam("clusterId") String clusterId,
@@ -405,6 +428,8 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/topology")
   public Response getClusterTopology(@PathParam("clusterId") String clusterId) throws IOException {
@@ -417,6 +442,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK(objectMapper.writeValueAsString(clusterTopology));
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}/configs")
   public Response updateClusterConfig(@PathParam("clusterId") String clusterId,
@@ -469,6 +496,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller")
   public Response getClusterController(@PathParam("clusterId") String clusterId) {
@@ -487,6 +516,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(controllerInfo);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller/history")
   public Response getClusterControllerLeadershipHistory(@PathParam("clusterId") String clusterId) {
@@ -494,6 +525,8 @@ public class ClusterAccessor extends AbstractHelixResource {
         getControllerHistory(clusterId, ControllerHistory.HistoryType.CONTROLLER_LEADERSHIP));
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller/maintenanceHistory")
   public Response getClusterMaintenanceHistory(@PathParam("clusterId") String clusterId) {
@@ -501,6 +534,8 @@ public class ClusterAccessor extends AbstractHelixResource {
         getControllerHistory(clusterId, ControllerHistory.HistoryType.MAINTENANCE));
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller/maintenanceSignal")
   public Response getClusterMaintenanceSignal(@PathParam("clusterId") String clusterId) {
@@ -515,6 +550,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound(String.format("Cluster %s is not in maintenance mode!", clusterId));
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller/messages")
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId) {
@@ -531,6 +568,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(controllerMessages);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/controller/messages/{messageId}")
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId,
@@ -541,6 +580,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(message.getRecord());
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/statemodeldefs")
   public Response getClusterStateModelDefinitions(@PathParam("clusterId") String clusterId) {
@@ -555,6 +596,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(clusterStateModelDefs);
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/statemodeldefs/{statemodel}")
   public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
@@ -569,6 +612,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(stateModelDef.getRecord());
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{clusterId}/statemodeldefs/{statemodel}")
   public Response createClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
@@ -592,6 +637,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}/statemodeldefs/{statemodel}")
   public Response setClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
@@ -619,6 +666,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{clusterId}/statemodeldefs/{statemodel}")
   public Response removeClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
@@ -643,6 +692,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{clusterId}/restconfig")
   public Response createRESTConfig(@PathParam("clusterId") String clusterId,
@@ -673,6 +724,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}/restconfig")
   public Response updateRESTConfig(@PathParam("clusterId") String clusterId,
@@ -720,6 +773,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/restconfig")
   public Response getRESTConfig(@PathParam("clusterId") String clusterId) {
@@ -740,6 +795,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(config.getRecord());
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{clusterId}/restconfig")
   public Response deleteRESTConfig(@PathParam("clusterId") String clusterId) {
@@ -756,6 +813,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/maintenance")
   public Response getClusterMaintenanceMode(@PathParam("clusterId") String clusterId) {
@@ -768,6 +827,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return ZKUtil.isClusterSetup(cluster, zkClient);
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
   @Path("{clusterId}/cloudconfig")
   public Response addCloudConfig(@PathParam("clusterId") String clusterId, String content) {
@@ -800,6 +861,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
   @GET
   @Path("{clusterId}/cloudconfig")
   public Response getCloudConfig(@PathParam("clusterId") String clusterId) {
@@ -819,6 +882,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
   @Path("{clusterId}/cloudconfig")
   public Response deleteCloudConfig(@PathParam("clusterId") String clusterId) {
@@ -827,6 +892,8 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("{clusterId}/cloudconfig")
   public Response updateCloudConfig(@PathParam("clusterId") String clusterId,

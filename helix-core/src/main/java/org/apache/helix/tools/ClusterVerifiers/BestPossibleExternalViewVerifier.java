@@ -98,7 +98,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances) {
-    super(zkClient, clusterName);
+    super(zkClient, clusterName, 0);
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
@@ -107,8 +107,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Map<String, Map<String, String>> errStates, Set<String> resources,
-      Set<String> expectLiveInstances) {
-    super(zkClient, clusterName);
+      Set<String> expectLiveInstances, int waitPeriodTillVerify) {
+    super(zkClient, clusterName, waitPeriodTillVerify);
     // Deep copy data from Builder
     _errStates = new HashMap<>();
     if (errStates != null) {
@@ -151,7 +151,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
       return new BestPossibleExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _errStates, _resources,
-          _expectLiveInstances);
+          _expectLiveInstances, _waitPeriodTillVerify);
     }
 
     public String getClusterName() {
@@ -202,6 +202,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   @Override
   public boolean verifyByZkCallback(long timeout) {
+    waitTillVerify();
+
     List<ClusterVerifyTrigger> triggers = new ArrayList<ClusterVerifyTrigger>();
 
     // setup triggers
@@ -319,6 +321,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
 
         boolean result = verifyExternalView(extView, bpStateMap, stateModelDef);
+
         if (!result) {
           if (LOG.isDebugEnabled()) {
             LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView

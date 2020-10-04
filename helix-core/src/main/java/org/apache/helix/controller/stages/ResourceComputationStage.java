@@ -19,10 +19,12 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
@@ -33,7 +35,10 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.WorkflowConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,18 +60,43 @@ public class ResourceComputationStage extends AbstractBaseStage {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
     }
 
-    Map<String, IdealState> idealStates = cache.getIdealStates();
-
     Map<String, Resource> resourceMap = new LinkedHashMap<>();
     Map<String, Resource> resourceToRebalance = new LinkedHashMap<>();
 
+    Map<String, IdealState> idealStates = cache.getIdealStates();
     boolean isTaskCache = cache instanceof WorkflowControllerDataProvider;
 
+    processIdealStates(cache, resourceMap, resourceToRebalance, idealStates, isTaskCache);
+
+    // Add TaskFramework resources from workflow and job configs as Task Framework will no longer
+    // use IdealState
+    if (isTaskCache) {
+      WorkflowControllerDataProvider taskDataCache =
+          event.getAttribute(AttributeName.ControllerDataProvider.name());
+      processWorkflowConfigs(taskDataCache, resourceMap, resourceToRebalance);
+      processJobConfigs(taskDataCache, resourceMap, resourceToRebalance, idealStates);
+    }
+
+    // It's important to get partitions from CurrentState as well since the
+    // idealState might be removed.
+    processCurrentStates(cache, resourceMap, resourceToRebalance, idealStates, isTaskCache);
+
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
+  }
+
+  /*
+   * Construct Resources based on IdealStates and add them to resource maps
+   */
+  private void processIdealStates(BaseControllerDataProvider cache,
+      Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
+      Map<String, IdealState> idealStates, boolean isTaskCache) {
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
         if (idealState == null) {
           continue;
         }
+
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
         if (!resourceMap.containsKey(resourceName)) {
@@ -74,9 +104,10 @@ public class ResourceComputationStage extends AbstractBaseStage {
               cache.getResourceConfig(resourceName));
           resourceMap.put(resourceName, resource);
 
-          if (!idealState.isValid() && !isTaskCache
-              || idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
-              || !idealState.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && !isTaskCache) {
+          // If this is a resource pipeline and the IdealState is invalid or has a non-task
+          // stateModelDef, add it to resourceToRebalance
+          if (!isTaskCache && (!idealState.isValid() || !idealState.getStateModelDefRef()
+              .equals(TaskConstants.STATE_MODEL_NAME))) {
             resourceToRebalance.put(resourceName, resource);
           }
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
@@ -97,9 +128,59 @@ public class ResourceComputationStage extends AbstractBaseStage {
         }
       }
     }
+  }
 
-    // It's important to get partitions from CurrentState as well since the
-    // idealState might be removed.
+  /*
+   * Construct Resources based on WorkflowConfigs and add them to the two resource maps
+   */
+  private void processWorkflowConfigs(WorkflowControllerDataProvider taskDataCache, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance) {
+    for (Map.Entry<String, WorkflowConfig> workflowConfigEntry : taskDataCache
+        .getWorkflowConfigMap().entrySet()) {
+      // The resource could have been created by IS - always overwrite with config values
+      String resourceName = workflowConfigEntry.getKey();
+      WorkflowConfig workflowConfig = workflowConfigEntry.getValue();
+      addResourceConfigToResourceMap(resourceName, workflowConfig, taskDataCache.getClusterConfig(),
+          resourceMap, resourceToRebalance);
+      addPartition(resourceName, resourceName, resourceMap);
+    }
+  }
+
+  /*
+   * Construct Resources based on JobConfigs and add them to the two resource maps
+   */
+  private void processJobConfigs(WorkflowControllerDataProvider taskDataCache, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance, Map<String, IdealState> idealStates) {
+    for (Map.Entry<String, JobConfig> jobConfigEntry : taskDataCache.getJobConfigMap()
+        .entrySet()) {
+      // always overwrite, because the resource could be created by IS
+      String resourceName = jobConfigEntry.getKey();
+      JobConfig jobConfig = jobConfigEntry.getValue();
+      addResourceConfigToResourceMap(resourceName, jobConfig, taskDataCache.getClusterConfig(),
+          resourceMap, resourceToRebalance);
+      int numPartitions = jobConfig.getTaskConfigMap().size();
+      // If there is no task config, this is a targeted job. We get task counts based on target
+      // resource IdealState
+      if (numPartitions == 0 && idealStates != null) {
+        IdealState targetIs = idealStates.get(jobConfig.getTargetResource());
+        if (targetIs == null) {
+          LOG.warn("Target resource " + jobConfig.getTargetResource() + " does not exist for job " + resourceName);
+        } else {
+          numPartitions = targetIs.getPartitionSet().size();
+        }
+      }
+      for (int i = 0; i < numPartitions; i++) {
+        addPartition(resourceName + "_" + i, resourceName, resourceMap);
+      }
+    }
+  }
+
+  /*
+   * Construct Resources based on CurrentStates and add them to resource maps
+   */
+  private void processCurrentStates(BaseControllerDataProvider cache,
+      Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
+      Map<String, IdealState> idealStates, boolean isTaskCache) throws StageException {
     Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
 
     if (availableInstances != null && availableInstances.size() > 0) {
@@ -124,17 +205,15 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
           // don't overwrite ideal state settings
           if (!resourceMap.containsKey(resourceName)) {
-            addResource(resourceName, resourceMap);
-            Resource resource = resourceMap.get(resourceName);
+            Resource resource = new Resource(resourceName);
             resource.setStateModelDefRef(currentState.getStateModelDefRef());
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
-            if (resource.getStateModelDefRef() == null && !isTaskCache
-                || resource.getStateModelDefRef() != null && (
-                resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME) && isTaskCache
-                    || !resource.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)
-                    && !isTaskCache)) {
+            // if state model def is null, it's added during resource pipeline; if it's not null,
+            // it's added when it matches the pipeline type
+            if (isTaskCache == TaskConstants.STATE_MODEL_NAME
+                .equals(resource.getStateModelDefRef())) {
               resourceToRebalance.put(resourceName, resource);
             }
 
@@ -143,6 +222,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
               resource.setResourceGroupName(idealState.getResourceGroupName());
               resource.setResourceTag(idealState.getInstanceGroupTag());
             }
+            resourceMap.put(resourceName, resource);
           }
 
           if (currentState.getStateModelDefRef() == null) {
@@ -150,8 +230,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
                 "state model def is null." + "resource:" + currentState.getResourceName()
                     + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
                     + currentState.getPartitionStateMap().values());
-            throw new StageException("State model def is null for resource:"
-                + currentState.getResourceName());
+            throw new StageException(
+                "State model def is null for resource:" + currentState.getResourceName());
           }
 
           for (String partition : resourceStateMap.keySet()) {
@@ -159,18 +239,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
           }
         }
       }
-    }
-
-    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
-    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
-  }
-
-  private void addResource(String resource, Map<String, Resource> resourceMap) {
-    if (resource == null || resourceMap == null) {
-      return;
-    }
-    if (!resourceMap.containsKey(resource)) {
-      resourceMap.put(resource, new Resource(resource));
     }
   }
 
@@ -184,5 +252,22 @@ public class ResourceComputationStage extends AbstractBaseStage {
     Resource resource = resourceMap.get(resourceName);
     resource.addPartition(partition);
 
+  }
+
+  private void addResourceConfigToResourceMap(String resourceName, ResourceConfig resourceConfig,
+      ClusterConfig clusterConfig, Map<String, Resource> resourceMap,
+      Map<String, Resource> resourceToRebalance) {
+    Resource resource = new Resource(resourceName, clusterConfig, resourceConfig);
+    resourceMap.put(resourceName, resource);
+    resource.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
+    resource.setStateModelFactoryName(resourceConfig.getStateModelFactoryName());
+    boolean batchMessageMode = resourceConfig.getBatchMessageMode();
+    if (clusterConfig != null) {
+      batchMessageMode |= clusterConfig.getBatchMessageMode();
+    }
+    resource.setBatchMessageMode(batchMessageMode);
+    resource.setResourceGroupName(resourceConfig.getResourceGroupName());
+    resource.setResourceTag(resourceConfig.getInstanceGroupTag());
+    resourceToRebalance.put(resourceName, resource);
   }
 }

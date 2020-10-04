@@ -103,7 +103,6 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
 
     // Assign
     Map<String, TaskAssignResult> assignResults = new HashMap<>();
-    TaskAssignResult lastFailure = null;
     for (TaskConfig task : tasks) {
 
       // Dedup
@@ -112,36 +111,18 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
         continue;
       }
 
-      // TODO: Review this logic
-      // TODO: 1. It assumes that the only mode of failure is due to insufficient capacity. This
-      // assumption may not always be true. Verify
-      // TODO: 2. All TaskAssignResults will get failureReason/Description/TaskID for the first task
-      // that failed. This will need correction
-      // Every time we try to assign the task to the least-used instance, if that fails,
-      // we assume all subsequent tasks will fail with same reason
-      if (lastFailure != null) {
-        assignResults.put(task.getId(),
-            new TaskAssignResult(task, quotaType, null, false, lastFailure.getFitnessScore(),
-                lastFailure.getFailureReason(), lastFailure.getFailureDescription()));
-        continue;
-      }
-
       // Try to assign the task to least used instance
       AssignableInstance instance = queue.poll();
       TaskAssignResult result = instance.tryAssign(task, quotaType);
       assignResults.put(task.getId(), result);
 
-      if (!result.isSuccessful()) {
-        // For all failure reasons other than duplicated assignment, we can fail
-        // subsequent tasks
-        lastFailure = result;
-      } else {
+      if (result.isSuccessful()) {
         // If the task is successfully accepted by the instance, assign it to the instance
         assignableInstanceManager.assign(instance.getInstanceName(), result);
-
-        // requeue the instance to rank again
-        queue.offer(instance);
       }
+
+      // requeue the instance to rank again
+      queue.offer(instance);
     }
     logger.info("Finished assigning tasks with quota type {}", quotaType);
     return assignResults;

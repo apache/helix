@@ -1,4 +1,4 @@
-package org.apache.helix.rest.common;
+package org.apache.helix.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,38 @@ package org.apache.helix.rest.common;
  * under the License.
  */
 
-public class HttpConstants {
-  public enum RestVerbs {
-    GET,
-    POST,
-    PUT,
-    DELETE
+import java.util.HashMap;
+import java.util.Map;
+
+
+public class TrieNode {
+  // A mapping between trie key and children nodes.
+  private Map<String, TrieNode> _children;
+
+  // the complete path/prefix leading to the current node.
+  private final String _path;
+
+  private final String _nodeKey;
+
+  TrieNode(String path, String nodeKey) {
+    _path = path;
+    _nodeKey = nodeKey;
+    _children = new HashMap<>();
   }
 
-  public static final String HTTP_PROTOCOL_PREFIX = "http://";
-  public static final int DEFAULT_HTTP_REQUEST_TIMEOUT = 60 * 1000;
+  public Map<String, TrieNode> getChildren() {
+    return _children;
+  }
 
-  /** REST request categorized as read. Can be used to categorize metric names */
-  public static final String READ_REQUEST = "read";
+  public String getPath() {
+    return _path;
+  }
 
-  /** REST request categorized as write. Can be used to categorize metric names */
-  public static final String WRITE_REQUEST = "write";
+  public String getNodeKey() {
+    return _nodeKey;
+  }
+
+  public void addChild(String key, TrieNode node) {
+    _children.put(key, node);
+  }
 }

@@ -29,8 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -85,6 +85,8 @@ public class TestRoutingTableProvider extends ZkTestBase {
   private static final AtomicBoolean customizedViewChangeCalled = new AtomicBoolean(false);
 
   class MockRoutingTableChangeListener implements RoutingTableChangeListener {
+    boolean routingTableChangeReceived = false;
+
     @Override
     public void onRoutingTableChange(RoutingTableSnapshot routingTableSnapshot, Object context) {
       Set<String> masterInstances = new HashSet<>();
@@ -102,6 +104,7 @@ public class TestRoutingTableProvider extends ZkTestBase {
       } else {
         _listenerTestResult = true;
       }
+      routingTableChangeReceived = true;
     }
   }
 
@@ -149,10 +152,10 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _controller.syncStart();
 
     // start speculator
-    _routingTableProvider_default = new RoutingTableProvider();
     _spectator = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
+    _routingTableProvider_default = new RoutingTableProvider(_spectator);
     _spectator.addExternalViewChangeListener(_routingTableProvider_default);
     _spectator.addLiveInstanceChangeListener(_routingTableProvider_default);
     _spectator.addInstanceConfigChangeListener(_routingTableProvider_default);
@@ -179,6 +182,22 @@ public class TestRoutingTableProvider extends ZkTestBase {
   }
 
   @Test
+  public void testInvocation() throws Exception {
+    MockRoutingTableChangeListener routingTableChangeListener = new MockRoutingTableChangeListener();
+    _routingTableProvider_default
+        .addRoutingTableChangeListener(routingTableChangeListener, null, true);
+
+    // Add a routing table provider listener should trigger an execution of the
+    // listener callbacks
+    Assert.assertTrue(TestHelper.verify(() -> {
+      if (!routingTableChangeListener.routingTableChangeReceived) {
+        return false;
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION));
+  }
+
+  @Test(dependsOnMethods = { "testInvocation" })
   public void testRoutingTable() {
     Assert.assertEquals(_routingTableProvider_default.getLiveInstances().size(), _instances.size());
     Assert.assertEquals(_routingTableProvider_default.getInstanceConfigs().size(), _instances.size());
@@ -222,9 +241,10 @@ public class TestRoutingTableProvider extends ZkTestBase {
     Map<String, Set<String>> context = new HashMap<>();
     context.put("MASTER", Sets.newSet(_instances.get(0)));
     context.put("SLAVE", Sets.newSet(_instances.get(1), _instances.get(2)));
-    _routingTableProvider_default.addRoutingTableChangeListener(routingTableChangeListener, context);
     _routingTableProvider_default
-        .addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null);
+        .addRoutingTableChangeListener(routingTableChangeListener, context, true);
+    _routingTableProvider_default
+        .addRoutingTableChangeListener(new MockRoutingTableChangeListener(), null, true);
     // reenable the master instance to cause change
     String prevMasterInstance = _instances.get(0);
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, prevMasterInstance, true);

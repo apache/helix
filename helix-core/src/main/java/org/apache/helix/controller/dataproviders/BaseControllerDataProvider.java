@@ -311,6 +311,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // If maintenance mode has exited, clear cached timed-out nodes
     if (!_isMaintenanceModeEnabled) {
       _timedOutInstanceDuringMaintenance.clear();
+      _liveInstanceSnapshotForMaintenance.clear();
     }
   }
 

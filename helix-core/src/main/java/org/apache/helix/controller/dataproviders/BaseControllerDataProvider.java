@@ -334,10 +334,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         }
       }
     }
-    _liveInstanceExcludeTimedOutForMaintenance =
-        _liveInstanceCache.getPropertyMap().entrySet().stream()
-            .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    if (isMaintenanceModeEnabled()) {
+      _liveInstanceExcludeTimedOutForMaintenance =
+          _liveInstanceCache.getPropertyMap().entrySet().stream()
+              .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
   }
 
   private void updateIdealRuleMap() {
@@ -472,23 +474,23 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return
    */
   public Map<String, LiveInstance> getLiveInstances() {
-    return getLiveInstances(false);
+    return getLiveInstances(true);
   }
 
   /**
    * Returns the LiveInstances for each of the instances that are currently up and running
-   * @param excludeTimeoutInstances - Only set true during maintenance mode. If true, filter out
+   * @param excludeTimeoutInstances - Only effective during maintenance mode. If true, filter out
    *                                instances that are timed-out during maintenance mode; instances
    *                                are timed-out if they have been offline for a while before going
    *                                live during maintenance mode.
    * @return
    */
   public Map<String, LiveInstance> getLiveInstances(boolean excludeTimeoutInstances) {
-    if (!excludeTimeoutInstances) {
-      return _liveInstanceCache.getPropertyMap();
+    if (excludeTimeoutInstances && isMaintenanceModeEnabled()) {
+      return _liveInstanceExcludeTimedOutForMaintenance;
     }
 
-    return _liveInstanceExcludeTimedOutForMaintenance;
+    return _liveInstanceCache.getPropertyMap();
   }
 
 

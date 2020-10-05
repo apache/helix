@@ -145,6 +145,7 @@ public class GroupCommit {
               try {
                 success = accessor.remove(mergedKey, options);
               } catch (Exception e) {
+                LOG.error("Fails to remove " + mergedKey + " from ZK due to ZK issue.", e);
                 success = false;
               }
               if (!success) {
@@ -156,6 +157,7 @@ public class GroupCommit {
               try {
                 success = accessor.set(mergedKey, merged, options);
               } catch (Exception e) {
+                LOG.error("Fails to update " + mergedKey + " to ZK due to ZK issue.", e);
                 success = false;
               }
               if (!success) {

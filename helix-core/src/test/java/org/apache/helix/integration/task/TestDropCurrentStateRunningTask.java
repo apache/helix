@@ -28,6 +28,7 @@ import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
@@ -47,6 +48,7 @@ public class TestDropCurrentStateRunningTask extends TaskTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     _numNodes = 3;
+    _numPartitions = 1;
     super.beforeClass();
 
     // Stop participants that have been started in super class
@@ -146,5 +148,65 @@ public class TestDropCurrentStateRunningTask extends TaskTestBase {
                         && _manager.getHelixDataAccessor().getBaseDataAccessor()
                             .get(currentStatePathP1, new Stat(), AccessOption.PERSISTENT) == null),
                     TestHelper.WAIT_DURATION));
+
+    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+  }
+
+  @Test(dependsOnMethods = "testDropCurrentStateRunningTask")
+  public void testJobCurrentStateDroppedAfterCompletion() throws Exception {
+    // Stop participants that have been started in previous test and start one of them
+    for (int i = 0; i < _numNodes; i++) {
+      super.stopParticipant(i);
+      Assert.assertFalse(_participants[i].isConnected());
+    }
+    _participants = new MockParticipantManager[_numNodes];
+    startParticipant(0);
+
+    String jobQueueName = TestHelper.getTestMethodName();
+
+    JobConfig.Builder jobBuilderCompleted =
+        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setMaxAttemptsPerTask(1)
+            .setWorkflow(jobQueueName)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10"));
+
+    // Task gets timed out in 10 seconds because the the default value is 10 seconds in
+    // DEFAULT_JOB_CONFIG
+    JobConfig.Builder jobBuilderTimedOut =
+        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG).setMaxAttemptsPerTask(1)
+            .setWorkflow(jobQueueName)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "100000"));
+
+    JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName, 0, 100);
+
+    for (int i = 0; i < 20; i++) {
+      jobQueue.enqueueJob("job" + i, jobBuilderCompleted);
+    }
+
+    jobQueue.enqueueJob("job" + 20, jobBuilderTimedOut);
+
+    _driver.start(jobQueue.build());
+
+    for (int i = 0; i < 20; i++) {
+      _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job" + i),
+          TaskState.COMPLETED);
+    }
+    _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, "job" + 20),
+        TaskState.FAILED);
+
+    String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
+    ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
+    String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
+
+    for (int i = 0; i < 21; i++) {
+      String currentStatePathP0 =
+          "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0 + "/CURRENTSTATES/" + sessionIdP0 + "/"
+              + TaskUtil.getNamespacedJobName(jobQueueName, "job" + i);
+      boolean isCurrentStateRemoved = TestHelper.verify(() -> {
+        ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor()
+            .get(currentStatePathP0, new Stat(), AccessOption.PERSISTENT);
+        return record == null;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isCurrentStateRemoved);
+    }
   }
 }

@@ -112,6 +112,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
   private Map<String, LiveInstance> _liveInstanceSnapshotForMaintenance = new HashMap<>();
+  private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance;
 
   public BaseControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER, AbstractDataCache.UNKNOWN_PIPELINE);
@@ -333,6 +334,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         }
       }
     }
+    _liveInstanceExcludeTimedOutForMaintenance =
+        _liveInstanceCache.getPropertyMap().entrySet().stream()
+            .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private void updateIdealRuleMap() {
@@ -472,20 +477,18 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   /**
    * Returns the LiveInstances for each of the instances that are currently up and running
-   * @param filterTimedOutInstances - Only set true during maintenance mode. If true, filter out
+   * @param excludeTimeoutInstances - Only set true during maintenance mode. If true, filter out
    *                                instances that are timed-out during maintenance mode; instances
    *                                are timed-out if they have been offline for a while before going
    *                                live during maintenance mode.
    * @return
    */
-  public Map<String, LiveInstance> getLiveInstances(boolean filterTimedOutInstances) {
-    if (!filterTimedOutInstances) {
+  public Map<String, LiveInstance> getLiveInstances(boolean excludeTimeoutInstances) {
+    if (!excludeTimeoutInstances) {
       return _liveInstanceCache.getPropertyMap();
     }
 
-    return _liveInstanceCache.getPropertyMap().entrySet().stream()
-        .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    return _liveInstanceExcludeTimedOutForMaintenance;
   }
 
 
@@ -824,7 +827,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       long tailOfflineTime;
       for (int i = historyOfflineList.size() - 1; i >= 0; i--) {
         tailOfflineTime =
-            ParticipantHistory.parseHistoryDateStringToLong(historyOfflineList.get(i));
+            ParticipantHistory.historyDateStringToLong(historyOfflineList.get(i));
         // Ignore bad format case
         if (tailOfflineTime != -1) {
           if (tailOfflineTime <= onlineTimestamps.get(0)) {

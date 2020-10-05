@@ -226,7 +226,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     }
     for (long offlineTimestamp : offlineTimestamps) {
       if (offlineTimestamp >= 0) {
-        offlineList.add(ParticipantHistory.parseHistoryDateLongToString(offlineTimestamp));
+        offlineList.add(ParticipantHistory.historyDateLongToString(offlineTimestamp));
       } else {
         offlineList.add("MalformedString");
       }

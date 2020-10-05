@@ -142,7 +142,7 @@ public class ParticipantHistory extends HelixProperty {
     }
 
     String lastDate = offlineHistory.get(offlineHistory.size() - 1);
-    return parseHistoryDateStringToLong(lastDate);
+    return historyDateStringToLong(lastDate);
   }
 
   /**
@@ -166,7 +166,7 @@ public class ParticipantHistory extends HelixProperty {
     long timeMillis = System.currentTimeMillis();
     sessionEntry.put(ConfigProperty.TIME.name(), String.valueOf(timeMillis));
 
-    sessionEntry.put(ConfigProperty.DATE.name(), parseHistoryDateLongToString(timeMillis));
+    sessionEntry.put(ConfigProperty.DATE.name(), historyDateLongToString(timeMillis));
     sessionEntry.put(ConfigProperty.VERSION.name(), version);
     sessionEntry.put(ConfigProperty.HOST.name(), hostname);
 
@@ -183,7 +183,7 @@ public class ParticipantHistory extends HelixProperty {
     if (list.size() == HISTORY_SIZE) {
       list.remove(0);
     }
-    list.add(parseHistoryDateLongToString(time));
+    list.add(historyDateLongToString(time));
   }
 
   @Override
@@ -195,7 +195,7 @@ public class ParticipantHistory extends HelixProperty {
    * Parses a history date in string format to its millisecond representation.
    * Returns -1 if parsing fails.
    */
-  public static long parseHistoryDateStringToLong(String dateString) {
+  public static long historyDateStringToLong(String dateString) {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     try {
@@ -210,7 +210,7 @@ public class ParticipantHistory extends HelixProperty {
   /**
    * Parses a history date in millisecond to string.
    */
-  public static String parseHistoryDateLongToString(long dateLong) {
+  public static String historyDateLongToString(long dateLong) {
     DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     return df.format(new Date(dateLong));

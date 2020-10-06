@@ -82,7 +82,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
 
   @Test(dependsOnMethods = "testZkConnectionManager")
   public void testSharingZkClient() throws Exception {
-    final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES";
+    final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES1";
     final String TEST_PATH = TEST_ROOT + TEST_NODE + TestHelper.getTestMethodName();
 
     // A factory just for this tests, this for avoiding the impact from other tests running in
@@ -131,7 +131,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       @Override
       public void handleDataDeleted(String s) {
         notificationCountB[1]++;
-        System.out.println("sharedZkClient B increased n0 with path: " + s);
+        System.out.println("sharedZkClient B increased n1 with path: " + s);
       }
     });
 

@@ -181,6 +181,12 @@ public class ClusterStateVerifier {
       this.resources = resources;
     }
 
+    public void close() {
+      if (zkClient != null) {
+        zkClient.close();
+      }
+    }
+
     @Override
     public boolean verify() {
       try {

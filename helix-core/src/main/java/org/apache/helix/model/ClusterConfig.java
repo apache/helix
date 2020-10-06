@@ -915,6 +915,8 @@ public class ClusterConfig extends HelixProperty {
    * offline for more than this specified time period, it's treated as offline for the rest of
    * the maintenance mode's duration even when it comes online. This ensures no state transition
    * occurring on said instance.
+   * Note: In order to reduce false positives, this value needs to be sufficiently long (at least 5
+   * minutes, for example).
    * @param timeOut timeout window in milliseconds. A negative value leads to no timeout checks
    */
   public void setOfflineNodeTimeOutForMaintenanceMode(long timeOut) {

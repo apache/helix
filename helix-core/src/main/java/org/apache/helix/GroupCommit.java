@@ -142,14 +142,22 @@ public class GroupCommit {
           success = false;
           while (++retry <= MAX_RETRY && !success) {
             if (removeIfEmpty && merged.getMapFields().isEmpty()) {
-              success = accessor.remove(mergedKey, options);
+              try {
+                success = accessor.remove(mergedKey, options);
+              } catch (Exception e) {
+                success = false;
+              }
               if (!success) {
                 LOG.error("Fails to remove " + mergedKey + " from ZK, retry it!");
               } else {
                 LOG.info("Removed " + mergedKey);
               }
             } else {
-              success = accessor.set(mergedKey, merged, options);
+              try {
+                success = accessor.set(mergedKey, merged, options);
+              } catch (Exception e) {
+                success = false;
+              }
               if (!success) {
                 LOG.error("Fails to update " + mergedKey + " to ZK, retry it! ");
               }

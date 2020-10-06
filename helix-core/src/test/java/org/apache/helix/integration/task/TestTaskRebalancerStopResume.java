@@ -99,8 +99,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   @Test
   public void stopAndResumeWorkflow() throws Exception {
     String workflow = "SomeWorkflow";
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow)
         .setWorkflowConfig(wfg)
         .build();
@@ -142,7 +142,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     LOG.info("Enqueuing job: " + job1Name);
     jobNames.add(job1Name);
     jobBuilders.add(job1);
-    //_driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
@@ -152,7 +151,6 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     jobNames.add(job2Name);
     jobBuilders.add(job2);
     _driver.enqueueJobs(queueName, jobNames,jobBuilders);
-    //_driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);

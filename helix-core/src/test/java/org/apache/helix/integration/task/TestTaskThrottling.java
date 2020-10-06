@@ -107,7 +107,7 @@ public class TestTaskThrottling extends TaskTestBase {
     // Expect 10 tasks
     Assert.assertTrue(TestHelper.verify(
         () -> (countRunningPartition(flow2, jobName2) == (_numNodes * perNodeTaskLimitation)),
-        2 * TestHelper.WAIT_DURATION));
+        TestHelper.WAIT_DURATION));
 
     _driver.stop(flow2.getName());
     _driver.pollForWorkflowState(flow2.getName(), TaskState.STOPPED);

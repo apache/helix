@@ -130,7 +130,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     List<String> jobNames = new ArrayList<>();
     for (int i = 0; i < jobConfigBuilders.size(); ++i) {
       jobNames.add("job_" + (i + 1));
-      //_driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
     _driver.enqueueJobs(queueName, jobNames, jobConfigBuilders);
     _driver.resume(queueName);

@@ -78,8 +78,8 @@ public class TestTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow flow = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName, jobBuilder)
         .setWorkflowConfig(wfg)
         .setExpiry(expiry).build();
@@ -183,8 +183,8 @@ public class TestTaskRebalancer extends TaskTestBase {
   @Test
   public void testRepeatedWorkflow() throws Exception {
     String workflowName = "SomeWorkflow";
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow flow =
         WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName)
             .setWorkflowConfig(wfg)
@@ -266,15 +266,12 @@ public class TestTaskRebalancer extends TaskTestBase {
     jobNames.add("slaveJob");
     jobBuilders.add(job1);
     jobBuilders.add(job2);
-    //_driver.enqueueJob(queueName, "masterJob", job1);
-    //_driver.enqueueJob(queueName, "slaveJob", job2);
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
 
-    System.out.println("testNamedQueue before pollForJobState");
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);

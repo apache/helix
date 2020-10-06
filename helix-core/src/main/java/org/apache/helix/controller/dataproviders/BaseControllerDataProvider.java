@@ -111,8 +111,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private Set<String> _disabledInstanceSet = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
   private Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
-  private Map<String, LiveInstance> _liveInstanceSnapshotForMaintenance = new HashMap<>();
-  private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance;
+  private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
 
   public BaseControllerDataProvider() {
     this(AbstractDataCache.UNKNOWN_CLUSTER, AbstractDataCache.UNKNOWN_PIPELINE);
@@ -257,10 +256,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private void refreshLiveInstances(final HelixDataAccessor accessor,
       Set<HelixConstants.ChangeType> refreshedType) {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE).getAndSet(false)) {
-      // Keep a snapshot of old live instances for maintenance mode
-      if (isMaintenanceModeEnabled()) {
-        _liveInstanceSnapshotForMaintenance = getLiveInstances();
-      }
       _liveInstanceCache.refresh(accessor);
       _updateInstanceOfflineTime = true;
       refreshedType.add(HelixConstants.ChangeType.LIVE_INSTANCE);
@@ -311,31 +306,31 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // If maintenance mode has exited, clear cached timed-out nodes
     if (!_isMaintenanceModeEnabled) {
       _timedOutInstanceDuringMaintenance.clear();
-      _liveInstanceSnapshotForMaintenance.clear();
+      _liveInstanceExcludeTimedOutForMaintenance.clear();
     }
   }
 
-  private void timeoutNodesDuringMaintenance(final HelixDataAccessor accessor) {
+  private void timeoutNodesDuringMaintenance(final HelixDataAccessor accessor, ClusterConfig clusterConfig, boolean isMaintenanceModeEnabled) {
     // If maintenance mode is enabled and timeout window is specified, filter 'new' live nodes
     // for timed-out nodes
     long timeOutWindow = -1;
-    if (_clusterConfig != null) {
-      timeOutWindow = _clusterConfig.getOfflineNodeTimeOutForMaintenanceMode();
+    if (clusterConfig != null) {
+      timeOutWindow = clusterConfig.getOfflineNodeTimeOutForMaintenanceMode();
     }
-    if (timeOutWindow >= 0 && isMaintenanceModeEnabled()) {
+    if (timeOutWindow >= 0 && isMaintenanceModeEnabled) {
       for (String instance : _liveInstanceCache.getPropertyMap().keySet()) {
         // 1. Check timed-out cache and don't do repeated work;
         // 2. Check for nodes that didn't exist in the last iteration, because it has been checked;
         // 3. For all other nodes, check if it's timed-out.
         // When maintenance mode is first entered, all nodes will be checked as a result.
         if (!_timedOutInstanceDuringMaintenance.contains(instance)
-            && !_liveInstanceSnapshotForMaintenance.containsKey(instance)
+            && !_liveInstanceExcludeTimedOutForMaintenance.containsKey(instance)
             && isInstanceTimedOutDuringMaintenance(accessor, instance, timeOutWindow)) {
           _timedOutInstanceDuringMaintenance.add(instance);
         }
       }
     }
-    if (isMaintenanceModeEnabled()) {
+    if (isMaintenanceModeEnabled) {
       _liveInstanceExcludeTimedOutForMaintenance =
           _liveInstanceCache.getPropertyMap().entrySet().stream()
               .filter(e -> !_timedOutInstanceDuringMaintenance.contains(e.getKey()))
@@ -375,7 +370,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
     updateMaintenanceInfo(accessor);
-    timeoutNodesDuringMaintenance(accessor);
+    timeoutNodesDuringMaintenance(accessor, _clusterConfig, _isMaintenanceModeEnabled);
 
     // TODO: once controller gets split, only one controller should update offline instance history
     updateOfflineInstanceHistory(accessor);
@@ -471,11 +466,19 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
-   * Returns the LiveInstances for each of the instances that are currently up and running
-   * @return
+   * Returns the LiveInstances for each of the instances that are currently up and running,
+   * excluding the instances that are considered offline during maintenance mode. Instances
+   * are timed-out if they have been offline for a while before going live during maintenance mode.
    */
   public Map<String, LiveInstance> getLiveInstances() {
     return getLiveInstances(true);
+  }
+
+  /**
+   * Returns the LiveInstances for each of the instances that are currently up and running
+   */
+  public Map<String, LiveInstance> getAllLiveInstances() {
+    return getLiveInstances(false);
   }
 
   /**
@@ -484,9 +487,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    *                                instances that are timed-out during maintenance mode; instances
    *                                are timed-out if they have been offline for a while before going
    *                                live during maintenance mode.
-   * @return
    */
-  public Map<String, LiveInstance> getLiveInstances(boolean excludeTimeoutInstances) {
+  private Map<String, LiveInstance> getLiveInstances(boolean excludeTimeoutInstances) {
     if (excludeTimeoutInstances && isMaintenanceModeEnabled()) {
       return _liveInstanceExcludeTimedOutForMaintenance;
     }
@@ -797,85 +799,43 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       long timeOutWindow) {
     ParticipantHistory history =
         accessor.getProperty(accessor.keyBuilder().participantHistory(instance));
-    long currentTime = System.currentTimeMillis();
+    List<Long> onlineTimestamps = history.getHistoryTimestampsAsMilliseconds();
+    List<Long> offlineTimestamps = history.getOfflineTimestampsAsMilliseconds();
 
-    // Parse online timestamps from online list
-    List<Long> onlineTimestamps = new ArrayList<>();
-    List<String> historyOnlineList = history.getHistory();
-    if (historyOnlineList != null) {
-      long tailOnlineTime;
-      for (int i = historyOnlineList.size() - 1; i >= 0; i--) {
-        tailOnlineTime =
-            ParticipantHistory.extractTimeFromSessionHistoryString(historyOnlineList.get(i));
-        // Ignore bad format case
-        if (tailOnlineTime != -1) {
-          onlineTimestamps.add(0, tailOnlineTime);
-          // We only need one online timestamp before maintenance mode starts
-          if (tailOnlineTime <= _maintenanceSignal.getTimestamp()) {
-            break;
-          }
-        }
-      }
-    }
-    if (onlineTimestamps.isEmpty() || onlineTimestamps.get(0) > _maintenanceSignal.getTimestamp()) {
-      // Node is a new node in this maintenance mode, no need to time out since no partitions are
-      // assigned to it
-      return false;
-    }
-
-    // Parse offline timestamps from offline list
-    List<Long> offlineTimestamps = new ArrayList<>();
-    List<String> historyOfflineList = history.getOffline();
-    if (historyOfflineList != null) {
-      long tailOfflineTime;
-      for (int i = historyOfflineList.size() - 1; i >= 0; i--) {
-        tailOfflineTime =
-            ParticipantHistory.historyDateStringToLong(historyOfflineList.get(i));
-        // Ignore bad format case
-        if (tailOfflineTime != -1) {
-          if (tailOfflineTime <= onlineTimestamps.get(0)) {
-            break;
-          }
-          offlineTimestamps.add(0, tailOfflineTime);
-        }
-      }
-    }
-
-    // At this point, onlineTimestamps contains at least 1 timestamp that's before maintenance mode;
-    // offlineTimestamps contains 0+ timestamp that's > the first online timestamp.
-    if (!offlineTimestamps.isEmpty()
-        && offlineTimestamps.get(offlineTimestamps.size() - 1) > onlineTimestamps
-        .get(onlineTimestamps.size() - 1)) {
-      // Make sure for each offline timestamp, 2 online timestamps creates a range around it;
-      // this is usually true unless the timestamps are malformed (missing online timestamps)
-      onlineTimestamps.add(currentTime);
-    }
-
+    onlineTimestamps.add(System.currentTimeMillis());
     // Hop between each pair of online timestamps and find the maximum offline window
-    for (int onlineTimestampIndex = 1, offlineTimestampIndex = 0;
-        onlineTimestampIndex < onlineTimestamps.size() && offlineTimestampIndex < offlineTimestamps
-            .size(); onlineTimestampIndex++) {
-      long onlineTimestamp = onlineTimestamps.get(onlineTimestampIndex);
-      long offlineTimeStamp = offlineTimestamps.get(offlineTimestampIndex);
+    for (int onlineTimestampIndex = onlineTimestamps.size() - 1, offlineTimestampIndex =
+        offlineTimestamps.size() - 1; onlineTimestampIndex >= 0 && offlineTimestampIndex >= 0;
+        onlineTimestampIndex--) {
+      long onlineWindowRight = onlineTimestamps.get(onlineTimestampIndex);
+      // We don't care about offline windows before maintenance mode starts
+      if (onlineWindowRight <= _maintenanceSignal.getTimestamp()) {
+        break;
+      }
+      long onlineWindowLeft = 0L;
+      if (onlineTimestampIndex > 0) {
+        onlineWindowLeft = onlineTimestamps.get(onlineTimestampIndex - 1);
+      }
 
       // If the offline timestamp isn't within this pair of online timestamp, continue
-      if (offlineTimeStamp > onlineTimestamp) {
+      if (offlineTimestamps.get(offlineTimestampIndex) <= onlineWindowLeft) {
         continue;
       }
 
-      // Check the largest offline window against the timeout window
-      if (onlineTimestamp - offlineTimeStamp > timeOutWindow) {
-        LogUtil.logWarn(logger, getClusterEventId(), String.format(
-            "During maintenance mode, instance %s is timed-out due to its offline time. Online time: "
-                + "%s, Offline time: %s, Timeout window: %s", instance, onlineTimestamp,
-            offlineTimeStamp, timeOutWindow));
-        return true;
+      // Goes left until the next offline timestamp surpasses the window left
+      while (offlineTimestampIndex >= 0
+          && offlineTimestamps.get(offlineTimestampIndex) > onlineWindowLeft) {
+        offlineTimestampIndex--;
       }
 
-      // Goes forward until the offline timestamp surpasses the online timestamp
-      while (offlineTimestampIndex < offlineTimestamps.size()
-          && offlineTimestamps.get(offlineTimestampIndex) <= onlineTimestamp) {
-        offlineTimestampIndex++;
+      long offlineTimeStamp = offlineTimestamps.get(offlineTimestampIndex + 1);
+      // Check the largest offline window against the timeout window
+      if (onlineWindowRight - offlineTimeStamp > timeOutWindow) {
+        LogUtil.logWarn(logger, getClusterEventId(), String.format(
+            "During maintenance mode, instance %s is timed-out due to its offline time. Online time: "
+                + "%s, Offline time: %s, Timeout window: %s", instance, onlineWindowRight,
+            offlineTimeStamp, timeOutWindow));
+        return true;
       }
     }
 

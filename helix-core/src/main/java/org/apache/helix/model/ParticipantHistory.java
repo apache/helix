@@ -25,11 +25,13 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -191,11 +193,11 @@ public class ParticipantHistory extends HelixProperty {
     return true;
   }
 
-  /**
+  /*
    * Parses a history date in string format to its millisecond representation.
    * Returns -1 if parsing fails.
    */
-  public static long historyDateStringToLong(String dateString) {
+  private static long historyDateStringToLong(String dateString) {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     try {
@@ -207,10 +209,10 @@ public class ParticipantHistory extends HelixProperty {
     }
   }
 
-  /**
+  /*
    * Parses a history date in millisecond to string.
    */
-  public static String historyDateLongToString(long dateLong) {
+  private static String historyDateLongToString(long dateLong) {
     DateFormat df = new SimpleDateFormat(HISTORY_DATE_FORMAT);
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     return df.format(new Date(dateLong));
@@ -229,6 +231,8 @@ public class ParticipantHistory extends HelixProperty {
     for (String sessionHistoryKeyValuePair : sessionHistoryString.split(", ")) {
       String[] keyValuePair = sessionHistoryKeyValuePair.split("=");
       if (keyValuePair.length < 2) {
+        LOG.warn("Ignore key value pair while parsing session history due to missing '=': " +
+            sessionHistoryKeyValuePair);
         continue;
       }
       sessionHistoryMap.put(keyValuePair[0], keyValuePair[1]);
@@ -237,11 +241,11 @@ public class ParticipantHistory extends HelixProperty {
     return sessionHistoryMap;
   }
 
-  /**
+  /*
    * Take a string session history entry and extract the TIME field out of it. Return -1 if the TIME
    * field doesn't exist or if the TIME field cannot be parsed to a long.
    */
-  public static long extractTimeFromSessionHistoryString(String sessionHistoryString) {
+  private static long extractTimeFromSessionHistoryString(String sessionHistoryString) {
     Map<String, String> sessionHistoryMap = parseSessionHistoryStringToMap(sessionHistoryString);
     if (!sessionHistoryMap.containsKey(ConfigProperty.TIME.name())) {
       return -1;
@@ -251,5 +255,29 @@ public class ParticipantHistory extends HelixProperty {
     } catch (NumberFormatException e) {
       return -1;
     }
+  }
+
+  /**
+   * For each entry in History, return its millisecond timestamp; for timestamps that cannot be
+   * parsed, skip them.
+   */
+  public List<Long> getHistoryTimestampsAsMilliseconds() {
+    if (getHistory() == null) {
+      return Collections.emptyList();
+    }
+    return getHistory().stream().map(ParticipantHistory::extractTimeFromSessionHistoryString)
+        .filter(result -> result != -1).collect(Collectors.toList());
+  }
+
+  /**
+   * For each entry in Offline, return it as a millisecond timestamp; for timestamps that cannot be
+   * parsed, skip them.
+   */
+  public List<Long> getOfflineTimestampsAsMilliseconds() {
+    if (getOffline() == null) {
+      return Collections.emptyList();
+    }
+    return getOffline().stream().map(ParticipantHistory::historyDateStringToLong)
+        .filter(result -> result != -1).collect(Collectors.toList());
   }
 }

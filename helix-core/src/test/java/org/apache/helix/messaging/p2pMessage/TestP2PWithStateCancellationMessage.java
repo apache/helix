@@ -103,7 +103,7 @@ public class TestP2PWithStateCancellationMessage extends BaseStageTest {
     event.addAttribute(AttributeName.ControllerDataProvider.name(), mock.cache);
     when(mock.cache.getStateModelDef("MasterSlave")).thenReturn(MasterSlaveSMD.build());
     when(mock.cache.getClusterConfig()).thenReturn(clusterConfig);
-    when(mock.cache.getLiveInstances(anyBoolean())).thenReturn(Arrays.asList(l1, l2).stream()
+    when(mock.cache.getLiveInstances()).thenReturn(Arrays.asList(l1, l2).stream()
         .collect(Collectors.toMap(LiveInstance::getId, Function.identity())));
 
     // mock current state output. Generate 3 messages:

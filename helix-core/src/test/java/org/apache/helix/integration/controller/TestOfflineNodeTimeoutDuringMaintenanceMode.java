@@ -1,9 +1,13 @@
 package org.apache.helix.integration.controller;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
@@ -85,10 +89,10 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         new ResourceControllerDataProvider(CLUSTER_NAME);
     resourceControllerDataProvider.refresh(_helixDataAccessor);
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance1));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance2));
+        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance1));
+    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance2));
     Assert
-        .assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(newInstance));
+        .assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(newInstance));
     // History wise, all instances should still be treated as online
     ParticipantHistory history1 =
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instance1));
@@ -103,7 +107,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "Test", Collections.emptyMap());
     resourceControllerDataProvider.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
     resourceControllerDataProvider.refresh(_helixDataAccessor);
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance1));
+    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance1));
   }
 
   @Test(dependsOnMethods = "testOfflineNodeTimeoutDuringMaintenanceMode")
@@ -190,15 +194,15 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         new ResourceControllerDataProvider(CLUSTER_NAME);
     resourceControllerDataProvider.refresh(_helixDataAccessor);
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance3));
+        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance3));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance4));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance5));
+        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance4));
+    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance5));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance6));
+        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance6));
     Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance7));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances(true).containsKey(instance8));
+        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance7));
+    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance8));
   }
 
   /**
@@ -224,9 +228,11 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
       offlineList = new ArrayList<>();
       history.getRecord().setListField("OFFLINE", offlineList);
     }
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
     for (long offlineTimestamp : offlineTimestamps) {
       if (offlineTimestamp >= 0) {
-        offlineList.add(ParticipantHistory.historyDateLongToString(offlineTimestamp));
+        offlineList.add(df.format(new Date(offlineTimestamp)));
       } else {
         offlineList.add("MalformedString");
       }

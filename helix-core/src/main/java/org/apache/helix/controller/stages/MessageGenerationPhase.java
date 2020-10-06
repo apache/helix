@@ -89,7 +89,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
           + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|INTERMEDIATE_STATE");
     }
 
-    Map<String, LiveInstance> liveInstances = cache.getLiveInstances(true);
+    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     Map<String, String> sessionIdMap = new HashMap<>();
 
     for (LiveInstance liveInstance : liveInstances.values()) {
@@ -258,7 +258,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
               LogUtil.logError(logger, _eventId, String.format(
                   "An invalid message was generated! Discarding this message. sessionIdMap: %s, CurrentStateMap: %s, InstanceStateMap: %s, AllInstances: %s, LiveInstances: %s, Message: %s",
                   sessionIdMap, currentStateOutput.getCurrentStateMap(resourceName, partition),
-                  instanceStateMap, cache.getAllInstances(), cache.getLiveInstances(true).keySet(),
+                  instanceStateMap, cache.getAllInstances(), cache.getLiveInstances().keySet(),
                   message));
               continue; // Do not add this message
             }

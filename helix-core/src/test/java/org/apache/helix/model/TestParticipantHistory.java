@@ -3,6 +3,7 @@ package org.apache.helix.model;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -71,13 +72,35 @@ public class TestParticipantHistory {
   }
 
   @Test
-  public void extractTimeFromSessionHistoryString() {
-    Assert.assertEquals(ParticipantHistory.extractTimeFromSessionHistoryString(
-        "{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC, TIME=1598520339767}"),
-        1598520339767L);
-    Assert.assertEquals(ParticipantHistory.extractTimeFromSessionHistoryString(
-        "{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC, TIME=ABCDE}"), -1);
-    Assert.assertEquals(ParticipantHistory.extractTimeFromSessionHistoryString(
-        "{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC}"), -1);
+  public void testGetHistoryTimestampsAsMilliseconds() {
+    ParticipantHistory participantHistory = new ParticipantHistory("testId");
+    List<String> historyList = new ArrayList<>();
+    historyList.add(
+        "{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC, TIME=1598520339767}");
+    historyList
+        .add("{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC, TIME=ABCDE}");
+    historyList.add("{DATE=2020-08-27T09:25:39:767, VERSION=1.0.0.61, SESSION=AAABBBCCC}");
+    participantHistory.getRecord()
+        .setListField(ParticipantHistory.ConfigProperty.HISTORY.name(), historyList);
+
+    Assert.assertEquals(participantHistory.getHistoryTimestampsAsMilliseconds(),
+        Collections.singletonList(1598520339767L));
+  }
+
+  @Test
+  public void testGetOfflineTimestampsAsMilliseconds() {
+    ParticipantHistory participantHistory = new ParticipantHistory("testId");
+    List<String> offlineList = new ArrayList<>();
+    long currentTimeMillis = System.currentTimeMillis();
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    String dateTime = df.format(new Date(currentTimeMillis));
+    offlineList.add(dateTime);
+    offlineList.add("WRONG FORMAT");
+    participantHistory.getRecord()
+        .setListField(ParticipantHistory.ConfigProperty.OFFLINE.name(), offlineList);
+
+    Assert.assertEquals(participantHistory.getOfflineTimestampsAsMilliseconds(),
+        Collections.singletonList(currentTimeMillis));
   }
 }

@@ -447,9 +447,6 @@ public class ClusterAccessor extends AbstractHelixResource {
   @GET
   @Path("{clusterId}/topologymap")
   public Response getClusterTopologyMap(@PathParam("clusterId") String clusterId) {
-    if (!doesClusterExist(clusterId)) {
-      return notFound(String.format("Cluster %s does not exist", clusterId));
-    }
     HelixAdmin admin = getHelixAdmin();
     Map<String, List<String>> topologyMap;
     try {
@@ -457,8 +454,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
-      LOG.error("Failed to get cluster topology map from cluster {}. Exception: " + "{}.",
-          clusterId, ex);
+      LOG.error("Failed to get cluster topology map from cluster {}.", clusterId, ex);
       return serverError(ex);
     }
     return JSONRepresentation(topologyMap);
@@ -476,8 +472,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     } catch (HelixException ex) {
       return badRequest(ex.getMessage());
     } catch (Exception ex) {
-      LOG.error("Failed to get cluster fault zone map from cluster {}. Exception: " + "{}.",
-          clusterId, ex);
+      LOG.error("Failed to get cluster fault zone map from cluster {}", clusterId, ex);
       return serverError(ex);
     }
     return JSONRepresentation(faultZoneMap);

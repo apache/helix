@@ -107,7 +107,7 @@ public abstract class ZkHelixClusterVerifier
   }
 
   @Deprecated
-  public ZkHelixClusterVerifier(String zkAddr, String clusterName) {
+  public ZkHelixClusterVerifier(String zkAddr, String clusterName, int waitPeriodTillVerify) {
     if (clusterName == null || clusterName.isEmpty()) {
       throw new IllegalArgumentException("ZkHelixClusterVerifier: clusterName is null or empty!");
     }
@@ -138,7 +138,7 @@ public abstract class ZkHelixClusterVerifier
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
-    _waitPeriodTillVerify = 0;
+    _waitPeriodTillVerify = waitPeriodTillVerify;
   }
 
   /**
@@ -355,6 +355,15 @@ public abstract class ZkHelixClusterVerifier
       return setZkAddress(zkAddress);
     }
 
+    /**
+     * The class of verify() methods in this class and its subclass such as
+     * BestPossibleExternalViewVerifier is intend to wait for the cluster converging to a stable
+     * state after changes in the cluster. However, after making changes, it would take some time
+     * till controller taking the changes in. Thus, if we verify() too early, before controller
+     * taking the changes, the class may mistake the previous stable cluster state as new (expected)
+     * stable state. This would cause various issues. Thus, we supply a waitPeriod before starting
+     * to validate next expected state to avoid this pre-mature stable state validation.
+     */
     public B setWaitTillVerify(int waitPeriod) {
       _waitPeriodTillVerify = waitPeriod;
       return (B) this;

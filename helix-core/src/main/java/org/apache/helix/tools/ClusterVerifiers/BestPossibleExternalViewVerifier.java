@@ -78,8 +78,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    */
   @Deprecated
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
-      Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
-    super(zkAddr, clusterName);
+      Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances, int waitTillVerify) {
+    super(zkAddr, clusterName, waitTillVerify);
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
@@ -97,8 +97,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
-      Set<String> expectLiveInstances) {
-    super(zkClient, clusterName, 0);
+      Set<String> expectLiveInstances, int waitTillVerify) {
+    super(zkClient, clusterName, waitTillVerify);
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
@@ -138,13 +138,13 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       if (_zkClient != null) {
         return new BestPossibleExternalViewVerifier(_zkClient, _clusterName, _resources, _errStates,
-            _expectLiveInstances);
+            _expectLiveInstances, _waitPeriodTillVerify);
       }
 
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
         // For backward-compatibility
         return new BestPossibleExternalViewVerifier(_zkAddress, _clusterName, _resources,
-            _errStates, _expectLiveInstances);
+            _errStates, _expectLiveInstances, _waitPeriodTillVerify);
       }
 
       validate();

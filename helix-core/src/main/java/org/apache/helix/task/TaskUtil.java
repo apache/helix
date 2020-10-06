@@ -952,6 +952,7 @@ public class TaskUtil {
         return false;
       }
     }
+    LOG.info("removed job context {}.", path);
     return true;
   }
 
@@ -971,7 +972,7 @@ public class TaskUtil {
         return false;
       }
     }
-
+    LOG.info("removed job config {}.", cfgKey.getPath());
     return true;
   }
 

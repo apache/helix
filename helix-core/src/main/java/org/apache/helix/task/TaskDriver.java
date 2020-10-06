@@ -941,9 +941,15 @@ public class TaskDriver {
         && System.currentTimeMillis() < st + timeout);
 
     if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
+      WorkflowConfig wfcfg = getWorkflowConfig(workflowName);
+      JobConfig jobConfig = getJobConfig(jobName);
+      JobContext jbCtx = getJobContext(jobName);
       throw new HelixException(
-          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s",
-              workflowName, jobName, allowedStates));
+          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
+              workflowName, jobName, allowedStates,
+              ctx == null ? "null" : ctx, ctx != null ? ctx.getJobState(jobName) : "null",
+              wfcfg, jobConfig, jbCtx));
+
     }
 
     return ctx.getJobState(jobName);

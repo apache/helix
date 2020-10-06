@@ -923,11 +923,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
           if (createHandler instanceof HelixStateTransitionHandler) {
             // We only check to state if there is no ST task scheduled/executing.
-            Exception err =
+            HelixStateTransitionHandler.StaleMessageValidateResult result =
                 ((HelixStateTransitionHandler) createHandler).staleMessageValidator();
-            if (err != null) {
-              handleUnprocessableMessage(message, null /* exception */, err.getMessage(), accessor,
-                  instanceName, manager);
+            if (!result.isValid) {
+              handleUnprocessableMessage(message, null /* exception */,
+                  result.exception.getMessage(), accessor, instanceName, manager);
               continue;
             }
           }

@@ -69,6 +69,16 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
   }
 
+  public static class StaleMessageValidateResult {
+    public boolean isValid;
+    public Exception exception;
+
+    StaleMessageValidateResult(Exception exp) {
+      exception = exp;
+      isValid = exception == null;
+    }
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(HelixStateTransitionHandler.class);
   private final StateModel _stateModel;
   StatusUpdateUtil _statusUpdateUtil;
@@ -112,12 +122,13 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = staleMessageValidator();
-    if (err != null) {
+    StaleMessageValidateResult err = staleMessageValidator();
+    if (!err.isValid) {
       _statusUpdateUtil
-          .logError(_message, HelixStateTransitionHandler.class, err.getMessage(), _manager);
-      logger.error(err.getMessage());
-      throw err;
+          .logError(_message, HelixStateTransitionHandler.class, err.exception.getMessage(),
+              _manager);
+      logger.error(err.exception.getMessage());
+      throw err.exception;
     }
 
     // Reset the REQUESTED_STATE property if it exists.
@@ -441,7 +452,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   // Verify the fromState and current state of the stateModel.
-  public Exception staleMessageValidator() {
+  public StaleMessageValidateResult staleMessageValidator() {
     String fromState = _message.getFromState();
     String toState = _message.getToState();
     String partitionName = _message.getPartitionName();
@@ -464,7 +475,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
           "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
           state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
     }
-    return err;
+    return new StaleMessageValidateResult(err);
   }
 
   @Override

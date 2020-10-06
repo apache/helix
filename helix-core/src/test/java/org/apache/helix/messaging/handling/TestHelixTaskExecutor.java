@@ -241,7 +241,7 @@ public class TestHelixTaskExecutor {
       }
 
       @Override
-      public Exception staleMessageValidator() {
+      public StaleMessageValidateResult staleMessageValidator() {
         return super.staleMessageValidator();
       }
     }

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,7 +67,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     ResourceControllerDataProvider dataCache = new ResourceControllerDataProvider();
     // The AsyncTasksThreadPool needs to be set, otherwise to start pending message cleanup job
     // will throw NPE and stop the pipeline. TODO: https://github.com/apache/helix/issues/1158
@@ -305,7 +305,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
 
     ResourceControllerDataProvider cache = new ResourceControllerDataProvider();
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
@@ -404,7 +403,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
@@ -484,7 +482,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         new DummyClusterManager(clusterName, accessor, Long.toHexString(_gZkClient.getSessionId()));
     ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
     event.addAttribute(AttributeName.helixmanager.name(), manager);
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     refreshClusterConfig(clusterName, accessor);
@@ -580,7 +577,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     event.addAttribute(AttributeName.helixmanager.name(), manager);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
-    event.addAttribute(AttributeName.EVENT_SESSION.name(), manager.getSessionId());
+    event.addAttribute(AttributeName.EVENT_SESSION.name(), Optional.of(manager.getSessionId()));
     refreshClusterConfig(clusterName, accessor);
 
     // cluster data cache refresh pipeline

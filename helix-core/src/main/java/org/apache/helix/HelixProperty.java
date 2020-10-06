@@ -173,16 +173,8 @@ public class HelixProperty {
    * @param id
    */
   public HelixProperty(ZNRecord record, String id) {
-    _record = new ZNRecord(record, id);
-    _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
-        _record.getEphemeralOwner());
-  }
-
-  /*
-   * Only used by Message which needs to be session-aware.
-   */
-  protected HelixProperty(SessionAwareZNRecord record, String id) {
-    _record = record;
+    _record = (record instanceof SessionAwareZNRecord) ? new SessionAwareZNRecord(record, id)
+        : new ZNRecord(record, id);
     _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
         _record.getEphemeralOwner());
   }

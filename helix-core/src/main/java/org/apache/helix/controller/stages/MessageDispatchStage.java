@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -84,11 +85,11 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
     } else {
       // An early check for expected leader session. If the sessions don't match, it means the
       // controller's session changes, then messages should not be sent and pipeline should stop.
-      String expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
-      if (expectedSession == null || !expectedSession.equals(manager.getSessionId())) {
+      Optional<String> expectedSession = event.getAttribute(AttributeName.EVENT_SESSION.name());
+      if (!expectedSession.isPresent() || !expectedSession.get().equals(manager.getSessionId())) {
         throw new StageException(String.format(
             "Event session doesn't match controller %s session! Expected session: %s, actual: %s",
-            manager.getInstanceName(), expectedSession, manager.getSessionId()));
+            manager.getInstanceName(), expectedSession.orElse("NOT_PRESENT"), manager.getSessionId()));
       }
     }
 

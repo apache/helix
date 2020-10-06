@@ -1315,8 +1315,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    accessor.updateProperty(keyBuilder.customizedStateConfig(),
-        customizedStateConfigFromBuilder);
+    if(!accessor.updateProperty(keyBuilder.customizedStateConfig(),
+        customizedStateConfigFromBuilder)) {
+      throw new HelixException(
+          "Failed to add customized state config type " + type + " to cluster" + clusterName);
+    }
   }
 
 

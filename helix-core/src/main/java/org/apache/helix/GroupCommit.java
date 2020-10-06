@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,6 +112,9 @@ public class GroupCommit {
             merged = accessor.get(mergedKey, null, options);
           } catch (ZkNoNodeException e) {
             // OK.
+          } catch (Exception e) {
+            LOG.error("Fail to get " + mergedKey + " from ZK", e);
+            return false;
           }
 
           /**

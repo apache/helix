@@ -70,16 +70,18 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     Assert
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
 
-    try {
-      _driver.deleteJob(jobQueueName, "job2", true);
+    // force deletion can have Exception thrown as controller is writing to propertystore path too.
+    // https://github.com/apache/helix/issues/1406
 
-      // Check that the job has been force-deleted (fully gone from ZK)
-      Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
-      Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
-    } catch (HelixException e) {
-      // force deletion can have Exception thrown as controller is writing to propertystore path too.
-      // https://github.com/apache/helix/issues/1406
-      System.out.println("failed to delete the job forcefully");
-    }
+    // Thus, we stop pipeline to make sure there is not such race condition.
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+    Thread.sleep(3000); // note this sleep is critical as it would take time for controller to stop
+
+    _driver.deleteJob(jobQueueName, "job2", true);
+
+    // Check that the job has been force-deleted (fully gone from ZK)
+    Assert.assertNull(_driver.getJobConfig(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
+    Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
+
   }
 }

@@ -106,7 +106,6 @@ public class TestEnqueueJobs extends TaskTestBase {
         .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
 
-    System.out.println("before add jobs");
     // Adding jobs
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -125,7 +124,6 @@ public class TestEnqueueJobs extends TaskTestBase {
 
     _driver.resume(queueName);
 
-    System.out.println("before poll to job state");
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 4),
         TaskState.COMPLETED);
   }
@@ -136,8 +134,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2);
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
     for (int i = 0; i < 5; i++) {
       builder.addJob("JOB" + i, jobBuilder);
@@ -202,7 +200,6 @@ public class TestEnqueueJobs extends TaskTestBase {
           TaskState.COMPLETED);
     }
 
-    System.out.println("Before stop controller");
     // Stop the Controller
     _controller.syncStop();
 
@@ -215,7 +212,6 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
-    System.out.println("before start controller");
     // Start the Controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
@@ -227,7 +223,6 @@ public class TestEnqueueJobs extends TaskTestBase {
           TaskState.COMPLETED);
     }
 
-    System.out.println("after the poll");
     // Make sure the jobs have been running in parallel by checking the jobs start time and finish
     // time
     long maxStartTime = Long.MIN_VALUE;
@@ -271,15 +266,12 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     _driver.resume(queueName);
-
-    System.out.println("before the polls");
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),
           TaskState.COMPLETED);
     }
 
-    System.out.println("before enqueue for exception");
     boolean exceptionHappenedWhileAddingNewJob = false;
     try {
       // This call will produce the exception because 4 jobs have been already added
@@ -290,7 +282,6 @@ public class TestEnqueueJobs extends TaskTestBase {
     }
     Assert.assertTrue(exceptionHappenedWhileAddingNewJob);
 
-    System.out.println("after the exception");
     // Make sure that jobConfig has not been created
     JobConfig jobConfig =
         _driver.getJobConfig(TaskUtil.getNamespacedJobName(queueName, newJobName));

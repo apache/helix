@@ -546,7 +546,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       lastJobName = jobName;
       jobNames.add(jobName);
       jobBuilders.add(jobConfigBulider);
-      // _driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
@@ -568,7 +567,6 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
       lastJobName = jobName;
       jobNames.add(jobName);
       jobBuilders.add(jobConfigBulider);
-      //_driver.enqueueJob(queueName, jobName, jobConfigBulider);
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 

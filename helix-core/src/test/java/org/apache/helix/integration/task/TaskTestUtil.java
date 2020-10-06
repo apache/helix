@@ -241,9 +241,17 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
       int failureThreshold, int capacity) {
+    return buildJobQueue(jobQueueName, delayStart, failureThreshold, capacity, false);
+  }
+
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
+      int failureThreshold, int capacity, boolean disablePurge) {
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     workflowCfgBuilder.setCapacity(capacity);
+    if (disablePurge) {
+      workflowCfgBuilder.setJobPurgeInterval(-1);
+    }
 
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
@@ -255,6 +263,11 @@ public class TaskTestUtil {
       workflowCfgBuilder.setFailureThreshold(failureThreshold);
     }
     return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
+  }
+
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
+      int failureThreshold, boolean disablePurge) {
+    return buildJobQueue(jobQueueName, delayStart, failureThreshold, 500, disablePurge);
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,

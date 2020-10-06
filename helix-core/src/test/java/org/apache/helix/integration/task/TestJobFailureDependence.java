@@ -48,7 +48,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -101,7 +101,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -131,7 +131,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -171,7 +171,6 @@ public class TestJobFailureDependence extends TaskTestBase {
       queueBuilder.enqueueJob(jobName, jobConfig);
       jobNames.add(jobName);
       jobBuilders.add(jobConfig);
-      //_driver.enqueueJob(queueName, jobName, jobConfig);
     }
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
     _driver.resume(queueName);

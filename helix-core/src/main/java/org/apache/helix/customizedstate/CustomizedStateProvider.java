@@ -74,9 +74,9 @@ public class CustomizedStateProvider {
         String.valueOf(System.currentTimeMillis()));
     record.setMapField(partitionName, customizedStateMap);
     if (!accessor.updateProperty(propertyKey, new CustomizedState(record))) {
-      throw new HelixException(String
-          .format("Failed to persist customized state %s to zk for instance %s, resource %s",
-              customizedStateName, _instanceName, record.getId()));
+      throw new HelixException(String.format(
+          "Failed to persist customized state %s to zk for instance %s, resource %s, "
+              + "partition %s", customizedStateName, _instanceName, resourceName, partitionName));
     }
   }
 
@@ -119,6 +119,10 @@ public class CustomizedStateProvider {
     List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
     deltaList.add(delta);
     existingState.setDeltaList(deltaList);
-    accessor.updateProperty(propertyKey, existingState);
+    if (!accessor.updateProperty(propertyKey, existingState)) {
+      throw new HelixException(String.format(
+          "Failed to delete customized state %s to zk for instance %s, resource %s, "
+              + "partition %s", customizedStateName, _instanceName, resourceName, partitionName));
+    }
   }
 }

@@ -189,7 +189,8 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       MaintenanceSignal ms =_dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
-
+    Assert.assertTrue(result);
+    
     // Verify there is rebalance error logged
     checkForRebalanceError(true);
   }

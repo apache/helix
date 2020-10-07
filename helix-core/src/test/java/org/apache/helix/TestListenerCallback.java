@@ -216,7 +216,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
     result = TestHelper.verify(()-> {
       return listener._configChanged;
     }, TestHelper.WAIT_DURATION);
-    Assert.assertTrue(listener._configChanged,
+    Assert.assertTrue(result,
         "Should get initial resourceConfig callback invoked");
     Assert.assertEquals(listener._configSize, 0, "Resource Config size does not match");
 

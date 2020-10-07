@@ -89,7 +89,9 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
     _controller.syncStart();
 
     ZkHelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
@@ -104,7 +106,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       createResourceWithDelayedRebalance(CLUSTER_NAME, db,
           BuiltInStateModelDefinitions.MasterSlave.name(), _PARTITIONS, 3, 3, -1);
     }
-    Thread.sleep(100);
+
     Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 
@@ -130,18 +132,25 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       admin.enableInstance(CLUSTER_NAME, instance, false);
     }
 
-    Thread.sleep(500);
-
-    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
-    Assert.assertNull(maintenanceSignal);
+    boolean result = TestHelper.verify(() -> {
+      MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms == null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     String instance = _participants.get(i).getInstanceName();
     admin.enableInstance(CLUSTER_NAME, instance, false);
 
-    Thread.sleep(500);
-    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
-    Assert.assertNotNull(maintenanceSignal);
-    Assert.assertNotNull(maintenanceSignal.getReason());
+    ZkHelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
+
+    result = TestHelper.verify(() -> {
+      MaintenanceSignal ms =_dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms != null && ms.getReason() != null;
+    }, TestHelper.WAIT_DURATION);
 
     checkForRebalanceError(true);
 
@@ -150,6 +159,8 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       admin.enableInstance(CLUSTER_NAME, instance, true);
     }
     admin.enableMaintenanceMode(CLUSTER_NAME, false);
+
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 
   @Test(dependsOnMethods = "testWithDisabledInstancesLimit")

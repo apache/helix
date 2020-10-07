@@ -415,6 +415,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
               .getChangesByType(ChangeType.INSTANCE_CONFIG).size() + changeDetector
               .getRemovalsByType(ChangeType.INSTANCE_CONFIG).size(), 0);
     } finally {
+      // remove newly added resource/ideastate
+      _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceName);
       instanceConfig.setInstanceEnabled(true);
       _dataAccessor.updateProperty(_keyBuilder.instanceConfig(instanceName), instanceConfig);
     }
@@ -424,9 +426,10 @@ public class TestResourceChangeDetector extends ZkTestBase {
   public void testResetSnapshots() {
     // ensure the cluster converged before the test to ensure IS is not modified unexpectedly
     HelixClusterVerifier _clusterVerifier =
-        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddress(ZK_ADDR)
+        new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setDeactivatedNodeAwareness(true)
             .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(_clusterVerifier.verify());
 
@@ -438,7 +441,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     Assert.assertEquals(
         changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
             .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 2);
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 1);
 
     // Update the detector with old data, since nothing changed, the result shall be empty.
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
@@ -458,7 +461,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     Assert.assertEquals(
         changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
             .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 2);
+            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 1);
   }
 
   /**

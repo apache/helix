@@ -90,7 +90,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling());
     final MockParticipantManager participantManagerToExpire = participants[1];
 
@@ -234,7 +237,9 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
     final MockParticipantManager participantManager = participants[0];
 
@@ -351,9 +356,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+          .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+          .build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // Routing provider is a spectator in Helix. Currentstate based RP listens on all the
     // currentstate changes of all the clusters. They are a source of leaking of watch in
@@ -395,6 +402,17 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Map<String, List<String>> rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
     List<String> existWatches = rpWatchPaths.get("existWatches");
     Assert.assertTrue(existWatches.isEmpty());
+
+    // clean up
+    controller.syncStop();
+    rp.shutdown();
+    rpManager.syncStop();
+    for (int i = 0; i < n; i++) {
+      participants[i].syncStop();
+    }
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -425,9 +443,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStart();
     }
 
-    Boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(zkAddr, clusterName));
-    Assert.assertTrue(result);
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     ClusterSpectatorManager rpManager = new ClusterSpectatorManager(ZK_ADDR, clusterName, "router");
     rpManager.syncStart();
@@ -466,6 +486,17 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Map<String, List<String>> rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
     List<String> existWatches = rpWatchPaths.get("existWatches");
     Assert.assertTrue(existWatches.isEmpty());
+
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < n; i++) {
+      participants[i].syncStop();
+    }
+    // rp.shutdown();
+    rpManager.syncStop();
+    TestHelper.dropCluster(clusterName, _gZkClient);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -509,11 +540,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       }
     }
 
-    Boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(zkAddr,
-                clusterName));
-    Assert.assertTrue(result);
+    ZkHelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     MockParticipantManager participantToExpire = participants[0];
     String oldSessionId = participantToExpire.getSessionId();
@@ -566,8 +597,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String newSessionId = participantToExpire.getSessionId();
     System.out.println(participantToExpire.getInstanceName() + " oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
-    ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+    verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // check manager#hanlders
@@ -616,10 +649,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // the same time as participant.
     // Currently there are many places to register watch in Zookeeper over the evolution of Helix
     // and ZkClient. We plan for further simplify the logic of watch installation next.
-    result = TestHelper.verify(()-> {
+    boolean result = TestHelper.verify(()-> {
       Map<String, List<String>> wPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
       return wPaths.get("existWatches").size() == 1;
-    }, 10000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result,
         "Should have 1 exist-watches: CURRENTSTATE/{oldSessionId}");
 

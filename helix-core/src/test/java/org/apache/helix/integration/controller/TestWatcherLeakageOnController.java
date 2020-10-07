@@ -22,6 +22,7 @@ package org.apache.helix.integration.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -43,7 +44,9 @@ public class TestWatcherLeakageOnController extends ZkTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, "TestInstance");
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_RESOURCE, 10, "MasterSlave");

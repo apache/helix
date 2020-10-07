@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.DelayedTransitionBase;
@@ -113,7 +114,9 @@ public class TestP2PSingleTopState extends ZkTestBase {
     }
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 
@@ -133,11 +136,9 @@ public class TestP2PSingleTopState extends ZkTestBase {
     for (String ins : _instances) {
       System.out.println("Disable " + ins);
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, false);
-      Thread.sleep(1000L);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
       System.out.println("Enable " + ins);
       _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, ins, true);
-      Thread.sleep(1000L);
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
     }
 

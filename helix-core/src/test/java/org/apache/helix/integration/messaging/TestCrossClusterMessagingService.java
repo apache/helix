@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.helix.Criteria;
 import org.apache.helix.Criteria.DataSource;
 import org.apache.helix.InstanceType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.model.Message;
@@ -57,7 +58,9 @@ public class TestCrossClusterMessagingService extends TestMessagingService {
     _adminController.syncStart();
 
     ZkHelixClusterVerifier adminClusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(ADMIN_CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(ADMIN_CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(adminClusterVerifier.verifyByPolling());
   }
 

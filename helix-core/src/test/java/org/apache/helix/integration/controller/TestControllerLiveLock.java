@@ -27,6 +27,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -70,9 +71,8 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
         1, // replicas
         "LeaderStandby", RebalanceMode.FULL_AUTO, true); // do rebalance
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
-    controller.syncStart();
+    enablePersistBestPossibleAssignment(_gZkClient, clusterName, true);
+
 
     // start participants
     Random random = new Random();
@@ -85,9 +85,15 @@ public class TestControllerLiveLock extends ZkUnitTestBase {
       Thread.sleep(Math.abs(random.nextInt()) % 500 + 500);
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
+
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result);
 
     // make sure all partitions are assigned and no partitions is assigned to STANDBY state

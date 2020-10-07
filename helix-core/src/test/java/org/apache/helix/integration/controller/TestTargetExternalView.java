@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
@@ -61,7 +62,9 @@ public class TestTargetExternalView extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, _testDbs.get(0), 3);
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     Assert.assertEquals(

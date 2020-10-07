@@ -29,6 +29,8 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -154,10 +156,10 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
         new BootstrapStateModelFactory());
     participants[0].syncStart();
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    boolean result = verifier.verify();
     Assert.assertTrue(result);
 
     // start 2nd participant which will be the master for Test0_0
@@ -167,14 +169,11 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
         new BootstrapStateModelFactory());
     participants[1].syncStart();
 
-    result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                clusterName));
+    result = verifier.verify();
     Assert.assertTrue(result);
 
     // check we received the message in the right order
-    Assert.assertEquals(_msgOrderList.size(), 7);
+    Assert.assertEquals(_msgOrderList.size(), 7, "_msgOrderList is:" + _msgOrderList.toString());
 
     Message[] _msgOrderArray = _msgOrderList.toArray(new Message[0]);
     assertMessage(_msgOrderArray[0], "OFFLINE", "BOOTSTRAP", instanceName1);

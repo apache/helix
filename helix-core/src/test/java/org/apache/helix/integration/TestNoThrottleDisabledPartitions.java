@@ -330,7 +330,9 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
         new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verify(3000));
 
     // Pause the controller

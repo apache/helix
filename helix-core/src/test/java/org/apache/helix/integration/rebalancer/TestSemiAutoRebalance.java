@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -34,6 +35,8 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -92,33 +95,11 @@ public class TestSemiAutoRebalance extends ZkTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
-    Thread.sleep(1000);
-
-    // verify ideal state and external view
-    IdealState idealState = _accessor.getProperty(_keyBuilder.idealStates(DB_NAME));
-    Assert.assertNotNull(idealState);
-    Assert.assertEquals(idealState.getNumPartitions(), PARTITION_NUMBER);
-    for (String partition : idealState.getPartitionSet()) {
-      List<String> preferenceList = idealState.getPreferenceList(partition);
-      Assert.assertNotNull(preferenceList);
-      Assert.assertEquals(preferenceList.size(), REPLICA_NUMBER);
-    }
-
-    ExternalView externalView = _accessor.getProperty(_keyBuilder.externalView(DB_NAME));
-    Assert.assertNotNull(externalView);
-    Assert.assertEquals(externalView.getPartitionSet().size(), PARTITION_NUMBER);
-    for (String partition : externalView.getPartitionSet()) {
-      Map<String, String> stateMap = externalView.getStateMap(partition);
-      Assert.assertEquals(stateMap.size(), REPLICA_NUMBER);
-
-      int masters = 0;
-      for (String state : stateMap.values()) {
-        if (state.equals(MasterSlaveSMD.States.MASTER.name())) {
-          ++masters;
-        }
-      }
-      Assert.assertEquals(masters, 1);
-    }
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    Assert.assertTrue(verifier.verifyByPolling());
   }
 
   @AfterClass

@@ -19,6 +19,7 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,8 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -100,6 +103,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
+    Thread.sleep(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     boolean result = ClusterStateVerifier
         .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
 
@@ -126,6 +130,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
 
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
 
+    Thread.sleep(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     boolean result = ClusterStateVerifier
         .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, "MyDB"));
     Assert.assertTrue(result);
@@ -164,9 +169,19 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     // kill 1 node
     _participants[0].syncStop();
 
-    boolean result = ClusterStateVerifier
-        .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB));
-    Assert.assertTrue(result);
+    ZkHelixClusterVerifier verifierClusterTestDb = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+        .setResources(new HashSet<>(Collections.singleton(TEST_DB)))
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    Assert.assertTrue(verifierClusterTestDb.verifyByPolling());
+
+    ZkHelixClusterVerifier verifierClusterDb2 = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+        .setResources(new HashSet<>(Collections.singleton(db2)))
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    Assert.assertTrue(verifierClusterDb2.verifyByPolling());
 
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
@@ -178,14 +193,9 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
       _extraParticipants.add(participant);
       participant.syncStart();
     }
-    Thread.sleep(100);
-    result = ClusterStateVerifier.verifyByPolling(
-        new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, TEST_DB), 10000, 100);
-    Assert.assertTrue(result);
+    Assert.assertTrue(verifierClusterTestDb.verifyByPolling());
+    Assert.assertTrue(verifierClusterDb2.verifyByPolling());
 
-    result = ClusterStateVerifier
-        .verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient, CLUSTER_NAME, db2));
-    Assert.assertTrue(result);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();

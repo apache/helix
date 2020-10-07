@@ -22,6 +22,7 @@ package org.apache.helix.integration.rebalancer.PartitionMigration;
 import java.util.Collections;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -84,9 +85,11 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
       _participants.add(participant);
       Thread.sleep(100);
     }
-    Thread.sleep(2000);
+
     ZkHelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     _migrationVerifier =
@@ -100,7 +103,7 @@ public class TestWagedRebalancerMigration extends TestPartitionMigrationBase {
     currentIdealState.setRebalancerClassName(WagedRebalancer.class.getName());
     _gSetupTool.getClusterManagementTool()
         .setResourceIdealState(CLUSTER_NAME, db, currentIdealState);
-    Thread.sleep(2000);
+
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     Assert.assertFalse(_migrationVerifier.hasLessReplica());

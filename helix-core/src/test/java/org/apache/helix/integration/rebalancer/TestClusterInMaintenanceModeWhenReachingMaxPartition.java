@@ -121,6 +121,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
       MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
   }
 
   @AfterClass

@@ -110,8 +110,10 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _gSetupTool.activateCluster(clusterName, "GRAND_" + clusterName, true); // addCluster2
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(grandClusterName).setZkAddr(ZK_ADDR)
-            .setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(grandClusterName)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // add node/resource, and do rebalance
@@ -124,8 +126,10 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _gSetupTool.addResourceToCluster(clusterName, "TestDB0", 1, "LeaderStandby");
     _gSetupTool.rebalanceStorageCluster(clusterName, "TestDB0", 1);
     BestPossibleExternalViewVerifier verifier2 =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier2.verifyByPolling());
 
     MockParticipantManager[] participants = new MockParticipantManager[nodeNr];

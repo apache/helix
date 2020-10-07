@@ -466,7 +466,9 @@ public class TestMultiZkHelixJavaApis {
       // Create a verifier to make sure all resources have been rebalanced
       ZkHelixClusterVerifier verifier =
           new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
-              .setExpectLiveInstances(liveInstancesNames).build();
+              .setExpectLiveInstances(liveInstancesNames)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       try {
         Assert.assertTrue(verifier.verifyByPolling());
       } finally {

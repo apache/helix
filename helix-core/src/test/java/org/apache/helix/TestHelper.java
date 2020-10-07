@@ -77,7 +77,7 @@ import org.testng.Assert;
 public class TestHelper {
   private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
   public static final long WAIT_DURATION = 20 * 1000L; // 20 seconds
-
+  public static final int DEFAULT_REBALANCE_PROCESSING_WAIT_TIME = 1500;
   /**
    * Returns a unused random port.
    */

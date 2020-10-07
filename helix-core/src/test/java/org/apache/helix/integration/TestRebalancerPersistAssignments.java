@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
@@ -93,8 +94,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<>(Collections.singleton(testDb)));
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setResources(new HashSet<>(Collections.singleton(testDb)))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
@@ -134,8 +136,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<>(Collections.singleton(testDb)));
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setResources(new HashSet<>(Collections.singleton(testDb)))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 
@@ -181,8 +184,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     BestPossibleExternalViewVerifier.Builder verifierBuilder =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<>(Collections.singleton(testDb)));
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setResources(new HashSet<>(Collections.singleton(testDb)))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
 
     Assert.assertTrue(verifierBuilder.build().verifyByPolling());
 

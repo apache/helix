@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -128,11 +129,12 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(_allDBs).build();
+            .setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
@@ -161,11 +163,12 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
 
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(_allDBs).build();
+            .setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
@@ -201,10 +204,11 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(_allDBs).build();
+            .setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {
@@ -244,11 +248,12 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(1000);
 
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(_allDBs).build();
+            .setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _allDBs) {

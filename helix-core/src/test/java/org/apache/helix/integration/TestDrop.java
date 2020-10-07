@@ -110,7 +110,9 @@ public class TestDrop extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Drop TestDB0
@@ -176,8 +178,9 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
-    Assert.assertTrue(verifier.verifyByPolling());
+        .setZkClient(_gZkClient).setErrStates(errStateMap)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
     ClusterSetup.processCommandLineArgs(new String[] {
@@ -185,7 +188,10 @@ public class TestDrop extends ZkTestBase {
     });
 
     // make sure TestDB0_4 and TestDB0_8 partitions are dropped
-    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     Thread.sleep(400);
@@ -249,7 +255,9 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
+        .setZkClient(_gZkClient).setErrStates(errStateMap)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should invoke error->dropped transition
@@ -258,7 +266,6 @@ public class TestDrop extends ZkTestBase {
         "--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"
     });
 
-    Thread.sleep(100L);
     // make sure TestDB0_4 stay in ERROR state and is disabled
     Assert.assertTrue(verifier.verifyByPolling());
 
@@ -372,7 +379,9 @@ public class TestDrop extends ZkTestBase {
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
-        .setZkClient(_gZkClient).setErrStates(errStateMap).build();
+        .setZkClient(_gZkClient).setErrStates(errStateMap)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
@@ -381,7 +390,9 @@ public class TestDrop extends ZkTestBase {
     });
 
     // make sure TestDB0_0 partition is dropped
-    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+    verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling(), "Should be empty exeternal-view");
     Thread.sleep(400);
 
@@ -432,7 +443,9 @@ public class TestDrop extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // add schemata resource group

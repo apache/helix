@@ -109,7 +109,10 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     errorNodeKey = accessor.keyBuilder().controllerTaskError(RebalanceResourceFailure.name());
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
   }
 
   @BeforeMethod
@@ -132,7 +135,9 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
     ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(new HashSet<>(Collections.singleton(testDb))).build();
+            .setResources(new HashSet<>(Collections.singleton(testDb)))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     // disable then enable the resource to ensure no rebalancing error is generated during this
@@ -173,7 +178,9 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.name(),
         CrushEdRebalanceStrategy.class.getName());
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb)))
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, testDb, 3);
     Assert.assertTrue(verifier.verifyByPolling());
 
@@ -230,7 +237,9 @@ public class TestAlertingRebalancerFailure extends ZkStandAloneCMTestBase {
         CrushRebalanceStrategy.class.getName());
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, replicas);
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
-        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb))).build();
+        .setZkClient(_gZkClient).setResources(new HashSet<>(Collections.singleton(testDb)))
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(verifier.verifyByPolling());
     // Verify there is no rebalance error logged
     Assert.assertNull(accessor.getProperty(errorNodeKey));

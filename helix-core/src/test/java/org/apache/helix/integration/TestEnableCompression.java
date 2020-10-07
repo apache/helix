@@ -111,10 +111,14 @@ public class TestEnableCompression extends ZkTestBase {
     }
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setExpectLiveInstances(expectedLiveInstances).setResources(expectedResources).build();
-    boolean result = verifier.verify(120000L);
-    Assert.assertTrue(result);
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setExpectLiveInstances(expectedLiveInstances).setResources(expectedResources)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+
+    System.out.println("before TestEnableCompression verify by polling");
+    boolean reuslt = verifier.verifyByPolling(20 * 60 * 1000, 2000);
+    Assert.assertTrue((reuslt));
 
     List<String> compressedPaths = new ArrayList<>();
     findCompressedZNodes(zkClient, "/" + clusterName, compressedPaths);

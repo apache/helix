@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -197,7 +198,9 @@ public class TestControllerLeadershipChange extends ZkTestBase {
 
     // Create cluster verifier
     ZkHelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     // Create participant
     _gSetupTool.addInstanceToCluster(clusterName, instanceName);

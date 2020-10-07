@@ -89,7 +89,9 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
   @Test(dependsOnMethods = "testConfigureResolver")
   public void testExcessiveTopStateResolver() throws InterruptedException {
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verify());
 
     // 1. Find a partition with a MASTER replica and a SLAVE replica
@@ -135,10 +137,11 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
     // 2.A. Without resolver, the fixing is not completely done by the default rebalancer logic.
     _controller.getMessagingService()
         .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
-    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     // Wait until the partition status is fixed, verify if the result is as expected
     verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);
     Assert.assertEquals(ev.getStateMap(targetPartition).values().stream()
@@ -158,7 +161,6 @@ public class TestAbnormalStatesResolver extends ZkStandAloneCMTestBase {
 
     _controller.getMessagingService()
         .sendAndWait(cr, msg, callback, (int) TestHelper.WAIT_DURATION);
-    Thread.sleep(DEFAULT_REBALANCE_PROCESSING_WAIT_TIME);
     // Wait until the partition status is fixed, verify if the result is as expected
     Assert.assertTrue(verifier.verifyByPolling());
     ev = admin.getResourceExternalView(CLUSTER_NAME, TEST_DB);

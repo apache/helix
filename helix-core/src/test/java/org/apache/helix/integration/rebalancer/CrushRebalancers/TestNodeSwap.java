@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -144,11 +145,13 @@ public class TestNodeSwap extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(1000);
 
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     Map<String, ExternalView> record = new HashMap<>();
@@ -189,11 +192,18 @@ public class TestNodeSwap extends ZkTestBase {
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newParticipantName);
     participant.syncStart();
     _participants.add(0, participant);
-    Thread.sleep(2000);
+
+    _clusterVerifier.close();
 
     _clusterVerifier = new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-        .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
-    Assert.assertTrue(_clusterVerifier.verify(5000));
+        .setDeactivatedNodeAwareness(true).setResources(_allDBs)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    try {
+      Assert.assertTrue(_clusterVerifier.verify(5000));
+    } finally {
+      _clusterVerifier.close();
+    }
 
     for (String db : _allDBs) {
       ExternalView ev =

@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixRollbackException;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
@@ -64,7 +65,9 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numNodes = 2;
     _numReplicas = 2;
     _verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     _gSetupTool.addCluster(CLUSTER_NAME, true);
     setupParticipants();

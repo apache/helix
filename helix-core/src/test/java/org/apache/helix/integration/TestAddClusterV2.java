@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -136,11 +137,13 @@ public class TestAddClusterV2 extends ZkTestBase {
   private void verifyClusters() {
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CONTROLLER_CLUSTER).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0")
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }

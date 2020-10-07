@@ -95,7 +95,10 @@ public class TestBucketizedResource extends ZkTestBase {
     PropertyKey evKey = accessor.keyBuilder().externalView(dbName);
 
     BestPossibleExternalViewVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     ExternalView ev = accessor.getProperty(evKey);
@@ -148,7 +151,9 @@ public class TestBucketizedResource extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // bounce
@@ -184,7 +189,7 @@ public class TestBucketizedResource extends ZkTestBase {
         public boolean verify() {
           return !_baseAccessor.exists(evPath, 0);
         }
-      }, 3000);
+      }, TestHelper.WAIT_DURATION);
 
     boolean result = _baseAccessor.exists(evPath, 0);
     Assert.assertFalse(result);
@@ -236,7 +241,9 @@ public class TestBucketizedResource extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // add an external view listener
@@ -252,7 +259,7 @@ public class TestBucketizedResource extends ZkTestBase {
       @Override public boolean verify() throws Exception {
         return listener.cbCnt > 0;
       }
-    }, 20000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(listener.cbCnt > 0);
 
     listener.cbCnt = 0;
@@ -276,7 +283,7 @@ public class TestBucketizedResource extends ZkTestBase {
       @Override public boolean verify() throws Exception {
         return listener.cbCnt > 0;
       }
-    }, 20000);
+    }, TestHelper.WAIT_DURATION);
 
     Assert.assertTrue(listener.cbCnt > 0);
 

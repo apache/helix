@@ -88,7 +88,9 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable localhost_12918
@@ -162,7 +164,9 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable localhost_12919
@@ -245,8 +249,10 @@ public class TestDisable extends ZkTestBase {
     }
 
     BestPossibleExternalViewVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR)
-            .setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable [TestDB0_0, TestDB0_5] on localhost_12919
@@ -325,7 +331,9 @@ public class TestDisable extends ZkTestBase {
     }
 
     ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // disable [TestDB0_0, TestDB0_5] on localhost_12919

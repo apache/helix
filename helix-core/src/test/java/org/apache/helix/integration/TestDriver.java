@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -245,7 +246,10 @@ public class TestDriver {
     String clusterName = testInfo._clusterName;
 
     ZkHelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName)
+            .setZkAddr(ZK_ADDR)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     try {
       Assert.assertTrue(verifier.verifyByPolling());
     } finally {

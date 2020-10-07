@@ -31,6 +31,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -118,8 +120,11 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       participants.get(instanceName).syncStart();
     }
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName).
+        setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+    boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result);
 
     // Make sure callback is registered
@@ -209,9 +214,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
 
     // Re-enable custom-code runner
     admin.enableResource(clusterName, customCodeRunnerResource, true);
-    result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // Verify that custom-invoke is invoked again
     extView = accessor.getProperty(keyBuilder.externalView(customCodeRunnerResource));

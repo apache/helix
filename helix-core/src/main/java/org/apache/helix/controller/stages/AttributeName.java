@@ -41,6 +41,10 @@ public enum AttributeName {
   LastRebalanceFinishTimeStamp,
   ControllerDataProvider,
   STATEFUL_REBALANCER,
+
+  /** This is the cluster manager's session id when event is received. */
+  EVENT_SESSION,
+
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   TO_BE_PURGED_WORKFLOWS,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.

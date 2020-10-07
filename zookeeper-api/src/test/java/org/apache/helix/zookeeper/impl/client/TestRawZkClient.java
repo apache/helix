@@ -38,6 +38,7 @@ import javax.management.ObjectName;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -147,7 +148,6 @@ public class TestRawZkClient extends ZkTestBase {
       Assert.assertEquals(_zkClient.numberOfListeners(), --numListeners);
     }
   }
-
 
   /*
    * Tests state changes subscription for I0Itec's IZkStateListener.
@@ -863,7 +863,45 @@ public class TestRawZkClient extends ZkTestBase {
       }
       zkClient.delete("/tmp/async");
       zkClient.delete("/tmp/asyncOversize");
+      zkClient.close();
     }
+  }
+
+  @Test
+  public void testAsyncCreateByExpectedSession() throws Exception {
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    String sessionId = Long.toHexString(zkClient.getSessionId());
+    String path = "/" + TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName();
+    SessionAwareZNRecord record = new SessionAwareZNRecord("test");
+
+    // Set a dummy session id string to be mismatched with the real session id in ZkClient.
+    record.setExpectedSessionId("ExpectedSession");
+    ZkAsyncCallbacks.CreateCallbackHandler createCallback =
+        new ZkAsyncCallbacks.CreateCallbackHandler();
+
+    try {
+      zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback);
+      createCallback.waitForSuccess();
+      Assert.fail("Invalid session should not create znode");
+    } catch (ZkSessionMismatchedException expected) {
+      Assert.assertEquals(expected.getMessage(),
+          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
+              + "ExpectedSession. Actual: " + sessionId);
+    }
+
+    Assert.assertFalse(zkClient.exists(path));
+
+    // A valid session should be able to create the znode.
+    record.setExpectedSessionId(sessionId);
+    zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback);
+    createCallback.waitForSuccess();
+
+    Assert.assertEquals(createCallback.getRc(), 0);
+    Assert.assertTrue(zkClient.exists(path));
+
+    TestHelper.verify(() -> zkClient.delete(path), TestHelper.WAIT_DURATION);
+    zkClient.close();
   }
 
   /*

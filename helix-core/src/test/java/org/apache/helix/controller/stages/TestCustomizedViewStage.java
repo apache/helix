@@ -87,7 +87,7 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
         new CustomizedViewAggregationStage();
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     runStage(event, new ResourceComputationStage());
     runStage(event, new CustomizedStateComputationStage());
     runStage(event, customizedViewComputeStage);
@@ -153,7 +153,7 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     runStage(event, new ResourceComputationStage());
     runStage(event, new CustomizedStateComputationStage());
     runStage(event, new CustomizedViewAggregationStage());
@@ -212,7 +212,7 @@ public class TestCustomizedViewStage extends ZkUnitTestBase {
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
-    runPipeline(event, dataRefresh);
+    runPipeline(event, dataRefresh, false);
     runStage(event, new ResourceComputationStage());
     runStage(event, new CustomizedStateComputationStage());
     runStage(event, new CustomizedViewAggregationStage());

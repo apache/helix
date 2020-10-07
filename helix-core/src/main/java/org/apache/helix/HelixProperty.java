@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -172,7 +173,8 @@ public class HelixProperty {
    * @param id
    */
   public HelixProperty(ZNRecord record, String id) {
-    _record = new ZNRecord(record, id);
+    _record = (record instanceof SessionAwareZNRecord) ? new SessionAwareZNRecord(record, id)
+        : new ZNRecord(record, id);
     _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
         _record.getEphemeralOwner());
   }

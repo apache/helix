@@ -39,6 +39,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
@@ -136,8 +137,6 @@ public class Message extends HelixProperty {
     }
   };
 
-  // AtomicInteger _groupMsgCountDown = new AtomicInteger(1);
-
   /**
    * Instantiate a message
    * @param type the message category
@@ -153,7 +152,7 @@ public class Message extends HelixProperty {
    * @param msgId unique message identifier
    */
   public Message(String type, String msgId) {
-    super(new ZNRecord(msgId));
+    super(new SessionAwareZNRecord(msgId), msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState(MessageState.NEW);
@@ -165,7 +164,7 @@ public class Message extends HelixProperty {
    * @param record a ZNRecord corresponding to a message
    */
   public Message(ZNRecord record) {
-    super(record);
+    super(new SessionAwareZNRecord(record, record.getId()));
     if (getMsgState() == null) {
       setMsgState(MessageState.NEW);
     }
@@ -175,8 +174,31 @@ public class Message extends HelixProperty {
   }
 
   /**
+   * Instantiate a message with a new id
+   * @param record a ZNRecord corresponding to a message
+   * @param id unique message identifier
+   */
+  public Message(ZNRecord record, String id) {
+    super(new SessionAwareZNRecord(record, id));
+    setMsgId(id);
+  }
+
+  /**
+   * @deprecated Not being used.
+   *
+   * Instantiate a message with a new id
+   * @param message message to be copied
+   * @param id unique message identifier
+   */
+  @Deprecated
+  public Message(Message message, String id) {
+    super(new SessionAwareZNRecord(message.getRecord(), id));
+    setMsgId(id);
+  }
+
+  /**
    * Set the time that the message was created
-   * @param timestamp a UNIX timestamp (in ms)
+   * @param timestamp a UNIX timestamp
    */
   public void setCreateTimeStamp(long timestamp) {
     _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
@@ -188,26 +210,6 @@ public class Message extends HelixProperty {
    */
   public void setCompletionDueTimeStamp(long timestamp) {
     _record.setLongField(Attributes.COMPLETION_DUE_TIMESTAMP.name(), timestamp);
-  }
-
-  /**
-   * Instantiate a message with a new id
-   * @param record a ZNRecord corresponding to a message
-   * @param id unique message identifier
-   */
-  public Message(ZNRecord record, String id) {
-    super(new ZNRecord(record, id));
-    setMsgId(id);
-  }
-
-  /**
-   * Instantiate a message with a new id
-   * @param message message to be copied
-   * @param id unique message identifier
-   */
-  public Message(Message message, String id) {
-    super(new ZNRecord(message.getRecord(), id));
-    setMsgId(id);
   }
 
   /**
@@ -272,6 +274,10 @@ public class Message extends HelixProperty {
    */
   public void setSrcSessionId(String srcSessionId) {
     _record.setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
+  }
+
+  public void setExpectedSessionId(String expectedSessionId) {
+    ((SessionAwareZNRecord) _record).setExpectedSessionId(expectedSessionId);
   }
 
   /**

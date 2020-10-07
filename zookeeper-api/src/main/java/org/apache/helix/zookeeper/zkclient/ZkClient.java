@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
 
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
+import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
@@ -719,41 +720,8 @@ public class ZkClient implements Watcher {
       final byte[] dataBytes = dataObject == null ? null : serialize(dataObject, path);
       checkDataSizeLimit(dataBytes);
 
-      final String actualPath = retryUntilConnected(() -> {
-        ZooKeeper zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
-
-        /*
-         * 1. If operation is session aware, we have to check whether or not the
-         * passed-in(expected) session id matches actual session's id.
-         * If not, ephemeral node creation is failed. This validation is
-         * critical to guarantee the ephemeral node created by the expected ZK session.
-         *
-         * 2. Otherwise, the operation is NOT session aware.
-         * In this case, we will use the actual zookeeper session to create the node.
-         */
-        if (isSessionAwareOperation(expectedSessionId, mode)) {
-          acquireEventLock();
-          try {
-            final String actualSessionId = Long.toHexString(zooKeeper.getSessionId());
-            if (!actualSessionId.equals(expectedSessionId)) {
-              throw new ZkSessionMismatchedException(
-                  "Failed to create ephemeral node! There is a session id mismatch. Expected: "
-                      + expectedSessionId + ". Actual: " + actualSessionId);
-            }
-
-            /*
-             * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
-             * under this zookeeper connection. This is to avoid locking zooKeeper.create() which
-             * may cause potential performance issue.
-             */
-            zooKeeper = ((ZkConnection) getConnection()).getZookeeper();
-          } finally {
-            getEventLock().unlock();
-          }
-        }
-
-        return zooKeeper.create(path, dataBytes, acl, mode);
-      });
+      final String actualPath = retryUntilConnected(
+          () -> getExpectedZookeeper(expectedSessionId).create(path, dataBytes, acl, mode));
 
       record(path, dataBytes, startT, ZkClientMonitor.AccessType.WRITE);
       return actualPath;
@@ -1945,18 +1913,20 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncCreate(path, data, mode, startT, cb);
+    doAsyncCreate(path, data, mode, startT, cb, parseExpectedSessionId(datat));
   }
 
   private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
-      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb) {
+      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb,
+      final String expectedSessionId) {
     retryUntilConnected(() -> {
-      ((ZkConnection) getConnection()).getZookeeper()
+      getExpectedZookeeper(expectedSessionId)
           .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
               new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
                 @Override
                 protected void doRetry() {
-                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb);
+                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb,
+                      expectedSessionId);
                 }
               });
       return null;
@@ -1975,18 +1945,19 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncSetData(path, data, version, startT, cb);
+    doAsyncSetData(path, data, version, startT, cb, parseExpectedSessionId(datat));
   }
 
   private void doAsyncSetData(final String path, byte[] data, final int version, final long startT,
-      final ZkAsyncCallbacks.SetDataCallbackHandler cb) {
+      final ZkAsyncCallbacks.SetDataCallbackHandler cb, final String expectedSessionId) {
     retryUntilConnected(() -> {
-      ((ZkConnection) getConnection()).getZookeeper().setData(path, data, version, cb,
+      getExpectedZookeeper(expectedSessionId).setData(path, data, version, cb,
           new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
               data == null ? 0 : data.length, false) {
             @Override
             protected void doRetry() {
-              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb);
+              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb,
+                  expectedSessionId);
             }
           });
       return null;
@@ -2362,13 +2333,46 @@ public class ZkClient implements Watcher {
   }
 
   /*
-   * Session aware operation needs below requirements:
-   * 1. the session id is NOT null or empty
-   * 2. create mode is EPHEMERAL or EPHEMERAL_SEQUENTIAL
+   * Gets the zookeeper instance that ensures its session ID matches the expected session ID.
+   * It is used for write operations that suppose the znode to be created by the expected session.
    */
-  private boolean isSessionAwareOperation(String expectedSessionId, CreateMode mode) {
-    return expectedSessionId != null && !expectedSessionId.isEmpty() && (
-        mode == CreateMode.EPHEMERAL || mode == CreateMode.EPHEMERAL_SEQUENTIAL);
+  private ZooKeeper getExpectedZookeeper(final String expectedSessionId) {
+    /*
+     * Cache the zookeeper reference and make sure later zooKeeper.create() is being run
+     * under this zookeeper connection. This is to avoid zk session change after expected
+     * session check.
+     */
+    ZooKeeper zk = ((ZkConnection) getConnection()).getZookeeper();
+
+    /*
+     * The operation is NOT session aware, we will use the actual zookeeper session without
+     * checking expected session.
+     */
+    if (expectedSessionId == null || expectedSessionId.isEmpty()) {
+      return zk;
+    }
+
+    /*
+     * If operation is session aware (expectedSession is valid),
+     * we have to check whether or not the passed-in(expected) session id
+     * matches actual session's id.
+     * If not, we should not return a zk object for the zk operation.
+     */
+    final String actualSessionId = Long.toHexString(zk.getSessionId());
+    if (!actualSessionId.equals(expectedSessionId)) {
+      throw new ZkSessionMismatchedException(
+          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
+              + expectedSessionId + ". Actual: " + actualSessionId);
+    }
+
+    return zk;
+  }
+
+  private String parseExpectedSessionId(Object data) {
+    if (!(data instanceof SessionAwareZNRecord)) {
+      return null;
+    }
+    return ((SessionAwareZNRecord) data).getExpectedSessionId();
   }
 
   // operations to update monitor's counters

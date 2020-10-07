@@ -400,6 +400,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       String partitionName, String instanceName, String currentState, String nextState,
       String sessionId, String stateModelDefName) {
     String uuid = UUID.randomUUID().toString();
+    String managerSessionId = manager.getSessionId();
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
@@ -409,7 +410,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(manager.getSessionId());
+    message.setSrcSessionId(managerSessionId);
+    message.setExpectedSessionId(managerSessionId);
     message.setStateModelDef(stateModelDefName);
     message.setStateModelFactoryName(resource.getStateModelFactoryname());
     message.setBucketSize(resource.getBucketSize());
@@ -436,6 +438,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
               + ", nextState: " + (nextState == null ? "N/A" : nextState));
 
       String uuid = UUID.randomUUID().toString();
+      String managerSessionId = manager.getSessionId();
       Message message = new Message(MessageType.STATE_TRANSITION_CANCELLATION, uuid);
       message.setSrcName(manager.getInstanceName());
       message.setTgtName(instanceName);
@@ -445,7 +448,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       message.setFromState(fromState);
       message.setToState(toState);
       message.setTgtSessionId(sessionId);
-      message.setSrcSessionId(manager.getSessionId());
+      message.setSrcSessionId(managerSessionId);
+      message.setExpectedSessionId(managerSessionId);
       message.setStateModelDef(stateModelDefName);
       message.setStateModelFactoryName(resource.getStateModelFactoryname());
       message.setBucketSize(resource.getBucketSize());

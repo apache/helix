@@ -47,6 +47,9 @@ import org.testng.annotations.Test;
  * idealstate of the resource. Generally this is used when the number of partitions is large
  */
 public class TestEnableCompression extends ZkTestBase {
+  private static final int ENABLE_COMPRESSION_WAIT = 20 * 60 * 1000;
+  private static final int ENABLE_COMPRESSION_POLL_INTERVAL = 2000;
+
   @Test()
   public void testEnableCompressionResource() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -116,8 +119,7 @@ public class TestEnableCompression extends ZkTestBase {
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
 
-    System.out.println("before TestEnableCompression verify by polling");
-    boolean reuslt = verifier.verifyByPolling(20 * 60 * 1000, 2000);
+    boolean reuslt = verifier.verifyByPolling(ENABLE_COMPRESSION_WAIT, ENABLE_COMPRESSION_POLL_INTERVAL);
     Assert.assertTrue((reuslt));
 
     List<String> compressedPaths = new ArrayList<>();

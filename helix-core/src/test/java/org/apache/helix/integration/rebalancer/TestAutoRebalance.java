@@ -169,19 +169,19 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     // kill 1 node
     _participants[0].syncStop();
 
-    ZkHelixClusterVerifier verifierTestDb = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+    ZkHelixClusterVerifier verifierClusterTestDb = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setResources(new HashSet<>(Collections.singleton(TEST_DB)))
         .setZkClient(_gZkClient)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
-    Assert.assertTrue(verifierTestDb.verifyByPolling());
+    Assert.assertTrue(verifierClusterTestDb.verifyByPolling());
 
-    ZkHelixClusterVerifier verifierDb2 = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+    ZkHelixClusterVerifier verifierClusterDb2 = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
         .setResources(new HashSet<>(Collections.singleton(db2)))
         .setZkClient(_gZkClient)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
-    Assert.assertTrue(verifierDb2.verifyByPolling());
+    Assert.assertTrue(verifierClusterDb2.verifyByPolling());
 
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
@@ -193,8 +193,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
       _extraParticipants.add(participant);
       participant.syncStart();
     }
-    Assert.assertTrue(verifierTestDb.verifyByPolling());
-    Assert.assertTrue(verifierDb2.verifyByPolling());
+    Assert.assertTrue(verifierClusterTestDb.verifyByPolling());
+    Assert.assertTrue(verifierClusterDb2.verifyByPolling());
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));

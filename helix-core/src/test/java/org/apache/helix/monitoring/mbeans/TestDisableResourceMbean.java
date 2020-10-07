@@ -85,7 +85,9 @@ public class TestDisableResourceMbean extends ZkUnitTestBase {
     controller.syncStart();
 
     ZkHelixClusterVerifier clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(clusterVerifier.verifyByPolling());
 
     // Verify the bean was created for TestDB0, but not for TestDB1.

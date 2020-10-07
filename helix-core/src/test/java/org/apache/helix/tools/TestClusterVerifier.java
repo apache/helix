@@ -126,24 +126,23 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     // Just ensure that the entire cluster passes
     // ensure that the external view coalesces
     HelixClusterVerifier bestPossibleVerifier =
-        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
     // Disable partition for 1 instance, then Full-Auto ExternalView should match IdealState.
     _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(),
         FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
-    Thread.sleep(1000);
     Assert.assertTrue(bestPossibleVerifier.verify(3000));
 
     // Enable the partition back
     _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(),
         FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
-    Thread.sleep(1000);
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
     // Make 1 instance non-live
     _participants[0].syncStop();
-    Thread.sleep(1000);
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
     // Recover the participant before next test
@@ -154,31 +153,32 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     HelixClusterVerifier strictMatchVerifier =
         new StrictMatchExternalViewVerifier.Builder(_clusterName)
             .setResources(Sets.newHashSet(RESOURCES)).setZkClient(_gZkClient)
-            .setDeactivatedNodeAwareness(true).build();
+            .setDeactivatedNodeAwareness(true)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(strictMatchVerifier.verify(10000));
 
     // Disable partition for 1 instance, then Full-Auto ExternalView should match IdealState.
     _admin.enablePartition(false, _clusterName, _participants[0].getInstanceName(),
         FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
-    Thread.sleep(1000);
     Assert.assertTrue(strictMatchVerifier.verify(3000));
 
     // Enable the partition back
     _admin.enablePartition(true, _clusterName, _participants[0].getInstanceName(),
         FULL_AUTO_RESOURCES[0], Lists.newArrayList(FULL_AUTO_RESOURCES[0] + "_0"));
-    Thread.sleep(1000);
     Assert.assertTrue(strictMatchVerifier.verify(10000));
 
     // Make 1 instance non-live
     _participants[0].syncStop();
-    Thread.sleep(1000);
 
     // Semi-Auto ExternalView matching
     for (String resource : SEMI_AUTO_RESOURCES) {
       System.out.println("Verify resource: " + resource);
       strictMatchVerifier =
           new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
-              .setResources(Sets.newHashSet(resource)).setDeactivatedNodeAwareness(true).build();
+              .setResources(Sets.newHashSet(resource)).setDeactivatedNodeAwareness(true)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       Assert.assertTrue(strictMatchVerifier.verify(3000));
     }
 
@@ -186,6 +186,7 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     strictMatchVerifier =
         new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
             .setResources(Sets.newHashSet(FULL_AUTO_RESOURCES)).setDeactivatedNodeAwareness(true)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(strictMatchVerifier.verify(10000));
   }
@@ -204,10 +205,11 @@ public class TestClusterVerifier extends ZkUnitTestBase {
 
     // Ensure that this passes even when one resource is down
     _admin.enableInstance(_clusterName, "localhost_12918", false);
-    Thread.sleep(1000);
     ZkHelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
-            .setResources(Sets.newHashSet(testDB)).build();
+            .setResources(Sets.newHashSet(testDB))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
 
     _admin.enableCluster(_clusterName, false);
@@ -238,12 +240,16 @@ public class TestClusterVerifier extends ZkUnitTestBase {
   public void testSleepTransition() throws InterruptedException {
 
     HelixClusterVerifier bestPossibleVerifier =
-        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
     HelixClusterVerifier strictMatchVerifier =
         new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
-            .setDeactivatedNodeAwareness(true).build();
+            .setDeactivatedNodeAwareness(true)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(strictMatchVerifier.verify(10000));
 
     // Re-start a new participant with sleeping transition(all state model transition cannot finish)
@@ -255,7 +261,6 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     _participants[0].syncStart();
 
     // The new participant causes rebalance, but the state transitions are all stuck
-    Thread.sleep(1000);
     Assert.assertFalse(strictMatchVerifier.verify(3000));
   }
 }

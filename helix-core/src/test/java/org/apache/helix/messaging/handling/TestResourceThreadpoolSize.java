@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
@@ -205,7 +206,10 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     Assert.assertTrue(executor.getPoolSize() >= numberOfDbs);
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
   }
 

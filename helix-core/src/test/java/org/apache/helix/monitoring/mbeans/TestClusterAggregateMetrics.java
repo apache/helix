@@ -145,8 +145,10 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
   @Test
   public void testAggregateMetrics() throws Exception {
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     // Everything should be up and running initially with 5 total partitions
     updateMetrics();

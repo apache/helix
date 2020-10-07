@@ -323,7 +323,9 @@ public final class TestRebalanceRunningTask extends TaskSynchronizedTestBase {
     startParticipant(_initialNumNodes);
     ZkHelixClusterVerifier clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setResources(Sets.newHashSet(DATABASE)).build();
+            .setResources(Sets.newHashSet(DATABASE))
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(clusterVerifier.verify(10 * 1000));
 
     // Running tasks are also rebalanced

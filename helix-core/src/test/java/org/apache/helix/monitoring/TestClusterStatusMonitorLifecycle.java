@@ -100,6 +100,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
     ZkHelixClusterVerifier controllerClusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(_controllerClusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
 
     Assert.assertTrue(controllerClusterVerifier.verifyByPolling(),
@@ -116,6 +117,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
     ZkHelixClusterVerifier firstClusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(_firstClusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(firstClusterVerifier.verifyByPolling(), "first cluster NOT in ideal state");
 
@@ -142,7 +144,9 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     for (int i = 1; i < clusterNb; i++) {
       ZkHelixClusterVerifier clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(_clusterNamePrefix + "0_" + i)
-              .setZkClient(_gZkClient).build();
+              .setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       Assert.assertTrue(clusterVerifier.verifyByPolling(), "Cluster NOT in ideal state.");
     }
   }

@@ -130,9 +130,10 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       long startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
-      Thread.sleep(1000L);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       Assert.assertTrue(clusterVerifier.verifyByPolling());
       validatePropagationLatency(PropertyType.CURRENTSTATES,
           System.currentTimeMillis() - startTime);
@@ -148,7 +149,6 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       startTime = System.currentTimeMillis();
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, NUM_REPLICAS);
 
-      Thread.sleep(1000L);
       Assert.assertTrue(clusterVerifier.verifyByPolling());
       validatePropagationLatency(PropertyType.CURRENTSTATES,
           System.currentTimeMillis() - startTime);
@@ -160,7 +160,6 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       // shutdown an instance
       startTime = System.currentTimeMillis();
       _participants[0].syncStop();
-      Thread.sleep(1000L);
       Assert.assertTrue(clusterVerifier.verifyByPolling());
       validatePropagationLatency(PropertyType.CURRENTSTATES,
           System.currentTimeMillis() - startTime);
@@ -222,7 +221,9 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
           IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, NUM_REPLICAS);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       Assert.assertTrue(clusterVerifier.verifyByPolling(5000, 500));
       // 2. Process one event, so the current state will be refreshed with the new DB partitions
       routingTableCS.proceedNewEventHandling();

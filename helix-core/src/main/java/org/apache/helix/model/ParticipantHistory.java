@@ -253,6 +253,8 @@ public class ParticipantHistory extends HelixProperty {
     try {
       return Long.parseLong(sessionHistoryMap.get(ConfigProperty.TIME.name()));
     } catch (NumberFormatException e) {
+      LOG.warn("Unable to parse TIME field to long: " + sessionHistoryMap
+          .get(ConfigProperty.TIME.name()));
       return -1;
     }
   }

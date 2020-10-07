@@ -453,9 +453,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       topologyMap = admin.getClusterTopology(clusterId).getTopologyMap();
     } catch (HelixException ex) {
       return badRequest(ex.getMessage());
-    } catch (Exception ex) {
-      LOG.error("Failed to get cluster topology map from cluster {}.", clusterId, ex);
-      return serverError(ex);
     }
     return JSONRepresentation(topologyMap);
   }
@@ -471,9 +468,6 @@ public class ClusterAccessor extends AbstractHelixResource {
       faultZoneMap = admin.getClusterTopology(clusterId).getFaultZoneMap();
     } catch (HelixException ex) {
       return badRequest(ex.getMessage());
-    } catch (Exception ex) {
-      LOG.error("Failed to get cluster fault zone map from cluster {}", clusterId, ex);
-      return serverError(ex);
     }
     return JSONRepresentation(faultZoneMap);
   }

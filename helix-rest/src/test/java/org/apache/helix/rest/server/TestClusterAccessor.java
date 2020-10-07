@@ -128,6 +128,13 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetClusterTopology")
   public void testGetClusterTopologyAndFaultZoneMap() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
+    String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
+
+    // test invalid case where instance config and cluster topology have not been set.
+    get(topologyMapUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+    get(faultZoneUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+
     String cluster = "TestCluster_1";
     for (int i = 0; i < 5; i++) {
       String instance = cluster + "localhost_129" + String.valueOf(18 + i);
@@ -149,12 +156,15 @@ public class TestClusterAccessor extends AbstractTestClass {
           .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
     }
 
+    // test invalid case where instance config is set, but cluster topology has not been set.
+    get(topologyMapUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+    get(faultZoneUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("TOPOLOGY", "/helixZoneId/instance");
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
-    //get cluster topology map
-    String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
+    //get valid cluster topology map
     String topologyMapDef = get(topologyMapUrlBase, null, Response.Status.OK.getStatusCode(), true);
     Map<String, Object> topologyMap =
         OBJECT_MAPPER.readValue(topologyMapDef, new TypeReference<HashMap<String, Object>>() {
@@ -184,8 +194,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     configDelta.getRecord().setSimpleField("FAULT_ZONE_TYPE", "helixZoneId");
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
-    //get cluster fault zone map
-    String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
+    //get valid cluster fault zone map
     String faultZoneMapDef = get(faultZoneUrlBase, null, Response.Status.OK.getStatusCode(), true);
     Map<String, Object> faultZoneMap =
         OBJECT_MAPPER.readValue(faultZoneMapDef, new TypeReference<HashMap<String, Object>>() {

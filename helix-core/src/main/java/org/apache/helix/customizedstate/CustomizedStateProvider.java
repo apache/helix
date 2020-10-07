@@ -40,13 +40,11 @@ import org.slf4j.LoggerFactory;
 public class CustomizedStateProvider {
   private static final Logger LOG = LoggerFactory.getLogger(CustomizedStateProvider.class);
   private final HelixManager _helixManager;
-  private final HelixDataAccessor _helixDataAccessor;
   private String _instanceName;
 
   public CustomizedStateProvider(HelixManager helixManager, String instanceName) {
     _helixManager = helixManager;
     _instanceName = instanceName;
-    _helixDataAccessor = _helixManager.getHelixDataAccessor();
   }
 
   /**
@@ -66,7 +64,8 @@ public class CustomizedStateProvider {
    */
   public void updateCustomizedState(String customizedStateName, String resourceName,
       String partitionName, Map<String, String> customizedStateMap) {
-    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     ZNRecord record = new ZNRecord(resourceName);
@@ -74,10 +73,10 @@ public class CustomizedStateProvider {
     customizedStateMap.put(CustomizedState.CustomizedStateProperty.START_TIME.name(),
         String.valueOf(System.currentTimeMillis()));
     record.setMapField(partitionName, customizedStateMap);
-    if (!_helixDataAccessor.updateProperty(propertyKey, new CustomizedState(record))) {
-      throw new HelixException(String
-          .format("Failed to persist customized state %s to zk for instance %s, resource %s",
-              customizedStateName, _instanceName, record.getId()));
+    if (!accessor.updateProperty(propertyKey, new CustomizedState(record))) {
+      throw new HelixException(String.format(
+          "Failed to persist customized state %s to zk for instance %s, resource %s, "
+              + "partition %s", customizedStateName, _instanceName, resourceName, partitionName));
     }
   }
 
@@ -96,8 +95,9 @@ public class CustomizedStateProvider {
    */
   public Map<String, String> getPerPartitionCustomizedState(String customizedStateName,
       String resourceName, String partitionName) {
-    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
-    Map<String, Map<String, String>> mapView = _helixDataAccessor
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Map<String, Map<String, String>> mapView = accessor
         .getProperty(keyBuilder.customizedState(_instanceName, customizedStateName, resourceName))
         .getRecord().getMapFields();
     return mapView.get(partitionName);
@@ -108,7 +108,8 @@ public class CustomizedStateProvider {
    */
   public void deletePerPartitionCustomizedState(String customizedStateName, String resourceName,
       String partitionName) {
-    PropertyKey.Builder keyBuilder = _helixDataAccessor.keyBuilder();
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey propertyKey =
         keyBuilder.customizedState(_instanceName, customizedStateName, resourceName);
     CustomizedState existingState = getCustomizedState(customizedStateName, resourceName);
@@ -118,6 +119,10 @@ public class CustomizedStateProvider {
     List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
     deltaList.add(delta);
     existingState.setDeltaList(deltaList);
-    _helixDataAccessor.updateProperty(propertyKey, existingState);
+    if (!accessor.updateProperty(propertyKey, existingState)) {
+      throw new HelixException(String.format(
+          "Failed to delete customized state %s to zk for instance %s, resource %s, "
+              + "partition %s", customizedStateName, _instanceName, resourceName, partitionName));
+    }
   }
 }

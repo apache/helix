@@ -167,7 +167,7 @@ public class TestZKCallback extends ZkUnitTestBase {
       ExternalView extView = new ExternalView("db-12345");
       accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
       boolean result = TestHelper.verify(() -> {
-        return testListener.externalViewChangeReceived == true;
+        return testListener.externalViewChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();
@@ -179,7 +179,7 @@ public class TestZKCallback extends ZkUnitTestBase {
               .currentState("localhost_8900", testHelixManager.getSessionId(), curState.getId()),
           curState);
       result = TestHelper.verify(() -> {
-        return testListener.currentStateChangeReceived == true;
+        return testListener.currentStateChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();
@@ -190,7 +190,7 @@ public class TestZKCallback extends ZkUnitTestBase {
       idealState.setStateModelDefRef("StateModeldef");
       accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
       result = TestHelper.verify(() -> {
-        return testListener.idealStateChangeReceived == true;
+        return testListener.idealStateChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();
@@ -219,7 +219,7 @@ public class TestZKCallback extends ZkUnitTestBase {
 
       accessor.setProperty(keyBuilder.message("localhost_8900", message.getId()), message);
       result = TestHelper.verify(() -> {
-        return testListener.messageChangeReceived == true;
+        return testListener.messageChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();
@@ -230,7 +230,7 @@ public class TestZKCallback extends ZkUnitTestBase {
       liveInstance.setHelixVersion(UUID.randomUUID().toString());
       accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
       result = TestHelper.verify(() -> {
-        return testListener.liveInstanceChangeReceived == true;
+        return testListener.liveInstanceChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();

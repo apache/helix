@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -125,6 +126,102 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusterTopology")
+  public void testGetClusterTopologyAndFaultZoneMap() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
+    String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
+
+    // test invalid case where instance config and cluster topology have not been set.
+    get(topologyMapUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+    get(faultZoneUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+
+    String cluster = "TestCluster_1";
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(18 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      instanceConfig.setDomain("helixZoneId=zone0,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+    }
+
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(23 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      instanceConfig.setDomain("helixZoneId=zone1,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+    }
+
+    // test invalid case where instance config is set, but cluster topology has not been set.
+    get(topologyMapUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+    get(faultZoneUrlBase, null, Response.Status.BAD_REQUEST.getStatusCode(), true);
+
+    ClusterConfig configDelta = new ClusterConfig(cluster);
+    configDelta.getRecord().setSimpleField("TOPOLOGY", "/helixZoneId/instance");
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
+
+    //get valid cluster topology map
+    String topologyMapDef = get(topologyMapUrlBase, null, Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> topologyMap =
+        OBJECT_MAPPER.readValue(topologyMapDef, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertEquals(topologyMap.size(), 2);
+    Assert.assertTrue(topologyMap.get("/helixZoneId:zone0") instanceof List);
+    List<String> instances = (List<String>) topologyMap.get("/helixZoneId:zone0");
+    Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12918",
+            "/instance:TestCluster_1localhost_12919",
+            "/instance:TestCluster_1localhost_12920",
+            "/instance:TestCluster_1localhost_12921",
+            "/instance:TestCluster_1localhost_12922"))));
+
+    Assert.assertTrue(topologyMap.get("/helixZoneId:zone1") instanceof List);
+    instances = (List<String>) topologyMap.get("/helixZoneId:zone1");
+    Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12923",
+            "/instance:TestCluster_1localhost_12924",
+            "/instance:TestCluster_1localhost_12925",
+            "/instance:TestCluster_1localhost_12926",
+            "/instance:TestCluster_1localhost_12927"))));
+
+    configDelta = new ClusterConfig(cluster);
+    configDelta.getRecord().setSimpleField("FAULT_ZONE_TYPE", "helixZoneId");
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
+
+    //get valid cluster fault zone map
+    String faultZoneMapDef = get(faultZoneUrlBase, null, Response.Status.OK.getStatusCode(), true);
+    Map<String, Object> faultZoneMap =
+        OBJECT_MAPPER.readValue(faultZoneMapDef, new TypeReference<HashMap<String, Object>>() {
+        });
+    Assert.assertEquals(faultZoneMap.size(), 2);
+    Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone0") instanceof List);
+    instances = (List<String>) faultZoneMap.get("/helixZoneId:zone0");
+    Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12918",
+            "/instance:TestCluster_1localhost_12919",
+            "/instance:TestCluster_1localhost_12920",
+            "/instance:TestCluster_1localhost_12921",
+            "/instance:TestCluster_1localhost_12922"))));
+
+    Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone1") instanceof List);
+    instances = (List<String>) faultZoneMap.get("/helixZoneId:zone1");
+    Assert.assertEquals(instances.size(), 5);
+    Assert.assertTrue(instances.containsAll(new HashSet<>(Arrays
+        .asList("/instance:TestCluster_1localhost_12923",
+            "/instance:TestCluster_1localhost_12924",
+            "/instance:TestCluster_1localhost_12925",
+            "/instance:TestCluster_1localhost_12926",
+            "/instance:TestCluster_1localhost_12927"))));
+  }
+
+  @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();

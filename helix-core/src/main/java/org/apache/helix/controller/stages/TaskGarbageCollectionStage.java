@@ -73,9 +73,12 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
           continue;
         }
         long purgeInterval = workflowConfig.getJobPurgeInterval();
+        if (purgeInterval <= 0) {
+          continue;
+        }
         long currentTime = System.currentTimeMillis();
         long nextPurgeTime = workflowContext.getLastJobPurgeTime() + purgeInterval;
-        if (purgeInterval > 0 && nextPurgeTime <= currentTime) {
+        if (nextPurgeTime <= currentTime) {
           nextPurgeTime = currentTime + purgeInterval;
           // Find jobs that are ready to be purged
           Set<String> expiredJobs =

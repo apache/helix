@@ -56,7 +56,7 @@ public class TestParticipantHistory {
     String sessionString = participantHistory.getRecord()
         .getListField(ParticipantHistory.ConfigProperty.HISTORY.name()).get(0);
     Map<String, String> sessionMap =
-        ParticipantHistory.parseSessionHistoryStringToMap(sessionString);
+        ParticipantHistory.sessionHistoryStringToMap(sessionString);
 
     Assert.assertEquals(sessionMap.get(ParticipantHistory.ConfigProperty.SESSION.name()),
         "testSessionId");
@@ -65,7 +65,7 @@ public class TestParticipantHistory {
 
     // Test for error resistance
     sessionMap = ParticipantHistory
-        .parseSessionHistoryStringToMap("{TEST_FIELD_ONE=X, 12345, TEST_FIELD_TWO=Y=Z}");
+        .sessionHistoryStringToMap("{TEST_FIELD_ONE=X, 12345, TEST_FIELD_TWO=Y=Z}");
 
     Assert.assertEquals(sessionMap.get("TEST_FIELD_ONE"), "X");
     Assert.assertEquals(sessionMap.get("TEST_FIELD_TWO"), "Y");

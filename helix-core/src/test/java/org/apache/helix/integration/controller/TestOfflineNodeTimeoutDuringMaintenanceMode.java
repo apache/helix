@@ -214,7 +214,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instanceName));
     List<String> historyList = history.getHistory();
     Map<String, String> historySample =
-        ParticipantHistory.parseSessionHistoryStringToMap(historyList.get(0));
+        ParticipantHistory.sessionHistoryStringToMap(historyList.get(0));
     for (long onlineTimestamp : onlineTimestamps) {
       if (onlineTimestamp >= 0) {
         historySample.put("TIME", Long.toString(onlineTimestamp));

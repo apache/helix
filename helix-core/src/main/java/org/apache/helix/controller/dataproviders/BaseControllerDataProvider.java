@@ -471,31 +471,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * are timed-out if they have been offline for a while before going live during maintenance mode.
    */
   public Map<String, LiveInstance> getLiveInstances() {
-    return getLiveInstances(true);
-  }
-
-  /**
-   * Returns the LiveInstances for each of the instances that are currently up and running
-   */
-  public Map<String, LiveInstance> getAllLiveInstances() {
-    return getLiveInstances(false);
-  }
-
-  /**
-   * Returns the LiveInstances for each of the instances that are currently up and running
-   * @param excludeTimeoutInstances - Only effective during maintenance mode. If true, filter out
-   *                                instances that are timed-out during maintenance mode; instances
-   *                                are timed-out if they have been offline for a while before going
-   *                                live during maintenance mode.
-   */
-  private Map<String, LiveInstance> getLiveInstances(boolean excludeTimeoutInstances) {
-    if (excludeTimeoutInstances && isMaintenanceModeEnabled()) {
+    if (isMaintenanceModeEnabled()) {
       return _liveInstanceExcludeTimedOutForMaintenance;
     }
 
     return _liveInstanceCache.getPropertyMap();
   }
-
 
   /**
    * Return the set of all instances names.

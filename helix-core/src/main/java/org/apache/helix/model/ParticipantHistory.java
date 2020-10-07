@@ -224,7 +224,7 @@ public class ParticipantHistory extends HelixProperty {
    * key/value is "="; if the string is malformed, parsing correctness is not guaranteed. Always
    * check if a key is contained before using the key.
    */
-  public static Map<String, String> parseSessionHistoryStringToMap(String sessionHistoryString) {
+  public static Map<String, String> sessionHistoryStringToMap(String sessionHistoryString) {
     sessionHistoryString = sessionHistoryString.substring(1, sessionHistoryString.length() - 1);
     Map<String, String> sessionHistoryMap = new HashMap<>();
 
@@ -245,8 +245,8 @@ public class ParticipantHistory extends HelixProperty {
    * Take a string session history entry and extract the TIME field out of it. Return -1 if the TIME
    * field doesn't exist or if the TIME field cannot be parsed to a long.
    */
-  private static long extractTimeFromSessionHistoryString(String sessionHistoryString) {
-    Map<String, String> sessionHistoryMap = parseSessionHistoryStringToMap(sessionHistoryString);
+  private static long getTimeFromSessionHistoryString(String sessionHistoryString) {
+    Map<String, String> sessionHistoryMap = sessionHistoryStringToMap(sessionHistoryString);
     if (!sessionHistoryMap.containsKey(ConfigProperty.TIME.name())) {
       return -1;
     }
@@ -267,7 +267,7 @@ public class ParticipantHistory extends HelixProperty {
     if (getHistory() == null) {
       return Collections.emptyList();
     }
-    return getHistory().stream().map(ParticipantHistory::extractTimeFromSessionHistoryString)
+    return getHistory().stream().map(ParticipantHistory::getTimeFromSessionHistoryString)
         .filter(result -> result != -1).collect(Collectors.toList());
   }
 

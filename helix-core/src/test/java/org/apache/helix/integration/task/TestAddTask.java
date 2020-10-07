@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConfig;
@@ -60,9 +61,9 @@ public class TestAddTask extends TaskTestBase {
     String jobName = "JOB0";
     TaskConfig task = new TaskConfig(null, null, null, null);
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because workflow config is missing");
-    } catch (HelixException e) {
+    } catch (IllegalArgumentException e) {
       // Helix Exception is expected because workflow config is missing
     }
   }
@@ -84,9 +85,9 @@ public class TestAddTask extends TaskTestBase {
 
     TaskConfig task = new TaskConfig(null, null, null, null);
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because job config is missing");
-    } catch (HelixException e) {
+    } catch (IllegalArgumentException e) {
       // Helix Exception is expected because job config is missing
     }
   }
@@ -118,7 +119,7 @@ public class TestAddTask extends TaskTestBase {
 
     TaskConfig task = new TaskConfig(null, null, null, null);
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because job is targeted");
     } catch (HelixException e) {
       // Helix Exception is expected because job is targeted
@@ -151,7 +152,7 @@ public class TestAddTask extends TaskTestBase {
 
     TaskConfig task = new TaskConfig("dummy", null, null, null);
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because job and task both have command field");
     } catch (HelixException e) {
       // Helix Exception is expected job config and new task have command field
@@ -184,7 +185,7 @@ public class TestAddTask extends TaskTestBase {
 
     TaskConfig task = new TaskConfig(null, null, null, null);
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because job is not running");
     } catch (HelixException e) {
       // Helix Exception is expected because job id not running
@@ -215,7 +216,7 @@ public class TestAddTask extends TaskTestBase {
         TaskState.IN_PROGRESS);
 
     try {
-      _driver.addTask(null, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, null);
       Assert.fail("Exception is expected because job is not running");
     } catch (IllegalArgumentException e) {
       // Helix Exception is expected because job id not running
@@ -242,7 +243,7 @@ public class TestAddTask extends TaskTestBase {
     Map<String, String> newTaskConfig =
         new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
     TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
-    _driver.addTask(task, workflowName, jobName);
+    _driver.addTask(workflowName, jobName, task);
 
     Assert.assertTrue(TestHelper.verify(() -> {
       JobContext jobContext =
@@ -274,10 +275,10 @@ public class TestAddTask extends TaskTestBase {
     Map<String, String> newTaskConfig =
         new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
     TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
-    _driver.addTask(task, workflowName, jobName);
+    _driver.addTask(workflowName, jobName, task);
 
     try {
-      _driver.addTask(task, workflowName, jobName);
+      _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because task is being added multiple times");
     } catch (HelixException e) {
       // Helix Exception is expected because task is being added multiple times
@@ -291,5 +292,85 @@ public class TestAddTask extends TaskTestBase {
     }, TestHelper.WAIT_DURATION));
 
     _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+  }
+
+  @Test(dependsOnMethods = "testAddTaskTwice")
+  public void testAddTaskToJobNotStarted() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setExecutionDelay(5000L).setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100)
+        .setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext workflowContext = _driver.getWorkflowContext(workflowName);
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (workflowContext != null && jobContext == null);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add short running task
+    Map<String, String> newTaskConfig =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+    TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
+    _driver.addTask(workflowName, jobName, task);
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(1);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.COMPLETED);
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+  }
+
+  @Test(dependsOnMethods = "testAddTaskToJobNotStarted")
+  public void testAddTaskWorkflowAndJobNotStarted() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100)
+        .setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+
+    _controller.syncStop();
+    _driver.start(workflowBuilder1.build());
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext workflowContext = _driver.getWorkflowContext(workflowName);
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (workflowContext == null && jobContext == null);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add short running task
+    Map<String, String> newTaskConfig =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+    TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
+    _driver.addTask(workflowName, jobName, task);
+
+    // Start the Controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 }

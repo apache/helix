@@ -196,7 +196,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       mbeans.clear();
       mbeans.addAll(newMbeans);
       return newMbeans.size() == (previousMBeanCount - 2);
-    }, 3000));
+    }, TestHelper.WAIT_DURATION));
 
     HelixDataAccessor accessor = _participants[n - 1].getHelixDataAccessor();
     String firstControllerName =
@@ -226,7 +226,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       mbeans.clear();
       mbeans.addAll(newMbeans);
       return newMbeans.size() == (previousMBeanCount2 - 3);
-    }, 5000));
+    }, TestHelper.WAIT_DURATION));
 
     String instanceName = "localhost0_" + (12918);
     _participants[0] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
@@ -242,7 +242,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       mbeans.clear();
       mbeans.addAll(newMbeans);
       return newMbeans.size() == (previousMBeanCount3 + 2);
-    }, 3000));
+    }, TestHelper.WAIT_DURATION));
 
     // Add a resource
     // Register 1 resource mbean
@@ -263,7 +263,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       mbeans.clear();
       mbeans.addAll(newMbeans);
       return newMbeans.size() == (previousMBeanCount4 + _participants.length + 1);
-    }, 3000));
+    }, TestHelper.WAIT_DURATION));
 
     // Remove a resource
     // No change in instance/resource mbean
@@ -277,7 +277,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
       mbeans.clear();
       mbeans.addAll(newMbeans);
       return newMbeans.size() == (previousMBeanCount5 - (_participants.length + 1));
-    }, 3000));
+    }, TestHelper.WAIT_DURATION));
 
     // Cleanup controllers then MBeans should all be removed.
     cleanupControllers();

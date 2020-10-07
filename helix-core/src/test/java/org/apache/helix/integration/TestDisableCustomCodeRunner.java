@@ -180,7 +180,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
         }
       }
       return true;
-    }, 10 * 1000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
 
     // Change live-instance should not invoke any custom-code runner

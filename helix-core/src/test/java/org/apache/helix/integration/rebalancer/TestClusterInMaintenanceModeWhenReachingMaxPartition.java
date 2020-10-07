@@ -117,10 +117,10 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
       _participants.get(i).syncStop();
     }
 
-    Thread.sleep(1000L);
-    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
-    Assert.assertNotNull(maintenanceSignal);
-    Assert.assertNotNull(maintenanceSignal.getReason());
+    boolean result = TestHelper.verify(() -> {
+      MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms != null && ms.getReason() != null;
+    }, TestHelper.WAIT_DURATION);
   }
 
   @AfterClass

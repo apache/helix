@@ -155,15 +155,15 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertTrue(messages.get(0).getFromState().equalsIgnoreCase("SLAVE"));
     Assert.assertTrue(messages.get(0).getToState().equalsIgnoreCase("MASTER"));
 
-    runPipeline(event, dataRefresh, false);
 
-    // Verify the stale message should be deleted
+    Thread.sleep(2 * MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY);
+    runPipeline(event, dataRefresh, false);
     Assert.assertTrue(TestHelper.verify(() -> {
       if (dataCache.getStaleMessages().size() != 0) {
         return false;
       }
       return true;
-    }, 2000));
+    }, TestHelper.WAIT_DURATION));
 
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
@@ -216,7 +216,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         }
       }
       return true;
-    }, 2000));
+    }, TestHelper.WAIT_DURATION));
 
     // round2: node0 and node1 update current states but not removing messages
     // Since controller's rebalancer pipeline will GC pending messages after timeout, and both hosts
@@ -238,7 +238,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         }
       }
       return true;
-    }, 1000));
+    }, TestHelper.WAIT_DURATION));
 
     // After another purge delay, controller should cleanup messages and continue to rebalance
     Thread.sleep(msgPurgeDelay);
@@ -257,7 +257,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         return false;
       }
       return true;
-    }, 2000));
+    }, TestHelper.WAIT_DURATION));
 
     // round3: node0 changes state to master, but failed to delete message,
     // controller will clean it up

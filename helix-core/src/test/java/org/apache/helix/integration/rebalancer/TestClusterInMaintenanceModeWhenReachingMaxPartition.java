@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -76,7 +77,9 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
     _dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
@@ -103,7 +106,7 @@ public class TestClusterInMaintenanceModeWhenReachingMaxPartition extends ZkTest
           replica, -1);
       _testDBs.add(db);
     }
-    Thread.sleep(100L);
+
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     MaintenanceSignal maintenanceSignal =

@@ -52,7 +52,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-public class TestMixedModeAutoRebalance extends ZkTestBase {
+  public class TestMixedModeAutoRebalance extends ZkTestBase {
   private final int NUM_NODE = 5;
   private static final int START_PORT = 12918;
   private static final int _PARTITIONS = 5;
@@ -89,7 +89,9 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
 
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
@@ -145,9 +147,6 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
           new ResourceConfig.Builder(dbName).setPreferenceLists(userDefinedPreferenceLists).build();
       _configAccessor.setResourceConfig(CLUSTER_NAME, dbName, resourceConfig);
 
-      // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
-      Thread.sleep(500);
-
       Assert.assertTrue(_clusterVerifier.verify(3000));
       verifyUserDefinedPreferenceLists(dbName, userDefinedPreferenceLists,
           userDefinedPartitions);
@@ -160,7 +159,7 @@ public class TestMixedModeAutoRebalance extends ZkTestBase {
 
         removePartitionFromUserDefinedList(dbName, userDefinedPartitions);
         // TODO: Remove wait once we enable the BestPossibleExternalViewVerifier for the WAGED rebalancer.
-        Thread.sleep(1000);
+
         Assert.assertTrue(_clusterVerifier.verify(3000));
         verifyUserDefinedPreferenceLists(dbName, userDefinedPreferenceLists,
             userDefinedPartitions);

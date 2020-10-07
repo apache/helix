@@ -30,6 +30,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -78,7 +79,9 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
   }
 
   @AfterMethod
@@ -165,8 +168,7 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       String db = "Test-DB-" + stateModel;
       createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, partition, replica, replica);
     }
-    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
-    Thread.sleep(1000);
+
     Assert.assertTrue(_clusterVerifier.verifyByPolling(50000L, 100L));
 
     _startListen = true;

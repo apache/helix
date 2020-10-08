@@ -243,6 +243,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
+    System.out.println("new config:" + newConfig.toString());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -251,6 +252,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
+    
+    System.out.println("new config:" + config.toString());
 
     ZNRecord record = config.getRecord();
 

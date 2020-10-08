@@ -71,6 +71,9 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName()  + "invoked.");
+
     super.afterClass();
   }
 

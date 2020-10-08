@@ -44,10 +44,10 @@ public class ThreadLeakageChecker {
   private static enum ThreadCategory {
     ZkServer("zookeeper server threads", 4, 100, ZkServerThrdPattern),
     ZkSession("zkclient/zooKeeper session threads", 12, 12, ZkSessionThrdPattern),
-    ForkJoin("fork join pool threads", 2, 10, ForkJoinThrdPattern),
+    ForkJoin("fork join pool threads", 2, 100, ForkJoinThrdPattern),
     Timer("timer threads", 0, 2, TimerThrdPattern),
     TaskStateModel("TaskStateModel threads", 0, 0, TaskStateModelThrdPattern),
-    Other("Other threads", 0, 3, new String[]{""});
+    Other("Other threads", 0, 2, new String[]{""});
 
     private String _description;
     private List<String> _pattern;
@@ -145,25 +145,25 @@ public class ThreadLeakageChecker {
       int limit = threadCategory.getLimit();
       int warningLimit = threadCategory.getWarningLimit();
 
-      Integer catThreadCnt = threadByCnt.get(threadCategory);
-      if (catThreadCnt != null) {
+      Integer categoryThreadCnt = threadByCnt.get(threadCategory);
+      if (categoryThreadCnt != null) {
         boolean dumpThread = false;
-        if (catThreadCnt > limit) {
+        if (categoryThreadCnt > limit) {
           checkStatus = false;
           System.out.println(
-              "Failure " + threadCategory.getDescription() + " has " + catThreadCnt + " thread");
+              "Failure " + threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
           dumpThread = true;
-        } else if (catThreadCnt > warningLimit) {
+        } else if (categoryThreadCnt > warningLimit) {
           System.out.println(
-              "Warning " + threadCategory.getDescription() + " has " + catThreadCnt + " thread");
+              "Warning " + threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
           dumpThread = true;
         } else {
-          System.out.println(threadCategory.getDescription() + " has " + catThreadCnt + " thread");
+          System.out.println(threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
         }
         if (!dumpThread) {
           continue;
         }
-        // print first 10 thread names
+        // print first 100 thread names
         int i = 0;
         for (Thread t : threadByCat.get(threadCategory)) {
           System.out.println(i + " thread:" + t.getName());

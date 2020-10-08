@@ -135,7 +135,7 @@ public class ZkTestBase {
     long physicalMemorySize = os.getTotalPhysicalMemorySize();
     System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
 
-    int MB = 1024 * 1024;
+    long MB = 1024 * 1024;
     Runtime runtime = Runtime.getRuntime();
     long free = runtime.freeMemory()/MB;
     long total = runtime.totalMemory()/MB;

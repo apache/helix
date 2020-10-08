@@ -26,6 +26,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -106,7 +107,9 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
       Thread.sleep(200);
       ZkHelixClusterVerifier clusterVerifier =
-          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
       Assert.assertTrue(clusterVerifier.verifyByPolling());
 
       IdealState idealState1 =
@@ -128,7 +131,6 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
       // shutdown an instance
       _participants[0].syncStop();
-      Thread.sleep(200);
       Assert.assertTrue(clusterVerifier.verifyByPolling());
 
       // the original snapshot should not change

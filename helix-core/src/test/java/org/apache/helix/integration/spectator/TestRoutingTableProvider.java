@@ -163,7 +163,9 @@ public class TestRoutingTableProvider extends ZkTestBase {
     _routingTableProvider_ev = new RoutingTableProvider(_spectator);
     _routingTableProvider_cs = new RoutingTableProvider(_spectator, PropertyType.CURRENTSTATES);
 
-    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
   }
 

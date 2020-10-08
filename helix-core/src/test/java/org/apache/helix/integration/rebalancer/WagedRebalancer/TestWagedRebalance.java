@@ -707,8 +707,14 @@ public class TestWagedRebalance extends ZkTestBase {
   private void validate(int expectedReplica) {
     HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
-    Assert.assertTrue(_clusterVerifier.verify(5000));
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    try {
+      Assert.assertTrue(_clusterVerifier.verify(5000));
+    } finally {
+      _clusterVerifier.close();
+    }
     for (String db : _allDBs) {
       IdealState is =
           _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
@@ -716,7 +722,6 @@ public class TestWagedRebalance extends ZkTestBase {
           _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
       validateIsolation(is, ev, expectedReplica);
     }
-    _clusterVerifier.close();
   }
 
   /**
@@ -745,10 +750,11 @@ public class TestWagedRebalance extends ZkTestBase {
     }
     _allDBs.clear();
     // waiting for all DB be dropped.
-    Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setDeactivatedNodeAwareness(true).setResources(_allDBs).build();
+            .setDeactivatedNodeAwareness(true).setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     try {
       Assert.assertTrue(_clusterVerifier.verifyByPolling());
     } finally {

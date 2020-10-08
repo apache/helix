@@ -36,7 +36,6 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
   // create test DBs, wait it converged and return externalviews
   protected Map<String, ExternalView> createTestDBs(long delayTime)
       throws InterruptedException {
-    System.out.println("TestDelayedWagedRebalanceWithDisabledInstance createTestDbs called!");
     Map<String, ExternalView> externalViews = new HashMap<>();
     int i = 0;
     for (String stateModel : TestStateModels) {

@@ -20,7 +20,6 @@ package org.apache.helix.integration.task;
  */
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;

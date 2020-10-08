@@ -108,7 +108,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovement");
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
     validateDelayedMovements(externalViewsBefore);
-    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovement");
+    System.out.println("END TestDelayedAutoRebalance::testDelayedPartitionMovement");
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
@@ -118,7 +118,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
-    System.out.println("START TestDelayedAutoRebalance::testDelayedPartitionMovementWithClusterConfigedDelay");
+    System.out.println("END TestDelayedAutoRebalance::testDelayedPartitionMovementWithClusterConfigedDelay");
   }
 
   /**
@@ -142,7 +142,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica, NUM_NODE);
     }
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
-    System.out.println("START TestDelayedAutoRebalance::testMinimalActiveReplicaMaintain");
+    System.out.println("END TestDelayedAutoRebalance::testMinimalActiveReplicaMaintain");
   }
 
   /**
@@ -166,7 +166,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
       IdealState is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, _replica, NUM_NODE);
     }
-    System.out.println("START TestDelayedAutoRebalance::testPartitionMovementAfterDelayTime");
+    System.out.println("END TestDelayedAutoRebalance::testPartitionMovementAfterDelayTime");
   }
 
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
@@ -200,7 +200,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
             _participants.get(0).getInstanceName(), false);
       }
     }
-    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInResource");
+    System.out.println("END TestDelayedAutoRebalance::testDisableDelayRebalanceInResource");
   }
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInResource"})
@@ -222,7 +222,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
-    System.out.println("START TestDelayedAutoRebalance::testDisableDelayRebalanceInCluster");
+    System.out.println("END TestDelayedAutoRebalance::testDisableDelayRebalanceInCluster");
   }
 
   @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})

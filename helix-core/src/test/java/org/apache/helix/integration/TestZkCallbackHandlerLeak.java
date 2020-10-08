@@ -412,7 +412,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test(timeOut = 1800 * 1000)
+  @Test
   public void testCurrentStatePathLeakingByAsycRemoval() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

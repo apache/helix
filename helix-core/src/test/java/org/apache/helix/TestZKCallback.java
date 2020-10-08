@@ -166,7 +166,6 @@ public class TestZKCallback extends ZkUnitTestBase {
 
       ExternalView extView = new ExternalView("db-12345");
       accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
-
       boolean result = TestHelper.verify(() -> {
         return testListener.externalViewChangeReceived;
       }, TestHelper.WAIT_DURATION);

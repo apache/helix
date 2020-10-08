@@ -20,10 +20,8 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -92,7 +90,7 @@ public class TestSemiAutoRebalance extends ZkTestBase {
       _participants.add(participant);
     }
 
-    // start controller 
+    // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();

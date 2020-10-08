@@ -574,7 +574,7 @@ public class TestHelixAdminCli extends ZkTestBase {
         .setZkClient(_gZkClient)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
-    
+
     boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result, "grand cluster not converging.");
 

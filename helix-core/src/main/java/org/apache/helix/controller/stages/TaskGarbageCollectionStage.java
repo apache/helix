@@ -82,11 +82,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         }
         long currentTime = System.currentTimeMillis();
         long nextPurgeTime = workflowContext.getLastJobPurgeTime() + purgeInterval;
-<<<<<<< HEAD
+
         if (nextPurgeTime <= currentTime) {
-=======
-        if (purgeInterval > 0 && nextPurgeTime <= currentTime) {
->>>>>>> 08a0f4d6f... try code change to trigger test run.
           nextPurgeTime = currentTime + purgeInterval;
           // Find jobs that are ready to be purged
           Set<String> expiredJobs = TaskUtil

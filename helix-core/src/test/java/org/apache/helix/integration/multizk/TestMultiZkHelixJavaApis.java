@@ -43,6 +43,7 @@ import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -170,6 +171,9 @@ public class TestMultiZkHelixJavaApis {
 
   @AfterClass
   public void afterClass() throws Exception {
+    String testClassName = getClass().getSimpleName();
+    System.out.println("AfterClass: " + testClassName + " of TestMultiZkHelixJavaApis called.");
+
     try {
       // Kill all mock controllers and participants
       MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
@@ -215,6 +219,17 @@ public class TestMultiZkHelixJavaApis {
       } else {
         System.clearProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY);
       }
+    }
+
+    boolean status = false;
+    try {
+      status = ThreadLeakageChecker.afterClassCheck(testClassName);
+    } catch (Exception e) {
+      System.out.println("ThreadLeakageChecker exception:" + e.getStackTrace());
+    }
+    // Assert here does not work.
+    if (!status) {
+      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }
   }
 

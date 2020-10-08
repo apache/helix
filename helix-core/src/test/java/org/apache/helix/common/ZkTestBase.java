@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import bsh.This;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -44,6 +45,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -127,8 +129,22 @@ public class ZkTestBase {
   protected Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
   protected Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
+  static public void reportPhysicalMemory() {
+    com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
+        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+    long physicalMemorySize = os.getTotalPhysicalMemorySize();
+    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
+
+    int MB = 1024 * 1024;
+    Runtime runtime = Runtime.getRuntime();
+    long free = runtime.freeMemory()/MB;
+    long total = runtime.totalMemory()/MB;
+    System.out.println("************ total memory:" + total + " free memory:" + free);
+  }
+
   @BeforeSuite
   public void beforeSuite() throws Exception {
+    reportPhysicalMemory();
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
@@ -710,7 +726,9 @@ public class ZkTestBase {
   }
 
   @AfterClass
-  public void cleanupLiveInstanceOwners() {
+  public void cleanupLiveInstanceOwners() throws InterruptedException {
+    String testClassName = this.getShortClassName();
+    System.out.println("AfterClass:" + testClassName + " afterclass of ZkTestBase called!");
     for (String cluster : _liveInstanceOwners.keySet()) {
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
       for (HelixZkClient client : clientMap.values()) {
@@ -719,6 +737,17 @@ public class ZkTestBase {
       clientMap.clear();
     }
     _liveInstanceOwners.clear();
+
+    boolean status = false;
+    try {
+      status = ThreadLeakageChecker.afterClassCheck(testClassName);
+    } catch (Exception e) {
+      System.out.println("ThreadLeakageChecker exception:" + e.getStackTrace());
+    }
+    // Assert here does not work.
+    if (!status) {
+      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
+    }
   }
 
   protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {

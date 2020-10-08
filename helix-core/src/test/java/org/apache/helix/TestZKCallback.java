@@ -41,6 +41,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterSetup;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -165,8 +166,10 @@ public class TestZKCallback extends ZkUnitTestBase {
 
       ExternalView extView = new ExternalView("db-12345");
       accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
+      boolean result = TestHelper.verify(() -> {
+        return testListener.externalViewChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
       testListener.Reset();
 
       CurrentState curState = new CurrentState("db-12345");
@@ -175,8 +178,10 @@ public class TestZKCallback extends ZkUnitTestBase {
       accessor.setProperty(keyBuilder
               .currentState("localhost_8900", testHelixManager.getSessionId(), curState.getId()),
           curState);
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
+      result = TestHelper.verify(() -> {
+        return testListener.currentStateChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
       testListener.Reset();
 
       IdealState idealState = new IdealState("db-1234");
@@ -184,8 +189,10 @@ public class TestZKCallback extends ZkUnitTestBase {
       idealState.setReplicas(Integer.toString(2));
       idealState.setStateModelDefRef("StateModeldef");
       accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
+      result = TestHelper.verify(() -> {
+        return testListener.idealStateChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
       testListener.Reset();
 
       // dummyRecord = new ZNRecord("db-12345");
@@ -211,16 +218,21 @@ public class TestZKCallback extends ZkUnitTestBase {
       message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 
       accessor.setProperty(keyBuilder.message("localhost_8900", message.getId()), message);
-      Thread.sleep(500);
-      AssertJUnit.assertTrue(testListener.messageChangeReceived);
+      result = TestHelper.verify(() -> {
+        return testListener.messageChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
+      testListener.Reset();
 
       // dummyRecord = new ZNRecord("localhost_9801");
       LiveInstance liveInstance = new LiveInstance("localhost_9801");
       liveInstance.setSessionId(UUID.randomUUID().toString());
       liveInstance.setHelixVersion(UUID.randomUUID().toString());
       accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
-      Thread.sleep(500);
-      AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
+      result = TestHelper.verify(() -> {
+        return testListener.liveInstanceChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
       testListener.Reset();
 
       // dataAccessor.setNodeConfigs(recList); Thread.sleep(100);

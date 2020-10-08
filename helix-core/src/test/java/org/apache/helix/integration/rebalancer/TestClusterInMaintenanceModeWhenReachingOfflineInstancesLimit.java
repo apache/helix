@@ -151,6 +151,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       MaintenanceSignal ms =_dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     checkForRebalanceError(true);
 
@@ -176,18 +177,20 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       _participants.get(i).syncStop();
     }
 
-    Thread.sleep(500);
-
-    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
-    Assert.assertNull(maintenanceSignal);
+    boolean result = TestHelper.verify(() -> {
+      MaintenanceSignal ms = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms == null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
 
     _participants.get(i).syncStop();
 
-    Thread.sleep(500);
-    maintenanceSignal = _dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
-    Assert.assertNotNull(maintenanceSignal);
-    Assert.assertNotNull(maintenanceSignal.getReason());
-
+    result = TestHelper.verify(() -> {
+      MaintenanceSignal ms =_dataAccessor.getProperty(_dataAccessor.keyBuilder().maintenance());
+      return ms != null && ms.getReason() != null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result);
+    
     // Verify there is rebalance error logged
     checkForRebalanceError(true);
   }
@@ -217,7 +220,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       Long value =
           (Long) _server.getAttribute(getClusterMbeanName(CLUSTER_NAME), "RebalanceFailureGauge");
       return expectError == (value != null && value > 0);
-    }, 5000);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
   }
 

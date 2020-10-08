@@ -131,22 +131,28 @@ public class TestListenerCallback extends ZkUnitTestBase {
     TestConfigListener listener = new TestConfigListener();
     listener.reset();
     _manager.addInstanceConfigChangeListener(listener);
-    Assert.assertTrue(listener._instanceConfigChanged,
-        "Should get initial instanceConfig callback invoked");
+    boolean result = TestHelper.verify(()-> {
+      return listener._instanceConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get initial instanceConfig callback invoked");
     Assert.assertEquals(listener._instanceConfigs.size(), _numNodes,
         "Instance Config size does not match");
 
     listener.reset();
     _manager.addClusterfigChangeListener(listener);
-    Assert.assertTrue(listener._clusterConfigChanged,
-        "Should get initial clusterConfig callback invoked");
+    result = TestHelper.verify(()-> {
+      return listener._clusterConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get initial clusterConfig callback invoked");
     Assert.assertNotNull(listener._clusterConfig, "Cluster Config size should not be null");
 
     listener.reset();
     _manager.addResourceConfigChangeListener(listener);
-    Assert.assertTrue(listener._resourceConfigChanged,
-        "Should get initial resourceConfig callback invoked");
-    Assert.assertEquals(listener._resourceConfigs.size(), 0, "Instance Config size does not match");
+    result = TestHelper.verify(()-> {
+      return listener._resourceConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get initial resourceConfig callback invoked");
+    Assert.assertEquals(listener._resourceConfigs.size(), 0, "resource config size does not match");
 
     // test change content
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -156,9 +162,10 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener.reset();
     accessor.setProperty(keyBuilder.instanceConfig(instanceName), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._instanceConfigChanged,
-        "Should get instanceConfig callback invoked since we change instanceConfig");
+    result = TestHelper.verify(()-> {
+      return listener._instanceConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get instanceConfig callback invoked since we change instanceConfig");
     Assert.assertEquals(listener._instanceConfigs.size(), _numNodes,
         "Instance Config size does not match");
 
@@ -166,9 +173,10 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener.reset();
     accessor.setProperty(keyBuilder.clusterConfig(), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._clusterConfigChanged,
-        "Should get clusterConfig callback invoked since we change clusterConfig");
+    result = TestHelper.verify(()-> {
+      return listener._clusterConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get clusterConfig callback invoked since we change clusterConfig");
     Assert.assertNotNull(listener._clusterConfig, "Cluster Config size should not be null");
 
     String resourceName = "TestDB_0";
@@ -176,16 +184,18 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener.reset();
     accessor.setProperty(keyBuilder.resourceConfig(resourceName), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._resourceConfigChanged,
-        "Should get resourceConfig callback invoked since we add resourceConfig");
+    result = TestHelper.verify(()-> {
+      return listener._resourceConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get resourceConfig callback invoked since we add resourceConfig");
     Assert.assertEquals(listener._resourceConfigs.size(), 1, "Resource config size does not match");
 
     listener.reset();
     accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._resourceConfigChanged,
-        "Should get resourceConfig callback invoked since we add resourceConfig");
+    result = TestHelper.verify(()-> {
+      return listener._resourceConfigChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get resourceConfig callback invoked since we add resourceConfig");
     Assert.assertEquals(listener._resourceConfigs.size(), 0, "Instance Config size does not match");
   }
 
@@ -195,19 +205,27 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
     listener.reset();
     _manager.addConfigChangeListener(listener, ConfigScopeProperty.CLUSTER);
-    Assert.assertTrue(listener._configChanged, "Should get initial clusterConfig callback invoked");
+    boolean result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,"Should get initial clusterConfig callback invoked");
     Assert.assertEquals(listener._configSize, 1, "Cluster Config size should be 1");
 
     listener.reset();
     _manager.addConfigChangeListener(listener, ConfigScopeProperty.RESOURCE);
-    Assert.assertTrue(listener._configChanged,
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
         "Should get initial resourceConfig callback invoked");
     Assert.assertEquals(listener._configSize, 0, "Resource Config size does not match");
 
     listener.reset();
     _manager.addConfigChangeListener(listener, ConfigScopeProperty.PARTICIPANT);
-    Assert.assertTrue(listener._configChanged,
-        "Should get initial instanceConfig callback invoked");
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,"Should get initial resourceConfig callback invoked");
     Assert.assertEquals(listener._configSize, _numNodes, "Instance Config size does not match");
 
     // test change content
@@ -218,8 +236,10 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener.reset();
     accessor.setProperty(keyBuilder.instanceConfig(instanceName), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._configChanged,
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
         "Should get instanceConfig callback invoked since we change instanceConfig");
     Assert.assertEquals(listener._configSize, _numNodes, "Instance Config size does not match");
 
@@ -227,8 +247,10 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newClusterValue");
     listener.reset();
     accessor.setProperty(keyBuilder.clusterConfig(), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._configChanged,
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
         "Should get clusterConfig callback invoked since we change clusterConfig");
     Assert.assertEquals(listener._configSize, 1, "Cluster Config size does not match");
 
@@ -237,15 +259,19 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener.reset();
     accessor.setProperty(keyBuilder.resourceConfig(resourceName), value);
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._configChanged,
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
         "Should get resourceConfig callback invoked since we add resourceConfig");
     Assert.assertEquals(listener._configSize, 1, "Resource Config size does not match");
 
     listener.reset();
     accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
-    Thread.sleep(500); // wait zk callback
-    Assert.assertTrue(listener._configChanged,
+    result = TestHelper.verify(()-> {
+      return listener._configChanged;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
         "Should get resourceConfig callback invoked since we add resourceConfig");
     Assert.assertEquals(listener._configSize, 0, "Resource Config size does not match");
   }

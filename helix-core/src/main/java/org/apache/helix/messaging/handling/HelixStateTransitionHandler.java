@@ -38,10 +38,6 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
-import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
-import org.apache.helix.zookeeper.datamodel.ZNRecordDelta.MergeOperation;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -50,6 +46,10 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.StatusUpdateUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
+import org.apache.helix.zookeeper.datamodel.ZNRecordDelta.MergeOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +66,16 @@ public class HelixStateTransitionHandler extends MessageHandler {
   public static class HelixDuplicatedStateTransitionException extends Exception {
     public HelixDuplicatedStateTransitionException(String info) {
       super(info);
+    }
+  }
+
+  public static class StaleMessageValidateResult {
+    public boolean isValid;
+    public Exception exception;
+
+    StaleMessageValidateResult(Exception exp) {
+      exception = exp;
+      isValid = exception == null;
     }
   }
 
@@ -107,39 +117,18 @@ public class HelixStateTransitionHandler extends MessageHandler {
         + _message.getToState() + ", relayedFrom: " + _message.getRelaySrcHost());
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-
     String partitionName = _message.getPartitionName();
-    String fromState = _message.getFromState();
-    String toState = _message.getToState();
-
-    // Verify the fromState and current state of the stateModel
-    // getting current state from state model will provide most up-to-date
-    // current state. In case current state is null, partition is in initial
-    // state and we are setting it in current state
-    String state = _stateModel.getCurrentState() != null ? _stateModel.getCurrentState()
-        : _currentStateDelta.getState(partitionName);
 
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
-    Exception err = null;
-    if (toState.equalsIgnoreCase(state)) {
-      // To state equals current state, we can just ignore the message
-      err = new HelixDuplicatedStateTransitionException(
-          String.format("Partition %s current state is same as toState (%s->%s) from message.",
-              partitionName, fromState, toState));
-    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
-      // If current state is neither toState nor fromState in message, there is a problem
-      err = new HelixStateMismatchException(String.format(
-          "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
-          state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
-    }
-
-    if (err != null) {
-      _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, err.getMessage(),
-          _manager);
-      logger.error(err.getMessage());
-      throw err;
+    StaleMessageValidateResult err = staleMessageValidator();
+    if (!err.isValid) {
+      _statusUpdateUtil
+          .logError(_message, HelixStateTransitionHandler.class, err.exception.getMessage(),
+              _manager);
+      logger.error(err.exception.getMessage());
+      throw err.exception;
     }
 
     // Reset the REQUESTED_STATE property if it exists.
@@ -460,7 +449,33 @@ public class HelixStateTransitionHandler extends MessageHandler {
       StateTransitionError error = new StateTransitionError(type, code, e);
       _stateModel.rollbackOnError(_message, _notificationContext, error);
     }
+  }
 
+  // Verify the fromState and current state of the stateModel.
+  public StaleMessageValidateResult staleMessageValidator() {
+    String fromState = _message.getFromState();
+    String toState = _message.getToState();
+    String partitionName = _message.getPartitionName();
+
+    // state in _currentStateDelta uses current state from state model. It has the
+    // most up-to-date. current state. In case currentState in stateModel is null,
+    // partition is in initial state and we using it as current state.
+    // Defined in HelixStateMachineEngine.
+    String state = _currentStateDelta.getState(partitionName);
+
+    Exception err = null;
+    if (toState.equalsIgnoreCase(state)) {
+      // To state equals current state, we can just ignore the message
+      err = new HelixDuplicatedStateTransitionException(String
+          .format("Partition %s current state is same as toState (%s->%s) from message.",
+              partitionName, fromState, toState));
+    } else if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
+      // If current state is neither toState nor fromState in message, there is a problem
+      err = new HelixStateMismatchException(String.format(
+          "Current state of stateModel does not match the fromState in Message, CurrentState: %s, Message: %s->%s, Partition: %s, from: %s, to: %s",
+          state, fromState, toState, partitionName, _message.getMsgSrc(), _message.getTgtName()));
+    }
+    return new StaleMessageValidateResult(err);
   }
 
   @Override

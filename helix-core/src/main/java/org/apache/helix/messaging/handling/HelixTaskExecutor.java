@@ -903,15 +903,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
           String messageTarget =
               getMessageTarget(message.getResourceName(), message.getPartitionName());
-          if (stateTransitionHandlers.containsKey(messageTarget)) {
-            // If there are 2 messages in same batch about same partition's state transition,
-            // the later one is discarded
-            Message duplicatedMessage = stateTransitionHandlers.get(messageTarget)._message;
-            throw new HelixException(String.format(
-                "Duplicated state transition message: %s. Existing: %s->%s; New (Discarded): %s->%s",
-                message.getMsgId(), duplicatedMessage.getFromState(),
-                duplicatedMessage.getToState(), message.getFromState(), message.getToState()));
-          } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())
+
+          if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())
               && isStateTransitionInProgress(messageTarget)) {
 
             String taskId = _messageTaskMap.get(messageTarget);
@@ -919,11 +912,36 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
             // If there is another state transition for same partition is going on,
             // discard the message. Controller will resend if this is a valid message
-            throw new HelixException(String.format(
+            String errMsg = String.format(
                 "Another state transition for %s:%s is in progress with msg: %s, p2p: %s, read: %d, current:%d. Discarding %s->%s message",
-                message.getResourceName(), message.getPartitionName(), msg.getMsgId(), String.valueOf(msg.isRelayMessage()),
-                msg.getReadTimeStamp(), System.currentTimeMillis(), message.getFromState(),
-                message.getToState()));
+                message.getResourceName(), message.getPartitionName(), msg.getMsgId(),
+                String.valueOf(msg.isRelayMessage()), msg.getReadTimeStamp(),
+                System.currentTimeMillis(), message.getFromState(), message.getToState());
+            handleUnprocessableMessage(message, null /* exception */, errMsg, accessor,
+                instanceName, manager);
+            continue;
+          }
+          if (createHandler instanceof HelixStateTransitionHandler) {
+            // We only check to state if there is no ST task scheduled/executing.
+            HelixStateTransitionHandler.StaleMessageValidateResult result =
+                ((HelixStateTransitionHandler) createHandler).staleMessageValidator();
+            if (!result.isValid) {
+              handleUnprocessableMessage(message, null /* exception */,
+                  result.exception.getMessage(), accessor, instanceName, manager);
+              continue;
+            }
+          }
+          if (stateTransitionHandlers.containsKey(messageTarget)) {
+            // If there are 2 messages in same batch about same partition's state transition,
+            // the later one is discarded
+            Message duplicatedMessage = stateTransitionHandlers.get(messageTarget)._message;
+            String errMsg = String.format(
+                "Duplicated state transition message: %s. Existing: %s->%s; New (Discarded): %s->%s",
+                message.getMsgId(), duplicatedMessage.getFromState(),
+                duplicatedMessage.getToState(), message.getFromState(), message.getToState());
+            handleUnprocessableMessage(message, null /* exception */, errMsg, accessor,
+                instanceName, manager);
+            continue;
           }
 
           stateTransitionHandlers
@@ -937,16 +955,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           nonStateTransitionContexts.add(msgWorkingContext);
         }
       } catch (Exception e) {
-        LOG.error("Failed to create message handler for " + message.getMsgId(), e);
-        String error =
-            "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
-
-        _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, manager);
-
-        message.setMsgState(MessageState.UNPROCESSABLE);
-        removeMessageFromZK(accessor, message, instanceName);
-        LOG.error("Message cannot be processed: " + message.getRecord(), e);
-        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+        handleUnprocessableMessage(message, e, e.getMessage(), accessor, instanceName, manager);
         continue;
       }
 
@@ -1107,6 +1116,22 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", manager);
   }
 
+  private void handleUnprocessableMessage(Message message, Exception exception, String errorMsg,
+      HelixDataAccessor accessor, String instanceName, HelixManager manager) {
+    String error = "Message " + message.getMsgId() + " cannot be processed: " + message.getRecord();
+    if (exception != null) {
+      LOG.error(error, exception);
+      _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, exception, error, manager);
+    } else {
+      LOG.error(error + errorMsg);
+      _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, errorMsg, manager);
+    }
+    message.setMsgState(MessageState.UNPROCESSABLE);
+    removeMessageFromZK(accessor, message, instanceName);
+    _monitor.reportProcessedMessage(message,
+        ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+
+  }
   public MessageHandler createMessageHandler(Message message, NotificationContext changeContext) {
     String msgType = message.getMsgType().toString();
 

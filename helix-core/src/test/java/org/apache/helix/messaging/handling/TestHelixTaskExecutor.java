@@ -37,6 +37,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.mock.MockManager;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.testng.Assert;
@@ -212,18 +213,24 @@ public class TestHelixTaskExecutor {
       _delay = delay;
     }
 
-    class TestStateTransitionMessageHandler extends MessageHandler {
-      public TestStateTransitionMessageHandler(Message message, NotificationContext context) {
-        super(message, context);
+    class TestStateTransitionMessageHandler extends HelixStateTransitionHandler {
+
+      public TestStateTransitionMessageHandler(Message message, NotificationContext context,
+          CurrentState currentStateDelta) {
+        super(null, null, message, context, currentStateDelta);
       }
 
       @Override
-      public HelixTaskResult handleMessage() throws InterruptedException {
+      public HelixTaskResult handleMessage() {
         HelixTaskResult result = new HelixTaskResult();
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
         if (_delay > 0) {
           System.out.println("Sleeping..." + _delay);
-          Thread.sleep(_delay);
+          try {
+            Thread.sleep(_delay);
+          } catch (Exception e) {
+            assert (false);
+          }
         }
         result.setSuccess(true);
         return result;
@@ -232,11 +239,28 @@ public class TestHelixTaskExecutor {
       @Override
       public void onError(Exception e, ErrorCode code, ErrorType type) {
       }
+
+      @Override
+      public StaleMessageValidateResult staleMessageValidator() {
+        return super.staleMessageValidator();
+      }
     }
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
-      return new TestStateTransitionMessageHandler(message, context);
+      CurrentState currentStateDelta = new CurrentState(message.getResourceName());
+      currentStateDelta.setSessionId(message.getTgtSessionId());
+      currentStateDelta.setStateModelDefRef(message.getStateModelDef());
+      currentStateDelta.setStateModelFactoryName(message.getStateModelFactoryName());
+      currentStateDelta.setBucketSize(message.getBucketSize());
+      if (!message.getResourceName().equals("testStaledMessageResource")) {
+        // set the current state same as from state in the message in test testStaledMessage.
+        currentStateDelta.setState(message.getPartitionName(), "SLAVE");
+      } else {
+        // set the current state same as to state in the message in test testStaledMessage.
+        currentStateDelta.setState(message.getPartitionName(), "MASTER");
+      }
+      return new TestStateTransitionMessageHandler(message, context, currentStateDelta);
     }
 
     @Override
@@ -375,6 +399,55 @@ public class TestHelixTaskExecutor {
     Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
         0);
     System.out.println("END TestHelixTaskExecutor.testDuplicatedMessage()");
+  }
+
+  @Test()
+  public void testStaledMessage() throws InterruptedException {
+    System.out.println("START TestHelixTaskExecutor.testStaledMessage()");
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+
+    TestStateTransitionHandlerFactory stateTransitionFactory =
+        new TestStateTransitionHandlerFactory(Message.MessageType.STATE_TRANSITION.name(), 1000);
+    executor.registerMessageHandlerFactory(Message.MessageType.STATE_TRANSITION.name(),
+        stateTransitionFactory);
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    List<Message> msgList = new ArrayList<Message>();
+
+    int nMsgs = 1;
+    String instanceName = manager.getInstanceName();
+    for (int i = 0; i < nMsgs; i++) {
+      Message msg =
+          new Message(Message.MessageType.STATE_TRANSITION.name(), UUID.randomUUID().toString());
+      msg.setTgtSessionId(manager.getSessionId());
+      msg.setCreateTimeStamp((long) i);
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setPartitionName("Partition");
+      msg.setResourceName("testStaledMessageResource");
+      msg.setStateModelDef("DummyMasterSlave");
+      msg.setFromState("SLAVE");
+      msg.setToState("MASTER");
+      dataAccessor.setProperty(msg.getKey(keyBuilder, instanceName), msg);
+      msgList.add(msg);
+    }
+
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+        nMsgs);
+
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage(instanceName, msgList, changeContext);
+
+    Thread.sleep(200);
+
+    // The message should be ignored since toState is the same as current state.
+    Assert.assertEquals(dataAccessor.getChildValues(keyBuilder.messages(instanceName), true).size(),
+        0);
+
+    System.out.println("END TestHelixTaskExecutor.testStaledMessage()");
   }
 
   @Test()

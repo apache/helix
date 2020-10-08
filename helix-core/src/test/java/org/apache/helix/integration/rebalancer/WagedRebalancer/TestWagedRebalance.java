@@ -750,7 +750,6 @@ public class TestWagedRebalance extends ZkTestBase {
     }
     _allDBs.clear();
     // waiting for all DB be dropped.
-    Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setDeactivatedNodeAwareness(true).setResources(_allDBs)

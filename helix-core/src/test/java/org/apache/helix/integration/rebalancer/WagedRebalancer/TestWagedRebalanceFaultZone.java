@@ -350,7 +350,6 @@ public class TestWagedRebalanceFaultZone extends ZkTestBase {
     }
     _allDBs.clear();
     // waiting for all DB be dropped.
-    Thread.sleep(100);
     ZkHelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)

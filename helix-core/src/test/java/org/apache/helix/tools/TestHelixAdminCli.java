@@ -75,7 +75,7 @@ public class TestHelixAdminCli extends ZkTestBase {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("ClusterSetup should fail since /ClusterTest is not a valid name");
     } catch (Exception e) {
-      //  OK
+      // OK
     }
 
     // Add the grand cluster
@@ -574,12 +574,11 @@ public class TestHelixAdminCli extends ZkTestBase {
         .setZkClient(_gZkClient)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
         .build();
-
+    
     boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result, "grand cluster not converging.");
 
     // deactivate cluster
-    System.out.println("testDeactivateCluster deavtive cluster " + clusterName);
     command = "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
         + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
@@ -589,7 +588,6 @@ public class TestHelixAdminCli extends ZkTestBase {
     final String path = accessor.keyBuilder().controllerLeader().getPath();
     TestHelper.verify(() -> !_gZkClient.exists(path), 10000L);
 
-    System.out.println("validated leader path not existing " + clusterName);
     Assert.assertFalse(_gZkClient.exists(path),
         "leader should be gone after deactivate the cluster");
 

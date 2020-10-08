@@ -228,7 +228,6 @@ public class ZkClient implements Watcher {
 
     _asyncCallRetryThread = new ZkAsyncRetryThread(zkConnection.getServers());
     _asyncCallRetryThread.start();
-
     LOG.debug("ZkClient created with uid {}, _asyncCallRetryThread id {}", _uid, _asyncCallRetryThread.getId());
 
     if (monitorKey != null && !monitorKey.isEmpty() && monitorType != null && !monitorType
@@ -2212,7 +2211,6 @@ public class ZkClient implements Watcher {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
       LOG.trace("Closing a zkclient uid:{}, callStack: {} ", _uid, Arrays.asList(calls));
     }
-    LOG.info("closing a zkclient _uid{} callStack: {}", _uid,  Arrays.asList(Thread.currentThread().getStackTrace()));
     getEventLock().lock();
     IZkConnection connection = getConnection();
     try {

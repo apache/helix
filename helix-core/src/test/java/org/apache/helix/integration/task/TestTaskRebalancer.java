@@ -19,6 +19,8 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,9 +45,21 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancer extends TaskTestBase {
+  @BeforeClass
+  public void beforeClass() throws Exception {
+    super.beforeClass();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    super.afterClass();
+  }
+
   @Test
   public void basic() throws Exception {
     basic(100);
@@ -64,7 +78,10 @@ public class TestTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow flow = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName, jobBuilder)
+        .setWorkflowConfig(wfg)
         .setExpiry(expiry).build();
 
     _driver.start(flow);
@@ -109,8 +126,12 @@ public class TestTaskRebalancer extends TaskTestBase {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
 
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
     _driver.start(flow);
 
     // Wait for job completion
@@ -162,8 +183,12 @@ public class TestTaskRebalancer extends TaskTestBase {
   @Test
   public void testRepeatedWorkflow() throws Exception {
     String workflowName = "SomeWorkflow";
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName).build();
+        WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName)
+            .setWorkflowConfig(wfg)
+            .build();
     new TaskDriver(_manager).start(flow);
 
     // Wait until the workflow completes
@@ -183,8 +208,12 @@ public class TestTaskRebalancer extends TaskTestBase {
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
         .setMaxAttemptsPerTask(2).setTimeoutPerTask(1); // This timeout needs to be very short
 
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
     _driver.start(flow);
 
     // Wait until the job reports failure.
@@ -217,22 +246,32 @@ public class TestTaskRebalancer extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
-    JobQueue queue = new JobQueue.Builder(queueName).build();
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    JobQueue queue = new JobQueue.Builder(queueName)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.createQueue(queue);
 
     // Enqueue jobs
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     Set<String> master = Sets.newHashSet("MASTER");
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
-    _driver.enqueueJob(queueName, "masterJob", job1);
-    _driver.enqueueJob(queueName, "slaveJob", job2);
+    jobNames.add("masterJob");
+    jobNames.add("slaveJob");
+    jobBuilders.add(job1);
+    jobBuilders.add(job2);
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
+
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
     _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);

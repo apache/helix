@@ -48,7 +48,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -101,7 +101,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -131,7 +131,7 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3, true);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -161,15 +161,18 @@ public class TestJobFailureDependence extends TaskTestBase {
     _driver.updateWorkflow(queueName, configBuilder.build());
     _driver.stop(queueName);
 
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
       String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
-      _driver.enqueueJob(queueName, jobName, jobConfig);
+      jobNames.add(jobName);
+      jobBuilders.add(jobConfig);
     }
-
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
     _driver.resume(queueName);
 
     namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));

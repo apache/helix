@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
@@ -51,11 +52,23 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancerStopResume extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
   private static final String JOB_RESOURCE = "SomeJob";
+
+  @BeforeClass
+  public void BeforeClass() throws Exception {
+    super.beforeClass();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    super.afterClass();
+  }
 
   @Test
   public void stopAndResume() throws Exception {
@@ -63,8 +76,12 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(commandConfig);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder)
+            .setWorkflowConfig(wfg)
+            .build();
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);
@@ -82,7 +99,11 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
   @Test
   public void stopAndResumeWorkflow() throws Exception {
     String workflow = "SomeWorkflow";
-    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow).build();
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
+    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow)
+        .setWorkflowConfig(wfg)
+        .build();
 
     LOG.info("Starting flow " + workflow);
     _driver.start(flow);
@@ -102,28 +123,38 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = new JobQueue.Builder(queueName).build();
+    LOG.info("Starting job-queue : " + queueName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    JobQueue queue = new JobQueue.Builder(queueName)
+        .setWorkflowConfig(wfg)
+        .build();
     _driver.createQueue(queue);
 
     // Enqueue jobs
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master)
         .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
-    _driver.enqueueJob(queueName, job1Name, job1);
+    jobNames.add(job1Name);
+    jobBuilders.add(job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job: " + job2Name);
-    _driver.enqueueJob(queueName, job2Name, job2);
+    jobNames.add(job2Name);
+    jobBuilders.add(job2);
+    _driver.enqueueJobs(queueName, jobNames,jobBuilders);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);
+
 
     // stop job1
     LOG.info("Pausing job-queue: " + queueName);
@@ -159,13 +190,16 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
-  @Test
+  @Test(enabled = true)
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
+    queueBuilder.setWorkflowConfig(wfg);
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
@@ -175,7 +209,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
       JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
           .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
           .setTargetPartitionStates(Sets.newHashSet(targetPartition))
-          .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "200"));
+          .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, jobBuilder);
@@ -413,24 +447,37 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     // Create a queue
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg =
-        new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES).build();
+        new WorkflowConfig.Builder(queueName).setExpiry(2, TimeUnit.MINUTES)
+            .setJobPurgeInterval(-1)
+            .build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
     // Enqueue 2 jobs
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
+
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"))
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job1: " + job1Name);
+    jobNames.add(job1Name);
+    jobBuilders.add(job1);
     _driver.enqueueJob(queueName, job1Name, job1);
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(Collections.singletonMap(MockTask.JOB_DELAY, "2000"))
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job2: " + job2Name);
+    jobNames.add(job2Name);
+    jobBuilders.add(job2);
     _driver.enqueueJob(queueName, job2Name, job2);
+
+    //_driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
@@ -483,7 +530,9 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     final String workflowName = TestHelper.getTestMethodName();
 
     // Create a workflow
-    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
 
     // Add 2 jobs
     Map<String, String> jobCommandConfigMap = new HashMap<String, String>();

@@ -50,6 +50,7 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -116,6 +117,11 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     _jobCommandMap = Maps.newHashMap();
   }
 
+  @AfterClass
+  public void afterClass() throws Exception {
+    super.afterClass();
+  }
+
   @BeforeMethod
   public void beforeMethod() {
     _quotaTypeExecutionCount.clear();
@@ -135,6 +141,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 10; i++) {
@@ -173,6 +180,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 10; i++) {
@@ -211,6 +219,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 5; i++) {
@@ -310,6 +319,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     // Create 3 jobs, 2 jobs of quotaType A and B with ShortTasks and 1 job of quotaType B with
@@ -381,6 +391,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
+    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     // JOB_A
@@ -491,7 +502,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    * Tests quota-based scheduling for a job queue with different quota types.
    * @throws InterruptedException
    */
-  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
+  @Test(dependsOnMethods = "testSchedulingWithoutQuota", enabled = true)
   public void testJobQueueScheduling() throws InterruptedException {
     // First define quota config
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);
@@ -507,6 +518,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     WorkflowConfig.Builder workflowConfigBuilder = new WorkflowConfig.Builder(queueName);
     workflowConfigBuilder.setParallelJobs(1);
     workflowConfigBuilder.setAllowOverlapJobAssignment(false);
+    workflowConfigBuilder.setJobPurgeInterval(-1);
 
     // Create a job queue
     JobQueue.Builder queueBuild =
@@ -526,11 +538,16 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     JobConfig.Builder jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND)
         .addTaskConfigs(taskConfigs).setJobCommandConfigMap(_jobCommandMap).setJobType("A");
 
+    List<String> jobNames = new ArrayList<>();
+    List<JobConfig.Builder> jobBuilders = new ArrayList<>();
+
     for (int i = 0; i < 5; i++) {
       String jobName = "JOB_" + i;
       lastJobName = jobName;
-      _driver.enqueueJob(queueName, jobName, jobConfigBulider);
+      jobNames.add(jobName);
+      jobBuilders.add(jobConfigBulider);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     // Resume the queue briefly and stop again to add more jobs
     _driver.resume(queueName);
@@ -543,11 +560,16 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
     jobConfigBulider = new JobConfig.Builder().setCommand(JOB_COMMAND).addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(_jobCommandMap).setJobType("B");
 
+    jobNames.clear();
+    jobBuilders.clear();
     for (int i = 5; i < 10; i++) {
       String jobName = "JOB_" + i;
       lastJobName = jobName;
-      _driver.enqueueJob(queueName, jobName, jobConfigBulider);
+      jobNames.add(jobName);
+      jobBuilders.add(jobConfigBulider);
     }
+    _driver.enqueueJobs(queueName, jobNames, jobBuilders);
+
     _driver.resume(queueName);
     _driver.pollForJobState(queueName, queueName + "_" + lastJobName, TaskState.COMPLETED);
 
@@ -573,7 +595,9 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
   private Workflow createWorkflow(String workflowName, boolean shouldOverlapJobAssign,
       String quotaType, int numJobs, int numTasks, String taskType) {
 
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfgBuilder.build();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(shouldOverlapJobAssign);
     workflowBuilder.setWorkflowConfig(configBuilder.build());

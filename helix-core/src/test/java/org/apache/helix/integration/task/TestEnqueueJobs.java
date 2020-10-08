@@ -19,8 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -32,7 +34,11 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestEnqueueJobs extends TaskTestBase {
@@ -41,13 +47,39 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
+    //WorkflowConfig.disableJobPurge();
+  }
+
+  @AfterClass
+  @Override
+  public void afterClass() throws Exception {
+    //WorkflowConfig.enableJobPurge();
+    super.afterClass();
+  }
+
+  @BeforeMethod
+  public void beforeTest(Method testMethod, ITestContext testContext) {
+    long startTime = System.currentTimeMillis();
+    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    testContext.setAttribute("StartTime", System.currentTimeMillis());
+  }
+
+  @AfterMethod
+  public void endTest(Method testMethod, ITestContext testContext) {
+    Long startTime = (Long) testContext.getAttribute("StartTime");
+    long endTime = System.currentTimeMillis();
+    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+        + (endTime - startTime) + "ms.");
   }
 
   @Test
   public void testJobQueueAddingJobsOneByOne() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1);
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
+        .setWorkflowId(queueName)
+        .setParallelJobs(1)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -65,12 +97,13 @@ public class TestEnqueueJobs extends TaskTestBase {
         TaskState.COMPLETED);
   }
 
-  @Test
+  @Test()
   public void testJobQueueAddingJobsAtSametime() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder =
-        new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1);
+        new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
 
     // Adding jobs
@@ -82,7 +115,6 @@ public class TestEnqueueJobs extends TaskTestBase {
     List<JobConfig.Builder> jobBuilders = new ArrayList<>();
 
     _driver.waitToStop(queueName, 5000L);
-
     for (int i = 0; i < 5; i++) {
       jobNames.add("JOB" + i);
       jobBuilders.add(jobBuilder);
@@ -102,7 +134,9 @@ public class TestEnqueueJobs extends TaskTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2);
-    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    WorkflowConfig.Builder wfBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
+    WorkflowConfig wfg = wfBuilder.build();
+    Workflow.Builder builder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
     for (int i = 0; i < 5; i++) {
       builder.addJob("JOB" + i, jobBuilder);
     }
@@ -131,7 +165,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test
+  @Test()
   public void testQueueParallelJobs() throws InterruptedException {
     final int parallelJobs = 3;
     final int numberOfJobsAddedBeforeControllerSwitch = 4;
@@ -139,7 +173,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder()
-        .setWorkflowId(queueName).setParallelJobs(parallelJobs).setAllowOverlapJobAssignment(true);
+        .setWorkflowId(queueName).setParallelJobs(parallelJobs).setAllowOverlapJobAssignment(true)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -202,7 +237,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     Assert.assertTrue(minFinishTime > maxStartTime);
   }
 
-  @Test
+  @Test()
   public void testQueueJobsMaxCapacity() throws InterruptedException {
     final int numberOfJobsAddedInitially = 4;
     final int queueCapacity = 5;
@@ -211,7 +246,8 @@ public class TestEnqueueJobs extends TaskTestBase {
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
     WorkflowConfig.Builder workflowCfgBuilder =
         new WorkflowConfig.Builder().setWorkflowId(queueName).setParallelJobs(1)
-            .setAllowOverlapJobAssignment(true).setCapacity(queueCapacity);
+            .setAllowOverlapJobAssignment(true).setCapacity(queueCapacity)
+        .setJobPurgeInterval(-1);
     _driver.start(builder.setWorkflowConfig(workflowCfgBuilder.build()).build());
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
@@ -230,7 +266,6 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.enqueueJobs(queueName, jobNames, jobBuilders);
 
     _driver.resume(queueName);
-
     // Wait until all of the enqueued jobs (Job0 to Job3) are finished
     for (int i = 0; i < numberOfJobsAddedInitially; i++) {
       _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + i),

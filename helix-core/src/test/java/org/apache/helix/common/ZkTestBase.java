@@ -44,6 +44,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -127,8 +128,22 @@ public class ZkTestBase {
   protected Map<String, ClusterSetup> _clusterSetupMap = new HashMap<>();
   protected Map<String, BaseDataAccessor> _baseDataAccessorMap = new HashMap<>();
 
+  static public void reportPhysicalMemory() {
+    com.sun.management.OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean)
+        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+    long physicalMemorySize = os.getTotalPhysicalMemorySize();
+    System.out.println("************ SYSTEM Physical Memory:"  + physicalMemorySize);
+
+    long MB = 1024 * 1024;
+    Runtime runtime = Runtime.getRuntime();
+    long free = runtime.freeMemory()/MB;
+    long total = runtime.totalMemory()/MB;
+    System.out.println("************ total memory:" + total + " free memory:" + free);
+  }
+
   @BeforeSuite
   public void beforeSuite() throws Exception {
+    reportPhysicalMemory();
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
@@ -710,7 +725,8 @@ public class ZkTestBase {
   }
 
   @AfterClass
-  public void cleanupLiveInstanceOwners() {
+  public void cleanupLiveInstanceOwners() throws InterruptedException {
+    String testClassName = this.getShortClassName();
     for (String cluster : _liveInstanceOwners.keySet()) {
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
       for (HelixZkClient client : clientMap.values()) {
@@ -719,6 +735,17 @@ public class ZkTestBase {
       clientMap.clear();
     }
     _liveInstanceOwners.clear();
+
+    boolean status = false;
+    try {
+      status = ThreadLeakageChecker.afterClassCheck(testClassName);
+    } catch (Exception e) {
+      LOG.error("ThreadLeakageChecker exception:", e);
+    }
+    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
+    if (!status) {
+      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
+    }
   }
 
   protected List<LiveInstance> setupLiveInstances(String clusterName, int[] liveInstances) {

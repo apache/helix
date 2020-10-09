@@ -239,15 +239,15 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
       int failureThreshold, int capacity) {
-    return buildJobQueue(jobQueueName, delayStart, failureThreshold, capacity, false);
+    return buildJobQueue(jobQueueName, delayStart, failureThreshold, capacity, true);
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
-      int failureThreshold, int capacity, boolean disablePurge) {
+      int failureThreshold, int capacity, boolean doPurge) {
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     workflowCfgBuilder.setCapacity(capacity);
-    if (disablePurge) {
+    if (!doPurge) {
       workflowCfgBuilder.setJobPurgeInterval(-1);
     }
 
@@ -264,8 +264,8 @@ public class TaskTestUtil {
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
-      int failureThreshold, boolean disablePurge) {
-    return buildJobQueue(jobQueueName, delayStart, failureThreshold, 500, disablePurge);
+      int failureThreshold, boolean doPurge) {
+    return buildJobQueue(jobQueueName, delayStart, failureThreshold, 500, doPurge);
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,

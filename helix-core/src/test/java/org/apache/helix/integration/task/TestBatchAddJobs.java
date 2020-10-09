@@ -87,7 +87,7 @@ public class TestBatchAddJobs extends ZkTestBase {
   @AfterClass
   public void afterClass() {
     String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestBachAddJobs called.");
+    System.out.println("AfterClass: " + testClassName + " called.");
 
     for (SubmitJobTask submitJobTask : _submitJobTasks) {
       submitJobTask.interrupt();

@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import bsh.This;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;

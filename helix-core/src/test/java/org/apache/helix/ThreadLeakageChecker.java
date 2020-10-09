@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.helix;
 
 import java.util.ArrayList;
@@ -33,20 +52,20 @@ public class ThreadLeakageChecker {
     return Arrays.asList(Arrays.copyOf(threads, count));
   }
 
-  private static final String[] ZkServerThrdPattern =
+  private static final String[] ZKSERVER_THRD_PATTERN =
       {"SessionTracker", "NIOServerCxn", "SyncThread:", "ProcessThread"};
-  private static final String[] ZkSessionThrdPattern =
+  private static final String[] ZKSESSION_THRD_PATTERN =
       new String[]{"ZkClient-EventThread", "ZkClient-AsyncCallback", "-EventThread", "-SendThread"};
-  private static final String[] ForkJoinThrdPattern = new String[]{"ForkJoinPool"};
-  private static final String[] TimerThrdPattern = new String[]{"time"};
-  private static final String[] TaskStateModelThrdPattern = new String[]{"TaskStateModel"};
+  private static final String[] FORKJOIN_THRD_PATTERN = new String[]{"ForkJoinPool"};
+  private static final String[] TIMER_THRD_PATTERN = new String[]{"time"};
+  private static final String[] TASKSTATEMODEL_THRD_PATTERN = new String[]{"TaskStateModel"};
 
   private static enum ThreadCategory {
-    ZkServer("zookeeper server threads", 4, 100, ZkServerThrdPattern),
-    ZkSession("zkclient/zooKeeper session threads", 12, 12, ZkSessionThrdPattern),
-    ForkJoin("fork join pool threads", 2, 100, ForkJoinThrdPattern),
-    Timer("timer threads", 0, 2, TimerThrdPattern),
-    TaskStateModel("TaskStateModel threads", 0, 0, TaskStateModelThrdPattern),
+    ZkServer("zookeeper server threads", 4, 100, ZKSERVER_THRD_PATTERN),
+    ZkSession("zkclient/zooKeeper session threads", 12, 12, ZKSESSION_THRD_PATTERN),
+    ForkJoin("fork join pool threads", 2, 100, FORKJOIN_THRD_PATTERN),
+    Timer("timer threads", 0, 2, TIMER_THRD_PATTERN),
+    TaskStateModel("TaskStateModel threads", 0, 0, TASKSTATEMODEL_THRD_PATTERN),
     Other("Other threads", 0, 2, new String[]{""});
 
     private String _description;

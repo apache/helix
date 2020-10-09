@@ -176,6 +176,8 @@ public class ThreadLeakageChecker {
       });
     });
 
+    // todo: We should make the following System.out as LOG.INfO once we achieve 0 thread leakage.
+    // todo: also the calling point of this method would fail the test
     // step 3: enforce checking policy
     boolean checkStatus = true;
     for (ThreadCategory threadCategory : ThreadCategory.values()) {

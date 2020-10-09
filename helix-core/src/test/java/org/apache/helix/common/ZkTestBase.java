@@ -742,7 +742,7 @@ public class ZkTestBase {
     } catch (Exception e) {
       LOG.error("ThreadLeakageChecker exception:", e);
     }
-    // Assert here does not work.
+    // todo: We should fail test here once we achieved 0 leakage and remove the following System print
     if (!status) {
       System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }

@@ -727,7 +727,6 @@ public class ZkTestBase {
   @AfterClass
   public void cleanupLiveInstanceOwners() throws InterruptedException {
     String testClassName = this.getShortClassName();
-    System.out.println("AfterClass:" + testClassName + " afterclass of ZkTestBase called!");
     for (String cluster : _liveInstanceOwners.keySet()) {
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
       for (HelixZkClient client : clientMap.values()) {
@@ -741,7 +740,7 @@ public class ZkTestBase {
     try {
       status = ThreadLeakageChecker.afterClassCheck(testClassName);
     } catch (Exception e) {
-      System.out.println("ThreadLeakageChecker exception:" + e.getStackTrace());
+      LOG.error("ThreadLeakageChecker exception:", e);
     }
     // Assert here does not work.
     if (!status) {

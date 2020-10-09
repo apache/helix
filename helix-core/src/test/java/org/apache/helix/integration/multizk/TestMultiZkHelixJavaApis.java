@@ -172,8 +172,7 @@ public class TestMultiZkHelixJavaApis {
   @AfterClass
   public void afterClass() throws Exception {
     String testClassName = getClass().getSimpleName();
-    System.out.println("AfterClass: " + testClassName + " of TestMultiZkHelixJavaApis called.");
-
+    
     try {
       // Kill all mock controllers and participants
       MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);

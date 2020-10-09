@@ -60,6 +60,24 @@ public class ThreadLeakageChecker {
   private static final String[] TIMER_THRD_PATTERN = new String[]{"time"};
   private static final String[] TASKSTATEMODEL_THRD_PATTERN = new String[]{"TaskStateModel"};
 
+  /*
+   * The two threshold -- warning and limit, are mostly empirical.
+   *
+   * ZkServer, current version has only 4 threads. In case later version use more, we the limit to 100.
+   * The reasoning is that these ZkServer threads are not deemed as leaking no matter how much they have.
+   *
+   * ZkSession is the ZkClient and native Zookeeper client we have. ZkTestBase has 12 at starting up time.
+   * Thus, if there is more than that, it is the test code leaking ZkClient.
+   *
+   * ForkJoin is created by using parallel stream or similar Java features. This is out of our control.
+   * Similar to ZkServer. The limit is to 100 while keep a small _warningLimit.
+   *
+   * Timer should not happen. Setting limit to 2 not 0 mostly because even when you cancel the timer
+   * thread, it may take some not deterministic time for it to go away. So give it some slack here
+   *
+   * Also note, this ThreadLeakage checker depends on the fact that tests are running sequentially.
+   * Otherwise, the report is not going to be accurate.
+   */
   private static enum ThreadCategory {
     ZkServer("zookeeper server threads", 4, 100, ZKSERVER_THRD_PATTERN),
     ZkSession("zkclient/zooKeeper session threads", 12, 12, ZKSESSION_THRD_PATTERN),

@@ -70,20 +70,6 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
-   * @return The list field for HISTORY
-   */
-  public List<String> getHistory() {
-    return _record.getListField(ConfigProperty.HISTORY.name());
-  }
-
-  /**
-   * @return The list field for OFFLINE
-   */
-  public List<String> getOffline() {
-    return _record.getListField(ConfigProperty.OFFLINE.name());
-  }
-
-  /**
    * Called when a participant went offline or is about to go offline.
    * This will update the offline timestamp in participant history.
    */
@@ -264,10 +250,11 @@ public class ParticipantHistory extends HelixProperty {
    * parsed, skip them.
    */
   public List<Long> getOnlineTimestampsAsMilliseconds() {
-    if (getHistory() == null) {
+    List<String> historyList = getRecord().getListField(ConfigProperty.HISTORY.name());
+    if (historyList == null) {
       return Collections.emptyList();
     }
-    return getHistory().stream().map(ParticipantHistory::getTimeFromSessionHistoryString)
+    return historyList.stream().map(ParticipantHistory::getTimeFromSessionHistoryString)
         .filter(result -> result != -1).collect(Collectors.toList());
   }
 
@@ -276,10 +263,11 @@ public class ParticipantHistory extends HelixProperty {
    * parsed, skip them.
    */
   public List<Long> getOfflineTimestampsAsMilliseconds() {
-    if (getOffline() == null) {
+    List<String> offlineList = getRecord().getListField(ConfigProperty.OFFLINE.name());
+    if (offlineList == null) {
       return Collections.emptyList();
     }
-    return getOffline().stream().map(ParticipantHistory::historyDateStringToLong)
+    return offlineList.stream().map(ParticipantHistory::historyDateStringToLong)
         .filter(result -> result != -1).collect(Collectors.toList());
   }
 }

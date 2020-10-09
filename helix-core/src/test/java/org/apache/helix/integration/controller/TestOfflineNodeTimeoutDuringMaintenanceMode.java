@@ -5,19 +5,22 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.ParticipantHistory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -29,18 +32,23 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
 
   private HelixDataAccessor _helixDataAccessor;
   private PropertyKey.Builder _keyBuilder;
+  private ClusterControllerManager _controller;
 
   @BeforeClass
   @Override
   public void beforeClass() throws Exception {
     super.beforeClass();
     _gSetupTool.addCluster(CLUSTER_NAME, true);
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
     _helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     _keyBuilder = _helixDataAccessor.keyBuilder();
   }
 
   @Test
-  public void testOfflineNodeTimeoutDuringMaintenanceMode() {
+  public void testOfflineNodeTimeoutDuringMaintenanceMode() throws Exception {
     // 1st case: an offline node that comes live during maintenance, should be timed-out
     String instance1 = "Instance1";
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, instance1);
@@ -53,9 +61,13 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
     MockParticipantManager participant2 =
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
     participant2.syncStart();
-    // New instance case: a new node that comes live before maintenance, shouldn't be timed-out
+    // New instance case: a new node that comes live after maintenance, shouldn't be timed-out
     String newInstance = "NewInstance";
     _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newInstance);
+
+    String dbName = "TestDB_1";
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, 5, "MasterSlave");
+    _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 3);
 
     // Set timeout window to be 0 millisecond, causing any node that goes offline to time out
     ClusterConfig clusterConfig = _helixDataAccessor.getProperty(_keyBuilder.clusterConfig());
@@ -84,15 +96,11 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newInstance);
     newParticipant.syncStart();
 
-    // Cache refresh
-    ResourceControllerDataProvider resourceControllerDataProvider =
-        new ResourceControllerDataProvider(CLUSTER_NAME);
-    resourceControllerDataProvider.refresh(_helixDataAccessor);
-    Assert
-        .assertFalse(resourceControllerDataProvider.getLiveInstances().containsKey(instance1));
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance2));
-    Assert
-        .assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(newInstance));
+    // Only includes instance 2
+    ExternalView externalView = _helixDataAccessor.getProperty(_keyBuilder.externalView(dbName));
+    for (String partition : externalView.getPartitionSet()) {
+      Assert.assertEquals(externalView.getStateMap(partition).keySet(), Collections.singletonList(instance2));
+    }
     // History wise, all instances should still be treated as online
     ParticipantHistory history1 =
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instance1));
@@ -101,13 +109,19 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instance2));
     Assert.assertEquals(history2.getLastOfflineTime(), ParticipantHistory.ONLINE);
 
-    // Exit the maintenance mode and cache refresh, the instance should be included in
-    // liveInstanceCache again
+    // Exit the maintenance mode, and the instance should be included in liveInstanceCache again
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "Test", Collections.emptyMap());
-    resourceControllerDataProvider.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
-    resourceControllerDataProvider.refresh(_helixDataAccessor);
-    Assert.assertTrue(resourceControllerDataProvider.getLiveInstances().containsKey(instance1));
+    // Include every instance
+    final ExternalView newExternalView = _helixDataAccessor.getProperty(_keyBuilder.externalView(dbName));
+    Set<String> allInstances = new HashSet<>();
+    allInstances.add(instance1);
+    allInstances.add(instance2);
+    allInstances.add(newInstance);
+    for (String partition : externalView.getPartitionSet()) {
+      TestHelper.verify(() -> newExternalView.getStateMap(partition).keySet().equals(allInstances),
+          12000);
+    }
   }
 
   @Test(dependsOnMethods = "testOfflineNodeTimeoutDuringMaintenanceMode")
@@ -212,7 +226,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
       long[] offlineTimestamps) {
     ParticipantHistory history =
         _helixDataAccessor.getProperty(_keyBuilder.participantHistory(instanceName));
-    List<String> historyList = history.getHistory();
+    List<String> historyList = history.getRecord().getListField("HISTORY");
     Map<String, String> historySample =
         ParticipantHistory.sessionHistoryStringToMap(historyList.get(0));
     for (long onlineTimestamp : onlineTimestamps) {
@@ -223,7 +237,7 @@ public class TestOfflineNodeTimeoutDuringMaintenanceMode extends ZkTestBase {
       }
       historyList.add(historySample.toString());
     }
-    List<String> offlineList = history.getOffline();
+    List<String> offlineList = history.getRecord().getListField("OFFLINE");
     if (offlineList == null) {
       offlineList = new ArrayList<>();
       history.getRecord().setListField("OFFLINE", offlineList);

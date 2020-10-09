@@ -45,6 +45,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.RebalanceConfig;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -84,6 +85,8 @@ import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -96,6 +99,7 @@ import org.testng.annotations.Test;
  * This test verifies that all Helix Java APIs work as expected.
  */
 public class TestMultiZkHelixJavaApis {
+  private static Logger LOG = LoggerFactory.getLogger(TestMultiZkHelixJavaApis.class);
   private static final int NUM_ZK = 3;
   private static final Map<String, ZkServer> ZK_SERVER_MAP = new HashMap<>();
   private static final Map<String, HelixZkClient> ZK_CLIENT_MAP = new HashMap<>();
@@ -172,7 +176,7 @@ public class TestMultiZkHelixJavaApis {
   @AfterClass
   public void afterClass() throws Exception {
     String testClassName = getClass().getSimpleName();
-    
+
     try {
       // Kill all mock controllers and participants
       MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
@@ -224,7 +228,7 @@ public class TestMultiZkHelixJavaApis {
     try {
       status = ThreadLeakageChecker.afterClassCheck(testClassName);
     } catch (Exception e) {
-      System.out.println("ThreadLeakageChecker exception:" + e.getStackTrace());
+      LOG.error("ThreadLeakageChecker exception:", e);
     }
     // Assert here does not work.
     if (!status) {

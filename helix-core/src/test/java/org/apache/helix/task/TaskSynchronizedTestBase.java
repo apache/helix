@@ -28,6 +28,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -89,6 +90,7 @@ public class TaskSynchronizedTestBase extends ZkTestBase {
     }
     stopParticipants();
     deleteCluster(CLUSTER_NAME);
+    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName()  + "invoked.");
   }
 
   protected void setupDBs() {

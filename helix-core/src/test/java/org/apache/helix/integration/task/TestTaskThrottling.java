@@ -39,7 +39,6 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -52,10 +51,6 @@ public class TestTaskThrottling extends TaskTestBase {
     super.beforeClass();
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
   /**
    * This test has been disabled/deprecated because Task Framework 2.0 uses quotas that are meant to
    * throttle tasks.

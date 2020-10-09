@@ -30,7 +30,6 @@ import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -43,11 +42,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     _numDbs = 4;
     _partitionVary = false;
     super.beforeClass();
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
   }
 
   /**

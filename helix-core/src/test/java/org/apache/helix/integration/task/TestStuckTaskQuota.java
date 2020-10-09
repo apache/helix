@@ -35,7 +35,6 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -59,14 +58,6 @@ public class TestStuckTaskQuota extends TaskTestBase {
 
     // Start first participant
     startParticipantAndRegisterNewMockTask(0);
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName()  + "invoked.");
-
-    super.afterClass();
   }
 
   @Test

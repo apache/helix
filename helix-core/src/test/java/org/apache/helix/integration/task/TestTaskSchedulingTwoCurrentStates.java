@@ -48,7 +48,6 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
@@ -89,13 +88,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
           new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
-  }
-
-  @AfterClass()
-  public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName() + "called.");
-    super.afterClass();
   }
 
   @Test

@@ -51,23 +51,11 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancerStopResume extends TaskTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskRebalancerStopResume.class);
   private static final String JOB_RESOURCE = "SomeJob";
-
-  @BeforeClass
-  public void BeforeClass() throws Exception {
-    super.beforeClass();
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
 
   @Test
   public void stopAndResume() throws Exception {
@@ -475,7 +463,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     jobNames.add(job2Name);
     jobBuilders.add(job2);
     _driver.enqueueJob(queueName, job2Name, job2);
-    
+
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
 

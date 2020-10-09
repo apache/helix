@@ -50,15 +50,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskRebalancer extends TaskTestBase {
-  @BeforeClass
-  public void beforeClass() throws Exception {
-    super.beforeClass();
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
 
   @Test
   public void basic() throws Exception {

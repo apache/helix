@@ -33,7 +33,6 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
@@ -67,14 +66,6 @@ public class TestMaxNumberOfAttemptsMasterSwitch extends TaskTestBase {
     _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
     _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
     _assignmentList2.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName()  + "invoked.");
-
-    super.afterClass();
   }
 
   @Test

@@ -19,10 +19,8 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -34,14 +32,16 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
-import org.testng.ITestContext;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestEnqueueJobs extends TaskTestBase {
+  
+  @BeforeClass
+  public void beforeClass() throws Exception {
+    setSingleTestEnvironment();
+    super.beforeClass();
+  }
 
   @Test
   public void testJobQueueAddingJobsOneByOne() throws InterruptedException {

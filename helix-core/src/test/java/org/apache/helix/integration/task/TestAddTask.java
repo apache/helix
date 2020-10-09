@@ -19,6 +19,7 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import java.util.HashMap;
@@ -39,8 +40,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TestAddTask extends TaskTestBase {
 
@@ -124,7 +123,7 @@ public class TestAddTask extends TaskTestBase {
     } catch (HelixException e) {
       // Helix Exception is expected because job is targeted
     }
-    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testAddTaskToTargetedJob")
@@ -157,7 +156,7 @@ public class TestAddTask extends TaskTestBase {
     } catch (HelixException e) {
       // Helix Exception is expected job config and new task have command field
     }
-    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testAddTaskJobAndTaskCommand")
@@ -252,7 +251,7 @@ public class TestAddTask extends TaskTestBase {
       return (jobContext != null && state == TaskPartitionState.COMPLETED);
     }, TestHelper.WAIT_DURATION));
 
-    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testAddTaskSuccessfully")
@@ -291,7 +290,7 @@ public class TestAddTask extends TaskTestBase {
       return (jobContext != null && state == TaskPartitionState.COMPLETED);
     }, TestHelper.WAIT_DURATION));
 
-    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testAddTaskTwice")
@@ -343,8 +342,7 @@ public class TestAddTask extends TaskTestBase {
     String jobName = "JOB0";
 
     JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
-        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100)
-        .setCommand(MockTask.TASK_COMMAND)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
 
     Workflow.Builder workflowBuilder1 =

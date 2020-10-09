@@ -27,8 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.TimeoutException;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -76,8 +76,11 @@ public class TaskDriver {
   /** Default time out for monitoring workflow or job state */
   private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
 
-  /** The illegal job states for the jobs to accept new task */
-  private static Set<TaskState> illegalJobStatesForTaskAddition = new HashSet<>(
+  /** Default sleep time for requests */
+  private final static long DEFAULT_SLEEP = 1000L; /* 1 second */
+
+  /** The illegal job states for job to accept new tasks */
+  private final static Set<TaskState> ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION = new HashSet<>(
       Arrays.asList(TaskState.TIMING_OUT, TaskState.TIMED_OUT, TaskState.FAILING, TaskState.FAILED,
           TaskState.ABORTED, TaskState.COMPLETED, TaskState.STOPPING, TaskState.STOPPED));
 
@@ -531,14 +534,14 @@ public class TaskDriver {
   }
 
   /**
-   * Add task to a running (IN-PROGRESS) job or the job which is not started yet. Timeout for this
-   * operation is default timeout
-   * Note1: Task cannot be added if the job is in an illegal state. The states that job can accept
-   * new task is if the job is in progress or the job has not started yet.
+   * Add task to a running (IN-PROGRESS) job or a job which has not started yet. Timeout for this
+   * operation is default timeout which is 5 minutes. {@link TaskDriver#DEFAULT_TIMEOUT}
+   * Note1: Task cannot be added if the job is in an illegal state. A job can accept
+   * new task if the job is in-progress or it has not started yet.
    * Note2: The job can only be added to non-targeted jobs.
-   * Note3: The taskID for new task should be unique. If not, this API throws and exception.
+   * Note3: The taskID for new task should be unique. If not, this API throws an exception.
    * Note4: In case of timeout exception, it is user's responsibility to check whether the task has
-   * been successfully added ot not.
+   * been successfully added or not.
    * @param workflowName
    * @param jobName
    * @param taskConfig
@@ -549,24 +552,31 @@ public class TaskDriver {
   }
 
   /**
-   * Add task to a running (IN-PROGRESS) job or the job which is not started yet
-   * Note1: Task may cannot be added if the job is in an illegal state. The states that job can
-   * accept new task is if the job is in progress or the job has not started yet.
+   * Add task to a running (IN-PROGRESS) job or a job which has not started yet
+   * Note1: Task cannot be added if the job is in an illegal state. A job can accept
+   * new task if the job is in-progress or it has not started yet.
    * Note2: The job can only be added to non-targeted jobs.
-   * Note3: The taskID for new task should be unique. If not, this API throws and exception.
+   * Note3: The taskID for new task should be unique. If not, this API throws an exception.
    * Note4: In case of timeout exception, it is user's responsibility to check whether the task has
-   * been successfully added ot not.
+   * been successfully added or not.
    * Note5: timeout is the time that this API checks whether the task has been successfully added or
    * not.
    * @param workflowName
    * @param jobName
    * @param taskConfig
-   * @param timeout
+   * @param timeoutMs
    * @throws Exception
    */
-  public void addTask(String workflowName, String jobName, TaskConfig taskConfig, long timeout)
+  public void addTask(String workflowName, String jobName, TaskConfig taskConfig, long timeoutMs)
       throws Exception {
-    long endTime = System.currentTimeMillis() + timeout;
+
+    if (timeoutMs < DEFAULT_SLEEP) {
+      throw new IllegalArgumentException(
+          String.format("Timeout is less than the minimum acceptable timeout value which is %s ms",
+              DEFAULT_SLEEP));
+    }
+
+    long endTime = System.currentTimeMillis() + timeoutMs;
 
     validateAddTaskConfigs(workflowName, jobName, taskConfig);
 
@@ -588,9 +598,10 @@ public class TaskDriver {
       return;
     }
 
-    if (illegalJobStatesForTaskAddition.contains(jobState)) {
-      throw new HelixException("Job " + nameSpaceJobName
-          + " is in illegal state to accept new task. Job State is " + jobState);
+    if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
+      throw new HelixException(
+          String.format("Job %s is in illegal state to accept new task. Job State is %s",
+              nameSpaceJobName, jobState));
     }
     addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
   }
@@ -608,11 +619,13 @@ public class TaskDriver {
     JobConfig jobConfig = TaskUtil.getJobConfig(_accessor, nameSpaceJobName);
 
     if (workflowConfig == null) {
-      throw new IllegalArgumentException("Workflow " + workflowName + " config does not exist!");
+      throw new IllegalArgumentException(
+          String.format("Workflow config for workflow %s does not exist!", workflowName));
     }
 
     if (jobConfig == null) {
-      throw new IllegalArgumentException("Job " + nameSpaceJobName + " config does not exist!");
+      throw new IllegalArgumentException(
+          String.format("Job config for job %s does not exist!", nameSpaceJobName));
     }
 
     if (taskConfig == null) {
@@ -620,13 +633,12 @@ public class TaskDriver {
     }
 
     if (taskConfig.getId() == null) {
-      throw new HelixException(
-          "Task cannot be added because taskID is null!");
+      throw new HelixException("Task cannot be added because taskID is null!");
     }
 
     if (jobConfig.getTargetResource() != null) {
-      throw new HelixException(
-          "Job " + nameSpaceJobName + " is a targeted job. New task cannot be added to this job!");
+      throw new HelixException(String.format(
+          "Job %s is a targeted job. New task cannot be added to this job!", nameSpaceJobName));
     }
 
     if (taskConfig.getCommand() == null && jobConfig.getCommand() == null) {
@@ -663,11 +675,13 @@ public class TaskDriver {
     boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
       LOG.error("Failed to add task to the job {}", nameSpaceJobName);
-      throw new HelixException("Failed to add task to the job");
+      throw new HelixException("Failed to add task to the job!");
     }
 
-    WorkflowContext workflowContext = getWorkflowContext(workflowName);
-    JobContext jobContext = getJobContext(nameSpaceJobName);
+    WorkflowContext workflowContext =
+        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+    JobContext jobContext =
+        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
 
     if (workflowContext == null || jobContext == null) {
       return;
@@ -675,14 +689,17 @@ public class TaskDriver {
 
     String taskID = taskConfig.getId();
     while (System.currentTimeMillis() <= endTime) {
-      jobContext = getJobContext(nameSpaceJobName);
+      jobContext =
+          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+      workflowContext =
+          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
       for (Map.Entry<String, Integer> entry : jobContext.getTaskIdPartitionMap().entrySet()) {
-        if (entry.getKey().equals(taskID) && getWorkflowContext(workflowName)
-            .getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+        if (entry.getKey().equals(taskID)
+            && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
           return;
         }
       }
-      Thread.sleep(1000L);
+      Thread.sleep(DEFAULT_SLEEP);
     }
     throw new TimeoutException("An unexpected issue happened while task being added to the job!");
   }
@@ -776,7 +793,7 @@ public class TaskDriver {
 
       if (workflowContext == null
           || !TaskState.STOPPED.equals(workflowContext.getWorkflowState())) {
-        Thread.sleep(1000);
+        Thread.sleep(DEFAULT_SLEEP);
       } else {
         // Successfully stopped
         return;
@@ -879,7 +896,7 @@ public class TaskDriver {
       if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)
           || baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
           || baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
-        Thread.sleep(1000);
+        Thread.sleep(DEFAULT_SLEEP);
       } else {
         return;
       }
@@ -1105,11 +1122,10 @@ public class TaskDriver {
       WorkflowConfig wfcfg = getWorkflowConfig(workflowName);
       JobConfig jobConfig = getJobConfig(jobName);
       JobContext jbCtx = getJobContext(jobName);
-      throw new HelixException(
-          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
-              workflowName, jobName, allowedStates,
-              ctx == null ? "null" : ctx, ctx != null ? ctx.getJobState(jobName) : "null",
-              wfcfg, jobConfig, jbCtx));
+      throw new HelixException(String.format(
+          "Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
+          workflowName, jobName, allowedStates, ctx == null ? "null" : ctx,
+          ctx != null ? ctx.getJobState(jobName) : "null", wfcfg, jobConfig, jbCtx));
 
     }
 

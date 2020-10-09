@@ -47,13 +47,11 @@ public class TestEnqueueJobs extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
-    //WorkflowConfig.disableJobPurge();
   }
 
   @AfterClass
   @Override
   public void afterClass() throws Exception {
-    //WorkflowConfig.enableJobPurge();
     super.afterClass();
   }
 
@@ -97,7 +95,7 @@ public class TestEnqueueJobs extends TaskTestBase {
         TaskState.COMPLETED);
   }
 
-  @Test()
+  @Test
   public void testJobQueueAddingJobsAtSametime() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName);
@@ -165,7 +163,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
   }
 
-  @Test()
+  @Test
   public void testQueueParallelJobs() throws InterruptedException {
     final int parallelJobs = 3;
     final int numberOfJobsAddedBeforeControllerSwitch = 4;
@@ -237,7 +235,7 @@ public class TestEnqueueJobs extends TaskTestBase {
     Assert.assertTrue(minFinishTime > maxStartTime);
   }
 
-  @Test()
+  @Test
   public void testQueueJobsMaxCapacity() throws InterruptedException {
     final int numberOfJobsAddedInitially = 4;
     final int queueCapacity = 5;

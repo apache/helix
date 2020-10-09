@@ -502,7 +502,7 @@ public class TestQuotaBasedScheduling extends TaskTestBase {
    * Tests quota-based scheduling for a job queue with different quota types.
    * @throws InterruptedException
    */
-  @Test(dependsOnMethods = "testSchedulingWithoutQuota", enabled = true)
+  @Test(dependsOnMethods = "testSchedulingWithoutQuota")
   public void testJobQueueScheduling() throws InterruptedException {
     // First define quota config
     ClusterConfig clusterConfig = _manager.getConfigAccessor().getClusterConfig(CLUSTER_NAME);

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
@@ -190,7 +189,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
-  @Test(enabled = true)
+  @Test
   public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
@@ -476,9 +475,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     jobNames.add(job2Name);
     jobBuilders.add(job2);
     _driver.enqueueJob(queueName, job2Name, job2);
-
-    //_driver.enqueueJobs(queueName, jobNames, jobBuilders);
-
+    
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
     _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
 

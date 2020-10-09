@@ -158,6 +158,7 @@ public class TestDelayedAutoRebalance extends ZkTestBase {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
     validateDelayedMovements(externalViewsBefore);
 
+    Thread.sleep(delay);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {

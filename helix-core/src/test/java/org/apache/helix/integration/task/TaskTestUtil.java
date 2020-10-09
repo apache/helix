@@ -68,7 +68,7 @@ import org.testng.Assert;
  * Static test utility methods.
  */
 public class TaskTestUtil {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TaskTestUtil.class);
+  private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(TaskTestUtil.class);
   public static final String JOB_KW = "JOB";
   private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
 
@@ -178,7 +178,7 @@ public class TaskTestUtil {
     boolean retVal =  maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
         .getParallelJobs() : true);
     if (!retVal) {
-      logger.error("maxRunningCount={}, workflowConfig.isJobQueue()={}, maxRunningCount={}, workflowConfig.getParallelJobs()={}, workFlowConfig={}, stack trace {}",
+      LOG.error("maxRunningCount={}, workflowConfig.isJobQueue()={}, maxRunningCount={}, workflowConfig.getParallelJobs()={}, workFlowConfig={}, stack trace {}",
           maxRunningCount, workflowConfig.isJobQueue(), maxRunningCount, workflowConfig.getParallelJobs(),
           workflowConfig);
     }

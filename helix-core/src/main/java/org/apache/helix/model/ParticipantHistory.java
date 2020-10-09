@@ -263,7 +263,7 @@ public class ParticipantHistory extends HelixProperty {
    * For each entry in History, return its millisecond timestamp; for timestamps that cannot be
    * parsed, skip them.
    */
-  public List<Long> getHistoryTimestampsAsMilliseconds() {
+  public List<Long> getOnlineTimestampsAsMilliseconds() {
     if (getHistory() == null) {
       return Collections.emptyList();
     }

@@ -83,7 +83,7 @@ public class TestParticipantHistory {
     participantHistory.getRecord()
         .setListField(ParticipantHistory.ConfigProperty.HISTORY.name(), historyList);
 
-    Assert.assertEquals(participantHistory.getHistoryTimestampsAsMilliseconds(),
+    Assert.assertEquals(participantHistory.getOnlineTimestampsAsMilliseconds(),
         Collections.singletonList(1598520339767L));
   }
 

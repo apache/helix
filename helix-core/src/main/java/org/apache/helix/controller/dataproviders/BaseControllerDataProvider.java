@@ -780,7 +780,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       long timeOutWindow) {
     ParticipantHistory history =
         accessor.getProperty(accessor.keyBuilder().participantHistory(instance));
-    List<Long> onlineTimestamps = history.getHistoryTimestampsAsMilliseconds();
+    List<Long> onlineTimestamps = history.getOnlineTimestampsAsMilliseconds();
     List<Long> offlineTimestamps = history.getOfflineTimestampsAsMilliseconds();
 
     onlineTimestamps.add(System.currentTimeMillis());

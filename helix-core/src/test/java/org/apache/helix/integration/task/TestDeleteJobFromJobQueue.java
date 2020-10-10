@@ -70,11 +70,14 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
 
     // force deletion can have Exception thrown as controller is writing to propertystore path too.
-    // https://github.com/apache/helix/issues/1406
+    // https://github.com/apache/helix/issues/1406, also force deletion may not be safe.
 
     // Thus, we stop pipeline to make sure there is not such race condition.
     _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
-    Thread.sleep(3000); // note this sleep is critical as it would take time for controller to stop
+    Thread.sleep(3000);
+    // note this sleep is critical as it would take time for controller to stop.
+    // todo: this is not best practice to sleep. Let GenericHelixController gives out a signal would
+    // be another way. We have some other usage cases of this too.
 
     _driver.deleteJob(jobQueueName, "job2", true);
 

@@ -93,8 +93,6 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
 
   @AfterClass()
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + TestHelper.getTestClassName() + ":" + TestHelper.getTestMethodName() + "called.");
     super.afterClass();
   }
 

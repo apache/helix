@@ -30,7 +30,6 @@ import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -45,11 +44,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     super.beforeClass();
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
-
   /**
    * This test starts 4 jobs in job queue, the job all stuck, and verify that
    * (1) the number of running job does not exceed configured max allowed parallel jobs
@@ -62,7 +56,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(false);
-    cfgBuilder.setJobPurgeInterval(-1);
 
     JobQueue.Builder queueBuild =
         new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
@@ -106,7 +99,6 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(queueName);
     cfgBuilder.setParallelJobs(PARALLEL_COUNT);
     cfgBuilder.setAllowOverlapJobAssignment(true);
-    cfgBuilder.setJobPurgeInterval(-1);
 
     JobQueue.Builder queueBuild = new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
     JobQueue queue = queueBuild.build();
@@ -117,21 +109,16 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
     for (int i = 0; i < PARALLEL_COUNT; i++) {
       List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
       for (int j = 0; j < TASK_COUNT; j++) {
-        taskConfigs.add(new TaskConfig.Builder()
-            .setTaskId("job_" + (i + 1) + "_task_" + j)
-            .setCommand(MockTask.TASK_COMMAND)
-            .addConfig(MockTask.JOB_DELAY, "2000")
-            .build());
+        taskConfigs.add(new TaskConfig.Builder().setTaskId("job_" + (i + 1) + "_task_" + j)
+            .setCommand(MockTask.TASK_COMMAND).build());
       }
       jobConfigBuilders.add(new JobConfig.Builder().addTaskConfigs(taskConfigs));
     }
 
     _driver.stop(queueName);
-    List<String> jobNames = new ArrayList<>();
     for (int i = 0; i < jobConfigBuilders.size(); ++i) {
-      jobNames.add("job_" + (i + 1));
+      _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
-    _driver.enqueueJobs(queueName, jobNames, jobConfigBuilders);
     _driver.resume(queueName);
     Thread.sleep(2000);
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));

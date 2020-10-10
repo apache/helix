@@ -28,7 +28,6 @@ import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.TaskTestBase;
 import org.apache.helix.integration.task.TaskTestUtil;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.apache.helix.TestHelper;
@@ -44,11 +43,6 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   public void beforeClass() throws Exception {
     setSingleTestEnvironment();
     super.beforeClass();
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
   }
 
   @Test
@@ -122,10 +116,7 @@ public class TestGetLastScheduledTaskExecInfo extends TaskTestBase {
   private List<Long> setupTasks(String jobQueueName, int numTasks, long taskTimeout,
       int expectedScheduledTasks) throws Exception {
     // Create a queue
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(jobQueueName);
-    queueBuilder.setWorkflowConfig(wfg);
 
     // Create and enqueue a job
     JobConfig.Builder jobConfig = new JobConfig.Builder();

@@ -20,7 +20,6 @@ package org.apache.helix.integration.task;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,7 +33,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.spectator.TestRoutingTableProviderPeriodicRefresh;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.DedupEventProcessor;
@@ -63,14 +61,12 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 /**
  * Static test utility methods.
  */
 public class TaskTestUtil {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TaskTestUtil.class);
   public static final String JOB_KW = "JOB";
   private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
 
@@ -177,14 +173,8 @@ public class TaskTestUtil {
         }
       }
     }
-    boolean retVal =  maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
+    return maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
         .getParallelJobs() : true);
-    if (!retVal) {
-      logger.error("maxRunningCount={}, workflowConfig.isJobQueue()={}, maxRunningCount={}, workflowConfig.getParallelJobs()={}, workFlowConfig={}, stack trace {}",
-          maxRunningCount, workflowConfig.isJobQueue(), maxRunningCount, workflowConfig.getParallelJobs(),
-          workflowConfig);
-    }
-    return retVal;
   }
 
   public static Date getDateFromStartTime(String startTime)
@@ -241,17 +231,9 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
       int failureThreshold, int capacity) {
-    return buildJobQueue(jobQueueName, delayStart, failureThreshold, capacity, false);
-  }
-
-  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
-      int failureThreshold, int capacity, boolean disablePurge) {
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder(jobQueueName);
     workflowCfgBuilder.setExpiry(120000);
     workflowCfgBuilder.setCapacity(capacity);
-    if (disablePurge) {
-      workflowCfgBuilder.setJobPurgeInterval(-1);
-    }
 
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
@@ -263,11 +245,6 @@ public class TaskTestUtil {
       workflowCfgBuilder.setFailureThreshold(failureThreshold);
     }
     return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
-  }
-
-  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
-      int failureThreshold, boolean disablePurge) {
-    return buildJobQueue(jobQueueName, delayStart, failureThreshold, 500, disablePurge);
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,

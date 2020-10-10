@@ -19,8 +19,6 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.lang.reflect.Method;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,11 +44,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
-import org.testng.ITestContext;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
@@ -108,26 +102,6 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _jobCommandMap = Maps.newHashMap();
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
-
-  @BeforeMethod
-  public void beforeTest(Method testMethod, ITestContext testContext) {
-    long startTime = System.currentTimeMillis();
-    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
-    testContext.setAttribute("StartTime", System.currentTimeMillis());
-  }
-
-  @AfterMethod
-  public void endTest(Method testMethod, ITestContext testContext) {
-    Long startTime = (Long) testContext.getAttribute("StartTime");
-    long endTime = System.currentTimeMillis();
-    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
-        + (endTime - startTime) + "ms.");
-  }
-
   /**
    * This test does NOT allow multiple jobs being assigned to an instance.
    * @throws InterruptedException
@@ -137,9 +111,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     for (int i = 0; i < 20; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
@@ -168,7 +140,6 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowName);
     configBuilder.setAllowOverlapJobAssignment(true);
-    configBuilder.setJobPurgeInterval(-1);
     workflowBuilder.setWorkflowConfig(configBuilder.build());
 
     for (int i = 0; i < 40; i++) {
@@ -190,9 +161,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
     _runCounts.clear();
     failTask = false;
     String workflowName = TestHelper.getTestMethodName();
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(20);
     for (int i = 0; i < 20; i++) {
@@ -211,12 +180,9 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testAbortTaskForWorkflowFail() throws InterruptedException {
-    _runCounts.clear();
     failTask = true;
     String workflowName = TestHelper.getTestMethodName();
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName).setWorkflowConfig(wfg);
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
     for (int i = 0; i < 5; i++) {
       List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
@@ -237,11 +203,7 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
       }
     }
 
-    // Note, the starting tasks messages are send out at the same time.
-    // There is no guarante only one task would fail. In fact 5 tasks run in parallel in
-    // 5 instances. There can be multiple task failing.
-    Assert.assertTrue(abortedTask <= 4);
-    Assert.assertEquals(_runCounts.size(), 5);
+    Assert.assertEquals(abortedTask, 4);
   }
 
   private class TaskOne extends MockTask {
@@ -251,24 +213,16 @@ public class TestTaskAssignmentCalculator extends TaskTestBase {
       super(context);
 
       // Initialize the count for this instance if not already done
-      _runCounts.putIfAbsent(instanceName, 0);
+      if (!_runCounts.containsKey(instanceName)) {
+        _runCounts.put(instanceName, 0);
+      }
       _instanceName = instanceName;
     }
 
     @Override
     public TaskResult run() {
-      // make sure concurrent run task won't lose updates.
-      // in fact, each instance update its own slot, should have not confict. Still this is right way.
-      synchronized (_runCounts) {
-        _invokedClasses.add(getClass().getName());
-        _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
-      }
-      // this is to make sure task don't finish too quick
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        // ignore
-      }
+      _invokedClasses.add(getClass().getName());
+      _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
       if (failTask) {
         return new TaskResult(TaskResult.Status.FAILED, "");
       }

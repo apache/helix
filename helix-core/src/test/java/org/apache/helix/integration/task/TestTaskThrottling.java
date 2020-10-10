@@ -37,9 +37,7 @@ import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.task.WorkflowConfig;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -52,10 +50,6 @@ public class TestTaskThrottling extends TaskTestBase {
     super.beforeClass();
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    super.afterClass();
-  }
   /**
    * This test has been disabled/deprecated because Task Framework 2.0 uses quotas that are meant to
    * throttle tasks.
@@ -69,12 +63,8 @@ public class TestTaskThrottling extends TaskTestBase {
     JobConfig.Builder jobConfig = generateLongRunJobConfig(numTasks);
 
     // 1. Job executed in the participants with no limitation
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
     String jobName1 = "Job1";
-    Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig)
-        .setWorkflowConfig(wfg)
-        .build();
+    Workflow flow1 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
     _driver.start(flow1);
     _driver.pollForJobState(flow1.getName(), TaskUtil.getNamespacedJobName(flow1.getName(), jobName1),
         TaskState.IN_PROGRESS);
@@ -97,9 +87,7 @@ public class TestTaskThrottling extends TaskTestBase {
     _gSetupTool.getClusterManagementTool().setConfig(scope, properties);
 
     String jobName2 = "Job2";
-    Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig)
-        .setWorkflowConfig(wfg)
-        .build();
+    Workflow flow2 = WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName2, jobConfig).build();
     _driver.start(flow2);
     _driver.pollForJobState(flow2.getName(), TaskUtil.getNamespacedJobName(flow2.getName(), jobName2),
         TaskState.IN_PROGRESS);
@@ -135,14 +123,9 @@ public class TestTaskThrottling extends TaskTestBase {
     setParticipantsCapacity(perNodeTaskLimitation);
 
     // schedule job1
-    WorkflowConfig.Builder wfgBuilder = new WorkflowConfig.Builder().setJobPurgeInterval(-1);
-    WorkflowConfig wfg = wfgBuilder.build();
-
     String jobName1 = "PriorityJob1";
     Workflow flow1 =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig)
-            .setWorkflowConfig(wfg)
-            .build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobName1, jobConfig).build();
     _driver.start(flow1);
     _driver.pollForJobState(flow1.getName(),
         TaskUtil.getNamespacedJobName(flow1.getName(), jobName1), TaskState.IN_PROGRESS);

@@ -69,9 +69,6 @@ public class TestAssignmentMetadataStore extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestAssignmentMetaStore called.");
-
     if (_store != null) {
       _store.close();
     }

@@ -128,9 +128,6 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestP2PNoDuplicateMessage called.");
-
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
       p.syncStop();
@@ -177,7 +174,6 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
       verifyP2PEnabled(startTime);
     }
 
-    // Assert.assertEquals(p2pTrigged, total);
     // Discussed with Meng who originally created this one. The success rate really depends on how
     // quick participant act in relationship with controller. For now, we set 90% threshold.
     long threshold = Math.round(total * 0.9);

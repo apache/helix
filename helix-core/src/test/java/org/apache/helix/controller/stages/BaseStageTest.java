@@ -73,9 +73,6 @@ public class BaseStageTest {
 
   @AfterClass()
   public void afterClass() {
-    String testClassName = this.getClass().getSimpleName();
-    System.out.println("AfterClass: " + testClassName + " of BaseStageTest called.");
-
     String className = this.getClass().getName();
     System.out.println("END " + className.substring(className.lastIndexOf('.') + 1) + " at "
         + new Date(System.currentTimeMillis()));

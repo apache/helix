@@ -62,9 +62,6 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestClusterMaintenanceMode called.");
-
     if (_newInstance != null && _newInstance.isConnected()) {
       _newInstance.syncStop();
     }

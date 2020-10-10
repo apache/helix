@@ -159,8 +159,6 @@ public class TestCustomizedViewAggregation extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestCustomizedViewAggregation called.");
     _controller.syncStop();
     for (MockParticipantManager participant : _participants) {
       participant.syncStop();

@@ -203,7 +203,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
   @Test(dependsOnMethods = "testPartitionRecoveryRebalanceThrottle")
   public void testANYtypeThrottle() throws InterruptedException {
-    // start some participants 
+    // start some participants
     for (int i = 0; i < NODE_NR - 3; i++) {
       _participants[i].syncStart();
     }
@@ -279,7 +279,6 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
         new ClusterLiveNodesVerifier(_gZkClient, CLUSTER_NAME,
             Lists.transform(Arrays.asList(_participants), MockParticipantManager::getInstanceName));
     Assert.assertTrue(liveNodesVerifier.verifyByZkCallback(5000));
-    // Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].syncStop();

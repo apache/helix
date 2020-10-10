@@ -106,6 +106,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       createResourceWithDelayedRebalance(CLUSTER_NAME, db,
           BuiltInStateModelDefinitions.MasterSlave.name(), _PARTITIONS, 3, 3, -1);
     }
+
     Assert.assertTrue(clusterVerifier.verifyByPolling());
   }
 
@@ -189,16 +190,13 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
-
+    
     // Verify there is rebalance error logged
     checkForRebalanceError(true);
   }
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestClusterMaintenanceModeWhenReachingOfflineInstancesLimit called.");
-
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

@@ -104,9 +104,6 @@ public class TestListenerCallbackPrefetch extends ZkUnitTestBase {
   @AfterClass
   public void afterClass()
       throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestListenerCallbackPrefetch called.");
-
     _manager.disconnect();
     deleteCluster(clusterName);
   }

@@ -119,9 +119,6 @@ public class TestListenerCallbackBatchMode extends ZkUnitTestBase {
   @AfterClass
   public void afterClass()
       throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestListenerCallbackBatchMode called.");
-
     _manager.disconnect();
     deleteCluster(clusterName);
   }

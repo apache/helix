@@ -68,9 +68,6 @@ public class TestGroupCommitAddBackData extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestGroupCommitAddBackData called.");
-
     if (_participant != null && _participant.isConnected()) {
       _participant.syncStop();
     }

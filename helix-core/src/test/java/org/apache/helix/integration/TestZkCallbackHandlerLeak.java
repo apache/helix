@@ -200,7 +200,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test()
+  @Test
   public void testCbHandlerLeakOnControllerSessionExpiry() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();

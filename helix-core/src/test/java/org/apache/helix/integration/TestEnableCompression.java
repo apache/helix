@@ -47,10 +47,8 @@ import org.testng.annotations.Test;
  * idealstate of the resource. Generally this is used when the number of partitions is large
  */
 public class TestEnableCompression extends ZkTestBase {
-
   private static final int ENABLE_COMPRESSION_WAIT = 20 * 60 * 1000;
   private static final int ENABLE_COMPRESSION_POLL_INTERVAL = 2000;
-
 
   @Test(timeOut = 10 * 10 * 1000L)
   public void testEnableCompressionResource() throws Exception {
@@ -120,6 +118,7 @@ public class TestEnableCompression extends ZkTestBase {
             .setExpectLiveInstances(expectedLiveInstances).setResources(expectedResources)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
+
     boolean reuslt = verifier.verifyByPolling(ENABLE_COMPRESSION_WAIT, ENABLE_COMPRESSION_POLL_INTERVAL);
     Assert.assertTrue((reuslt));
 

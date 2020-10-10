@@ -133,8 +133,6 @@ public class TestResourceGroupEndtoEnd extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestResourceGroupEndToEnd called.");
     // stop participants
     for (int i = 0; i < TOTAL_NODE_NR; i++) {
       _participants[i].syncStop();

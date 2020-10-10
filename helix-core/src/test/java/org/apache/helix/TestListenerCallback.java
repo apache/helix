@@ -119,8 +119,6 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestListenerCallback called.");
     if (_manager != null && _manager.isConnected()) {
       _manager.disconnect();
     }

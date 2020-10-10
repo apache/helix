@@ -80,9 +80,6 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestRoutingTableSnapshot called.");
-
     if (_manager != null && _manager.isConnected()) {
       _manager.disconnect();
     }

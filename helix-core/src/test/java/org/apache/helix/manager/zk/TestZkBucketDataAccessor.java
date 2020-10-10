@@ -91,8 +91,6 @@ public class TestZkBucketDataAccessor extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestZkBucketDataAccessor called!");
     _bucketDataAccessor.disconnect();
   }
 

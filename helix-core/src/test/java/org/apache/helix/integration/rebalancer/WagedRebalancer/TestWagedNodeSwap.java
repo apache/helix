@@ -131,9 +131,6 @@ public class TestWagedNodeSwap extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestWageNoeSwap called.");
-
     _controller.syncStop();
     for (MockParticipantManager p : _participants) {
       p.syncStop();

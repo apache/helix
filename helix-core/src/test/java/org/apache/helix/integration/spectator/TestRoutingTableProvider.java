@@ -171,9 +171,6 @@ public class TestRoutingTableProvider extends ZkTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestRoutingTableProvider called.");
-
     // stop participants
     for (MockParticipantManager p : _participants) {
       p.syncStop();

@@ -316,10 +316,6 @@ public class TestCrushAutoRebalance extends ZkTestBase {
 */
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestCrushAutoRebalance called.");
-
-    System.out.println("ENTER AFTERCLASS: " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

@@ -85,9 +85,6 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
   @AfterClass
   public void afterClass() {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestZkHelixPropertyStore called.");
-
     deleteCluster(getShortClassName());
   }
 

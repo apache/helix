@@ -99,9 +99,6 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestRoutingTableProviderCurrentStates called.");
-
     /*
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */

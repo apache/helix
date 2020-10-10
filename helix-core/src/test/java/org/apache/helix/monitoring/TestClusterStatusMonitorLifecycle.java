@@ -153,9 +153,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestClusterStatusMonitorLifeCycle called.");
-
     System.out.println("Cleaning up...");
     for (int i = 0; i < 2 * n; i++) {
       if (_controllers[i] != null) {

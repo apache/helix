@@ -100,9 +100,6 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-    String testClassName = this.getShortClassName();
-    System.out.println("AfterClass: " + testClassName + " of TestRoutingTableProviderFromTargetEV called.");
-
     if (_controller != null && _controller.isConnected()) {
       _controller.syncStop();
     }

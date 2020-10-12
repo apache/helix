@@ -299,6 +299,28 @@ public class TestClusterConfig {
   }
 
   @Test
+  public void testGetOfflineNodeTimeOutForMaintenanceMode() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForMaintenanceMode(), -1);
+
+    testConfig.getRecord()
+        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE
+                .name(),
+            10000L);
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForMaintenanceMode(), 10000L);
+  }
+
+  @Test
+  public void testSetOfflineNodeTimeOutForMaintenanceMode() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setOfflineNodeTimeOutForMaintenanceMode(10000L);
+    Assert.assertEquals(testConfig.getRecord()
+        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE
+                .name(),
+            -1), 10000L);
+  }
+
+  @Test
   public void testAbnormalStatesResolverConfig() {
     ClusterConfig testConfig = new ClusterConfig("testConfig");
     // Default value is empty

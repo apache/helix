@@ -535,17 +535,21 @@ public class TaskDriver {
 
   /**
    * Add task to a running (IN-PROGRESS) job or a job which has not started yet. Timeout for this
-   * operation is default timeout which is 5 minutes. {@link TaskDriver#DEFAULT_TIMEOUT}
+   * operation is the default timeout which is 5 minutes. {@link TaskDriver#DEFAULT_TIMEOUT}
    * Note1: Task cannot be added if the job is in an illegal state. A job can accept
    * new task if the job is in-progress or it has not started yet.
    * Note2: The job can only be added to non-targeted jobs.
-   * Note3: The taskID for new task should be unique. If not, this API throws an exception.
-   * Note4: In case of timeout exception, it is user's responsibility to check whether the task has
-   * been successfully added or not.
+   * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
+   * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully added or not.
    * @param workflowName
    * @param jobName
    * @param taskConfig
-   * @throws Exception
+   * @throws Exception if there is an issue with the request or the operation. 1-
+   *           IllegalArgumentException will be thrown if the inputs are invalid. 2- HelixException
+   *           will be thrown if the job is not in the states to accept a new task or if there is
+   *           any issue in updating jobConfig. 3- TimeoutException will be thrown if the outcome of
+   *           the task addition is unknown and cannot be verified.
    */
   public void addTask(String workflowName, String jobName, TaskConfig taskConfig) throws Exception {
     addTask(workflowName, jobName, taskConfig, DEFAULT_TIMEOUT);
@@ -556,16 +560,20 @@ public class TaskDriver {
    * Note1: Task cannot be added if the job is in an illegal state. A job can accept
    * new task if the job is in-progress or it has not started yet.
    * Note2: The job can only be added to non-targeted jobs.
-   * Note3: The taskID for new task should be unique. If not, this API throws an exception.
-   * Note4: In case of timeout exception, it is user's responsibility to check whether the task has
-   * been successfully added or not.
+   * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
+   * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully added or not.
    * Note5: timeout is the time that this API checks whether the task has been successfully added or
    * not.
    * @param workflowName
    * @param jobName
    * @param taskConfig
    * @param timeoutMs
-   * @throws Exception
+   * @throws Exception if there is an issue with the request or the operation. 1-
+   *           IllegalArgumentException will be thrown if the inputs are invalid. 2- HelixException
+   *           will be thrown if the job is not in the states to accept a new task or if there is
+   *           any issue in updating jobConfig. 3- TimeoutException will be thrown if the outcome of
+   *           the task addition is unknown and cannot be verified.
    */
   public void addTask(String workflowName, String jobName, TaskConfig taskConfig, long timeoutMs)
       throws Exception {

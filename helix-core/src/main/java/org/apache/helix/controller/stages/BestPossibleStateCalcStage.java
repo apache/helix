@@ -41,6 +41,7 @@ import org.apache.helix.controller.rebalancer.MaintenanceRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -253,13 +254,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     // Find the compatible resources: 1. FULL_AUTO 2. Configured to use the WAGED rebalancer
-    Map<String, Resource> wagedRebalancedResourceMap =
-        resourceMap.entrySet().stream().filter(resourceEntry -> {
-          IdealState is = cache.getIdealState(resourceEntry.getKey());
-          return is != null && is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
-              && WagedRebalancer.class.getName().equals(is.getRebalancerClassName());
-        }).collect(Collectors.toMap(resourceEntry -> resourceEntry.getKey(),
-            resourceEntry -> resourceEntry.getValue()));
+    Map<String, Resource> wagedRebalancedResourceMap = resourceMap.entrySet().stream()
+        .filter(resourceEntry ->
+            WagedValidationUtil.isWagedEnabled(cache.getIdealState(resourceEntry.getKey())))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     Map<String, IdealState> newIdealStates = new HashMap<>();
 

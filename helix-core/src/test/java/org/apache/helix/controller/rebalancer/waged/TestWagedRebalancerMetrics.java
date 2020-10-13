@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,19 +29,31 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import javax.management.AttributeNotFoundException;
 import javax.management.JMException;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.rebalancer.waged.constraints.MockRebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AbstractTestClusterModel;
+import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventType;
+import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.mbeans.InstanceMonitor;
 import org.apache.helix.monitoring.metrics.MetricCollector;
 import org.apache.helix.monitoring.metrics.WagedRebalancerMetricCollector;
 import org.apache.helix.monitoring.metrics.model.CountMetric;
@@ -142,6 +155,77 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
     Assert.assertTrue(TestHelper.verify(() -> (double) metricCollector.getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.BaselineDivergenceGauge.name(),
         RatioMetric.class).getLastEmittedMetricValue() == 0.0d, TestHelper.WAIT_DURATION));
+  }
+
+  /*
+   * Integration test for WAGED instance capacity metrics.
+   */
+  @Test
+  public void testInstanceCapacityMetrics() throws Exception {
+    final String clusterName = TestHelper.getTestMethodName();
+    final ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    ClusterEvent event = new ClusterEvent(ClusterEventType.Unknown);
+
+    ResourceControllerDataProvider cache = setupClusterDataCache();
+    Map<String, Resource> resourceMap = cache.getIdealStates().entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+          Resource resource = new Resource(entry.getKey());
+          entry.getValue().getPartitionSet().forEach(resource::addPartition);
+          return resource;
+        }));
+
+    event.addAttribute(AttributeName.helixmanager.name(), new MockManager());
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
+    event.addAttribute(AttributeName.clusterStatusMonitor.name(), monitor);
+
+    Pipeline rebalancePipeline = new Pipeline();
+    rebalancePipeline.addStage(new ReadClusterDataStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    rebalancePipeline.handle(event);
+
+    final MBeanServerConnection mBeanServer = ManagementFactory.getPlatformMBeanServer();
+
+    for (String instance : _instances) {
+      String instanceBeanName = String.format("%s=%s,instanceName=%s",
+          ClusterStatusMonitor.CLUSTER_DN_KEY, clusterName, instance);
+      ObjectName instanceObjectName = monitor.getObjectName(instanceBeanName);
+
+      Assert.assertTrue(TestHelper
+          .verify(() -> mBeanServer.isRegistered(instanceObjectName),
+              TestHelper.WAIT_DURATION));
+
+      // Verify capacity gauge metrics
+      for (Map.Entry<String, Integer> capacityEntry : _capacityDataMap.entrySet()) {
+        String capacityKey = capacityEntry.getKey();
+        String attributeName = capacityKey + "Gauge";
+        Assert.assertTrue(TestHelper.verify(() -> {
+          try {
+            return (long) mBeanServer.getAttribute(instanceObjectName, attributeName)
+                == _capacityDataMap.get(capacityKey);
+          } catch (AttributeNotFoundException e) {
+            return false;
+          }
+        }, TestHelper.WAIT_DURATION), "Instance capacity gauge metric is not found or incorrect!");
+        Assert.assertEquals((long) mBeanServer.getAttribute(instanceObjectName, attributeName),
+            (long) _capacityDataMap.get(capacityKey));
+      }
+
+      // Verify MaxCapacityUsageGauge
+      Assert.assertTrue(TestHelper.verify(() -> {
+        try {
+          double actualMaxUsage = (double) mBeanServer.getAttribute(instanceObjectName,
+              InstanceMonitor.InstanceMonitorMetric.MAX_CAPACITY_USAGE_GAUGE.metricName());
+          // The values are manually calculated from the capacity configs, to make the code simple.
+          double expectedMaxUsage = instance.equals(_testInstanceId) ? 0.4 : 0.0;
+
+          return Math.abs(actualMaxUsage - expectedMaxUsage) < 0.000001d;
+        } catch (AttributeNotFoundException e) {
+          return false;
+        }
+      }, TestHelper.WAIT_DURATION), "MaxCapacityUsageGauge is not found or incorrect");
+    }
   }
 
   @Override

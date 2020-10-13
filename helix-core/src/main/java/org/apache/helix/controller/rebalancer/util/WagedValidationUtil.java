@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
 
@@ -87,5 +89,17 @@ public class WagedValidationUtil {
           partitionCapacity.toString()));
     }
     return partitionCapacity;
+  }
+
+  /**
+   * Checks whether or not a resource has enabled WAGED rebalancer.
+   *
+   * @param idealState {@code IdealState} of the resource being checked.
+   * @return {@code true} if WAGED is enabled; otherwise, {@code false}.
+   */
+  public static boolean isWagedEnabled(IdealState idealState) {
+    return idealState != null
+        && idealState.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
+        && WagedRebalancer.class.getName().equals(idealState.getRebalancerClassName());
   }
 }

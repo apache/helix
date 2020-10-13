@@ -34,6 +34,7 @@ import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.util.ResourceUsageCalculator;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -283,10 +284,10 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     asyncExecute(dataProvider.getAsyncTasksThreadPool(), () -> {
       try {
         // ResourceToRebalance map also has resources from current states.
-        // Only use the resources in ideal states to parse all replicas.
+        // Only use the resources in ideal states that enable WAGED to parse all replicas.
         Map<String, IdealState> idealStateMap = dataProvider.getIdealStates();
         Map<String, Resource> resourceToMonitorMap = resourceMap.entrySet().stream()
-            .filter(idealStateMap::containsKey)
+            .filter(entry -> WagedValidationUtil.isWagedEnabled(idealStateMap.get(entry.getKey())))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<String, ResourceAssignment> currentStateAssignment =

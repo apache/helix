@@ -44,6 +44,7 @@ import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.StatefulRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.DelayedRebalanceUtil;
+import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModelProvider;
@@ -598,11 +599,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
   private void validateInput(ResourceControllerDataProvider clusterData,
       Map<String, Resource> resourceMap) throws HelixRebalanceException {
-    Set<String> nonCompatibleResources = resourceMap.entrySet().stream().filter(resourceEntry -> {
-      IdealState is = clusterData.getIdealState(resourceEntry.getKey());
-      return is == null || !is.getRebalanceMode().equals(IdealState.RebalanceMode.FULL_AUTO)
-          || !WagedRebalancer.class.getName().equals(is.getRebalancerClassName());
-    }).map(Map.Entry::getKey).collect(Collectors.toSet());
+    Set<String> nonCompatibleResources = resourceMap.keySet().stream()
+        .filter(resource -> !WagedValidationUtil.isWagedEnabled(clusterData.getIdealState(resource)))
+        .collect(Collectors.toSet());
+
     if (!nonCompatibleResources.isEmpty()) {
       throw new HelixRebalanceException(String.format(
           "Input contains invalid resource(s) that cannot be rebalanced by the WAGED rebalancer. %s",

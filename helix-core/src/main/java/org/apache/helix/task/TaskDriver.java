@@ -545,13 +545,13 @@ public class TaskDriver {
    * @param workflowName
    * @param jobName
    * @param taskConfig
-   * @throws Exception if there is an issue with the request or the operation. 1-
-   *           IllegalArgumentException will be thrown if the inputs are invalid. 2- HelixException
-   *           will be thrown if the job is not in the states to accept a new task or if there is
-   *           any issue in updating jobConfig. 3- TimeoutException will be thrown if the outcome of
-   *           the task addition is unknown and cannot be verified.
+   * @throws TimeoutException if the outcome of the task addition is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
    */
-  public void addTask(String workflowName, String jobName, TaskConfig taskConfig) throws Exception {
+  public void addTask(String workflowName, String jobName, TaskConfig taskConfig)
+      throws TimeoutException, InterruptedException {
     addTask(workflowName, jobName, taskConfig, DEFAULT_TIMEOUT);
   }
 
@@ -569,14 +569,13 @@ public class TaskDriver {
    * @param jobName
    * @param taskConfig
    * @param timeoutMs
-   * @throws Exception if there is an issue with the request or the operation. 1-
-   *           IllegalArgumentException will be thrown if the inputs are invalid. 2- HelixException
-   *           will be thrown if the job is not in the states to accept a new task or if there is
-   *           any issue in updating jobConfig. 3- TimeoutException will be thrown if the outcome of
-   *           the task addition is unknown and cannot be verified.
+   * @throws TimeoutException if the outcome of the task addition is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
    */
   public void addTask(String workflowName, String jobName, TaskConfig taskConfig, long timeoutMs)
-      throws Exception {
+      throws TimeoutException, InterruptedException {
 
     if (timeoutMs < DEFAULT_SLEEP) {
       throw new IllegalArgumentException(
@@ -599,12 +598,6 @@ public class TaskDriver {
     }
 
     TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
-
-    if (jobState == null) {
-      // Null job state means the job has not started yet
-      addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
-      return;
-    }
 
     if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
       throw new HelixException(
@@ -649,14 +642,8 @@ public class TaskDriver {
           "Job %s is a targeted job. New task cannot be added to this job!", nameSpaceJobName));
     }
 
-    if (taskConfig.getCommand() == null && jobConfig.getCommand() == null) {
-      throw new HelixException(
-          "Task cannot be added because both of the job and task have null command!");
-    }
-
-    if (taskConfig.getCommand() != null && jobConfig.getCommand() != null) {
-      throw new HelixException(
-          "Task cannot be added because command existed for both of job and task!");
+    if ((taskConfig.getCommand() == null) == (jobConfig.getCommand() == null)) {
+      throw new HelixException("Command must exist in either job or task, not both!");
     }
 
     for (String taskEntry : jobConfig.getMapConfigs().keySet()) {

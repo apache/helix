@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -42,11 +43,9 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.util.HelixUtil;
@@ -76,6 +75,14 @@ public class TaskDriver {
 
   /** Default time out for monitoring workflow or job state */
   private final static int DEFAULT_TIMEOUT = 5 * 60 * 1000; /* 5 mins */
+
+  /** Default sleep time for requests */
+  private final static long DEFAULT_SLEEP = 1000L; /* 1 second */
+
+  /** The illegal job states for job to accept new tasks */
+  private final static Set<TaskState> ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION = new HashSet<>(
+      Arrays.asList(TaskState.TIMING_OUT, TaskState.TIMED_OUT, TaskState.FAILING, TaskState.FAILED,
+          TaskState.ABORTED, TaskState.COMPLETED, TaskState.STOPPING, TaskState.STOPPED));
 
   // HELIX-619 This is a temporary solution for too many ZK nodes issue.
   // Limit workflows/jobs creation to prevent the problem.
@@ -527,6 +534,172 @@ public class TaskDriver {
   }
 
   /**
+   * Add task to a running (IN-PROGRESS) job or a job which has not started yet. Timeout for this
+   * operation is the default timeout which is 5 minutes. {@link TaskDriver#DEFAULT_TIMEOUT}
+   * Note1: Task cannot be added if the job is in an illegal state. A job can accept
+   * new task if the job is in-progress or it has not started yet.
+   * Note2: The job can only be added to non-targeted jobs.
+   * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
+   * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully added or not.
+   * @param workflowName
+   * @param jobName
+   * @param taskConfig
+   * @throws TimeoutException if the outcome of the task addition is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
+   */
+  public void addTask(String workflowName, String jobName, TaskConfig taskConfig)
+      throws TimeoutException, InterruptedException {
+    addTask(workflowName, jobName, taskConfig, DEFAULT_TIMEOUT);
+  }
+
+  /**
+   * Add task to a running (IN-PROGRESS) job or a job which has not started yet
+   * Note1: Task cannot be added if the job is in an illegal state. A job can accept
+   * new task if the job is in-progress or it has not started yet.
+   * Note2: The job can only be added to non-targeted jobs.
+   * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
+   * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully added or not.
+   * Note5: timeout is the time that this API checks whether the task has been successfully added or
+   * not.
+   * @param workflowName
+   * @param jobName
+   * @param taskConfig
+   * @param timeoutMs
+   * @throws TimeoutException if the outcome of the task addition is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
+   */
+  public void addTask(String workflowName, String jobName, TaskConfig taskConfig, long timeoutMs)
+      throws TimeoutException, InterruptedException {
+
+    if (timeoutMs < DEFAULT_SLEEP) {
+      throw new IllegalArgumentException(
+          String.format("Timeout is less than the minimum acceptable timeout value which is %s ms",
+              DEFAULT_SLEEP));
+    }
+
+    long endTime = System.currentTimeMillis() + timeoutMs;
+
+    validateAddTaskConfigs(workflowName, jobName, taskConfig);
+
+    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    WorkflowContext workflowContext = getWorkflowContext(workflowName);
+    JobContext jobContext = getJobContext(nameSpaceJobName);
+    if (workflowContext == null || jobContext == null) {
+      // Workflow context or job context is null. It means job has not been started. Hence task can
+      // be added to the job
+      addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
+      return;
+    }
+
+    TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
+
+    if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
+      throw new HelixException(
+          String.format("Job %s is in illegal state to accept new task. Job State is %s",
+              nameSpaceJobName, jobState));
+    }
+    addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
+  }
+
+  /**
+   * The helper method which check the workflow, job and task configs to determine if new task can
+   * be added to the job
+   * @param workflowName
+   * @param jobName
+   * @param taskConfig
+   */
+  private void validateAddTaskConfigs(String workflowName, String jobName, TaskConfig taskConfig) {
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, workflowName);
+    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    JobConfig jobConfig = TaskUtil.getJobConfig(_accessor, nameSpaceJobName);
+
+    if (workflowConfig == null) {
+      throw new IllegalArgumentException(
+          String.format("Workflow config for workflow %s does not exist!", workflowName));
+    }
+
+    if (jobConfig == null) {
+      throw new IllegalArgumentException(
+          String.format("Job config for job %s does not exist!", nameSpaceJobName));
+    }
+
+    if (taskConfig == null) {
+      throw new IllegalArgumentException("TaskConfig is null!");
+    }
+
+    if (taskConfig.getId() == null) {
+      throw new HelixException("Task cannot be added because taskID is null!");
+    }
+
+    if (jobConfig.getTargetResource() != null) {
+      throw new HelixException(String.format(
+          "Job %s is a targeted job. New task cannot be added to this job!", nameSpaceJobName));
+    }
+
+    if ((taskConfig.getCommand() == null) == (jobConfig.getCommand() == null)) {
+      throw new HelixException("Command must exist in either job or task, not both!");
+    }
+
+    for (String taskEntry : jobConfig.getMapConfigs().keySet()) {
+      if (taskEntry.equals(taskConfig.getId())) {
+        throw new HelixException(
+            "Task cannot be added because another task with the same ID already exists!");
+      }
+    }
+  }
+
+  private void addTaskToJobConfig(String workflowName, String jobName, TaskConfig taskConfig,
+      long endTime) throws InterruptedException, TimeoutException {
+    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    DataUpdater<ZNRecord> updater = currentData -> {
+      if (currentData != null) {
+        currentData.setMapField(taskConfig.getId(), taskConfig.getConfigMap());
+      } else {
+        LOG.error("JobConfig DataUpdater: Fails to update JobConfig. CurrentData is null.");
+      }
+      return currentData;
+    };
+
+    String path = _accessor.keyBuilder().resourceConfig(nameSpaceJobName).getPath();
+    boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+    if (!status) {
+      LOG.error("Failed to add task to the job {}", nameSpaceJobName);
+      throw new HelixException("Failed to add task to the job!");
+    }
+
+    WorkflowContext workflowContext =
+        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+    JobContext jobContext =
+        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+
+    if (workflowContext == null || jobContext == null) {
+      return;
+    }
+
+    String taskID = taskConfig.getId();
+    while (System.currentTimeMillis() <= endTime) {
+      jobContext =
+          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+      workflowContext =
+          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+      for (Map.Entry<String, Integer> entry : jobContext.getTaskIdPartitionMap().entrySet()) {
+        if (entry.getKey().equals(taskID)
+            && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+          return;
+        }
+      }
+      Thread.sleep(DEFAULT_SLEEP);
+    }
+    throw new TimeoutException("An unexpected issue happened while task being added to the job!");
+  }
+
+  /**
    * Keep the old name of API for backward compatibility
    * @param queue
    */
@@ -615,7 +788,7 @@ public class TaskDriver {
 
       if (workflowContext == null
           || !TaskState.STOPPED.equals(workflowContext.getWorkflowState())) {
-        Thread.sleep(1000);
+        Thread.sleep(DEFAULT_SLEEP);
       } else {
         // Successfully stopped
         return;
@@ -718,7 +891,7 @@ public class TaskDriver {
       if (baseDataAccessor.exists(idealStatePath, AccessOption.PERSISTENT)
           || baseDataAccessor.exists(workflowConfigPath, AccessOption.PERSISTENT)
           || baseDataAccessor.exists(workflowContextPath, AccessOption.PERSISTENT)) {
-        Thread.sleep(1000);
+        Thread.sleep(DEFAULT_SLEEP);
       } else {
         return;
       }
@@ -944,11 +1117,10 @@ public class TaskDriver {
       WorkflowConfig wfcfg = getWorkflowConfig(workflowName);
       JobConfig jobConfig = getJobConfig(jobName);
       JobContext jbCtx = getJobContext(jobName);
-      throw new HelixException(
-          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
-              workflowName, jobName, allowedStates,
-              ctx == null ? "null" : ctx, ctx != null ? ctx.getJobState(jobName) : "null",
-              wfcfg, jobConfig, jbCtx));
+      throw new HelixException(String.format(
+          "Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
+          workflowName, jobName, allowedStates, ctx == null ? "null" : ctx,
+          ctx != null ? ctx.getJobState(jobName) : "null", wfcfg, jobConfig, jbCtx));
 
     }
 

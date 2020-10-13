@@ -201,7 +201,8 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
   }
 
-  @Test
+  // The test needs to be re-write. Waiting for timer triggerng is source of flakiness.
+  @Test(enabled = false)
   public void testPeriodicRefresh() throws InterruptedException {
     // Wait so that initial refreshes finish (not triggered by periodic refresh timer)
     Thread.sleep(1000L);

@@ -137,6 +137,8 @@ public abstract class AbstractTestClusterModel {
     when(testCurrentStateResource1.getStateModelDefRef()).thenReturn("MasterSlave");
     when(testCurrentStateResource1.getState(_partitionNames.get(0))).thenReturn("MASTER");
     when(testCurrentStateResource1.getState(_partitionNames.get(1))).thenReturn("SLAVE");
+    when(testCurrentStateResource1.getSessionId()).thenReturn(_sessionId);
+
     CurrentState testCurrentStateResource2 = Mockito.mock(CurrentState.class);
     Map<String, String> partitionStateMap2 = new HashMap<>();
     partitionStateMap2.put(_partitionNames.get(2), "MASTER");
@@ -146,6 +148,8 @@ public abstract class AbstractTestClusterModel {
     when(testCurrentStateResource2.getStateModelDefRef()).thenReturn("MasterSlave");
     when(testCurrentStateResource2.getState(_partitionNames.get(2))).thenReturn("MASTER");
     when(testCurrentStateResource2.getState(_partitionNames.get(3))).thenReturn("SLAVE");
+    when(testCurrentStateResource2.getSessionId()).thenReturn(_sessionId);
+
     Map<String, CurrentState> currentStatemap = new HashMap<>();
     currentStatemap.put(_resourceNames.get(0), testCurrentStateResource1);
     currentStatemap.put(_resourceNames.get(1), testCurrentStateResource2);

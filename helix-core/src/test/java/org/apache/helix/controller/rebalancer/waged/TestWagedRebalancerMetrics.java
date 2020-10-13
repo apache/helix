@@ -201,14 +201,13 @@ public class TestWagedRebalancerMetrics extends AbstractTestClusterModel {
         String capacityKey = capacityEntry.getKey();
         String attributeName = capacityKey + "Gauge";
         Assert.assertTrue(TestHelper.verify(() -> {
-              try {
-                return (long) mBeanServer.getAttribute(instanceObjectName, attributeName)
-                    == _capacityDataMap.get(capacityKey);
-              } catch (AttributeNotFoundException e) {
-                return false;
-              }
-            }, TestHelper.WAIT_DURATION),
-            "Instance capacity gauge metric is not found or incorrect!");
+          try {
+            return (long) mBeanServer.getAttribute(instanceObjectName, attributeName)
+                == _capacityDataMap.get(capacityKey);
+          } catch (AttributeNotFoundException e) {
+            return false;
+          }
+        }, TestHelper.WAIT_DURATION), "Instance capacity gauge metric is not found or incorrect!");
         Assert.assertEquals((long) mBeanServer.getAttribute(instanceObjectName, attributeName),
             (long) _capacityDataMap.get(capacityKey));
       }

@@ -226,7 +226,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
-    System.out.println("config at beginning of testAddConfig:" + oldConfig.toString());
 
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("newField", "newValue");
@@ -244,7 +243,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
-    System.out.println("config at end testAddConfig:" + newConfig.toString());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -254,8 +252,6 @@ public class TestClusterAccessor extends AbstractTestClass {
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
-    System.out.println("new config:" + config.toString());
-
     ZNRecord record = config.getRecord();
 
     String key = record.getSimpleFields().keySet().iterator().next();
@@ -263,7 +259,15 @@ public class TestClusterAccessor extends AbstractTestClass {
     record.getSimpleFields().clear();
     record.setSimpleField(key, value + "--updated");
 
-    key = record.getListFields().keySet().iterator().next();
+    // skip INSTANCE_CAPACITY_KEYS which can be added by waged rebalancer in global run
+    Iterator<String> itListField = record.getListFields().keySet().iterator();
+    while (itListField.hasNext()) {
+      key = itListField.next();
+      if (key.equals("ListField1")) {
+        break;
+      }
+    }
+
     List<String> list = record.getListField(key);
     list.remove(0);
     list.add("newValue--updated");
@@ -302,7 +306,16 @@ public class TestClusterAccessor extends AbstractTestClass {
     record.getSimpleFields().clear();
     record.setSimpleField(simpleKey, value);
 
-    String listKey = record.getListFields().keySet().iterator().next();
+    String listKey = null;
+    // skip INSTANCE_CAPACITY_KEYS which can be added by waged rebalancer in global run
+    Iterator<String> itListField = record.getListFields().keySet().iterator();
+    while (itListField.hasNext()) {
+      listKey = itListField.next();
+      if (listKey.equals("ListField1")) {
+        break;
+      }
+    }
+    Assert.assertTrue(listKey != null);
     List<String> list = record.getListField(listKey);
     record.getListFields().clear();
     record.setListField(listKey, list);

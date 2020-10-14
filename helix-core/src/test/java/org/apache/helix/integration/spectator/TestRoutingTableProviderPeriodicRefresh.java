@@ -202,6 +202,7 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
   }
 
   // The test needs to be re-write. Waiting for timer triggerng is source of flakiness.
+  // todo: re-write the test, tracked by https://github.com/apache/helix/issues/1250
   @Test(enabled = false)
   public void testPeriodicRefresh() throws InterruptedException {
     // Wait so that initial refreshes finish (not triggered by periodic refresh timer)

@@ -36,7 +36,7 @@ public class TestPropertyKeyGetPath extends TaskTestBase {
   private static final String CONFIGS_NODE = "CONFIGS";
   private static final String TASK_NODE = "TASK";
   private static final String CONTEXT_NODE = "Context";
-  private static final String TASK_FRAMEWORK_CONTEXT_NODE = "TaskFrameworkContext";
+  private static final String TASK_FRAMEWORK_CONTEXT_NODE = "TaskRebalancer";
   private static final String PROPERTYSTORE_NODE = "PROPERTYSTORE";
   private PropertyKey.Builder KEY_BUILDER = new PropertyKey.Builder(CLUSTER_NAME);
 
@@ -79,7 +79,7 @@ public class TestPropertyKeyGetPath extends TaskTestBase {
     String workflowContext = "/" + Joiner.on("/").join(CLUSTER_NAME, PROPERTYSTORE_NODE,
         TASK_FRAMEWORK_CONTEXT_NODE, WORKFLOW_NAME, CONTEXT_NODE);
     String jobContext = "/" + Joiner.on("/").join(CLUSTER_NAME, PROPERTYSTORE_NODE,
-        TASK_FRAMEWORK_CONTEXT_NODE, WORKFLOW_NAME, JOB_NAME, CONTEXT_NODE);
+        TASK_FRAMEWORK_CONTEXT_NODE, WORKFLOW_NAME + "_" + JOB_NAME, CONTEXT_NODE);
 
     Assert.assertEquals(KEY_BUILDER.workflowConfigZNodes().getPath(), taskConfigRoot);
     Assert.assertEquals(KEY_BUILDER.workflowConfigZNode(WORKFLOW_NAME).getPath(), workflowConfig);

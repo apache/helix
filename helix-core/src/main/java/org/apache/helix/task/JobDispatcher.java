@@ -238,6 +238,10 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     updateInstanceToTaskAssignmentsFromContext(jobCtx, currentInstanceToTaskAssignments);
 
+    // Find the tasks that have been removed form the config, add them to TasksToDrop
+    handleDeletedTasks(jobResource, jobCfg, jobCtx, currentInstanceToTaskAssignments, tasksToDrop,
+        currStateOutput, allPartitions);
+
     long currentTime = System.currentTimeMillis();
 
     if (LOG.isDebugEnabled()) {
@@ -477,5 +481,62 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           assignableInstanceManager);
     }
     return new FixedTargetTaskAssignmentCalculator(assignableInstanceManager);
+  }
+
+  /**
+   * Find the tasks that have been removed from job config, ass them to tasksToDrop. If task's
+   * currentState and pending message have been removed, delete the task from job context.
+   * @param jobName
+   * @param jobConfig
+   * @param jobContext
+   * @param currentInstanceToTaskAssignments
+   * @param tasksToDrop
+   * @param currStateOutput
+   * @param allPartitions
+   */
+  private void handleDeletedTasks(String jobName, JobConfig jobConfig, JobContext jobContext,
+      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments,
+      Map<String, Set<Integer>> tasksToDrop, CurrentStateOutput currStateOutput,
+      Set<Integer> allPartitions) {
+    if (TaskUtil.isGenericTaskJob(jobConfig)) {
+      // Get all partitions existed in the context
+      Set<Integer> contextPartitions = jobContext.getPartitionSet();
+      // Check whether the tasks have been deleted from jobConfig
+      for (Integer partition : contextPartitions) {
+        String partitionID = jobContext.getTaskIdForPartition(partition);
+        if (!jobConfig.getTaskConfigMap().containsKey(partitionID)) {
+          boolean hasCurrentState = false;
+          for (Map.Entry<String, SortedSet<Integer>> instanceToPartitions : currentInstanceToTaskAssignments
+              .entrySet()) {
+            String instance = instanceToPartitions.getKey();
+            if (instanceToPartitions.getValue().contains(partition)) {
+              LOG.info(
+                  "Task {} has been removed from job config of job {}. Current State should be removed from instance instance {}!",
+                  partitionID, jobName, instance);
+              if (!tasksToDrop.containsKey(instance)) {
+                tasksToDrop.put(instance, new HashSet<>());
+              }
+              tasksToDrop.get(instance).add(partition);
+
+              // If current state or pending message have not been removed yet, we should not
+              // delete the context and leave unclean currentState
+              String pName = pName(jobName, partition);
+              if (currStateOutput.getCurrentState(jobName, new Partition(pName), instance) != null
+                  || currStateOutput.getPendingMessage(jobName, new Partition(pName),
+                      instance) != null) {
+                hasCurrentState = true;
+              }
+            }
+          }
+          if (!hasCurrentState) {
+            LOG.info(
+                "Task {} has been removed from job config of job {}. Removing task from job context!",
+                partitionID, jobName);
+            jobContext.removeTask(partition);
+            allPartitions.remove(partition);
+          }
+        }
+      }
+    }
   }
 }

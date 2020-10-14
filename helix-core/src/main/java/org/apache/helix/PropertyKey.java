@@ -844,12 +844,12 @@ public class PropertyKey {
     }
 
     /**
-     * Get a PropertyKey associated with {@link WorkflowConfig} for easier path generation.
+     * Get a PropertyKey associated with {@link WorkflowContext} for easier path generation.
      * @param workflowName
      * @return {@link PropertyKey}
      */
     public PropertyKey workflowContextZNode(String workflowName) {
-      return new PropertyKey(PropertyType.WORKFLOW_CONTEXT, WorkflowConfig.class, _clusterName,
+      return new PropertyKey(PropertyType.WORKFLOW_CONTEXT, WorkflowContext.class, _clusterName,
           workflowName);
     }
 
@@ -871,8 +871,8 @@ public class PropertyKey {
      * @return
      */
     public PropertyKey jobContextZNode(String workflowName, String jobName) {
-      return new PropertyKey(PropertyType.JOB_CONTEXT, JobContext.class, _clusterName, workflowName,
-          jobName);
+      return new PropertyKey(PropertyType.JOB_CONTEXT, JobContext.class, _clusterName,
+          workflowName, jobName);
     }
 
     /**

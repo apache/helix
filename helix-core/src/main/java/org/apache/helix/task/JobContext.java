@@ -313,4 +313,12 @@ public class JobContext extends HelixProperty {
     }
     return map;
   }
+
+  /**
+   * Remove the task from the map field of job context.
+   * @param taskNumber
+   */
+  public void removeTask(int taskNumber) {
+    _record.getMapFields().remove(String.valueOf(taskNumber));
+  }
 }

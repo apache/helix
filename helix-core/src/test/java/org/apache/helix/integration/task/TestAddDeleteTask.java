@@ -24,8 +24,10 @@ import com.google.common.collect.Sets;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -36,12 +38,14 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.zookeeper.impl.client.ZkClient;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestAddTask extends TaskTestBase {
+public class TestAddDeleteTask extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -55,7 +59,7 @@ public class TestAddTask extends TaskTestBase {
   }
 
   @Test
-  public void testAddWorkflowMissing() throws Exception {
+  public void testAddDeleteTaskWorkflowMissing() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobName = "JOB0";
     TaskConfig task = new TaskConfig(null, null, null, null);
@@ -65,10 +69,17 @@ public class TestAddTask extends TaskTestBase {
     } catch (IllegalArgumentException e) {
       // Helix Exception is expected because workflow config is missing
     }
+
+    try {
+      _driver.deleteTask(workflowName, jobName, task.getId());
+      Assert.fail("Exception is expected because workflow config is missing");
+    } catch (IllegalArgumentException e) {
+      // Helix Exception is expected because workflow config is missing
+    }
   }
 
-  @Test(dependsOnMethods = "testAddWorkflowMissing")
-  public void testAddJobMissing() throws Exception {
+  @Test(dependsOnMethods = "testAddDeleteTaskWorkflowMissing")
+  public void testAddDeleteTaskJobMissing() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobName = "JOB0";
 
@@ -89,9 +100,16 @@ public class TestAddTask extends TaskTestBase {
     } catch (IllegalArgumentException e) {
       // Helix Exception is expected because job config is missing
     }
+
+    try {
+      _driver.deleteTask(workflowName, jobName, task.getId());
+      Assert.fail("Exception is expected because job config is missing");
+    } catch (IllegalArgumentException e) {
+      // Helix Exception is expected because job config is missing
+    }
   }
 
-  @Test(dependsOnMethods = "testAddJobMissing")
+  @Test(dependsOnMethods = "testAddDeleteTaskJobMissing")
   public void testAddTaskToTargetedJob() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobName = "JOB0";
@@ -220,6 +238,8 @@ public class TestAddTask extends TaskTestBase {
     } catch (IllegalArgumentException e) {
       // Helix Exception is expected because job id not running
     }
+
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testAddTaskWithNullConfig")
@@ -370,5 +390,273 @@ public class TestAddTask extends TaskTestBase {
     _controller.syncStart();
 
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+  }
+
+  @Test(dependsOnMethods = "testAddTaskWorkflowAndJobNotStarted")
+  public void testDeleteNonExistedTask() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "9999999"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+    String dummyID = "1234";
+    try {
+      _driver.deleteTask(workflowName, jobName, dummyID);
+      Assert.fail("Exception is expected because a task with such ID does not exists!");
+    } catch (IllegalArgumentException e) {
+      // Helix Exception is expected because job id not running
+    }
+    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+  }
+
+  @Test(dependsOnMethods = "testDeleteNonExistedTask")
+  public void testDeleteTaskFromJobNotStarted() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setExecutionDelay(500000L).setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100)
+        .setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      WorkflowContext workflowContext = _driver.getWorkflowContext(workflowName);
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (workflowContext != null && jobContext == null);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add short running task
+    Map<String, String> newTaskConfig =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+    TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
+    _driver.addTask(workflowName, jobName, task);
+
+    JobConfig jobConfig =
+        _driver.getJobConfig(TaskUtil.getNamespacedJobName(workflowName, jobName));
+
+    // Make sure task has been added to the job config
+    Assert.assertTrue(jobConfig.getMapConfigs().containsKey(task.getId()));
+
+    _driver.deleteTask(workflowName, jobName, task.getId());
+    jobConfig = _driver.getJobConfig(TaskUtil.getNamespacedJobName(workflowName, jobName));
+
+    // Make sure task has been removed from job config
+    Assert.assertFalse(jobConfig.getMapConfigs().containsKey(task.getId()));
+
+    _driver.deleteAndWaitForCompletion(workflowName, TestHelper.WAIT_DURATION);
+  }
+
+  @Test(dependsOnMethods = "testDeleteTaskFromJobNotStarted")
+  public void testAddAndDeleteTask() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+
+    // Wait until initial task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(0);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add new task
+    Map<String, String> newTaskConfig =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
+    _driver.addTask(workflowName, jobName, task);
+
+    // Wait until new task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(1);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.deleteTask(workflowName, jobName, task.getId());
+    JobConfig jobConfig =
+        _driver.getJobConfig(TaskUtil.getNamespacedJobName(workflowName, jobName));
+    // Make sure task has been removed from job config
+    Assert.assertFalse(jobConfig.getMapConfigs().containsKey(task.getId()));
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      return (!jobContext.getPartitionSet().contains(1));
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.stop(workflowName);
+  }
+
+  @Test(dependsOnMethods = "testAddAndDeleteTask")
+  public void testDeleteTaskAndJobCompleted() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "20000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+
+    // Wait until initial task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(0);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add new task
+    Map<String, String> taskConfig1 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    Map<String, String> taskConfig2 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    TaskConfig task1 = new TaskConfig(null, taskConfig1, null, null);
+    TaskConfig task2 = new TaskConfig(null, taskConfig2, null, null);
+
+    _driver.addTask(workflowName, jobName, task1);
+    _driver.addTask(workflowName, jobName, task2);
+
+    // Wait until new task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state1 = jobContext.getPartitionState(1);
+      TaskPartitionState state2 = jobContext.getPartitionState(2);
+      if (state1 == null && state2 == null) {
+        return false;
+      }
+      return (state1 == TaskPartitionState.RUNNING && state2 == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.deleteTask(workflowName, jobName, task1.getId());
+    _driver.deleteTask(workflowName, jobName, task2.getId());
+
+    JobConfig jobConfig =
+        _driver.getJobConfig(TaskUtil.getNamespacedJobName(workflowName, jobName));
+    // Make sure task has been removed from job config
+    Assert.assertFalse(jobConfig.getMapConfigs().containsKey(task1.getId()));
+    Assert.assertFalse(jobConfig.getMapConfigs().containsKey(task2.getId()));
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      return (!jobContext.getPartitionSet().contains(1)
+          && !jobContext.getPartitionSet().contains(2));
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.COMPLETED);
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+  }
+
+  @Test(dependsOnMethods = "testDeleteTaskAndJobCompleted")
+  public void testAddDeleteTaskOneInstance() throws Exception {
+    // Stop all participant other than participant 0
+    for (int i = 1; i < _numNodes; i++) {
+      super.stopParticipant(i);
+      Assert.assertFalse(_participants[i].isConnected());
+    }
+
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(1).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+
+    // Wait until initial task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(0);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add new task
+    Map<String, String> newTaskConfig =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    TaskConfig task = new TaskConfig(null, newTaskConfig, null, null);
+    _driver.addTask(workflowName, jobName, task);
+    Assert.assertEquals(_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName))
+        .getPartitionSet().size(), 2);
+    // Since only one task is allowed per instance, the new task should be scheduled
+    Assert.assertNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName))
+        .getPartitionState(1));
+    _driver.deleteTask(workflowName, jobName, task.getId());
+    Assert.assertEquals(_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName))
+        .getPartitionSet().size(), 1);
+    _driver.stop(workflowName);
   }
 }

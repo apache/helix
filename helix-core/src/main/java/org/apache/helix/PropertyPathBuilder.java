@@ -37,6 +37,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,11 +176,11 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.JOB_CONFIG, 4,
         "/{clusterName}/CONFIGS/TASK/{workflowName}/{jobName}/{jobName}");
     addEntry(PropertyType.TASK_CONTEXT_ROOT, 1,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext");
-    addEntry(PropertyType.WORKFLOW_CONTEXT, 2,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext/{workflowName}/Context");
-    addEntry(PropertyType.JOB_CONTEXT, 3,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext/{workflowName}/{jobName}/Context");
+        "/{clusterName}/PROPERTYSTORE" + TaskConstants.REBALANCER_CONTEXT_ROOT);
+    addEntry(PropertyType.WORKFLOW_CONTEXT, 2, "/{clusterName}/PROPERTYSTORE"
+        + TaskConstants.REBALANCER_CONTEXT_ROOT + "/{workflowName}/Context");
+    addEntry(PropertyType.JOB_CONTEXT, 3, "/{clusterName}/PROPERTYSTORE"
+        + TaskConstants.REBALANCER_CONTEXT_ROOT + "/{workflowName}" + "_" + "{jobName}/Context");
   }
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 

@@ -538,7 +538,7 @@ public class TaskDriver {
    * operation is the default timeout which is 5 minutes. {@link TaskDriver#DEFAULT_TIMEOUT}
    * Note1: Task cannot be added if the job is in an illegal state. A job can accept
    * new task if the job is in-progress or it has not started yet.
-   * Note2: The job can only be added to non-targeted jobs.
+   * Note2: The tasks can only be added to non-targeted jobs.
    * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
    * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
    * has been successfully added or not.
@@ -559,7 +559,7 @@ public class TaskDriver {
    * Add task to a running (IN-PROGRESS) job or a job which has not started yet
    * Note1: Task cannot be added if the job is in an illegal state. A job can accept
    * new task if the job is in-progress or it has not started yet.
-   * Note2: The job can only be added to non-targeted jobs.
+   * Note2: The tasks can only be added to non-targeted jobs.
    * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
    * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
    * has been successfully added or not.
@@ -585,9 +585,17 @@ public class TaskDriver {
 
     long endTime = System.currentTimeMillis() + timeoutMs;
 
-    validateAddTaskConfigs(workflowName, jobName, taskConfig);
+    validateConfigsForTaskModifications(workflowName, jobName, taskConfig);
 
     String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    JobConfig jobConfig = TaskUtil.getJobConfig(_accessor, nameSpaceJobName);
+    for (String taskEntry : jobConfig.getMapConfigs().keySet()) {
+      if (taskEntry.equals(taskConfig.getId())) {
+        throw new HelixException(
+            "Task cannot be added because another task with the same ID already exists!");
+      }
+    }
+
     WorkflowContext workflowContext = getWorkflowContext(workflowName);
     JobContext jobContext = getJobContext(nameSpaceJobName);
     if (workflowContext == null || jobContext == null) {
@@ -608,13 +616,100 @@ public class TaskDriver {
   }
 
   /**
+   * Delete an existing task from a running (IN-PROGRESS) job or a job which has not started yet.
+   * Timeout for this operation is the default timeout which is 5 minutes.
+   * {@link TaskDriver#DEFAULT_TIMEOUT}
+   * Note1: Task cannot be deleted from the job which is in an illegal state. Task can be deleted
+   * from the job if the job is in-progress or it has not started yet.
+   * Note2: The tasks can only be deleted from non-targeted jobs.
+   * Note3: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully deleted or not.
+   * Note4: timeout is the time that this API checks whether the task has been successfully deleted
+   * or not.
+   * @param workflowName
+   * @param jobName
+   * @param taskID
+   * @throws TimeoutException if the outcome of the task deletion is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
+   */
+  public void deleteTask(String workflowName, String jobName, String taskID)
+      throws TimeoutException, InterruptedException {
+    deleteTask(workflowName, jobName, taskID, DEFAULT_TIMEOUT);
+  }
+
+  /**
+   * Delete an existing task from a running (IN-PROGRESS) job or a job which has not started yet.
+   * Note1: Task cannot be deleted from the job which is in an illegal state. Task can be deleted
+   * from the job if the job is in-progress or it has not started yet.
+   * Note2: The tasks can only be deleted from non-targeted jobs.
+   * Note3: In case of timeout exception, it is the user's responsibility to check whether the task
+   * has been successfully deleted or not.
+   * Note4: timeout is the time that this API checks whether the task has been successfully deleted
+   * or not.
+   * @param workflowName
+   * @param jobName
+   * @param taskID
+   * @param timeoutMs
+   * @throws TimeoutException if the outcome of the task deletion is unknown and cannot be verified
+   * @throws IllegalArgumentException if the inputs are invalid
+   * @throws HelixException if the job is not in the states to accept a new task or if there is any
+   *           issue in updating jobConfig.
+   */
+  public void deleteTask(String workflowName, String jobName, String taskID, long timeoutMs)
+      throws TimeoutException, InterruptedException {
+    long endTime = System.currentTimeMillis() + timeoutMs;
+
+    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    JobConfig jobConfig = getJobConfig(nameSpaceJobName);
+    if (jobConfig == null) {
+      throw new IllegalArgumentException("Job " + nameSpaceJobName + " config does not exist!");
+    }
+
+    TaskConfig taskConfig = null;
+    Map<String, TaskConfig> allTaskConfigs = jobConfig.getTaskConfigMap();
+    for (Map.Entry<String, TaskConfig> entry : allTaskConfigs.entrySet()) {
+      if (entry.getKey().equals(taskID)) {
+        taskConfig = entry.getValue();
+      }
+    }
+
+    validateConfigsForTaskModifications(workflowName, jobName, taskConfig);
+
+    WorkflowContext workflowContext = getWorkflowContext(workflowName);
+    JobContext jobContext = getJobContext(nameSpaceJobName);
+    if (workflowContext == null || jobContext == null) {
+      // Workflow context or job context is null. It means job has not been started. Hence task can
+      // be deleted from the job
+      deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
+      return;
+    }
+
+    TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
+
+    if (jobState == null) {
+      // Null job state means the job has not started yet
+      deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
+      return;
+    }
+
+    if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
+      throw new HelixException("Job " + nameSpaceJobName
+          + " is in illegal state for task deletion. Job State is " + jobState);
+    }
+    deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
+  }
+
+  /**
    * The helper method which check the workflow, job and task configs to determine if new task can
-   * be added to the job
+   * be added/deleted to/from the job
    * @param workflowName
    * @param jobName
    * @param taskConfig
    */
-  private void validateAddTaskConfigs(String workflowName, String jobName, TaskConfig taskConfig) {
+  private void validateConfigsForTaskModifications(String workflowName, String jobName,
+      TaskConfig taskConfig) {
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, workflowName);
     String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
     JobConfig jobConfig = TaskUtil.getJobConfig(_accessor, nameSpaceJobName);
@@ -634,26 +729,30 @@ public class TaskDriver {
     }
 
     if (taskConfig.getId() == null) {
-      throw new HelixException("Task cannot be added because taskID is null!");
+      throw new HelixException("Task cannot be added or deleted because taskID is null!");
     }
 
     if (jobConfig.getTargetResource() != null) {
       throw new HelixException(String.format(
-          "Job %s is a targeted job. New task cannot be added to this job!", nameSpaceJobName));
+          "Job %s is a targeted job. New task cannot be added/deleted to/from this job!",
+          nameSpaceJobName));
     }
 
     if ((taskConfig.getCommand() == null) == (jobConfig.getCommand() == null)) {
       throw new HelixException("Command must exist in either job or task, not both!");
     }
-
-    for (String taskEntry : jobConfig.getMapConfigs().keySet()) {
-      if (taskEntry.equals(taskConfig.getId())) {
-        throw new HelixException(
-            "Task cannot be added because another task with the same ID already exists!");
-      }
-    }
   }
 
+  /**
+   * A helper method which adds a new task config to the job config and verifies if task is added to
+   * the context by the controller.
+   * @param workflowName
+   * @param jobName
+   * @param taskConfig
+   * @param endTime
+   * @throws InterruptedException
+   * @throws TimeoutException
+   */
   private void addTaskToJobConfig(String workflowName, String jobName, TaskConfig taskConfig,
       long endTime) throws InterruptedException, TimeoutException {
     String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
@@ -697,6 +796,73 @@ public class TaskDriver {
       Thread.sleep(DEFAULT_SLEEP);
     }
     throw new TimeoutException("An unexpected issue happened while task being added to the job!");
+  }
+
+  /**
+   * A helper method which deletes an existing task from the job config and verifies if task is
+   * deleted from the context by the controller.
+   * @param workflowName
+   * @param jobName
+   * @param taskID
+   * @param endTime
+   * @throws InterruptedException
+   * @throws TimeoutException
+   */
+  private void deleteTaskFromJobConfig(String workflowName, String jobName, String taskID,
+      long endTime) throws InterruptedException, TimeoutException {
+    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    DataUpdater<ZNRecord> taskRemover = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData != null) {
+          Map<String, Map<String, String>> taskMap = currentData.getMapFields();
+          if (taskMap == null) {
+            LOG.warn("Could not update the jobConfig: " + jobName + " Znode MapField is null.");
+            return null;
+          }
+          Map<String, Map<String, String>> newTaskMap = new HashMap<String, Map<String, String>>();
+          for (Map.Entry<String, Map<String, String>> entry : taskMap.entrySet()) {
+            if (!entry.getKey().equals(taskID)) {
+              newTaskMap.put(entry.getKey(), entry.getValue());
+            }
+          }
+          currentData.setMapFields(newTaskMap);
+        }
+        return currentData;
+      }
+    };
+
+    String path = _accessor.keyBuilder().resourceConfig(nameSpaceJobName).getPath();
+    boolean status =
+        _accessor.getBaseDataAccessor().update(path, taskRemover, AccessOption.PERSISTENT);
+    if (!status) {
+      LOG.error("Failed to delete task from the job {}", nameSpaceJobName);
+      throw new HelixException("Failed to delete task from the job");
+    }
+
+    WorkflowContext workflowContext =
+        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+    JobContext jobContext =
+        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+
+    if (workflowContext == null || jobContext == null) {
+      return;
+    }
+
+    while (System.currentTimeMillis() <= endTime) {
+      jobContext =
+          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+      workflowContext =
+          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+      if (workflowContext != null && jobContext != null
+          && !jobContext.getTaskIdPartitionMap().containsKey(taskID)
+          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+        return;
+      }
+      Thread.sleep(DEFAULT_SLEEP);
+    }
+    throw new TimeoutException(
+        "An unexpected issue happened while task being deleted from the job!");
   }
 
   /**

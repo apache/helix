@@ -427,7 +427,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
   public void testResetSnapshots() {
     // ensure the cluster converged before the test to ensure IS is not modified unexpectedly
 
-    ZkHelixClusterVerifier _clusterVerifier =
+    HelixClusterVerifier _clusterVerifier =
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setDeactivatedNodeAwareness(true)
             .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))

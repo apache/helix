@@ -194,7 +194,7 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
-
+    
     verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName);
     try {
       boolean result = ClusterStateVerifier

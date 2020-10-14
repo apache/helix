@@ -134,12 +134,12 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // But the full cluster verification should fail
-    BestPossAndExtViewZkVerifier verifier1 = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName);
+    verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName);
     try {
-      boolean fullResult = verifier1.verify();
+      boolean fullResult = verifier.verify();
       Assert.assertFalse(fullResult);
     } finally {
-      verifier1.close();
+      verifier.close();
     }
     _admin.enableCluster(_clusterName, true);
   }

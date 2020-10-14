@@ -174,8 +174,8 @@ public class TestP2PNoDuplicatedMessage extends ZkTestBase {
       verifyP2PEnabled(startTime);
     }
 
-    // Discussed with Meng who originally created this one. The success rate really depends on how
-    // quick participant act in relationship with controller. For now, we set 90% threshold.
+    // The success rate really depends on how quick participant act in relationship with controller.
+    // For now, we set 90% threshold.
     long threshold = Math.round(total * 0.9);
     Assert.assertTrue( p2pTrigged > Math.round(total * 0.9));
     Assert.assertEquals(MockHelixTaskExecutor.duplicatedMessagesInProgress, 0,

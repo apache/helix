@@ -37,7 +37,7 @@ public class TestHelixZkClient extends ZkUnitTestBase {
   @Test
   public void testZkConnectionManager() {
     final String TEST_ROOT = "/testZkConnectionManager/IDEALSTATES";
-    final String TEST_PATH = TEST_ROOT + TEST_NODE + TestHelper.getTestMethodName();
+    final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
     ZkConnectionManager zkConnectionManager =
         new ZkConnectionManager(new ZkConnection(ZK_ADDR), HelixZkClient.DEFAULT_CONNECTION_TIMEOUT,
@@ -82,8 +82,8 @@ public class TestHelixZkClient extends ZkUnitTestBase {
 
   @Test(dependsOnMethods = "testZkConnectionManager")
   public void testSharingZkClient() throws Exception {
-    final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES1";
-    final String TEST_PATH = TEST_ROOT + TEST_NODE + TestHelper.getTestMethodName();
+    final String TEST_ROOT = "/testSharingZkClient/IDEALSTATES";
+    final String TEST_PATH = TEST_ROOT + TEST_NODE;
 
     // A factory just for this tests, this for avoiding the impact from other tests running in
     // parallel.

@@ -66,7 +66,7 @@ public class TestZkConnectionLost extends TaskTestBase {
   private ClusterSetup _setupTool;
   private HelixZkClient _zkClient;
 
-  private static final int RESTART_CNT = 2;
+  private static final int RESTART_CNT = 4;
 
   @BeforeClass
   public void beforeClass() throws Exception {

@@ -38,7 +38,7 @@ Release Notes for Apache Helix 0.9.8
 
 ** Critical Bug Fixes and Craftsmanship Improvements
 
-    In this release, we fixed one critical bugs in Helix ZkClient. There are also several fixes for craftsmanship and interfaces improvements.
+    In this release, we fixed one critical bug in Helix ZkClient. There are also several fixes for craftsmanship and interfaces improvements.
 
 []
 

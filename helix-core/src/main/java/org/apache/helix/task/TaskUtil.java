@@ -789,7 +789,7 @@ public class TaskUtil {
    */
   public static Set<String> getExpiredJobsFromCache(
       WorkflowControllerDataProvider workflowControllerDataProvider, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
+      WorkflowContext workflowContext, HelixManager manager) {
     Set<String> expiredJobs = new HashSet<>();
     Map<String, TaskState> jobStates = workflowContext.getJobStates();
     for (String job : workflowConfig.getJobDag().getAllNodes()) {
@@ -797,6 +797,11 @@ public class TaskUtil {
         continue;
       }
       JobConfig jobConfig = workflowControllerDataProvider.getJobConfig(job);
+      // TODO: Temporary solution for cache selective update race conditions
+      if (jobConfig == null) {
+        jobConfig = TaskUtil.getJobConfig(manager, job);
+      }
+
       JobContext jobContext = workflowControllerDataProvider.getJobContext(job);
       TaskState jobState = jobStates.get(job);
       if (isJobExpired(job, jobConfig, jobContext, jobState)) {

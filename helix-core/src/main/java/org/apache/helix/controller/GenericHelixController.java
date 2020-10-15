@@ -181,7 +181,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       Executors.newSingleThreadScheduledExecutor();
   private ScheduledFuture _periodicRebalanceFutureTask = null;
   long _timerPeriod = Long.MAX_VALUE;
-  private final Object _lock = new Object();
 
   /**
    * The timer that triggers the on-demand rebalance pipeline.
@@ -333,21 +332,21 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   /**
    * Starts the rebalancing timer with the specified period. Start the timer if necessary; If the
    * period is smaller than the current period, cancel the current timer and use the new period.
+   * note: For case where 2 threads change value from v0->v1 and v0->v2 at the same time, the
+   * result is indeterminable.
    */
   void startPeriodRebalance(long period, HelixManager manager) {
     if (period != _timerPeriod) {
       logger.info("Controller starting periodical rebalance timer at period " + period);
-      ScheduledFuture lastScheduledFuture = null;
-      synchronized (_lock) {
-        if (_periodicRebalanceFutureTask!=null && !_periodicRebalanceFutureTask.isCancelled()) {
-          lastScheduledFuture = _periodicRebalanceFutureTask;
-        }
+      ScheduledFuture lastScheduledFuture;
+      synchronized (_periodicalRebalanceExecutor) {
+        lastScheduledFuture = _periodicRebalanceFutureTask;
         _timerPeriod = period;
         _periodicRebalanceFutureTask = _periodicalRebalanceExecutor
             .scheduleAtFixedRate(new RebalanceTask(manager, ClusterEventType.PeriodicalRebalance),
                 _timerPeriod, _timerPeriod, TimeUnit.MILLISECONDS);
       }
-      if (lastScheduledFuture != null) {
+      if (lastScheduledFuture != null && !lastScheduledFuture.isCancelled()) {
         lastScheduledFuture.cancel(false /* mayInterruptIfRunning */);
       }
     } else {
@@ -360,7 +359,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   void stopPeriodRebalance() {
     logger.info("Controller stopping periodical rebalance timer at period " + _timerPeriod);
-    synchronized (_lock) {
+    synchronized (_periodicalRebalanceExecutor) {
       if (_periodicRebalanceFutureTask != null && !_periodicRebalanceFutureTask.isCancelled()) {
         _periodicRebalanceFutureTask.cancel(false /* mayInterruptIfRunning */);
         _timerPeriod = Long.MAX_VALUE;
@@ -1315,6 +1314,11 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     logger.info("Shutting down {} pipeline", Pipeline.Type.TASK.name());
     shutdownPipeline(_taskEventThread, _taskEventQueue);
+
+    if (!_periodicalRebalanceExecutor
+        .awaitTermination(EVENT_THREAD_JOIN_TIMEOUT, TimeUnit.MILLISECONDS)) {
+      _periodicalRebalanceExecutor.shutdownNow();
+    }
 
     // shutdown asycTasksThreadpool and wait for terminate.
     _asyncTasksThreadPool.shutdownNow();

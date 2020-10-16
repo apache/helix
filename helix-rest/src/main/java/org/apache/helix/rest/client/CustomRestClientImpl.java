@@ -40,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class CustomRestClientImpl implements CustomRestClient {
-  private static final Logger LOG = LoggerFactory.getLogger(CustomRestClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CustomRestClientImpl.class);
 
   // postfix used to append at the end of base url
   private static final String INSTANCE_HEALTH_STATUS = "/instanceHealthStatus";
@@ -116,6 +116,8 @@ class CustomRestClientImpl implements CustomRestClient {
       LOG.info("Expected HttpResponse statusCode: {}", HttpStatus.SC_OK);
       return jsonConverter.convert(getJsonObject(httpResponse));
     } else {
+      // Ensure entity is fully consumed so stream is closed.
+      EntityUtils.consumeQuietly(httpResponse.getEntity());
       throw new ClientProtocolException("Unexpected response status: " + status + ", reason: "
           + httpResponse.getStatusLine().getReasonPhrase());
     }
@@ -123,18 +125,27 @@ class CustomRestClientImpl implements CustomRestClient {
 
   @VisibleForTesting
   protected HttpResponse post(String url, Map<String, String> payloads) throws IOException {
+    HttpPost postRequest = new HttpPost(url);
     try {
-      HttpPost postRequest = new HttpPost(url);
       postRequest.setHeader("Accept", ACCEPT_CONTENT_TYPE);
       StringEntity entity = new StringEntity(OBJECT_MAPPER.writeValueAsString(payloads),
           ContentType.APPLICATION_JSON);
       postRequest.setEntity(entity);
       LOG.info("Executing request: {}, headers: {}, entity: {}", postRequest.getRequestLine(),
           postRequest.getAllHeaders(), postRequest.getEntity());
-      return _httpClient.execute(postRequest);
+
+      HttpResponse response = _httpClient.execute(postRequest);
+      int status = response.getStatusLine().getStatusCode();
+      if (status != HttpStatus.SC_OK) {
+        LOG.warn("Received non-200 status code: {}, payloads: {}", status, payloads);
+      }
+
+      return response;
     } catch (IOException e) {
       LOG.error("Failed to perform customized health check. Is participant endpoint {} available?",
           url, e);
+      // Release connection to be reused and avoid connection leakage.
+      postRequest.releaseConnection();
       throw e;
     }
   }

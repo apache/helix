@@ -67,14 +67,14 @@ public class TestAddDeleteTask extends TaskTestBase {
       _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because workflow config is missing");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because workflow config is missing
+      // IllegalArgumentException Exception is expected because workflow config is missing
     }
 
     try {
       _driver.deleteTask(workflowName, jobName, task.getId());
       Assert.fail("Exception is expected because workflow config is missing");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because workflow config is missing
+      // IllegalArgumentException Exception is expected because workflow config is missing
     }
   }
 
@@ -98,14 +98,14 @@ public class TestAddDeleteTask extends TaskTestBase {
       _driver.addTask(workflowName, jobName, task);
       Assert.fail("Exception is expected because job config is missing");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because job config is missing
+      // IllegalArgumentException Exception is expected because job config is missing
     }
 
     try {
       _driver.deleteTask(workflowName, jobName, task.getId());
       Assert.fail("Exception is expected because job config is missing");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because job config is missing
+      // IllegalArgumentException Exception is expected because job config is missing
     }
   }
 
@@ -234,9 +234,9 @@ public class TestAddDeleteTask extends TaskTestBase {
 
     try {
       _driver.addTask(workflowName, jobName, null);
-      Assert.fail("Exception is expected because job is not running");
+      Assert.fail("Exception is expected because task config is null");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because job id not running
+      // IllegalArgumentException Exception is expected because task config is null
     }
 
     _driver.stop(workflowName);
@@ -413,7 +413,7 @@ public class TestAddDeleteTask extends TaskTestBase {
       _driver.deleteTask(workflowName, jobName, dummyID);
       Assert.fail("Exception is expected because a task with such ID does not exists!");
     } catch (IllegalArgumentException e) {
-      // Helix Exception is expected because job id not running
+      // IllegalArgumentException Exception is expected because task with such ID does not exists
     }
     _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
   }

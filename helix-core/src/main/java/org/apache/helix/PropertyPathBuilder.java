@@ -170,11 +170,10 @@ public class PropertyPathBuilder {
         "/{clusterName}/PROPERTYSTORE/TaskRebalancer/{workflowName}/Context"); // Old
     // WorkflowContext
     // path
-    addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/TASK");
-    addEntry(PropertyType.WORKFLOW_CONFIG, 3,
-        "/{clusterName}/CONFIGS/TASK/{workflowName}/{workflowName}");
-    addEntry(PropertyType.JOB_CONFIG, 4,
-        "/{clusterName}/CONFIGS/TASK/{workflowName}/{jobName}/{jobName}");
+    addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/RESOURCE");
+    addEntry(PropertyType.WORKFLOW_CONFIG, 2, "/{clusterName}/CONFIGS/RESOURCE/{workflowName}");
+    addEntry(PropertyType.JOB_CONFIG, 3,
+        "/{clusterName}/CONFIGS/RESOURCE/{workflowName}" + "_" + "{jobName}");
     addEntry(PropertyType.TASK_CONTEXT_ROOT, 1,
         "/{clusterName}/PROPERTYSTORE" + TaskConstants.REBALANCER_CONTEXT_ROOT);
     addEntry(PropertyType.WORKFLOW_CONTEXT, 2, "/{clusterName}/PROPERTYSTORE"

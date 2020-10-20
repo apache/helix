@@ -34,7 +34,7 @@ public class TestPropertyKeyGetPath extends TaskTestBase {
   private static final String WORKFLOW_NAME = "testWorkflow_01";
   private static final String JOB_NAME = "testJob_01";
   private static final String CONFIGS_NODE = "CONFIGS";
-  private static final String TASK_NODE = "TASK";
+  private static final String RESOURCE_NODE = "RESOURCE";
   private static final String CONTEXT_NODE = "Context";
   private static final String TASK_FRAMEWORK_CONTEXT_NODE = "TaskRebalancer";
   private static final String PROPERTYSTORE_NODE = "PROPERTYSTORE";
@@ -69,11 +69,11 @@ public class TestPropertyKeyGetPath extends TaskTestBase {
    */
   @Test
   public void testTaskFrameworkPropertyKeys() {
-    String taskConfigRoot = "/" + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, TASK_NODE);
+    String taskConfigRoot = "/" + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, RESOURCE_NODE);
     String workflowConfig = "/"
-        + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, TASK_NODE, WORKFLOW_NAME, WORKFLOW_NAME);
-    String jobConfig = "/" + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, TASK_NODE,
-        WORKFLOW_NAME, JOB_NAME, JOB_NAME);
+        + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, RESOURCE_NODE, WORKFLOW_NAME);
+    String jobConfig = "/" + Joiner.on("/").join(CLUSTER_NAME, CONFIGS_NODE, RESOURCE_NODE,
+        WORKFLOW_NAME + "_" + JOB_NAME);
     String taskContextRoot =
         "/" + Joiner.on("/").join(CLUSTER_NAME, PROPERTYSTORE_NODE, TASK_FRAMEWORK_CONTEXT_NODE);
     String workflowContext = "/" + Joiner.on("/").join(CLUSTER_NAME, PROPERTYSTORE_NODE,

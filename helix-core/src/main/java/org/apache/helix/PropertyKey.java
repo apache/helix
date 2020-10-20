@@ -840,7 +840,7 @@ public class PropertyKey {
      */
     public PropertyKey workflowConfigZNode(String workflowName) {
       return new PropertyKey(PropertyType.WORKFLOW_CONFIG, WorkflowConfig.class, _clusterName,
-          workflowName, workflowName);
+          workflowName);
     }
 
     /**
@@ -861,7 +861,7 @@ public class PropertyKey {
      */
     public PropertyKey jobConfigZNode(String workflowName, String jobName) {
       return new PropertyKey(PropertyType.JOB_CONFIG, JobConfig.class, _clusterName, workflowName,
-          jobName, jobName);
+          jobName);
     }
 
     /**

@@ -233,7 +233,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
       synchronized (this) {
         if (_byteArrayZkBaseDataAccessor == null) {
           _byteArrayZkBaseDataAccessor =
-              new ZkBaseDataAccessor<>(_zkAddr, new ByteArraySerializer());
+              new ZkBaseDataAccessor<>(getRealmAwareZkClient());
         }
       }
     }

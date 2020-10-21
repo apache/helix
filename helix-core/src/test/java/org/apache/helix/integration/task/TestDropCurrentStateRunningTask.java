@@ -149,7 +149,7 @@ public class TestDropCurrentStateRunningTask extends TaskTestBase {
                             .get(currentStatePathP1, new Stat(), AccessOption.PERSISTENT) == null),
                     TestHelper.WAIT_DURATION));
 
-    _driver.waitToStop(workflowName, TestHelper.WAIT_DURATION);
+    _driver.stop(workflowName);
   }
 
   @Test(dependsOnMethods = "testDropCurrentStateRunningTask")

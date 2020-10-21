@@ -1247,6 +1247,7 @@ public class TaskDriver {
           "Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
           workflowName, jobName, allowedStates, ctx == null ? "null" : ctx,
           ctx != null ? ctx.getJobState(jobName) : "null", wfcfg, jobConfig, jbCtx));
+
     }
 
     return ctx.getJobState(jobName);

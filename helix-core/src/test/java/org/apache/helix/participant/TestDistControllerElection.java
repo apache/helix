@@ -153,8 +153,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     }
 
     manager =
-          new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
-              _gZkClient);
+        new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
+            _gZkClient);
     GenericHelixController controller1 = new GenericHelixController();
     election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);

@@ -113,17 +113,13 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     }
     deleteCluster(CLUSTER_NAME);
   }
-  @Test
-  public void testHead() {
-    Assert.assertTrue(true);
-  }
 
-  @Test(expectedExceptions = HelixException.class, dependsOnMethods = "testHead")
+  @Test(expectedExceptions = HelixException.class)
   public void testTargetExternalViewWithoutEnable() {
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testTargetExternalViewWithoutEnable")
   public void testExternalViewDoesNotExist() {
     String resourceName = WorkflowGenerator.DEFAULT_TGT_DB + 1;
     RoutingTableProvider externalViewProvider =

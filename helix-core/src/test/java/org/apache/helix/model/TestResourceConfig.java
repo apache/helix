@@ -34,11 +34,6 @@ public class TestResourceConfig {
   private static final ObjectMapper _objectMapper = new ObjectMapper();
 
   @Test
-  public void testHead() {
-    Assert.assertTrue(true);
-  }
-
-  @Test(dependsOnMethods = "testHead")
   public void testGetPartitionCapacityMap() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -54,14 +49,14 @@ public class TestResourceConfig {
         .equals(capacityDataMap));
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testGetPartitionCapacityMap")
   public void testGetPartitionCapacityMapEmpty() throws IOException {
     ResourceConfig testConfig = new ResourceConfig("testId");
 
     Assert.assertTrue(testConfig.getPartitionCapacityMap().equals(Collections.emptyMap()));
   }
 
-  @Test(expectedExceptions = IOException.class, dependsOnMethods = "testHead")
+  @Test(expectedExceptions = IOException.class, dependsOnMethods = "testGetPartitionCapacityMapEmpty")
   public void testGetPartitionCapacityMapInvalidJson() throws IOException {
     ZNRecord rec = new ZNRecord("testId");
     rec.setMapField(ResourceConfig.ResourceConfigProperty.PARTITION_CAPACITY_MAP.name(),
@@ -86,7 +81,7 @@ public class TestResourceConfig {
     testConfig.getPartitionCapacityMap();
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testGetPartitionCapacityMapInvalidJsonType")
   public void testSetPartitionCapacityMap() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -101,7 +96,7 @@ public class TestResourceConfig {
         _objectMapper.writeValueAsString(capacityDataMap));
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testSetPartitionCapacityMap")
   public void testSetMultiplePartitionCapacityMap() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -128,7 +123,7 @@ public class TestResourceConfig {
         _objectMapper.writeValueAsString(capacityDataMap));
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testHead", expectedExceptionsMessageRegExp = "Capacity Data is empty")
+  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testSetMultiplePartitionCapacityMap", expectedExceptionsMessageRegExp = "Capacity Data is empty")
   public void testSetPartitionCapacityMapEmpty() throws IOException {
     Map<String, Integer> capacityDataMap = new HashMap<>();
 
@@ -137,7 +132,7 @@ public class TestResourceConfig {
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testHead", expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
+  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testSetPartitionCapacityMapEmpty", expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
   public void testSetPartitionCapacityMapWithoutDefault() throws IOException {
     Map<String, Integer> capacityDataMap = new HashMap<>();
 
@@ -146,7 +141,7 @@ public class TestResourceConfig {
         Collections.singletonMap("Random", capacityDataMap));
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Capacity Data contains a negative value:.+")
+  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testSetPartitionCapacityMapEmpty", expectedExceptionsMessageRegExp = "Capacity Data contains a negative value:.+")
   public void testSetPartitionCapacityMapInvalid() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -157,7 +152,7 @@ public class TestResourceConfig {
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testSetPartitionCapacityMapInvalid")
   public void testWithResourceBuilder() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -177,7 +172,7 @@ public class TestResourceConfig {
         builder.build().getPartitionCapacityMap().get("Random"));
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testHead", expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
+  @Test(expectedExceptions = IllegalArgumentException.class, dependsOnMethods = "testWithResourceBuilder", expectedExceptionsMessageRegExp = "The default partition capacity with the default key DEFAULT is required.")
   public void testWithResourceBuilderInvalidInput() {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,
@@ -189,7 +184,7 @@ public class TestResourceConfig {
     builder.build();
   }
 
-  @Test(dependsOnMethods = "testHead")
+  @Test(dependsOnMethods = "testWithResourceBuilderInvalidInput")
   public void testMergeWithIdealState() {
     // Test failure case
     ResourceConfig testConfig = new ResourceConfig("testResource");

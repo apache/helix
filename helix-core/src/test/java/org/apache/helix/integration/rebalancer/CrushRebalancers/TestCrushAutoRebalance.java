@@ -298,22 +298,7 @@ public class TestCrushAutoRebalance extends ZkTestBase {
       Assert.assertEquals(assignedZones.size(), expectedReplica);
     }
   }
-/* These blank test would cause @AfterClass not get invoked.
-  @Test()
-  public void testAddZone() throws Exception {
-    // TODO
-  }
 
-  @Test()
-  public void testAddNodes() throws Exception {
-    // TODO
-  }
-
-  @Test()
-  public void testNodeFailure() throws Exception {
-    // TODO
-  }
-*/
   @AfterClass
   public void afterClass() throws Exception {
     /*

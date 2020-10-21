@@ -111,13 +111,11 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       @Override
       public void handleDataChange(String s, Object o) {
         notificationCountA[0]++;
-        System.out.println("sharedZkClient A increased n0 with path: " + s);
       }
 
       @Override
       public void handleDataDeleted(String s) {
         notificationCountA[1]++;
-        System.out.println("sharedZkClient A increased n1 with path: " + s);
       }
     });
     final int[] notificationCountB = {0, 0};
@@ -125,13 +123,11 @@ public class TestHelixZkClient extends ZkUnitTestBase {
       @Override
       public void handleDataChange(String s, Object o) {
         notificationCountB[0]++;
-        System.out.println("sharedZkClient B increased n0 with path: " + s);
       }
 
       @Override
       public void handleDataDeleted(String s) {
         notificationCountB[1]++;
-        System.out.println("sharedZkClient B increased n1 with path: " + s);
       }
     });
 

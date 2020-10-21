@@ -81,8 +81,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         if (nextPurgeTime <= currentTime) {
           nextPurgeTime = currentTime + purgeInterval;
           // Find jobs that are ready to be purged
-          Set<String> expiredJobs =
-              TaskUtil.getExpiredJobsFromCache(dataProvider, workflowConfig, workflowContext);
+          Set<String> expiredJobs = TaskUtil
+              .getExpiredJobsFromCache(dataProvider, workflowConfig, workflowContext, manager);
           if (!expiredJobs.isEmpty()) {
             expiredJobsMap.put(workflowConfig.getWorkflowId(), expiredJobs);
           }

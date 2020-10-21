@@ -98,7 +98,7 @@ public class TestTaskUtil extends TaskTestBase {
     expectedJobs.add(workflowName + "_Job_3");
     Assert.assertEquals(TaskUtil
         .getExpiredJobsFromCache(workflowControllerDataProvider, jobQueue.getWorkflowConfig(),
-            workflowContext), expectedJobs);
+            workflowContext, _manager), expectedJobs);
   }
 
   @Test
@@ -188,7 +188,7 @@ public class TestTaskUtil extends TaskTestBase {
     expectedJobs.add(workflowName + "_Job_8");
     Assert.assertEquals(TaskUtil
         .getExpiredJobsFromCache(workflowControllerDataProvider, workflow.getWorkflowConfig(),
-            workflowContext), expectedJobs);
+            workflowContext, _manager), expectedJobs);
   }
 
   @Test

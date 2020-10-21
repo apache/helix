@@ -69,7 +69,7 @@ public class AsyncCallbackService implements MultiTypeMessageHandlerFactory {
               + " does not have correponding callback. Probably timed out already. Correlation id: "
               + correlationId;
       _logger.error(errorMsg);
-      throw new HelixException(errorMsg);
+      throw new HelixException(errorMsg, false);
     }
     _logger.info("Verified reply message " + message.getMsgId() + " correlation:" + correlationId);
   }

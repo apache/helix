@@ -30,6 +30,16 @@ public class HelixException extends RuntimeException {
     super(message);
   }
 
+  /**
+   * Create a HelixException that can optionally turn off stack trace. Its other characteristics are
+   * the same as a HelixException with a message.
+   * @param message the detail message
+   * @param writableStackTrace whether or not the stack trace should be writable
+   */
+  public HelixException(String message, boolean writableStackTrace) {
+    super(message, null, false, writableStackTrace);
+  }
+
   public HelixException(Throwable cause) {
     super(cause);
   }

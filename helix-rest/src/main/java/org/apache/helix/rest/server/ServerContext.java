@@ -31,7 +31,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
-import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -43,6 +42,7 @@ import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.datamodel.serializer.ByteArraySerializer;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
@@ -64,6 +64,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private boolean _isMultiZkEnabled;
   private final String _msdsEndpoint;
   private volatile RealmAwareZkClient _zkClient;
+  private volatile RealmAwareZkClient _byteArrayZkClient;
 
   private volatile ZKHelixAdmin _zkHelixAdmin;
   private volatile ClusterSetup _clusterSetup;
@@ -157,6 +158,50 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return _zkClient;
   }
 
+  /**
+   * Returns a RealmAWareZkClient with ByteArraySerializer with double-checked locking.
+   * NOTE: this is different from getRealmAwareZkClient in that it does not reset listeners for
+   * _zkClientForListener because this RealmAwareZkClient is independent from routing data changes.
+   * @return
+   */
+  public RealmAwareZkClient getByteArrayRealmAwareZkClient() {
+    if (_byteArrayZkClient == null) {
+      synchronized (this) {
+        if (_byteArrayZkClient == null) {
+          // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
+          if (_isMultiZkEnabled || Boolean
+              .parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+            try {
+              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+              // If MSDS endpoint is set for this namespace, use that instead.
+              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
+                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
+                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
+              }
+              _byteArrayZkClient = new FederatedZkClient(connectionConfigBuilder.build(),
+                  new RealmAwareZkClient.RealmAwareZkClientConfig()
+                      .setZkSerializer(new ByteArraySerializer()));
+              LOG.info(
+                  "ServerContext::getByteArrayRealmAwareZkClient(): FederatedZkClient created successfully!");
+            } catch (InvalidRoutingDataException | IllegalStateException e) {
+              throw new HelixException(
+                  "ServerContext::getByteArrayRealmAwareZkClient(): Failed to create FederatedZkClient!",
+                  e);
+            }
+          } else {
+            // If multi ZK config is not set, just connect to the ZK address given
+            HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+            clientConfig.setZkSerializer(new ByteArraySerializer());
+            _byteArrayZkClient = SharedZkClientFactory.getInstance()
+                .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+          }
+        }
+      }
+    }
+    return _byteArrayZkClient;
+  }
+
   @Deprecated
   public ZkClient getZkClient() {
     return (ZkClient) getRealmAwareZkClient();
@@ -232,8 +277,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_byteArrayZkBaseDataAccessor == null) {
       synchronized (this) {
         if (_byteArrayZkBaseDataAccessor == null) {
-          _byteArrayZkBaseDataAccessor =
-              new ZkBaseDataAccessor<>(getRealmAwareZkClient());
+          _byteArrayZkBaseDataAccessor = new ZkBaseDataAccessor<>(getByteArrayRealmAwareZkClient());
         }
       }
     }

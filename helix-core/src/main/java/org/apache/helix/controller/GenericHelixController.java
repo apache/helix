@@ -1306,19 +1306,19 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   }
 
   public void shutdown() throws InterruptedException {
-    _periodicalRebalanceExecutor.shutdown();
     stopPeriodRebalance();
+    _periodicalRebalanceExecutor.shutdown();
+    if (!_periodicalRebalanceExecutor
+        .awaitTermination(EVENT_THREAD_JOIN_TIMEOUT, TimeUnit.MILLISECONDS)) {
+      _periodicalRebalanceExecutor.shutdownNow();
+    }
+
     shutdownOnDemandTimer();
     logger.info("Shutting down {} pipeline", Pipeline.Type.DEFAULT.name());
     shutdownPipeline(_eventThread, _eventQueue);
 
     logger.info("Shutting down {} pipeline", Pipeline.Type.TASK.name());
     shutdownPipeline(_taskEventThread, _taskEventQueue);
-
-    if (!_periodicalRebalanceExecutor
-        .awaitTermination(EVENT_THREAD_JOIN_TIMEOUT, TimeUnit.MILLISECONDS)) {
-      _periodicalRebalanceExecutor.shutdownNow();
-    }
 
     // shutdown asycTasksThreadpool and wait for terminate.
     _asyncTasksThreadPool.shutdownNow();

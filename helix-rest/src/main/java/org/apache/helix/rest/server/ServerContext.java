@@ -52,6 +52,7 @@ import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.helix.zookeeper.zkclient.IZkStateListener;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +83,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
    */
   private ZkMetadataStoreDirectory _zkMetadataStoreDirectory;
   // Create a dedicated ZkClient for listening to data changes in routing data
-  private RealmAwareZkClient _zkClientForListener;
+  private RealmAwareZkClient _zkClientForRoutingDataListener;
 
   public ServerContext(String zkAddr) {
     this(zkAddr, false, null);
@@ -110,48 +111,15 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     _zkMetadataStoreDirectory = ZkMetadataStoreDirectory.getInstance();
   }
 
+  /**
+   * Lazy initialization of RealmAwareZkClient used throughout the REST server.
+   * @return
+   */
   public RealmAwareZkClient getRealmAwareZkClient() {
     if (_zkClient == null) {
       synchronized (this) {
         if (_zkClient == null) {
-          // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-          if (_isMultiZkEnabled || Boolean
-              .parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
-            try {
-              // Make sure the ServerContext is subscribed to routing data change so that it knows
-              // when to reset ZkClient and Helix APIs
-              if (_zkClientForListener == null) {
-                _zkClientForListener = DedicatedZkClientFactory.getInstance()
-                    .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr),
-                        new HelixZkClient.ZkClientConfig()
-                            .setZkSerializer(new ZNRecordSerializer()));
-              }
-              // Refresh data subscription
-              _zkClientForListener.unsubscribeAll();
-              _zkClientForListener.subscribeRoutingDataChanges(this, this);
-              LOG.info("ServerContext: subscribed to routing data in routing ZK at {}!", _zkAddr);
-
-              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-              // If MSDS endpoint is set for this namespace, use that instead.
-              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
-                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
-              }
-              _zkClient = new FederatedZkClient(connectionConfigBuilder.build(),
-                  new RealmAwareZkClient.RealmAwareZkClientConfig()
-                      .setZkSerializer(new ZNRecordSerializer()));
-              LOG.info("ServerContext: FederatedZkClient created successfully!");
-            } catch (InvalidRoutingDataException | IllegalStateException e) {
-              throw new HelixException("Failed to create FederatedZkClient!", e);
-            }
-          } else {
-            // If multi ZK config is not set, just connect to the ZK address given
-            HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-            clientConfig.setZkSerializer(new ZNRecordSerializer());
-            _zkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
-          }
+          _zkClient = createRealmAwareZkClient(_zkClient, true, new ZNRecordSerializer());
         }
       }
     }
@@ -168,38 +136,72 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_byteArrayZkClient == null) {
       synchronized (this) {
         if (_byteArrayZkClient == null) {
-          // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
-          if (_isMultiZkEnabled || Boolean
-              .parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
-            try {
-              RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
-                  new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
-              // If MSDS endpoint is set for this namespace, use that instead.
-              if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
-                connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
-                    .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
-              }
-              _byteArrayZkClient = new FederatedZkClient(connectionConfigBuilder.build(),
-                  new RealmAwareZkClient.RealmAwareZkClientConfig()
-                      .setZkSerializer(new ByteArraySerializer()));
-              LOG.info(
-                  "ServerContext::getByteArrayRealmAwareZkClient(): FederatedZkClient created successfully!");
-            } catch (InvalidRoutingDataException | IllegalStateException e) {
-              throw new HelixException(
-                  "ServerContext::getByteArrayRealmAwareZkClient(): Failed to create FederatedZkClient!",
-                  e);
-            }
-          } else {
-            // If multi ZK config is not set, just connect to the ZK address given
-            HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
-            clientConfig.setZkSerializer(new ByteArraySerializer());
-            _byteArrayZkClient = SharedZkClientFactory.getInstance()
-                .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
-          }
+          _byteArrayZkClient =
+              createRealmAwareZkClient(_byteArrayZkClient, false, new ByteArraySerializer());
         }
       }
     }
     return _byteArrayZkClient;
+  }
+
+  /**
+   * Main creation logic for RealmAwareZkClient.
+   * @param realmAwareZkClient
+   * @param shouldSubscribeToRoutingDataChange if true, it will initialize zk client to listen on
+   *                                           routing data change and refresh change subscription
+   * @param zkSerializer the type of ZkSerializer to use
+   * @return
+   */
+  private RealmAwareZkClient createRealmAwareZkClient(RealmAwareZkClient realmAwareZkClient,
+      boolean shouldSubscribeToRoutingDataChange, ZkSerializer zkSerializer) {
+    // If the multi ZK config is enabled, use FederatedZkClient on multi-realm mode
+    if (_isMultiZkEnabled || Boolean
+        .parseBoolean(System.getProperty(SystemPropertyKeys.MULTI_ZK_ENABLED))) {
+      try {
+        if (shouldSubscribeToRoutingDataChange) {
+          initializeZkClientForRoutingData();
+        }
+        RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+        // If MSDS endpoint is set for this namespace, use that instead.
+        if (_msdsEndpoint != null && !_msdsEndpoint.isEmpty()) {
+          connectionConfigBuilder.setRoutingDataSourceEndpoint(_msdsEndpoint)
+              .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name());
+        }
+        realmAwareZkClient = new FederatedZkClient(connectionConfigBuilder.build(),
+            new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(zkSerializer));
+        LOG.info("ServerContext: FederatedZkClient created successfully!");
+      } catch (InvalidRoutingDataException | IllegalStateException e) {
+        throw new HelixException("Failed to create FederatedZkClient!", e);
+      }
+    } else {
+      // If multi ZK config is not set, just connect to the ZK address given
+      HelixZkClient.ZkClientConfig clientConfig = new HelixZkClient.ZkClientConfig();
+      clientConfig.setZkSerializer(zkSerializer);
+      realmAwareZkClient = SharedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr), clientConfig);
+    }
+    return realmAwareZkClient;
+  }
+
+  /**
+   * Initialization logic for ZkClient for routing data listener.
+   * NOTE: The initialization lifecycle of zkClientForRoutingDataListener is tied to the private
+   * volatile zkClient.
+   */
+  private void initializeZkClientForRoutingData() {
+    // Make sure the ServerContext is subscribed to routing data change so that it knows
+    // when to reset ZkClient and Helix APIs
+    if (_zkClientForRoutingDataListener == null) {
+      // Routing data is always in the ZNRecord format
+      _zkClientForRoutingDataListener = DedicatedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(_zkAddr),
+              new HelixZkClient.ZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    }
+    // Refresh data subscription
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
+    LOG.info("ServerContext: subscribed to routing data in routing ZK at {}!", _zkAddr);
   }
 
   @Deprecated
@@ -291,25 +293,25 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     if (_zkMetadataStoreDirectory != null) {
       _zkMetadataStoreDirectory.close();
     }
-    if (_zkClientForListener != null) {
-      _zkClientForListener.close();
+    if (_zkClientForRoutingDataListener != null) {
+      _zkClientForRoutingDataListener.close();
     }
   }
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     // Resubscribe
-    _zkClientForListener.unsubscribeAll();
-    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
   @Override
   public void handleDataChange(String dataPath, Object data) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     resetZkResources();
@@ -317,45 +319,45 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
 
   @Override
   public void handleDataDeleted(String dataPath) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     // Resubscribe
-    _zkClientForListener.unsubscribeAll();
-    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
   @Override
   public void handleStateChanged(Watcher.Event.KeeperState state) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     // Resubscribe
-    _zkClientForListener.unsubscribeAll();
-    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
   @Override
   public void handleNewSession(String sessionId) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     // Resubscribe
-    _zkClientForListener.unsubscribeAll();
-    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 
   @Override
   public void handleSessionEstablishmentError(Throwable error) {
-    if (_zkClientForListener == null || _zkClientForListener.isClosed()) {
+    if (_zkClientForRoutingDataListener == null || _zkClientForRoutingDataListener.isClosed()) {
       return;
     }
     // Resubscribe
-    _zkClientForListener.unsubscribeAll();
-    _zkClientForListener.subscribeRoutingDataChanges(this, this);
+    _zkClientForRoutingDataListener.unsubscribeAll();
+    _zkClientForRoutingDataListener.subscribeRoutingDataChanges(this, this);
     resetZkResources();
   }
 

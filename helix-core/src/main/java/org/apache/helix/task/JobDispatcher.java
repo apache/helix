@@ -484,7 +484,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
   }
 
   /**
-   * Find the tasks that have been removed from job config, ass them to tasksToDrop. If task's
+   * Find the tasks that have been removed from job config, add them to tasksToDrop. If task's
    * currentState and pending message have been removed, delete the task from job context.
    * @param jobName
    * @param jobConfig
@@ -532,7 +532,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             LOG.info(
                 "Task {} has been removed from job config of job {}. Removing task from job context!",
                 partitionID, jobName);
-            jobContext.removeTask(partition);
+            jobContext.removePartition(partition);
             allPartitions.remove(partition);
           }
         }

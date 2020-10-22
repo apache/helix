@@ -598,19 +598,14 @@ public class TaskDriver {
 
     WorkflowContext workflowContext = getWorkflowContext(workflowName);
     JobContext jobContext = getJobContext(nameSpaceJobName);
-    if (workflowContext == null || jobContext == null) {
-      // Workflow context or job context is null. It means job has not been started. Hence task can
-      // be added to the job
-      addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
-      return;
-    }
-
-    TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
-
-    if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
-      throw new HelixException(
-          String.format("Job %s is in illegal state to accept new task. Job State is %s",
-              nameSpaceJobName, jobState));
+    // If workflow context or job context is null. It means job has not been started. Hence task can
+    // be added to the job
+    if (workflowContext != null && jobContext != null) {
+      TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
+      if (jobState != null && ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
+        throw new HelixException("Job " + nameSpaceJobName
+            + " is in illegal state for task addition. Job State is " + jobState);
+      }
     }
     addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
   }
@@ -679,24 +674,14 @@ public class TaskDriver {
 
     WorkflowContext workflowContext = getWorkflowContext(workflowName);
     JobContext jobContext = getJobContext(nameSpaceJobName);
-    if (workflowContext == null || jobContext == null) {
-      // Workflow context or job context is null. It means job has not been started. Hence task can
-      // be deleted from the job
-      deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
-      return;
-    }
-
-    TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
-
-    if (jobState == null) {
-      // Null job state means the job has not started yet
-      deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
-      return;
-    }
-
-    if (ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
-      throw new HelixException("Job " + nameSpaceJobName
-          + " is in illegal state for task deletion. Job State is " + jobState);
+    // If workflow context or job context is null. It means job has not been started. Hence task can
+    // be deleted from the job
+    if (workflowContext != null && jobContext != null) {
+      TaskState jobState = workflowContext.getJobState(nameSpaceJobName);
+      if (jobState != null && ILLEGAL_JOB_STATES_FOR_TASK_MODIFICATION.contains(jobState)) {
+        throw new HelixException("Job " + nameSpaceJobName
+            + " is in illegal state for task deletion. Job State is " + jobState);
+      }
     }
     deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
   }
@@ -787,12 +772,11 @@ public class TaskDriver {
           _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
       workflowContext =
           _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-      for (Map.Entry<String, Integer> entry : jobContext.getTaskIdPartitionMap().entrySet()) {
-        if (entry.getKey().equals(taskID)
-            && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
-          return;
-        }
+      if (jobContext.getTaskIdPartitionMap().containsKey(taskID)
+          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+        return;
       }
+
       Thread.sleep(DEFAULT_SLEEP);
     }
     throw new TimeoutException("An unexpected issue happened while task being added to the job!");
@@ -854,8 +838,7 @@ public class TaskDriver {
           _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
       workflowContext =
           _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-      if (workflowContext != null && jobContext != null
-          && !jobContext.getTaskIdPartitionMap().containsKey(taskID)
+      if (!jobContext.getTaskIdPartitionMap().containsKey(taskID)
           && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
         return;
       }

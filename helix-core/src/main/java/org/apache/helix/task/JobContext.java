@@ -316,9 +316,9 @@ public class JobContext extends HelixProperty {
 
   /**
    * Remove the task from the map field of job context.
-   * @param taskNumber
+   * @param partitionSeqNumber
    */
-  public void removeTask(int taskNumber) {
-    _record.getMapFields().remove(String.valueOf(taskNumber));
+  public void removePartition(int partitionSeqNumber) {
+    _record.getMapFields().remove(String.valueOf(partitionSeqNumber));
   }
 }

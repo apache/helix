@@ -168,8 +168,10 @@ public class PropertyPathBuilder {
     // RESOURCE
     addEntry(PropertyType.WORKFLOWCONTEXT, 2,
         "/{clusterName}/PROPERTYSTORE/TaskRebalancer/{workflowName}/Context"); // Old
-    // WorkflowContext
-    // path
+
+    // TODO: These are the current task framework related paths. In the future, if we decide to use
+    // a different structure such as a non-flatten ZNode structure, these paths need to be changed
+    // accordingly.
     addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/RESOURCE");
     addEntry(PropertyType.WORKFLOW_CONFIG, 2, "/{clusterName}/CONFIGS/RESOURCE/{workflowName}");
     addEntry(PropertyType.JOB_CONFIG, 3,

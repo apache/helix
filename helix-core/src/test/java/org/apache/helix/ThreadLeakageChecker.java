@@ -30,9 +30,13 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.helix.common.ZkTestBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ThreadLeakageChecker {
+  private final static Logger LOG = LoggerFactory.getLogger(ThreadLeakageChecker.class);
+
   private static ThreadGroup getRootThreadGroup() {
     ThreadGroup candidate = Thread.currentThread().getThreadGroup();
     while (candidate.getParent() != null) {
@@ -147,7 +151,7 @@ public class ThreadLeakageChecker {
     ZkTestBase.reportPhysicalMemory();
     // step 1: get all active threads
     List<Thread> threads = getAllThreads();
-    System.out.println(classname + " has active threads cnt:" + threads.size());
+    LOG.info(classname + " has active threads cnt:" + threads.size());
 
     // step 2: categorize threads
     Map<String, List<Thread>> threadByName = null;
@@ -160,7 +164,7 @@ public class ThreadLeakageChecker {
               &&  ! "system".equals(p.getThreadGroup().getName())).
           collect(Collectors.groupingBy(p -> p.getName()));
     } catch (Exception e) {
-      System.out.println("filtering thread failure with exception:" + e.getStackTrace());
+      LOG.error("Filtering thread failure with exception:" + e.getStackTrace());
     }
 
     threadByName.entrySet().stream().forEach(entry -> {
@@ -189,15 +193,15 @@ public class ThreadLeakageChecker {
         boolean dumpThread = false;
         if (categoryThreadCnt > limit) {
           checkStatus = false;
-          System.out.println(
+          LOG.info(
               "Failure " + threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
           dumpThread = true;
         } else if (categoryThreadCnt > warningLimit) {
-          System.out.println(
+          LOG.info(
               "Warning " + threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
           dumpThread = true;
         } else {
-          System.out.println(threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
+          LOG.info(threadCategory.getDescription() + " has " + categoryThreadCnt + " thread");
         }
         if (!dumpThread) {
           continue;
@@ -205,10 +209,10 @@ public class ThreadLeakageChecker {
         // print first 100 thread names
         int i = 0;
         for (Thread t : threadByCat.get(threadCategory)) {
-          System.out.println(i + " thread:" + t.getName());
+          LOG.debug(i + " thread:" + t.getName());
           i++;
           if (i == 100) {
-            System.out.println(" skipping the rest");
+            LOG.debug(" skipping the rest");
             break;
           }
         }

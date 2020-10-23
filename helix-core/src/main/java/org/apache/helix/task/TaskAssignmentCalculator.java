@@ -100,4 +100,13 @@ public abstract class TaskAssignmentCalculator {
     }
     return workflowType;
   }
+
+  /**
+   * Returns the tasks that should be dropped either because the task has been removed from config in
+   * generic jobs or target resources IS does not have the target partition anymore
+   * @param jobConfig
+   * @param jobContext
+   */
+  public abstract Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext,
+      Set<Integer> allPartitions);
 }

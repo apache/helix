@@ -22,13 +22,15 @@ package org.apache.helix.integration.task;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskConfig;
@@ -38,14 +40,13 @@ import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.zookeeper.impl.client.ZkClient;
-import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAddDeleteTask extends TaskTestBase {
+  private static final String DATABASE = "TestDB_" + TestHelper.getTestClassName();
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -609,6 +610,66 @@ public class TestAddDeleteTask extends TaskTestBase {
   }
 
   @Test(dependsOnMethods = "testDeleteTaskAndJobCompleted")
+  public void testPartitionDropTargetedJob() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    _gSetupTool.addResourceToCluster(CLUSTER_NAME, DATABASE, 3, MASTER_SLAVE_STATE_MODEL,
+        IdealState.RebalanceMode.SEMI_AUTO.name());
+    _gSetupTool.rebalanceResource(CLUSTER_NAME, DATABASE, 3);
+    List<String> preferenceList = new ArrayList<>();
+    preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 0));
+    preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 1));
+    preferenceList.add(PARTICIPANT_PREFIX + "_" + (_startPort + 2));
+    IdealState idealState = new IdealState(DATABASE);
+    idealState.setPreferenceList(DATABASE + "_0", preferenceList);
+    idealState.setPreferenceList(DATABASE + "_1", preferenceList);
+    idealState.setPreferenceList(DATABASE + "_2", preferenceList);
+    _gSetupTool.getClusterManagementTool().updateIdealState(CLUSTER_NAME, DATABASE, idealState);
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setTargetResource(DATABASE)
+        .setTargetPartitionStates(Sets.newHashSet(MasterSlaveSMD.States.MASTER.name()))
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+
+    // Wait until new task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state1 = jobContext.getPartitionState(0);
+      TaskPartitionState state2 = jobContext.getPartitionState(1);
+      TaskPartitionState state3 = jobContext.getPartitionState(2);
+      if (state1 == null || state2 == null || state3 == null) {
+        return false;
+      }
+      return (state1 == TaskPartitionState.RUNNING && state2 == TaskPartitionState.RUNNING
+          && state3 == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    // Remove one partition from the IS
+    idealState = new IdealState(DATABASE);
+    idealState.setPreferenceList(DATABASE + "_1", preferenceList);
+    _gSetupTool.getClusterManagementTool().removeFromIdealState(CLUSTER_NAME, DATABASE, idealState);
+
+    Assert.assertTrue(TestHelper
+        .verify(() -> ((_driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName))
+            .getPartitionSet().size() == 2)), TestHelper.WAIT_DURATION));
+
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+  }
+
+  @Test(dependsOnMethods = "testPartitionDropTargetedJob")
   public void testAddDeleteTaskOneInstance() throws Exception {
     // Stop all participant other than participant 0
     for (int i = 1; i < _numNodes; i++) {

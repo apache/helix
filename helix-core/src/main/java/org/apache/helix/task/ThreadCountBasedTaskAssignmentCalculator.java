@@ -29,6 +29,7 @@ import java.util.TreeSet;
 
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.task.assigner.TaskAssignResult;
 import org.apache.helix.task.assigner.TaskAssigner;
@@ -144,6 +145,20 @@ public class ThreadCountBasedTaskAssignmentCalculator extends TaskAssignmentCalc
       }
     }
     return taskAssignment;
+  }
+
+  @Override
+  public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext, Set<Integer> allPartitions) {
+    // Get all partitions existed in the context
+    Set<Integer> deletedPartitions = new HashSet<>();
+    // Check whether the tasks have been deleted from jobConfig
+    for (Integer partition : jobContext.getPartitionSet()) {
+      String partitionID = jobContext.getTaskIdForPartition(partition);
+      if (!jobConfig.getTaskConfigMap().containsKey(partitionID)) {
+        deletedPartitions.add(partition);
+      }
+    }
+    return deletedPartitions;
   }
 
   /**

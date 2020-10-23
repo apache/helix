@@ -22,6 +22,7 @@ package org.apache.helix.task;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import com.google.common.collect.Maps;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
@@ -93,6 +95,20 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
     List<String> allNodes = Lists.newArrayList(instances);
     ConsistentHashingPlacement placement = new ConsistentHashingPlacement(allNodes);
     return placement.computeMapping(jobCfg, jobContext, partitionNums, resourceId);
+  }
+
+  @Override
+  public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext, Set<Integer> allPartitions) {
+    // Get all partitions existed in the context
+    Set<Integer> deletedPartitions = new HashSet<>();
+    // Check whether the tasks have been deleted from jobConfig
+    for (Integer partition : jobContext.getPartitionSet()) {
+      String partitionID = jobContext.getTaskIdForPartition(partition);
+      if (!jobConfig.getTaskConfigMap().containsKey(partitionID)) {
+        deletedPartitions.add(partition);
+      }
+    }
+    return deletedPartitions;
   }
 
   private class ConsistentHashingPlacement {

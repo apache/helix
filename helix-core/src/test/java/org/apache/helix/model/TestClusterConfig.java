@@ -320,6 +320,29 @@ public class TestClusterConfig {
             -1), 10000L);
   }
 
+
+  @Test
+  public void testGetOfflineNodeTimeOutForPurge() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForPurge(), -1);
+
+    testConfig.getRecord()
+        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE
+                .name(),
+            10000L);
+    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForPurge(), 10000L);
+  }
+
+  @Test
+  public void testSetOfflineNodeTimeOutForPurge() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setOfflineNodeTimeOutForPurge(10000L);
+    Assert.assertEquals(testConfig.getRecord()
+        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE
+                .name(),
+            -1), 10000L);
+  }
+
   @Test
   public void testAbnormalStatesResolverConfig() {
     ClusterConfig testConfig = new ClusterConfig("testConfig");

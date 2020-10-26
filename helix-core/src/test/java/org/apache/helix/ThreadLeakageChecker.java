@@ -164,7 +164,7 @@ public class ThreadLeakageChecker {
               &&  ! "system".equals(p.getThreadGroup().getName())).
           collect(Collectors.groupingBy(p -> p.getName()));
     } catch (Exception e) {
-      LOG.error("Filtering thread failure with exception:" + e.getStackTrace());
+      LOG.error("Filtering thread failure with exception:", e);
     }
 
     threadByName.entrySet().stream().forEach(entry -> {

@@ -607,7 +607,41 @@ public class TaskDriver {
             + " is in illegal state for task addition. Job State is " + jobState);
       }
     }
-    addTaskToJobConfig(workflowName, jobName, taskConfig, endTime);
+
+    DataUpdater<ZNRecord> updater = currentData -> {
+      if (currentData != null) {
+        currentData.setMapField(taskConfig.getId(), taskConfig.getConfigMap());
+      } else {
+        LOG.error("JobConfig DataUpdater: Fails to update JobConfig. CurrentData is null.");
+      }
+      return currentData;
+    };
+
+    updateTaskInJobConfig(workflowName, jobName, updater);
+
+    workflowContext =
+        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+    jobContext =
+        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+
+    if (workflowContext == null || jobContext == null) {
+      return;
+    }
+
+    String taskID = taskConfig.getId();
+    while (System.currentTimeMillis() <= endTime) {
+      jobContext =
+          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+      workflowContext =
+          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+      if (jobContext.getTaskIdPartitionMap().containsKey(taskID)
+          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+        return;
+      }
+
+      Thread.sleep(DEFAULT_SLEEP);
+    }
+    throw new TimeoutException("An unexpected issue happened while task being added to the job!");
   }
 
   /**
@@ -683,7 +717,52 @@ public class TaskDriver {
             + " is in illegal state for task deletion. Job State is " + jobState);
       }
     }
-    deleteTaskFromJobConfig(workflowName, jobName, taskID, endTime);
+
+    DataUpdater<ZNRecord> taskRemover = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData != null) {
+          Map<String, Map<String, String>> taskMap = currentData.getMapFields();
+          if (taskMap == null) {
+            LOG.warn("Could not update the jobConfig: " + jobName + " Znode MapField is null.");
+            return null;
+          }
+          Map<String, Map<String, String>> newTaskMap = new HashMap<String, Map<String, String>>();
+          for (Map.Entry<String, Map<String, String>> entry : taskMap.entrySet()) {
+            if (!entry.getKey().equals(taskID)) {
+              newTaskMap.put(entry.getKey(), entry.getValue());
+            }
+          }
+          currentData.setMapFields(newTaskMap);
+        }
+        return currentData;
+      }
+    };
+
+    updateTaskInJobConfig(workflowName, jobName, taskRemover);
+
+    workflowContext =
+        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+    jobContext =
+        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+
+    if (workflowContext == null || jobContext == null) {
+      return;
+    }
+
+    while (System.currentTimeMillis() <= endTime) {
+      jobContext =
+          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
+      workflowContext =
+          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
+      if (!jobContext.getTaskIdPartitionMap().containsKey(taskID)
+          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+        return;
+      }
+      Thread.sleep(DEFAULT_SLEEP);
+    }
+    throw new TimeoutException(
+        "An unexpected issue happened while task being deleted from the job!");
   }
 
   /**
@@ -729,123 +808,20 @@ public class TaskDriver {
   }
 
   /**
-   * A helper method which adds a new task config to the job config and verifies if task is added to
-   * the context by the controller.
+   * A helper method which updates the tasks within a the job config.
    * @param workflowName
    * @param jobName
-   * @param taskConfig
-   * @param endTime
-   * @throws InterruptedException
-   * @throws TimeoutException
+   * @param updater
    */
-  private void addTaskToJobConfig(String workflowName, String jobName, TaskConfig taskConfig,
-      long endTime) throws InterruptedException, TimeoutException {
+  private void updateTaskInJobConfig(String workflowName, String jobName,
+      DataUpdater<ZNRecord> updater) {
     String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
-    DataUpdater<ZNRecord> updater = currentData -> {
-      if (currentData != null) {
-        currentData.setMapField(taskConfig.getId(), taskConfig.getConfigMap());
-      } else {
-        LOG.error("JobConfig DataUpdater: Fails to update JobConfig. CurrentData is null.");
-      }
-      return currentData;
-    };
-
     String path = _accessor.keyBuilder().resourceConfig(nameSpaceJobName).getPath();
     boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
-      LOG.error("Failed to add task to the job {}", nameSpaceJobName);
-      throw new HelixException("Failed to add task to the job!");
+      LOG.error("Failed to update task in the job {}", nameSpaceJobName);
+      throw new HelixException("Failed to update task in the job");
     }
-
-    WorkflowContext workflowContext =
-        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-    JobContext jobContext =
-        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
-
-    if (workflowContext == null || jobContext == null) {
-      return;
-    }
-
-    String taskID = taskConfig.getId();
-    while (System.currentTimeMillis() <= endTime) {
-      jobContext =
-          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
-      workflowContext =
-          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-      if (jobContext.getTaskIdPartitionMap().containsKey(taskID)
-          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
-        return;
-      }
-
-      Thread.sleep(DEFAULT_SLEEP);
-    }
-    throw new TimeoutException("An unexpected issue happened while task being added to the job!");
-  }
-
-  /**
-   * A helper method which deletes an existing task from the job config and verifies if task is
-   * deleted from the context by the controller.
-   * @param workflowName
-   * @param jobName
-   * @param taskID
-   * @param endTime
-   * @throws InterruptedException
-   * @throws TimeoutException
-   */
-  private void deleteTaskFromJobConfig(String workflowName, String jobName, String taskID,
-      long endTime) throws InterruptedException, TimeoutException {
-    String nameSpaceJobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
-    DataUpdater<ZNRecord> taskRemover = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData != null) {
-          Map<String, Map<String, String>> taskMap = currentData.getMapFields();
-          if (taskMap == null) {
-            LOG.warn("Could not update the jobConfig: " + jobName + " Znode MapField is null.");
-            return null;
-          }
-          Map<String, Map<String, String>> newTaskMap = new HashMap<String, Map<String, String>>();
-          for (Map.Entry<String, Map<String, String>> entry : taskMap.entrySet()) {
-            if (!entry.getKey().equals(taskID)) {
-              newTaskMap.put(entry.getKey(), entry.getValue());
-            }
-          }
-          currentData.setMapFields(newTaskMap);
-        }
-        return currentData;
-      }
-    };
-
-    String path = _accessor.keyBuilder().resourceConfig(nameSpaceJobName).getPath();
-    boolean status =
-        _accessor.getBaseDataAccessor().update(path, taskRemover, AccessOption.PERSISTENT);
-    if (!status) {
-      LOG.error("Failed to delete task from the job {}", nameSpaceJobName);
-      throw new HelixException("Failed to delete task from the job");
-    }
-
-    WorkflowContext workflowContext =
-        _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-    JobContext jobContext =
-        _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
-
-    if (workflowContext == null || jobContext == null) {
-      return;
-    }
-
-    while (System.currentTimeMillis() <= endTime) {
-      jobContext =
-          _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
-      workflowContext =
-          _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-      if (!jobContext.getTaskIdPartitionMap().containsKey(taskID)
-          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
-        return;
-      }
-      Thread.sleep(DEFAULT_SLEEP);
-    }
-    throw new TimeoutException(
-        "An unexpected issue happened while task being deleted from the job!");
   }
 
   /**

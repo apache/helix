@@ -101,6 +101,7 @@ public class ZkClient implements Watcher {
   public final long _uid;
 
   // ZNode write size limit in bytes.
+  // TODO: use ZKConfig#JUTE_MAXBUFFER once bumping up ZK to 3.5.2+
   private static final int WRITE_SIZE_LIMIT =
       Integer.getInteger(ZkSystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
 
@@ -2505,7 +2506,6 @@ public class ZkClient implements Watcher {
     int serializerSize = ZNRecordUtil.getSerializerWriteSizeLimit();
     LOG.info("ZNRecord serializer write size limit: {}; ZkClient write size limit: {}",
         serializerSize, WRITE_SIZE_LIMIT);
-    // ZNRecord serializer write size limit should not be set greater than size limit in ZkClient
     if (serializerSize > WRITE_SIZE_LIMIT) {
       throw new IllegalStateException("ZNRecord serializer write size limit " + serializerSize
           + " is greater than ZkClient size limit " + WRITE_SIZE_LIMIT);

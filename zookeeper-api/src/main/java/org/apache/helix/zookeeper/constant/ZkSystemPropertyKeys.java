@@ -60,4 +60,7 @@ public class ZkSystemPropertyKeys {
    */
   public static final String ZK_AUTOSYNC_ENABLED =
       "zk.zkclient.autosync.enabled";
+
+  /** System property key for jute.maxbuffer */
+  public static final String JUTE_MAXBUFFER = "jute.maxbuffer";
 }

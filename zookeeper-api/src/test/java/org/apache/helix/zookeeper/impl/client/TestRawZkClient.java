@@ -855,12 +855,9 @@ public class TestRawZkClient extends ZkTestBase {
           KeeperException.Code.MARSHALLINGERROR.intValue());
       Assert.assertEquals(zkClient.readData("/tmp/async"), normalZNRecord);
     } finally {
-      if (originSizeLimit == null) {
-        System.clearProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
-      } else {
-        System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
-            originSizeLimit);
-      }
+      TestHelper
+          .resetSystemProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+              originSizeLimit);
       zkClient.delete("/tmp/async");
       zkClient.delete("/tmp/asyncOversize");
       zkClient.close();
@@ -951,5 +948,47 @@ public class TestRawZkClient extends ZkTestBase {
       }, TestHelper.WAIT_DURATION));
     }
     System.out.println("End test: " + methodName);
+  }
+
+  @Test(expectedExceptions = ZkClientException.class,
+      expectedExceptionsMessageRegExp = "Data size of path .* is greater than write size limit 1024000 bytes")
+  public void testDataSizeGreaterThanLimit() {
+    // Creating should fail because size is greater than limit.
+    _zkClient.createPersistent("/" + TestHelper.getTestMethodName(), new byte[1001 * 1024]);
+  }
+
+  @Test
+  public void testDataSizeLessThanLimit() throws Exception {
+    String path = "/" + TestHelper.getTestMethodName();
+    Assert.assertFalse(_zkClient.exists(path));
+    // Creating znode is successful.
+    _zkClient.createPersistent(path, new byte[1024]);
+
+    Assert.assertTrue(_zkClient.exists(path));
+
+    TestHelper.verify(() -> _zkClient.delete(path), TestHelper.WAIT_DURATION);
+  }
+
+  // Tests znrecord serializer write size limit is invalid: greater than size limit in ZkClient
+  @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp =
+      "ZNRecord serializer write size limit .* is greater than ZkClient size limit .*")
+  public void testInvalidWriteSizeLimitConfig() {
+    String originSerializerLimit =
+        System.getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES);
+    System.setProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+        String.valueOf(ZNRecord.SIZE_LIMIT + 1024));
+
+    ZkClient zkClient = null;
+    try {
+      // Constructing ZkClient should throw exception because of invalid write size limit config
+      zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    } finally {
+      TestHelper
+          .resetSystemProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_WRITE_SIZE_LIMIT_BYTES,
+              originSerializerLimit);
+      if (zkClient != null) {
+        zkClient.close();
+      }
+    }
   }
 }

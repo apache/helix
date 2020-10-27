@@ -39,6 +39,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
@@ -54,6 +55,12 @@ import org.slf4j.LoggerFactory;
  */
 public class StatusUpdateUtil {
   static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
+
+  public static boolean ERROR_LOG_TO_ZK_ENABLED;
+  static {
+    String valueString = System.getProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG_ENABLED, "");
+    ERROR_LOG_TO_ZK_ENABLED = valueString.equals("enabled") ? true : false;
+  }
 
   public static class Transition implements Comparable<Transition> {
     private final String _msgID;
@@ -560,6 +567,9 @@ public class StatusUpdateUtil {
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
       String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
+    if (!ERROR_LOG_TO_ZK_ENABLED) {
+      return;
+    }
     Builder keyBuilder = accessor.keyBuilder();
     if (isController) {
       // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of

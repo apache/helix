@@ -66,6 +66,9 @@ import org.testng.annotations.Test;
 public class TestParticipantManager extends ZkTestBase {
   private MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
   private String clusterName = TestHelper.getTestClassName();
+  static {
+    System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG_ENABLED, "enabled");
+  }
 
   @AfterMethod
   public void afterMethod(Method testMethod, ITestContext testContext) {

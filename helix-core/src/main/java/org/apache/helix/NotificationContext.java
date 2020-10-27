@@ -43,6 +43,7 @@ public class NotificationContext {
   private String _pathChanged;
   private String _eventName;
   private long _creationTime;
+  private boolean _isChildChange;
 
   /**
    * Get the name associated with the event
@@ -226,5 +227,13 @@ public class NotificationContext {
    */
   public void setChangeType(HelixConstants.ChangeType changeType) {
     this._changeType = changeType;
+  }
+
+  public boolean getIsChildChange() {
+    return _isChildChange;
+  }
+
+  public void setIsChildChange(boolean cc) {
+    _isChildChange = cc;
   }
 }

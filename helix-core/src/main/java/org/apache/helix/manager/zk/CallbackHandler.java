@@ -118,8 +118,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT));
   }
 
-  // processor to handle async zk event resubscription.
-  private static DedupEventProcessor SubscribeChangeEventProcessor;
 
   private final String _path;
   private final Object _listener;
@@ -142,50 +140,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   // indicated whether this CallbackHandler is ready to serve event callback from ZkClient.
   private boolean _ready = false;
 
-  static {
-    SubscribeChangeEventProcessor = new DedupEventProcessor<CallbackHandler, SubscribeChangeEvent>(
-        "Singleton", "CallbackHandler-AsycSubscribe") {
-      @Override
-      protected void handleEvent(SubscribeChangeEvent event) {
-        logger.info("CallbackHandler {}, resubscribe change listener to path: {}, for listener: {}, watchChild: {}",
-            event.handler._uid, event.path, event.listener, event.watchChild);
-        try {
-          if (event.handler.isReady()) {
-            event.handler.subscribeForChanges(event.callbackType, event.path, event.watchChild);
-          } else {
-            logger.info("CallbackHandler is not ready, stop subscribing changes listener to "
-                    + "path: {} for listener: {} watchChild: {}", event.path, event.listener,
-                event.listener);
-          }
-        } catch (Exception e) {
-          logger.error("Failed to resubscribe change to path: {} for listener: {}", event.path,
-              event.listener, e);
-        }
-      }
-    };
-
-    SubscribeChangeEventProcessor.start();
-  }
-
-  class SubscribeChangeEvent {
-    final CallbackHandler handler;
-    final String path;
-    final NotificationContext.Type callbackType;
-    final Object listener;
-    final boolean watchChild;
-
-    SubscribeChangeEvent(CallbackHandler handler, NotificationContext.Type callbackType,
-        String path, boolean watchChild, Object listener) {
-      this.handler = handler;
-      this.path = path;
-      this.callbackType = callbackType;
-      this.listener = listener;
-      this.watchChild = watchChild;
-    }
-  }
-
-  class CallbackProcessor
-      extends DedupEventProcessor<NotificationContext.Type, NotificationContext> {
+  class CallbackProcessor extends DedupEventProcessor<NotificationContext.Type, NotificationContext> {
     private CallbackHandler _handler;
 
     public CallbackProcessor(CallbackHandler handler) {
@@ -402,13 +357,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
       _expectTypes = nextNotificationType.get(type);
 
-      if (type == Type.INIT || type == Type.FINALIZE) {
+      if (type == Type.INIT || type == Type.FINALIZE || changeContext.getIsChildChange()) {
         subscribeForChanges(changeContext.getType(), _path, _watchChild);
-      } else {
-        // put SubscribeForChange run in async thread to reduce the latency of zk callback handling.
-        subscribeForChangesAsyn(changeContext.getType(), _path, _watchChild);
       }
-
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         List<IdealState> idealStates = preFetch(_propertyKey);
@@ -598,14 +549,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
   }
 
-  /** Subscribe Changes in asynchronously */
-  private void subscribeForChangesAsyn(NotificationContext.Type callbackType, String path,
-      boolean watchChild) {
-    SubscribeChangeEvent subscribeEvent =
-        new SubscribeChangeEvent(this, callbackType, path, watchChild, _listener);
-    SubscribeChangeEventProcessor.queueEvent(subscribeEvent.handler, subscribeEvent);
-  }
-
   private void subscribeForChanges(NotificationContext.Type callbackType, String path,
       boolean watchChild) {
     logger.info("CallbackHandler {} subscribing changes listener to path: {}, callback type: {}, "
@@ -734,6 +677,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         changeContext.setType(NotificationContext.Type.CALLBACK);
         changeContext.setPathChanged(dataPath);
         changeContext.setChangeType(_changeType);
+        changeContext.setIsChildChange(false);
         enqueueTask(changeContext);
       }
     } catch (Exception e) {
@@ -796,7 +740,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           changeContext.setType(NotificationContext.Type.CALLBACK);
           changeContext.setPathChanged(parentPath);
           changeContext.setChangeType(_changeType);
-          subscribeForChanges(changeContext.getType(), _path, _watchChild);
+          changeContext.setIsChildChange(true);
           enqueueTask(changeContext);
         }
       }

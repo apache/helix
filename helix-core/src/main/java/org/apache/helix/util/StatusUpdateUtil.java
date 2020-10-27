@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class StatusUpdateUtil {
   static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
 
-  public static boolean ERROR_LOG_TO_ZK_ENABLED;
+  public static final boolean ERROR_LOG_TO_ZK_ENABLED;
   static {
     String valueString = System.getProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG_ENABLED, "");
     ERROR_LOG_TO_ZK_ENABLED = valueString.equals("enabled") ? true : false;

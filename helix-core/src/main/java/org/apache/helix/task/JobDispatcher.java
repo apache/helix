@@ -489,12 +489,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
   /**
    * Add the removed task to tasksToDrop to drop its current state. If task's currentState and
    * pending message have been removed, delete the task from job context.
-   * @param jobName
-   * @param jobContext
-   * @param currentInstanceToTaskAssignments
-   * @param tasksToDrop
-   * @param currStateOutput
-   * @param allPartitions
    */
   private void handleDeletedTasks(String jobName, JobContext jobContext,
       Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments,

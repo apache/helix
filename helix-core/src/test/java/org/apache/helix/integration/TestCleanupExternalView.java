@@ -109,18 +109,14 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
     // System.out.println("re-enabling controller");
     admin.enableCluster(clusterName, true);
 
-    ExternalView externalView = null;
-    for (int i = 0; i < 10; i++) {
-      Thread.sleep(100);
-      externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
-      // System.out.println("externalView: " + externalView);
-      if (externalView == null) {
-        break;
-      }
-    }
 
-    Assert.assertNull(externalView, "external-view for TestDB0 should be removed, but was: "
-        + externalView);
+    result = TestHelper.verify(() -> {
+      ExternalView externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+      return externalView == null;
+    }, TestHelper.WAIT_DURATION);
+
+    ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+    Assert.assertTrue(result, "external-view for TestDB0 should be removed, but was: " + ev);
 
     // clean up
     controller.syncStop();

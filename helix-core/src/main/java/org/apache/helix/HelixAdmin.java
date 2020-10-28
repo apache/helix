@@ -229,6 +229,13 @@ public interface HelixAdmin {
   void dropInstance(String clusterName, InstanceConfig instanceConfig);
 
   /**
+   * Purge offline instances from a cluster
+   * @param clusterName
+   * @param customizedPurgeMap
+   */
+  void purgeOfflineInstances(String clusterName, Map<String, String> customizedPurgeMap);
+
+  /**
    * Get ideal state for a resource
    * @param clusterName
    * @param resourceName

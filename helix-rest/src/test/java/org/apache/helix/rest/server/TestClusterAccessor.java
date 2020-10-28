@@ -518,6 +518,46 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
+  public void testPurgeOfflineParticipants() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String cluster = _clusters.iterator().next();
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+
+    String instance1 = cluster + "localhost_12923";
+    String instance2 = cluster + "localhost_12924";
+    String instance3 = cluster + "localhost_12926";
+    String content = "{\"purge.timeout\":\"100000000\"}";
+    post("clusters/" + cluster, ImmutableMap.of("command", "purgeOfflineParticipants"),
+        Entity.entity(content, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    //Although the three instances are not in live instances, the timeout is not met, and
+    // instances will not be dropped by purging action
+    Assert.assertTrue(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance1).getPath(), 0));
+    Assert.assertTrue(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance2).getPath(), 0));
+    Assert.assertTrue(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance3).getPath(), 0));
+
+    ClusterConfig configDelta = new ClusterConfig(cluster);
+    configDelta.getRecord().setSimpleField("OFFLINE_NODE_TIME_OUT_FOR_PURGE", "100");
+    updateClusterConfigFromRest(cluster, configDelta, Command.update);
+
+    //Purge again without customized timeout, and the action will use default timeout value.
+    post("clusters/" + cluster, ImmutableMap.of("command", "purgeOfflineParticipants"), null,
+        Response.Status.OK.getStatusCode());
+    Assert.assertFalse(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance1).getPath(), 0));
+    Assert.assertFalse(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance2).getPath(), 0));
+    Assert.assertFalse(accessor.getBaseDataAccessor()
+        .exists(accessor.keyBuilder().instanceConfig(instance3).getPath(), 0));
+
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testEnableDisableMaintenanceModeWithCustomFields")
   public void testGetStateModelDef() throws IOException {
 
     System.out.println("Start test :" + TestHelper.getTestMethodName());

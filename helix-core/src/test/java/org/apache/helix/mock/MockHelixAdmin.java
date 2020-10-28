@@ -238,6 +238,11 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override
+  public void purgeOfflineInstances(String clusterName, Map<String, String> customizedPurgeMap) {
+
+  }
+
   @Override public IdealState getResourceIdealState(String clusterName, String resourceName) {
     return null;
   }

@@ -799,7 +799,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     Set<String> createCurStateNames = new HashSet<>();
 
     for (Message message : messages) {
-      if (checkForNoOpMessage(message, instanceName, changeContext, manager, sessionId,
+      if (checkAndProcessNoOpMessage(message, instanceName, changeContext, manager, sessionId,
           stateTransitionHandlers)) {
         // skip the following operations for the no-op messages.
         continue;
@@ -815,7 +815,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         }
         if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name()) || message.getMsgType()
             .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-          if (validateStateTransitionMessage(message, instanceName, manager,
+          if (validateAndProcessStateTransitionMessage(message, instanceName, manager,
               stateTransitionHandlers, msgHandler)) {
             // Need future process by triggering state transition
             String msgTarget =
@@ -901,7 +901,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
    * @param stateTransitionHandlers
    * @return True if the message is no-op message and no other process step is required.
    */
-  private boolean checkForNoOpMessage(Message message, String instanceName,
+  private boolean checkAndProcessNoOpMessage(Message message, String instanceName,
       NotificationContext changeContext, HelixManager manager, String sessionId,
       Map<String, MessageHandler> stateTransitionHandlers) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
@@ -997,10 +997,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
    * @param manager
    * @param stateTransitionHandlers
    * @param createHandler
-   * @return True if the requested state transition is valid.
+   * @return True if the requested state transition is valid, and need to schedule the transition.
    *         False if no more operation is required.
    */
-  private boolean validateStateTransitionMessage(Message message, String instanceName,
+  private boolean validateAndProcessStateTransitionMessage(Message message, String instanceName,
       HelixManager manager, Map<String, MessageHandler> stateTransitionHandlers,
       MessageHandler createHandler) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();

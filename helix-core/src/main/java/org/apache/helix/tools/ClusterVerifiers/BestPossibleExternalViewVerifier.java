@@ -78,6 +78,11 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    */
   @Deprecated
   public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
+      Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances) {
+    this(zkAddr, clusterName, resources, errStates, expectLiveInstances, 0);
+  }
+
+  public BestPossibleExternalViewVerifier(String zkAddr, String clusterName, Set<String> resources,
       Map<String, Map<String, String>> errStates, Set<String> expectLiveInstances, int waitTillVerify) {
     super(zkAddr, clusterName, waitTillVerify);
     _errStates = errStates;
@@ -95,6 +100,12 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    * @param expectLiveInstances
    */
   @Deprecated
+  public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
+      Set<String> resources, Map<String, Map<String, String>> errStates,
+      Set<String> expectLiveInstances) {
+    this(zkClient, clusterName, resources, errStates, expectLiveInstances, 0);
+  }
+  
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances, int waitTillVerify) {

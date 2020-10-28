@@ -114,7 +114,7 @@ public class InstanceValidationUtil {
       }
     }
 
-    _logger.warn(String.format("The instance %s is not active", instanceName));
+    _logger.warn(String.format("The instance %s does not have resource assigned on it.", instanceName));
     return false;
   }
 
@@ -196,12 +196,12 @@ public class InstanceValidationUtil {
         CurrentState currentState = dataAccessor.getProperty(key);
         if (currentState != null
             && currentState.getPartitionStateMap().containsValue(HelixDefinedState.ERROR.name())) {
+          _logger.warn(String.format("The instance %s has error partitions on it.", instanceName));
           return true;
         }
       }
     }
 
-    _logger.warn(String.format("The instance %s is not active", instanceName));
     return false;
   }
 

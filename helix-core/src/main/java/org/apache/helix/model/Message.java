@@ -597,7 +597,8 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set the number of times to retry message handling on timeouts
+   * Set the number of times to retry message handling on timeouts and other unexpected conditions
+   * with Exceptions. For example, the participant failed to create message handler.
    * @param retryCount maximum number of retries
    */
   public void setRetryCount(int retryCount) {
@@ -605,7 +606,8 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Get the number of times to retry message handling on timeouts
+   * Set the number of times to retry message handling on timeouts and other unexpected conditions
+   * with Exceptions. For example, the participant failed to create message handler.
    * @return maximum number of retries
    */
   public int getRetryCount() {

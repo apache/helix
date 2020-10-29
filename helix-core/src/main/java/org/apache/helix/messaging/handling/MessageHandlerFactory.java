@@ -24,6 +24,14 @@ import org.apache.helix.model.Message;
 
 @Deprecated
 public interface MessageHandlerFactory {
+
+  /**
+   * Create the message handler for processing the message task.
+   * @param message
+   * @param context
+   * @return message handler object.
+   *         Or null if the message cannot be processed given the current status.
+   */
   MessageHandler createHandler(Message message, NotificationContext context);
 
   String getMessageType();

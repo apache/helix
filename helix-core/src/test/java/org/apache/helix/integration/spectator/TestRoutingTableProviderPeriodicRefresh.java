@@ -21,7 +21,6 @@ package org.apache.helix.integration.spectator;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,6 @@ import java.util.Map;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -37,7 +35,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -49,6 +46,7 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
 
 public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
   private static final org.slf4j.Logger logger =
@@ -63,6 +61,8 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
   private static final int PARTITION_NUMBER = 20;
   private static final int REPLICA_NUMBER = 3;
+
+  private static final long REFRESH_PERIOD_MS = 1000L;
 
   private HelixManager _spectator;
   private HelixManager _spectator_2;
@@ -106,26 +106,28 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     _controller.syncStart();
 
     // start speculator - initialize it with a Mock
-    _spectator = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "spectator",
-        InstanceType.SPECTATOR, ZK_ADDR);
+    _spectator = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "spectator", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator.connect();
 
-    _spectator_2 = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "spectator_2",
-        InstanceType.SPECTATOR, ZK_ADDR);
+    _spectator_2 = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "spectator_2", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator_2.connect();
 
-    _spectator_3 = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "spectator_3",
-        InstanceType.SPECTATOR, ZK_ADDR);
+    _spectator_3 = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "spectator_3", InstanceType.SPECTATOR, ZK_ADDR);
     _spectator_3.connect();
 
     _routingTableProvider =
-        new MockRoutingTableProvider(_spectator, PropertyType.EXTERNALVIEW, true, 1000L);
+        new MockRoutingTableProvider(_spectator, PropertyType.EXTERNALVIEW, true,
+            REFRESH_PERIOD_MS);
     _spectator.addExternalViewChangeListener(_routingTableProvider);
     _spectator.addLiveInstanceChangeListener(_routingTableProvider);
     _spectator.addInstanceConfigChangeListener(_routingTableProvider);
 
     _routingTableProviderNoPeriodicRefresh =
-        new MockRoutingTableProvider(_spectator_2, PropertyType.EXTERNALVIEW, false, 1000L);
+        new MockRoutingTableProvider(_spectator_2, PropertyType.EXTERNALVIEW, false,
+            REFRESH_PERIOD_MS);
     _spectator_2.addExternalViewChangeListener(_routingTableProviderNoPeriodicRefresh);
     _spectator_2.addLiveInstanceChangeListener(_routingTableProviderNoPeriodicRefresh);
     _spectator_2.addInstanceConfigChangeListener(_routingTableProviderNoPeriodicRefresh);
@@ -138,10 +140,8 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
   }
 
   @AfterClass
@@ -150,6 +150,11 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     for (MockParticipantManager p : _participants) {
       p.syncStop();
     }
+
+    // Call shutdown to make sure they are shutting down properly
+    _routingTableProvider.shutdown();
+    _routingTableProviderNoPeriodicRefresh.shutdown();
+    _routingTableProviderLongPeriodicRefresh.shutdown();
 
     _controller.syncStop();
     _spectator.disconnect();
@@ -203,34 +208,32 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
 
   @Test
   public void testPeriodicRefresh() throws InterruptedException {
-    // Wait so that initial refreshes finish (not triggered by periodic refresh timer)
-    Thread.sleep(1000L);
+    // Wait to ensure that the initial refreshes finish (not triggered by periodic refresh timer)
+    Thread.sleep(REFRESH_PERIOD_MS * 2);
 
     // Test short refresh
     int prevRefreshCount = _routingTableProvider.getRefreshCount();
-    // Wait for one timer duration
-    Thread.sleep(1000L);
-    // The timer should have gone off, incrementing the refresh count
-    Assert.assertEquals(_routingTableProvider.getRefreshCount(), prevRefreshCount + 1);
+    // Wait for more than one timer duration
+    Thread.sleep((long) (REFRESH_PERIOD_MS * 1.5));
+    // The timer should have gone off, incrementing the refresh count by one or two depends on the
+    // timing.
+    int newRefreshCount = _routingTableProvider.getRefreshCount();
+    Assert.assertTrue(
+        newRefreshCount == prevRefreshCount + 1 || newRefreshCount == prevRefreshCount + 2);
 
     // Test no periodic refresh
     prevRefreshCount = _routingTableProviderNoPeriodicRefresh.getRefreshCount();
     // Wait
-    Thread.sleep(2000);
+    Thread.sleep(REFRESH_PERIOD_MS * 2);
     // The timer should NOT have gone off, the refresh count must stay the same
     Assert.assertEquals(_routingTableProviderNoPeriodicRefresh.getRefreshCount(), prevRefreshCount);
 
     // Test long periodic refresh
     prevRefreshCount = _routingTableProviderLongPeriodicRefresh.getRefreshCount();
     // Wait
-    Thread.sleep(2000);
+    Thread.sleep(REFRESH_PERIOD_MS * 2);
     // The timer should NOT have gone off yet, the refresh count must stay the same
-    Assert.assertEquals(_routingTableProviderLongPeriodicRefresh.getRefreshCount(),
-        prevRefreshCount);
-
-    // Call shutdown to make sure they are shutting down properly
-    _routingTableProvider.shutdown();
-    _routingTableProviderNoPeriodicRefresh.shutdown();
-    _routingTableProviderLongPeriodicRefresh.shutdown();
+    Assert
+        .assertEquals(_routingTableProviderLongPeriodicRefresh.getRefreshCount(), prevRefreshCount);
   }
 }

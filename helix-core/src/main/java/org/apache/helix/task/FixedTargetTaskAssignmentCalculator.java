@@ -32,6 +32,7 @@ import java.util.TreeSet;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.stream.Collectors;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -126,13 +127,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
 
   @Override
   public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext, Set<Integer> allPartitions) {
-    Set<Integer> deletedPartitions = new HashSet<>();
-    for (Integer partition : jobContext.getPartitionSet()) {
-      if (!allPartitions.contains(partition)) {
-        deletedPartitions.add(partition);
-      }
-    }
-    return deletedPartitions;
+    return jobContext.getPartitionSet().stream().filter(partition -> !allPartitions.contains(partition)).collect(
+        Collectors.toSet());
   }
 
   private static List<Integer> getPartitionsForTargetPartition(String targetPartition,

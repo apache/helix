@@ -231,9 +231,9 @@ public interface HelixAdmin {
   /**
    * Purge offline instances from a cluster
    * @param clusterName
-   * @param customizedPurgeMap
+   * @param timeout
    */
-  void purgeOfflineInstances(String clusterName, Map<String, String> customizedPurgeMap);
+  void purgeOfflineInstances(String clusterName, Long timeout);
 
   /**
    * Get ideal state for a resource

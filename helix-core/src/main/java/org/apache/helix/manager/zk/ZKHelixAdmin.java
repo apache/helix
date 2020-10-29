@@ -106,7 +106,6 @@ public class ZKHelixAdmin implements HelixAdmin {
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private static final String MAINTENANCE_ZNODE_ID = "maintenance";
   private static final int DEFAULT_SUPERCLUSTER_REPLICA = 3;
-  public static final String OFFLINE_NODE_PURGE_TIMEOUT = "purge.timeout";
 
   private final RealmAwareZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
@@ -253,10 +252,10 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void purgeOfflineInstances(String clusterName, Map<String, String> customizedPurgeMap) {
-    Map<String, InstanceConfig> timeoutOfflineInstances = findTimeoutOfflineInstances(clusterName,
-        customizedPurgeMap);
-    timeoutOfflineInstances.values().forEach(value -> dropInstance(clusterName, value));
+  public void purgeOfflineInstances(String clusterName, Long timeout) {
+    Map<String, InstanceConfig> timeoutOfflineInstances = findTimeoutOfflineInstances(clusterName
+        , timeout);
+    timeoutOfflineInstances.values().forEach(instance -> dropInstance(clusterName, instance));
   }
 
   @Override
@@ -2072,17 +2071,16 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   private Map<String, InstanceConfig> findTimeoutOfflineInstances(String clusterName,
-      Map<String, String> customizedPurgeMap) {
-    String timeout = customizedPurgeMap.get(OFFLINE_NODE_PURGE_TIMEOUT);
-    Long timeoutValue;
+      Long timeout) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     // in case there is no customized timeout value, use the one defined in cluster config
     if (timeout == null) {
-      timeoutValue = _configAccessor.getClusterConfig(clusterName).getOfflineNodeTimeOutForPurge();
-    } else {
-      timeoutValue = Long.valueOf(timeout);
+      timeout = _configAccessor.getClusterConfig(clusterName).getOfflineNodeTimeOutForPurge();
+    }
+    if (timeout < 0) {
+      return instanceConfigMap;
     }
 
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     String path = PropertyPathBuilder.instanceConfig(clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
@@ -2095,7 +2093,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     path = PropertyPathBuilder.liveInstance(clusterName);
     List<String> liveNodes = baseAccessor.getChildNames(path, 0);
-    liveNodes.forEach(liveNode -> instanceConfigMap.remove(liveNode));
+    instanceConfigMap.keySet().removeAll(liveNodes);
 
     Set<String> toRemoveInstances = new HashSet<>();
     for (String instanceName : instanceConfigMap.keySet()) {
@@ -2103,12 +2101,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       ZNRecord znRecord = baseAccessor.get(historyPath, null, 0);
       ParticipantHistory participantHistory = new ParticipantHistory(znRecord);
       long lastOfflineTime = participantHistory.getLastOfflineTime();
-      if (lastOfflineTime == -1 || timeoutValue < 0
-          || System.currentTimeMillis() - lastOfflineTime < timeoutValue) {
+      if (lastOfflineTime == -1 || System.currentTimeMillis() - lastOfflineTime < timeout) {
         toRemoveInstances.add(instanceName);
       }
     }
-    toRemoveInstances.forEach(instance -> instanceConfigMap.remove(instance));
+    instanceConfigMap.keySet().removeAll(toRemoveInstances);
     return instanceConfigMap;
   }
 }

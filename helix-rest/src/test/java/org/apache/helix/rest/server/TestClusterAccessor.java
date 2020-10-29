@@ -526,9 +526,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     String instance1 = cluster + "localhost_12923";
     String instance2 = cluster + "localhost_12924";
     String instance3 = cluster + "localhost_12926";
-    String content = "{\"purge.timeout\":\"100000000\"}";
-    post("clusters/" + cluster, ImmutableMap.of("command", "purgeOfflineParticipants"),
-        Entity.entity(content, MediaType.APPLICATION_JSON_TYPE),
+    post("clusters/" + cluster,
+        ImmutableMap.of("command", "purgeOfflineParticipants", "timeout", "100000000"), null,
         Response.Status.OK.getStatusCode());
 
     //Although the three instances are not in live instances, the timeout is not met, and

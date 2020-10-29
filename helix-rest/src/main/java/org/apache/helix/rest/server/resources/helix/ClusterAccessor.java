@@ -203,7 +203,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
-      String content) {
+      @QueryParam("timeout") Long timeout, String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -283,15 +283,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         }
         break;
       case purgeOfflineParticipants:
-        Map<String, String> customizedPurgeMap = new HashMap<>();
-        try {
-          customizedPurgeMap =
-              OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() {
-              });
-        } catch (Exception e) {
-          // NOP
-        }
-        helixAdmin.purgeOfflineInstances(clusterId, customizedPurgeMap);
+        helixAdmin.purgeOfflineInstances(clusterId, timeout);
         break;
       default:
         return badRequest("Unsupported command {}." + command);

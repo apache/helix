@@ -794,7 +794,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     List<NotificationContext> nonStateTransitionContexts = new ArrayList<>();
 
     // message to be updated in ZK
-    List<Message> updatingMsgs = new ArrayList<>();
+    List<Message> msgsToBeUpdated = new ArrayList<>();
 
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
@@ -831,10 +831,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (message.getRetryCount() < 0) {
           // If no more retry count remains, then mark the message to be UNPROCESSABLE.
           String errorMsg = String
-              .format("Message %s has a negative remaining retry count %d. Stop processing it!",
+              .format("No available message Handler found!"
+                      + " Stop processing message %s since it has a negative remaining retry count %d!",
                   message.getMsgId(), message.getRetryCount());
           updateUnprocessableMessage(message, null, errorMsg, manager);
-          updatingMsgs.add(message);
+          msgsToBeUpdated.add(message);
         } else {
           // Skip processing this message in this callback. The same message process will be retried
           // in the next round.
@@ -867,7 +868,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
 
       // Update the normally processed messages
-      updatingMsgs.add(markReadMessage(message, msgWorkingContext, manager));
+      msgsToBeUpdated.add(markReadMessage(message, msgWorkingContext, manager));
 
       // batch creation of all current state meta data
       // do it for non-controller and state transition messages only
@@ -900,12 +901,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       try {
         accessor.createChildren(createCurStateKeys, metaCurStates);
       } catch (Exception e) {
-        LOG.error("fail to create cur-state znodes for messages: " + updatingMsgs, e);
+        LOG.error("fail to create cur-state znodes for messages: " + msgsToBeUpdated, e);
       }
     }
 
     // update message state in batch and schedule tasks for all read messages
-    updateMessageState(updatingMsgs, accessor, instanceName);
+    updateMessageState(msgsToBeUpdated, accessor, instanceName);
 
     for (Map.Entry<String, MessageHandler> handlerEntry : stateTransitionHandlers.entrySet()) {
       MessageHandler handler = handlerEntry.getValue();

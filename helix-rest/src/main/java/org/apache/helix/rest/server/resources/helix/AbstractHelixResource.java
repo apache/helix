@@ -33,7 +33,7 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
-
+import org.apache.helix.zookeeper.util.ZNRecordUtil;
 
 /**
  * This class provides methods to access Helix specific objects
@@ -83,7 +83,8 @@ public class AbstractHelixResource extends AbstractResource {
 
   protected static ZNRecord toZNRecord(String data)
       throws IOException {
-    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    ZNRecord record = OBJECT_MAPPER.readValue(data, ZNRecord.class);
+    return ZNRecordUtil.trimFields(record);
   }
 
   private ServerContext getServerContext() {

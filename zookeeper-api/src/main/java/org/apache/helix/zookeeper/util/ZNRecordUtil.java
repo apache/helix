@@ -19,6 +19,10 @@ package org.apache.helix.zookeeper.util;
  * under the License.
  */
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
@@ -61,5 +65,32 @@ public class ZNRecordUtil {
     }
 
     return writeSizeLimit;
+  }
+
+  /**
+   * Trims leading/trailing spaces for all strings in Simple/List/Map fields of a {@link ZNRecord}.
+   *
+   * @param record the {@link ZNRecord} to be trimmed.
+   * @return a {@link ZNRecord} that has been trimmed: strings in its fields are trimmed.
+   */
+  public static ZNRecord trimFields(ZNRecord record) {
+    Map<String, String> simpleFields = record.getSimpleFields().entrySet().stream()
+        .collect(Collectors.toMap(e -> e.getKey().trim(), e -> e.getValue().trim()));
+
+    Map<String, List<String>> listFields = record.getListFields().entrySet().stream()
+        .collect(Collectors.toMap(e -> e.getKey().trim(),
+            e -> e.getValue().stream().map(String::trim).collect(Collectors.toList())));
+
+    Map<String, Map<String, String>> mapFields = record.getMapFields().entrySet().stream()
+        .collect(Collectors.toMap(e1 -> e1.getKey().trim(),
+            e1 -> e1.getValue().entrySet().stream()
+                .collect(Collectors.toMap(e2 -> e2.getKey().trim(), e2 -> e2.getValue().trim()))));
+
+    ZNRecord trimmedRecord = new ZNRecord(record);
+    trimmedRecord.setSimpleFields(simpleFields);
+    trimmedRecord.setListFields(listFields);
+    trimmedRecord.setMapFields(mapFields);
+
+    return trimmedRecord;
   }
 }

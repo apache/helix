@@ -114,6 +114,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   private final boolean _usesExternalZkClient;
 
   private static Logger logger = LoggerFactory.getLogger(ZKHelixAdmin.class);
+  private static final long VALUE_NOT_SET = -1;
 
   /**
    * @deprecated it is recommended to use the builder constructor {@link Builder}
@@ -252,9 +253,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void purgeOfflineInstances(String clusterName, Long timeout) {
+  public void purgeOfflineInstances(String clusterName, long offlineDuration) {
     Map<String, InstanceConfig> timeoutOfflineInstances = findTimeoutOfflineInstances(clusterName
-        , timeout);
+        , offlineDuration);
     timeoutOfflineInstances.values().forEach(instance -> dropInstance(clusterName, instance));
   }
 
@@ -2071,37 +2072,31 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   private Map<String, InstanceConfig> findTimeoutOfflineInstances(String clusterName,
-      Long timeout) {
+      long offlineDuration) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     // in case there is no customized timeout value, use the one defined in cluster config
-    if (timeout == null) {
-      timeout = _configAccessor.getClusterConfig(clusterName).getOfflineNodeTimeOutForPurge();
-    }
-    if (timeout < 0) {
-      return instanceConfigMap;
-    }
-
-    String path = PropertyPathBuilder.instanceConfig(clusterName);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    List<ZNRecord> znRecords = baseAccessor.getChildren(path, null, 0, 0, 0);
-    for (ZNRecord record : znRecords) {
-      if (record != null) {
-        InstanceConfig instanceConfig = new InstanceConfig(record);
-        instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
+    if (offlineDuration == VALUE_NOT_SET) {
+      offlineDuration =
+          _configAccessor.getClusterConfig(clusterName).getOfflineNodeTimeOutForPurge();
+      if (offlineDuration == VALUE_NOT_SET) {
+        return instanceConfigMap;
       }
     }
 
-    path = PropertyPathBuilder.liveInstance(clusterName);
-    List<String> liveNodes = baseAccessor.getChildNames(path, 0);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
+    List<String> liveNodes = accessor.getChildNames(keyBuilder.liveInstances());
     instanceConfigMap.keySet().removeAll(liveNodes);
 
     Set<String> toRemoveInstances = new HashSet<>();
     for (String instanceName : instanceConfigMap.keySet()) {
-      String historyPath = PropertyPathBuilder.instanceHistory(clusterName, instanceName);
-      ZNRecord znRecord = baseAccessor.get(historyPath, null, 0);
-      ParticipantHistory participantHistory = new ParticipantHistory(znRecord);
+      ParticipantHistory participantHistory =
+          accessor.getProperty(keyBuilder.participantHistory(instanceName));
       long lastOfflineTime = participantHistory.getLastOfflineTime();
-      if (lastOfflineTime == -1 || System.currentTimeMillis() - lastOfflineTime < timeout) {
+      if (lastOfflineTime == VALUE_NOT_SET
+          || System.currentTimeMillis() - lastOfflineTime < offlineDuration) {
         toRemoveInstances.add(instanceName);
       }
     }

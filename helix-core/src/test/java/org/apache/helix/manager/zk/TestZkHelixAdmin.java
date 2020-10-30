@@ -1049,7 +1049,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     _baseAccessor.set(PropertyPathBuilder.instanceHistory(clusterName, instanceName), znRecord, 1);
 
     // This purge will not remove the instance since the default timeout is not met yet.
-    tool.purgeOfflineInstances(clusterName, null);
+    tool.purgeOfflineInstances(clusterName, -1);
     Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should still be there");
 

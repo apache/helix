@@ -283,7 +283,11 @@ public class ClusterAccessor extends AbstractHelixResource {
         }
         break;
       case purgeOfflineParticipants:
-        helixAdmin.purgeOfflineInstances(clusterId, timeout);
+        if (timeout == null || timeout < 0) {
+          helixAdmin.purgeOfflineInstances(clusterId, -1);
+        } else {
+          helixAdmin.purgeOfflineInstances(clusterId, timeout);
+        }
         break;
       default:
         return badRequest("Unsupported command {}." + command);

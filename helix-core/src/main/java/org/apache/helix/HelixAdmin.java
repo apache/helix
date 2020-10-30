@@ -229,11 +229,14 @@ public interface HelixAdmin {
   void dropInstance(String clusterName, InstanceConfig instanceConfig);
 
   /**
-   * Purge offline instances from a cluster
+   * Purge offline instances that have been offline for longer than the offline duration time
+   * from a cluster
    * @param clusterName
-   * @param timeout
+   * @param offlineDuration the threshold of offline time to decide whether an offline instance
+   *                        should be dropped when users call purge function. It is defined in
+   *                        milliseconds
    */
-  void purgeOfflineInstances(String clusterName, Long timeout);
+  void purgeOfflineInstances(String clusterName, long offlineDuration);
 
   /**
    * Get ideal state for a resource

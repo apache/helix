@@ -76,6 +76,11 @@ public class TestDelayedWagedRebalanceWithDisabledInstance extends TestDelayedAu
     super.testMinimalActiveReplicaMaintain();
   }
 
+  @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
+  public void testMinimalActiveReplicaMaintainWithOneOffline() throws Exception {
+    super.testMinimalActiveReplicaMaintainWithOneOffline();
+  }
+
   @Test(dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testPartitionMovementAfterDelayTime()
       throws Exception {

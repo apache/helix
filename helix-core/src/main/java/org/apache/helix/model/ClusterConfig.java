@@ -153,6 +153,8 @@ public class ClusterConfig extends HelixProperty {
 
   public final static String TASK_QUOTA_RATIO_NOT_SET = "-1";
 
+  public static final long OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET = -1L;
+
   // Default preference for all the aspects should be the same to ensure balanced setup.
   public final static Map<GlobalRebalancePreferenceKey, Integer>
       DEFAULT_GLOBAL_REBALANCE_PREFERENCE =
@@ -163,7 +165,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
-  private static final long VALUE_NOT_SET = -1;
+  private static final int  OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -940,7 +942,7 @@ public class ClusterConfig extends HelixProperty {
   public long getOfflineNodeTimeOutForMaintenanceMode() {
     return _record
         .getLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE.name(),
-            VALUE_NOT_SET);
+            OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET);
   }
 
   /**
@@ -961,7 +963,7 @@ public class ClusterConfig extends HelixProperty {
   public long getOfflineNodeTimeOutForPurge() {
     return _record
         .getLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE.name(),
-            VALUE_NOT_SET);
+            OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET);
   }
 
   /**

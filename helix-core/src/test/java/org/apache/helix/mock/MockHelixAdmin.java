@@ -239,8 +239,8 @@ public class MockHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void purgeOfflineInstances(String clusterName, long timeout) {
-
+  public List<String> purgeOfflineInstances(String clusterName, long timeout) {
+    return null;
   }
 
   @Override public IdealState getResourceIdealState(String clusterName, String resourceName) {

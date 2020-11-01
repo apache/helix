@@ -254,20 +254,21 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public List<String> purgeOfflineInstances(String clusterName, long offlineTimeout) {
-    Map<String, InstanceConfig> timeoutOfflineInstances = findTimeoutOfflineInstances(clusterName
-        , offlineTimeout);
+  public void purgeOfflineInstances(String clusterName, long offlineTimeout) {
+    Map<String, InstanceConfig> timeoutOfflineInstances =
+        findTimeoutOfflineInstances(clusterName, offlineTimeout);
     List<String> failToPurgeInstances = new ArrayList<>();
     timeoutOfflineInstances.values().forEach(instance -> {
       try {
         dropInstance(clusterName, instance);
       } catch (HelixException e) {
-        logger.info("Failed to purge instance {} in cluster {}. Exception: {}", instance,
-            clusterName, e);
         failToPurgeInstances.add(instance.getInstanceName());
       }
     });
-    return failToPurgeInstances;
+    if (failToPurgeInstances.size() > 0) {
+      LOG.error("ZKHelixAdmin::purgeOfflineInstances(): failed to drop the following instances: "
+          + failToPurgeInstances);
+    }
   }
 
   @Override

@@ -83,9 +83,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.model.ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET;
-
-
 public class TestZkHelixAdmin extends ZkUnitTestBase {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -1051,14 +1048,12 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     _baseAccessor.set(PropertyPathBuilder.instanceHistory(clusterName, instanceName), znRecord, 1);
 
     // This purge will not remove the instance since the default timeout is not met yet.
-    Assert.assertTrue(
-        tool.purgeOfflineInstances(clusterName, OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET).isEmpty());
+    tool.purgeOfflineInstances(clusterName, ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET);
     Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should still be there");
 
     // This purge will remove the instance as the customized purge timeout is met.
-    Map<String, String> purgeMap = new HashMap<>();
-    Assert.assertTrue(tool.purgeOfflineInstances(clusterName, 10000L).isEmpty());
+    tool.purgeOfflineInstances(clusterName, 10000L);
     Assert.assertFalse(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should already be dropped");
 

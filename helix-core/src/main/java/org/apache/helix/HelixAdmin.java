@@ -235,9 +235,8 @@ public interface HelixAdmin {
    * @param offlineTimeout the threshold of offline time to decide whether an offline instance
    *                        should be dropped when users call purge function. It is defined in
    *                        milliseconds
-   * @return the list of instance names that failed to be purged.
    */
-  List<String> purgeOfflineInstances(String clusterName, long offlineTimeout);
+  void purgeOfflineInstances(String clusterName, long offlineTimeout);
 
   /**
    * Get ideal state for a resource

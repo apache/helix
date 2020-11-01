@@ -69,8 +69,6 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.model.ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET;
-
 
 @Path("/clusters")
 public class ClusterAccessor extends AbstractHelixResource {
@@ -286,11 +284,12 @@ public class ClusterAccessor extends AbstractHelixResource {
         break;
       case purgeOfflineParticipants:
         if (timeout == null || timeout < 0) {
-          return JSONRepresentation(
-              helixAdmin.purgeOfflineInstances(clusterId, OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET));
+          helixAdmin
+              .purgeOfflineInstances(clusterId, ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET);
         } else {
-          return JSONRepresentation(helixAdmin.purgeOfflineInstances(clusterId, timeout));
+          helixAdmin.purgeOfflineInstances(clusterId, timeout);
         }
+        break;
       default:
         return badRequest("Unsupported command {}." + command);
     }

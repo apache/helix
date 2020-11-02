@@ -469,12 +469,12 @@ public final class HelixUtil {
     return propertyDefaultValue;
   }
 
-    /**
-     * Get the value of system property
-     * @param propertyKey
-     * @param propertyDefaultValue
-     * @return
-     */
+  /**
+   * Get the value of system property
+   * @param propertyKey
+   * @param propertyDefaultValue
+   * @return
+   */
   public static long getSystemPropertyAsLong(String propertyKey, long propertyDefaultValue) {
     String valueString = System.getProperty(propertyKey, "" + propertyDefaultValue);
 

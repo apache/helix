@@ -541,7 +541,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord()
-        .setSimpleField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE.name(),
+        .setSimpleField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS.name(),
             "100");
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 

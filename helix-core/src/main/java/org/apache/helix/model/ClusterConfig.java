@@ -134,7 +134,7 @@ public class ClusterConfig extends HelixProperty {
     // offline for more than this specified time period, and users call purge participant API,
     // then the node will be removed.
     // The unit is milliseconds.
-    OFFLINE_DURATION_FOR_PURGE
+    OFFLINE_DURATION_FOR_PURGE_MS
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -952,7 +952,7 @@ public class ClusterConfig extends HelixProperty {
    * @param offlineDuration offline duration in milliseconds.
    */
   public void setOfflineDurationForPurge(long offlineDuration) {
-    _record.setLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE.name(),
+    _record.setLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS.name(),
         offlineDuration);
   }
 
@@ -962,7 +962,7 @@ public class ClusterConfig extends HelixProperty {
    */
   public long getOfflineDurationForPurge() {
     return _record
-        .getLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE.name(),
+        .getLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS.name(),
             OFFLINE_DURATION_FOR_PURGE_NOT_SET);
   }
 

@@ -327,7 +327,7 @@ public class TestClusterConfig {
     Assert.assertEquals(testConfig.getOfflineDurationForPurge(), -1);
 
     testConfig.getRecord()
-        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE
+        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS
                 .name(),
             10000L);
     Assert.assertEquals(testConfig.getOfflineDurationForPurge(), 10000L);
@@ -338,7 +338,7 @@ public class TestClusterConfig {
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setOfflineDurationForPurge(10000L);
     Assert.assertEquals(testConfig.getRecord()
-        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE
+        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS
                 .name(),
             -1), 10000L);
   }

@@ -99,8 +99,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.model.ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET;
-
 
 public class ZKHelixAdmin implements HelixAdmin {
   private static final Logger LOG = LoggerFactory.getLogger(ZKHelixAdmin.class);
@@ -2087,10 +2085,10 @@ public class ZKHelixAdmin implements HelixAdmin {
       long offlineDuration) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     // in case there is no customized timeout value, use the one defined in cluster config
-    if (offlineDuration == OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
+    if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
       offlineDuration =
           _configAccessor.getClusterConfig(clusterName).getOfflineDurationForPurge();
-      if (offlineDuration == OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
+      if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
         return instanceConfigMap;
       }
     }
@@ -2107,7 +2105,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       ParticipantHistory participantHistory =
           accessor.getProperty(keyBuilder.participantHistory(instanceName));
       long lastOfflineTime = participantHistory.getLastOfflineTime();
-      if (lastOfflineTime == OFFLINE_DURATION_FOR_PURGE_NOT_SET
+      if (lastOfflineTime == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET
           || System.currentTimeMillis() - lastOfflineTime < offlineDuration) {
         toRemoveInstances.add(instanceName);
       }

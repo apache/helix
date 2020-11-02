@@ -203,7 +203,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
-      @QueryParam("timeout") Long timeout, String content) {
+      @QueryParam("duration") Long duration, String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -283,11 +283,11 @@ public class ClusterAccessor extends AbstractHelixResource {
         }
         break;
       case purgeOfflineParticipants:
-        if (timeout == null || timeout < 0) {
+        if (duration == null || duration < 0) {
           helixAdmin
-              .purgeOfflineInstances(clusterId, ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET);
+              .purgeOfflineInstances(clusterId, ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET);
         } else {
-          helixAdmin.purgeOfflineInstances(clusterId, timeout);
+          helixAdmin.purgeOfflineInstances(clusterId, duration);
         }
         break;
       default:

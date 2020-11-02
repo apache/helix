@@ -1022,9 +1022,9 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
 
-    // set default offline node timeout for purge in cluster config
+    // set default offline duration for purge in cluster config
     ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
-    clusterConfig.setOfflineNodeTimeOutForPurge(100000L);
+    clusterConfig.setOfflineDurationForPurge(100000L);
     dataAccessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
 
     String hostname = "host1";
@@ -1047,12 +1047,12 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         .setSimpleField("LAST_OFFLINE_TIME", String.valueOf(System.currentTimeMillis() - 50000L));
     _baseAccessor.set(PropertyPathBuilder.instanceHistory(clusterName, instanceName), znRecord, 1);
 
-    // This purge will not remove the instance since the default timeout is not met yet.
-    tool.purgeOfflineInstances(clusterName, ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET);
+    // This purge will not remove the instance since the default offline duration is not met yet.
+    tool.purgeOfflineInstances(clusterName, ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET);
     Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should still be there");
 
-    // This purge will remove the instance as the customized purge timeout is met.
+    // This purge will remove the instance as the customized offline duration is met.
     tool.purgeOfflineInstances(clusterName, 10000L);
     Assert.assertFalse(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should already be dropped");

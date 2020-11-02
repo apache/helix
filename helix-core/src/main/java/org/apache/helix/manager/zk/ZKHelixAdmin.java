@@ -99,7 +99,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.model.ClusterConfig.OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET;
+import static org.apache.helix.model.ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET;
 
 
 public class ZKHelixAdmin implements HelixAdmin {
@@ -254,9 +254,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void purgeOfflineInstances(String clusterName, long offlineTimeout) {
+  public void purgeOfflineInstances(String clusterName, long offlineDuration) {
     Map<String, InstanceConfig> timeoutOfflineInstances =
-        findTimeoutOfflineInstances(clusterName, offlineTimeout);
+        findTimeoutOfflineInstances(clusterName, offlineDuration);
     List<String> failToPurgeInstances = new ArrayList<>();
     timeoutOfflineInstances.values().forEach(instance -> {
       try {
@@ -2084,13 +2084,13 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   private Map<String, InstanceConfig> findTimeoutOfflineInstances(String clusterName,
-      long offlineTimeout) {
+      long offlineDuration) {
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
     // in case there is no customized timeout value, use the one defined in cluster config
-    if (offlineTimeout == OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET) {
-      offlineTimeout =
-          _configAccessor.getClusterConfig(clusterName).getOfflineNodeTimeOutForPurge();
-      if (offlineTimeout == OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET) {
+    if (offlineDuration == OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
+      offlineDuration =
+          _configAccessor.getClusterConfig(clusterName).getOfflineDurationForPurge();
+      if (offlineDuration == OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
         return instanceConfigMap;
       }
     }
@@ -2107,8 +2107,8 @@ public class ZKHelixAdmin implements HelixAdmin {
       ParticipantHistory participantHistory =
           accessor.getProperty(keyBuilder.participantHistory(instanceName));
       long lastOfflineTime = participantHistory.getLastOfflineTime();
-      if (lastOfflineTime == OFFLINE_TIMEOUT_FOR_PURGE_NOT_SET
-          || System.currentTimeMillis() - lastOfflineTime < offlineTimeout) {
+      if (lastOfflineTime == OFFLINE_DURATION_FOR_PURGE_NOT_SET
+          || System.currentTimeMillis() - lastOfflineTime < offlineDuration) {
         toRemoveInstances.add(instanceName);
       }
     }

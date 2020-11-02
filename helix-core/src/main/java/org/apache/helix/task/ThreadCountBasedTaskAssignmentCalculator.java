@@ -147,20 +147,6 @@ public class ThreadCountBasedTaskAssignmentCalculator extends TaskAssignmentCalc
     return taskAssignment;
   }
 
-  @Override
-  public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext, Set<Integer> allPartitions) {
-    // Get all partitions existed in the context
-    Set<Integer> deletedPartitions = new HashSet<>();
-    // Check whether the tasks have been deleted from jobConfig
-    for (Integer partition : jobContext.getPartitionSet()) {
-      String partitionID = jobContext.getTaskIdForPartition(partition);
-      if (!jobConfig.getTaskConfigMap().containsKey(partitionID)) {
-        deletedPartitions.add(partition);
-      }
-    }
-    return deletedPartitions;
-  }
-
   /**
    * Returns TaskConfigs whose partition numbers (ids) are present in filteredPartitionNumbers. This
    * means that these tasks should have the state of INIT, RUNNING, or null. This function basically

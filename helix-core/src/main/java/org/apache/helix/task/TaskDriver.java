@@ -542,6 +542,7 @@ public class TaskDriver {
    * Note3: The taskID for the new task should be unique. If not, this API throws an exception.
    * Note4: In case of timeout exception, it is the user's responsibility to check whether the task
    * has been successfully added or not.
+   * Note5: If there is a delay in scheduling the tasks this API may fail.
    * @param workflowName
    * @param jobName
    * @param taskConfig
@@ -565,6 +566,7 @@ public class TaskDriver {
    * has been successfully added or not.
    * Note5: timeout is the time that this API checks whether the task has been successfully added or
    * not.
+   * Note6: If there is a delay in scheduling the tasks this API may fail.
    * @param workflowName
    * @param jobName
    * @param taskConfig
@@ -755,8 +757,7 @@ public class TaskDriver {
           _accessor.getProperty(_accessor.keyBuilder().jobContextZNode(workflowName, jobName));
       workflowContext =
           _accessor.getProperty(_accessor.keyBuilder().workflowContextZNode(workflowName));
-      if (!jobContext.getTaskIdPartitionMap().containsKey(taskID)
-          && workflowContext.getJobState(nameSpaceJobName) == TaskState.IN_PROGRESS) {
+      if (!jobContext.getTaskIdPartitionMap().containsKey(taskID)) {
         return;
       }
       Thread.sleep(DEFAULT_SLEEP);

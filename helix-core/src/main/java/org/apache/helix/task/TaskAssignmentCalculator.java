@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -102,11 +103,22 @@ public abstract class TaskAssignmentCalculator {
   }
 
   /**
-   * Returns the tasks that should be dropped either because the task has been removed from config in
-   * generic jobs or target resources IS does not have the target partition anymore
+   * Returns the tasks that should be dropped either because the task has been removed from config
+   * in generic jobs or target resources IS does not have the target partition anymore
    * @param jobConfig
    * @param jobContext
    */
-  public abstract Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext,
-      Set<Integer> allPartitions);
+  public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext,
+      Set<Integer> allPartitions) {
+    // Get all partitions existed in the context
+    Set<Integer> deletedPartitions = new HashSet<>();
+    // Check whether the tasks have been deleted from jobConfig
+    for (Integer partition : jobContext.getPartitionSet()) {
+      String partitionID = jobContext.getTaskIdForPartition(partition);
+      if (!jobConfig.getTaskConfigMap().containsKey(partitionID)) {
+        deletedPartitions.add(partition);
+      }
+    }
+    return deletedPartitions;
+  }
 }

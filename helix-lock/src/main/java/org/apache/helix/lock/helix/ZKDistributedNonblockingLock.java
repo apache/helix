@@ -165,12 +165,18 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
     private String _userId;
     private long _timeout;
     private String _lockMsg;
+    private String _lockPath;
 
     public Builder() {
     }
 
     public Builder setLockScope(LockScope lockScope) {
       _lockScope = lockScope;
+      return this;
+    }
+
+    public Builder setLockPath(String lockPath) {
+      _lockPath = lockPath;
       return this;
     }
 
@@ -204,8 +210,20 @@ public class ZKDistributedNonblockingLock implements DistributedLock {
       }
 
       // Return a ZKDistributedNonblockingLock instance
-      return new ZKDistributedNonblockingLock(_lockScope.getPath(), _timeout, _lockMsg, _userId,
-          baseDataAccessor);
+      String lockPath = null;
+      if (_lockScope != null) {
+        lockPath = _lockScope.getPath();
+      }
+
+      if (_lockPath != null) {
+        lockPath = _lockPath;
+      }
+
+      if (lockPath != null) {
+        return new ZKDistributedNonblockingLock(lockPath, _timeout, _lockMsg, _userId,
+            baseDataAccessor);
+      }
+      throw new IllegalArgumentException("No lock path can be found, could not create a lock.");
     }
   }
 }

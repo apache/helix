@@ -77,6 +77,7 @@ public class AbstractResource {
     validateWeight,
     enableWagedRebalance,
     enableWagedRebalanceForAllResources,
+    purgeOfflineParticipants,
     getInstance,
     getAllInstances
   }

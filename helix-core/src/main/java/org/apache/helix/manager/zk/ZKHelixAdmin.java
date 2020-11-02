@@ -76,6 +76,7 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -247,6 +248,33 @@ public class ZKHelixAdmin implements HelixAdmin {
           throw new HelixException(errorMessage, e);
         }
       }
+    }
+  }
+
+  /**
+   * Please note that the purge function should only be called when there is no new instance
+   * joining happening in the cluster. The reason is that current implementation is not thread safe,
+   * meaning that if the offline instance comes online while the purging is ongoing, race
+   * condition may happen, and we may have live instance in the cluster without corresponding
+   * instance config.
+   * TODO: consider using Helix lock to prevent race condition, and make sure zookeeper is ok
+   *  with the extra traffic caused by lock.
+   */
+  @Override
+  public void purgeOfflineInstances(String clusterName, long offlineDuration) {
+    Map<String, InstanceConfig> timeoutOfflineInstances =
+        findTimeoutOfflineInstances(clusterName, offlineDuration);
+    List<String> failToPurgeInstances = new ArrayList<>();
+    timeoutOfflineInstances.values().forEach(instance -> {
+      try {
+        dropInstance(clusterName, instance);
+      } catch (HelixException e) {
+        failToPurgeInstances.add(instance.getInstanceName());
+      }
+    });
+    if (failToPurgeInstances.size() > 0) {
+      LOG.error("ZKHelixAdmin::purgeOfflineInstances(): failed to drop the following instances: "
+          + failToPurgeInstances);
     }
   }
 
@@ -2060,5 +2088,38 @@ public class ZKHelixAdmin implements HelixAdmin {
           createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
               _zkAddress), false);
     }
+  }
+
+  private Map<String, InstanceConfig> findTimeoutOfflineInstances(String clusterName,
+      long offlineDuration) {
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    // in case there is no customized timeout value, use the one defined in cluster config
+    if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
+      offlineDuration =
+          _configAccessor.getClusterConfig(clusterName).getOfflineDurationForPurge();
+      if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
+        return instanceConfigMap;
+      }
+    }
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
+    List<String> liveNodes = accessor.getChildNames(keyBuilder.liveInstances());
+    instanceConfigMap.keySet().removeAll(liveNodes);
+
+    Set<String> toRemoveInstances = new HashSet<>();
+    for (String instanceName : instanceConfigMap.keySet()) {
+      ParticipantHistory participantHistory =
+          accessor.getProperty(keyBuilder.participantHistory(instanceName));
+      long lastOfflineTime = participantHistory.getLastOfflineTime();
+      if (lastOfflineTime == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET
+          || System.currentTimeMillis() - lastOfflineTime < offlineDuration) {
+        toRemoveInstances.add(instanceName);
+      }
+    }
+    instanceConfigMap.keySet().removeAll(toRemoveInstances);
+    return instanceConfigMap;
   }
 }

@@ -324,21 +324,21 @@ public class TestClusterConfig {
   @Test
   public void testGetOfflineNodeTimeOutForPurge() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForPurge(), -1);
+    Assert.assertEquals(testConfig.getOfflineDurationForPurge(), -1);
 
     testConfig.getRecord()
-        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE
+        .setLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS
                 .name(),
             10000L);
-    Assert.assertEquals(testConfig.getOfflineNodeTimeOutForPurge(), 10000L);
+    Assert.assertEquals(testConfig.getOfflineDurationForPurge(), 10000L);
   }
 
   @Test
   public void testSetOfflineNodeTimeOutForPurge() {
     ClusterConfig testConfig = new ClusterConfig("testId");
-    testConfig.setOfflineNodeTimeOutForPurge(10000L);
+    testConfig.setOfflineDurationForPurge(10000L);
     Assert.assertEquals(testConfig.getRecord()
-        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE
+        .getLongField(ClusterConfig.ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS
                 .name(),
             -1), 10000L);
   }

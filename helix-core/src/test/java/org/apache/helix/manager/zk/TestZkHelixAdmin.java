@@ -83,7 +83,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 public class TestZkHelixAdmin extends ZkUnitTestBase {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -1007,5 +1006,58 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     listTypesFromZk = configFromZk.getAggregationEnabledTypes();
     Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
     Assert.assertEquals(listTypesFromZk.get(1), "mockType3");
+  }
+
+  @Test
+  public void testPurgeOfflineInstances() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    tool.addCluster(clusterName, true);
+
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+
+    // set default offline duration for purge in cluster config
+    ClusterConfig clusterConfig = dataAccessor.getProperty(keyBuilder.clusterConfig());
+    clusterConfig.setOfflineDurationForPurge(100000L);
+    dataAccessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
+
+    String hostname = "host1";
+    String port = "9999";
+    String instanceName = hostname + "_" + port;
+    InstanceConfig config = new InstanceConfig(instanceName);
+    config.setHostName(hostname);
+    config.setPort(port);
+    tool.addInstance(clusterName, config);
+    tool.enableInstance(clusterName, instanceName, true);
+
+    LiveInstance liveInstance = new LiveInstance(instanceName);
+    liveInstance.setSessionId(UUID.randomUUID().toString());
+    liveInstance.setHelixVersion(UUID.randomUUID().toString());
+    dataAccessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+
+    dataAccessor.removeProperty(keyBuilder.liveInstance(instanceName));
+    ZNRecord znRecord = new ZNRecord(instanceName);
+    znRecord
+        .setSimpleField("LAST_OFFLINE_TIME", String.valueOf(System.currentTimeMillis() - 50000L));
+    _baseAccessor.set(PropertyPathBuilder.instanceHistory(clusterName, instanceName), znRecord, 1);
+
+    // This purge will not remove the instance since the default offline duration is not met yet.
+    tool.purgeOfflineInstances(clusterName, ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET);
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
+        "Instance should still be there");
+
+    // This purge will remove the instance as the customized offline duration is met.
+    tool.purgeOfflineInstances(clusterName, 10000L);
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
+        "Instance should already be dropped");
+
+    tool.dropCluster(clusterName);
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

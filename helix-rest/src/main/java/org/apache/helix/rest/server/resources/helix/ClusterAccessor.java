@@ -203,7 +203,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   @Path("{clusterId}")
   public Response updateCluster(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("superCluster") String superCluster,
-      String content) {
+      @QueryParam("duration") Long duration, String content) {
     Command command;
     try {
       command = getCommand(commandStr);
@@ -280,6 +280,14 @@ public class ClusterAccessor extends AbstractHelixResource {
           helixAdmin.enableWagedRebalance(clusterId, resources);
         } catch (HelixException e) {
           return badRequest(e.getMessage());
+        }
+        break;
+      case purgeOfflineParticipants:
+        if (duration == null || duration < 0) {
+          helixAdmin
+              .purgeOfflineInstances(clusterId, ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET);
+        } else {
+          helixAdmin.purgeOfflineInstances(clusterId, duration);
         }
         break;
       default:

@@ -134,7 +134,7 @@ public class ClusterConfig extends HelixProperty {
     // offline for more than this specified time period, and users call purge participant API,
     // then the node will be removed.
     // The unit is milliseconds.
-    OFFLINE_NODE_TIME_OUT_FOR_PURGE
+    OFFLINE_DURATION_FOR_PURGE_MS
   }
 
   public enum GlobalRebalancePreferenceKey {
@@ -153,6 +153,8 @@ public class ClusterConfig extends HelixProperty {
 
   public final static String TASK_QUOTA_RATIO_NOT_SET = "-1";
 
+  public static final long OFFLINE_DURATION_FOR_PURGE_NOT_SET = -1L;
+
   // Default preference for all the aspects should be the same to ensure balanced setup.
   public final static Map<GlobalRebalancePreferenceKey, Integer>
       DEFAULT_GLOBAL_REBALANCE_PREFERENCE =
@@ -163,7 +165,7 @@ public class ClusterConfig extends HelixProperty {
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
-  private static final long VALUE_NOT_SET = -1;
+  private static final int OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET = -1;
 
   /**
    * Instantiate for a specific cluster
@@ -940,28 +942,28 @@ public class ClusterConfig extends HelixProperty {
   public long getOfflineNodeTimeOutForMaintenanceMode() {
     return _record
         .getLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE.name(),
-            VALUE_NOT_SET);
+            OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET);
   }
 
   /**
-   * Set the default time out window for offline nodes to be purged. If an offline node has been
+   * Set the default duration for offline nodes to be purged. If an offline node has been
    * offline for more than this specified time period, when users call purge participants API,
    * the node will be dropped.
-   * @param timeOut timeout window in milliseconds.
+   * @param offlineDuration offline duration in milliseconds.
    */
-  public void setOfflineNodeTimeOutForPurge(long timeOut) {
-    _record.setLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE.name(),
-        timeOut);
+  public void setOfflineDurationForPurge(long offlineDuration) {
+    _record.setLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS.name(),
+        offlineDuration);
   }
 
   /**
-   * Get the default time out window for offline nodes to be purged.
-   * @return timeout window in milliseconds
+   * Get the default offline duration for offline nodes to be purged.
+   * @return offline duration in milliseconds
    */
-  public long getOfflineNodeTimeOutForPurge() {
+  public long getOfflineDurationForPurge() {
     return _record
-        .getLongField(ClusterConfigProperty.OFFLINE_NODE_TIME_OUT_FOR_PURGE.name(),
-            VALUE_NOT_SET);
+        .getLongField(ClusterConfigProperty.OFFLINE_DURATION_FOR_PURGE_MS.name(),
+            OFFLINE_DURATION_FOR_PURGE_NOT_SET);
   }
 
   /**

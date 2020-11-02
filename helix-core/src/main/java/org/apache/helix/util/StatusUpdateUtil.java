@@ -496,46 +496,38 @@ public class StatusUpdateUtil {
 
     Builder keyBuilder = accessor.keyBuilder();
     if (!_recordedMessages.containsKey(message.getMsgId())) {
+      ZNRecord statusUpdateRecord = createMessageLogRecord(message);
+      PropertyKey propertyKey;
+
       if (isController) {
-        accessor
-            .updateProperty(keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey),
-                new StatusUpdate(createMessageLogRecord(message)));
-
+        propertyKey = keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey);
+        accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
       } else {
-
-        PropertyKey propertyKey =
+        propertyKey =
             keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
                 statusUpdateKey);
-
-        ZNRecord statusUpdateRecord = createMessageLogRecord(message);
-
-        // For now write participant StatusUpdates to log4j.
-        // we are using restlet as another data channel to report to controller.
-        if (_logger.isTraceEnabled()) {
-          _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
-              + statusUpdateRecord);
-        }
         accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
+      }
 
+      if (_logger.isTraceEnabled()) {
+        _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
+            + statusUpdateRecord);
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
     }
 
+    PropertyKey propertyKey;
     if (isController) {
-      accessor.updateProperty(
-          keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey), new StatusUpdate(
-              record));
+      propertyKey = keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey);
+      accessor.updateProperty(propertyKey, new StatusUpdate(record));
     } else {
-
-      PropertyKey propertyKey =
+      propertyKey =
           keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
               statusUpdateKey);
-      // For now write participant StatusUpdates to log4j.
-      // we are using restlet as another data channel to report to controller.
-      if (_logger.isTraceEnabled()) {
-        _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
-      }
       accessor.updateProperty(propertyKey, new StatusUpdate(record));
+    }
+    if (_logger.isTraceEnabled()) {
+      _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
     }
 
     // If the error level is ERROR, also write the record to "ERROR" ZNode

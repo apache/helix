@@ -67,7 +67,7 @@ public class TestParticipantManager extends ZkTestBase {
   private MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
   private String clusterName = TestHelper.getTestClassName();
   static {
-    System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG_ENABLED, "true");
+    System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG2ZK_ENABLED, "true");
   }
 
   @AfterMethod

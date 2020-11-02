@@ -57,8 +57,7 @@ public class StatusUpdateUtil {
   static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
 
   public static final boolean ERROR_LOG_TO_ZK_ENABLED =
-      HelixUtil.getSystemPropertyAsBoolean(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG_ENABLED, "false");
-
+      Boolean.getBoolean(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG2ZK_ENABLED);
 
   public static class Transition implements Comparable<Transition> {
     private final String _msgID;
@@ -565,7 +564,7 @@ public class StatusUpdateUtil {
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
       String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
-    _logger.error("StatusUpdate Error record: {}", record.toString());
+    _logger.error("StatusUpdate Error record: {}", record);
     if (!ERROR_LOG_TO_ZK_ENABLED) {
       return;
     }

@@ -62,7 +62,6 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -469,21 +468,6 @@ public final class HelixUtil {
 
     return propertyDefaultValue;
   }
-
-  /**
-   * Get the boolean value of system property
-   * @param propertyKey
-   * @param propertyDefaultValue
-   * @return
-   */
-  public static boolean getSystemPropertyAsBoolean(String propertyKey, String propertyDefaultValue) {
-    String valueString = System.getProperty(propertyKey, "" + propertyDefaultValue);
-    if (valueString.toLowerCase().equals("true")) {
-      return true;
-    }
-    return false;
-  }
-
 
     /**
      * Get the value of system property

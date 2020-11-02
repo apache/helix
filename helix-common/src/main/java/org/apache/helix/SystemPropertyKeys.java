@@ -83,5 +83,5 @@ public class SystemPropertyKeys {
   public static final String MSDS_SERVER_ENDPOINT_KEY =
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
 
-  public static final String STATEUPDATEUTIL_ERROR_LOG_ENABLED = "helix.StateUpdateUtil.errorLog.enabled";
+  public static final String STATEUPDATEUTIL_ERROR_LOG2ZK_ENABLED = "helix.StateUpdateUtil.errorLog.enabled";
 }

@@ -251,6 +251,15 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
+  /**
+   * Please note that the purge function should only be called when there is no new instance
+   * joining happening in the cluster. The reason is that current implementation is not thread safe,
+   * meaning that if the offline instance comes online while the purging is ongoing, race
+   * condition may happen, and we may have live instance in the cluster without corresponding
+   * instance config.
+   * TODO: consider using Helix lock to prevent race condition, and make sure zookeeper is ok
+   *  with the extra traffic caused by lock.
+   */
   @Override
   public void purgeOfflineInstances(String clusterName, long offlineDuration) {
     Map<String, InstanceConfig> timeoutOfflineInstances =

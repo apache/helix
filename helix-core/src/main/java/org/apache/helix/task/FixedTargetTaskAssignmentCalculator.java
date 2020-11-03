@@ -22,6 +22,7 @@ package org.apache.helix.task;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import java.util.TreeSet;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.stream.Collectors;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -121,6 +123,12 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
           .addAll(getPartitionsForTargetPartition(targetPartition, currentTargets, taskCtx));
     }
     return taskPartitions;
+  }
+
+  @Override
+  public Set<Integer> getRemovedPartitions(JobConfig jobConfig, JobContext jobContext, Set<Integer> allPartitions) {
+    return jobContext.getPartitionSet().stream().filter(partition -> !allPartitions.contains(partition)).collect(
+        Collectors.toSet());
   }
 
   private static List<Integer> getPartitionsForTargetPartition(String targetPartition,

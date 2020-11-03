@@ -37,6 +37,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,19 +168,20 @@ public class PropertyPathBuilder {
     // RESOURCE
     addEntry(PropertyType.WORKFLOWCONTEXT, 2,
         "/{clusterName}/PROPERTYSTORE/TaskRebalancer/{workflowName}/Context"); // Old
-    // WorkflowContext
-    // path
-    addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/TASK");
-    addEntry(PropertyType.WORKFLOW_CONFIG, 3,
-        "/{clusterName}/CONFIGS/TASK/{workflowName}/{workflowName}");
-    addEntry(PropertyType.JOB_CONFIG, 4,
-        "/{clusterName}/CONFIGS/TASK/{workflowName}/{jobName}/{jobName}");
+
+    // TODO: These are the current task framework related paths. In the future, if we decide to use
+    // a different structure such as a non-flatten ZNode structure, these paths need to be changed
+    // accordingly.
+    addEntry(PropertyType.TASK_CONFIG_ROOT, 1, "/{clusterName}/CONFIGS/RESOURCE");
+    addEntry(PropertyType.WORKFLOW_CONFIG, 2, "/{clusterName}/CONFIGS/RESOURCE/{workflowName}");
+    addEntry(PropertyType.JOB_CONFIG, 3,
+        "/{clusterName}/CONFIGS/RESOURCE/{workflowName}" + "_" + "{jobName}");
     addEntry(PropertyType.TASK_CONTEXT_ROOT, 1,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext");
-    addEntry(PropertyType.WORKFLOW_CONTEXT, 2,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext/{workflowName}/Context");
-    addEntry(PropertyType.JOB_CONTEXT, 3,
-        "/{clusterName}/PROPERTYSTORE/TaskFrameworkContext/{workflowName}/{jobName}/Context");
+        "/{clusterName}/PROPERTYSTORE" + TaskConstants.REBALANCER_CONTEXT_ROOT);
+    addEntry(PropertyType.WORKFLOW_CONTEXT, 2, "/{clusterName}/PROPERTYSTORE"
+        + TaskConstants.REBALANCER_CONTEXT_ROOT + "/{workflowName}/Context");
+    addEntry(PropertyType.JOB_CONTEXT, 3, "/{clusterName}/PROPERTYSTORE"
+        + TaskConstants.REBALANCER_CONTEXT_ROOT + "/{workflowName}" + "_" + "{jobName}/Context");
   }
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 

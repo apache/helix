@@ -217,6 +217,10 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     Set<Integer> allPartitions = taskAssignmentCal.getAllTaskPartitions(jobCfg, jobCtx,
         workflowConfig, workflowCtx, cache.getIdealStates());
 
+    // Find the tasks that should be dropped either because task has been removed from config in
+    // generic jobs or target partition IS does not have the target partition anymore
+    Set<Integer> removedPartitions = taskAssignmentCal.getRemovedPartitions(jobCfg, jobCtx, allPartitions);
+
     if (allPartitions == null || allPartitions.isEmpty()) {
       // Empty target partitions, mark the job as FAILED.
       String failureMsg =
@@ -237,6 +241,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         getCurrentInstanceToTaskAssignments(liveInstances, currStateOutput, jobResource, tasksToDrop);
 
     updateInstanceToTaskAssignmentsFromContext(jobCtx, currentInstanceToTaskAssignments);
+
+    handleDeletedTasks(jobResource, jobCtx, currentInstanceToTaskAssignments, tasksToDrop,
+        currStateOutput, allPartitions, removedPartitions);
 
     long currentTime = System.currentTimeMillis();
 
@@ -477,5 +484,47 @@ public class JobDispatcher extends AbstractTaskDispatcher {
           assignableInstanceManager);
     }
     return new FixedTargetTaskAssignmentCalculator(assignableInstanceManager);
+  }
+
+  /**
+   * Add the removed task to tasksToDrop to drop its current state. If task's currentState and
+   * pending message have been removed, delete the task from job context.
+   */
+  private void handleDeletedTasks(String jobName, JobContext jobContext,
+      Map<String, SortedSet<Integer>> currentInstanceToTaskAssignments,
+      Map<String, Set<Integer>> tasksToDrop, CurrentStateOutput currStateOutput,
+      Set<Integer> allPartitions, Set<Integer> removedPartitions) {
+    for (Integer partition : removedPartitions) {
+      boolean hasCurrentState = false;
+      for (Map.Entry<String, SortedSet<Integer>> instanceToPartitions : currentInstanceToTaskAssignments
+          .entrySet()) {
+        String instance = instanceToPartitions.getKey();
+        if (instanceToPartitions.getValue().contains(partition)) {
+          LOG.info(
+              "Task {} should be removed from job {}. Current State should be removed from instance {} as well!",
+              partition, jobName, instance);
+          if (!tasksToDrop.containsKey(instance)) {
+            tasksToDrop.put(instance, new HashSet<>());
+          }
+          tasksToDrop.get(instance).add(partition);
+
+          // If current state or pending message have not been removed yet, we should not
+          // delete the context and leave unclean currentState
+          String pName = pName(jobName, partition);
+          if (currStateOutput.getCurrentState(jobName, new Partition(pName), instance) != null
+              || currStateOutput.getPendingMessage(jobName, new Partition(pName),
+                  instance) != null) {
+            hasCurrentState = true;
+          }
+        }
+      }
+      if (!hasCurrentState) {
+        LOG.info(
+            "Task {} should be removed from job config of job {}. Current state and pending message do not exists. Removing task from job context!",
+            partition, jobName);
+        jobContext.removePartition(partition);
+        allPartitions.remove(partition);
+      }
+    }
   }
 }

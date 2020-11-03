@@ -116,9 +116,7 @@ public class TaskDataCache extends AbstractDataCache {
       }
     }
 
-    // This block makes sure that the workflow config has been changed.
-    // This avoid the race condition where job config has been purged but job has not been deleted
-    // from JobDag yet
+    // If the workflow config has been updated, it's possible that the dag has been changed.
     for (String workflowName : _workflowConfigMap.keySet()) {
       if (_runtimeJobDagMap.containsKey(workflowName)) {
         if (_workflowConfigMap.get(workflowName).getRecord().getVersion() != _runtimeJobDagMap

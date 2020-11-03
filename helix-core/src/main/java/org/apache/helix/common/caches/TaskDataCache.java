@@ -116,33 +116,6 @@ public class TaskDataCache extends AbstractDataCache {
       }
     }
 
-    // The following 3 blocks is for finding a list of workflows whose JobDAGs have been changed
-    // because their RuntimeJobDags would need to be re-built
-    // newly added jobs
-    for (String jobName : newJobConfigs.keySet()) {
-      if (!_jobConfigMap.containsKey(jobName) && newJobConfigs.get(jobName).getWorkflow() != null) {
-        workflowsUpdated.add(newJobConfigs.get(jobName).getWorkflow());
-      }
-
-      // Only for JobQueues when a new job is enqueued, there exists a race condition where only
-      // JobConfig is updated and the RuntimeJobDag does not get updated because when the client
-      // (TaskDriver) submits, it creates JobConfig ZNode first and modifies its parent JobDag next.
-      // To ensure that they are both properly updated, check that workflow's DAG and existing
-      // JobConfigs are consistent for JobQueues
-      JobConfig jobConfig = newJobConfigs.get(jobName);
-      if (_workflowConfigMap.containsKey(jobConfig.getWorkflow())) {
-        WorkflowConfig workflowConfig = _workflowConfigMap.get(jobConfig.getWorkflow());
-        // Check that the job's parent workflow's DAG contains this job
-        if ((workflowConfig.isJobQueue() || !workflowConfig.isTerminable()) && !_runtimeJobDagMap
-            .get(workflowConfig.getWorkflowId()).getAllNodes().contains(jobName)) {
-          // Inconsistency between JobConfigs and DAGs found. Add the workflow to workflowsUpdated
-          // to rebuild the RuntimeJobDag
-          workflowsUpdated.add(jobConfig.getWorkflow());
-        }
-      }
-    }
-
-    // Removed jobs
     // This block makes sure that the workflow config has been changed.
     // This avoid the race condition where job config has been purged but job has not been deleted
     // from JobDag yet
@@ -189,7 +162,7 @@ public class TaskDataCache extends AbstractDataCache {
     for (String resourceName : childNames) {
       contextPaths.add(getTaskDataPath(resourceName, TaskDataType.CONTEXT));
     }
-    
+
     List<ZNRecord> contexts = accessor.getBaseDataAccessor().get(contextPaths, null, 0, true);
 
     for (int i = 0; i < contexts.size(); i++) {

@@ -164,7 +164,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
       if (numPartitions == 0 && idealStates != null) {
         IdealState targetIs = idealStates.get(jobConfig.getTargetResource());
         if (targetIs == null) {
-          LOG.warn("Target resource " + jobConfig.getTargetResource() + " does not exist for job " + resourceName);
+          LOG.debug("Target resource " + jobConfig.getTargetResource() + " does not exist for job "
+              + resourceName);
         } else {
           numPartitions = targetIs.getPartitionSet().size();
         }

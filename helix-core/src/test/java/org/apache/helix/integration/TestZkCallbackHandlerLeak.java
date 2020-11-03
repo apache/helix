@@ -26,9 +26,6 @@ import java.util.Set;
 
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
@@ -467,23 +464,29 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     cs.setSessionId(jobSessionId);
     cs.setStateModelDefRef(db0.getStateModelDefRef());
 
+    Map<String, List<String>> rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
+    Assert.assertFalse(rpWatchPaths.get("dataWatches").contains(jobKey.getPath()));
+
     LOG.info("add job");
-    boolean rtJob = false;
     for (int i = 0; i < mJobUpdateCnt; i++) {
-      rtJob = jobAccesor.setProperty(jobKey, cs);
+      jobAccesor.setProperty(jobKey, cs);
     }
 
+    Map<String, Set<String>> listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertTrue(listenersByZkPath.keySet().contains(jobKey.getPath()));
+    rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
+    Assert.assertTrue(rpWatchPaths.get("dataWatches").contains(jobKey.getPath()));
+
     LOG.info("remove job");
-    rtJob = jobParticipant.getZkClient().delete(jobKey.getPath());
+    jobParticipant.getZkClient().delete(jobKey.getPath());
 
     // validate the job watch is not leaked.
     Thread.sleep(5000);
 
-    Map<String, Set<String>> listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    boolean jobKeyExists = listenersByZkPath.keySet().contains(jobKey.getPath());
-    Assert.assertFalse(jobKeyExists);
+    listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Assert.assertFalse(listenersByZkPath.keySet().contains(jobKey.getPath()));
 
-    Map<String, List<String>> rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
+    rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
     List<String> existWatches = rpWatchPaths.get("existWatches");
     Assert.assertTrue(existWatches.isEmpty());
 

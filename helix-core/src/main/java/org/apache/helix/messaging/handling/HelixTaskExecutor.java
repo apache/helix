@@ -617,7 +617,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           item.factory().reset();
         } catch (Exception ex) {
           LOG.error("Failed to reset the factory {} of message type {}.", item.factory().toString(),
-              msgType);
+              msgType, ex);
         }
       }
     }

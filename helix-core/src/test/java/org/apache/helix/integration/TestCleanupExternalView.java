@@ -42,6 +42,7 @@ import org.testng.annotations.Test;
  * orphan external-view
  */
 public class TestCleanupExternalView extends ZkUnitTestBase {
+  private ExternalView _externalView = null;
   @Test
   public void test() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -109,18 +110,12 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
     // System.out.println("re-enabling controller");
     admin.enableCluster(clusterName, true);
 
-    ExternalView externalView = null;
-    for (int i = 0; i < 10; i++) {
-      Thread.sleep(100);
-      externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
-      // System.out.println("externalView: " + externalView);
-      if (externalView == null) {
-        break;
-      }
-    }
+    result = TestHelper.verify(() -> {
+      _externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+      return _externalView == null;
+    }, TestHelper.WAIT_DURATION);
 
-    Assert.assertNull(externalView, "external-view for TestDB0 should be removed, but was: "
-        + externalView);
+    Assert.assertTrue(result, "external-view for TestDB0 should be removed, but was: " + _externalView);
 
     // clean up
     controller.syncStop();

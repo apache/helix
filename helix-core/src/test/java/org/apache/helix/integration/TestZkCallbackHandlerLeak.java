@@ -472,6 +472,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       jobAccesor.setProperty(jobKey, cs);
     }
 
+    // verify new watcher is installed on the new node
+    Thread.sleep(5000);
     Map<String, Set<String>> listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
     Assert.assertTrue(listenersByZkPath.keySet().contains(jobKey.getPath()));
     rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());

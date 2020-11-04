@@ -233,7 +233,7 @@ public class NotificationContext {
     return _isChildChange;
   }
 
-  public void setIsChildChange(boolean cc) {
-    this._isChildChange = cc;
+  public void setIsChildChange(boolean isChildChange) {
+    this._isChildChange = isChildChange;
   }
 }

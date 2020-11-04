@@ -145,7 +145,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
-      LOG.error("No available instance found for job!");
+      LOG.error("No available instance found for job: " + jobName);
     }
 
     TargetState jobTgtState = workflowCfg.getTargetState();

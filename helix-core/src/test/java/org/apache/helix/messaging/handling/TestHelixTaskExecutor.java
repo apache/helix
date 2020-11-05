@@ -32,21 +32,36 @@ import java.util.concurrent.ExecutorService;
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestHelixTaskExecutor {
-  public static class MockClusterManager extends MockManager {
+  @BeforeClass
+  public void beforeClass() {
+    System.out.println("START " + TestHelper.getTestClassName());
+  }
 
+  @AfterClass
+  public void afterClass() {
+    System.out.println("End " + TestHelper.getTestClassName());
+  }
+
+  public static class MockClusterManager extends MockManager {
     @Override
     public String getSessionId() {
       return "123";
@@ -60,7 +75,6 @@ public class TestHelixTaskExecutor {
     class TestMessageHandler extends MessageHandler {
       public TestMessageHandler(Message message, NotificationContext context) {
         super(message, context);
-        // TODO Auto-generated constructor stub
       }
 
       @Override
@@ -74,14 +88,12 @@ public class TestHelixTaskExecutor {
 
       @Override
       public void onError(Exception e, ErrorCode code, ErrorType type) {
-        // TODO Auto-generated method stub
 
       }
     }
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
-      // TODO Auto-generated method stub
       if (message.getMsgSubType() != null && message.getMsgSubType().equals("EXCEPTION")) {
         throw new HelixException("Test Message handler exception, can ignore");
       }
@@ -91,7 +103,6 @@ public class TestHelixTaskExecutor {
 
     @Override
     public String getMessageType() {
-      // TODO Auto-generated method stub
       return "TestingMessageHandler";
     }
 
@@ -102,7 +113,6 @@ public class TestHelixTaskExecutor {
 
     @Override
     public void reset() {
-      // TODO Auto-generated method stub
 
     }
   }
@@ -110,13 +120,11 @@ public class TestHelixTaskExecutor {
   class TestMessageHandlerFactory2 extends TestMessageHandlerFactory {
     @Override
     public String getMessageType() {
-      // TODO Auto-generated method stub
       return "TestingMessageHandler2";
     }
 
     @Override
     public List<String> getMessageTypes() {
-      // TODO Auto-generated method stub
       return ImmutableList.of("TestingMessageHandler2");
     }
 
@@ -132,7 +140,6 @@ public class TestHelixTaskExecutor {
     class CancellableHandler extends MessageHandler {
       public CancellableHandler(Message message, NotificationContext context) {
         super(message, context);
-        // TODO Auto-generated constructor stub
       }
 
       public boolean _interrupted = false;
@@ -168,21 +175,18 @@ public class TestHelixTaskExecutor {
 
       @Override
       public void onError(Exception e, ErrorCode code, ErrorType type) {
-        // TODO Auto-generated method stub
         _message.getRecord().setSimpleField("exception", e.getMessage());
       }
     }
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
-      // TODO Auto-generated method stub
       _handlersCreated++;
       return new CancellableHandler(message, context);
     }
 
     @Override
     public String getMessageType() {
-      // TODO Auto-generated method stub
       return "Cancellable";
     }
 
@@ -192,7 +196,6 @@ public class TestHelixTaskExecutor {
 
     @Override
     public void reset() {
-      // TODO Auto-generated method stub
       _handlersCreated = 0;
       _processedMsgIds.clear();
       _processingMsgIds.clear();
@@ -217,7 +220,11 @@ public class TestHelixTaskExecutor {
 
       public TestStateTransitionMessageHandler(Message message, NotificationContext context,
           CurrentState currentStateDelta) {
-        super(null, null, message, context, currentStateDelta);
+        super(new StateModelFactory<StateModel>() {
+          // Empty no-op state model factory is good enough for the test.
+        }, new StateModel() {
+          // Empty no-op state model is good enough for the test.
+        }, message, context, currentStateDelta);
       }
 
       @Override
@@ -234,10 +241,6 @@ public class TestHelixTaskExecutor {
         }
         result.setSuccess(true);
         return result;
-      }
-
-      @Override
-      public void onError(Exception e, ErrorCode code, ErrorType type) {
       }
 
       @Override
@@ -452,6 +455,7 @@ public class TestHelixTaskExecutor {
 
   @Test()
   public void testUnknownTypeMsgExecution() throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -497,10 +501,12 @@ public class TestHelixTaskExecutor {
         AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(message.getId()));
       }
     }
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test()
   public void testMsgSessionId() throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -547,6 +553,7 @@ public class TestHelixTaskExecutor {
         AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(message.getId()));
       }
     }
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test()
@@ -554,6 +561,8 @@ public class TestHelixTaskExecutor {
     System.out.println("START TestCMTaskExecutor.testCreateHandlerException()");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
 
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     for (String type : factory.getMessageTypes()) {
@@ -561,7 +570,6 @@ public class TestHelixTaskExecutor {
     }
 
     NotificationContext changeContext = new NotificationContext(manager);
-    List<Message> msgList = new ArrayList<Message>();
 
     int nMsgs1 = 5;
     for (int i = 0; i < nMsgs1; i++) {
@@ -570,30 +578,37 @@ public class TestHelixTaskExecutor {
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
-      msgList.add(msg);
+      dataAccessor.setProperty(keyBuilder.message(manager.getInstanceName(), msg.getMsgId()), msg);
     }
-    Message exceptionMsg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+    Message exceptionMsg =
+        new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
     exceptionMsg.setTgtSessionId(manager.getSessionId());
     exceptionMsg.setMsgSubType("EXCEPTION");
     exceptionMsg.setTgtName("Localhost_1123");
     exceptionMsg.setSrcName("127.101.1.23_2234");
     exceptionMsg.setCorrelationId(UUID.randomUUID().toString());
-    msgList.add(exceptionMsg);
+    dataAccessor.setProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()),
+        exceptionMsg);
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
-    executor.onMessage("someInstance", msgList, changeContext);
+    executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
 
     Thread.sleep(1000);
 
-    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
-    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
+    Assert.assertEquals(factory._processedMsgIds.size(), nMsgs1);
+    Assert.assertEquals(factory._handlersCreated, nMsgs1);
 
-    AssertJUnit.assertTrue(exceptionMsg.getMsgState() == MessageState.UNPROCESSABLE);
+    exceptionMsg = dataAccessor
+        .getProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()));
+    Assert.assertNotNull(exceptionMsg);
+    Assert.assertEquals(exceptionMsg.getMsgState(), MessageState.UNPROCESSABLE);
+    Assert.assertEquals(exceptionMsg.getRetryCount(), -1);
     System.out.println("END TestCMTaskExecutor.testCreateHandlerException()");
   }
 
   @Test()
   public void testTaskCancellation() throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -643,6 +658,7 @@ public class TestHelixTaskExecutor {
         AssertJUnit.assertTrue(factory._processingMsgIds.containsKey(message.getId()));
       }
     }
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test()
@@ -709,8 +725,7 @@ public class TestHelixTaskExecutor {
 
   @Test()
   public void testNoRetry() throws InterruptedException {
-    // String p = "test_";
-    // System.out.println(p.substring(p.lastIndexOf('_')+1));
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -746,14 +761,12 @@ public class TestHelixTaskExecutor {
         AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
       }
     }
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test()
   public void testRetryOnce() throws InterruptedException {
-    // Logger.getRootLogger().setLevel(Level.INFO);
-
-    // String p = "test_";
-    // System.out.println(p.substring(p.lastIndexOf('_')+1));
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -765,8 +778,6 @@ public class TestHelixTaskExecutor {
 
     List<Message> msgList = new ArrayList<Message>();
 
-    // factory.reset();
-    // msgList.clear();
     // Test the case that the message are executed for the second time
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
@@ -786,11 +797,12 @@ public class TestHelixTaskExecutor {
     AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
     AssertJUnit.assertEquals(factory._timedOutMsgIds.size(), 2);
     AssertJUnit.assertTrue(executor._taskMap.size() == 0);
-
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test
   public void testStateTransitionCancellationMsg() throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -830,10 +842,12 @@ public class TestHelixTaskExecutor {
     Thread.sleep(3000);
     AssertJUnit.assertEquals(cancelFactory._processedMsgIds.size(), 0);
     AssertJUnit.assertEquals(stateTransitionFactory._processedMsgIds.size(), 0);
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test
   public void testMessageReadOptimization() throws InterruptedException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -873,11 +887,13 @@ public class TestHelixTaskExecutor {
     AssertJUnit.assertEquals(nMsgs1, factory._processedMsgIds.size());
     // After all messages are processed, _knownMessageIds should be empty.
     Assert.assertTrue(executor._knownMessageIds.isEmpty());
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 
   @Test
   public void testNoWriteReadStateForRemovedMessage()
       throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    System.out.println("START " + TestHelper.getTestMethodName());
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
@@ -916,5 +932,54 @@ public class TestHelixTaskExecutor {
     updateMessageState.invoke(executor, messages, accessor, instanceName);
     Assert
         .assertEquals(accessor.getChildNames(keyBuilder.messages(instanceName)).size(), nMsgs1 - 1);
+    System.out.println("END " + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testStateTransitionCancellationMsg")
+  public void testStateTransitionMsgScheduleFailure() {
+    System.out.println("START " + TestHelper.getTestMethodName());
+
+    // Create a mock executor that fails the task scheduling.
+    HelixTaskExecutor executor = new HelixTaskExecutor() {
+      @Override
+      public boolean scheduleTask(MessageTask task) {
+        return false;
+      }
+    };
+    HelixManager manager = new MockClusterManager();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+
+    TestStateTransitionHandlerFactory stateTransitionFactory =
+        new TestStateTransitionHandlerFactory(Message.MessageType.STATE_TRANSITION.name());
+    executor.registerMessageHandlerFactory(Message.MessageType.STATE_TRANSITION.name(),
+        stateTransitionFactory);
+
+    NotificationContext changeContext = new NotificationContext(manager);
+
+    Message msg = new Message(Message.MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
+    msg.setTgtSessionId(manager.getSessionId());
+    msg.setPartitionName("P1");
+    msg.setResourceName("R1");
+    msg.setTgtName("Localhost_1123");
+    msg.setSrcName("127.101.1.23_2234");
+    msg.setFromState("SLAVE");
+    msg.setToState("MASTER");
+    dataAccessor.setProperty(keyBuilder.message(manager.getInstanceName(), msg.getMsgId()), msg);
+
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
+
+    Assert.assertEquals(stateTransitionFactory._processedMsgIds.size(), 0);
+    // Message should have been removed
+    Assert.assertNull(
+        dataAccessor.getProperty(keyBuilder.message(manager.getInstanceName(), msg.getMsgId())));
+    // Current state would be ERROR due to the failure of task scheduling.
+    CurrentState currentState = dataAccessor.getProperty(keyBuilder
+        .currentState(manager.getInstanceName(), manager.getSessionId(), msg.getResourceName()));
+    Assert.assertNotNull(currentState);
+    Assert.assertEquals(currentState.getState(msg.getPartitionName()),
+        HelixDefinedState.ERROR.toString());
+    System.out.println("END " + TestHelper.getTestMethodName());
   }
 }

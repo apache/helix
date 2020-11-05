@@ -828,6 +828,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       }
 
       if (msgHandler == null) {
+        // Note that we are re-using the retry count of Message that was original designed to control
+        // timeout retries. So it is not checked before the first try in order to ensure consistent
+        // behavior. It is possible that we introduce a new behavior for this method. But it requires
+        // us to split the configuration item so as to avoid confusion.
         if (message.getRetryCount() < 0) {
           // If no more retry count remains, then mark the message to be UNPROCESSABLE.
           String errorMsg = String

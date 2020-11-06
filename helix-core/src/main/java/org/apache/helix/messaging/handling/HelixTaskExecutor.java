@@ -915,7 +915,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     for (Map.Entry<String, MessageHandler> handlerEntry : stateTransitionHandlers.entrySet()) {
       MessageHandler handler = handlerEntry.getValue();
       NotificationContext context = stateTransitionContexts.get(handlerEntry.getKey());
-      if (!scheduleTaskForMessage(instanceName, accessor, handler, context)) {
+      if (!scheduleTaskForMessage(instanceName, accessor, handler, context) && !_isShuttingDown) {
         try {
           // Record error state to the message handler.
           handler.onError(new HelixException(String

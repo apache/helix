@@ -1143,6 +1143,35 @@ public class TaskUtil {
   }
 
   /**
+   * The function that removes IdealStates and job contexts of the jobs that need to be
+   * deleted.
+   * @param toBePurgedJobs
+   * @param manager
+   */
+  public static void jobGarbageCollection(final Set<String> toBePurgedJobs,
+      final HelixManager manager) {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
+
+    for (String jobName : toBePurgedJobs) {
+      LOG.warn(
+          "JobContext exists for job {}. However, job Config is missing! Deleting the JobContext and IdealState!!",
+          jobName);
+
+      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
+      if (!cleanupJobIdealStateExtView(accessor, jobName)) {
+        LOG.warn("Error occurred while trying to remove job idealstate/externalview for {}.",
+            jobName);
+        continue;
+      }
+
+      if (!removeJobContext(propertyStore, jobName)) {
+        LOG.warn("Error occurred while trying to remove job context for {}.", jobName);
+      }
+    }
+  }
+
+  /**
    * Get target thread pool size from InstanceConfig first; if InstanceConfig doesn't exist or the
    * value is undefined, try ClusterConfig; if the value is undefined in ClusterConfig, fall back
    * to the default value.

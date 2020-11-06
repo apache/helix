@@ -30,6 +30,7 @@ import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
+import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
@@ -62,10 +63,13 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
 
     Map<String, Set<String>> expiredJobsMap = new HashMap<>();
     Set<String> workflowsToBePurged = new HashSet<>();
+    Set<String> jobsToBePurged = new HashSet<>();
+
     WorkflowControllerDataProvider dataProvider =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
     for (Map.Entry<String, ZNRecord> entry : dataProvider.getContexts().entrySet()) {
       WorkflowConfig workflowConfig = dataProvider.getWorkflowConfig(entry.getKey());
+      JobConfig jobConfig = dataProvider.getJobConfig(entry.getKey());
       if (workflowConfig != null && (!workflowConfig.isTerminable() || workflowConfig
           .isJobQueue())) {
         WorkflowContext workflowContext = dataProvider.getWorkflowContext(entry.getKey());
@@ -93,12 +97,18 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
           .equals(TaskUtil.WORKFLOW_CONTEXT_KW)) {
         // Find workflows that need to be purged
         workflowsToBePurged.add(entry.getKey());
+      } else if (jobConfig == null && entry.getValue() != null && entry.getValue().getId()
+          .equals(TaskUtil.TASK_CONTEXT_KW)) {
+        // Find jobs that need to be purged
+        jobsToBePurged.add(entry.getKey());
       }
     }
     event.addAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name(),
         Collections.unmodifiableMap(expiredJobsMap));
     event.addAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name(),
         Collections.unmodifiableSet(workflowsToBePurged));
+    event.addAttribute(AttributeName.TO_BE_PURGED_JOBS.name(),
+        Collections.unmodifiableSet(jobsToBePurged));
 
     super.process(event);
   }
@@ -117,6 +127,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         event.getAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name());
     Set<String> toBePurgedWorkflows =
         event.getAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name());
+    Set<String> toBePurgeJobs =
+        event.getAttribute(AttributeName.TO_BE_PURGED_JOBS.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
       try {
@@ -127,6 +139,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     }
 
     TaskUtil.workflowGarbageCollection(toBePurgedWorkflows, manager);
+    TaskUtil.jobGarbageCollection(toBePurgeJobs, manager);
   }
 
   private static void scheduleNextJobPurge(String workflow, long nextPurgeTime,

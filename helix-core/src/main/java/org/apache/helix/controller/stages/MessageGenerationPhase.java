@@ -70,6 +70,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
   private final static String PENDING_MESSAGE = "pending message";
   private final static String STALE_MESSAGE = "stale message";
+  // TODO: Make the message retry count configurable through the Cluster Config or IdealStates.
+  public final static int DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT = 3;
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -415,6 +417,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
     message.setStateModelDef(stateModelDefName);
     message.setStateModelFactoryName(resource.getStateModelFactoryname());
     message.setBucketSize(resource.getBucketSize());
+    // Set the retry count for state transition messages.
+    // TODO: make the retry count configurable in ClusterConfig or IdealState
+    message.setRetryCount(DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT);
 
     if (resource.getResourceGroupName() != null) {
       message.setResourceGroupName(resource.getResourceGroupName());

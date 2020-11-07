@@ -37,12 +37,12 @@ import org.apache.helix.integration.manager.ClusterSpectatorManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.spectator.RoutingTableProvider;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.slf4j.Logger;
@@ -473,9 +473,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     }
 
     // verify new watcher is installed on the new node
-    Thread.sleep(5000);
-    Map<String, Set<String>> listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
-    Assert.assertTrue(listenersByZkPath.keySet().contains(jobKey.getPath()));
+    boolean result = TestHelper.verify(() -> {
+      return ZkTestHelper.getListenersByZkPath(ZK_ADDR).keySet().contains(jobKey.getPath());
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result, "Should get initial clusterConfig callback invoked");
     rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());
     Assert.assertTrue(rpWatchPaths.get("dataWatches").contains(jobKey.getPath()));
 
@@ -485,7 +486,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // validate the job watch is not leaked.
     Thread.sleep(5000);
 
-    listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
+    Map<String, Set<String>> listenersByZkPath = ZkTestHelper.getListenersByZkPath(ZK_ADDR);
     Assert.assertFalse(listenersByZkPath.keySet().contains(jobKey.getPath()));
 
     rpWatchPaths = ZkTestHelper.getZkWatch(rpManager.getZkClient());

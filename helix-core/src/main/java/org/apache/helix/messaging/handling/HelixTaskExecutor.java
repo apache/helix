@@ -915,7 +915,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     for (Map.Entry<String, MessageHandler> handlerEntry : stateTransitionHandlers.entrySet()) {
       MessageHandler handler = handlerEntry.getValue();
       NotificationContext context = stateTransitionContexts.get(handlerEntry.getKey());
-      if (!scheduleTaskForMessage(instanceName, accessor, handler, context)) {
+      if (!scheduleTaskForMessage(instanceName, accessor, handler, context) && !_isShuttingDown) {
+        /**
+         * TODO: Checking _isShuttingDown is a workaround to avoid unnecessary ERROR partition.
+         * TODO: We shall improve the shutdown process of the participant to clean up the workflow
+         * TODO: completely. In detail, there isa race condition between TaskExecutor thread
+         * TODO: pool shutting down and Message handler stops listening. In this gap, the message
+         * TODO: will still be processed but schedule will fail. If we mark partition into ERROR
+         * TODO: state, then the controller side logic might be confused.
+         */
         try {
           // Record error state to the message handler.
           handler.onError(new HelixException(String

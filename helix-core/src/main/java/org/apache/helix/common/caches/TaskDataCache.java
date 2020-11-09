@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -61,6 +62,8 @@ public class TaskDataCache extends AbstractDataCache {
   private Map<String, ZNRecord> _contextMap = new HashMap<>();
   private Set<String> _contextToUpdate = new HashSet<>();
   private Set<String> _contextToRemove = new HashSet<>();
+  // The following map will be used to enforce selective update behavior for contexts.
+  private Map<String, Integer> _initialContextMapHashcode = new HashMap<>();
   // The following fields have been added for quota-based task scheduling
   private final AssignableInstanceManager _assignableInstanceManager =
       new AssignableInstanceManager();
@@ -146,6 +149,7 @@ public class TaskDataCache extends AbstractDataCache {
     // TODO: Need an optimize for reading context only if the refresh is needed.
     long start = System.currentTimeMillis();
     _contextMap.clear();
+    _initialContextMapHashcode.clear();
     if (_controlContextProvider.getClusterName() == null || _controlContextProvider.getClusterName()
         .equalsIgnoreCase(UNKNOWN_CLUSTER)) {
       return;
@@ -171,6 +175,13 @@ public class TaskDataCache extends AbstractDataCache {
         _contextMap.put(childNames.get(i), context);
         LogUtil.logDebug(LOG, genEventInfo(),
             String.format("Context for %s is null or miss the context NAME!", childNames.get((i))));
+      }
+    }
+
+    for (Map.Entry<String, ZNRecord> entry : _contextMap.entrySet()) {
+      if (entry.getValue() != null) {
+        _initialContextMapHashcode.put(entry.getKey(),
+            Objects.hashCode(entry.getValue().toString()));
       }
     }
 
@@ -267,6 +278,11 @@ public class TaskDataCache extends AbstractDataCache {
    * Update context of the Workflow or Job
    */
   private void updateContext(String resourceName, ZNRecord record) {
+    if (record != null && _initialContextMapHashcode.containsKey(resourceName)
+        && _initialContextMapHashcode.get(resourceName)
+            .equals(Objects.hashCode(record.toString()))) {
+      return;
+    }
     _contextMap.put(resourceName, record);
     _contextToUpdate.add(resourceName);
   }

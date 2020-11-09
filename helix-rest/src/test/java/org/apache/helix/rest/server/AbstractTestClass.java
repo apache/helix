@@ -105,7 +105,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   // For a single-ZK/Helix environment
   protected static final String ZK_ADDR = "localhost:2123";
   protected static final String WORKFLOW_PREFIX = "Workflow_";
-  protected static final String JOB_PREFIX = "Job_";
+  protected static final String JOB_PREFIX = "JOB";
   protected static int NUM_PARTITIONS = 10;
   protected static int NUM_REPLICA = 2;
   protected static int MIN_ACTIVE_REPLICA = 3;
@@ -426,9 +426,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       }
       workflows.put(WORKFLOW_PREFIX + i, workflow.build());
       WorkflowContext workflowContext = TaskTestUtil
-          .buildWorkflowContext(WORKFLOW_PREFIX + i, TaskState.IN_PROGRESS,
+          .buildWorkflowContext(WORKFLOW_PREFIX + i, TaskState.FAILED,
               System.currentTimeMillis(), TaskState.COMPLETED, TaskState.COMPLETED,
-              TaskState.IN_PROGRESS);
+              TaskState.FAILED);
       _baseAccessor.set(String.format("/%s/%s%s/%s/%s", cluster, PropertyType.PROPERTYSTORE.name(),
           TaskConstants.REBALANCER_CONTEXT_ROOT, WORKFLOW_PREFIX + i, TaskConstants.CONTEXT_NODE),
           workflowContext.getRecord(), AccessOption.PERSISTENT);
@@ -451,7 +451,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     for (int i = 0; i < numJobs; i++) {
       JobConfig.Builder job =
           new JobConfig.Builder().setCommand("DummyCommand").setTargetResource("RESOURCE")
-              .setWorkflow(workflowName);
+              .setWorkflow(workflowName).setJobId(workflowName + "_" + JOB_PREFIX + i);
       jobCfgs.add(job);
       JobContext jobContext = TaskTestUtil
           .buildJobContext(System.currentTimeMillis(), System.currentTimeMillis() + 1,

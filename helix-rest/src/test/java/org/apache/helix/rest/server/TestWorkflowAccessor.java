@@ -112,7 +112,7 @@ public class TestWorkflowAccessor extends AbstractTestClass {
         Response.Status.OK.getStatusCode(), true);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     Assert.assertEquals(node.get("STATE").textValue(),
-        TaskState.IN_PROGRESS.name());
+        TaskState.FAILED.name());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -38,8 +38,8 @@ public class TestTaskAccessor extends AbstractTestClass {
   @Test
   public void testGetAddTaskUserContent() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/tasks/0/userContent";
-    String uriTaskDoesNotExist = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/tasks/xxx/userContent";
+    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/tasks/0/userContent";
+    String uriTaskDoesNotExist = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/tasks/xxx/userContent";
 
     // Empty user content
     String body =

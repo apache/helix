@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,9 +38,11 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandshakeHandler;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -261,7 +264,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
   public void testNoThrottleOnDisabledPartition() throws Exception {
     int participantCount = 3;
     setupEnvironment(participantCount);
-    setThrottleConfig();
+    setThrottleConfigDisbledPartitions();
 
     // Disable a partition so that it will not be subject to throttling
     String partitionName = _resourceName + "0_0";
@@ -269,9 +272,11 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
       disablePartitionOnInstance(_participants[i], _resourceName + "0", partitionName);
     }
 
+    // newResource has 3 partitions. Thus 3 partition * 3 (replica) offline -> slave messages.
+    // by per replica rule, only 6 of them counted as recovery and 6 or them counted as load.
     String newResource = "abc";
     IdealState idealState = new FullAutoModeISBuilder(newResource).setStateModel("MasterSlave")
-        .setStateModelFactoryName("DEFAULT").setNumPartitions(5).setNumReplica(3)
+        .setStateModelFactoryName("DEFAULT").setNumPartitions(3).setNumReplica(3)
         .setMinActiveReplica(2).setRebalancerMode(IdealState.RebalanceMode.FULL_AUTO)
         .setRebalancerClass("org.apache.helix.controller.rebalancer.DelayedAutoRebalancer")
         .setRebalanceStrategy(
@@ -285,15 +290,34 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     DelayedTransitionBase.setDelay(1000000L);
 
     // Now Helix will try to bring this up on all instances. But the disabled partition will go to
-    // offline. This should allow each instance to have 2 messages despite having the throttle set
-    // at 1
+    // offline. This should allow each instance to have 2 messages as recovery (O->S) plus the
+    // disabled partition downward transitions.
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
-    Thread.sleep(500L);
+    Thread.sleep(10000L);
 
+    // verify each partition in newResource has 2 messages
+    // and there are 3 messages downward from TestDB0
+    Map<String, Integer> partitionMsgCount = new HashMap<>();
     for (MockParticipantManager participantManager : _participants) {
-      Assert.assertTrue(verifyTwoMessages(participantManager));
+      PropertyKey key = _accessor.keyBuilder().messages(participantManager.getInstanceName());
+      List<Message> messages = _accessor.getChildValues(key, true);
+      for (Message msg : messages) {
+         String partName = msg.getPartitionName();
+         if (!partitionMsgCount.containsKey(partName)) {
+           partitionMsgCount.put(partName, 0);
+         }
+         partitionMsgCount.put(partName, partitionMsgCount.get(partName) + 1);
+      }
+    }
+
+    for (String partition: partitionMsgCount.keySet()) {
+      if (partition.equals("TestDB0_0")) {
+        Assert.assertTrue(partitionMsgCount.get(partition).equals(3));
+      } else {
+        Assert.assertTrue(partitionMsgCount.get(partition).equals(2));
+      }
     }
 
     // clean up the cluster
@@ -337,6 +361,36 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
 
     // Pause the controller
     controller.syncStop();
+  }
+
+  /**
+   *
+   */
+  private void setThrottleConfigDisbledPartitions() {
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
+
+    ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
+    clusterConfig.setResourcePriorityField("Name");
+    List<StateTransitionThrottleConfig> throttleConfigs = new ArrayList<>();
+
+    // Add throttling at cluster-level
+    throttleConfigs.add(new StateTransitionThrottleConfig(
+        StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 6));
+    throttleConfigs.add(
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 6));
+    throttleConfigs
+        .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 6));
+
+    // Add throttling at instance level
+    throttleConfigs
+        .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 3));
+
+    clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
+    _accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
   }
 
   /**

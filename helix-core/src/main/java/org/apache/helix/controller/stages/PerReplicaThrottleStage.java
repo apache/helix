@@ -266,13 +266,27 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         // todo: shall we confine this test to only upward transition?
         // todo: for upward n1 (s1->s2) then currentStateCount(s1)-- and currentStateCount(s1)++
         // todo: same for downward ?
+        // todo: we need to handle the case that 3 offline -> master, the first two needs to be loads
+        // todo: how about upward load? no need to increase count
         Integer expectedCount = expectedStateCountMap.get(toState);
         Integer currentCount = currentStateCounts.get(toState);
         expectedCount = expectedCount == null ? 0 : expectedCount;
         currentCount = currentCount == null ? 0 : currentCount;
 
         boolean isUpward = !isDownwardTransition(idealState, cache, msg);
-        if (currentCount < expectedCount && isUpward) {
+        // the gist is that if there is a topState, we should deem the topState also as secondTopState requirement.
+        // upward AND (condition 1 or condition 2)
+        // condition1: currentCount < expectedCount
+        // condition2: currentCount == expected && toState is secondary state && currentCount(topState) < expectedCount(topState)
+        String topState = stateModelDef.getTopState();
+        String secondTopState = stateModelDef.getStatesPriorityList().get(1);
+        Integer expectedTopCount = expectedStateCountMap.get(topState);
+        Integer currentTopCount = currentStateCounts.get(topState);
+        currentTopCount = currentTopCount == null ? 0 : currentTopCount;
+        expectedTopCount = expectedTopCount == null ? 0 : expectedTopCount;
+
+        if (isUpward && ((currentCount < expectedCount) || (currentCount == expectedCount && toState
+            .equals(secondTopState) && currentTopCount < expectedTopCount))) {
           recoveryMessages.add(msg);
           partitionsNeedRecovery.add(partition);
           // update
@@ -380,13 +394,21 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
             .equals(HelixDefinedState.ERROR.name())) {
           continue;
         }
+
         Integer expectedCount = expectedStateCountMap.get(toState);
         Integer currentCount = currentStateCounts.get(toState);
         expectedCount = expectedCount == null ? 0 : expectedCount;
         currentCount = currentCount == null ? 0 : currentCount;
 
+        String topState = stateModelDef.getTopState();
+        String secondTopState = stateModelDef.getStatesPriorityList().get(1);
+        Integer expectedTopCount = expectedStateCountMap.get(topState);
+        Integer currentTopCount = currentStateCounts.get(topState);
+        currentTopCount = currentTopCount == null ? 0 : currentTopCount;
+        expectedTopCount = expectedTopCount == null ? 0 : expectedTopCount;
 
-        if (currentCount < expectedCount && isUpward) {
+        if (isUpward && ((currentCount < expectedCount) || (currentCount == expectedCount && toState
+            .equals(secondTopState) && currentTopCount < expectedTopCount))) {
           recoveryMessages.add(msg);
           currentStateCounts.put(toState, currentCount + 1);
         } else {

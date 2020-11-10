@@ -180,8 +180,7 @@ public class TaskDataCache extends AbstractDataCache {
 
     for (Map.Entry<String, ZNRecord> entry : _contextMap.entrySet()) {
       if (entry.getValue() != null) {
-        _initialContextMapHashcode.put(entry.getKey(),
-            Objects.hashCode(entry.getValue().toString()));
+        _initialContextMapHashcode.put(entry.getKey(), entry.getValue().toString().hashCode());
       }
     }
 
@@ -279,8 +278,7 @@ public class TaskDataCache extends AbstractDataCache {
    */
   private void updateContext(String resourceName, ZNRecord record) {
     if (record != null && _initialContextMapHashcode.containsKey(resourceName)
-        && _initialContextMapHashcode.get(resourceName)
-            .equals(Objects.hashCode(record.toString()))) {
+        && _initialContextMapHashcode.get(resourceName).equals((record.toString().hashCode()))) {
       return;
     }
     _contextMap.put(resourceName, record);

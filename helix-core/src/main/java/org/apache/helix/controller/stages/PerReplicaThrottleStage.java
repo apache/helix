@@ -45,6 +45,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.rmi.runtime.Log;
 
 
 public class PerReplicaThrottleStage extends AbstractBaseStage {
@@ -352,13 +353,28 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
       // sort partitionMessages based on transition priority and then creation timestamp for transition message
       partitionMessages.sort(new PartitionMessageComparator(stateModelDef));
+      Set<String> disabledInstances =
+          cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName());
       for (Message msg : partitionMessages) {
         if (!Message.MessageType.STATE_TRANSITION.name().equals(msg.getMsgType())) {
           // todo: log ignore pending messages
           // ignore cancellation message etc. For now, don't charge them.
           continue;
         }
+
         messagePartitionMap.put(msg, partition);
+        boolean isUpward = !isDownwardTransition(idealState, cache, msg);
+
+        // for disabled disabled instance, the downward transition is not subjected to load throttling
+        // we will let them pass through ASAP.
+        String instance = msg.getTgtName();
+        if (disabledInstances.contains(instance)) {
+          if (!isUpward) {
+            //todo: add log?
+            continue;
+          }
+        }
+
         String toState = msg.getToState();
         if (toState.equals(HelixDefinedState.DROPPED.name()) || toState
             .equals(HelixDefinedState.ERROR.name())) {
@@ -369,7 +385,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         expectedCount = expectedCount == null ? 0 : expectedCount;
         currentCount = currentCount == null ? 0 : currentCount;
 
-        boolean isUpward = !isDownwardTransition(idealState, cache, msg);
+
         if (currentCount < expectedCount && isUpward) {
           recoveryMessages.add(msg);
           currentStateCounts.put(toState, currentCount + 1);
@@ -481,6 +497,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeResource(rebalanceType, resourceName);
       throttleController.chargeCluster(rebalanceType);
     }
+
+    LogUtil.logInfo(logger, _eventId,
+        String.format("resource %s, throttled recovery message: %s", resourceName,throttledRecoveryMessages));
+    LogUtil.logInfo(logger, _eventId,
+        String.format("resource %s, throttled load messages: %s", resourceName,throttledLoadMessages));
 
     // construct output and retraced state
     Map<Partition, List<Message>> out = new HashMap<>();

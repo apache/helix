@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +32,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
@@ -277,10 +275,6 @@ public class TaskDataCache extends AbstractDataCache {
    * Update context of the Workflow or Job
    */
   private void updateContext(String resourceName, ZNRecord record) {
-    if (record != null && _initialContextMapHashcode.containsKey(resourceName)
-        && _initialContextMapHashcode.get(resourceName).equals((record.toString().hashCode()))) {
-      return;
-    }
     _contextMap.put(resourceName, record);
     _contextToUpdate.add(resourceName);
   }
@@ -288,6 +282,16 @@ public class TaskDataCache extends AbstractDataCache {
   public void persistDataChanges(HelixDataAccessor accessor) {
     // Do not update it if the is need to be remove
     _contextToUpdate.removeAll(_contextToRemove);
+
+    // Do not update if the ZNRecord content has not been changed
+    for (Map.Entry<String, ZNRecord> entry : _contextMap.entrySet()) {
+      if (entry.getValue() != null && _initialContextMapHashcode.containsKey(entry.getKey())
+          && _initialContextMapHashcode.get(entry.getKey())
+              .equals((entry.getValue().toString().hashCode()))) {
+        _contextToUpdate.remove(entry.getKey());
+      }
+    }
+
     batchUpdateData(accessor, new ArrayList<>(_contextToUpdate), _contextMap, _contextToUpdate,
         TaskDataType.CONTEXT);
     batchDeleteData(accessor, new ArrayList<>(_contextToRemove), TaskDataType.CONTEXT);

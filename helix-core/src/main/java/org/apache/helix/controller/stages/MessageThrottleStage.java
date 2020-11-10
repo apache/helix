@@ -120,7 +120,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
     _eventId = event.getEventId();
     ResourceControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
     MessageOutput msgSelectionOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     if (cache == null || resourceMap == null || msgSelectionOutput == null) {

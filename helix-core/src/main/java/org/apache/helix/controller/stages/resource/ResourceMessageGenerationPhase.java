@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages.resource;
  */
 
 import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.IntermediateStateOutput;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
@@ -30,8 +31,10 @@ import org.apache.helix.controller.stages.MessageGenerationPhase;
 public class ResourceMessageGenerationPhase extends MessageGenerationPhase {
   @Override
   public void process(ClusterEvent event) throws Exception {
-    IntermediateStateOutput intermediateStateOutput =
-        event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-    processEvent(event, intermediateStateOutput);
+    //IntermediateStateOutput intermediateStateOutput =
+    //    event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    BestPossibleStateOutput bestPossibleStateOutput =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+    processEvent(event, bestPossibleStateOutput);
   }
 }

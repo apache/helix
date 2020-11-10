@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -59,6 +58,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
 
     MessageOutput selectedMessages = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    LogUtil.logInfo(logger, _eventId, String.format("selectedMessages is: %s", selectedMessages));
+
     Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
     ResourceControllerDataProvider cache =
@@ -75,7 +76,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     MessageOutput output =
         compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
 
+    LogUtil.logInfo(logger, _eventId, String.format("output is: %s", output));
     event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name(), output);
+    LogUtil.logInfo(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
     event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
 
     // ToDo: handling maintenance maxPartitionPerInstance case.
@@ -401,7 +404,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         continue;
       }
       String instance = msg.getTgtName();
-      if (!cache.getDisabledInstances().contains(instance)) {
+      if (throttleController.shouldThrottleForInstance(rebalanceType, resourceName)) {
         throttledRecoveryMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,
@@ -439,7 +442,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // less than the threshold. Otherwise, only allow downward-transition load balance
     boolean onlyDownwardLoadBalance = partitionCount > threshold;
     // todo: sort load messages
-    recoveryMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,false));
+    loadMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,false));
     Set<Message> throttledLoadMessages = new HashSet<>();
     for (Message msg : loadMessages) {
       StateTransitionThrottleConfig.RebalanceType rebalanceType = StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
@@ -465,7 +468,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         continue;
       }
       String instance = msg.getTgtName();
-      if (!cache.getDisabledInstances().contains(instance)) {
+      if (throttleController.shouldThrottleForInstance(rebalanceType,resourceName)) {
         throttledLoadMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,

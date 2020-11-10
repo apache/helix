@@ -59,6 +59,10 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
   }
 
   public void syncStop() {
+    if (_startCountDown.getCount() == 1) {
+      LOG.error("ClusterManager {} not started yet. ignore syncStop", _clusterName + ":" + _instanceName);
+      return;
+    }
     _stopCountDown.countDown();
     try {
       _waitStopFinishCountDown.await();

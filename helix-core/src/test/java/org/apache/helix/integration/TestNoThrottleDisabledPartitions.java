@@ -81,7 +81,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
-    Thread.sleep(500L);
+    Thread.sleep(10000L);
 
     // The disabled instance should not hold any top state replicas (MASTER)
     PropertyKey liveInstanceKey =

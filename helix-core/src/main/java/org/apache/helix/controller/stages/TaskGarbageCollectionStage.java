@@ -107,7 +107,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         Collections.unmodifiableMap(expiredJobsMap));
     event.addAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name(),
         Collections.unmodifiableSet(workflowsToBePurged));
-    event.addAttribute(AttributeName.TO_BE_PURGED_JOBS.name(),
+    event.addAttribute(AttributeName.JOBS_WITHOUT_CONFIG.name(),
         Collections.unmodifiableSet(jobsToBePurged));
 
     super.process(event);
@@ -128,7 +128,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     Set<String> toBePurgedWorkflows =
         event.getAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name());
     Set<String> toBePurgeJobs =
-        event.getAttribute(AttributeName.TO_BE_PURGED_JOBS.name());
+        event.getAttribute(AttributeName.JOBS_WITHOUT_CONFIG.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
       try {

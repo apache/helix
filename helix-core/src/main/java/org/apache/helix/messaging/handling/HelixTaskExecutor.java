@@ -562,9 +562,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         // If a message is updated as NEW state, then we might need to process it again soon.
         isMessageUpdatedAsNew = true;
         // And it shall not be treated as a known messages.
-      } else if (updateResults[i]) {
+      } else {
         _knownMessageIds.add(msg.getId());
-      } // else, if the message update fails, the message shall not be treated as a known message.
+        if (!updateResults[i]) {
+          // TODO: If the message update fails, maybe we shall not treat the message as a known
+          // TODO: message. We shall apply more strict check and retry the update.
+          LOG.error("Failed to update the message {}.", msg.getMsgId());
+        }
+      }
     }
 
     if (isMessageUpdatedAsNew) {

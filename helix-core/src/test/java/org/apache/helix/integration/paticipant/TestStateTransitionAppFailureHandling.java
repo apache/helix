@@ -155,7 +155,7 @@ public class TestStateTransitionAppFailureHandling extends ZkStandAloneCMTestBas
     HelixDataAccessor accessor = _controller.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // Verify and wait until all messages have been retried and failed.
+    // Verify and wait until all messages have been processed and the cluster is stable.
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Verify that the partition is not in error state. And all messages has been completed.

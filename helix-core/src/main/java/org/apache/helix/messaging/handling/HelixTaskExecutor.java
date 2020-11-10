@@ -525,47 +525,51 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private void updateMessageState(Collection<Message> msgsToBeUpdated, HelixDataAccessor accessor,
       String instanceName) {
-    if (!msgsToBeUpdated.isEmpty()) {
-      Builder keyBuilder = accessor.keyBuilder();
-      List<String> updateMsgPaths = new ArrayList<>();
-      List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
-      for (Message msg : msgsToBeUpdated) {
-        updateMsgPaths.add(msg.getKey(keyBuilder, instanceName).getPath());
-        /**
-         * We use the updater to avoid race condition between writing message to zk as READ state and removing message after ST is done
-         * If there is no message at this path, meaning the message is removed so we do not write the message
-         */
-        updaters.add(currentData -> {
-          if (currentData == null) {
-            LOG.warn(
-                "Message {} targets at {} has already been removed before it is set as READ on instance {}",
-                msg.getId(), msg.getTgtName(), instanceName);
-            return null;
-          }
-          return msg.getRecord();
-        });
-      }
-      accessor.updateChildren(updateMsgPaths, updaters, AccessOption.PERSISTENT);
+    if (msgsToBeUpdated.isEmpty()) {
+      return;
     }
 
+    Builder keyBuilder = accessor.keyBuilder();
+    List<Message> updateMsgs = new ArrayList<>();
+    List<String> updateMsgPaths = new ArrayList<>();
+    List<DataUpdater<ZNRecord>> updaters = new ArrayList<>();
+    for (Message msg : msgsToBeUpdated) {
+      updateMsgs.add(msg);
+      updateMsgPaths.add(msg.getKey(keyBuilder, instanceName).getPath());
+      /**
+       * We use the updater to avoid race condition between writing message to zk as READ state and removing message after ST is done
+       * If there is no message at this path, meaning the message is removed so we do not write the message
+       */
+      updaters.add(currentData -> {
+        if (currentData == null) {
+          LOG.warn(
+              "Message {} targets at {} has already been removed before it is set as READ on instance {}",
+              msg.getId(), msg.getTgtName(), instanceName);
+          return null;
+        }
+        return msg.getRecord();
+      });
+    }
+    boolean[] updateResults =
+        accessor.updateChildren(updateMsgPaths, updaters, AccessOption.PERSISTENT);
+
+    boolean isMessageUpdatedAsNew = false;
     // Note that only cache the known message Ids after the update to ZK is successfully done.
     // This is to avoid inconsistent cache.
-
-    // if a message in "NEW" state is updated, then we might need to process it soon.
-    boolean isNewMessageUpdated = false;
-    for (Message msg : msgsToBeUpdated) {
+    for (int i = 0; i < updateMsgs.size(); i++) {
+      Message msg = updateMsgs.get(i);
       if (msg.getMsgState().equals(MessageState.NEW)) {
-        isNewMessageUpdated = true;
-        // If a message is still "NEW", it is not a known message. The message may not be able to
-        // processed now in an expected way.
-      } else {
-        // else, cache the known messages.
+        // If a message is updated as NEW state, then we might need to process it again soon.
+        isMessageUpdatedAsNew = true;
+        // And it shall not be treated as a known messages.
+      } else if (updateResults[i]) {
         _knownMessageIds.add(msg.getId());
-      }
+      } // else, if the message update fails, the message shall not be treated as a known message.
     }
-    if (isNewMessageUpdated) {
-      // Sending a NO-OP message to trigger another message callback to re-process the New and
-      // updated messsages.
+
+    if (isMessageUpdatedAsNew) {
+      // Sending a NO-OP message to trigger another message callback to re-process the messages
+      // that are updated as NEW state.
       sendNopMessage(accessor, instanceName);
     }
   }
@@ -853,7 +857,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (message.getRetryCount() <= 0) {
           // If no more retry count remains, then mark the message to be UNPROCESSABLE.
           String errorMsg = String.format("No available message Handler found!"
-                  + " Stop processing message %s since it has negative remaining retry count %d!",
+                  + " Stop processing message %s since it has zero or negative remaining retry count %d!",
               message.getMsgId(), message.getRetryCount());
           updateUnprocessableMessage(message, null, errorMsg, manager);
         }
@@ -1315,9 +1319,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       nopMsg.setTgtName(instanceName);
       accessor
           .setProperty(accessor.keyBuilder().message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
-      LOG.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
+      LOG.info("Send NO_OP message to {}}, msgId: {}.", nopMsg.getTgtName(), nopMsg.getId());
     } catch (Exception e) {
-      LOG.error(e.toString());
+      LOG.error("Failed to send NO_OP message to {}.", instanceName, e);
     }
   }
 

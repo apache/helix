@@ -558,7 +558,7 @@ public class TestHelixTaskExecutor {
   }
 
   @Test()
-  public void testCreateHandlerException() throws InterruptedException {
+  public void testCreateHandlerException() throws Exception {
     System.out.println("START TestCMTaskExecutor.testCreateHandlerException()");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
@@ -583,8 +583,6 @@ public class TestHelixTaskExecutor {
 
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
-
-    Thread.sleep(1000);
 
     for (Message message : msgList) {
       message = dataAccessor
@@ -613,21 +611,30 @@ public class TestHelixTaskExecutor {
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
 
-    Thread.sleep(1000);
+    Assert.assertTrue(TestHelper.verify(() -> {
+          Message tmpExceptionMsg = dataAccessor
+              .getProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()));
+          if (tmpExceptionMsg == null || !tmpExceptionMsg.getMsgState()
+              .equals(MessageState.UNPROCESSABLE) || tmpExceptionMsg.getRetryCount() != -1) {
+            return false;
+          }
+          return true;
+        }, TestHelper.WAIT_DURATION),
+        "The exception message should be retied once and in UNPROCESSABLE state.");
 
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (Message message : msgList) {
+        message = dataAccessor
+            .getProperty(keyBuilder.message(manager.getInstanceName(), message.getMsgId()));
+        if (message != null) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION), "The normal messages should be all processed normally.");
     Assert.assertEquals(factory._processedMsgIds.size(), nMsgs1);
     Assert.assertEquals(factory._handlersCreated, nMsgs1);
-    for (Message message : msgList) {
-      message = dataAccessor
-          .getProperty(keyBuilder.message(manager.getInstanceName(), message.getMsgId()));
-      Assert.assertNull(message);
-    }
 
-    exceptionMsg = dataAccessor
-        .getProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()));
-    Assert.assertNotNull(exceptionMsg);
-    Assert.assertEquals(exceptionMsg.getMsgState(), MessageState.UNPROCESSABLE);
-    Assert.assertEquals(exceptionMsg.getRetryCount(), -1);
     System.out.println("END TestCMTaskExecutor.testCreateHandlerException()");
   }
 

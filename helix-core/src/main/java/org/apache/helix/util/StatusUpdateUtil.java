@@ -57,7 +57,7 @@ public class StatusUpdateUtil {
   static Logger _logger = LoggerFactory.getLogger(StatusUpdateUtil.class);
 
   public static final boolean ERROR_LOG_TO_ZK_ENABLED =
-      Boolean.getBoolean(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_LOG2ZK_ENABLED);
+      Boolean.getBoolean(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED);
 
   public static class Transition implements Comparable<Transition> {
     private final String _msgID;
@@ -501,13 +501,12 @@ public class StatusUpdateUtil {
 
       if (isController) {
         propertyKey = keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey);
-        accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
       } else {
         propertyKey =
             keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
                 statusUpdateKey);
-        accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
       }
+      accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
 
       if (_logger.isTraceEnabled()) {
         _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
@@ -519,13 +518,13 @@ public class StatusUpdateUtil {
     PropertyKey propertyKey;
     if (isController) {
       propertyKey = keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey);
-      accessor.updateProperty(propertyKey, new StatusUpdate(record));
     } else {
       propertyKey =
           keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
               statusUpdateKey);
-      accessor.updateProperty(propertyKey, new StatusUpdate(record));
     }
+    accessor.updateProperty(propertyKey, new StatusUpdate(record));
+
     if (_logger.isTraceEnabled()) {
       _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
     }

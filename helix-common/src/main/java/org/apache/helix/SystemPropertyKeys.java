@@ -82,4 +82,6 @@ public class SystemPropertyKeys {
   // System Property Metadata Store Directory Server endpoint key
   public static final String MSDS_SERVER_ENDPOINT_KEY =
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
+
+  public static final String STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED = "helix.StateUpdateUtil.errorLog.enabled";
 }

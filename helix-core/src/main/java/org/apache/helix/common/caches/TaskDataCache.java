@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.codec.digest.DigestUtils;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.AccessOption;
@@ -44,6 +45,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Cache for holding all task related cluster data, such as WorkflowConfig, JobConfig and Contexts.
  */
@@ -61,7 +63,7 @@ public class TaskDataCache extends AbstractDataCache {
   private Set<String> _contextToUpdate = new HashSet<>();
   private Set<String> _contextToRemove = new HashSet<>();
   // The following map will be used to enforce selective update behavior for contexts.
-  private Map<String, Integer> _initialContextMapHashcode = new HashMap<>();
+  private Map<String, String> _initialContextMapHashcode = new HashMap<>();
   // The following fields have been added for quota-based task scheduling
   private final AssignableInstanceManager _assignableInstanceManager =
       new AssignableInstanceManager();
@@ -178,7 +180,7 @@ public class TaskDataCache extends AbstractDataCache {
 
     for (Map.Entry<String, ZNRecord> entry : _contextMap.entrySet()) {
       if (entry.getValue() != null) {
-        _initialContextMapHashcode.put(entry.getKey(), entry.getValue().toString().hashCode());
+        _initialContextMapHashcode.put(entry.getKey(), DigestUtils.md5Hex(entry.getValue().toString()));
       }
     }
 
@@ -287,7 +289,7 @@ public class TaskDataCache extends AbstractDataCache {
     for (Map.Entry<String, ZNRecord> entry : _contextMap.entrySet()) {
       if (entry.getValue() != null && _initialContextMapHashcode.containsKey(entry.getKey())
           && _initialContextMapHashcode.get(entry.getKey())
-              .equals((entry.getValue().toString().hashCode()))) {
+              .equals(DigestUtils.md5Hex(entry.getValue().toString()))) {
         _contextToUpdate.remove(entry.getKey());
       }
     }

@@ -60,6 +60,7 @@ import org.apache.helix.monitoring.mbeans.ZkClientPathMonitor;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
@@ -74,6 +75,11 @@ public class TestParticipantManager extends ZkTestBase {
   public void afterMethod(Method testMethod, ITestContext testContext) {
     deleteCluster(clusterName);
     super.endTest(testMethod, testContext);
+  }
+
+  @AfterClass
+  public void afterClass() {
+    System.clearProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED);
   }
 
   @Test

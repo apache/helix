@@ -63,4 +63,18 @@ public class ZkSystemPropertyKeys {
 
   /** System property key for jute.maxbuffer */
   public static final String JUTE_MAXBUFFER = "jute.maxbuffer";
+
+  /**
+   * Setting this property to {@code true} in system properties will force Helix ZkClient to use
+   * the <b>non-paginated</b> {@code getChildren} API, no matter if zookeeper supports pagination
+   * or not.
+   * <p>
+   * Given both the zookeeper client and server support <b>paginated</b> {@code getChildren} API as
+   * a prerequisite, if set to {@code false}, it will enable Helix ZkClient's {@code getChildren}
+   * API to call zookeeper's <b>paginated</b> {@code getChildren} API.
+   * <p>
+   * The default value is {@code false}.
+   */
+  public static final String ZK_GETCHILDREN_PAGINATION_DISABLED =
+      "zk.getChildren.pagination.disabled";
 }

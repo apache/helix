@@ -103,7 +103,7 @@ The most commonly used convention is hostname:port.
 String CLUSTER_NAME = "helix-demo";
 int NUM_NODES = 2;
 String hosts[] = new String[]{"localhost","localhost"};
-String ports[] = new String[]{7000,7001};
+String ports[] = new String[]{"7000","7001"};
 for (int i = 0; i < NUM_NODES; i++)
 {
   InstanceConfig instanceConfig = new InstanceConfig(hosts[i]+ "_" + ports[i]);

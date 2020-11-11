@@ -119,11 +119,13 @@ If you need additional functionality, see GenericHelixController on how to confi
                                                           zkConnectString);
      manager.connect();
      GenericHelixController controller = new GenericHelixController();
-     manager.addConfigChangeListener(controller);
+     manager.addControllerListener(controller);
+     manager.addInstanceConfigChangeListener(controller);
+     manager.addResourceConfigChangeListener(controller);
+     manager.addClusterfigChangeListener(controller);
+     manager.addCustomizedStateConfigChangeListener(controller);
      manager.addLiveInstanceChangeListener(controller);
      manager.addIdealStateChangeListener(controller);
-     manager.addExternalViewChangeListener(controller);
-     manager.addControllerListener(controller);
 ```
 The snippet above shows how the controller is started. You can also start the controller using command line interface.
 

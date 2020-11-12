@@ -1145,28 +1145,20 @@ public class TaskUtil {
   /**
    * The function that removes IdealStates and job contexts of the jobs that need to be
    * deleted.
-   * @param toBePurgedJobs
+   * Warning: This method should only be used for the jobs that have job context and do not have job
+   * config.
+   * @param jobsWithoutConfig
    * @param manager
    */
-  public static void jobGarbageCollection(final Set<String> toBePurgedJobs,
+  public static void jobGarbageCollection(final Set<String> jobsWithoutConfig,
       final HelixManager manager) {
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    HelixPropertyStore<ZNRecord> propertyStore = manager.getHelixPropertyStore();
-
-    for (String jobName : toBePurgedJobs) {
+    for (String jobName : jobsWithoutConfig) {
       LOG.warn(
           "JobContext exists for job {}. However, job Config is missing! Deleting the JobContext and IdealState!!",
           jobName);
-
-      // TODO: We dont need this in the future when TF is not relying on IS/EV anymore.
-      if (!cleanupJobIdealStateExtView(accessor, jobName)) {
-        LOG.warn("Error occurred while trying to remove job idealstate/externalview for {}.",
-            jobName);
-        continue;
-      }
-
-      if (!removeJobContext(propertyStore, jobName)) {
-        LOG.warn("Error occurred while trying to remove job context for {}.", jobName);
+      if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
+          jobName)) {
+        LOG.warn("Failed to clean up the job {}", jobName);
       }
     }
   }

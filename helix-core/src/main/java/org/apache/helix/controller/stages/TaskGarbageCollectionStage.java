@@ -63,7 +63,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
 
     Map<String, Set<String>> expiredJobsMap = new HashMap<>();
     Set<String> workflowsToBePurged = new HashSet<>();
-    Set<String> jobsToBePurged = new HashSet<>();
+    Set<String> jobsWithoutConfig = new HashSet<>();
 
     WorkflowControllerDataProvider dataProvider =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
@@ -99,8 +99,8 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         workflowsToBePurged.add(entry.getKey());
       } else if (jobConfig == null && entry.getValue() != null && entry.getValue().getId()
           .equals(TaskUtil.TASK_CONTEXT_KW)) {
-        // Find jobs that need to be purged
-        jobsToBePurged.add(entry.getKey());
+        // Find jobs that need to be purged due to missing config
+        jobsWithoutConfig.add(entry.getKey());
       }
     }
     event.addAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name(),
@@ -108,7 +108,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     event.addAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name(),
         Collections.unmodifiableSet(workflowsToBePurged));
     event.addAttribute(AttributeName.JOBS_WITHOUT_CONFIG.name(),
-        Collections.unmodifiableSet(jobsToBePurged));
+        Collections.unmodifiableSet(jobsWithoutConfig));
 
     super.process(event);
   }
@@ -127,7 +127,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
         event.getAttribute(AttributeName.TO_BE_PURGED_JOBS_MAP.name());
     Set<String> toBePurgedWorkflows =
         event.getAttribute(AttributeName.TO_BE_PURGED_WORKFLOWS.name());
-    Set<String> toBePurgeJobs =
+    Set<String> jobsWithoutConfig =
         event.getAttribute(AttributeName.JOBS_WITHOUT_CONFIG.name());
 
     for (Map.Entry<String, Set<String>> entry : expiredJobsMap.entrySet()) {
@@ -139,7 +139,7 @@ public class TaskGarbageCollectionStage extends AbstractAsyncBaseStage {
     }
 
     TaskUtil.workflowGarbageCollection(toBePurgedWorkflows, manager);
-    TaskUtil.jobGarbageCollection(toBePurgeJobs, manager);
+    TaskUtil.jobGarbageCollection(jobsWithoutConfig, manager);
   }
 
   private static void scheduleNextJobPurge(String workflow, long nextPurgeTime,

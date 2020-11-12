@@ -149,8 +149,8 @@ public class TestStuckTaskQuota extends TaskTestBase {
                 .getAssignedParticipant(0)));
     latch.countDown();
     // Stop the workflow2 and workflow3
-    _driver.waitToStop(workflowName2, 5000L);
-    _driver.waitToStop(workflowName3, 5000L);
+    _driver.stop(workflowName2);
+    _driver.stop(workflowName3);
   }
 
   private void startParticipantAndRegisterNewMockTask(int participantIndex) {

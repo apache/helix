@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -557,21 +558,19 @@ public class TestHelixTaskExecutor {
   }
 
   @Test()
-  public void testCreateHandlerException() throws InterruptedException {
+  public void testCreateHandlerException() throws Exception {
     System.out.println("START TestCMTaskExecutor.testCreateHandlerException()");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
-
-    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
-    for (String type : factory.getMessageTypes()) {
-      executor.registerMessageHandlerFactory(type, factory);
-    }
-
     NotificationContext changeContext = new NotificationContext(manager);
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
 
+    // Sending message without registering the factory.
+    // The message won't be processed since creating handler returns null.
     int nMsgs1 = 5;
+    List<Message> msgList = new ArrayList<>();
     for (int i = 0; i < nMsgs1; i++) {
       Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
@@ -579,7 +578,26 @@ public class TestHelixTaskExecutor {
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
       dataAccessor.setProperty(keyBuilder.message(manager.getInstanceName(), msg.getMsgId()), msg);
+      msgList.add(msg);
     }
+
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
+
+    for (Message message : msgList) {
+      message = dataAccessor
+          .getProperty(keyBuilder.message(manager.getInstanceName(), message.getMsgId()));
+      Assert.assertNotNull(message);
+      Assert.assertEquals(message.getMsgState(), MessageState.NEW);
+      Assert.assertEquals(message.getRetryCount(), 0);
+    }
+
+    // Test with a factory that throws Exception on certain message. The invalid message will be
+    // remain UNPROCESSABLE due to the Exception.
+    for (String type : factory.getMessageTypes()) {
+      executor.registerMessageHandlerFactory(type, factory);
+    }
+
     Message exceptionMsg =
         new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
     exceptionMsg.setTgtSessionId(manager.getSessionId());
@@ -593,16 +611,30 @@ public class TestHelixTaskExecutor {
     changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
     executor.onMessage(manager.getInstanceName(), Collections.emptyList(), changeContext);
 
-    Thread.sleep(1000);
+    Assert.assertTrue(TestHelper.verify(() -> {
+          Message tmpExceptionMsg = dataAccessor
+              .getProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()));
+          if (tmpExceptionMsg == null || !tmpExceptionMsg.getMsgState()
+              .equals(MessageState.UNPROCESSABLE) || tmpExceptionMsg.getRetryCount() != -1) {
+            return false;
+          }
+          return true;
+        }, TestHelper.WAIT_DURATION),
+        "The exception message should be retied once and in UNPROCESSABLE state.");
 
+    Assert.assertTrue(TestHelper.verify(() -> {
+      for (Message message : msgList) {
+        message = dataAccessor
+            .getProperty(keyBuilder.message(manager.getInstanceName(), message.getMsgId()));
+        if (message != null) {
+          return false;
+        }
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION), "The normal messages should be all processed normally.");
     Assert.assertEquals(factory._processedMsgIds.size(), nMsgs1);
     Assert.assertEquals(factory._handlersCreated, nMsgs1);
 
-    exceptionMsg = dataAccessor
-        .getProperty(keyBuilder.message(manager.getInstanceName(), exceptionMsg.getMsgId()));
-    Assert.assertNotNull(exceptionMsg);
-    Assert.assertEquals(exceptionMsg.getMsgState(), MessageState.UNPROCESSABLE);
-    Assert.assertEquals(exceptionMsg.getRetryCount(), -1);
     System.out.println("END TestCMTaskExecutor.testCreateHandlerException()");
   }
 
@@ -916,12 +948,16 @@ public class TestHelixTaskExecutor {
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
       accessor.setProperty(keyBuilder.message(instanceName, msg.getId()), msg);
+
       messageIds.add(msg.getId());
+      // Set for testing the update operation later
+      msg.setMsgState(MessageState.READ);
       messages.add(msg);
     }
 
     Method updateMessageState = HelixTaskExecutor.class
-        .getDeclaredMethod("updateMessageState", List.class, HelixDataAccessor.class, String.class);
+        .getDeclaredMethod("updateMessageState", Collection.class, HelixDataAccessor.class,
+            String.class);
     updateMessageState.setAccessible(true);
 
     updateMessageState.invoke(executor, messages, accessor, instanceName);
@@ -929,6 +965,11 @@ public class TestHelixTaskExecutor {
 
     accessor.removeProperty(keyBuilder.message(instanceName, messageIds.get(0)));
     System.out.println(accessor.getChildNames(keyBuilder.messages(instanceName)).size());
+
+    for (Message message : messages) {
+      // Mock a change to ensure there will be some delta on the message node after update
+      message.setCorrelationId(UUID.randomUUID().toString());
+    }
     updateMessageState.invoke(executor, messages, accessor, instanceName);
     Assert
         .assertEquals(accessor.getChildNames(keyBuilder.messages(instanceName)).size(), nMsgs1 - 1);

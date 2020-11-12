@@ -21,10 +21,8 @@ package org.apache.helix.task;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,21 +30,17 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import com.google.common.collect.Lists;
-import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.TaskDataCache;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.builder.CustomModeISBuilder;
-import org.apache.helix.model.builder.IdealStateBuilder;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +69,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     // Fetch workflow configuration and context
     if (workflowCfg == null) {
-      LOG.warn("Workflow configuration is NULL for " + workflow);
+      LOG.warn("Workflow configuration is NULL for {}", workflow);
       return;
     }
 
@@ -83,7 +77,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Clean up if workflow marked for deletion
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
-      LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
+      LOG.info("Workflow is marked as deleted {} cleaning up the workflow context.", workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       cleanupWorkflow(workflow);
       return;
@@ -126,12 +120,12 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     // Step 4: Handle finished workflows
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-      LOG.info("Workflow " + workflow + " is finished.");
+      LOG.info("Workflow {} is finished.", workflow);
       updateInflightJobs(workflow, workflowCtx, currentStateOutput, bestPossibleOutput);
       long expiryTime = workflowCfg.getExpiry();
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
-        LOG.info("Workflow " + workflow + " passed expiry time, cleaning up the workflow context.");
+        LOG.info("Workflow {} passed expiry time, cleaning up the workflow context.", workflow);
         cleanupWorkflow(workflow);
       } else {
         // schedule future cleanup work
@@ -157,7 +151,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // For workflows that have already reached final states, STOP should not take into effect.
     if (!finalStates.contains(workflowCtx.getWorkflowState())
         && TargetState.STOP.equals(targetState)) {
-      LOG.info("Workflow " + workflow + " is marked as stopped. Workflow state is " + workflowCtx.getWorkflowState());
+      LOG.info("Workflow {} is marked as stopped. Workflow state is {}", workflow,
+          workflowCtx.getWorkflowState());
       if (isWorkflowStopped(workflowCtx, workflowCfg)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
         _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
@@ -188,9 +183,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         }
       }
     } else {
-      LOG.warn(String.format(
-          "Failed to find runtime job DAG for workflow %s, existing runtime jobs may not be processed correctly for it",
-          workflow));
+      LOG.warn(
+          "Failed to find runtime job DAG for workflow {}, existing runtime jobs may not be processed correctly for it",
+          workflow);
     }
   }
 
@@ -204,10 +199,11 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     }
 
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
-      LOG.info("Workflow " + workflow + " is not ready to schedule");
-      // set the timer to trigger future schedule
-      _rebalanceScheduler.scheduleRebalance(_manager, workflow,
+      LOG.info("Workflow {} is not ready to schedule, schedule future rebalance at {}", workflow,
           workflowCfg.getStartTime().getTime());
+      // set the timer to trigger future schedule
+      _rebalanceScheduler
+          .scheduleRebalance(_manager, workflow, workflowCfg.getStartTime().getTime());
       return;
     }
 
@@ -219,7 +215,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       scheduleJobs(workflow, workflowCfg, workflowCtx, _clusterDataCache.getJobConfigMap(),
           _clusterDataCache, currentStateOutput, bestPossibleOutput);
     } else {
-      LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
+      LOG.debug("Workflow {} is not ready to be scheduled.", workflow);
     }
     _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
@@ -251,7 +247,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       BestPossibleStateOutput bestPossibleOutput) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
-      LOG.debug("Jobs from recurring workflow are not schedule-able");
+      LOG.debug("Jobs from recurring workflow {} are not schedule-able", workflow);
       return;
     }
 
@@ -269,19 +265,16 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       String job = nextJob;
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Job " + job + " is already started or completed.");
-        }
+        LOG.debug("Job {} is already started or completed.", job);
         processJob(job, currentStateOutput, bestPossibleOutput, workflowCtx);
         nextJob = jobDag.getNextJob();
         continue;
       }
 
       if (workflowCfg.isJobQueue() && scheduledJobs >= workflowCfg.getParallelJobs()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String.format("Workflow %s already have enough job in progress, "
-              + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
-        }
+        LOG.debug(
+            "Workflow {} already have enough job in progress, scheduledJobs(s)={}, stop scheduling more jobs",
+            workflow, scheduledJobs);
         break;
       }
 
@@ -324,7 +317,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       updateBestPossibleStateOutput(job, resourceAssignment, bestPossibleOutput);
     } catch (Exception e) {
       LogUtil.logWarn(LOG, _clusterDataCache.getClusterEventId(),
-          String.format("Failed to compute job assignment for job %s", job));
+          String.format("Failed to compute job assignment for job %s", job, e));
     }
   }
 
@@ -367,9 +360,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       if (scheduleConfig.isRecurring()) {
         // Skip scheduling this workflow if it's not in a start state
         if (!workflowCfg.getTargetState().equals(TargetState.START)) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Skip scheduling since the workflow has not been started " + workflow);
-          }
+          LOG.debug("Skip scheduling since the workflow {} has not been started", workflow);
           return false;
         }
 
@@ -379,7 +370,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
           WorkflowContext lastWorkflowCtx = cache.getWorkflowContext(lastScheduled);
           if (lastWorkflowCtx != null
               && lastWorkflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
-            LOG.info("Skip scheduling since last schedule has not completed yet " + lastScheduled);
+            LOG.info("Skip scheduling workflow {} since last schedule {} has not completed yet.",
+                workflow, lastScheduled);
             return false;
           }
         }
@@ -395,9 +387,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         DateFormat df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         String newWorkflowName = workflow + "_" + df.format(new Date(timeToSchedule));
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Ready to start workflow " + newWorkflowName);
-        }
+        LOG.debug("Ready to start workflow {}", newWorkflowName);
         if (!newWorkflowName.equals(lastScheduled)) {
           Workflow clonedWf =
               cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
@@ -407,9 +397,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
               // Start the cloned workflow
               driver.start(clonedWf);
             } catch (Exception e) {
-              LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
-              _clusterStatusMonitor.updateWorkflowCounters(clonedWf.getWorkflowConfig(),
-                  TaskState.FAILED);
+              LOG.error("Failed to schedule cloned workflow {}. ", newWorkflowName, e);
+              _clusterStatusMonitor
+                  .updateWorkflowCounters(clonedWf.getWorkflowConfig(), TaskState.FAILED);
             }
           }
           // Persist workflow start regardless of success to avoid retrying and failing
@@ -451,11 +441,11 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     Map<String, HelixProperty> resourceConfigMap =
         accessor.getChildValuesMap(keyBuilder.resourceConfigs(), true);
     if (!resourceConfigMap.containsKey(origWorkflowName)) {
-      LOG.error("No such workflow named " + origWorkflowName);
+      LOG.error("No such workflow named {}", origWorkflowName);
       return null;
     }
     if (resourceConfigMap.containsKey(newWorkflowName)) {
-      LOG.error("Workflow with name " + newWorkflowName + " already exists!");
+      LOG.error("Workflow with name {} already exists!", newWorkflowName);
       return null;
     }
 
@@ -531,7 +521,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       }
       if (!TaskUtil.removeWorkflow(_manager.getHelixDataAccessor(),
           _manager.getHelixPropertyStore(), workflow, jobs)) {
-        LOG.warn("Failed to clean up workflow " + workflow);
+        LOG.warn("Failed to clean up workflow {}", workflow);
       } else {
         // Only remove from cache when remove all workflow success. Otherwise, batch write will
         // clean all the contexts even if Configs and IdealStates are exists. Then all the workflows
@@ -539,8 +529,9 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
         removeContexts(workflow, jobs, _clusterDataCache.getTaskDataCache());
       }
     } else {
-      LOG.info("Did not clean up workflow " + workflow
-          + " because neither the workflow is non-terminable nor is set to DELETE.");
+      LOG.info(
+          "Did not clean up workflow {} because neither the workflow is non-terminable nor is set to DELETE.",
+          workflow);
     }
   }
 

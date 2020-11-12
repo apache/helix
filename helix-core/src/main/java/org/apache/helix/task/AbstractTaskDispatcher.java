@@ -170,9 +170,8 @@ public abstract class AbstractTaskDispatcher {
         if (requestedStateStr != null && !requestedStateStr.isEmpty()) {
           TaskPartitionState requestedState = TaskPartitionState.valueOf(requestedStateStr);
           if (requestedState.equals(currState)) {
-            LOG.warn(String.format(
-                "Requested state %s is the same as the current state for instance %s.",
-                requestedState, instance));
+            LOG.warn("Requested state {} is the same as the current state for instance {}.",
+                requestedState, instance);
           }
 
           // For STOPPED tasks, if the targetState is STOP, we should not honor requestedState
@@ -192,11 +191,8 @@ public abstract class AbstractTaskDispatcher {
             paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
           }
           assignedPartitions.get(instance).add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(
-                String.format("Instance %s requested a state transition to %s for partition %s.",
-                    instance, requestedState, pName));
-          }
+          LOG.debug("Instance {} requested a state transition to {} for partition {}.", instance,
+              requestedState, pName);
           continue;
         }
 
@@ -210,10 +206,8 @@ public abstract class AbstractTaskDispatcher {
           }
           paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
           assignedPartitions.get(instance).add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                nextState, instance));
-          }
+          LOG.debug("Setting task partition {} state to {} on instance {}.", pName, nextState,
+              instance);
         }
           break;
         case STOPPED: {
@@ -235,12 +229,10 @@ public abstract class AbstractTaskDispatcher {
           paMap.put(pId, new JobRebalancer.PartitionAssignment(instance, nextState.name()));
           assignedPartitions.get(instance).add(pId);
 
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                nextState, instance));
-          }
+          LOG.debug("Setting job {} task partition {} state to {} on instance {}.",
+              jobCtx.getName(), pName, nextState, instance);
         }
-          break;
+        break;
         case COMPLETED: {
           // The task has completed on this partition. Drop it from the instance and add it to assignedPartitions in
           // order to avoid scheduling it again in this pipeline.
@@ -470,22 +462,18 @@ public abstract class AbstractTaskDispatcher {
       // so that Helix will cancel the transition.
       paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
       assignedPartitions.get(instance).add(pId);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format(
-            "Task partition %s has a pending state transition on instance %s INIT->RUNNING. CurrentState is %s "
-                + "Setting it back to INIT so that Helix can cancel the transition(if enabled).",
-            pName, instance, currState.name()));
-      }
+      LOG.debug(
+          "Task partition {} has a pending state transition on instance {} INIT->RUNNING. CurrentState is {} "
+              + "Setting it back to INIT so that Helix can cancel the transition(if enabled).",
+          pName, instance, currState.name());
     } else {
       // Otherwise, Just copy forward
       // the state assignment from the pending message
       paMap.put(pId, new PartitionAssignment(instance, pendingMessage.getToState()));
       assignedPartitions.get(instance).add(pId);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format(
-            "Task partition %s has a pending state transition on instance %s. Using the pending message ToState which was %s.",
-            pName, instance, pendingMessage.getToState()));
-      }
+      LOG.debug(
+          "Task partition {} has a pending state transition on instance {}. Using the pending message ToState which was {}.",
+          pName, instance, pendingMessage.getToState());
     }
   }
 
@@ -673,12 +661,10 @@ public abstract class AbstractTaskDispatcher {
           participantCapacity - cache.getParticipantActiveTaskCount(instance);
       // New tasks to be assigned
       int numToAssign = Math.min(jobCfgLimitation, participantLimitation);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format(
-            "Throttle tasks to be assigned to instance %s using limitation: Job Concurrent Task(%d), "
-                + "Participant Max Task(%d). Remaining capacity %d.",
-            instance, jobCfgLimitation, participantCapacity, numToAssign));
-      }
+      LOG.debug(
+          "Throttle tasks to be assigned to instance {} using limitation: Job Concurrent Task({}), "
+              + "Participant Max Task({}). Remaining capacity {}.", instance, jobCfgLimitation,
+          participantCapacity, numToAssign);
       Set<Integer> throttledSet = new HashSet<>();
       if (numToAssign > 0) {
         List<Integer> nextPartitions = getNextPartitions(tgtPartitionAssignments.get(instance),
@@ -700,10 +686,8 @@ public abstract class AbstractTaskDispatcher {
           }
           // Increment the task attempt count at schedule time
           jobCtx.incrementNumAttempts(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                TaskPartitionState.RUNNING, instance));
-          }
+          LOG.debug("Setting job {} task partition {} state to {} on instance {}.",
+              jobCtx.getName(), pName, TaskPartitionState.RUNNING, instance);
         }
         cache.setParticipantActiveTaskCount(instance,
             cache.getParticipantActiveTaskCount(instance) + nextPartitions.size());
@@ -732,7 +716,8 @@ public abstract class AbstractTaskDispatcher {
           assignableInstanceManager.release(instance, taskConfig, quotaType);
         }
         LOG.debug(
-            throttledSet.size() + "tasks are ready but throttled when assigned to participant.");
+            "tasks for job {} are ready but throttled (size: {}) when assigned to participant.",
+            jobCfg.getJobId(), throttledSet.size());
       }
     }
   }
@@ -889,8 +874,8 @@ public abstract class AbstractTaskDispatcher {
               // Found the partition number; new assignment has been made
               existsInNewAssignment = true;
               LOG.info(
-                  "Currently running task partition number: {} is being dropped from instance: {} and will be newly assigned to instance: {}. This is due to a LiveInstance/CurrentState change, and because this is a targeted task.",
-                  pId, instance, entry.getKey());
+                  "Currently running task partition number: {} (job: {}) is being dropped from instance: {} and will be newly assigned to instance: {}. This is due to a LiveInstance/CurrentState change, and because this is a targeted task.",
+                  jobContext.getName(), pId, instance, entry.getKey());
               break;
             }
           }
@@ -936,6 +921,7 @@ public abstract class AbstractTaskDispatcher {
     finishJobInRuntimeJobDag(clusterDataCache.getTaskDataCache(), workflowConfig.getWorkflowId(),
         jobName);
     long currentTime = System.currentTimeMillis();
+    LOG.debug("Mark job: {} FAILED.", jobName);
     workflowContext.setJobState(jobName, TaskState.FAILED);
     if (jobContext != null) {
       jobContext.setFinishTime(currentTime);
@@ -1208,9 +1194,9 @@ public abstract class AbstractTaskDispatcher {
     }
 
     if (!assignableInstanceManager.hasGlobalCapacity(quotaType)) {
-      LOG.info(String.format(
-          "Job %s not ready to schedule due to not having enough quota for quota type %s", job,
-          quotaType));
+      LOG.info(
+          "Job {} not ready to schedule due to not having enough quota for quota type {}", job,
+          quotaType);
       return false;
     }
 
@@ -1227,10 +1213,8 @@ public abstract class AbstractTaskDispatcher {
 
     // If there is any parent job not started, this job should not be scheduled
     if (notStartedCount > 0) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format("Job %s is not ready to start, notStartedParent(s)=%d.", job,
-            notStartedCount));
-      }
+        LOG.debug("Job {} is not ready to start, notStartedParent(s)={}.", job,
+            notStartedCount);
       return false;
     }
 
@@ -1238,30 +1222,24 @@ public abstract class AbstractTaskDispatcher {
     // job failure enabled
     if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx, jobConfigMap, clusterDataCache);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(String.format("Job %s is not ready to start, failedCount(s)=%d.", job,
-            failedOrTimeoutCount));
-      }
+        LOG.debug("Job {} is not ready to start, failedCount(s)={}.", job,
+            failedOrTimeoutCount);
       return false;
     }
 
     if (workflowCfg.isJobQueue()) {
       // If job comes from a JobQueue, it should apply the parallel job logics
       if (incompleteAllCount >= workflowCfg.getParallelJobs()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String.format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job,
-              incompleteAllCount));
-        }
+          LOG.debug("Job {} is not ready to schedule, inCompleteJobs(s)={}.", job,
+              incompleteAllCount);
         return false;
       }
     } else {
       // If this job comes from a generic workflow, job will not be scheduled until
       // all the direct parent jobs finished
       if (incompleteParentCount > 0) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(String.format("Job %s is not ready to start, notFinishedParent(s)=%d.", job,
-              incompleteParentCount));
-        }
+          LOG.debug("Job {} is not ready to start, notFinishedParent(s)={}.", job,
+              incompleteParentCount);
         return false;
       }
     }
@@ -1296,10 +1274,10 @@ public abstract class AbstractTaskDispatcher {
     if (runtimeJobDag != null) {
       runtimeJobDag.finishJob(jobName);
       LOG.debug(
-          String.format("Finish job %s of workflow %s for runtime job DAG", jobName, workflowName));
+          "Finish job {} of workflow {} for runtime job DAG", jobName, workflowName);
     } else {
-      LOG.warn(String.format("Failed to find runtime job DAG for workflow %s and job %s",
-          workflowName, jobName));
+      LOG.warn("Failed to find runtime job DAG for workflow {} and job {}",
+          workflowName, jobName);
     }
   }
 

@@ -30,14 +30,14 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.helix.util.RebalanceUtil;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.task.assigner.ThreadCountBasedTaskAssigner;
+import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +58,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Fetch job configuration
     final JobConfig jobCfg = _dataProvider.getJobConfig(jobName);
     if (jobCfg == null) {
-      LOG.error("Job configuration is NULL for " + jobName);
+      LOG.error("Job configuration is NULL for {}", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
     String workflowResource = jobCfg.getWorkflow();
@@ -66,19 +66,19 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     // Fetch workflow configuration and context
     final WorkflowConfig workflowCfg = _dataProvider.getWorkflowConfig(workflowResource);
     if (workflowCfg == null) {
-      LOG.error("Workflow configuration is NULL for " + jobName);
+      LOG.error("Workflow configuration is NULL for {}", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
     if (workflowCtx == null) {
-      LOG.error("Workflow context is NULL for " + jobName);
+      LOG.error("Workflow context is NULL for {}", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState != TargetState.START && targetState != TargetState.STOP) {
-      LOG.info("Target state is " + targetState.name() + " for workflow " + workflowResource
-          + ".Stop scheduling job " + jobName);
+      LOG.info("Target state is {} for workflow {} .Stop scheduling job {}", targetState.name(),
+          workflowResource, jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -90,9 +90,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     if (workflowState == TaskState.FAILED || workflowState == TaskState.COMPLETED
         || jobState == TaskState.FAILED || jobState == TaskState.COMPLETED
         || jobState == TaskState.TIMED_OUT) {
-      LOG.info(String.format(
-          "Workflow %s or job %s is already in final state, workflow state (%s), job state (%s), clean up job IS.",
-          workflowResource, jobName, workflowState, jobState));
+      LOG.info(
+          "Workflow {} or job {} is already in final state, workflow state ({}), job state ({}), clean up job IS.",
+          workflowResource, jobName, workflowState, jobState);
       finishJobInRuntimeJobDag(_dataProvider.getTaskDataCache(), workflowResource, jobName);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       // New pipeline trigger for workflow status update
@@ -103,7 +103,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     }
 
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
-      LOG.info("Job is not ready to be run since workflow is not ready " + jobName);
+      LOG.info("Job is not ready to be run since workflow is not ready {}", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -111,7 +111,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
         _dataProvider.getJobConfigMap(), _dataProvider,
         _dataProvider.getAssignableInstanceManager())) {
-      LOG.info("Job is not ready to run " + jobName);
+      LOG.info("Job is not ready to run {}", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -145,7 +145,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
-      LOG.error("No available instance found for job!");
+      LOG.error("No available instance found for job: " + jobName);
     }
 
     TargetState jobTgtState = workflowCfg.getTargetState();
@@ -188,8 +188,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     _dataProvider.updateJobContext(jobName, jobCtx);
     _dataProvider.updateWorkflowContext(workflowResource, workflowCtx);
 
-    LOG.debug("Job " + jobName + " new assignment "
-        + Arrays.toString(newAssignment.getMappedPartitions().toArray()));
+    LOG.debug("Job {} new assignment",
+        Arrays.toString(newAssignment.getMappedPartitions().toArray()));
     return newAssignment;
   }
 
@@ -247,10 +247,8 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     long currentTime = System.currentTimeMillis();
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("All partitions: " + allPartitions + " taskAssignment: "
-          + currentInstanceToTaskAssignments + " excludedInstances: " + excludedInstances);
-    }
+    LOG.debug("All partitions: {} taskAssignment: {} excludedInstances: {}", allPartitions,
+        currentInstanceToTaskAssignments, excludedInstances);
 
     // Release resource for tasks in terminal state
     updatePreviousAssignedTasksStatus(currentInstanceToTaskAssignments, excludedInstances,

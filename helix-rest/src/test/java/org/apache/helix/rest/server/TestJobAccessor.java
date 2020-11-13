@@ -145,7 +145,7 @@ public class TestJobAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testCreateJob")
   public void testGetAddJobContent() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/userContent";
+    String uri = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/userContent";
 
     // Empty user content
     String body =
@@ -178,8 +178,8 @@ public class TestJobAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetAddJobContent")
   public void testInvalidGetAndUpdateJobContentStore() {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/Job_0/userContent";
-    String invalidURI1 = "clusters/" + CLUSTER_NAME + "/workflows/xxx/jobs/Job_0/userContent"; // workflow not exist
+    String validURI = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/JOB0/userContent";
+    String invalidURI1 = "clusters/" + CLUSTER_NAME + "/workflows/xxx/jobs/JOB0/userContent"; // workflow not exist
     String invalidURI2 = "clusters/" + CLUSTER_NAME + "/workflows/Workflow_0/jobs/xxx/userContent"; // job not exist
     Entity validEntity = Entity.entity("{\"k1\":\"v1\"}", MediaType.APPLICATION_JSON_TYPE);
     Entity invalidEntity = Entity.entity("{\"k1\":{}}", MediaType.APPLICATION_JSON_TYPE); // not Map<String, String>

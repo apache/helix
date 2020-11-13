@@ -1143,6 +1143,27 @@ public class TaskUtil {
   }
 
   /**
+   * The function that removes IdealStates and job contexts of the jobs that need to be
+   * deleted.
+   * Warning: This method should only be used for the jobs that have job context and do not have job
+   * config.
+   * @param jobsWithoutConfig
+   * @param manager
+   */
+  public static void jobGarbageCollection(final Set<String> jobsWithoutConfig,
+      final HelixManager manager) {
+    for (String jobName : jobsWithoutConfig) {
+      LOG.warn(
+          "JobContext exists for job {}. However, job Config is missing! Deleting the JobContext and IdealState!!",
+          jobName);
+      if (!TaskUtil.removeJob(manager.getHelixDataAccessor(), manager.getHelixPropertyStore(),
+          jobName)) {
+        LOG.warn("Failed to clean up the job {}", jobName);
+      }
+    }
+  }
+
+  /**
    * Get target thread pool size from InstanceConfig first; if InstanceConfig doesn't exist or the
    * value is undefined, try ClusterConfig; if the value is undefined in ClusterConfig, fall back
    * to the default value.

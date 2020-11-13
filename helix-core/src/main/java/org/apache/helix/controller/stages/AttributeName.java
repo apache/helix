@@ -48,5 +48,7 @@ public enum AttributeName {
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   TO_BE_PURGED_WORKFLOWS,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
+  JOBS_WITHOUT_CONFIG,
+  // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   TO_BE_PURGED_JOBS_MAP
 }

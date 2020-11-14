@@ -206,9 +206,9 @@ public class TestPartitionMigrationBase extends ZkTestBase {
     private void verifyPartitionCount(String resource, String partition,
         Map<String, String> stateMap, int replica, String warningPrefix, int minActiveReplica) {
       if (stateMap.size() < replica) {
-//        System.out.println(
-//            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
-//                + " replicas in " + warningPrefix);
+        System.out.println(
+            "resource " + resource + ", partition " + partition + " has " + stateMap.size()
+                + " replicas in " + warningPrefix + " stateMap:" + stateMap);
         _hasLessReplica = true;
       }
 

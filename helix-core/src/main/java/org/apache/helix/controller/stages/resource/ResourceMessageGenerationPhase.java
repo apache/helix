@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages.resource;
  * under the License.
  */
 
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
@@ -33,7 +34,7 @@ public class ResourceMessageGenerationPhase extends MessageGenerationPhase {
   public void process(ClusterEvent event) throws Exception {
     //IntermediateStateOutput intermediateStateOutput =
     //    event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-    BestPossibleStateOutput bestPossibleStateOutput =
+    ResourcesStateMap bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     processEvent(event, bestPossibleStateOutput);
   }

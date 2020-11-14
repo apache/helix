@@ -36,6 +36,7 @@ import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.PerReplicaThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -226,6 +227,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new PerReplicaThrottleStage());
     pipeline.addStage(new MessageThrottleStage());
 
     pipeline.handle(event);
@@ -248,6 +250,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     pipeline = new Pipeline("test");
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new PerReplicaThrottleStage());
     pipeline.addStage(new MessageThrottleStage());
 
     pipeline.handle(event);
@@ -362,6 +365,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new PerReplicaThrottleStage());
     pipeline.addStage(new MessageThrottleStage());
 
     return pipeline;

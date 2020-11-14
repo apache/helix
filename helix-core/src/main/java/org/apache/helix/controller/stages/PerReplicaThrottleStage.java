@@ -200,7 +200,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
       Map<Partition, Map<String, String>> retracedPartitionsStateMap ) {
     String resourceName = resource.getResourceName();
-    LogUtil.logDebug(logger, _eventId, String.format("Processing resource: %s", resourceName));
+    LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
         .equals(idealState.getRebalanceMode())) {
@@ -328,6 +328,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       retracedPartitionsStateMap.put(partition, retracedStateMap);
     }
 
+    LogUtil.logInfo(logger, _eventId, String.format("Classify message for resource: %s", resourceName));
     // classify all the messages as recovery message list and load message list
     List<Message> recoveryMessages = new ArrayList<>();
     List<Message> loadMessages = new ArrayList<>();

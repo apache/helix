@@ -36,6 +36,7 @@ import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.PerReplicaThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -90,11 +91,13 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new ResourceMessageGenerationPhase());
     _fullPipeline.addStage(new MessageSelectionStage());
+    _fullPipeline.addStage(new PerReplicaThrottleStage());
     _fullPipeline.addStage(new MessageThrottleStage());
 
     _messagePipeline = new Pipeline("MessagePipeline");
     _messagePipeline.addStage(new ResourceMessageGenerationPhase());
     _messagePipeline.addStage(new MessageSelectionStage());
+    _messagePipeline.addStage(new PerReplicaThrottleStage());
     _messagePipeline.addStage(new MessageThrottleStage());
 
 
@@ -126,10 +129,10 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _fullPipeline.handle(event);
 
-    _bestpossibleState = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    _bestpossibleState = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
     MessageOutput messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     List<Message> messages = messageOutput.getMessages(_db, _partition);
 
     Assert.assertEquals(messages.size(), 1);
@@ -163,7 +166,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _fullPipeline.handle(event);
 
-    messageOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -181,7 +184,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _messagePipeline.handle(event);
 
-    messageOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 2);
 
@@ -217,7 +220,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 
@@ -247,7 +250,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _fullPipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 1);
 
@@ -273,12 +276,12 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     instanceStateMap.put(thirdMaster, "MASTER");
     _bestpossibleState.setState(_db, _partition, instanceStateMap);
 
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -290,12 +293,12 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -313,7 +316,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 1);
 

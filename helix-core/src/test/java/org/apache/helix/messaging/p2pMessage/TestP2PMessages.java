@@ -39,6 +39,7 @@ import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.PerReplicaThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
@@ -103,6 +104,7 @@ public class TestP2PMessages extends BaseStageTest {
     _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new ResourceMessageGenerationPhase());
     _fullPipeline.addStage(new MessageSelectionStage());
+    _fullPipeline.addStage(new PerReplicaThrottleStage());
     _fullPipeline.addStage(new MessageThrottleStage());
     _fullPipeline.addStage(new ResourceMessageDispatchStage());
 

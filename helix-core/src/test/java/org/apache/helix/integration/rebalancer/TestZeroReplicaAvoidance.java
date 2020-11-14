@@ -199,23 +199,23 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
     for (String partition : is.getPartitionSet()) {
       Map<String, String> evStateMap = ev.getRecord().getMapField(partition);
       Map<String, String> isStateMap = is.getInstanceStateMap(partition);
-      validateMap(is.getResourceName(), partition, replica, evStateMap, stateModelDef);
-      validateMap(is.getResourceName(), partition, replica, isStateMap, stateModelDef);
+      validateMap(is.getResourceName(), partition, replica, evStateMap, stateModelDef, "ev");
+      validateMap(is.getResourceName(), partition, replica, isStateMap, stateModelDef, "is");
     }
   }
 
   private void validateMap(String resource, String partition, int replica,
-      Map<String, String> instanceStateMap, StateModelDefinition stateModelDef) {
+      Map<String, String> instanceStateMap, StateModelDefinition stateModelDef, String context) {
     if (instanceStateMap == null || instanceStateMap.isEmpty()) {
       _testSuccess = false;
       Assert.fail(
-          String.format("Resource %s partition %s has no active replica!", resource, partition));
+          String.format("Resource %s partition %s has no active replica! Context is %s", resource, partition, context));
     }
     if (instanceStateMap.size() < replica) {
       _testSuccess = false;
       Assert.fail(
-          String.format("Resource %s partition %s has %d active replica, less than required %d!",
-              resource, partition, instanceStateMap.size(), replica));
+          String.format("Resource %s partition %s has %d active replica, less than required %d! Context is %s",
+              resource, partition, instanceStateMap.size(), replica, context));
     }
 
     Map<String, Integer> stateCountMap = stateModelDef.getStateCountMap(NUM_NODE, replica);
@@ -229,8 +229,8 @@ public class TestZeroReplicaAvoidance extends ZkTestBase
       }
       if (topCount > 1) {
         _testSuccess = false;
-        Assert.fail(String.format("Resource %s partition %s has %d replica in %s, more than 1!",
-            resource, partition, topCount, topState));
+        Assert.fail(String.format("Resource %s partition %s has %d replica in %s, more than 1! Context is %s",
+            resource, partition, topCount, topState, context));
       }
     }
   }

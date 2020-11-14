@@ -100,6 +100,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new PerReplicaThrottleStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new ResourceMessageDispatchStage());
 
@@ -136,6 +137,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     messagePipeline.addStage(new IntermediateStateCalcStage());
     messagePipeline.addStage(new ResourceMessageGenerationPhase());
     messagePipeline.addStage(new MessageSelectionStage());
+    messagePipeline.addStage(new PerReplicaThrottleStage());
     messagePipeline.addStage(new MessageThrottleStage());
     messagePipeline.addStage(new ResourceMessageDispatchStage());
 
@@ -157,7 +159,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     Thread.sleep(2 * MessageGenerationPhase.DEFAULT_OBSELETE_MSG_PURGE_DELAY);
     runPipeline(event, dataRefresh, false);
-    
+
     // Verify the stale message should be deleted
     Assert.assertTrue(TestHelper.verify(() -> {
       if (dataCache.getStaleMessages().size() != 0) {
@@ -334,9 +336,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    //rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new PerReplicaThrottleStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new ResourceMessageDispatchStage());
 
@@ -431,9 +434,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    //rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new PerReplicaThrottleStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new ResourceMessageDispatchStage());
 
@@ -510,9 +514,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    //rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new PerReplicaThrottleStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new ResourceMessageDispatchStage());
 
@@ -590,9 +595,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     rebalancePipeline.addStage(new ResourceComputationStage());
     rebalancePipeline.addStage(new CurrentStateComputationStage());
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new IntermediateStateCalcStage());
+    //rebalancePipeline.addStage(new IntermediateStateCalcStage());
     rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new PerReplicaThrottleStage());
     rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new ResourceMessageDispatchStage());
 

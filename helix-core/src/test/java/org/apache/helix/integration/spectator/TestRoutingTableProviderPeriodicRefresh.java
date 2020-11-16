@@ -210,8 +210,8 @@ public class TestRoutingTableProviderPeriodicRefresh extends ZkTestBase {
     }
   }
 
-  // This test is with poor design, source of frequent failure due to timing. Needs refactor. Disable for now.
-  @Test(enabled = false)
+  // This test is with poor design, source of frequent failure due to timing. Needs refactor.
+  @Test()
   public void testPeriodicRefresh() throws InterruptedException {
     // Wait to ensure that the initial refreshes finish (not triggered by periodic refresh timer)
     Thread.sleep(REFRESH_PERIOD_MS * 2);

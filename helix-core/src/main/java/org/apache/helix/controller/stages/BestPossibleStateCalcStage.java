@@ -57,7 +57,6 @@ import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.runtime.Log;
 
 
 /**
@@ -83,7 +82,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       throw new StageException(
           "Missing attributes in event:" + event + ". Requires CURRENT_STATE|RESOURCES|DataCache");
     }
-    
+
     // LogUtil.logInfo(logger, _eventId, String.format("CurrentState for bestpossible is: %s", currentStateOutput));
 
     final BestPossibleStateOutput bestPossibleStateOutput =

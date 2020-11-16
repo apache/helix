@@ -42,10 +42,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.runtime.Log;
 
 
 public class PerReplicaThrottleStage extends AbstractBaseStage {

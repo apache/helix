@@ -614,7 +614,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     boolean leaderNotExists = TestHelper.verify(() -> {
       boolean isLeaderExists = _gZkClient.exists(path);
       return isLeaderExists == false;
-    }, 10000L);
+    }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(leaderNotExists, " mysterious leader out!");
 
     for (ClusterDistributedController controller : controllers) {

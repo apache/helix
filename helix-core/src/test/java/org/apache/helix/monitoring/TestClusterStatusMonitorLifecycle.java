@@ -217,6 +217,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
 
     ZkHelixClusterVerifier controllerClusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(_controllerClusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(controllerClusterVerifier.verifyByPolling(),
         "Controller cluster was not converged");
@@ -291,7 +292,12 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         Query.not(Query.match(Query.attr("SensorName"), Query.value("MessageQueueStatus.*"))),
         exp1);
 
-    Assert.assertTrue(TestHelper.verify(() -> ManagementFactory.getPlatformMBeanServer()
-        .queryMBeans(new ObjectName("ClusterStatus:*"), exp2).isEmpty(), 3000));
+    // Note, the _asyncTasksThreadPool shutting down logic in GenericHelixController is best effort
+    // there is not guarantee that all threads in the pool is gone. Mossstly they will, but not always.
+    // see https://github.com/apache/helix/issues/1280
+    boolean result = TestHelper.verify(() -> ManagementFactory.getPlatformMBeanServer()
+        .queryMBeans(new ObjectName("ClusterStatus:*"), exp2).isEmpty(), TestHelper.WAIT_DURATION);
+    Assert.assertTrue(result,
+        "A small chance this may fail due to _asyncThread pool in controller may not shutdown in time. Please check issue 1280 to verify if this is the case.");
   }
 }

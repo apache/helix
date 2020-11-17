@@ -340,26 +340,28 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void invoke(NotificationContext changeContext) throws Exception {
     Type type = changeContext.getType();
     long start = System.currentTimeMillis();
+    if (logger.isInfoEnabled()) {
+      logger.info("{} START: CallbackHandler {}, INVOKE {} listener: {} type: {}",
+          Thread.currentThread().getId(), _uid, _path, _listener, type);
+    }
 
-    // This allows the listener to work with one change at a time
-    synchronized (_manager) {
-      if (logger.isInfoEnabled()) {
-        logger
-            .info("{} START: CallbackHandler {}, INVOKE {} listener: {} type: {}", Thread.currentThread().getId(),
-                _uid, _path, _listener, type);
-      }
+    synchronized (this) {
 
       if (!_expectTypes.contains(type)) {
         logger.warn("Callback handler {} received event in wrong order. Listener: {}, path: {}, "
             + "expected types: {}, but was {}", _uid, _listener, _path, _expectTypes, type);
         return;
-
       }
       _expectTypes = nextNotificationType.get(type);
 
       if (type == Type.INIT || type == Type.FINALIZE || changeContext.getIsChildChange()) {
         subscribeForChanges(changeContext.getType(), _path, _watchChild);
       }
+    }
+
+    // This allows the listener to work with one change at a time
+    synchronized (_manager) {
+
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         List<IdealState> idealStates = preFetch(_propertyKey);

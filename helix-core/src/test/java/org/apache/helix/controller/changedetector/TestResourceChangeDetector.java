@@ -434,7 +434,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     try {
       boolean result = _clusterVerifier.verify();
       Assert.assertTrue(result);
-    } finally {
+    } finally{
       _clusterVerifier.close();
     }
     // Initialize a new detector with the existing data

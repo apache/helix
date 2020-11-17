@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
@@ -568,7 +569,14 @@ public class TestHelixAdminCli extends ZkTestBase {
     String command =
         "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Thread.sleep(500);
+    // wait till grand_cluster converge
+    BestPossibleExternalViewVerifier verifier = new BestPossibleExternalViewVerifier.Builder(grandClusterName)
+        .setZkClient(_gZkClient)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+        .build();
+
+    boolean result = verifier.verifyByPolling();
+    Assert.assertTrue(result, "grand cluster not converging.");
 
     // deactivate cluster
     command = "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
@@ -602,6 +610,12 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s"));
+
+    boolean leaderNotExists = TestHelper.verify(() -> {
+      boolean isLeaderExists = _gZkClient.exists(path);
+      return isLeaderExists == false;
+    }, 10000L);
+    Assert.assertTrue(leaderNotExists, " mysterious leader out!");
 
     for (ClusterDistributedController controller : controllers) {
       controller.syncStop();

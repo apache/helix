@@ -149,8 +149,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       // AssertJUnit.assertNotNull(election.getLeader());
     }
     finally {
-      controller0.shutdown();
       manager.disconnect();
+      controller0.shutdown();
     }
 
     manager =
@@ -171,8 +171,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       // AssertJUnit.assertNull(election.getController());
       // AssertJUnit.assertNull(election.getLeader());
     } finally {
-      controller1.shutdown();
       manager.disconnect();
+      controller1.shutdown();
     }
 
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
@@ -252,6 +252,9 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     } finally {
       for (GenericHelixController controller : controllers) {
         controller.shutdown();
+      }
+      for (ZKHelixManager mgr: managerList.values()) {
+        mgr.disconnect();
       }
       TestHelper.dropCluster(clusterName, _gZkClient);
     }

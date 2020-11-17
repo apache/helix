@@ -93,12 +93,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     }
   }
 
-  // Note, with mvn 3.6.1, we have a nasty bug that running "mvn test" under helix-core,
-  // all the bellow test will be invoked after other test including @AfterClass cleanup of this
-  // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
-  // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
-  public void testZkAdminTimeout() {
+  private boolean testZkAdminTimeoutHelper() {
     boolean exceptionThrown = false;
     ZKHelixAdmin admin = null;
     try {
@@ -110,20 +105,21 @@ public class TestClusterSetup extends ZkUnitTestBase {
         admin.close();
       }
     }
+    return  exceptionThrown;
+  }
+
+  // Note, with mvn 3.6.1, we have a nasty bug that running "mvn test" under helix-core,
+  // all the bellow test will be invoked after other test including @AfterClass cleanup of this
+  // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
+  // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  public void testZkAdminTimeout() {
+    boolean exceptionThrown = testZkAdminTimeoutHelper();
 
     Assert.assertTrue(exceptionThrown);
     System.setProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "3");
-    exceptionThrown = false;
+    exceptionThrown = testZkAdminTimeoutHelper();
     long time = System.currentTimeMillis();
-    try {
-      admin = new ZKHelixAdmin("localhost:27999");
-    } catch (Exception e) {
-      exceptionThrown = true;
-    } finally {
-      if (admin != null) {
-        admin.close();
-      }
-    }
 
     Assert.assertTrue(exceptionThrown);
     Assert.assertTrue(System.currentTimeMillis() - time < 5000);

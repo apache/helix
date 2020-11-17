@@ -431,8 +431,12 @@ public class TestResourceChangeDetector extends ZkTestBase {
             .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
-    Assert.assertTrue(_clusterVerifier.verify());
-
+    try {
+      boolean result = _clusterVerifier.verify();
+      Assert.assertTrue(result);
+    } finally {
+      _clusterVerifier.close();
+    }
     // Initialize a new detector with the existing data
     ResourceChangeDetector changeDetector = new ResourceChangeDetector();
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);

@@ -73,44 +73,63 @@ public class TestClusterSetup extends ZkUnitTestBase {
   public void beforeClass() throws Exception {
     System.out
         .println("START TestClusterSetup.beforeClass() " + new Date(System.currentTimeMillis()));
+    _clusterSetup = new ClusterSetup(ZK_ADDR);
   }
 
   @AfterClass()
   public void afterClass() {
     deleteCluster(CLUSTER_NAME);
+    _clusterSetup.close();
     System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod()
   public void setup() {
-
-    _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
-    _clusterSetup.addCluster(CLUSTER_NAME, true);
+    try {
+      _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
+      _clusterSetup.addCluster(CLUSTER_NAME, true);
+    } catch (Exception e) {
+      System.out.println("@BeforeMethod TestClusterSetup exception:" + e);
+    }
   }
 
-  @Test
+  // Note, with mvn 3.6.1, we have a nasty bug that running "mvn test" under helix-core,
+  // all the bellow test will be invoked after other test including @AfterClass cleanup of this
+  // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
+  // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testZkAdminTimeout() {
     boolean exceptionThrown = false;
+    ZKHelixAdmin admin = null;
     try {
-      new ZKHelixAdmin("localhost:27999");
+      admin = new ZKHelixAdmin("localhost:27999");
     } catch (Exception e) {
       exceptionThrown = true;
+    } finally {
+      if (admin != null) {
+        admin.close();
+      }
     }
+
     Assert.assertTrue(exceptionThrown);
     System.setProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "3");
     exceptionThrown = false;
     long time = System.currentTimeMillis();
     try {
-      new ZKHelixAdmin("localhost:27999");
+      admin = new ZKHelixAdmin("localhost:27999");
     } catch (Exception e) {
       exceptionThrown = true;
+    } finally {
+      if (admin != null) {
+        admin.close();
+      }
     }
+
     Assert.assertTrue(exceptionThrown);
     Assert.assertTrue(System.currentTimeMillis() - time < 5000);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testAddInstancesToCluster() throws Exception {
     String[] instanceAddresses = new String[3];
     for (int i = 0; i < 3; i++) {
@@ -138,7 +157,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testDisableDropInstancesFromCluster() throws Exception {
     testAddInstancesToCluster();
     String[] instanceAddresses = new String[3];
@@ -195,7 +214,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testAddResource() throws Exception {
     try {
       _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
@@ -204,7 +223,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testRemoveResource() throws Exception {
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
     verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, true);
@@ -212,7 +231,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     verifyResource(_gZkClient, CLUSTER_NAME, TEST_DB, false);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testRebalanceCluster() throws Exception {
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
     // testAddInstancesToCluster();
@@ -221,18 +240,16 @@ public class TestClusterSetup extends ZkUnitTestBase {
     verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testParseCommandLinesArgs() throws Exception {
     // wipe ZK
     _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster " + CLUSTER_NAME));
 
     // wipe again
     _gZkClient.deleteRecursively("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
 
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
 
@@ -258,7 +275,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
         createArgs("-zkSvr " + ZK_ADDR + " --dropNode " + CLUSTER_NAME + " " + TEST_NODE));
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testSetGetRemoveParticipantConfig() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -298,7 +315,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testEnableCluster() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
@@ -339,7 +356,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testDropInstance() throws Exception {
     // drop without stop, should throw exception
     String className = TestHelper.getTestClassName();
@@ -423,7 +440,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test
+  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
   public void testDisableResource() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

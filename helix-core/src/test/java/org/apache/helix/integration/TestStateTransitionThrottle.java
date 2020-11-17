@@ -86,7 +86,9 @@ public class TestStateTransitionThrottle extends ZkTestBase {
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     // Won't match, since there is pending transition
     Assert.assertFalse(verifier.verify(3000));
 
@@ -158,7 +160,9 @@ public class TestStateTransitionThrottle extends ZkTestBase {
     controller.syncStart();
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verify(3000));
 
     // Adding one more participant.

@@ -143,7 +143,8 @@ public final class TestJobTimeout extends TaskSynchronizedTestBase {
     // Check that there are no SLAVE replicas
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
-            .setZkAddr(ZK_ADDR).build();
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(verifier.verifyByPolling());
     ExternalView view =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, DB_NAME);

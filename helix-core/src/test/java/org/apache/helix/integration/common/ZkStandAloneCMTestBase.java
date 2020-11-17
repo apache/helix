@@ -84,7 +84,8 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
 
     _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-        .build();    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+        .build();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // create cluster manager
     _manager = HelixManagerFactory

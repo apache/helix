@@ -105,7 +105,6 @@ public class TestRoutingTableSnapshot extends ZkTestBase {
           IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db1, NUM_REPLICAS);
 
-      Thread.sleep(200);
       ZkHelixClusterVerifier clusterVerifier =
           new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
               .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)

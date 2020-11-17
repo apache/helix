@@ -157,10 +157,11 @@ public class TestNoDoubleAssign extends TaskTestBase {
   private void breakConnection() {
     _executorServiceConnection = Executors.newScheduledThreadPool(THREAD_COUNT);
     _executorServiceConnection.scheduleAtFixedRate(() -> {
-      // Randomly pick a Participant and cause a transient connection issue
-      int participantIndex = RANDOM.nextInt(_numNodes);
-      _participants[participantIndex].disconnect();
-      startParticipant(participantIndex);
+      synchronized (this) {
+        int participantIndex = RANDOM.nextInt(_numNodes);
+        stopParticipant(participantIndex);
+        startParticipant(participantIndex);
+      }
     }, 0L, CONNECTION_DELAY, TimeUnit.MILLISECONDS);
   }
 }

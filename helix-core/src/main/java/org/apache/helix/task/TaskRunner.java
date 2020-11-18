@@ -208,7 +208,7 @@ public class TaskRunner implements Runnable {
         String.format("Requesting a state transition to %s for partition %s.", state, partition));
     try {
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      PropertyKey key = keyBuilder.currentState(instance, sessionId, resource);
+      PropertyKey key = keyBuilder.taskCurrentState(instance, sessionId, resource);
       CurrentState currStateDelta = new CurrentState(resource);
       currStateDelta.setRequestedState(partition, state.name());
 

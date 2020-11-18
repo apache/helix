@@ -139,6 +139,12 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId) {
+
+  }
+
+  @Override
   public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
       String instanceName) {
     // TODO Auto-generated method stub

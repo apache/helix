@@ -20,6 +20,7 @@ package org.apache.helix.webapp.resources;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -67,10 +68,10 @@ public class ErrorsResource extends ServerResource {
     String instanceSessionId =
         ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
 
-    String message =
-        ClusterRepresentationUtil
-            .getInstancePropertyNameListAsString(zkClient, clusterName, instanceName,
-                PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil
+        .getInstancePropertiesNameListAsString(zkClient, clusterName, instanceName,
+            Arrays.asList(PropertyType.CURRENTSTATES, PropertyType.TASKCURRENTSTATES),
+            instanceSessionId);
 
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);

@@ -60,6 +60,7 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
@@ -101,6 +102,7 @@ import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW;
+import static org.apache.helix.HelixConstants.ChangeType.TASK_CURRENT_STATE;
 
 @PreFetchChangedData(enabled = false)
 public class CallbackHandler implements IZkChildListener, IZkDataListener {
@@ -260,6 +262,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       case CURRENT_STATE:
         listenerClass = CurrentStateChangeListener.class;
         break;
+      case TASK_CURRENT_STATE:
+        listenerClass = TaskCurrentStateChangeListener.class;
+        break;
       case CUSTOMIZED_STATE_ROOT:
         listenerClass = CustomizedStateRootChangeListener.class;
         break;
@@ -414,6 +419,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         List<CurrentState> currentStates = preFetch(_propertyKey);
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
+
+      } else if (_changeType == TASK_CURRENT_STATE) {
+        TaskCurrentStateChangeListener taskCurrentStateChangeListener =
+            (TaskCurrentStateChangeListener) _listener;
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+        List<CurrentState> currentStates = preFetch(_propertyKey);
+        taskCurrentStateChangeListener
+            .onTaskCurrentStateChange(instanceName, currentStates, changeContext);
 
       } else if (_changeType == CUSTOMIZED_STATE_ROOT) {
         CustomizedStateRootChangeListener customizedStateRootChangeListener =
@@ -571,6 +584,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         try {
           switch (_changeType) {
             case CURRENT_STATE:
+            case TASK_CURRENT_STATE:
             case CUSTOMIZED_STATE:
             case IDEAL_STATE:
             case EXTERNAL_VIEW:

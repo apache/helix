@@ -386,7 +386,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
     List<String> resources =
         accessor.getChildNames(accessor.keyBuilder().currentStates(instanceName, currentSessionId));
-    if (resources != null && resources.size() > 0) {
+    resources.addAll(accessor
+        .getChildNames(accessor.keyBuilder().taskCurrentStates(instanceName, currentSessionId)));
+    if (resources.size() > 0) {
       resourcesNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(resources));
     }
 
@@ -409,6 +411,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     String currentSessionId = sessionIds.get(0);
     CurrentState resourceCurrentState = accessor.getProperty(
         accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
+    if (resourceCurrentState == null) {
+      resourceCurrentState = accessor.getProperty(
+          accessor.keyBuilder().taskCurrentState(instanceName, currentSessionId, resourceName));
+    }
     if (resourceCurrentState != null) {
       return JSONRepresentation(resourceCurrentState.getRecord());
     }

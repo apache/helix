@@ -48,7 +48,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestTaskStage extends TaskTestBase {
-  private ClusterEvent _event = new ClusterEvent(CLUSTER_NAME, ClusterEventType.CurrentStateChange);
+  private ClusterEvent _event =
+      new ClusterEvent(CLUSTER_NAME, ClusterEventType.TaskCurrentStateChange);
   private PropertyKey.Builder _keyBuilder;
   private String _testWorkflow = TestHelper.getTestClassName();
   private String _testJobPrefix = _testWorkflow + "_Job_";

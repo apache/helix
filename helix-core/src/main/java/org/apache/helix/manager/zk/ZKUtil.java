@@ -153,6 +153,7 @@ public final class ZKUtil {
       requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceMessage(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceTaskCurrentState(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceStatusUpdate(clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.instanceError(clusterName, instanceName));
       boolean isValid = true;

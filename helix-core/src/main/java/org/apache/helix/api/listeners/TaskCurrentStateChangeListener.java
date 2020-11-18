@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,25 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  TaskCurrentStateChange,
-  CustomizedStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  CustomizeStateConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  CustomizedViewChange,
-  TargetExternalViewChange,
-  Resume,
-  PeriodicalRebalance,
-  OnDemandRebalance,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+import java.util.List;
+
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.CurrentState;
+
+/**
+ * Interface to implement to respond to changes in task current states
+ */
+public interface TaskCurrentStateChangeListener {
+
+  /**
+   * Invoked when task current states change
+   * @param instanceName name of the instance whose states changed
+   * @param statesInfo a list of the task current states
+   * @param changeContext the change event and state
+   */
+  void onTaskCurrentStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext);
 }

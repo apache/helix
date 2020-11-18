@@ -230,6 +230,15 @@ public interface HelixManager {
       String sessionId) throws Exception;
 
   /**
+   * Uses CurrentStateChangeListener since TaskCurrentState shares the same CurrentState model
+   * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception;
+
+  /**
 
    * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
    * @param listener

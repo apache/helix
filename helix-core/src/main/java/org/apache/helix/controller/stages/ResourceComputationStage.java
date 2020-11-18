@@ -191,6 +191,17 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
         Map<String, CurrentState> currentStateMap =
             cache.getCurrentState(instanceName, clientSessionId);
+        Map<String, CurrentState> taskCurrentStateMap =
+            cache.getTaskCurrentState(instanceName, clientSessionId);
+
+        // TODO: merge currentStates between regular resources and task resources, and allow regular
+        // resources to overwrite task resources. Duplicate resource names between regular and task
+        // resources most likely wouldn't happen. To avoid duplicate resource overwriting, need to
+        // split data. This is better done in an total split project.
+        if (currentStateMap != null && taskCurrentStateMap != null) {
+          taskCurrentStateMap.forEach(currentStateMap::putIfAbsent);
+        }
+
         if (currentStateMap == null || currentStateMap.size() == 0) {
           continue;
         }

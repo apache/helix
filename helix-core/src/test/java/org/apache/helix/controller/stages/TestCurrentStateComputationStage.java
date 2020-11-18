@@ -99,11 +99,28 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     stateWithDeadSession.setStateModelDefRef("MasterSlave");
     stateWithDeadSession.setState("testResourceName_1", "MASTER");
 
+    ZNRecord record3 = new ZNRecord("testTaskResourceName");
+    CurrentState taskStateWithLiveSession = new CurrentState(record3);
+    taskStateWithLiveSession.setSessionId("session_3");
+    taskStateWithLiveSession.setStateModelDefRef("Task");
+    taskStateWithLiveSession.setState("testTaskResourceName_1", "INIT");
+    ZNRecord record4 = new ZNRecord("testTaskResourceName");
+    CurrentState taskStateWithDeadSession = new CurrentState(record4);
+    taskStateWithDeadSession.setSessionId("session_dead");
+    taskStateWithDeadSession.setStateModelDefRef("Task");
+    taskStateWithDeadSession.setState("testTaskResourceName_1", "INIT");
+
     accessor.setProperty(keyBuilder.currentState("localhost_3", "session_3", "testResourceName"),
         stateWithLiveSession);
-    accessor.setProperty(
-        keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
+    accessor.setProperty(keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
         stateWithDeadSession);
+    accessor.setProperty(
+        keyBuilder.taskCurrentState("localhost_3", "session_3", "testTaskResourceName"),
+        taskStateWithLiveSession);
+    accessor.setProperty(
+        keyBuilder.taskCurrentState("localhost_3", "session_dead", "testTaskResourceName"),
+        taskStateWithDeadSession);
+
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.name());
@@ -111,6 +128,10 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         output3.getCurrentState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
+    String taskCurrentState = output3
+        .getCurrentState("testTaskResourceName", new Partition("testTaskResourceName_1"),
+            "localhost_3");
+    AssertJUnit.assertEquals(taskCurrentState, "INIT");
 
     // Add another state transition message which is stale
     message = new Message(Message.MessageType.STATE_TRANSITION, "msg2");

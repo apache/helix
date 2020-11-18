@@ -154,6 +154,14 @@ public class TestResourceComputationStage extends BaseStageTest {
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);
 
+    String oldTaskResource = "testTaskResourceOld";
+    CurrentState taskCurrentState = new CurrentState(oldTaskResource);
+    taskCurrentState.setState("testTaskResourceOld_0", "RUNNING");
+    taskCurrentState.setState("testTaskResourceOld_1", "FINISHED");
+    currentState.setStateModelDefRef("Task");
+    accessor.setProperty(keyBuilder.taskCurrentState(instanceName, sessionId, oldResource),
+        taskCurrentState);
+
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     ResourceComputationStage stage = new ResourceComputationStage();
@@ -162,7 +170,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     // +1 because it will have one for current state
-    AssertJUnit.assertEquals(resources.length + 1, resourceMap.size());
+    AssertJUnit.assertEquals(resources.length + 2, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
@@ -185,6 +193,15 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));
 
+    Resource taskResource = resourceMap.get(oldTaskResource);
+    AssertJUnit.assertNotNull(taskResource);
+    AssertJUnit.assertEquals(taskResource.getResourceName(), oldResource);
+    AssertJUnit
+        .assertEquals(taskResource.getStateModelDefRef(), currentState.getStateModelDefRef());
+    AssertJUnit.assertEquals(taskResource.getPartitions().size(),
+        taskCurrentState.getPartitionStateMap().size());
+    AssertJUnit.assertNotNull(taskResource.getPartition("testTaskResourceOld_0"));
+    AssertJUnit.assertNotNull(taskResource.getPartition("testTaskResourceOld_1"));
   }
 
   @Test

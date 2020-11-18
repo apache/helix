@@ -115,6 +115,7 @@ public class BasicClusterDataCache implements ControlContextProvider {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, false);
       _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, true);
+      _propertyDataChangedMap.put(HelixConstants.ChangeType.TASK_CURRENT_STATE, true);
       _liveInstancePropertyCache.refresh(accessor);
       LOG.info("Reload LiveInstances: " + _liveInstancePropertyCache.getPropertyMap().keySet()
           + ". Takes " + (System.currentTimeMillis() - start) + " ms");

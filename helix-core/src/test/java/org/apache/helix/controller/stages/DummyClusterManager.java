@@ -144,6 +144,12 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
+  public void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId) throws Exception {
+
+  }
+
+  @Override
   public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
       String instanceName) throws Exception {
     // TODO Auto-generated method stub

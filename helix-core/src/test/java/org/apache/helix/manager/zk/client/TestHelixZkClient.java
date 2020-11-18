@@ -94,11 +94,12 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     HelixZkClient sharedZkClientA =
         testFactory.buildZkClient(connectionConfig, new HelixZkClient.ZkClientConfig());
     Assert.assertTrue(sharedZkClientA.waitUntilConnected(1, TimeUnit.SECONDS));
+    long sessionIdClientA = sharedZkClientA.getSessionId();
 
     HelixZkClient sharedZkClientB =
         testFactory.buildZkClient(connectionConfig, new HelixZkClient.ZkClientConfig());
     Assert.assertTrue(sharedZkClientB.waitUntilConnected(1, TimeUnit.SECONDS));
-
+    long sessionIdClientB = sharedZkClientB.getSessionId();
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 1);
 
     // client A and B is sharing the same session.
@@ -131,12 +132,16 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     });
 
     // Modify using client A and client B will get notification.
+    // note, if session changed in between, we may get a dataDelete callback. This is current
+    // zkclient behavior.
     sharedZkClientA.createPersistent(TEST_PATH, true);
-    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 1, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 1, TestHelper.WAIT_DURATION),
+        String.format("Original sidA before %d and sidB %d, current sidA %d, sidB %d",
+            sessionIdClientA, sessionIdClientB, sharedZkClientA.getSessionId(), sharedZkClientB.getSessionId()));
     Assert.assertEquals(notificationCountB[1], 0);
 
     sharedZkClientA.deleteRecursively(TEST_ROOT);
-    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[1] == 1, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[1] == 1, TestHelper.WAIT_DURATION));
     Assert.assertEquals(notificationCountB[0], 1);
 
     try {
@@ -166,8 +171,8 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     sharedZkClientB.watchForData(TEST_PATH);
     // Now modify using client B, and client A won't get notification.
     sharedZkClientB.createPersistent(TEST_PATH, true);
-    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 2, 1000));
-    Assert.assertFalse(TestHelper.verify(() -> notificationCountA[0] == 2, 1000));
+    Assert.assertTrue(TestHelper.verify(() -> notificationCountB[0] == 2, TestHelper.WAIT_DURATION));
+    Assert.assertFalse(TestHelper.verify(() -> notificationCountA[0] == 2, TestHelper.WAIT_DURATION));
     sharedZkClientB.deleteRecursively(TEST_ROOT);
 
     Assert.assertEquals(testFactory.getActiveConnectionCount(), 1);

@@ -148,8 +148,8 @@ public abstract class AbstractTaskDispatcher {
 
         if (!instance.equals(jobCtx.getAssignedParticipant(pId))) {
           LOG.warn(
-              "Instance {} does not match the assigned participant for pId {} in the job context. Skipping task scheduling.",
-              instance, pId);
+              "Instance {} does not match the assigned participant for pId {} in the job context (job: {}). Skipping task scheduling.",
+              instance, pId, jobCtx.getName());
           continue;
         }
 
@@ -238,16 +238,14 @@ public abstract class AbstractTaskDispatcher {
           // order to avoid scheduling it again in this pipeline.
           assignedPartitions.get(instance).add(pId);
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
-                pName, currState));
-          }
+          LOG.debug(
+              "Task partition {} has completed with state {}. Marking as such in rebalancer context.",
+              pName, currState);
           partitionsToDropFromIs.add(pId);
           // This task is COMPLETED, so release this task
           assignableInstanceManager.release(instance, taskConfig, quotaType);
         }
-          break;
+        break;
         case TIMED_OUT:
 
         case TASK_ERROR:
@@ -260,11 +258,9 @@ public abstract class AbstractTaskDispatcher {
           // (meaning it is not ABORTED and max number of attempts has not been reached yet)
           assignedPartitions.get(instance).add(pId);
           paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.",
-                pName, currState, jobCtx.getPartitionInfo(pId)));
-          }
+          LOG.debug(
+              "Task partition {} has error state {} with msg {}. Marking as such in rebalancer context.",
+              pName, currState, jobCtx.getPartitionInfo(pId));
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts or task is in ABORTED state.
           // But notice that if job is TIMED_OUT, aborted task won't be treated as fail and won't
@@ -276,9 +272,7 @@ public abstract class AbstractTaskDispatcher {
                 || currState.equals(TaskPartitionState.ERROR)) {
               skippedPartitions.add(pId);
               partitionsToDropFromIs.add(pId);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("skippedPartitions:" + skippedPartitions);
-              }
+              LOG.debug("skippedPartitions: {}", skippedPartitions);
             } else {
               // Mark the task to be started at some later time (if enabled)
               markPartitionDelayed(jobCfg, jobCtx, pId);
@@ -323,11 +317,9 @@ public abstract class AbstractTaskDispatcher {
         case DROPPED: {
           // currState in [INIT, DROPPED]. Do nothing, the partition is eligible to be reassigned.
           donePartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has state %s. It will be dropped from the current ideal state.",
-                pName, currState));
-          }
+          LOG.debug(
+              "Task partition {} has state {}. It will be dropped from the current ideal state.",
+              pName, currState);
           // If it's DROPPED, release this task. If INIT, do not release
           if (currState == TaskPartitionState.DROPPED) {
             assignableInstanceManager.release(instance, taskConfig, quotaType);

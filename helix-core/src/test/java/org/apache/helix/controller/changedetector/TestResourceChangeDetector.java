@@ -432,8 +432,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     try {
-      boolean result = _clusterVerifier.verify();
-      Assert.assertTrue(result);
+      Assert.assertTrue(_clusterVerifier.verify());
     } finally{
       _clusterVerifier.close();
     }

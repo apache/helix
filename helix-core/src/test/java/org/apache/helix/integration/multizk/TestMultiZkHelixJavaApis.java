@@ -62,6 +62,7 @@ import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.TaskDriver;
@@ -180,7 +181,16 @@ public class TestMultiZkHelixJavaApis {
     try {
       // Kill all mock controllers and participants
       MOCK_CONTROLLERS.values().forEach(ClusterControllerManager::syncStop);
-      MOCK_PARTICIPANTS.forEach(MockParticipantManager::syncStop);
+      MOCK_PARTICIPANTS.forEach(mockParticipantManager -> {
+        mockParticipantManager.syncStop();
+        StateMachineEngine stateMachine = mockParticipantManager.getStateMachineEngine();
+        if (stateMachine != null) {
+          StateModelFactory stateModelFactory = stateMachine.getStateModelFactory("Task");
+          if (stateModelFactory != null && stateModelFactory instanceof TaskStateModelFactory) {
+            ((TaskStateModelFactory) stateModelFactory).shutdown();
+          }
+        }
+      });
 
       // Tear down all clusters
       CLUSTER_LIST.forEach(cluster -> TestHelper.dropCluster(cluster, _zkClient));

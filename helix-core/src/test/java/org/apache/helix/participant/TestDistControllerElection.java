@@ -19,6 +19,7 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -72,15 +73,20 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     DistributedLeaderElection election =
         new DistributedLeaderElection(manager, controller0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
-    context.setType(NotificationContext.Type.INIT);
-    election.onControllerChange(context);
+    try {
+      context.setType(NotificationContext.Type.INIT);
+      election.onControllerChange(context);
 
-    // path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-    // ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
-    // AssertJUnit.assertNotNull(election.getController());
-    // AssertJUnit.assertNull(election.getLeader());
+      // path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
+      // ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+      AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+      // AssertJUnit.assertNotNull(election.getController());
+      // AssertJUnit.assertNull(election.getLeader());
+    } finally {
+      manager.disconnect();
+      controller0.shutdown();
+    }
 
     manager =
         new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER, _gZkClient);
@@ -88,20 +94,24 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
-    election.onControllerChange(context);
-    // leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
-    // AssertJUnit.assertNull(election.getController());
-    // AssertJUnit.assertNull(election.getLeader());
-
-    accessor.removeProperty(keyBuilder.controllerLeader());
-    TestHelper.dropCluster(clusterName, _gZkClient);
+    try {
+      election.onControllerChange(context);
+      // leaderRecord = _gZkClient.<ZNRecord> readData(path);
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+      AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+      // AssertJUnit.assertNull(election.getController());
+      // AssertJUnit.assertNull(election.getLeader());
+    } finally {
+      manager.disconnect();
+      controller1.shutdown();
+      accessor.removeProperty(keyBuilder.controllerLeader());
+      TestHelper.dropCluster(clusterName, _gZkClient);
+    }
 
     System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testController")
   public void testControllerParticipant() throws Exception {
     String className = getShortClassName();
     LOG.info("RUN " + className + " at " + new Date(System.currentTimeMillis()));
@@ -126,16 +136,22 @@ public class TestDistControllerElection extends ZkUnitTestBase {
         new DistributedLeaderElection(manager, controller0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
-    election.onControllerChange(context);
+    try {
+      election.onControllerChange(context);
 
-    LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+      AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
 
-    // path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-    // ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    // AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
-    // AssertJUnit.assertNotNull(election.getController());
-    // AssertJUnit.assertNotNull(election.getLeader());
+      // path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
+      // ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
+      // AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+      // AssertJUnit.assertNotNull(election.getController());
+      // AssertJUnit.assertNotNull(election.getLeader());
+    }
+    finally {
+      manager.disconnect();
+      controller0.shutdown();
+    }
 
     manager =
         new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
@@ -144,22 +160,25 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
-    election.onControllerChange(context);
+    try {
+      election.onControllerChange(context);
 
-    liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+      LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+      AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
 
-    // leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    // AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
-    // AssertJUnit.assertNull(election.getController());
-    // AssertJUnit.assertNull(election.getLeader());
+      // leaderRecord = _gZkClient.<ZNRecord> readData(path);
+      // AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+      // AssertJUnit.assertNull(election.getController());
+      // AssertJUnit.assertNull(election.getLeader());
+    } finally {
+      manager.disconnect();
+      controller1.shutdown();
+    }
 
-    accessor.removeProperty(keyBuilder.controllerLeader());
-    TestHelper.dropCluster(clusterName, _gZkClient);
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testController")
   public void testParticipant() throws Exception {
     String className = getShortClassName();
     LOG.info("RUN " + className + " at " + new Date(System.currentTimeMillis()));
@@ -182,6 +201,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       // expected
     }
 
+    participant0.shutdown();
+    manager.disconnect();
     TestHelper.dropCluster(clusterName, _gZkClient);
   }
 
@@ -197,6 +218,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
 
     // Create controller leaders
     final Map<String, ZKHelixManager> managerList = new HashMap<>();
+    final List<GenericHelixController> controllers = new ArrayList<>();
     for (int i = 0; i < managerCount; i++) {
       String controllerName = "controller_" + i;
       ZKHelixManager manager =
@@ -204,28 +226,37 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       GenericHelixController controller0 = new GenericHelixController();
       DistributedLeaderElection election =
           new DistributedLeaderElection(manager, controller0, Collections.EMPTY_LIST);
+      controllers.add(controller0);
       manager.connect();
       managerList.put(manager.getInstanceName(), manager);
     }
 
-    // Remove leader manager one by one, and verify if the leader node exists
-    while(!managerList.isEmpty()) {
-      // Ensure a controller successfully acquired leadership.
-      Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
-        @Override
-        public boolean verify() {
-          LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
-          if (liveInstance != null) {
-            // disconnect the current leader manager
-            managerList.remove(liveInstance.getInstanceName()).disconnect();
-            return true;
-          } else {
-            return false;
+    try {
+      // Remove leader manager one by one, and verify if the leader node exists
+      while (!managerList.isEmpty()) {
+        // Ensure a controller successfully acquired leadership.
+        Assert.assertTrue(TestHelper.verify(new TestHelper.Verifier() {
+          @Override
+          public boolean verify() {
+            LiveInstance liveInstance = accessor.getProperty(keyBuilder.controllerLeader());
+            if (liveInstance != null) {
+              // disconnect the current leader manager
+              managerList.remove(liveInstance.getInstanceName()).disconnect();
+              return true;
+            } else {
+              return false;
+            }
           }
-        }
-      }, 1000));
+        }, 1000));
+      }
+    } finally {
+      for (GenericHelixController controller : controllers) {
+        controller.shutdown();
+      }
+      for (ZKHelixManager mgr: managerList.values()) {
+        mgr.disconnect();
+      }
+      TestHelper.dropCluster(clusterName, _gZkClient);
     }
-
-    TestHelper.dropCluster(clusterName, _gZkClient);
   }
 }

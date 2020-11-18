@@ -346,7 +346,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     }
 
     synchronized (this) {
-
       if (!_expectTypes.contains(type)) {
         logger.warn("Callback handler {} received event in wrong order. Listener: {}, path: {}, "
             + "expected types: {}, but was {}", _uid, _listener, _path, _expectTypes, type);
@@ -359,9 +358,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       }
     }
 
-    // This allows the listener to work with one change at a time
+    // This allows the Helix Manager to work with one change at a time
+    // TODO: Maybe we don't need to sync on _manager for all types of listener. PCould be a
+    // potential improvement candidate.
     synchronized (_manager) {
-
       if (_changeType == IDEAL_STATE) {
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         List<IdealState> idealStates = preFetch(_propertyKey);

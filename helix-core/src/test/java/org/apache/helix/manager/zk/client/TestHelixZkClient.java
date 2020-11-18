@@ -141,7 +141,6 @@ public class TestHelixZkClient extends ZkUnitTestBase {
     Assert.assertEquals(notificationCountB[1], 0);
 
     sharedZkClientA.deleteRecursively(TEST_ROOT);
-    System.out.println("Deleted test path:" + TEST_PATH);
     Assert.assertTrue(TestHelper.verify(() -> notificationCountB[1] == 1, TestHelper.WAIT_DURATION));
     Assert.assertEquals(notificationCountB[0], 1);
 

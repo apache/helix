@@ -157,7 +157,6 @@ public class TestNoDoubleAssign extends TaskTestBase {
   private void breakConnection() {
     _executorServiceConnection = Executors.newScheduledThreadPool(THREAD_COUNT);
     _executorServiceConnection.scheduleAtFixedRate(() -> {
-      // Randomly pick a Participant and cause a transient connection issue
       synchronized (this) {
         int participantIndex = RANDOM.nextInt(_numNodes);
         stopParticipant(participantIndex);

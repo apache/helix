@@ -608,14 +608,14 @@ public class TestHelixAdminCli extends ZkTestBase {
       }
     }
 
+    command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
+    ClusterSetup.processCommandLineArgs(command.split("\\s"));
+
     boolean leaderNotExists = TestHelper.verify(() -> {
       boolean isLeaderExists = _gZkClient.exists(path);
       return isLeaderExists == false;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(leaderNotExists, " mysterious leader out!");
-
-    command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
-    ClusterSetup.processCommandLineArgs(command.split("\\s"));
 
     for (ClusterDistributedController controller : controllers) {
       controller.syncStop();

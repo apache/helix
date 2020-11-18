@@ -40,7 +40,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
   @Test
   public void testUpdateOnNotification() {
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
-
+    
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -99,6 +99,7 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
     Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
     accessor.clearReadCounters();
 
     // refresh again should read only new current states and new idealstate

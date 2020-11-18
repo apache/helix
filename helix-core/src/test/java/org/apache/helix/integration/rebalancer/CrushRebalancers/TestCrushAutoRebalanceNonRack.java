@@ -117,7 +117,6 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
-
     if (_controller != null && _controller.isConnected()) {
       _controller.syncStop();
     }
@@ -254,8 +253,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       MockParticipantManager newNode =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, p.getInstanceName());
       _participants.set(i, newNode);
-      newNode.syncStart();
-    }
+      newNode.syncStart();    }
   }
 
   @Test(dataProvider = "rebalanceStrategies", enabled = true, dependsOnMethods = {

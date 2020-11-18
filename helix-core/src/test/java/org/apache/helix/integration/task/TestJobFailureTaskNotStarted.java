@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -83,7 +84,10 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME)
+            .setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
   }
 
   protected void startParticipantsWithStuckTaskStateModelFactory() {

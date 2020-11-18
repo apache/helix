@@ -286,7 +286,8 @@ public class TestParticipantManager extends ZkTestBase {
     BestPossibleExternalViewVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();    Assert.assertTrue(verifier.verifyByPolling());
+            .build();
+    Assert.assertTrue(verifier.verifyByPolling());
     String oldSessionId = participants[0].getSessionId();
 
     // expire zk-connection on localhost_12918

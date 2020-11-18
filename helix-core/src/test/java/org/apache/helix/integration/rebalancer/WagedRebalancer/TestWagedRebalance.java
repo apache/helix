@@ -143,7 +143,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
 
     validate(_replica);
 
@@ -156,8 +155,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, moreDB, _replica);
       _allDBs.add(moreDB);
 
-      Thread.sleep(300);
-
       validate(_replica);
     }
 
@@ -166,8 +163,6 @@ public class TestWagedRebalance extends ZkTestBase {
       String moreDB = "More-Test-DB-" + j++;
       _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, moreDB);
       _allDBs.remove(moreDB);
-
-      Thread.sleep(300);
 
       validate(_replica);
     }
@@ -188,7 +183,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
 
     validate(_replica);
 
@@ -290,7 +284,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
     validate(_replica);
   }
 
@@ -301,7 +294,6 @@ public class TestWagedRebalance extends ZkTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
     _allDBs.add(dbName);
-    Thread.sleep(300);
 
     validate(_replica);
 
@@ -311,7 +303,6 @@ public class TestWagedRebalance extends ZkTestBase {
     int newReplicaFactor = _replica - 1;
     is.setReplicas("" + newReplicaFactor);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
-    Thread.sleep(300);
 
     validate(newReplicaFactor);
 
@@ -320,7 +311,6 @@ public class TestWagedRebalance extends ZkTestBase {
     is.setNumPartitions(PARTITIONS + 1);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
     _gSetupTool.getClusterManagementTool().rebalance(CLUSTER_NAME, dbName, newReplicaFactor);
-    Thread.sleep(300);
 
     validate(newReplicaFactor);
     ExternalView ev =
@@ -333,7 +323,6 @@ public class TestWagedRebalance extends ZkTestBase {
     is = _gSetupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
     is.setPreferenceList(dbName + "_customizedPartition", Collections.EMPTY_LIST);
     _gSetupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, dbName, is);
-    Thread.sleep(300);
 
     validate(newReplicaFactor);
     ev = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, dbName);
@@ -347,7 +336,6 @@ public class TestWagedRebalance extends ZkTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
     _allDBs.add(dbName);
-    Thread.sleep(300);
 
     validate(_replica);
 
@@ -364,7 +352,6 @@ public class TestWagedRebalance extends ZkTestBase {
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, p.getInstanceName(), config);
       }
-      Thread.sleep(300);
 
       validate(_replica);
 
@@ -405,7 +392,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _allDBs.add(db);
     }
 
-    Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(2);
 
@@ -418,7 +404,6 @@ public class TestWagedRebalance extends ZkTestBase {
       newNode.syncStart();
     }
 
-    Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(_replica);
   }
@@ -443,7 +428,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _allDBs.add(db);
     }
 
-    Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(2);
 
@@ -458,7 +442,6 @@ public class TestWagedRebalance extends ZkTestBase {
       newNode.syncStart();
     }
 
-    Thread.sleep(300);
     // Verify if the partitions get assigned
     validate(_replica);
   }
@@ -481,8 +464,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
-
     validate(_replica);
   }
 
@@ -571,7 +552,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    Thread.sleep(300);
     validate(_replica);
 
     String newNodeName = "newNode-" + TestHelper.getTestMethodName() + "_" + START_PORT;
@@ -581,7 +561,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newNodeName);
       participant.syncStart();
 
-      Thread.sleep(300);
       validate(_replica);
 
       Assert.assertFalse(_allDBs.stream().anyMatch(db -> {
@@ -597,7 +576,6 @@ public class TestWagedRebalance extends ZkTestBase {
 
       clusterConfig.setGlobalRebalancePreference(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
       configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
-      Thread.sleep(300);
       validate(_replica);
 
       Assert.assertTrue(_allDBs.stream().anyMatch(db -> {
@@ -641,8 +619,6 @@ public class TestWagedRebalance extends ZkTestBase {
       _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       _allDBs.add(db);
     }
-    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
-    Thread.sleep(300);
     validate(_replica);
 
     // Adding one more resource. Since it is added after the other resources, the assignment is
@@ -652,8 +628,6 @@ public class TestWagedRebalance extends ZkTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), PARTITIONS, _replica, _replica);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, moreDB, _replica);
     _allDBs.add(moreDB);
-    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
-    Thread.sleep(300);
     validate(_replica);
     ExternalView oldEV =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, moreDB);
@@ -664,8 +638,6 @@ public class TestWagedRebalance extends ZkTestBase {
 
     // After reset done, the rebalancer will try to rebalance all the partitions since it has
     // forgotten the previous state.
-    // TODO remove this sleep after fix https://github.com/apache/helix/issues/526
-    Thread.sleep(300);
     validate(_replica);
     ExternalView newEV =
         _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, moreDB);
@@ -682,7 +654,6 @@ public class TestWagedRebalance extends ZkTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, _replica);
     _allDBs.add(dbName);
     // waiting for the DBs being dropped.
-    Thread.sleep(300);
     validate(_replica);
 
     // Record the current Ideal State and Resource Config for recreating.
@@ -693,14 +664,12 @@ public class TestWagedRebalance extends ZkTestBase {
     _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, dbName);
     _allDBs.remove(dbName);
     // waiting for the DBs being dropped.
-    Thread.sleep(100);
     validate(_replica);
 
     // Recreate the DB.
     _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, is);
     _allDBs.add(dbName);
     // waiting for the DBs to be recreated.
-    Thread.sleep(100);
     validate(_replica);
   }
 

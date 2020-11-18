@@ -63,7 +63,8 @@ public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebala
     _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();  }
+            .build();
+  }
 
   @Override
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,

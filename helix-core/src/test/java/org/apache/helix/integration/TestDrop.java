@@ -180,7 +180,8 @@ public class TestDrop extends ZkTestBase {
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
         .setZkClient(_gZkClient).setErrStates(errStateMap)
         .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-        .build();    Assert.assertTrue(verifier.verifyByPolling());
+        .build();
+    Assert.assertTrue(verifier.verifyByPolling());
 
     // drop resource containing error partitions should drop the partition successfully
     ClusterSetup.processCommandLineArgs(new String[] {

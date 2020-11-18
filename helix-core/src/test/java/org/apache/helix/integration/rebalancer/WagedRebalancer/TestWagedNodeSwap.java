@@ -184,7 +184,6 @@ public class TestWagedNodeSwap extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "NodeSwapDone", Collections.emptyMap());
 
-    Thread.sleep(2000);
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     // Since only one node temporary down, the same partitions will be moved to the newly added node.
@@ -270,7 +269,6 @@ public class TestWagedNodeSwap extends ZkTestBase {
     _gSetupTool.getClusterManagementTool()
         .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "NodeSwapDone", Collections.emptyMap());
 
-    Thread.sleep(2000);
     Assert.assertTrue(_clusterVerifier.verify(5000));
 
     for (String db : _allDBs) {

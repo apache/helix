@@ -22,6 +22,7 @@ package org.apache.helix.integration.task;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixException;
+import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.MasterSlaveSMD;
@@ -59,7 +60,9 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
     _controller.syncStart();
 
     _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling(10000, 100));
   }
 

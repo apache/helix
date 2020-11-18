@@ -112,7 +112,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
   // all the bellow test will be invoked after other test including @AfterClass cleanup of this
   // This bug does not happen of running command as "mvn test -Dtest=TestClusterSetup". Nor does it
   // happen in intellij. The workaround found is to add dependsOnMethods attribute to all the rest.
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  @Test(dependsOnMethods = "testAddClusterAzureProvider")
   public void testZkAdminTimeout() {
     boolean exceptionThrown = testZkAdminTimeoutHelper();
 
@@ -125,7 +125,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertTrue(System.currentTimeMillis() - time < 5000);
   }
 
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  @Test(dependsOnMethods = "testZkAdminTimeout")
   public void testAddInstancesToCluster() throws Exception {
     String[] instanceAddresses = new String[3];
     for (int i = 0; i < 3; i++) {
@@ -153,7 +153,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  @Test(dependsOnMethods = "testAddInstancesToCluster")
   public void testDisableDropInstancesFromCluster() throws Exception {
     testAddInstancesToCluster();
     String[] instanceAddresses = new String[3];
@@ -236,7 +236,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     verifyReplication(_gZkClient, CLUSTER_NAME, TEST_DB, 4);
   }
 
-  @Test(dependsOnMethods = "testAddClusterWithValidCloudConfig")
+  @Test(dependsOnMethods = "testRebalanceCluster")
   public void testParseCommandLinesArgs() throws Exception {
     // wipe ZK
     _gZkClient.deleteRecursively("/" + CLUSTER_NAME);

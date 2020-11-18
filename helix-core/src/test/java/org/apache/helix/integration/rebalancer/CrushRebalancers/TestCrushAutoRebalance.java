@@ -299,21 +299,6 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     }
   }
 
-  @Test()
-  public void testAddZone() throws Exception {
-    // TODO
-  }
-
-  @Test()
-  public void testAddNodes() throws Exception {
-    // TODO
-  }
-
-  @Test()
-  public void testNodeFailure() throws Exception {
-    // TODO
-  }
-
   @AfterClass
   public void afterClass() throws Exception {
     /*

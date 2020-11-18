@@ -119,7 +119,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testTargetExternalViewWithoutEnable")
   public void testExternalViewDoesNotExist() {
     String resourceName = WorkflowGenerator.DEFAULT_TGT_DB + 1;
     RoutingTableProvider externalViewProvider =

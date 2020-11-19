@@ -55,6 +55,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
     3. [Quota-based Scheduling](./quota_scheduling.html)
 15. [Helix REST Service 2.0](./tutorial_rest_service.html)
 16. [Helix UI Setup](./tutorial_ui.html)
+17. [Helix Cloud Support](./tutorial_cloud_support.html)
 
 ### Preliminaries
 

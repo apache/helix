@@ -36,17 +36,15 @@ Release Notes for Apache Helix 0.9.9
 
 * Key Note for Helix Release
 
-** Critical Bug Fixes and Craftsmanship Improvements
+** New Feature
 
-    In this release, we added Helix participant auto registration feature for cloud environment, e.g. Azure. With this feature, a Helix participant can automatically get its fault domain information from cloud provider, and join the cluster with this information when participant starts.
+    In this release, we added Helix participant auto registration feature for cloud environment, e.g. Azure. With this feature, a Helix participant can automatically get its fault domain information from cloud provider, and join the cluster with this information when participant starts. We also provide domain APIs which allow users to retrieve the topology of the cluster as well as the mapping between each fault domain and the instances inside that domain.
 
 []
 
 * Detailed Changes
 
-** Bug Fixes
-
-** Improvements
+** New Feature
 
     * Add JAVA API and REST API for cluster creation with cloudconfig (#675, #872, #882, #898)
 
@@ -55,6 +53,8 @@ Release Notes for Apache Helix 0.9.9
     * Add Helix cloud interface and high level implementation methods (#600)
 
     * Implement Azure cloud instance information processor to support auto registration in Azure environment (#698)
+
+    * Add Helix cluster trie structure and provide domain APIs based on the trie to retrieve cluster topology and domain information. (#1307, #1416)
 
 []
 

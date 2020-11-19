@@ -70,7 +70,6 @@ import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -831,8 +830,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
         accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-    curResourceNames
-        .addAll(accessor.getChildNames(keyBuilder.taskCurrentStates(instanceName, sessionId)));
     List<PropertyKey> createCurStateKeys = new ArrayList<>();
     List<CurrentState> metaCurStates = new ArrayList<>();
     Set<String> createCurStateNames = new HashSet<>();
@@ -914,10 +911,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (!curResourceNames.contains(resourceName) && !createCurStateNames
             .contains(resourceName)) {
           createCurStateNames.add(resourceName);
-          createCurStateKeys.add(
-              message.getStateModelDef().equals(TaskConstants.STATE_MODEL_NAME) ? keyBuilder
-                  .taskCurrentState(instanceName, sessionId, resourceName)
-                  : keyBuilder.currentState(instanceName, sessionId, resourceName));
+          createCurStateKeys.add(keyBuilder.currentState(instanceName, sessionId, resourceName));
 
           CurrentState metaCurState = new CurrentState(resourceName);
           metaCurState.setBucketSize(message.getBucketSize());

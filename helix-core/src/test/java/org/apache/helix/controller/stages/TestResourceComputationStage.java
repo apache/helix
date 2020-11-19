@@ -158,8 +158,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     CurrentState taskCurrentState = new CurrentState(oldTaskResource);
     taskCurrentState.setState("testTaskResourceOld_0", "RUNNING");
     taskCurrentState.setState("testTaskResourceOld_1", "FINISHED");
-    currentState.setStateModelDefRef("Task");
-    accessor.setProperty(keyBuilder.taskCurrentState(instanceName, sessionId, oldResource),
+    taskCurrentState.setStateModelDefRef("Task");
+    accessor.setProperty(keyBuilder.taskCurrentState(instanceName, sessionId, oldTaskResource),
         taskCurrentState);
 
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
@@ -169,7 +169,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, stage);
 
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    // +1 because it will have one for current state
+    System.out.println(resourceMap);
+    // +2 because it will have one for current state and one for task current state
     AssertJUnit.assertEquals(resources.length + 2, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
@@ -195,9 +196,9 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     Resource taskResource = resourceMap.get(oldTaskResource);
     AssertJUnit.assertNotNull(taskResource);
-    AssertJUnit.assertEquals(taskResource.getResourceName(), oldResource);
+    AssertJUnit.assertEquals(taskResource.getResourceName(), oldTaskResource);
     AssertJUnit
-        .assertEquals(taskResource.getStateModelDefRef(), currentState.getStateModelDefRef());
+        .assertEquals(taskResource.getStateModelDefRef(), taskCurrentState.getStateModelDefRef());
     AssertJUnit.assertEquals(taskResource.getPartitions().size(),
         taskCurrentState.getPartitionStateMap().size());
     AssertJUnit.assertNotNull(taskResource.getPartition("testTaskResourceOld_0"));

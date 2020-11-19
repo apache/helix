@@ -49,7 +49,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 1);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 2);
 
     accessor.clearReadCounters();
@@ -60,7 +59,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     accessor.clearReadCounters();
@@ -71,7 +69,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     accessor.clearReadCounters();
@@ -81,7 +78,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
   }
 
@@ -98,7 +94,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 1);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), NODE_NR + 2);
 
     accessor.clearReadCounters();
@@ -109,7 +104,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.LIVEINSTANCES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), 0);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), 0);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 0);
 
     // add a new resource
@@ -125,7 +119,6 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     cache.notifyDataChange(HelixConstants.ChangeType.IDEAL_STATE);
     cache.refresh(accessor);
     Assert.assertEquals(accessor.getReadCount(PropertyType.CURRENTSTATES), NODE_NR);
-    Assert.assertEquals(accessor.getReadCount(PropertyType.TASKCURRENTSTATES), NODE_NR);
     Assert.assertEquals(accessor.getReadCount(PropertyType.IDEALSTATES), 1);
     Assert.assertEquals(accessor.getReadCount(PropertyType.EXTERNALVIEW), 0);
 

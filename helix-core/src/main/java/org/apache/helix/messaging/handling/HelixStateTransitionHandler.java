@@ -45,7 +45,6 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
-import org.apache.helix.task.TaskStateModel;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
@@ -138,10 +137,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
       String sessionId = _message.getTgtSessionId();
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key = _stateModel instanceof TaskStateModel ? accessor.keyBuilder()
-          .taskCurrentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName))
-          : accessor.keyBuilder()
-              .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
+      PropertyKey key = accessor.keyBuilder()
+          .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
       ZNRecord rec = new ZNRecord(resource);
       Map<String, String> map = new TreeMap<String, String>();
       map.put(CurrentState.CurrentStateProperty.REQUESTED_STATE.name(), null);
@@ -441,10 +438,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
           disablePartition();
         }
 
-        PropertyKey currentStateKey = _stateModel instanceof TaskStateModel ? keyBuilder
-            .taskCurrentState(instanceName, _message.getTgtSessionId(), resourceName)
-            : keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName);
-        if (!accessor.updateProperty(currentStateKey, currentStateDelta)) {
+        if (!accessor.updateProperty(
+            keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName),
+            currentStateDelta)) {
           logger.error("Fails to persist ERROR current state to ZK for resource " + resourceName
               + " partition: " + partition);
         }

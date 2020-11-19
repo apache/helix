@@ -64,6 +64,18 @@ public class MessageOutput {
     return Collections.emptyList();
   }
 
+  public Map<Partition, List<Message>> getResourceMessages(String resourceName) {
+    Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
+    if (map != null) {
+      return map;
+    }
+    return Collections.emptyMap();
+  }
+
+  public void addResourceMessages(String resourceName, Map<Partition, List<Message>> resourceMessages) {
+    _messagesMap.put(resourceName, resourceMessages);
+  }
+
   @Override
   public String toString() {
     return _messagesMap.toString();

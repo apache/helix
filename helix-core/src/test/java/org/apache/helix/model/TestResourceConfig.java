@@ -152,7 +152,7 @@ public class TestResourceConfig {
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMap));
   }
 
-  @Test(dependsOnMethods = "testSetPartitionCapacityMapInvalid")
+  @Test(dependsOnMethods = "testSetPartitionCapacityMapInvalid") 
   public void testWithResourceBuilder() throws IOException {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1,
         "item2", 2,

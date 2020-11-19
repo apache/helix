@@ -19,9 +19,11 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.CurrentState;
@@ -128,10 +130,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         output3.getCurrentState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
+    // Non Task Framework event will cause task current states to be ignored
     String taskCurrentState = output3
         .getCurrentState("testTaskResourceName", new Partition("testTaskResourceName_1"),
             "localhost_3");
-    AssertJUnit.assertEquals(taskCurrentState, "INIT");
+    AssertJUnit.assertNull(taskCurrentState);
 
     // Add another state transition message which is stale
     message = new Message(Message.MessageType.STATE_TRANSITION, "msg2");
@@ -149,6 +152,24 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     AssertJUnit.assertEquals(dataCache.getStaleMessages().size(), 1);
     AssertJUnit.assertTrue(dataCache.getStaleMessages().containsKey("localhost_3"));
     AssertJUnit.assertTrue(dataCache.getStaleMessages().get("localhost_3").containsKey("msg2"));
+
+    // Use a task event to check that task current states are included
+    resourceMap = new HashMap<String, Resource>();
+    Resource testTaskResource = new Resource("testTaskResourceName");
+    testTaskResource.setStateModelDefRef("Task");
+    testTaskResource.addPartition("testTaskResourceName_1");
+    resourceMap.put("testTaskResourceName", testTaskResource);
+    ClusterEvent taskEvent = new ClusterEvent(ClusterEventType.Unknown);
+    taskEvent.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    taskEvent.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new WorkflowControllerDataProvider());
+    runStage(taskEvent, new ReadClusterDataStage());
+    runStage(taskEvent, stage);
+    CurrentStateOutput output5 = taskEvent.getAttribute(AttributeName.CURRENT_STATE.name());
+    taskCurrentState = output5
+        .getCurrentState("testTaskResourceName", new Partition("testTaskResourceName_1"),
+            "localhost_3");
+    AssertJUnit.assertEquals(taskCurrentState, "INIT");
   }
 
 }

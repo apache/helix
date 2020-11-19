@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,9 +90,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceSessionId = instance.getEphemeralOwner();
 
       // update current states.
+      // Like ResourceComputationStage, we give priority to regular resources, so update task ones
+      // first and allow regular ones to overwrite if there's any name conflicts.
+      if (_isTaskFrameworkPipeline) {
+        Map<String, CurrentState> taskCurrentStateMap = cache.getTaskCurrentState(instanceName, instanceSessionId);
+        updateCurrentStates(instance, taskCurrentStateMap.values(), currentStateOutput, resourceMap);
+      }
       Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
           instanceSessionId);
       updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
+
 
       Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
       // update pending messages

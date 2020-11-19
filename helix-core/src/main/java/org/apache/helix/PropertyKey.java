@@ -507,7 +507,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey taskCurrentState(String instanceName, String sessionId, String resourceName) {
-      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
           sessionId, resourceName);
     }
 
@@ -523,11 +523,11 @@ public class PropertyKey {
     public PropertyKey taskCurrentState(String instanceName, String sessionId, String resourceName,
         String bucketName) {
       if (bucketName == null) {
-        return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+        return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName);
 
       } else {
-        return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+        return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName, bucketName);
       }
     }

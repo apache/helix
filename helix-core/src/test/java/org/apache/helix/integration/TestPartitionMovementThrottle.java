@@ -29,11 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Delayed;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
@@ -51,12 +53,16 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
+  private static final Logger logger =
+      LoggerFactory.getLogger(TestPartitionMovementThrottle.class.getName());
 
   private ConfigAccessor _configAccessor;
   private Set<String> _dbs = new HashSet<>();
@@ -156,7 +162,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i].syncStart();
     }
 
-    Thread.sleep(2000);
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     for (String db : _dbs) {
       // After the fix in IntermediateCalcStage where downward load-balance is now allowed even if
@@ -300,6 +306,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i].syncStop();
       _participants[i] =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[i].getInstanceName());
+      _participants[i].setTransition(new DelayedTransition());
     }
     try {
       Assert.assertTrue(TestHelper.verify(() -> dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()).isEmpty(), 1000));
@@ -309,6 +316,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       assert false;
     }
     DelayedTransition.clearThrottleRecord();
+    DelayedTransition.disableThrotteRecord();
   }
 
   @Test(dependsOnMethods = {
@@ -360,7 +368,11 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       int maxInParallel =
           getMaxParallelTransitionCount(DelayedTransition.getResourcePatitionTransitionTimes(), db);
       System.out.println("MaxInParallel: " + maxInParallel + " maxPendingTransition: " + 2);
-      Assert.assertTrue(maxInParallel <= 2, "Throttle condition does not meet for " + db);
+      // Downward load-balance is now allowed even if
+      // there are recovery or error partitions present, maxPendingTransition below is adjusted from
+      // 2 to 5 because BOTH recovery balance and load balance could happen in the same pipeline
+      // iteration
+      Assert.assertTrue(maxInParallel <= 5, "Throttle condition does not meet for " + db);
     }
   }
 
@@ -405,6 +417,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       int curSize = size(temp);
       if (curSize > maxInParallel) {
         maxInParallel = curSize;
+        logger.info("current max: {}", temp);
       }
       if (endMap.containsKey(point)) {
         temp.removeAll(endMap.get(point));
@@ -428,16 +441,18 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     String partition;
     long start;
     long end;
+    Message msg;
 
-    PartitionTransitionTime(String partition, long start, long end) {
+    PartitionTransitionTime(String partition, long start, long end, Message msg) {
       this.partition = partition;
       this.start = start;
       this.end = end;
+      this.msg = msg;
     }
 
     @Override
     public String toString() {
-      return "[" + "partition='" + partition + '\'' + ", start=" + start + ", end=" + end + ']';
+      return "[" + "partition='" + partition + '\'' + ", start=" + start + ", end=" + end + ", msg=" + msg + ']';
     }
   }
 
@@ -472,6 +487,10 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _recordThrottle = true;
     }
 
+    static void disableThrotteRecord() {
+      _recordThrottle = false;
+    }
+
     static void clearThrottleRecord() {
       resourcePatitionTransitionTimes.clear();
       instancePatitionTransitionTimes.clear();
@@ -485,21 +504,25 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
         Thread.sleep(_delay);
       }
       long end = System.currentTimeMillis();
-      if (_recordThrottle) {
-        PartitionTransitionTime partitionTransitionTime =
-            new PartitionTransitionTime(message.getPartitionName(), start, end);
+      synchronized (this) {
+        if (_recordThrottle) {
+          if (HelixDefinedState.DROPPED.name().equals(message.getToState())
+              || HelixDefinedState.ERROR.name().equals(message.getToState())) {
+            // these two type message not subject to throttling
+            return;
+          }
+          PartitionTransitionTime partitionTransitionTime = new PartitionTransitionTime(message.getPartitionName(), start, end, message);
 
-        if (!resourcePatitionTransitionTimes.containsKey(message.getResourceName())) {
-          resourcePatitionTransitionTimes.put(message.getResourceName(),
-              Collections.synchronizedList(new ArrayList<>()));
-        }
-        resourcePatitionTransitionTimes.get(message.getResourceName()).add(partitionTransitionTime);
+          if (!resourcePatitionTransitionTimes.containsKey(message.getResourceName())) {
+            resourcePatitionTransitionTimes.put(message.getResourceName(), Collections.synchronizedList(new ArrayList<>()));
+          }
+          resourcePatitionTransitionTimes.get(message.getResourceName()).add(partitionTransitionTime);
 
-        if (!instancePatitionTransitionTimes.containsKey(message.getTgtName())) {
-          instancePatitionTransitionTimes.put(message.getTgtName(),
-              Collections.synchronizedList(new ArrayList<>()));
+          if (!instancePatitionTransitionTimes.containsKey(message.getTgtName())) {
+            instancePatitionTransitionTimes.put(message.getTgtName(), Collections.synchronizedList(new ArrayList<>()));
+          }
+          instancePatitionTransitionTimes.get(message.getTgtName()).add(partitionTransitionTime);
         }
-        instancePatitionTransitionTimes.get(message.getTgtName()).add(partitionTransitionTime);
       }
     }
   }

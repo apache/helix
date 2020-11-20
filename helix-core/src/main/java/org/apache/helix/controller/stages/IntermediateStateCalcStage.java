@@ -483,7 +483,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         rebalanceType = StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
       }
 
-      if (pendingMap.size() > 0) {
+      if (pendingMap.size() > 0 && rebalanceType != RebalanceType.NONE) {
         boolean shouldChargePartition = false;
         for (String instance : pendingMap.keySet()) {
           String currentState = currentStateMap.get(instance);

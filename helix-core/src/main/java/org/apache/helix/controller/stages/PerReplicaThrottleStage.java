@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
@@ -57,7 +58,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
 
     MessageOutput selectedMessages = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
-    LogUtil.logInfo(logger, _eventId, String.format("selectedMessages is: %s", selectedMessages));
+    LogUtil.logDebug(logger, _eventId, String.format("selectedMessages is: %s", selectedMessages));
 
     Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -75,9 +76,21 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     MessageOutput output =
         compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
 
-    LogUtil.logInfo(logger, _eventId, String.format("output is: %s", output));
+    LogUtil.logDebug(logger, _eventId, String.format("output is"));
+    for (String resource : resourceToRebalance.keySet()) {
+      if (output.getResourceMessages(resource) != null) {
+        LogUtil.logDebug(logger, _eventId, String.format("resource: %s", resource));
+        Map<Partition, List<Message>> partitionListMap = output.getResourceMessages(resource);
+        for (Partition partition: partitionListMap.keySet()) {
+            for (Message msg: partitionListMap.get(partition)) {
+              LogUtil.logDebug(logger, _eventId, String.format("\tresource: %s, partition: %s,  msg: %s",
+                  resource, partition, msg));
+            }
+        }
+      }
+    }
     event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name(), output);
-    LogUtil.logInfo(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
+    LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
     event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
 
     // ToDo: handling maintenance maxPartitionPerInstance case.
@@ -212,6 +225,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     Set<Partition> partitionsNeedRecovery = new HashSet<>();
 
     // charge existing pending messages and update retraced state map.
+    logger.debug("throttleControllerstate->{} before pending", throttleController);
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -308,6 +322,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
                 resourceName);
+        logger.debug("throttleControllerstate->{} after pending recovery charge msg:{}", throttleController, recoveryMsg);
       }
       // charge load message and retrace
       for (Message loadMsg : loadMessages) {
@@ -320,6 +335,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttleController.chargeCluster(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
+        logger.debug("throttleControllerstate->{} after pending load charge msg:{}", throttleController, loadMsg);
 
         // todo: if  loadMsg is p2p message, charge relay S->M target with Recovery_BALANCE, but don't change retracedStateMap
       }
@@ -370,8 +386,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
           cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName());
       for (Message msg : partitionMessages) {
         if (!Message.MessageType.STATE_TRANSITION.name().equals(msg.getMsgType())) {
-          // todo: log ignore pending messages
-          // ignore cancellation message etc. For now, don't charge them.
+          if (logger.isDebugEnabled()) {
+            LogUtil.logDebug(logger, _eventId,
+                String.format("Message: %s not subject to throttle in resource: %s with type %s",
+                    msg, resourceName, msg.getMsgType()));
+          }
           continue;
         }
 
@@ -383,7 +402,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         String instance = msg.getTgtName();
         if (disabledInstances.contains(instance)) {
           if (!isUpward) {
-            //todo: add log?
+            if (logger.isDebugEnabled()) {
+              LogUtil.logDebug(logger, _eventId,
+                  String.format("Message: %s not subject to throttle in resource: %s to disabled instancce %s",
+                      msg, resourceName, instance));
+            }
             continue;
           }
         }
@@ -391,6 +414,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         String toState = msg.getToState();
         if (toState.equals(HelixDefinedState.DROPPED.name()) || toState
             .equals(HelixDefinedState.ERROR.name())) {
+          if (logger.isDebugEnabled()) {
+            LogUtil.logDebug(logger, _eventId,
+                String.format("Message: %s not subject to throttle in resource: %s with toState %s",
+                    msg, resourceName, toState));
+          }
           continue;
         }
 
@@ -426,6 +454,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     recoveryMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,true));
+    logger.debug("throttleControllerstate->{} before recovery", throttleController);
     for (Message msg : recoveryMessages) {
       // step 1. if the instance level throttle met, consider disabled instance case
       // step 2. if the resource level throttle met
@@ -441,7 +470,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         continue;
       }
       String instance = msg.getTgtName();
-      if (throttleController.shouldThrottleForInstance(rebalanceType, resourceName)) {
+      if (throttleController.shouldThrottleForInstance(rebalanceType, instance)) {
         throttledRecoveryMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,
@@ -453,6 +482,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeInstance(rebalanceType, instance);
       throttleController.chargeResource(rebalanceType, resourceName);
       throttleController.chargeCluster(rebalanceType);
+      logger.debug("throttleControllerstate->{} after  charge recover msg: {}", throttleController, msg);
     }
 
     // sorting load message list and apply throttling
@@ -481,6 +511,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // todo: sort load messages
     loadMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,false));
     Set<Message> throttledLoadMessages = new HashSet<>();
+    logger.debug("throttleControllerstate->{} before load", throttleController);
     for (Message msg : loadMessages) {
       StateTransitionThrottleConfig.RebalanceType rebalanceType = StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
       if (onlyDownwardLoadBalance) {
@@ -505,7 +536,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         continue;
       }
       String instance = msg.getTgtName();
-      if (throttleController.shouldThrottleForInstance(rebalanceType,resourceName)) {
+      if (throttleController.shouldThrottleForInstance(rebalanceType,instance)) {
         throttledLoadMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,
@@ -517,6 +548,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeInstance(rebalanceType, instance);
       throttleController.chargeResource(rebalanceType, resourceName);
       throttleController.chargeCluster(rebalanceType);
+      logger.debug("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
     }
 
     LogUtil.logInfo(logger, _eventId,

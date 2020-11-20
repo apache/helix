@@ -46,6 +46,20 @@ class StateTransitionThrottleController {
 
   private boolean _throttleEnabled = false;
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("StateTransitionThrottleController _pendingTransitionAllowedInCluster:");
+    sb.append(_pendingTransitionAllowedInCluster.toString());
+    sb.append("\n");
+    sb.append("_pendingTransitionAllowedPerInstance:");
+    sb.append(_pendingTransitionAllowedPerInstance.toString());
+    sb.append("\n");
+    sb.append("_pendingTransitionAllowedPerResource:");
+    sb.append(_pendingTransitionAllowedPerResource);
+    sb.append("\n");
+    return sb.toString();
+  }
+
   StateTransitionThrottleController(Set<String> resources, ClusterConfig clusterConfig,
       Set<String> liveInstances) {
     super();

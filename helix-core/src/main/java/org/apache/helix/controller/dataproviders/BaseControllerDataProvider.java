@@ -103,7 +103,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   // Special caches
   private CurrentStateCache _currentStateCache;
-  private TaskCurrentStateCache _taskCurrentStateCache;
   private InstanceMessagesCache _instanceMessagesCache;
 
   // Other miscellaneous caches
@@ -228,7 +227,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       }
     }, false);
     _currentStateCache = new CurrentStateCache(this);
-    _taskCurrentStateCache = new TaskCurrentStateCache(this);
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
   }
 
@@ -381,7 +379,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     // Refresh derived data
     _instanceMessagesCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
     _currentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
-    _taskCurrentStateCache.refresh(accessor, _liveInstanceCache.getPropertyMap());
 
     // current state must be refreshed before refreshing relay messages
     // because we need to use current state to validate all relay messages.
@@ -581,17 +578,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
     return _currentStateCache.getParticipantState(instanceName, clientSessionId);
-  }
-
-  /**
-   * For a certain session, return the task current states on the node.
-   * @param instanceName
-   * @param clientSessionId
-   * @return A mapping of resource names to CurrentStates
-   */
-  public Map<String, CurrentState> getTaskCurrentState(String instanceName,
-      String clientSessionId) {
-    return _taskCurrentStateCache.getParticipantState(instanceName, clientSessionId);
   }
 
   /**

@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -169,9 +170,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, stage);
 
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
-    System.out.println(resourceMap);
-    // +2 because it will have one for current state and one for task current state
-    AssertJUnit.assertEquals(resources.length + 2, resourceMap.size());
+    // +1 because it will have one for current state
+    AssertJUnit.assertEquals(resources.length + 1, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
@@ -193,6 +193,16 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_0"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));
+
+
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new WorkflowControllerDataProvider());
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, stage);
+
+    resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    // +2 because it will have current state and task current state
+    AssertJUnit.assertEquals(resources.length + 2, resourceMap.size());
 
     Resource taskResource = resourceMap.get(oldTaskResource);
     AssertJUnit.assertNotNull(taskResource);

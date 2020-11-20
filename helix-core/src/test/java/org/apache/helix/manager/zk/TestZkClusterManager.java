@@ -162,8 +162,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
         new ZKHelixManager(clusterName, "localhost_0", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.connect();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    System.out.println(accessor.getProperty(
-        accessor.keyBuilder().liveInstance("what the fuck")));
     LiveInstance liveInstance =
         accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_0"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 0);

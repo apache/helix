@@ -26,6 +26,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.common.caches.TaskCurrentStateCache;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.TaskDataCache;
@@ -54,6 +56,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   private static final String PIPELINE_NAME = Pipeline.Type.TASK.name();
 
   private TaskDataCache _taskDataCache;
+  private TaskCurrentStateCache _taskCurrentStateCache;
   private Map<String, Integer> _participantActiveTaskCount;
 
   // For detecting live instance and target resource partition state change in task assignment
@@ -68,6 +71,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     super(clusterName, PIPELINE_NAME);
     _participantActiveTaskCount = new HashMap<>();
     _taskDataCache = new TaskDataCache(this);
+    _taskCurrentStateCache = new TaskCurrentStateCache(this);
   }
 
   private void refreshClusterStateChangeFlags(Set<HelixConstants.ChangeType> propertyRefreshed) {
@@ -88,6 +92,7 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
     Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
+    _taskCurrentStateCache.refresh(accessor, getLiveInstanceCache().getPropertyMap());
 
     refreshClusterStateChangeFlags(propertyRefreshed);
 
@@ -252,6 +257,17 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
    */
   public boolean getExistsLiveInstanceOrCurrentStateOrMessageChange() {
     return _existsLiveInstanceOrCurrentStateOrMessageChange;
+  }
+
+  /**
+   * For a certain session, return the task current states on the node.
+   * @param instanceName
+   * @param clientSessionId
+   * @return A mapping of resource names to CurrentStates
+   */
+  public Map<String, CurrentState> getTaskCurrentState(String instanceName,
+      String clientSessionId) {
+    return _taskCurrentStateCache.getParticipantState(instanceName, clientSessionId);
   }
 
   @Override

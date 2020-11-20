@@ -79,7 +79,25 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     // It's important to get partitions from CurrentState as well since the
     // idealState might be removed.
-    processCurrentStates(cache, resourceMap, resourceToRebalance, idealStates, isTaskCache);
+    Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
+    for (LiveInstance instance : availableInstances.values()) {
+      String instanceName = instance.getInstanceName();
+      String clientSessionId = instance.getEphemeralOwner();
+
+      Map<String, CurrentState> currentStateMap =
+          cache.getCurrentState(instanceName, clientSessionId);
+      processCurrentStates(currentStateMap, resourceMap, resourceToRebalance, idealStates,
+          isTaskCache);
+      // Duplicate resource names between regular and task resources may happen, but most likely
+      // won't. If it does, let regular resources overwrite task resources. To avoid duplicate
+      // resource overwriting, it's better to split regular and task pipelines entirely.
+      if (isTaskCache) {
+        Map<String, CurrentState> taskCurrentStateMap = ((WorkflowControllerDataProvider) cache)
+            .getTaskCurrentState(instanceName, clientSessionId);
+        processCurrentStates(taskCurrentStateMap, resourceMap, resourceToRebalance, idealStates,
+            true);
+      }
+    }
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
@@ -179,77 +197,53 @@ public class ResourceComputationStage extends AbstractBaseStage {
   /*
    * Construct Resources based on CurrentStates and add them to resource maps
    */
-  private void processCurrentStates(BaseControllerDataProvider cache,
+  private void processCurrentStates(Map<String, CurrentState> currentStateMap,
       Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
       Map<String, IdealState> idealStates, boolean isTaskCache) throws StageException {
-    Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
+    if (currentStateMap == null) {
+      return;
+    }
+    for (CurrentState currentState : currentStateMap.values()) {
+      String resourceName = currentState.getResourceName();
+      Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
 
-    if (availableInstances != null && availableInstances.size() > 0) {
-      for (LiveInstance instance : availableInstances.values()) {
-        String instanceName = instance.getInstanceName();
-        String clientSessionId = instance.getEphemeralOwner();
+      if (resourceStateMap.keySet().isEmpty()) {
+        // don't include empty current state for dropped resource
+        continue;
+      }
 
-        Map<String, CurrentState> currentStateMap =
-            cache.getCurrentState(instanceName, clientSessionId);
-        Map<String, CurrentState> taskCurrentStateMap =
-            cache.getTaskCurrentState(instanceName, clientSessionId);
-
-        // TODO: merge currentStates between regular resources and task resources, and allow regular
-        // resources to overwrite task resources. Duplicate resource names between regular and task
-        // resources most likely wouldn't happen. To avoid duplicate resource overwriting, need to
-        // split data. This is better done in an total split project.
-        if (currentStateMap != null && taskCurrentStateMap != null) {
-          taskCurrentStateMap.forEach(currentStateMap::putIfAbsent);
+      // don't overwrite ideal state settings
+      if (!resourceMap.containsKey(resourceName)) {
+        Resource resource = new Resource(resourceName);
+        resource.setStateModelDefRef(currentState.getStateModelDefRef());
+        resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
+        resource.setBucketSize(currentState.getBucketSize());
+        resource.setBatchMessageMode(currentState.getBatchMessageMode());
+        // if state model def is null, it's added during resource pipeline; if it's not null,
+        // it's added when it matches the pipeline type
+        if (isTaskCache == TaskConstants.STATE_MODEL_NAME.equals(resource.getStateModelDefRef())) {
+          resourceToRebalance.put(resourceName, resource);
         }
 
-        if (currentStateMap == null || currentStateMap.size() == 0) {
-          continue;
+        IdealState idealState = idealStates.get(resourceName);
+        if (idealState != null) {
+          resource.setResourceGroupName(idealState.getResourceGroupName());
+          resource.setResourceTag(idealState.getInstanceGroupTag());
         }
-        for (CurrentState currentState : currentStateMap.values()) {
+        resourceMap.put(resourceName, resource);
+      }
 
-          String resourceName = currentState.getResourceName();
-          Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
+      if (currentState.getStateModelDefRef() == null) {
+        LogUtil.logError(LOG, _eventId,
+            "state model def is null." + "resource:" + currentState.getResourceName()
+                + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
+                + currentState.getPartitionStateMap().values());
+        throw new StageException(
+            "State model def is null for resource:" + currentState.getResourceName());
+      }
 
-          if (resourceStateMap.keySet().isEmpty()) {
-            // don't include empty current state for dropped resource
-            continue;
-          }
-
-          // don't overwrite ideal state settings
-          if (!resourceMap.containsKey(resourceName)) {
-            Resource resource = new Resource(resourceName);
-            resource.setStateModelDefRef(currentState.getStateModelDefRef());
-            resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
-            resource.setBucketSize(currentState.getBucketSize());
-            resource.setBatchMessageMode(currentState.getBatchMessageMode());
-            // if state model def is null, it's added during resource pipeline; if it's not null,
-            // it's added when it matches the pipeline type
-            if (isTaskCache == TaskConstants.STATE_MODEL_NAME
-                .equals(resource.getStateModelDefRef())) {
-              resourceToRebalance.put(resourceName, resource);
-            }
-
-            IdealState idealState = idealStates.get(resourceName);
-            if (idealState != null) {
-              resource.setResourceGroupName(idealState.getResourceGroupName());
-              resource.setResourceTag(idealState.getInstanceGroupTag());
-            }
-            resourceMap.put(resourceName, resource);
-          }
-
-          if (currentState.getStateModelDefRef() == null) {
-            LogUtil.logError(LOG, _eventId,
-                "state model def is null." + "resource:" + currentState.getResourceName()
-                    + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
-                    + currentState.getPartitionStateMap().values());
-            throw new StageException(
-                "State model def is null for resource:" + currentState.getResourceName());
-          }
-
-          for (String partition : resourceStateMap.keySet()) {
-            addPartition(partition, resourceName, resourceMap);
-          }
-        }
+      for (String partition : resourceStateMap.keySet()) {
+        addPartition(partition, resourceName, resourceMap);
       }
     }
   }

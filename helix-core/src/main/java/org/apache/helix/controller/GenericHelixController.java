@@ -1279,6 +1279,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           try {
             // add current-state listeners for new sessions
             manager.addCurrentStateChangeListener(this, instanceName, session);
+            manager.addTaskCurrentStateChangeListener(this, instanceName, session);
             logger.info(manager.getInstanceName() + " added current-state listener for instance: "
                 + instanceName + ", session: " + session + ", listener: " + this);
           } catch (Exception e) {

@@ -587,7 +587,8 @@ public abstract class AbstractTaskDispatcher {
       for (int partitionNum : allPartitions) {
         TaskPartitionState taskPartitionState = jobCtx.getPartitionState(partitionNum);
         if (isTaskNotInTerminalState(taskPartitionState)
-            && !partitionsWithDelay.contains(partitionNum)) {
+            && !partitionsWithDelay.contains(partitionNum)
+            && !isTaskGivenup(jobCtx, jobCfg, partitionNum)) {
           // Some targeted tasks may have timed-out due to Participants (instances) not being
           // live, so we give tasks like these another try
           // If some of these tasks are already scheduled and running, they will be dropped as
@@ -838,7 +839,7 @@ public abstract class AbstractTaskDispatcher {
    */
   private boolean isTaskNotInTerminalState(TaskPartitionState state) {
     return state != TaskPartitionState.COMPLETED && state != TaskPartitionState.TASK_ABORTED
-        && state != TaskPartitionState.DROPPED && state != TaskPartitionState.ERROR;
+        && state != TaskPartitionState.ERROR;
   }
 
   protected static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {

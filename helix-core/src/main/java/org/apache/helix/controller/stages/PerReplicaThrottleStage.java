@@ -214,7 +214,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
         .equals(idealState.getRebalanceMode())) {
-      // todo: add retrace map?
+      retracedPartitionsStateMap.putAll(bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap());
       return selectedResourceMessages;
     }
     Map<String, List<String>> preferenceLists =
@@ -555,7 +555,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     LogUtil.logInfo(logger, _eventId,
         String.format("resource %s, throttled load messages: %s", resourceName,throttledLoadMessages));
 
-    // construct output and retraced state
+    // construct output
     Map<Partition, List<Message>> out = new HashMap<>();
     for (Partition partition : resource.getPartitions()) {
       List<Message> partitionMessages = selectedResourceMessages.get(partition);

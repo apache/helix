@@ -30,6 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
@@ -116,9 +117,10 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
 
       PartitionStateMap partitionStateMap = bestPossibleAssignment.getPartitionStateMap(resourceId);
       if (clusterConfig.isPersistIntermediateAssignment()) {
-        IntermediateStateOutput intermediateAssignment =
-            event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-        partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
+        //IntermediateStateOutput intermediateAssignment =
+        //   event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+        ResourcesStateMap retracedStateMap = event.getAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name());
+        partitionStateMap = retracedStateMap.getPartitionStateMap(resourceId);
       }
 
       //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.

@@ -174,7 +174,9 @@ public class TestDistControllerElection extends ZkUnitTestBase {
       manager.disconnect();
       controller1.shutdown();
     }
+    accessor.removeProperty(keyBuilder.controllerLeader());
 
+    TestHelper.dropCluster(clusterName, _gZkClient);
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 

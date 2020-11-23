@@ -50,7 +50,7 @@ public class TestEnableCompression extends ZkTestBase {
   private static final int ENABLE_COMPRESSION_WAIT = 20 * 60 * 1000;
   private static final int ENABLE_COMPRESSION_POLL_INTERVAL = 2000;
 
-  @Test()
+  @Test(timeOut = 10 * 10 * 1000L)
   public void testEnableCompressionResource() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

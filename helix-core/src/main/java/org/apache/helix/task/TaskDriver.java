@@ -140,7 +140,7 @@ public class TaskDriver {
    * @param flow
    */
   public void start(Workflow flow) {
-    LOG.info("Starting workflow " + flow.getName());
+    LOG.info("Starting workflow {}", flow.getName());
     flow.validate();
 
     validateZKNodeLimitation(flow.getJobConfigs().keySet().size() + 1);
@@ -222,7 +222,7 @@ public class TaskDriver {
     // Should not let user changing DAG in the workflow
     newWorkflowConfig.setJobDag(currentConfig.getJobDag());
     if (!TaskUtil.setWorkflowConfig(_accessor, workflow, newWorkflowConfig)) {
-      LOG.error("Failed to update workflow configuration for workflow " + workflow);
+      LOG.error("Failed to update workflow configuration for workflow {}", workflow);
     }
   }
 
@@ -351,14 +351,13 @@ public class TaskDriver {
     if (workflowState.equals(TaskState.COMPLETED.name())
         || workflowState.equals(TaskState.FAILED.name())
         || workflowState.equals(TaskState.ABORTED.name())) {
-      LOG.warn(
-          "Queue " + queue + " has already reached its final state, skip deleting job from it.");
+      LOG.warn("Queue {} has already reached its final state, skip deleting job from it.", queue);
       return;
     }
 
     if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue,
         Collections.singleton(TaskUtil.getNamespacedJobName(queue, job)), true)) {
-      LOG.error("Failed to delete job " + job + " from queue " + queue);
+      LOG.error("Failed to delete job {} from queue {}.", job, queue);
       throw new HelixException("Failed to delete job " + job + " from queue " + queue);
     }
   }
@@ -401,12 +400,12 @@ public class TaskDriver {
         Set<String> expiredJobs =
             TaskUtil.getExpiredJobs(_accessor, _propertyStore, workflowConfig, workflowContext);
         if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, expiredJobs, true)) {
-          LOG.warn("Failed to clean up expired and completed jobs from queue " + queue);
+          LOG.warn("Failed to clean up expired and completed jobs from queue {}", queue);
         }
       }
       workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
       if (workflowConfig.getJobDag().size() >= capacity) {
-        throw new HelixException("Failed to enqueue a job, queue is full.");
+        throw new HelixException(String.format( "Failed to enqueue job, queue %s is full.", queue));
       }
     }
 
@@ -726,7 +725,7 @@ public class TaskDriver {
         if (currentData != null) {
           Map<String, Map<String, String>> taskMap = currentData.getMapFields();
           if (taskMap == null) {
-            LOG.warn("Could not update the jobConfig: " + jobName + " Znode MapField is null.");
+            LOG.warn("Could not update the jobConfig: {} Znode MapField is null.", jobName );
             return null;
           }
           Map<String, Map<String, String>> newTaskMap = new HashMap<String, Map<String, String>>();
@@ -804,7 +803,9 @@ public class TaskDriver {
     }
 
     if ((taskConfig.getCommand() == null) == (jobConfig.getCommand() == null)) {
-      throw new HelixException("Command must exist in either job or task, not both!");
+      throw new HelixException(String
+          .format("Command must exist in either job %s or task %s, not both!", jobName,
+              taskConfig.getId()));
     }
   }
 
@@ -1065,7 +1066,7 @@ public class TaskDriver {
 
     WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (workflowConfig == null) {
-      LOG.warn("WorkflowConfig for " + workflow + " not found!");
+      LOG.warn("WorkflowConfig for {} not found!", workflow);
       return;
     }
 
@@ -1073,8 +1074,8 @@ public class TaskDriver {
     if (state != TargetState.DELETE && workflowContext != null
         && workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
       // Should not update target state for completed workflow
-      LOG.info("Workflow " + workflow + " is already completed, skip to update its target state "
-          + state);
+      LOG.info("Workflow {} is already completed, skip to update its target state {}",
+          workflow + state);
       return;
     }
 
@@ -1083,7 +1084,9 @@ public class TaskDriver {
         currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
             state.name());
       } else {
-        LOG.warn("TargetState DataUpdater: Fails to update target state. CurrentData is null.");
+        LOG.warn(
+            "TargetState DataUpdater: Fails to update target state for {}. CurrentData is null.",
+            workflow);
       }
       return currentData;
     };
@@ -1173,7 +1176,7 @@ public class TaskDriver {
 
     if (ctx == null || !allowedStates.contains(ctx.getWorkflowState())) {
       throw new HelixException(String.format(
-          "Workflow \"%s\" context is empty or not in states: \"%s\", current state: \"%s\"",
+          "Workflow %s context is empty or not in states: %s, current state: %s.",
           workflowName, Arrays.asList(targetStates),
           ctx == null ? "null" : ctx.getWorkflowState().toString()));
     }
@@ -1212,7 +1215,7 @@ public class TaskDriver {
     WorkflowConfig workflowConfig = getWorkflowConfig(workflowName);
 
     if (workflowConfig == null) {
-      throw new HelixException(String.format("Workflow \"%s\" does not exists!", workflowName));
+      throw new HelixException(String.format("Workflow %s does not exists!", workflowName));
     }
 
     long timeToSleep = timeout > 50L ? 50L : timeout;
@@ -1244,7 +1247,7 @@ public class TaskDriver {
       JobConfig jobConfig = getJobConfig(jobName);
       JobContext jbCtx = getJobContext(jobName);
       throw new HelixException(String.format(
-          "Workflow \"%s\" context is null or job \"%s\" is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
+          "Workflow %s context is null or job %s is not in states: %s; ctx is %s, jobState is %s, wf cfg %s, jobcfg %s, jbctx %s",
           workflowName, jobName, allowedStates, ctx == null ? "null" : ctx,
           ctx != null ? ctx.getJobState(jobName) : "null", wfcfg, jobConfig, jbCtx));
 

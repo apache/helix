@@ -111,7 +111,7 @@ public class ScheduleConfig {
     if (_recurUnit != null) {
       long converted = _recurUnit.toMillis(_recurInterval);
       if (converted < MIN_RECURRENCE_MILLIS) {
-        LOG.error("Recurrence must be at least " + MIN_RECURRENCE_MILLIS + " ms");
+        LOG.error("Recurrence must be at least {} ms", MIN_RECURRENCE_MILLIS);
         return false;
       }
     }

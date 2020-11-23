@@ -22,17 +22,15 @@ package org.apache.helix.task;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.stream.Collectors;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -113,7 +111,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       if (tgtResourceIs != null) {
         targetPartitions.addAll(tgtResourceIs.getPartitionSet());
       } else {
-        LOG.warn("Missing target resource for the scheduled job!");
+        LOG.warn("Missing target resource for the scheduled job {}!",
+            taskCtx != null ? taskCtx.getName() : "null");
       }
     }
 
@@ -212,7 +211,8 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
     // IdealState of the target resource
     IdealState targetIdealState = idealStateMap.get(jobCfg.getTargetResource());
     if (targetIdealState == null) {
-      LOG.warn("Missing target resource for the scheduled job!");
+      LOG.warn("Missing target resource for the scheduled job {}!",
+          jobContext != null ? jobContext.getName() : "null");
       return Collections.emptyMap();
     }
 

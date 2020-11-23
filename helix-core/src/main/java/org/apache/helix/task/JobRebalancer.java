@@ -47,7 +47,7 @@ public class JobRebalancer extends TaskRebalancer {
           jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
-    LOG.debug("Computer Best Partition for job: " + jobName);
+    LOG.debug("Computer Best Partition for job: {}.", jobName);
     if (_jobDispatcher == null) {
       _jobDispatcher = new JobDispatcher();
     }
@@ -56,8 +56,8 @@ public class JobRebalancer extends TaskRebalancer {
     _jobDispatcher.setClusterStatusMonitor(_clusterStatusMonitor);
     ResourceAssignment resourceAssignment = _jobDispatcher.processJobStatusUpdateAndAssignment(
         jobName, currStateOutput, clusterData.getWorkflowContext(jobConfig.getWorkflow()));
-    LOG.debug(String.format("JobRebalancer computation takes %d ms for Job %s",
-        System.currentTimeMillis() - startTime, jobName));
+    LOG.debug("JobRebalancer computation takes {} ms for Job {}",
+        System.currentTimeMillis() - startTime, jobName);
     return resourceAssignment;
   }
 }

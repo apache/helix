@@ -243,6 +243,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
+    System.out.println("ZNode after testAddConfigFields oldConfig: " + oldConfig.toString());
+    System.out.println("ZNode after testAddConfigFields newConfig: " + newConfig.toString());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -252,6 +254,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
+    System.out.println("ZNode after testUpdateConfigFields config: " + config.toString());
     ZNRecord record = config.getRecord();
 
     String key = record.getSimpleFields().keySet().iterator().next();

@@ -74,8 +74,8 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     // Thus, we stop pipeline to make sure there is not such race condition.
     _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
     // note this sleep is critical as it would take time for controller to stop.
-    // todo: this is not best practice to sleep. Let GenericHelixController gives out a signal would
-    // todO: be another way. But this needs much more careful design.
+    // TODO: this is not best practice to sleep. Let GenericHelixController gives out a signal would
+    // TODO: be another way. But this needs much more careful design.
     Thread.sleep(3000);
     _driver.deleteJob(jobQueueName, "job2", true);
 

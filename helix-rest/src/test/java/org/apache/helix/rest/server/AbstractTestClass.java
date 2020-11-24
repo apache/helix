@@ -322,6 +322,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       ClusterConfig clusterConfig = new ClusterConfig(cluster);
       clusterConfig.setFaultZoneType("helixZoneId");
       _configAccessor.setClusterConfig(cluster, clusterConfig);
+      System.out.println("[Xyy] in AbstractTestClass setupHelixResources, clusterConfig: " + clusterConfig.getRecord().toString());
       createResourceConfigs(cluster, 8);
       _workflowMap.put(cluster, createWorkflows(cluster, 3));
       Set<String> resources = createResources(cluster, 8);

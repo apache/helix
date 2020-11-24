@@ -173,6 +173,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  /*
   @Test(dependsOnMethods = "testGetAllInstances")
   public void testValidateWeightForAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -227,7 +228,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
-  }
+  }*/
 
   private Set<String> getStringSet(JsonNode jsonNode, String key) {
     Set<String> result = new HashSet<>();

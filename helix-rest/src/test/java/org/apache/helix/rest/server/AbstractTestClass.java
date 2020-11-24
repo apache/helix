@@ -546,6 +546,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     clusterConfig.setFaultZoneType("helixZoneId");
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(clusterName, clusterConfig);
+    System.out.println(
+        "[Xyy] in preSetupForParallelInstancesStoppableTest setupHelixResources, clusterConfig: "
+            + clusterConfig.getRecord().toString());
     // Create instance configs
     List<InstanceConfig> instanceConfigs = new ArrayList<>();
     for (int i = 0; i < instances.size() - 1; i++) {

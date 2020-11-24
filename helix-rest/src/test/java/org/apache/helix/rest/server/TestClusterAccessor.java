@@ -73,16 +73,26 @@ import org.testng.annotations.Test;
 public class TestClusterAccessor extends AbstractTestClass {
 
   @BeforeClass
-  public void beforeClass() {
+  public void beforeClass() throws IOException {
     for (String cluster : _clusters) {
       ClusterConfig clusterConfig = createClusterConfig(cluster);
       _configAccessor.setClusterConfig(cluster, clusterConfig);
     }
+
+    String clustercc = _clusters.iterator().next();
+    ClusterConfig config = getClusterConfigFromRest(clustercc);
+    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+
   }
 
   @Test
   public void testGetClusters() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String clustercc = _clusters.iterator().next();
+    ClusterConfig config = getClusterConfigFromRest(clustercc);
+    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+
 
     _auditLogger.clearupLogs();
     String body = get("clusters", null, Response.Status.OK.getStatusCode(), true);
@@ -103,8 +113,14 @@ public class TestClusterAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testGetClusters")
-  public void testGetClusterTopology() {
+  public void testGetClusterTopology() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String clustercc = _clusters.iterator().next();
+    ClusterConfig config = getClusterConfigFromRest(clustercc);
+    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+
+
     String cluster = "TestCluster_1";
     String instance = cluster + "localhost_12920";
     // set the fake zone id in instance configuration
@@ -128,6 +144,11 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetClusterTopology")
   public void testGetClusterTopologyAndFaultZoneMap() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    String clustercc = _clusters.iterator().next();
+    ClusterConfig config = getClusterConfigFromRest(clustercc);
+    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+
     String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
     String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
 

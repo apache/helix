@@ -226,6 +226,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = _clusters.iterator().next();
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
+    System.out.println("ZNode start testAddConfigFields oldConfig: " + oldConfig.toString());
 
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("newField", "newValue");
@@ -243,7 +244,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     oldConfig.getRecord().update(configDelta.getRecord());
     Assert.assertEquals(newConfig, oldConfig,
         "cluster config from response: " + newConfig + " vs cluster config actually: " + oldConfig);
-    System.out.println("ZNode after testAddConfigFields oldConfig: " + oldConfig.toString());
+
     System.out.println("ZNode after testAddConfigFields newConfig: " + newConfig.toString());
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -1313,6 +1314,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         MediaType.APPLICATION_JSON_TYPE);
     post("clusters/" + cluster + "/configs", ImmutableMap.of("command", command.name()), entity,
         Response.Status.OK.getStatusCode());
+    System.out.println("updateClusterConfigFromRest: newconfig: " +  newConfig.toString());
 
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), 1);
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);

@@ -249,6 +249,23 @@ public class TestClusterAccessor extends AbstractTestClass {
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
     System.out.println("ZNode start testAddConfigFields oldConfig: " + oldConfig.toString());
 
+
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(18 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig);
+    }
+
+    for (int i = 0; i < 5; i++) {
+      String instance = cluster + "localhost_129" + String.valueOf(23 + i);
+      HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig);
+    }
+
     ClusterConfig configDelta = new ClusterConfig(cluster);
     configDelta.getRecord().setSimpleField("newField", "newValue");
     configDelta.getRecord().setListField("newList", Arrays.asList("newValue1", "newValue2"));

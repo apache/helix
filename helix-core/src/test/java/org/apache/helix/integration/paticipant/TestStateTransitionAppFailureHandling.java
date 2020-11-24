@@ -102,7 +102,7 @@ public class TestStateTransitionAppFailureHandling extends ZkStandAloneCMTestBas
                 .map(childName -> keyBuilder.message(instanceName, childName))
                 .collect(Collectors.toList()), true);
         for (Message message : messageList) {
-          if (message.getMsgState() != Message.MessageState.UNPROCESSABLE) {
+          if (message == null || message.getMsgState() != Message.MessageState.UNPROCESSABLE) {
             return false;
           }
         }

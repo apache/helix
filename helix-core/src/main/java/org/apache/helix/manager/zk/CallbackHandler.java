@@ -340,12 +340,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public void invoke(NotificationContext changeContext) throws Exception {
     Type type = changeContext.getType();
     long start = System.currentTimeMillis();
-    if (logger.isInfoEnabled()) {
-      logger.info("{} START: CallbackHandler {}, INVOKE {} listener: {} type: {}",
-          Thread.currentThread().getId(), _uid, _path, _listener, type);
-    }
-
     synchronized (_manager) {
+      if (logger.isInfoEnabled()) {
+        logger.info("{} START: CallbackHandler {}, INVOKE {} listener: {} type: {}",
+            Thread.currentThread().getId(), _uid, _path, _listener, type);
+      }
+
       if (!_expectTypes.contains(type)) {
         logger.warn("Callback handler {} received event in wrong order. Listener: {}, path: {}, "
             + "expected types: {}, but was {}", _uid, _listener, _path, _expectTypes, type);

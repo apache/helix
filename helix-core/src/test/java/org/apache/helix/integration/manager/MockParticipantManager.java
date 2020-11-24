@@ -26,6 +26,7 @@ import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.mock.participant.MockOFModelFactory;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
@@ -46,6 +47,7 @@ public class MockParticipantManager extends ClusterManager {
   protected MockMSModelFactory _msModelFactory;
   protected DummyLeaderStandbyStateModelFactory _lsModelFactory;
   protected DummyOnlineOfflineStateModelFactory _ofModelFactory;
+  protected MockOFModelFactory _ofModelFactory2;
   protected HelixCloudProperty _helixCloudProperty;
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
@@ -69,8 +71,12 @@ public class MockParticipantManager extends ClusterManager {
 
   public void setTransition(MockTransition transition) {
     _msModelFactory.setTrasition(transition);
+    _ofModelFactory2.setTrasition(transition);
   }
 
+  public void setMockOFFactory() {
+    _ofModelFactory2 = new MockOFModelFactory(null);
+  }
   /**
    * This method should be called before syncStart() called after syncStop()
    */
@@ -89,8 +95,13 @@ public class MockParticipantManager extends ClusterManager {
           _msModelFactory);
       stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.LeaderStandby.name(),
           _lsModelFactory);
-      stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.OnlineOffline.name(),
-          _ofModelFactory);
+      if (_ofModelFactory2 != null) {
+        stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.OnlineOffline.name(),
+            _ofModelFactory2);
+      } else {
+        stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.OnlineOffline.name(),
+            _ofModelFactory);
+      }
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
       stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);

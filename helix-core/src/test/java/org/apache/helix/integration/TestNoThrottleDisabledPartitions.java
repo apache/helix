@@ -273,7 +273,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     }
 
     // newResource has 3 partitions. Thus 3 partition * 3 (replica) offline -> slave messages.
-    // by per replica rule, only 6 of them counted as recovery and 6 or them counted as load.
+    // by per replica rule, only 6 of them counted as recovery and 3 of them counted as load.
     String newResource = "abc";
     IdealState idealState = new FullAutoModeISBuilder(newResource).setStateModel("MasterSlave")
         .setStateModelFactoryName("DEFAULT").setNumPartitions(3).setNumReplica(3)

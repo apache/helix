@@ -84,8 +84,8 @@ public class ClusterRepresentationUtil {
     return ObjectToJson(new ArrayList<String>());
   }
 
-  public static String getInstancePropertiesNameListAsString(ZkClient zkClient, String clusterName,
-      String instanceName, List<PropertyType> instanceProperties, String key)
+  public static String getMultiInstancePropertyNameListsAsString(ZkClient zkClient,
+      String clusterName, String instanceName, List<PropertyType> instanceProperties, String key)
       throws JsonGenerationException, JsonMappingException, IOException {
     List<String> recordNames = new ArrayList<>();
     for (PropertyType instanceProperty : instanceProperties) {

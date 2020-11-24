@@ -69,7 +69,7 @@ public class ErrorsResource extends ServerResource {
         ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
 
     String message = ClusterRepresentationUtil
-        .getInstancePropertiesNameListAsString(zkClient, clusterName, instanceName,
+        .getMultiInstancePropertyNameListsAsString(zkClient, clusterName, instanceName,
             Arrays.asList(PropertyType.CURRENTSTATES, PropertyType.TASKCURRENTSTATES),
             instanceSessionId);
 

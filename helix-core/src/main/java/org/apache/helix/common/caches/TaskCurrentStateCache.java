@@ -32,7 +32,7 @@ import org.apache.helix.model.LiveInstance;
 
 
 /**
- * Cache to hold all CurrentStates of a cluster.
+ * Cache to hold all task CurrentStates of a cluster.
  */
 public class TaskCurrentStateCache extends ParticipantStateCache<CurrentState> {
   public TaskCurrentStateCache(ControlContextProvider controlContextProvider) {

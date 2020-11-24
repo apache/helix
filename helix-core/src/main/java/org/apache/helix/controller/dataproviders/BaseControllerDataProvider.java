@@ -44,7 +44,6 @@ import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.InstanceMessagesCache;
 import org.apache.helix.common.caches.PropertyCache;
-import org.apache.helix.common.caches.TaskCurrentStateCache;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;

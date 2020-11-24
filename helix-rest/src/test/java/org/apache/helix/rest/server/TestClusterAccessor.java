@@ -81,7 +81,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     String clustercc = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(clustercc);
-    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+    System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
 
   }
 
@@ -91,7 +91,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     String clustercc = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(clustercc);
-    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+    System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
 
 
     _auditLogger.clearupLogs();
@@ -118,7 +118,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     String clustercc = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(clustercc);
-    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+    System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
 
 
     String cluster = "TestCluster_1";
@@ -147,7 +147,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     String clustercc = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(clustercc);
-    System.out.println("ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
+    System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
 
     String topologyMapUrlBase = "clusters/TestCluster_1/topologymap/";
     String faultZoneUrlBase = "clusters/TestCluster_1/faultzonemap/";
@@ -1367,6 +1367,8 @@ public class TestClusterAccessor extends AbstractTestClass {
         put("key4", "value2");
       }
     });
+    System.out.println(
+        "[XYy] in createClusterConfig, configRecord is " + clusterConfig.getRecord().toString());
 
     return clusterConfig;
   }

@@ -71,7 +71,9 @@ public class MockParticipantManager extends ClusterManager {
 
   public void setTransition(MockTransition transition) {
     _msModelFactory.setTrasition(transition);
-    _ofModelFactory2.setTrasition(transition);
+    if (_ofModelFactory2 != null) {
+      _ofModelFactory2.setTrasition(transition);
+    }
   }
 
   public void setMockOFFactory() {

@@ -19,7 +19,6 @@ package org.apache.helix.integration;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,8 +39,6 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.builder.FullAutoModeISBuilder;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -255,6 +252,9 @@ public class TestPerReplicaThrottle extends ZkTestBase {
         new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
 
+    // Step one. 3 partition each 3 replica. Totally 9 offline->online messages. Note for each
+    // partition. Only two offline->online are deemed as recovery. Thus, 3*2 = 6 messages are
+    // sent out. The rest three are throttled.
     Assert.assertTrue(TestHelper.verify(()-> {
       return LatchedTransition.getWaitCnt() == participantCount * 2;
     }, TestHelper.WAIT_DURATION));
@@ -275,10 +275,10 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     }
 
     for (String partition: partitionMsgCount.keySet()) {
-      Assert.assertTrue(partitionMsgCount.get(partition).equals(2));
+      Assert.assertTrue(partitionMsgCount.get(partition).equals(2), "partitionMsgCount:" + partitionMsgCount);
     }
 
-    // Second step
+    // Second step, the rest three Offline-Online as load rebalance are sent out.
     LatchedTransition.incStepAndClearWaitCnt();
 
     Assert.assertTrue(TestHelper.verify(()-> {
@@ -301,8 +301,15 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     }
 
     for (String partition: partitionMsgCount.keySet()) {
-      Assert.assertTrue(partitionMsgCount.get(partition).equals(1));
+      Assert.assertTrue(partitionMsgCount.get(partition).equals(1), "partitionMsgCount:" + partitionMsgCount);
     }
+
+    // clean up the cluster
+    controller.syncStop();
+    for (int i = 0; i < participantCount; i++) {
+      _participants[i].syncStop();
+    }
+    deleteCluster(_clusterName);
   }
 
   @Test
@@ -338,7 +345,7 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     }
 
     for (String partition: partitionMsgCount.keySet()) {
-        Assert.assertTrue(partitionMsgCount.get(partition).equals(2));
+        Assert.assertTrue(partitionMsgCount.get(partition).equals(2), "partitionMsgCount:" + partitionMsgCount);
     }
 
     // Second step, change cluster level throttle to 3 for ANY type. Here, recovery would have
@@ -373,7 +380,7 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     }
 
     for (String partition: partitionMsgCount.keySet()) {
-      Assert.assertTrue(partitionMsgCount.get(partition).equals(1));
+      Assert.assertTrue(partitionMsgCount.get(partition).equals(1), "partitionMsgCount:" + partitionMsgCount);
     }
 
     // Finally, third step. The rest three O->S load messages for each partition would be sent out.
@@ -399,7 +406,7 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     }
 
     for (String partition: partitionMsgCount.keySet()) {
-      Assert.assertTrue(partitionMsgCount.get(partition).equals(1));
+      Assert.assertTrue(partitionMsgCount.get(partition).equals(1), "partitionMsgCount:" + partitionMsgCount);
     }
 
     // clean up the cluster

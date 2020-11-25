@@ -56,6 +56,12 @@ public enum AttributeName {
   // This attribute denotes the messages output from Per Preplica Throttle stage
   PER_REPLICA_THROTTLED_MESSAGES,
 
-  // This attribute deontes the targeted partition state mapping from Per Preplica Throttle stage
-  PER_REPLICA_RETRACED_STATES
+  // This attribute denotes the targeted partition state mapping from Per Preplica Throttle stage
+  PER_REPLICA_RETRACED_STATES,
+
+  // This attribute denotes the filtered out messages deemed as recovery message
+  PER_REPLICA_THROTTLED_RECOVERY_MESSAGES,
+
+  // This attribute denotes the filtered out messages deemed as load message
+  PER_REPLICA_THOTTLED_LOAD_MESSAGES
 }

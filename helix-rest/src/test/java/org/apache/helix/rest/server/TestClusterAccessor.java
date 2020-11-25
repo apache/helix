@@ -254,6 +254,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     ZNRecord record = config.getRecord();
 
+    System.out.println("testUpdateConfigFields test record :" + record.toString());
     String key = record.getSimpleFields().keySet().iterator().next();
     String value = record.getSimpleField(key);
     record.getSimpleFields().clear();

@@ -252,6 +252,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     String cluster = _clusters.iterator().next();
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
+    System.out.println("config :" + config.getRecord().toString());
     ZNRecord record = config.getRecord();
 
     String key = record.getSimpleFields().keySet().iterator().next();

@@ -27,6 +27,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskPartitionState;
@@ -42,12 +43,13 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
 
 
-public class TestStuckTaskQuota extends TaskTestBase {
+public class TestTaskQuotaCalculations extends TaskTestBase {
   private CountDownLatch latch = new CountDownLatch(1);
 
   @BeforeClass
   public void beforeClass() throws Exception {
     _numNodes = 2;
+    _numPartitions = 100;
     super.beforeClass();
 
     // Stop participants that have been started in super class
@@ -151,6 +153,32 @@ public class TestStuckTaskQuota extends TaskTestBase {
     // Stop the workflow2 and workflow3
     _driver.stop(workflowName2);
     _driver.stop(workflowName3);
+  }
+
+  @Test(dependsOnMethods = "testStuckTaskQuota")
+  public void testTaskErrorMaxRetriesQuotaRelease() throws Exception {
+    for (int i = 0; i < _numNodes; i++) {
+      super.stopParticipant(i);
+      Assert.assertFalse(_participants[i].isConnected());
+    }
+    _participants = new MockParticipantManager[_numNodes];
+
+    // Start only one participant
+    startParticipantAndRegisterNewMockTask(0);
+
+    String jobQueueName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setMaxAttemptsPerTask(2).setWorkflow(jobQueueName).setFailureThreshold(100000)
+        .setJobCommandConfigMap(
+            ImmutableMap.of(MockTask.JOB_DELAY, "10", MockTask.FAILURE_COUNT_BEFORE_SUCCESS, "10"));
+
+    JobQueue.Builder jobQueue = TaskTestUtil.buildJobQueue(jobQueueName);
+    jobQueue.enqueueJob(jobName, jobBuilder);
+
+    _driver.start(jobQueue.build());
+    _driver.pollForJobState(jobQueueName, TaskUtil.getNamespacedJobName(jobQueueName, jobName),
+        TaskState.COMPLETED);
   }
 
   private void startParticipantAndRegisterNewMockTask(int participantIndex) {

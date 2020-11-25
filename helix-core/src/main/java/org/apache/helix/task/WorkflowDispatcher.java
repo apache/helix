@@ -317,7 +317,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
       updateBestPossibleStateOutput(job, resourceAssignment, bestPossibleOutput);
     } catch (Exception e) {
       LogUtil.logWarn(LOG, _clusterDataCache.getClusterEventId(),
-          String.format("Failed to compute job assignment for job %s", job, e));
+          String.format("Failed to compute job assignment for job %s", job), e);
     }
   }
 

@@ -569,7 +569,8 @@ public abstract class AbstractTaskDispatcher {
     excludeSet.addAll(partitionsWithDelay);
 
     // The following is filtering of tasks before passing them to the assigner
-    // Only feed in tasks that need to be assigned (null and STOPPED)
+    // Only feed in tasks that need to be assigned (have state equal to null, STOPPED, TIMED_OUT,
+    // TASK_ERROR, or DROPPED) or their assigned participant is not live anymore
     Set<Integer> filteredTaskPartitionNumbers = filterTasks(allPartitions, jobCtx, liveInstances);
     // Remove all excludeSet tasks to be safer because some STOPPED tasks have been already
     // re-started (excludeSet includes already-assigned partitions). Also tasks with their retry
@@ -587,13 +588,13 @@ public abstract class AbstractTaskDispatcher {
       for (int partitionNum : allPartitions) {
         TaskPartitionState taskPartitionState = jobCtx.getPartitionState(partitionNum);
         if (isTaskNotInTerminalState(taskPartitionState)
-            && !partitionsWithDelay.contains(partitionNum)) {
+            && !partitionsWithDelay.contains(partitionNum)
+            && !isTaskGivenup(jobCtx, jobCfg, partitionNum)) {
           // Some targeted tasks may have timed-out due to Participants (instances) not being
           // live, so we give tasks like these another try
           // If some of these tasks are already scheduled and running, they will be dropped as
-          // well
-          // Also, do not include partitions with delay that are not ready to be assigned and
-          // scheduled
+          // well. Also, do not include partitions with delay that are not ready to be assigned and
+          // scheduled and the partitions that cannot be retried (given up)
           partitionsToRetryOnLiveInstanceChangeForTargetedJob.add(partitionNum);
         }
       }
@@ -838,7 +839,7 @@ public abstract class AbstractTaskDispatcher {
    */
   private boolean isTaskNotInTerminalState(TaskPartitionState state) {
     return state != TaskPartitionState.COMPLETED && state != TaskPartitionState.TASK_ABORTED
-        && state != TaskPartitionState.DROPPED && state != TaskPartitionState.ERROR;
+        && state != TaskPartitionState.ERROR;
   }
 
   protected static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {

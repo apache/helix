@@ -165,6 +165,9 @@ public class TestClusterAccessor extends AbstractTestClass {
       instanceConfig.setDomain("helixZoneId=zone0,instance=" + instance);
       helixDataAccessor
           .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+      InstanceConfig instanceConfig2 =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig2);
     }
 
     for (int i = 0; i < 5; i++) {

@@ -44,7 +44,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestInstancesAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_2";
+  private final static String CLUSTER_NAME = "TestCluster_0";
   private ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Test

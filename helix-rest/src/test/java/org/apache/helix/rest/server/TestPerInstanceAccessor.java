@@ -50,7 +50,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestPerInstanceAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_2";
+  private final static String CLUSTER_NAME = "TestCluster_0";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
   @Test

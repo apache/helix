@@ -53,7 +53,6 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     // Cluster and resource setup
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
-    _clusterName = className + "_" + methodName;
     _admin = _gSetupTool.getClusterManagementTool();
     _gSetupTool.addCluster(_clusterName, true);
     _gSetupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS, "OnlineOffline",
@@ -134,13 +133,8 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // But the full cluster verification should fail
-    verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName);
-    try {
-      boolean fullResult = verifier.verify();
-      Assert.assertFalse(fullResult);
-    } finally {
-      verifier.close();
-    }
+    boolean fullResult = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName).verify();
+    Assert.assertFalse(fullResult);
     _admin.enableCluster(_clusterName, true);
   }
 }

@@ -165,9 +165,6 @@ public class TestClusterAccessor extends AbstractTestClass {
       instanceConfig.setDomain("helixZoneId=zone0,instance=" + instance);
       helixDataAccessor
           .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
-      InstanceConfig instanceConfig2 =
-          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
-      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig2);
     }
 
     for (int i = 0; i < 5; i++) {
@@ -178,9 +175,6 @@ public class TestClusterAccessor extends AbstractTestClass {
       instanceConfig.setDomain("helixZoneId=zone1,instance=" + instance);
       helixDataAccessor
           .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
-      InstanceConfig instanceConfig2 =
-          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
-      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig2);
     }
 
     // test invalid case where instance config is set, but cluster topology has not been set.
@@ -246,7 +240,6 @@ public class TestClusterAccessor extends AbstractTestClass {
             "/instance:TestCluster_1localhost_12925",
             "/instance:TestCluster_1localhost_12926",
             "/instance:TestCluster_1localhost_12927"))));
-    System.out.println("faultZoneMap.get(/helixZoneId:zone1): " + faultZoneMap.get("/helixZoneId:zone1"));
 
 
   }
@@ -258,13 +251,17 @@ public class TestClusterAccessor extends AbstractTestClass {
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
     System.out.println("ZNode start testAddConfigFields oldConfig: " + oldConfig.toString());
 
-
     for (int i = 0; i < 5; i++) {
       String instance = cluster + "localhost_129" + String.valueOf(18 + i);
       HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
       InstanceConfig instanceConfig =
           helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
-      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig);
+      instanceConfig.setDomain("helixZoneId=zone0,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+      InstanceConfig instanceConfig2 =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig2);
     }
 
     for (int i = 0; i < 5; i++) {
@@ -272,7 +269,12 @@ public class TestClusterAccessor extends AbstractTestClass {
       HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(cluster, _baseAccessor);
       InstanceConfig instanceConfig =
           helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
-      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig);
+      instanceConfig.setDomain("helixZoneId=zone1,instance=" + instance);
+      helixDataAccessor
+          .setProperty(helixDataAccessor.keyBuilder().instanceConfig(instance), instanceConfig);
+      InstanceConfig instanceConfig2 =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instance));
+      System.out.println("[Xyy] testAddConfigFields instanceConfig: " + instanceConfig2);
     }
 
     ClusterConfig configDelta = new ClusterConfig(cluster);

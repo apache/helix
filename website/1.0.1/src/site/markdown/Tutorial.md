@@ -105,7 +105,7 @@ The most commonly used convention is hostname:port.
 String CLUSTER_NAME = "helix-demo";
 int NUM_NODES = 2;
 String hosts[] = new String[]{"localhost","localhost"};
-String ports[] = new String[]{7000,7001};
+String ports[] = new String[]{"7000","7001"};
 for (int i = 0; i < NUM_NODES; i++)
 {
   InstanceConfig instanceConfig = new InstanceConfig(hosts[i]+ "_" + ports[i]);
@@ -154,12 +154,20 @@ The constraints:
 The following snippet shows how to declare the state model and constraints for the MASTER-SLAVE model.
 
 ```
+String STATE_MODEL_NAME = "MasterSlave";
 StateModelDefinition.Builder builder = new StateModelDefinition.Builder(STATE_MODEL_NAME);
+// Define your own states: those are opaque strings to Helix
+// Only the topology of the state machine (initial state, transitions, priorities, final DROPPED state) is meaningful to Helix
+String MASTER = "MASTER";
+String SLAVE = "SLAVE";
+String OFFLINE = "OFFLINE";
 
 // Add states and their rank to indicate priority. A lower rank corresponds to a higher priority
 builder.addState(MASTER, 1);
 builder.addState(SLAVE, 2);
 builder.addState(OFFLINE);
+// Note the special inclusion of the DROPPED state (REQUIRED)
+builder.addState(HelixDefinedState.DROPPED.name());
 
 // Set the initial state when the node starts
 builder.initialState(OFFLINE);
@@ -169,6 +177,9 @@ builder.addTransition(OFFLINE, SLAVE);
 builder.addTransition(SLAVE, OFFLINE);
 builder.addTransition(SLAVE, MASTER);
 builder.addTransition(MASTER, SLAVE);
+
+// There must be a path to DROPPED from each state (REQUIRED)
+builder.addTransition(OFFLINE, HelixDefinedState.DROPPED.name());
 
 // set constraints on states
 
@@ -181,7 +192,7 @@ builder.upperBound(MASTER, 1);
 
 builder.dynamicUpperBound(SLAVE, "R");
 
-StateModelDefinition statemodelDefinition = builder.build();
+StateModelDefinition myStateModel = builder.build();
 admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
 ```
 
@@ -201,7 +212,7 @@ For more information on the assignment modes, see the [Rebalancing Algorithms](.
 ```
 String RESOURCE_NAME = "MyDB";
 int NUM_PARTITIONS = 6;
-STATE_MODEL_NAME = "MasterSlave";
+String STATE_MODEL_NAME = "MasterSlave";
 String MODE = "SEMI_AUTO";
 int NUM_REPLICAS = 2;
 

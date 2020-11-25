@@ -105,14 +105,18 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
-    // Change to three is because there is an extra factory registered
-    // So one extra NO_OP message send
-    Assert.assertTrue(listener._maxNumberOfChildren <= 3,
-        "Should get no more than 2 messages (O->S and S->M)");
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName);
+    try {
+      boolean result = ClusterStateVerifier
+          .verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+      // Change to three is because there is an extra factory registered
+      // So one extra NO_OP message send
+      Assert.assertTrue(listener._maxNumberOfChildren <= 3,
+          "Should get no more than 2 messages (O->S and S->M)");
+    } finally {
+      verifier.close();
+    }
 
     // clean up
     // wait for all zk callbacks done
@@ -158,10 +162,13 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName);
+    try {
+      boolean result = ClusterStateVerifier.verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+    } finally {
+      verifier.close();
+    }
 
     // stop all participants
     for (int i = 0; i < n; i++) {
@@ -188,14 +195,18 @@ public class TestBatchMessage extends ZkTestBase {
       participants[i].syncStart();
     }
 
-    result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
-    // Change to three is because there is an extra factory registered
-    // So one extra NO_OP message send
-    Assert.assertTrue(listener._maxNumberOfChildren <= 3,
-        "Should get no more than 2 messages (O->S and S->M)");
+    verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName);
+    try {
+      boolean result = ClusterStateVerifier
+          .verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+      // Change to three is because there is an extra factory registered
+      // So one extra NO_OP message send
+      Assert.assertTrue(listener._maxNumberOfChildren <= 3,
+          "Should get no more than 2 messages (O->S and S->M)");
+    } finally {
+      verifier.close();
+    }
 
     // clean up
     // wait for all zk callbacks done
@@ -264,10 +275,16 @@ public class TestBatchMessage extends ZkTestBase {
     Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
     errStates.put("TestDB0", new HashMap<String, String>());
     errStates.get("TestDB0").put(errPartition, masterOfPartition0);
-    boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
-    Assert.assertTrue(result);
+
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(
+        ZK_ADDR, clusterName, errStates);
+    try {
+      boolean result = ClusterStateVerifier.verifyByPolling(
+          verifier);
+      Assert.assertTrue(result);
+    } finally {
+      verifier.close();
+    }
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
     errorStateMap.put(errPartition, TestHelper.setOf(masterOfPartition0));
@@ -277,7 +294,7 @@ public class TestBatchMessage extends ZkTestBase {
 
     // clean up
     controller.syncStop();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
     deleteCluster(clusterName);
@@ -349,12 +366,16 @@ public class TestBatchMessage extends ZkTestBase {
         "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
     });
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
-    Assert.assertTrue(result);
-    Assert.assertTrue(listener._maxNumberOfChildren > 16,
-        "Should see more than 16 messages at the same time (32 O->S and 32 S->M)");
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName);
+    try {
+      boolean result = ClusterStateVerifier
+          .verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+      Assert.assertTrue(listener._maxNumberOfChildren > 16,
+          "Should see more than 16 messages at the same time (32 O->S and 32 S->M)");
+    } finally {
+      verifier.close();
+    }
 
     // clean up
     // wait for all zk callbacks done

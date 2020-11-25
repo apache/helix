@@ -54,12 +54,11 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     _clusterName = className + "_" + methodName;
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    _admin = setupTool.getClusterManagementTool();
-    setupTool.addCluster(_clusterName, true);
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS, "OnlineOffline",
+    _admin = _gSetupTool.getClusterManagementTool();
+    _gSetupTool.addCluster(_clusterName, true);
+    _gSetupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS, "OnlineOffline",
         RebalanceMode.SEMI_AUTO.toString());
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS, "OnlineOffline",
+    _gSetupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS, "OnlineOffline",
         RebalanceMode.SEMI_AUTO.toString());
 
     // Configure and start the participants
@@ -68,7 +67,7 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
       String host = "localhost";
       int port = 12918 + i;
       String id = host + '_' + port;
-      setupTool.addInstanceToCluster(_clusterName, id);
+      _gSetupTool.addInstanceToCluster(_clusterName, id);
       _participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, id);
       _participants[i].syncStart();
     }
@@ -102,9 +101,13 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
   public void testEntireCluster() {
     // Just ensure that the entire cluster passes
     // ensure that the external view coalesces
-    boolean result = ClusterStateVerifier
-        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
-    Assert.assertTrue(result);
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName);
+    try {
+      boolean result = ClusterStateVerifier.verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+    } finally {
+      verifier.close();
+    }
   }
 
   @Test
@@ -114,10 +117,16 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     Thread.sleep(1000);
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            _clusterName, null, Sets.newHashSet(RESOURCES[1])));
-    Assert.assertTrue(result);
+    BestPossAndExtViewZkVerifier verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        _clusterName, null, Sets.newHashSet(RESOURCES[1]));
+    boolean result = false;
+    try {
+      result = ClusterStateVerifier.verifyByZkCallback(verifier);
+      Assert.assertTrue(result);
+    } finally {
+      verifier.close();
+    }
+
     String[] args = {
         "--zkSvr", ZK_ADDR, "--cluster", _clusterName, "--resources", RESOURCES[1]
     };
@@ -125,8 +134,13 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // But the full cluster verification should fail
-    boolean fullResult = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName).verify();
-    Assert.assertFalse(fullResult);
+    verifier = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName);
+    try {
+      boolean fullResult = verifier.verify();
+      Assert.assertFalse(fullResult);
+    } finally {
+      verifier.close();
+    }
     _admin.enableCluster(_clusterName, true);
   }
 }

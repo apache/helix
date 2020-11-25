@@ -69,7 +69,14 @@ public class TestDeleteJobFromJobQueue extends TaskTestBase {
     Assert
         .assertNotNull(_driver.getJobContext(TaskUtil.getNamespacedJobName(jobQueueName, "job2")));
 
-    // The following force delete for the job should go through without getting an exception
+    // Force deletion can have Exception thrown as controller is writing to propertystore path too.
+    // https://github.com/apache/helix/issues/1406, also force deletion may not be safe.
+    // Thus, we stop pipeline to make sure there is not such race condition.
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+    // note this sleep is critical as it would take time for controller to stop.
+    // TODO: this is not best practice to sleep. Let GenericHelixController gives out a signal would
+    // TODO: be another way. But this needs much more careful design.
+    Thread.sleep(3000);
     _driver.deleteJob(jobQueueName, "job2", true);
 
     // Check that the job has been force-deleted (fully gone from ZK)

@@ -177,7 +177,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    * SingleThreadScheduledExecutor will start if there is resource group that has the config to do
    * periodically rebalance.
    */
-  private static final ScheduledExecutorService _periodicalRebalanceExecutor =
+  private final ScheduledExecutorService _periodicalRebalanceExecutor =
       Executors.newSingleThreadScheduledExecutor();
   private ScheduledFuture _periodicRebalanceFutureTask = null;
   long _timerPeriod = Long.MAX_VALUE;

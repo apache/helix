@@ -233,6 +233,8 @@ public class ZkTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    String testClassName = this.getShortClassName();
+    System.out.println("BeforeClass: " + testClassName + " called.");
     cleanupJMXObjects();
     // Giving each test some time to settle (such as gc pause, etc).
     // Note that this is the best effort we could make to stabilize tests, not a complete solution
@@ -243,7 +245,7 @@ public class ZkTestBase {
   @BeforeMethod
   public void beforeTest(Method testMethod, ITestContext testContext) {
     long startTime = System.currentTimeMillis();
-    System.out.println("START " + testMethod.getName() + " at " + new Date(startTime));
+    System.out.println("START " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(startTime));
     testContext.setAttribute("StartTime", System.currentTimeMillis());
   }
 
@@ -251,7 +253,7 @@ public class ZkTestBase {
   public void endTest(Method testMethod, ITestContext testContext) {
     Long startTime = (Long) testContext.getAttribute("StartTime");
     long endTime = System.currentTimeMillis();
-    System.out.println("END " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
+    System.out.println("END " + getShortClassName() + " " + testMethod.getName() + " at " + new Date(endTime) + ", took: "
         + (endTime - startTime) + "ms.");
   }
 
@@ -727,6 +729,7 @@ public class ZkTestBase {
   @AfterClass
   public void cleanupLiveInstanceOwners() throws InterruptedException {
     String testClassName = this.getShortClassName();
+    System.out.println("AfterClass: " + testClassName + " called.");
     for (String cluster : _liveInstanceOwners.keySet()) {
       Map<String, HelixZkClient> clientMap = _liveInstanceOwners.get(cluster);
       for (HelixZkClient client : clientMap.values()) {

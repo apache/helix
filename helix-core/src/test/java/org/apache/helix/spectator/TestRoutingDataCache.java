@@ -39,6 +39,8 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
   @Test
   public void testUpdateOnNotification() {
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+    
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -63,6 +65,15 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
   @Test(dependsOnMethods = { "testUpdateOnNotification" })
   public void testSelectiveUpdates()
       throws Exception {
+    // Added verifier to make sure the test starts at a stable state. Note, if
+    // testCurrentStatesSelectiveUpdate() run first. This test may fail without
+    // this line. The reason is that when testCurrentStatesSelectiveUpdate()
+    // stop one participant, this would trigger liveInstance update in controller
+    // which would lead to new external view for TestDB get updated. The update is
+    // async to the construction of RoutingDataCache in this test and subsequent
+    // refresh().
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
     MockZkHelixDataAccessor accessor =
         new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
@@ -87,8 +98,6 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_1", _replica);
 
     Thread.sleep(100);
-    ZkHelixClusterVerifier _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient).build();
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     accessor.clearReadCounters();
@@ -106,7 +115,6 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, "TestDB_3", 1, STATE_MODEL);
     _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB_3", _replica);
 
-    Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     // Totally four resources. Two of them are newly added.
@@ -119,7 +127,6 @@ public class TestRoutingDataCache extends ZkStandAloneCMTestBase {
 
     _gSetupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, "TestDB_2", false);
 
-    Thread.sleep(100);
     Assert.assertTrue(_clusterVerifier.verifyByPolling());
 
     cache.notifyDataChange(HelixConstants.ChangeType.EXTERNAL_VIEW);

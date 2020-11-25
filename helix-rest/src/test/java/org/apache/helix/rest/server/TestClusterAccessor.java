@@ -77,12 +77,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     for (String cluster : _clusters) {
       ClusterConfig clusterConfig = createClusterConfig(cluster);
       _configAccessor.setClusterConfig(cluster, clusterConfig);
+      System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + clusterConfig.toString());
     }
-
-    String clustercc = _clusters.iterator().next();
-    ClusterConfig config = getClusterConfigFromRest(clustercc);
-    System.out.println("[Xyy] ZNode start testGetClusterTopologyAndFaultZoneMap oldConfig: " + config.toString());
-
   }
 
   @Test

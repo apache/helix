@@ -44,7 +44,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestInstancesAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_0";
+  private final static String CLUSTER_NAME = "TestCluster_2";
   private ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Test
@@ -173,7 +173,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-/*
   @Test(dependsOnMethods = "testGetAllInstances")
   public void testValidateWeightForAllInstances() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -229,7 +228,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
-*/
+
   private Set<String> getStringSet(JsonNode jsonNode, String key) {
     Set<String> result = new HashSet<>();
     jsonNode.withArray(key).forEach(s -> result.add(s.textValue()));

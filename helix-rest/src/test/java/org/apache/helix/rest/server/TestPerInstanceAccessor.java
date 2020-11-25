@@ -50,7 +50,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestPerInstanceAccessor extends AbstractTestClass {
-  private final static String CLUSTER_NAME = "TestCluster_0";
+  private final static String CLUSTER_NAME = "TestCluster_2";
   private final static String INSTANCE_NAME = CLUSTER_NAME + "localhost_12918";
 
   @Test
@@ -407,7 +407,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
    * 2. Define keys in ClusterConfig and call validate -> We should get BadRequest.
    * 3. Define weight configs in InstanceConfig and call validate -> We should get OK with "true".
    */
-  /*
+
   @Test(dependsOnMethods = "checkUpdateFails")
   public void testValidateWeightForInstance()
       throws IOException {
@@ -466,12 +466,12 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // in ClusterConfig
     node.iterator().forEachRemaining(child -> Assert.assertTrue(child.booleanValue()));
     System.out.println("End test :" + TestHelper.getTestMethodName());
-  } */
+  }
 
   /**
    * Test the sanity check when updating the instance config.
    * The config is validated at rest server side.
-   */ /*
+   */
   @Test(dependsOnMethods = "testValidateWeightForInstance")
   public void testValidateDeltaInstanceConfigForUpdate() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -517,5 +517,5 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
-  }*/
+  }
 }

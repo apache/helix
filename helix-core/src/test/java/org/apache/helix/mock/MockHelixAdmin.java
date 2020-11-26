@@ -27,7 +27,9 @@ import java.util.Map;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.topology.ClusterTopology;
@@ -45,6 +47,8 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import sun.applet.Main;
+
 
 public class MockHelixAdmin implements HelixAdmin {
 
@@ -309,7 +313,8 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public void autoEnableMaintenanceMode(String clusterName, boolean enabled, String reason,
       MaintenanceSignal.AutoTriggerReason internalReason) {
-
+    // no implemetation for now.
+    return;
   }
 
   @Override

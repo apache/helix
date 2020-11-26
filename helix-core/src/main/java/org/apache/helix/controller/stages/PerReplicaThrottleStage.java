@@ -30,14 +30,18 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.LogUtil;
+import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -111,8 +115,79 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       event.addAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name(), throttledLoadMsg);
     }
 
-    // ToDo: handling maintenance maxPartitionPerInstance case.
+    // Make sure no instance has more replicas/partitions assigned than maxPartitionPerInstance. If
+    // it does, pause the rebalance and put the cluster on maintenance mode
+    int maxPartitionPerInstance = cache.getClusterConfig().getMaxPartitionsPerInstance();
+    if (maxPartitionPerInstance > 0) {
+      validateMaxPartitionsPerInstance(retracedResourceStateMap, maxPartitionPerInstance, cache, event);
+    }
+  }
 
+  /**
+   * Go through every instance in the assignment and check that each instance does NOT have more
+   * replicas for partitions assigned to it than maxPartitionsPerInstance. If the assignment
+   * violates this, put the cluster on maintenance mode.
+   * @param retracedResourceStateMap
+   * @param maxPartitionPerInstance
+   */
+  private void validateMaxPartitionsPerInstance(ResourcesStateMap retracedResourceStateMap,
+      int maxPartitionPerInstance,  ResourceControllerDataProvider cache, ClusterEvent event) {
+    Map<String, PartitionStateMap> resourceStatesMap = retracedResourceStateMap.getResourceStatesMap();
+    Map<String, Integer> instancePartitionCounts = new HashMap<>();
+
+    for (String resource : resourceStatesMap.keySet()) {
+      IdealState idealState = cache.getIdealState(resource);
+      if (idealState != null
+          && idealState.getStateModelDefRef().equals(BuiltInStateModelDefinitions.Task.name())) {
+        // Ignore task here. Task has its own throttling logic
+        continue;
+      }
+
+      PartitionStateMap partitionStateMap = resourceStatesMap.get(resource);
+      Map<Partition, Map<String, String>> stateMaps = partitionStateMap.getStateMap();
+      for (Partition p : stateMaps.keySet()) {
+        Map<String, String> stateMap = stateMaps.get(p);
+        for (String instance : stateMap.keySet()) {
+          // If this replica is in DROPPED state, do not count it in the partition count since it is
+          // to be dropped
+          String state = stateMap.get(instance);
+          if (state.equals(HelixDefinedState.DROPPED.name())) {
+            continue;
+          }
+          if (!instancePartitionCounts.containsKey(instance)) {
+            instancePartitionCounts.put(instance, 0);
+          }
+          int partitionCount = instancePartitionCounts.get(instance);
+          // Number of replicas (from different partitions) held in this instance
+          partitionCount++;
+          if (partitionCount > maxPartitionPerInstance) {
+            HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+            String errMsg = String.format(
+                "Problem: according to this assignment, instance %s contains more "
+                    + "replicas/partitions than the maximum number allowed (%d). Pipeline will "
+                    + "stop the rebalance and put the cluster %s into maintenance mode",
+                instance, maxPartitionPerInstance, cache.getClusterName());
+            if (manager != null) {
+              if (manager.getHelixDataAccessor()
+                  .getProperty(manager.getHelixDataAccessor().keyBuilder().maintenance()) == null) {
+                manager.getClusterManagmentTool().autoEnableMaintenanceMode(
+                    manager.getClusterName(), true, errMsg,
+                    MaintenanceSignal.AutoTriggerReason.MAX_PARTITION_PER_INSTANCE_EXCEEDED);
+              }
+              LogUtil.logWarn(logger, _eventId, errMsg);
+            } else {
+              LogUtil.logError(logger, _eventId,
+                  "HelixManager is not set/null! Failed to pause this cluster/enable maintenance"
+                      + " mode due to an instance being assigned more replicas/partitions than "
+                      + "the limit.");
+            }
+            //TODO: add metrics
+            throw new HelixException(errMsg);
+          }
+          instancePartitionCounts.put(instance, partitionCount);
+        }
+      }
+    }
   }
 
   /**

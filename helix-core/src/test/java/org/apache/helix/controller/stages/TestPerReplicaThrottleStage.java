@@ -24,9 +24,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
+import org.apache.helix.controller.pipeline.Stage;
+import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -439,10 +442,96 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     Assert.assertTrue(msgs.size() == 0);
   }
 
-  // Case 7, Trigger into maintainence mode
+  // Case 7, Trigger into maintenance mode
   @Test
   public void testTriggerMaintenanceMode() {
-    // TODO
+    String resourcePrefix = "resource";
+    int nResource = 1;
+    int nPartition = 2;
+    int nReplica = 3;
+    String[] resources = new String[nResource];
+    for (int i = 0; i < nResource; i++) {
+      resources[i] = resourcePrefix + "-" + i;
+    }
+
+    preSetup(resources, nPartition, nReplica);
+    setupThrottleConfig(10, 10);
+
+    // set up max partition per replica to trigger maintenance mode
+    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    clusterConfig.setMaxPartitionsPerInstance(1);
+    setClusterConfig(clusterConfig);
+
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        getResourceMap(resources, nPartition, "MasterSlave"));
+    // setup current state; setup message output; setup best possible
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    MessageOutput messageOutput = new MessageOutput();
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    for (String resource : resources) {
+      for (int p = 0; p < nPartition; p++) {
+        Partition partition = new Partition(resource + "_" + p);
+        if (p == 0) {
+          currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 0, "MASTER");
+          currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 1, "SLAVE");
+          currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 2, "OFFLINE");
+          Message msg = new Message(Message.MessageType.STATE_TRANSITION, "001");
+          msg.setToState("SLAVE");
+          msg.setFromState("OFFLINE");
+          msg.setTgtName(HOSTNAME_PREFIX + 2);
+          msg.setPartitionName(partition.getPartitionName());
+          messageOutput.addMessage(resource, partition, msg);
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 0, "MASTER");
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 1, "SLAVE");
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 2, "SLAVE");
+          List<String> list = Arrays.asList(HOSTNAME_PREFIX + 0, HOSTNAME_PREFIX + 1, HOSTNAME_PREFIX + 2);
+          bestPossibleStateOutput.setPreferenceList(resource, partition.getPartitionName(), list);
+        } else {
+          Message msg = new Message(Message.MessageType.STATE_TRANSITION, "002");
+          msg.setToState("SLAVE");
+          msg.setFromState("OFFLINE");
+          msg.setTgtName(HOSTNAME_PREFIX + 0);
+          msg.setPartitionName(partition.getPartitionName());
+          messageOutput.addMessage(resource, partition, msg);
+          msg = new Message(Message.MessageType.STATE_TRANSITION, "003");
+          msg.setToState("SLAVE");
+          msg.setFromState("OFFLINE");
+          msg.setTgtName(HOSTNAME_PREFIX + 1);
+          msg.setPartitionName(partition.getPartitionName());
+          messageOutput.addMessage(resource, partition, msg);
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 0, "MASTER");
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 1, "SLAVE");
+          bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 2, "SLAVE");
+          List<String> list = Arrays.asList(HOSTNAME_PREFIX + 0, HOSTNAME_PREFIX + 1, HOSTNAME_PREFIX + 2);
+          bestPossibleStateOutput.setPreferenceList(resource, partition.getPartitionName(), list);
+        }
+      }
+    }
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+
+    runStage(event, new ReadClusterDataStage());
+
+    Stage perReplicaStage = new PerReplicaThrottleStage(true);
+    event.addAttribute(AttributeName.helixmanager.name(), manager);
+    StageContext context = new StageContext();
+    perReplicaStage.init(context);
+    perReplicaStage.preProcess();
+    try {
+      perReplicaStage.process(event);
+      Assert.assertTrue(false, "not seen expected exception to enter maitenance mode");
+    } catch (HelixException e) {
+      // expect to see HelixException from perReplicaStage validateMaxPartitionsPerInstance.
+      // also match the error message content
+      Assert.assertTrue(e.getMessage().startsWith("Problem: according to this assignment"),
+          "error message not matching auto entering maintenance");
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.assertTrue(false, "unexpected exception");
+    }
   }
 
   protected Map<String, Resource> getResourceMap(String[] resources, int partitions,

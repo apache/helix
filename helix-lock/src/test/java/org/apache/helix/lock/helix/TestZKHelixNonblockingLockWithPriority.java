@@ -1,0 +1,334 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.helix.lock.helix;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.helix.HelixException;
+import org.apache.helix.TestHelper;
+import org.apache.helix.common.ZkTestBase;
+import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+
+public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
+
+  private final String _clusterName = TestHelper.getTestClassName();
+  private String _lockPath;
+  private HelixLockScope _participantScope;
+  private AtomicBoolean _isCleanupNotified;
+
+  private final LockListener _lockListener = new LockListener() {
+    @Override
+    public void onCleanupNotification() {
+      _isCleanupNotified.set(true);
+      try {
+        Thread.sleep(20000);
+      } catch (Exception e) {
+
+      }
+    }
+  };
+
+  @BeforeClass
+  public void beforeClass() throws Exception {
+    System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
+        "MasterSlave", true);
+
+    List<String> pathKeys = new ArrayList<>();
+    pathKeys.add(_clusterName);
+    pathKeys.add(_clusterName);
+    _participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
+    _lockPath = _participantScope.getPath();
+
+    _isCleanupNotified = new AtomicBoolean(false);
+  }
+
+  @BeforeMethod
+  public void beforeMethod() {
+    _gZkClient.delete(_lockPath);
+    Assert.assertFalse(_gZkClient.exists(_lockPath));
+  }
+
+  @AfterSuite
+  public void afterSuite() throws IOException {
+    super.afterSuite();
+  }
+
+  @Test
+  public void testLowerPriorityRequestRejected() throws Exception {
+    ZKDistributedNonblockingLock lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L, "original "
+            + "lock", "original_lock", 1, 1000, 25000, false, _lockListener);
+
+    ZKDistributedNonblockingLock lowerLock = new ZKDistributedNonblockingLock(_participantScope,
+        ZK_ADDR, 3600000L,
+        "lower priority lock", "low_lock", 0, 1000, 2000, false, createLockListener());
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    LockHelper lockHelper = new LockHelper(lowerLock);
+    Thread threadLow = new Thread(lockHelper);
+    threadLow.start();
+    threadLow.join();
+    boolean lowResult = lockHelper.getResult();
+
+    Assert.assertFalse(_isCleanupNotified.get());
+    Assert.assertFalse(lowerLock.isCurrentOwner());
+    Assert.assertFalse(lowResult);
+    lock.unlock();
+    lock.close();
+    lowerLock.close();
+  }
+
+  @Test
+  public void testHigherPriorityRequestAcquired() throws Exception {
+    ZKDistributedNonblockingLock lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L, "original "
+            + "lock", "original_lock", 1, 1000, 25000, false, _lockListener);
+
+    // The waitingTimeout of higher priority request is larger than cleanup time of current owner
+    ZKDistributedNonblockingLock higherLock = new ZKDistributedNonblockingLock(_participantScope,
+        ZK_ADDR, 3600000L,
+        "higher priority lock", "high_lock", 2, 30000, 10000, false, createLockListener());
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    LockHelper lockHelper = new LockHelper(higherLock);
+    Thread t_higher = new Thread(lockHelper);
+    t_higher.start();
+    t_higher.join();
+    boolean higherResult = lockHelper.getResult();
+
+    Assert.assertTrue(_isCleanupNotified.get());
+    Assert.assertTrue(higherLock.isCurrentOwner());
+    Assert.assertTrue(higherResult);
+    _isCleanupNotified.set(false);
+    higherLock.unlock();
+    higherLock.close();
+    lock.close();
+  }
+
+  @Test
+  public void testHigherPriorityRequestFailedAsCleanupHasNotDone() throws Exception {
+    ZKDistributedNonblockingLock lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L, "original "
+            + "lock", "original_lock", 1, 1000, 25000, false, _lockListener);
+
+    // The waitingTimeout of higher priority request is shorter than cleanup time of current
+    // owner, and the higher priority request is not forceful.
+    ZKDistributedNonblockingLock higherLock_short =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L,
+            "higher priority lock short", "high_lock_short", 2, 2000, 10000, false, createLockListener());
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    LockHelper lockHelper = new LockHelper(higherLock_short);
+    Thread t_higher = new Thread(lockHelper);
+
+    t_higher.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread th, Throwable ex) {
+        Assert.assertTrue(ex.getMessage().contains("Clean up has not finished by lock owner"));
+      }
+    });
+    t_higher.start();
+    t_higher.join();
+    boolean higherResult = lockHelper.getResult();
+
+    Assert.assertTrue(_isCleanupNotified.get());
+    Assert.assertFalse(higherLock_short.isCurrentOwner());
+    Assert.assertFalse(higherResult);
+    _isCleanupNotified.set(false);
+
+    Assert.assertTrue(lock.unlock());
+    Assert.assertFalse(lock.isCurrentOwner());
+    lock.close();
+    higherLock_short.close();
+  }
+
+  @Test
+  public void testHigherPriorityRequestForcefulAcquired() throws Exception {
+    ZKDistributedNonblockingLock lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L, "original "
+            + "lock", "original_lock", 1, 1000, 25000, false, _lockListener);
+
+    // The waitingTimeout of higher priority request is shorter than cleanup time of current
+    // owner, but the higher priority request is forceful.
+    ZKDistributedNonblockingLock higherLock_force =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L,
+            "higher priority lock force", "high_lock_force", 2, 2000, 10000, true,
+            new LockListener() {
+              @Override
+              public void onCleanupNotification() {
+              }
+            });
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    LockHelper lockHelper = new LockHelper(higherLock_force);
+    Thread t_higher = new Thread(lockHelper);
+
+    t_higher.start();
+    t_higher.join();
+    boolean higherResult = lockHelper.getResult();
+
+    boolean res = TestHelper.verify(() -> {
+      return _isCleanupNotified.get();
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(res);
+    Assert.assertTrue(higherLock_force.isCurrentOwner());
+    Assert.assertTrue(higherResult);
+    _isCleanupNotified.set(false);
+
+    higherLock_force.unlock();
+    higherLock_force.close();
+    lock.close();
+  }
+
+  @Test
+  public void testHigherPriorityRequestPreemptedByAnother() throws Exception {
+    ZKDistributedNonblockingLock lock =
+        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L, "original "
+            + "lock", "original_lock", 1, 1000, 25000, false, _lockListener);
+
+    ZKDistributedNonblockingLock higherLock = new ZKDistributedNonblockingLock(_participantScope,
+        ZK_ADDR, 3600000L,
+        "higher priority lock", "high_lock", 2, 30000, 10000, false, createLockListener());
+
+    ZKDistributedNonblockingLock highestLock = new ZKDistributedNonblockingLock(_participantScope
+        , ZK_ADDR, 3600000L,
+        "highest priority lock", "highest_lock", 3, 30000, 20000, false, createLockListener());
+
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        lock.tryLock();
+      }
+    };
+
+    Thread t_highest = new Thread() {
+      @Override
+      public void run() {
+        highestLock.tryLock();
+      }
+    };
+
+    t.start();
+    t.join();
+    Assert.assertTrue(lock.isCurrentOwner());
+
+    LockHelper lockHelper = new LockHelper(higherLock);
+    Thread t_higher = new Thread(lockHelper);
+    t_higher.start();
+    Thread.sleep(1000);
+    boolean higherResult = lockHelper.getResult();
+
+    Assert.assertFalse(higherLock.isCurrentOwner());
+    Assert.assertFalse(higherResult);
+
+    t_highest.start();
+    t_highest.join();
+    Assert.assertTrue(highestLock.isCurrentOwner());
+    _isCleanupNotified.set(false);
+
+    highestLock.unlock();
+    highestLock.close();
+    higherLock.close();
+    lock.close();
+  }
+
+  private class LockHelper implements Runnable {
+    private volatile boolean result;
+    private final ZKDistributedNonblockingLock _lock;
+
+    public LockHelper(ZKDistributedNonblockingLock lock) {
+      _lock = lock;
+    }
+
+    @Override
+    public void run() {
+      try {
+        result = _lock.tryLock();
+      } catch (HelixException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public boolean getResult() {
+      return result;
+    }
+  }
+
+  LockListener createLockListener() {
+    return new LockListener() {
+      @Override
+      public void onCleanupNotification() {
+      }
+    };
+  }
+}
+
+

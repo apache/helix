@@ -198,7 +198,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       Collection<String> liveInstances, CurrentStateOutput currStateOutput,
       WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
       WorkflowControllerDataProvider cache) {
-
     // Used to keep track of tasks that have already been assigned to instances.
     // InstanceName -> Set of task partitions assigned to that instance in this iteration
     Map<String, Set<Integer>> assignedPartitions = new HashMap<>();
@@ -316,6 +315,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
     scheduleForNextTask(jobResource, jobCtx, currentTime);
+
+    // If the assigned instance is no longer live, so mark it as DROPPED in the context
+    markPartitionsWithoutLiveInstance(jobCtx, allPartitions, liveInstances);
 
     // Make additional task assignments if needed.
     if (jobState != TaskState.TIMING_OUT && jobState != TaskState.TIMED_OUT

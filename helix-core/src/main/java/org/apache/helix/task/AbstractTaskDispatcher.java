@@ -823,8 +823,6 @@ public abstract class AbstractTaskDispatcher {
       if (isTaskNotInTerminalState(state)) {
         String assignedParticipant = jobContext.getAssignedParticipant(partitionNumber);
         if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
-          // The assigned instance is no longer live, so mark it as DROPPED in the context
-          jobContext.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
           filteredTasks.add(partitionNumber);
         }
       }
@@ -837,7 +835,7 @@ public abstract class AbstractTaskDispatcher {
    * @param state
    * @return
    */
-  private boolean isTaskNotInTerminalState(TaskPartitionState state) {
+  protected static boolean isTaskNotInTerminalState(TaskPartitionState state) {
     return state != TaskPartitionState.COMPLETED && state != TaskPartitionState.TASK_ABORTED
         && state != TaskPartitionState.ERROR;
   }
@@ -933,6 +931,20 @@ public abstract class AbstractTaskDispatcher {
     }
     scheduleJobCleanUp(jobConfigMap.get(jobName).getTerminalStateExpiry(), workflowConfig,
         currentTime);
+  }
+
+  protected void markPartitionsWithoutLiveInstance(JobContext jobCtx, Set<Integer> allPartitions,
+      Collection<String> liveInstances) {
+    for (int partitionNumber : allPartitions) {
+      TaskPartitionState state = jobCtx.getPartitionState(partitionNumber);
+      if (isTaskNotInTerminalState(state)) {
+        String assignedParticipant = jobCtx.getAssignedParticipant(partitionNumber);
+        if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
+          // The assigned instance is no longer live, so mark it as DROPPED in the context
+          jobCtx.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
+        }
+      }
+    }
   }
 
   protected void scheduleJobCleanUp(long expiry, WorkflowConfig workflowConfig,

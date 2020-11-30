@@ -41,7 +41,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
     final String workflow = resource.getResourceName();
     long startTime = System.currentTimeMillis();
-    LOG.debug("Computer Best Partition for workflow: {}", workflow);
+    LOG.debug("Compute Best Partition for workflow: {}", workflow);
     _workflowDispatcher.init(_manager);
     WorkflowContext workflowCtx = _workflowDispatcher
         .getOrInitializeWorkflowContext(workflow, clusterData.getTaskDataCache());

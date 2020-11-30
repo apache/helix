@@ -134,14 +134,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Deprecated
   public ZkBaseDataAccessor(RealmAwareZkClient zkClient) {
-    if (zkClient == null) {
-      throw new NullPointerException("zkclient is null");
-    }
-    _zkClient = zkClient;
-    _usesExternalZkClient = true;
+    this(zkClient, true);
   }
 
   private ZkBaseDataAccessor(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
+    if (zkClient == null) {
+      throw new NullPointerException("zkclient is null");
+    }
     _zkClient = zkClient;
     _usesExternalZkClient = usesExternalZkClient;
   }
@@ -1317,9 +1316,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
      */
     public ZkBaseDataAccessor<T> build() {
       validate();
+      // Initialize ZkBaseDataAccessor with usesExternalZkClient = false so that
+      // ZkBaseDataAccessor::close() would close ZkClient as well to prevent thread leakage
       return new ZkBaseDataAccessor<>(
           createZkClient(_realmMode, _realmAwareZkConnectionConfig, _realmAwareZkClientConfig,
-              _zkAddress));
+              _zkAddress), false);
     }
   }
 

@@ -111,7 +111,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances, int waitTillVerify) {
-    super(zkClient, clusterName, waitTillVerify);
+    super(zkClient, clusterName, true, waitTillVerify);
     _errStates = errStates;
     _resources = resources;
     _expectLiveInstances = expectLiveInstances;
@@ -121,7 +121,9 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Map<String, Map<String, String>> errStates, Set<String> resources,
       Set<String> expectLiveInstances, int waitPeriodTillVerify) {
-    super(zkClient, clusterName, waitPeriodTillVerify);
+    // Initialize BestPossibleExternalViewVerifier with usesExternalZkClient = false so that
+    // BestPossibleExternalViewVerifier::close() would close ZkClient to prevent thread leakage
+    super(zkClient, clusterName, false, waitPeriodTillVerify);
     // Deep copy data from Builder
     _errStates = new HashMap<>();
     if (errStates != null) {

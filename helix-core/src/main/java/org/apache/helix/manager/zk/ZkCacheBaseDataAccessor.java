@@ -138,11 +138,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   private ZkCacheBaseDataAccessor(RealmAwareZkClient zkClient, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
     _zkClient = zkClient;
-    // Initialize ZkBaseDataAccessor with usesExternalZkClient = false so that
-    // ZkBaseDataAccessor::close() would close ZkClient as well to prevent thread leakage
-    // This is done for completeness; ZKCacheBaseDataAccessor closes zkClient anyways in stop(),
-    // so this is not necessary, strictly speaking.
-    _baseAccessor = new ZkBaseDataAccessor<>(_zkClient, false);
+    _baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
 
     _chrootPath = chrootPath;
     _wtCachePaths = wtCachePaths;

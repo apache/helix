@@ -79,7 +79,10 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int waitPeriodTillVerify) {
+      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware,
+      int waitPeriodTillVerify) {
+    // Initialize StrictMatchExternalViewVerifier with usesExternalZkClient = false so that
+    // StrictMatchExternalViewVerifier::close() would close ZkClient to prevent thread leakage
     super(zkClient, clusterName, false, waitPeriodTillVerify);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
     _expectLiveInstances =

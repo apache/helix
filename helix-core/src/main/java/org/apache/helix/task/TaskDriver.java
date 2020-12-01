@@ -804,7 +804,7 @@ public class TaskDriver {
 
     if ((taskConfig.getCommand() == null) == (jobConfig.getCommand() == null)) {
       throw new HelixException(String
-          .format("Command must exist in either job %s or task %s, not both!", jobName,
+          .format("Command must exist in either jobconfig (%s) or taskconfig (%s), not both!", jobName,
               taskConfig.getId()));
     }
   }
@@ -1074,8 +1074,8 @@ public class TaskDriver {
     if (state != TargetState.DELETE && workflowContext != null
         && workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
       // Should not update target state for completed workflow
-      LOG.info("Workflow {} is already completed, skip to update its target state {}",
-          workflow + state);
+      LOG.info("Workflow {} is already completed, skip to update its target state {}", workflow,
+          state);
       return;
     }
 

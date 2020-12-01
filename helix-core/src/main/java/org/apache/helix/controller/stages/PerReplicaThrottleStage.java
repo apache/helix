@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.sun.xml.internal.ws.wsdl.writer.document.Part;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -341,8 +342,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
 
-    applyRecoveryThrottling(resource, throttleController, currentStateMap, bestPossibleMap,
-        idealState, cache, recoveryMessages, messagePartitionMap, throttledRecoveryMessages);
+    applyThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
+        cache, false, recoveryMessages, messagePartitionMap,
+        throttledRecoveryMessages, StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
 
     // Step 4: sorts load message list and applies throttling
 
@@ -369,8 +371,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     boolean onlyDownwardLoadBalance = partitionCount > threshold;
     Set<Message> throttledLoadMessages = new HashSet<>();
 
-    applyLoadThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
-        cache, onlyDownwardLoadBalance, loadMessages, messagePartitionMap, throttledLoadMessages);
+    applyThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
+        cache, onlyDownwardLoadBalance, loadMessages, messagePartitionMap, throttledLoadMessages,
+        StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
 
     LogUtil.logInfo(logger, _eventId,
         String.format("resource %s, throttled recovery message: %s", resourceName,throttledRecoveryMessages));
@@ -423,6 +426,40 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     return out;
   }
 
+  private void getPartitionExpectedAndCurrentStateCountMap(
+      Partition partition,
+      Map<String, List<String>> preferenceLists,
+      IdealState idealState,
+      ResourceControllerDataProvider cache,
+      Map<String, String> currentStateMap,
+      Map<String, Integer> expectedStateCountMapOut,
+      Map<String, Integer> currentStateCountsOut
+      ) {
+    List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
+    int replica = idealState.getMinActiveReplicas() == -1 ? idealState
+        .getReplicaCount(preferenceList.size()) : idealState.getMinActiveReplicas();
+    Set<String> activeList = new HashSet<>(preferenceList);
+    activeList.retainAll(cache.getEnabledLiveInstances());
+
+    // For each state, check that this partition currently has the required number of that state as
+    // required by StateModelDefinition.
+    String stateModelDefName = idealState.getStateModelDefRef();
+    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+    LinkedHashMap<String, Integer> expectedStateCountMap = stateModelDef
+        .getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
+
+    // Current counts without disabled partitions or disabled instances
+    Map<String, String> currentStateMapWithoutDisabled = new HashMap<>(currentStateMap);
+    currentStateMapWithoutDisabled.keySet().removeAll(cache
+        .getDisabledInstancesForPartition(idealState.getResourceName(),
+            partition.getPartitionName()));
+    Map<String, Integer> currentStateCounts =
+        StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
+
+    expectedStateCountMapOut.putAll(expectedStateCountMap);
+    currentStateCountsOut.putAll(currentStateCounts);
+  }
+
   /*
    * Charge pending messages with recovery or load rebalance and update the retraced partition map
    * accordingly.
@@ -453,31 +490,17 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         partitionsWithErrorStateReplica.add(partition);
       }
 
-      List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
-
-      int replica = idealState.getMinActiveReplicas() == -1 ? idealState
-          .getReplicaCount(preferenceList.size()) : idealState.getMinActiveReplicas();
-      Set<String> activeList = new HashSet<>(preferenceList);
-      activeList.retainAll(cache.getEnabledLiveInstances());
-
-      // For each state, check that this partition currently has the required number of that state as
-      // required by StateModelDefinition.
-      String stateModelDefName = idealState.getStateModelDefRef();
-      StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-      LinkedHashMap<String, Integer> expectedStateCountMap = stateModelDef
-          .getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
-
-      // Current counts without disabled partitions or disabled instances
-      Map<String, String> currentStateMapWithoutDisabled = new HashMap<>(currentStateMap);
-      currentStateMapWithoutDisabled.keySet().removeAll(cache
-          .getDisabledInstancesForPartition(idealState.getResourceName(),
-              partition.getPartitionName()));
-      Map<String, Integer> currentStateCounts =
-          StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
+      Map<String, Integer> expectedStateCountMap = new HashMap<>();
+      Map<String, Integer> currentStateCounts = new HashMap<>();
+      getPartitionExpectedAndCurrentStateCountMap(partition, preferenceLists, idealState,
+          cache, currentStateMap, expectedStateCountMap, currentStateCounts);
 
       Map<String, Message> pendingMessageMap =
           currentStateOutput.getPendingMessageMap(resourceName, partition);
       List<Message> pendingMessages = new ArrayList<>(pendingMessageMap.values());
+      String stateModelDefName = idealState.getStateModelDefRef();
+      StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+
       // sort pendingMessages based on transition priority then timeStamp for state transition message
       pendingMessages.sort(new PartitionMessageComparator(stateModelDef));
       List<Message> recoveryMessages = new ArrayList<>();
@@ -581,33 +604,19 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
+      Map<String, Integer> expectedStateCountMap = new HashMap<>();
+      Map<String, Integer> currentStateCounts = new HashMap<>();
 
-      List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
-
-      int replica = idealState.getMinActiveReplicas() == -1 ? idealState
-          .getReplicaCount(preferenceList.size()) : idealState.getMinActiveReplicas();
-      Set<String> activeList = new HashSet<>(preferenceList);
-      activeList.retainAll(cache.getEnabledLiveInstances());
-
-      // For each state, check that this partition currently has the required number of that state as
-      // required by StateModelDefinition.
-      String stateModelDefName = idealState.getStateModelDefRef();
-      StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-      LinkedHashMap<String, Integer> expectedStateCountMap = stateModelDef
-          .getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
-
-      // Current counts without disabled partitions or disabled instances
-      Map<String, String> currentStateMapWithoutDisabled = new HashMap<>(currentStateMap);
-      currentStateMapWithoutDisabled.keySet().removeAll(cache
-          .getDisabledInstancesForPartition(idealState.getResourceName(),
-              partition.getPartitionName()));
-      Map<String, Integer> currentStateCounts =
-          StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
+      getPartitionExpectedAndCurrentStateCountMap(partition, preferenceLists, idealState,
+          cache, currentStateMap, expectedStateCountMap, currentStateCounts);
 
       List<Message> partitionMessages = selectedResourceMessages.get(partition);
       if (partitionMessages == null) {
         continue;
       }
+
+      String stateModelDefName = idealState.getStateModelDefRef();
+      StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
       // sort partitionMessages based on transition priority and then creation timestamp for transition message
       partitionMessages.sort(new PartitionMessageComparator(stateModelDef));
       Set<String> disabledInstances =
@@ -673,81 +682,35 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
   }
 
-  private void applyRecoveryThrottling(
-      Resource resource,
-      StateTransitionThrottleController throttleController,
-      Map<Partition, Map<String, String>> currentStateMap,
-      Map<Partition, Map<String, String>> bestPossibleMap,
-      IdealState idealState,
-      ResourceControllerDataProvider cache,
-      List<Message> recoveryMessages,
-      Map<Message, Partition> messagePartitionMap,
-      Set<Message> throttledRecoveryMessages
-  ) {
-    String resourceName = resource.getResourceName();
-
-    String stateModelDefName = idealState.getStateModelDefRef();
-    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-
-    recoveryMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,true));
-    logger.debug("throttleControllerstate->{} before recovery", throttleController);
-    for (Message msg : recoveryMessages) {
-      // step 1. if the instance level throttle met, consider disabled instance case
-      // step 2. if the resource level throttle met
-      // step 3. if none of them met, charge
-      StateTransitionThrottleConfig.RebalanceType rebalanceType = StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE;
-      if (throttleController.shouldThrottleForResource(rebalanceType, resourceName)) {
-        throttledRecoveryMessages.add(msg);
-        if (logger.isDebugEnabled()) {
-          LogUtil.logDebug(logger, _eventId,
-              String.format("Message: %s throttled in resource: %s with type: %s", msg, resourceName,
-                  rebalanceType));
-        }
-        continue;
-      }
-      String instance = msg.getTgtName();
-      if (throttleController.shouldThrottleForInstance(rebalanceType, instance)) {
-        throttledRecoveryMessages.add(msg);
-        if (logger.isDebugEnabled()) {
-          LogUtil.logDebug(logger, _eventId,
-              String.format("Message: %s throttled in instance %s in resource: %s with type: %s", instance, msg, resourceName,
-                  rebalanceType));
-        }
-        continue;
-      }
-      throttleController.chargeInstance(rebalanceType, instance);
-      throttleController.chargeResource(rebalanceType, resourceName);
-      throttleController.chargeCluster(rebalanceType);
-      logger.debug("throttleControllerstate->{} after  charge recover msg: {}", throttleController, msg);
-    }
-  }
-
-
-  private void applyLoadThrottling(
-      Resource resource,
+  private void applyThrottling(Resource resource,
       StateTransitionThrottleController throttleController,
       Map<Partition, Map<String, String>> currentStateMap,
       Map<Partition, Map<String, String>> bestPossibleMap,
       IdealState idealState,
       ResourceControllerDataProvider cache,
       boolean onlyDownwardLoadBalance,
-      List<Message> loadMessages,
+      List<Message> messages,
       Map<Message, Partition> messagePartitionMap,
-      Set<Message> throttledLoadMessages
-  ) {
+      Set<Message> throttledMessages,
+      StateTransitionThrottleConfig.RebalanceType rebalanceType
+      ) {
+    boolean isRecovery = rebalanceType == StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE;
+    if (isRecovery && onlyDownwardLoadBalance) {
+      logger.error("onlyDownwardLoadBalance can't be used together with recovery_rebalance");
+      return;
+    }
+
     String resourceName = resource.getResourceName();
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-
-    loadMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,false));
+    messages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,isRecovery));
     logger.debug("throttleControllerstate->{} before load", throttleController);
-    for (Message msg : loadMessages) {
-      StateTransitionThrottleConfig.RebalanceType rebalanceType = StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
+    for (Message msg: messages) {
       if (onlyDownwardLoadBalance) {
         boolean isDownward = isDownwardTransition(idealState, cache, msg);
         if (isDownward == false) {
-          throttledLoadMessages.add(msg);
+          throttledMessages.add(msg);
           if (logger.isDebugEnabled()) {
             LogUtil.logDebug(logger, _eventId,
                 String.format("Message: %s throttled in resource as not downward: %s with type: %s", msg, resourceName,
@@ -756,8 +719,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
           continue;
         }
       }
+
       if (throttleController.shouldThrottleForResource(rebalanceType, resourceName)) {
-        throttledLoadMessages.add(msg);
+        throttledMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,
               String.format("Message: %s throttled in resource: %s with type: %s", msg, resourceName,
@@ -767,7 +731,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
       String instance = msg.getTgtName();
       if (throttleController.shouldThrottleForInstance(rebalanceType,instance)) {
-        throttledLoadMessages.add(msg);
+        throttledMessages.add(msg);
         if (logger.isDebugEnabled()) {
           LogUtil.logDebug(logger, _eventId,
               String.format("Message: %s throttled in instance %s in resource: %s with type: %s", instance, msg, resourceName,
@@ -780,9 +744,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeCluster(rebalanceType);
       logger.debug("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
     }
-
-
   }
+
    // ------------------ utilities ---------------------------
   /**
    * POJO that maps resource name to its priority represented by an integer.

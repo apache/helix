@@ -318,8 +318,132 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     Set<Partition> partitionsWithErrorStateReplica = new HashSet<>();
     Set<Partition> partitionsNeedRecovery = new HashSet<>();
 
-    // charge existing pending messages and update retraced state map.
-    logger.debug("throttleControllerstate->{} before pending", throttleController);
+    // Step 1: charge existing pending messages and update retraced state map.
+    chargePendingMessages(resource, throttleController, currentStateOutput, bestPossibleStateOutput,
+        idealState, cache, partitionsNeedRecovery, partitionsWithErrorStateReplica,
+        retracedPartitionsStateMap);
+
+    // Step 2: classify all the messages into recovery message list and load message list
+    LogUtil.logInfo(logger, _eventId, String.format("Classify message for resource: %s", resourceName));
+    List<Message> recoveryMessages = new ArrayList<>();
+    List<Message> loadMessages = new ArrayList<>();
+    Map<Message, Partition> messagePartitionMap = new HashMap<>(); // todo: Message  may need a hashcode()
+    classifyMessages(resource, currentStateOutput, bestPossibleStateOutput, idealState, cache,
+        selectedResourceMessages, recoveryMessages, loadMessages, messagePartitionMap);
+
+    // Step 3: sorts recovery message list and applies throttling
+    Set<Message> throttledRecoveryMessages = new HashSet<>();
+
+    Map<Partition, Map<String, String>> bestPossibleMap =
+        bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap();
+    Map<Partition, Map<String, String>> currentStateMap =
+        currentStateOutput.getCurrentStateMap(resourceName);
+    String stateModelDefName = idealState.getStateModelDefRef();
+    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+
+    applyRecoveryThrottling(resource, throttleController, currentStateMap, bestPossibleMap,
+        idealState, cache, recoveryMessages, messagePartitionMap, throttledRecoveryMessages);
+
+    // Step 4: sorts load message list and applies throttling
+
+    // calculate error-on-recovery downward flag
+    // If the threshold (ErrorOrRecovery) is set, then use it, if not, then check if the old
+    // threshold (Error) is set. If the old threshold is set, use it. If not, use the default value
+    // for the new one. This is for backward-compatibility
+    int threshold = 1; // Default threshold for ErrorOrRecoveryPartitionThresholdForLoadBalance
+    int partitionCount = partitionsWithErrorStateReplica.size();
+    ClusterConfig clusterConfig = cache.getClusterConfig();
+    if (clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance() != -1) {
+      // ErrorOrRecovery is set
+      threshold = clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance();
+      partitionCount += partitionsNeedRecovery.size(); // Only add this count when the threshold is set
+    } else {
+      if (clusterConfig.getErrorPartitionThresholdForLoadBalance() != 0) {
+        // 0 is the default value so the old threshold has been set
+        threshold = clusterConfig.getErrorPartitionThresholdForLoadBalance();
+      }
+    }
+
+    // Perform regular load balance only if the number of partitions in recovery and in error is
+    // less than the threshold. Otherwise, only allow downward-transition load balance
+    boolean onlyDownwardLoadBalance = partitionCount > threshold;
+    Set<Message> throttledLoadMessages = new HashSet<>();
+
+    applyLoadThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
+        cache, onlyDownwardLoadBalance, loadMessages, messagePartitionMap, throttledLoadMessages);
+
+    LogUtil.logInfo(logger, _eventId,
+        String.format("resource %s, throttled recovery message: %s", resourceName,throttledRecoveryMessages));
+    LogUtil.logInfo(logger, _eventId,
+        String.format("resource %s, throttled load messages: %s", resourceName,throttledLoadMessages));
+
+    throttledRecoveryMsgOut.addAll(throttledRecoveryMessages);
+    throttledLoadMessageOut.addAll(throttledLoadMessages);
+
+    // Step 5: construct output
+    Map<Partition, List<Message>> out = new HashMap<>();
+    for (Partition partition : resource.getPartitions()) {
+      List<Message> partitionMessages = selectedResourceMessages.get(partition);
+      if (partitionMessages == null) {
+        continue;
+      }
+      List<Message> finalPartitionMessages = new ArrayList<>();
+      for (Message message: partitionMessages) {
+        if (throttledRecoveryMessages.contains(message)) {
+          continue;
+        }
+        if (throttledLoadMessages.contains(message)) {
+          continue;
+        }
+        finalPartitionMessages.add(message);
+      }
+      out.put(partition, finalPartitionMessages);
+    }
+
+    // Step 6: constructs all retraced partition state map for the resource;
+    for (Partition partition : resource.getPartitions()) {
+      List<Message> partitionMessages = out.get(partition);
+      if (partitionMessages == null) {
+        continue;
+      }
+      for (Message message : partitionMessages) {
+        if (!Message.MessageType.STATE_TRANSITION.name().equals(message.getMsgType())) {
+          // todo: log?
+          // ignore cancellation message etc.
+          continue;
+        }
+        String toState = message.getToState();
+        // toIntance may not be in the retracedStateMap as so far it is current state based.
+        // new instance in best possible not in currentstate would not be in retracedStateMap yet.
+        String toInstance = message.getTgtName();
+        Map<String, String> retracedStateMap = retracedPartitionsStateMap.get(partition);
+        retracedStateMap.put(toInstance, toState);
+      }
+    }
+    return out;
+  }
+
+  /*
+   * Charge pending messages with recovery or load rebalance and update the retraced partition map
+   * accordingly.
+   * Also update partitionsNeedRecovery, partitionsWithErrorStateReplica accordingly which is used
+   * by later steps.
+   */
+  private void chargePendingMessages(Resource resource,
+      StateTransitionThrottleController throttleController,
+      CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput,
+      IdealState idealState,
+      ResourceControllerDataProvider cache,
+      Set<Partition> partitionsNeedRecovery,
+      Set<Partition> partitionsWithErrorStateReplica,
+      Map<Partition, Map<String, String>> retracedPartitionsStateMap) {
+
+    logger.debug("throttleControllerstate->{} before pending message", throttleController);
+    String resourceName = resource.getResourceName();
+    Map<String, List<String>> preferenceLists =
+        bestPossibleStateOutput.getPreferenceLists(resourceName);
+
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
@@ -360,7 +484,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       List<Message> loadMessages = new ArrayList<>();
       for (Message msg : pendingMessages) {
         if (!Message.MessageType.STATE_TRANSITION.name().equals(msg.getMsgType())) {
-          // todo: log ignore pending messages
           // ignore cancellation message etc. For now, don't charge them.
           continue;
         }
@@ -369,18 +492,14 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
             .equals(HelixDefinedState.ERROR.name())) {
           continue;
         }
-        // todo: shall we confine this test to only upward transition?
-        // todo: for upward n1 (s1->s2) then currentStateCount(s1)-- and currentStateCount(s1)++
-        // todo: same for downward ?
-        // todo: we need to handle the case that 3 offline -> master, the first two needs to be loads
-        // todo: how about upward load? no need to increase count
+
         Integer expectedCount = expectedStateCountMap.get(toState);
         Integer currentCount = currentStateCounts.get(toState);
         expectedCount = expectedCount == null ? 0 : expectedCount;
         currentCount = currentCount == null ? 0 : currentCount;
 
         boolean isUpward = !isDownwardTransition(idealState, cache, msg);
-        // the gist is that if there is a topState, we should deem the topState also as secondTopState requirement.
+        // the gist is that if there is a topState, we should deem the topState also satisfy as secondTopState requirement.
         // upward AND (condition 1 or condition 2)
         // condition1: currentCount < expectedCount
         // condition2: currentCount == expected && toState is secondary state && currentCount(topState) < expectedCount(topState)
@@ -418,7 +537,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
                 resourceName);
         logger.debug("throttleControllerstate->{} after pending recovery charge msg:{}", throttleController, recoveryMsg);
       }
-      // charge load message and retrace
+      // charge load message and retrace;
+      // note if M->S with relay message, we don't charge relay message now. We would charge relay
+      // message only when it shows in pending messages in the next cycle of controller run.
       for (Message loadMsg : loadMessages) {
         String toState = loadMsg.getToState();
         String toInstance = loadMsg.getTgtName();
@@ -430,21 +551,34 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
         logger.debug("throttleControllerstate->{} after pending load charge msg:{}", throttleController, loadMsg);
-
-        // todo: if  loadMsg is p2p message, charge relay S->M target with Recovery_BALANCE, but don't change retracedStateMap
       }
       retracedPartitionsStateMap.put(partition, retracedStateMap);
     }
 
+  }
+
+  /*
+   * Classify the messages of each partition into recovery and load messages.
+   */
+  private void classifyMessages(
+      Resource resource,
+      CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput,
+      IdealState idealState,
+      ResourceControllerDataProvider cache,
+      Map<Partition, List<Message>> selectedResourceMessages,
+
+      List<Message> recoveryMessages,
+      List<Message> loadMessages,
+      Map<Message, Partition> messagePartitionMap
+  ) {
+
+    String resourceName = resource.getResourceName();
+    Map<String, List<String>> preferenceLists =
+        bestPossibleStateOutput.getPreferenceLists(resourceName);
     LogUtil.logInfo(logger, _eventId, String.format("Classify message for resource: %s", resourceName));
-    // classify all the messages as recovery message list and load message list
-    List<Message> recoveryMessages = new ArrayList<>();
-    List<Message> loadMessages = new ArrayList<>();
-    Map<Message, Partition> messagePartitionMap = new HashMap<>(); // todo: Message  may need a hashcode()
-    // todo: shall we sort partition here?
+
     for (Partition partition : resource.getPartitions()) {
-      // act as currentstate adjusted with pending message
-      // Map<String, String> retracedStateMap = retracedPartitionsStateMap.get(partition);
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resourceName, partition);
 
@@ -537,15 +671,24 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         }
       }
     }
+  }
 
-    // sorting recovery message list and apply throttling
-    Set<Message> throttledRecoveryMessages = new HashSet<>();
-    Map<Partition, Map<String, String>> bestPossibleMap =
-        bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap();
-    Map<Partition, Map<String, String>> currentStateMap =
-        currentStateOutput.getCurrentStateMap(resourceName);
+  private void applyRecoveryThrottling(
+      Resource resource,
+      StateTransitionThrottleController throttleController,
+      Map<Partition, Map<String, String>> currentStateMap,
+      Map<Partition, Map<String, String>> bestPossibleMap,
+      IdealState idealState,
+      ResourceControllerDataProvider cache,
+      List<Message> recoveryMessages,
+      Map<Message, Partition> messagePartitionMap,
+      Set<Message> throttledRecoveryMessages
+  ) {
+    String resourceName = resource.getResourceName();
+
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+
     recoveryMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,true));
     logger.debug("throttleControllerstate->{} before recovery", throttleController);
     for (Message msg : recoveryMessages) {
@@ -577,33 +720,27 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeCluster(rebalanceType);
       logger.debug("throttleControllerstate->{} after  charge recover msg: {}", throttleController, msg);
     }
+  }
 
-    // sorting load message list and apply throttling
 
-    // calculate error-on-recovery downward flag
-    // If the threshold (ErrorOrRecovery) is set, then use it, if not, then check if the old
-    // threshold (Error) is set. If the old threshold is set, use it. If not, use the default value
-    // for the new one. This is for backward-compatibility
-    int threshold = 1; // Default threshold for ErrorOrRecoveryPartitionThresholdForLoadBalance
-    int partitionCount = partitionsWithErrorStateReplica.size();
-    ClusterConfig clusterConfig = cache.getClusterConfig();
-    if (clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance() != -1) {
-      // ErrorOrRecovery is set
-      threshold = clusterConfig.getErrorOrRecoveryPartitionThresholdForLoadBalance();
-      partitionCount += partitionsNeedRecovery.size(); // Only add this count when the threshold is set
-    } else {
-      if (clusterConfig.getErrorPartitionThresholdForLoadBalance() != 0) {
-        // 0 is the default value so the old threshold has been set
-        threshold = clusterConfig.getErrorPartitionThresholdForLoadBalance();
-      }
-    }
+  private void applyLoadThrottling(
+      Resource resource,
+      StateTransitionThrottleController throttleController,
+      Map<Partition, Map<String, String>> currentStateMap,
+      Map<Partition, Map<String, String>> bestPossibleMap,
+      IdealState idealState,
+      ResourceControllerDataProvider cache,
+      boolean onlyDownwardLoadBalance,
+      List<Message> loadMessages,
+      Map<Message, Partition> messagePartitionMap,
+      Set<Message> throttledLoadMessages
+  ) {
+    String resourceName = resource.getResourceName();
 
-    // Perform regular load balance only if the number of partitions in recovery and in error is
-    // less than the threshold. Otherwise, only allow downward-transition load balance
-    boolean onlyDownwardLoadBalance = partitionCount > threshold;
-    // todo: sort load messages
+    String stateModelDefName = idealState.getStateModelDefRef();
+    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+
     loadMessages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,false));
-    Set<Message> throttledLoadMessages = new HashSet<>();
     logger.debug("throttleControllerstate->{} before load", throttleController);
     for (Message msg : loadMessages) {
       StateTransitionThrottleConfig.RebalanceType rebalanceType = StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE;
@@ -644,57 +781,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       logger.debug("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
     }
 
-    LogUtil.logInfo(logger, _eventId,
-        String.format("resource %s, throttled recovery message: %s", resourceName,throttledRecoveryMessages));
-    LogUtil.logInfo(logger, _eventId,
-        String.format("resource %s, throttled load messages: %s", resourceName,throttledLoadMessages));
 
-    throttledRecoveryMsgOut.addAll(throttledRecoveryMessages);
-    throttledLoadMessageOut.addAll(throttledLoadMessages);
-
-    // construct output
-    Map<Partition, List<Message>> out = new HashMap<>();
-    for (Partition partition : resource.getPartitions()) {
-      List<Message> partitionMessages = selectedResourceMessages.get(partition);
-      if (partitionMessages == null) {
-        continue;
-      }
-      List<Message> finalPartitionMessages = new ArrayList<>();
-      for (Message message: partitionMessages) {
-        if (throttledRecoveryMessages.contains(message)) {
-          continue;
-        }
-        if (throttledLoadMessages.contains(message)) {
-          continue;
-        }
-        finalPartitionMessages.add(message);
-      }
-      out.put(partition, finalPartitionMessages);
-    }
-
-    // construct all retraced partition state map for the resource; or should we use current state?
-    for (Partition partition : resource.getPartitions()) {
-      List<Message> partitionMessages = out.get(partition);
-      if (partitionMessages == null) {
-        continue;
-      }
-      for (Message message : partitionMessages) {
-        if (!Message.MessageType.STATE_TRANSITION.name().equals(message.getMsgType())) {
-          // todo: log?
-          // ignore cancellation message etc.
-          continue;
-        }
-        String toState = message.getToState();
-        // toIntance may not be in the retracedStateMap as so far it is current state based.
-        // new instance in best possible not in currentstate would not be in retracedStateMap yet.
-        String toInstance = message.getTgtName();
-        Map<String, String> retracedStateMap = retracedPartitionsStateMap.get(partition);
-        retracedStateMap.put(toInstance, toState);
-      }
-    }
-    return out;
   }
-
    // ------------------ utilities ---------------------------
   /**
    * POJO that maps resource name to its priority represented by an integer.

@@ -19,7 +19,6 @@ package org.apache.helix.tools.commandtools;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -125,21 +124,15 @@ public class CurrentStateCleanUp {
       LOG.info(String.format("Processing cleaning current state for instance: %s", instanceName));
       List<String> currentStateNames =
           accessor.getChildNames(accessor.keyBuilder().currentStates(instanceName, session));
-      List<String> taskCurrentStateNames =
-          accessor.getChildNames(accessor.keyBuilder().taskCurrentStates(instanceName, session));
-      List<PropertyKey> allCurrentStateKeys = new ArrayList<>();
-      currentStateNames.stream()
-          .map(name -> accessor.keyBuilder().currentState(instanceName, session, name))
-          .forEach(allCurrentStateKeys::add);
-      taskCurrentStateNames.stream()
-          .map(name -> accessor.keyBuilder().taskCurrentState(instanceName, session, name))
-          .forEach(allCurrentStateKeys::add);
-      for (PropertyKey key : allCurrentStateKeys) {
+      for (String currentStateName : currentStateNames) {
+        PropertyKey key =
+            accessor.keyBuilder().currentState(instanceName, session, currentStateName);
         accessor.getBaseDataAccessor().update(key.getPath(), updater, AccessOption.PERSISTENT);
         CurrentState currentState = accessor.getProperty(key);
         if (currentState.getPartitionStateMap().size() == 0) {
           accessor.getBaseDataAccessor().remove(key.getPath(), AccessOption.PERSISTENT);
-          LOG.info(String.format("Remove current state for path %s", key.getPath()));
+          LOG.info(String.format("Remove current state for instance: %s, resource %s", instanceName,
+              currentStateName));
         }
 
       }

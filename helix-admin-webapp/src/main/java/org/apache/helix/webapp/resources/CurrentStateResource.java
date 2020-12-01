@@ -25,10 +25,7 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.webapp.RestAdminApplication;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
@@ -74,15 +71,10 @@ public class CurrentStateResource extends ServerResource {
         ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
-    PropertyKey key = keyBuilder.currentState(instanceName, instanceSessionId, resourceGroup);
-    if (accessor.getProperty(key) == null) {
-      key = keyBuilder.taskCurrentState(instanceName, instanceSessionId, resourceGroup);
-    }
-
-    String message = ClusterRepresentationUtil
-        .getInstancePropertyAsString(zkClient, clusterName, key, MediaType.APPLICATION_JSON);
+    String message =
+        ClusterRepresentationUtil.getInstancePropertyAsString(zkClient, clusterName,
+            keyBuilder.currentState(instanceName, instanceSessionId, resourceGroup),
+            MediaType.APPLICATION_JSON);
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);
     return representation;

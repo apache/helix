@@ -240,13 +240,6 @@ public class TestHelper {
           if (curState != null && curState.getRecord().getMapFields().size() != 0) {
             return false;
           }
-
-          CurrentState taskCurState =
-              accessor.getProperty(keyBuilder.taskCurrentState(instanceName, sessionId, resourceName));
-
-          if (taskCurState != null && taskCurState.getRecord().getMapFields().size() != 0) {
-            return false;
-          }
         }
 
         ExternalView extView = accessor.getProperty(keyBuilder.externalView(resourceName));

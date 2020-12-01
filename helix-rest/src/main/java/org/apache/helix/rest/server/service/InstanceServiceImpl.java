@@ -41,7 +41,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -120,25 +119,19 @@ public class InstanceServiceImpl implements InstanceService {
       instanceInfoBuilder.liveInstance(liveInstance.getRecord());
       String sessionId = liveInstance.getEphemeralOwner();
 
-      Map<String, PropertyKey> resourcePropertyKeyPair = new HashMap<>();
       List<String> resourceNames = _dataAccessor
           .getChildNames(_dataAccessor.keyBuilder().currentStates(instanceName, sessionId));
-      resourceNames.forEach(resourceName -> resourcePropertyKeyPair.put(resourceName,
-          _dataAccessor.keyBuilder().currentState(instanceName, sessionId, resourceName)));
-      List<String> taskResourceNames = _dataAccessor
-          .getChildNames(_dataAccessor.keyBuilder().taskCurrentStates(instanceName, sessionId));
-      taskResourceNames.forEach(resourceName -> resourcePropertyKeyPair.put(resourceName,
-          _dataAccessor.keyBuilder().taskCurrentState(instanceName, sessionId, resourceName)));
-
+      instanceInfoBuilder.resources(resourceNames);
       List<String> partitions = new ArrayList<>();
-      for (Map.Entry<String, PropertyKey> entry : resourcePropertyKeyPair.entrySet()) {
-        CurrentState currentState = _dataAccessor.getProperty(entry.getValue());
+      for (String resourceName : resourceNames) {
+        CurrentState currentState = _dataAccessor.getProperty(
+            _dataAccessor.keyBuilder().currentState(instanceName, sessionId, resourceName));
         if (currentState != null && currentState.getPartitionStateMap() != null) {
           partitions.addAll(currentState.getPartitionStateMap().keySet());
         } else {
           LOG.warn(
               "Current state is either null or partitionStateMap is missing. InstanceName: {}, SessionId: {}, ResourceName: {}",
-              instanceName, sessionId, entry.getKey());
+              instanceName, sessionId, resourceName);
         }
       }
       instanceInfoBuilder.partitions(partitions);

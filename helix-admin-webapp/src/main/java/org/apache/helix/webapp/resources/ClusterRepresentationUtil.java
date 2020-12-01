@@ -84,31 +84,14 @@ public class ClusterRepresentationUtil {
     return ObjectToJson(new ArrayList<String>());
   }
 
-  public static String getMultiInstancePropertyNameListsAsString(ZkClient zkClient,
-      String clusterName, String instanceName, List<PropertyType> instanceProperties, String key)
-      throws JsonGenerationException, JsonMappingException, IOException {
-    List<String> recordNames = new ArrayList<>();
-    for (PropertyType instanceProperty : instanceProperties) {
-      String path = PropertyPathBuilder.instanceProperty(clusterName, instanceName, instanceProperty, key);
-      if (zkClient.exists(path)) {
-        recordNames.addAll(zkClient.getChildren(path));
-      }
-    }
-    return ObjectToJson(recordNames);
-  }
-
   public static String getInstancePropertyAsString(ZkClient zkClient, String clusterName,
       PropertyKey propertyKey, MediaType mediaType) throws JsonGenerationException,
       JsonMappingException, IOException {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-    ZNRecord record = EMPTY_ZNRECORD;
-    HelixProperty helixProperty = accessor.getProperty(propertyKey);
-    if (helixProperty != null) {
-      record = helixProperty.getRecord();
-    }
-    return ZNRecordToJson(record);
+    ZNRecord records = accessor.getProperty(propertyKey).getRecord();
+    return ZNRecordToJson(records);
   }
 
   public static String getInstancePropertiesAsString(ZkClient zkClient, String clusterName,

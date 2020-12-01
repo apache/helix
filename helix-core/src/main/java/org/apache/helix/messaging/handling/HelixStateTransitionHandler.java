@@ -137,8 +137,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
       String sessionId = _message.getTgtSessionId();
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key = accessor.keyBuilder()
-          .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
+      PropertyKey key = accessor.keyBuilder().currentState(instance, sessionId, resource,
+          bucketizer.getBucketName(partitionName));
       ZNRecord rec = new ZNRecord(resource);
       Map<String, String> map = new TreeMap<String, String>();
       map.put(CurrentState.CurrentStateProperty.REQUESTED_STATE.name(), null);

@@ -235,8 +235,10 @@ public interface HelixManager {
    * @param listener
    * @param instanceName
    */
-  void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
-      String sessionId) throws Exception;
+  default void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId) throws Exception {
+    throw new UnsupportedOperationException("Not implemented");
+  }
 
   /**
 

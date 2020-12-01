@@ -525,11 +525,9 @@ public class PropertyKey {
       if (bucketName == null) {
         return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName);
-
-      } else {
-        return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
-            sessionId, resourceName, bucketName);
       }
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+          sessionId, resourceName, bucketName);
     }
 
     /**

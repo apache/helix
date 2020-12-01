@@ -540,8 +540,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       _zkClient.unsubscribeChildChanges(path, this);
     }
 
-    // List of children could be empty, but won't be null.
-    return _zkClient.getChildren(path);
+    try {
+      return _zkClient.getChildren(path);
+    } catch (ZkNoNodeException e) {
+      return null;
+    }
   }
 
   private void subscribeDataChange(String path, NotificationContext.Type callbackType) {

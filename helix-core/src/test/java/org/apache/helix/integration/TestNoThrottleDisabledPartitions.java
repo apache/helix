@@ -42,7 +42,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.jboss.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandshakeHandler;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -84,7 +83,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
-    Thread.sleep(10000L);
+    Thread.sleep(500L);
 
     // The disabled instance should not hold any top state replicas (MASTER)
     PropertyKey liveInstanceKey =

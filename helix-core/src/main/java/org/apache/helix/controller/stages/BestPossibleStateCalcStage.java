@@ -83,13 +83,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           "Missing attributes in event:" + event + ". Requires CURRENT_STATE|RESOURCES|DataCache");
     }
 
-    // LogUtil.logInfo(logger, _eventId, String.format("CurrentState for bestpossible is: %s", currentStateOutput));
-
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
-
-   // LogUtil.logInfo(logger, _eventId, String.format("Bestpossible output is : %s", bestPossibleStateOutput));
 
     final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
     final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();

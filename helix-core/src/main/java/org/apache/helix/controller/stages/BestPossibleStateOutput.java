@@ -109,11 +109,4 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
     return _preferenceLists != null && _preferenceLists.containsKey(resource);
   }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("preference list= ").append(_preferenceLists);
-    sb.append(", resourceStateMap= ").append(_resourceStateMap);
-    return sb.toString();
-  }
 }

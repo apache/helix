@@ -104,9 +104,8 @@ public class InstanceValidationUtil {
     if (liveInstance != null) {
       String sessionId = liveInstance.getEphemeralOwner();
 
-      List<String> resourceNames = dataAccessor.getChildNames(propertyKeyBuilder.currentStates(instanceName, sessionId));
-      for (String resourceName : resourceNames) {
-        PropertyKey currentStateKey = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
+      for (PropertyKey currentStateKey : getAllCurrentStateKeys(dataAccessor, instanceName,
+          sessionId)) {
         CurrentState currentState = dataAccessor.getProperty(currentStateKey);
         if (currentState != null && currentState.getPartitionStateMap().size() > 0) {
           return true;
@@ -188,11 +187,7 @@ public class InstanceValidationUtil {
     if (liveInstance != null) {
       String sessionId = liveInstance.getEphemeralOwner();
 
-      PropertyKey currentStatesKey = propertyKeyBuilder.currentStates(instanceName, sessionId);
-      List<String> resourceNames = dataAccessor.getChildNames(currentStatesKey);
-      for (String resourceName : resourceNames) {
-        PropertyKey key = propertyKeyBuilder.currentState(instanceName, sessionId, resourceName);
-
+      for (PropertyKey key : getAllCurrentStateKeys(dataAccessor, instanceName, sessionId)) {
         CurrentState currentState = dataAccessor.getProperty(key);
         if (currentState != null
             && currentState.getPartitionStateMap().containsValue(HelixDefinedState.ERROR.name())) {
@@ -377,5 +372,23 @@ public class InstanceValidationUtil {
     }
 
     return true;
+  }
+
+  private static List<PropertyKey> getAllCurrentStateKeys(HelixDataAccessor dataAccessor,
+      String instanceName, String sessionId) {
+    PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
+    List<String> resourceNames =
+        dataAccessor.getChildNames(propertyKeyBuilder.currentStates(instanceName, sessionId));
+    List<String> taskResourceNames =
+        dataAccessor.getChildNames(propertyKeyBuilder.taskCurrentStates(instanceName, sessionId));
+    List<PropertyKey> allCurrentStateKeys = new ArrayList<>();
+    resourceNames.stream()
+        .map(name -> propertyKeyBuilder.currentState(instanceName, sessionId, name))
+        .forEach(allCurrentStateKeys::add);
+    taskResourceNames.stream()
+        .map(name -> propertyKeyBuilder.taskCurrentState(instanceName, sessionId, name))
+        .forEach(allCurrentStateKeys::add);
+
+    return allCurrentStateKeys;
   }
 }

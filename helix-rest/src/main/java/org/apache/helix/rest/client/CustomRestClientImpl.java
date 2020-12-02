@@ -20,6 +20,7 @@ package org.apache.helix.rest.client;
  */
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,7 @@ class CustomRestClientImpl implements CustomRestClient {
       jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asBoolean()));
       return result;
     };
-    return handleResponse(post(url, customPayloads), jsonConverter);
+    return handleResponse(post(url, Collections.unmodifiableMap(customPayloads)), jsonConverter);
   }
 
   @Override
@@ -87,10 +88,10 @@ class CustomRestClientImpl implements CustomRestClient {
      */
     String url = baseUrl + PARTITION_HEALTH_STATUS;
     // To avoid ImmutableMap as parameter
-    Map<String, String> payLoads = new HashMap<>(customPayloads);
+    Map<String, Object> payLoads = new HashMap<>(customPayloads);
     // Add the entry: "partitions" : ["p1", "p3", "p9"]
     if (partitions != null) {
-      payLoads.put(PARTITIONS, partitions.toString());
+      payLoads.put(PARTITIONS, partitions);
     }
     JsonConverter jsonConverter = jsonNode -> {
       Map<String, Boolean> result = new HashMap<>();
@@ -124,7 +125,7 @@ class CustomRestClientImpl implements CustomRestClient {
   }
 
   @VisibleForTesting
-  protected HttpResponse post(String url, Map<String, String> payloads) throws IOException {
+  protected HttpResponse post(String url, Map<String, Object> payloads) throws IOException {
     HttpPost postRequest = new HttpPost(url);
     try {
       postRequest.setHeader("Accept", ACCEPT_CONTENT_TYPE);

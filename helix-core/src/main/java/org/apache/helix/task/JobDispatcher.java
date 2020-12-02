@@ -161,6 +161,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       // TIMING_OUT/FAILING/ABORTING job can't be stopped, because all tasks are being aborted
       // Update running status in workflow context
       if (jobTgtState == TargetState.STOP) {
+        // If the assigned instance is no longer live, so mark it as DROPPED in the context
+        markPartitionsWithoutLiveInstance(jobCtx, liveInstances);
+        
         if (jobState != TaskState.NOT_STARTED && TaskUtil.checkJobStopped(jobCtx)) {
           workflowCtx.setJobState(jobName, TaskState.STOPPED);
         } else {
@@ -315,9 +318,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
 
     // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
     scheduleForNextTask(jobResource, jobCtx, currentTime);
-
-    // If the assigned instance is no longer live, so mark it as DROPPED in the context
-    markPartitionsWithoutLiveInstance(jobCtx, allPartitions, liveInstances);
 
     // Make additional task assignments if needed.
     if (jobState != TaskState.TIMING_OUT && jobState != TaskState.TIMED_OUT
@@ -528,9 +528,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     }
   }
 
-  protected void markPartitionsWithoutLiveInstance(JobContext jobCtx, Set<Integer> allPartitions,
+  protected void markPartitionsWithoutLiveInstance(JobContext jobCtx,
       Collection<String> liveInstances) {
-    for (int partitionNumber : allPartitions) {
+    for (int partitionNumber : jobCtx.getPartitionSet()) {
       TaskPartitionState state = jobCtx.getPartitionState(partitionNumber);
       if (isTaskNotInTerminalState(state)) {
         String assignedParticipant = jobCtx.getAssignedParticipant(partitionNumber);

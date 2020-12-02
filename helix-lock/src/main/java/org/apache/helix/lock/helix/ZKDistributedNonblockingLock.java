@@ -37,13 +37,6 @@ import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.helix.lock.LockInfo.DEFAULT_PRIORITY_INT;
-import static org.apache.helix.lock.LockInfo.DEFAULT_REQUESTOR_ID;
-import static org.apache.helix.lock.LockInfo.DEFAULT_REQUESTOR_PRIORITY_INT;
-import static org.apache.helix.lock.LockInfo.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG;
-import static org.apache.helix.lock.LockInfo.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG;
-import static org.apache.helix.lock.LockInfo.DEFAULT_WAITING_TIMEOUT_LONG;
 import static org.apache.helix.lock.LockInfo.ZNODE_ID;
 
 
@@ -357,9 +350,10 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
             oldLockInfo.getPriority(), oldLockInfo.getWaitingTimeout(),
             oldLockInfo.getCleanupTimeout(),
             newLockZNRecord.getSimpleField(LockInfo.LockInfoAttribute.OWNER.name()), newLockZNRecord
-            .getIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), DEFAULT_PRIORITY_INT),
-            newLockZNRecord.getLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(),
-                DEFAULT_WAITING_TIMEOUT_LONG), System.currentTimeMillis());
+            .getIntField(LockInfo.LockInfoAttribute.PRIORITY.name(),
+                LockConstants.DEFAULT_PRIORITY_INT), newLockZNRecord
+            .getLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(),
+                LockConstants.DEFAULT_WAITING_TIMEOUT_LONG), System.currentTimeMillis());
     return lockInfo.getRecord();
   }
 
@@ -372,13 +366,14 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     znRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), _priority);
     znRecord.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(), _waitingTimeout);
     znRecord.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(), _cleanupTimeout);
-    znRecord.setSimpleField(LockInfo.LockInfoAttribute.REQUESTOR_ID.name(), DEFAULT_REQUESTOR_ID);
+    znRecord.setSimpleField(LockInfo.LockInfoAttribute.REQUESTOR_ID.name(),
+        LockConstants.DEFAULT_REQUESTOR_ID);
     znRecord.setIntField(LockInfo.LockInfoAttribute.REQUESTOR_PRIORITY.name(),
-        DEFAULT_REQUESTOR_PRIORITY_INT);
+        LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT);
     znRecord.setLongField(LockInfo.LockInfoAttribute.REQUESTOR_WAITING_TIMEOUT.name(),
-        DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
+        LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
     znRecord.setLongField(LockInfo.LockInfoAttribute.REQUESTOR_REQUESTING_TIMESTAMP.name(),
-        DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
+        LockConstants.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
     return znRecord;
   }
 

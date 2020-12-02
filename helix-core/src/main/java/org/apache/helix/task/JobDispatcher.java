@@ -527,4 +527,18 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       }
     }
   }
+
+  protected void markPartitionsWithoutLiveInstance(JobContext jobCtx, Set<Integer> allPartitions,
+      Collection<String> liveInstances) {
+    for (int partitionNumber : allPartitions) {
+      TaskPartitionState state = jobCtx.getPartitionState(partitionNumber);
+      if (isTaskNotInTerminalState(state)) {
+        String assignedParticipant = jobCtx.getAssignedParticipant(partitionNumber);
+        if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
+          // The assigned instance is no longer live, so mark it as DROPPED in the context
+          jobCtx.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
+        }
+      }
+    }
+  }
 }

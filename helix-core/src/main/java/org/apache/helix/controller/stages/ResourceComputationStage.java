@@ -79,25 +79,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     // It's important to get partitions from CurrentState as well since the
     // idealState might be removed.
-    Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
-    for (LiveInstance instance : availableInstances.values()) {
-      String instanceName = instance.getInstanceName();
-      String clientSessionId = instance.getEphemeralOwner();
-
-      Map<String, CurrentState> currentStateMap =
-          cache.getCurrentState(instanceName, clientSessionId);
-      processCurrentStates(currentStateMap, resourceMap, resourceToRebalance, idealStates,
-          isTaskCache);
-      // Duplicate resource names between regular and task resources may happen, but most likely
-      // won't. If it does, let regular resources overwrite task resources. To avoid duplicate
-      // resource overwriting, it's better to split regular and task pipelines entirely.
-      if (isTaskCache) {
-        Map<String, CurrentState> taskCurrentStateMap = ((WorkflowControllerDataProvider) cache)
-            .getTaskCurrentState(instanceName, clientSessionId);
-        processCurrentStates(taskCurrentStateMap, resourceMap, resourceToRebalance, idealStates,
-            true);
-      }
-    }
+    processCurrentStates(cache, resourceMap, resourceToRebalance, idealStates, isTaskCache);
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceToRebalance);
@@ -197,7 +179,33 @@ public class ResourceComputationStage extends AbstractBaseStage {
   /*
    * Construct Resources based on CurrentStates and add them to resource maps
    */
-  private void processCurrentStates(Map<String, CurrentState> currentStateMap,
+  private void processCurrentStates(BaseControllerDataProvider cache,
+      Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
+      Map<String, IdealState> idealStates, boolean isTaskCache) throws StageException {
+    Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
+
+    if (availableInstances != null && availableInstances.size() > 0) {
+      for (LiveInstance instance : availableInstances.values()) {
+        String instanceName = instance.getInstanceName();
+        String clientSessionId = instance.getEphemeralOwner();
+
+        processCurrentStateMap(cache.getCurrentState(instanceName, clientSessionId), resourceMap,
+            resourceToRebalance, idealStates, true);
+
+        // Duplicate resource names between regular and task resources may happen, but most likely
+        // won't. If it does, let regular resources overwrite task resources. To avoid duplicate
+        // resource overwriting, it's better to split regular and task pipelines entirely.
+        if (isTaskCache) {
+          Map<String, CurrentState> taskCurrentStateMap = ((WorkflowControllerDataProvider) cache)
+              .getTaskCurrentState(instanceName, clientSessionId);
+          processCurrentStateMap(taskCurrentStateMap, resourceMap, resourceToRebalance, idealStates,
+              true);
+        }
+      }
+    }
+  }
+
+  private void processCurrentStateMap(Map<String, CurrentState> currentStateMap,
       Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
       Map<String, IdealState> idealStates, boolean isTaskCache) throws StageException {
     if (currentStateMap == null) {

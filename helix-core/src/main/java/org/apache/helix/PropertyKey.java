@@ -500,34 +500,34 @@ public class PropertyKey {
 
     /**
      * Get a property key associated with {@link CurrentState} of an instance, session, and
-     * resource. This key is for TaskCurrentState specifically.
+     * job. This key is for TaskCurrentState specifically.
      * @param instanceName
      * @param sessionId
-     * @param resourceName
+     * @param jobName
      * @return {@link PropertyKey}
      */
-    public PropertyKey taskCurrentState(String instanceName, String sessionId, String resourceName) {
+    public PropertyKey taskCurrentState(String instanceName, String sessionId, String jobName) {
       return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
-          sessionId, resourceName);
+          sessionId, jobName);
     }
 
     /**
-     * Get a property key associated with {@link CurrentState} of an instance, session, resource,
+     * Get a property key associated with {@link CurrentState} of an instance, session, job,
      * and bucket name. This key is for TaskCurrentState specifically.
      * @param instanceName
      * @param sessionId
-     * @param resourceName
+     * @param jobName
      * @param bucketName
      * @return {@link PropertyKey}
      */
-    public PropertyKey taskCurrentState(String instanceName, String sessionId, String resourceName,
+    public PropertyKey taskCurrentState(String instanceName, String sessionId, String jobName,
         String bucketName) {
       if (bucketName == null) {
         return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
-            sessionId, resourceName);
+            sessionId, jobName);
       }
       return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
-          sessionId, resourceName, bucketName);
+          sessionId, jobName, bucketName);
     }
 
     /**

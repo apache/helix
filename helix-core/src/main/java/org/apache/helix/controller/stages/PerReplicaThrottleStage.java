@@ -324,7 +324,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         retracedPartitionsStateMap);
 
     // Step 2: classify all the messages into recovery message list and load message list
-    LogUtil.logInfo(logger, _eventId, String.format("Classify message for resource: %s", resourceName));
     List<Message> recoveryMessages = new ArrayList<>();
     List<Message> loadMessages = new ArrayList<>();
     Map<Message, Partition> messagePartitionMap = new HashMap<>(); // todo: Message  may need a hashcode()
@@ -340,7 +339,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         currentStateOutput.getCurrentStateMap(resourceName);
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-
+    LogUtil.logDebug(logger, _eventId,
+        String.format("applying recovery rebalance with resource %s", resourceName));
     applyThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
         cache, false, recoveryMessages, messagePartitionMap,
         throttledRecoveryMessages, StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
@@ -369,14 +369,16 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // less than the threshold. Otherwise, only allow downward-transition load balance
     boolean onlyDownwardLoadBalance = partitionCount > threshold;
     Set<Message> throttledLoadMessages = new HashSet<>();
-
+    LogUtil.logDebug(logger, _eventId,
+        String.format("applying load rebalance with resource %s, onlyDownwardLoadBalance %s",
+            resourceName, onlyDownwardLoadBalance));
     applyThrottling(resource, throttleController, currentStateMap, bestPossibleMap, idealState,
         cache, onlyDownwardLoadBalance, loadMessages, messagePartitionMap, throttledLoadMessages,
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
 
-    LogUtil.logInfo(logger, _eventId,
+    LogUtil.logDebug(logger, _eventId,
         String.format("resource %s, throttled recovery message: %s", resourceName,throttledRecoveryMessages));
-    LogUtil.logInfo(logger, _eventId,
+    LogUtil.logDebug(logger, _eventId,
         String.format("resource %s, throttled load messages: %s", resourceName,throttledLoadMessages));
 
     throttledRecoveryMsgOut.addAll(throttledRecoveryMessages);
@@ -475,7 +477,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       Set<Partition> partitionsWithErrorStateReplica,
       Map<Partition, Map<String, String>> retracedPartitionsStateMap) {
 
-    logger.debug("throttleControllerstate->{} before pending message", throttleController);
+    logger.trace("throttleControllerstate->{} before pending message", throttleController);
     String resourceName = resource.getResourceName();
     Map<String, List<String>> preferenceLists =
         bestPossibleStateOutput.getPreferenceLists(resourceName);
@@ -557,7 +559,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
                 resourceName);
-        logger.debug("throttleControllerstate->{} after pending recovery charge msg:{}", throttleController, recoveryMsg);
+        logger.trace("throttleControllerstate->{} after pending recovery charge msg:{}", throttleController, recoveryMsg);
       }
       // charge load message and retrace;
       // note if M->S with relay message, we don't charge relay message now. We would charge relay
@@ -572,7 +574,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttleController.chargeCluster(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
-        logger.debug("throttleControllerstate->{} after pending load charge msg:{}", throttleController, loadMsg);
+        logger.trace("throttleControllerstate->{} after pending load charge msg:{}", throttleController, loadMsg);
       }
       retracedPartitionsStateMap.put(partition, retracedStateMap);
     }
@@ -704,7 +706,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     messages.sort(new MessageThrottleComparator(bestPossibleMap, currentStateMap, messagePartitionMap, stateModelDef,isRecovery));
-    logger.debug("throttleControllerstate->{} before load", throttleController);
+    logger.trace("throttleControllerstate->{} before load", throttleController);
     for (Message msg: messages) {
       if (onlyDownwardLoadBalance) {
         boolean isDownward = isDownwardTransition(idealState, cache, msg);
@@ -741,7 +743,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       throttleController.chargeInstance(rebalanceType, instance);
       throttleController.chargeResource(rebalanceType, resourceName);
       throttleController.chargeCluster(rebalanceType);
-      logger.debug("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
+      logger.trace("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
     }
   }
 

@@ -47,7 +47,7 @@ import org.testng.annotations.Test;
 
 
 public class TestPerReplicaThrottle extends ZkTestBase {
-  private static Logger LOG = LoggerFactory.getLogger(LatchedTransition.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestPerReplicaThrottle.class);
 
   private String _resourceName = "TestDB";
   private String _clusterName = getShortClassName();
@@ -304,6 +304,9 @@ public class TestPerReplicaThrottle extends ZkTestBase {
       Assert.assertTrue(partitionMsgCount.get(partition).equals(1), "partitionMsgCount:" + partitionMsgCount);
     }
 
+    LatchedTransition.incStepAndClearWaitCnt();
+    Thread.sleep(1000);
+
     // clean up the cluster
     controller.syncStop();
     for (int i = 0; i < participantCount; i++) {
@@ -323,17 +326,19 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     controller.syncStart();
 
     // first step 6 recovery messages for 3 partitions would be sent out. They are all O->S.
-    // each partition would have 2 messages as offline to slave. Note, the 3rd O-> are deemed
+    // each partition would have 2 messages as offline to slave. Note, the 3rd O->S are deemed
     // as load and would be throttled.
     Assert.assertTrue(TestHelper.verify(()-> {
       return LatchedTransition.getWaitCnt() == participantCount * 2;
     }, TestHelper.WAIT_DURATION));
 
+    LOG.info("First step.");
     Map<String, Integer> partitionMsgCount = new HashMap<>();
     for (MockParticipantManager participantManager : _participants) {
       PropertyKey key = _accessor.keyBuilder().messages(participantManager.getInstanceName());
       List<Message> messages = _accessor.getChildValues(key, true);
       for (Message msg : messages) {
+        LOG.info("msg is {}", msg);
         String partName = msg.getPartitionName();
         String toState = msg.getToState();
         Assert.assertTrue("SLAVE".equals(toState));
@@ -350,7 +355,11 @@ public class TestPerReplicaThrottle extends ZkTestBase {
 
     // Second step, change cluster level throttle to 3 for ANY type. Here, recovery would have
     // high priority. Thus, three S->M for each partition would be sent out. Note, the O->S for the
-    // 3rd replica for each partition is still throttle as load rebalance.
+    // 3rd replica for each partition is still throttled as load rebalance.
+
+    // stop and restart controller to make sure the new config is picked up.
+    controller.syncStop();
+
     Map<StateTransitionThrottleConfig.ThrottleScope,
         Map<StateTransitionThrottleConfig.RebalanceType, Long>> configs = new HashMap<>();
     Map<StateTransitionThrottleConfig.RebalanceType, Long> typeLongMap = new HashMap<>();
@@ -359,16 +368,27 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     setThrottleConfig(configs);
 
     LatchedTransition.incStepAndClearWaitCnt();
+    // give time for all 6 pending message to finish.
+    Thread.sleep(1000);
+
+    // we need to make sure the new controller won't pickup pending message which can disturb the
+    // rest of the test.
+    controller =
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
+    controller.syncStart();
+
 
     Assert.assertTrue(TestHelper.verify(()-> {
       return LatchedTransition.getWaitCnt() == participantCount;
     }, TestHelper.WAIT_DURATION));
 
+    LOG.info("Second step.");
     partitionMsgCount = new HashMap<>();
     for (MockParticipantManager participantManager : _participants) {
       PropertyKey key = _accessor.keyBuilder().messages(participantManager.getInstanceName());
       List<Message> messages = _accessor.getChildValues(key, true);
       for (Message msg : messages) {
+        LOG.info("msg is {}", msg);
         String partName = msg.getPartitionName();
         String toState = msg.getToState();
         Assert.assertTrue("MASTER".equals(toState));
@@ -390,11 +410,13 @@ public class TestPerReplicaThrottle extends ZkTestBase {
       return LatchedTransition.getWaitCnt() == participantCount;
     }, TestHelper.WAIT_DURATION));
 
+    LOG.info("Third step.");
     partitionMsgCount = new HashMap<>();
     for (MockParticipantManager participantManager : _participants) {
       PropertyKey key = _accessor.keyBuilder().messages(participantManager.getInstanceName());
       List<Message> messages = _accessor.getChildValues(key, true);
       for (Message msg : messages) {
+        LOG.info("msg is {}", msg);
         String partName = msg.getPartitionName();
         String toState = msg.getToState();
         Assert.assertTrue("SLAVE".equals(toState));
@@ -408,6 +430,9 @@ public class TestPerReplicaThrottle extends ZkTestBase {
     for (String partition: partitionMsgCount.keySet()) {
       Assert.assertTrue(partitionMsgCount.get(partition).equals(1), "partitionMsgCount:" + partitionMsgCount);
     }
+
+    LatchedTransition.incStepAndClearWaitCnt();
+    Thread.sleep(1000);
 
     // clean up the cluster
     controller.syncStop();

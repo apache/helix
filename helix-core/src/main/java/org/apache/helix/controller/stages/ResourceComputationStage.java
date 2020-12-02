@@ -190,7 +190,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
         String clientSessionId = instance.getEphemeralOwner();
 
         processCurrentStateMap(cache.getCurrentState(instanceName, clientSessionId), resourceMap,
-            resourceToRebalance, idealStates, true);
+            resourceToRebalance, idealStates, isTaskCache);
 
         // Duplicate resource names between regular and task resources may happen, but most likely
         // won't. If it does, let regular resources overwrite task resources. To avoid duplicate

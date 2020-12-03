@@ -283,11 +283,11 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
     LockHelper lockHelper = new LockHelper(higherLock);
     Thread t_higher = new Thread(lockHelper);
     t_higher.start();
-    Thread.sleep(1000);
-    boolean higherResult = lockHelper.getResult();
-
-    Assert.assertFalse(higherLock.isCurrentOwner());
+    boolean higherResult = TestHelper.verify(() -> {
+      return lockHelper.getResult();
+    }, 1000);
     Assert.assertFalse(higherResult);
+    Assert.assertFalse(higherLock.isCurrentOwner());
 
     t_highest.start();
     t_highest.join();

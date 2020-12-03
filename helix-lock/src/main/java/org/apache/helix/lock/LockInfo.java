@@ -29,12 +29,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 public class LockInfo {
   // default lock info represents the status of a unlocked lock
   public static final LockInfo defaultLockInfo =
-      new LockInfo(LockConstants.DEFAULT_OWNER_TEXT, LockConstants.DEFAULT_MESSAGE_TEXT,
-          LockConstants.DEFAULT_TIMEOUT_LONG, LockConstants.DEFAULT_PRIORITY_INT,
-          LockConstants.DEFAULT_WAITING_TIMEOUT_LONG, LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG,
-          LockConstants.DEFAULT_REQUESTOR_ID, LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT,
-          LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG,
-          LockConstants.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
+      new LockInfo();
 
   public static final String ZNODE_ID = "LOCK";
   private ZNRecord _record;
@@ -75,7 +70,10 @@ public class LockInfo {
   public LockInfo(ZNRecord znRecord) {
     this();
     if (znRecord != null) {
-      String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
+      _record = new ZNRecord(ZNODE_ID);
+      String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name()).isEmpty() ?
+          LockConstants.DEFAULT_OWNER_TEXT :
+          znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
       String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
       long timeout = znRecord
           .getLongField(LockInfoAttribute.TIMEOUT.name(), LockConstants.DEFAULT_TIMEOUT_LONG);
@@ -115,7 +113,7 @@ public class LockInfo {
   public LockInfo(String ownerId, String message, long timeout, int priority, long waitingTimout,
       long cleanupTimeout, String requestorId, int requestorPriority, long requestorWaitingTimeout,
       long requestorRequestingTimestamp) {
-    this();
+    _record = new ZNRecord(ZNODE_ID);
     setLockInfoFields(ownerId, message, timeout, priority, waitingTimout, cleanupTimeout,
         requestorId, requestorPriority, requestorWaitingTimeout, requestorRequestingTimestamp);
   }

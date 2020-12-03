@@ -37,6 +37,7 @@ import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import static org.apache.helix.lock.LockInfo.ZNODE_ID;
 
 
@@ -74,11 +75,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long leaseTimeout,
       String lockMsg, String userId) {
     this(scope.getPath(), leaseTimeout, lockMsg, userId, 0, Integer.MAX_VALUE, 0, false,
-        new LockListener() {
-          @Override
-          public void onCleanupNotification() {
-          }
-        }, new ZkBaseDataAccessor<ZNRecord>(zkAddress));
+        null, new ZkBaseDataAccessor<ZNRecord>(zkAddress));
   }
 
   /**
@@ -163,6 +160,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         // If the reason for not being able to acquire the lock is due to high priority lock
         // preemption, directly return false.
         if (_isPreempted) {
+          _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
           return false;
         } else {
           // Forceful lock request will grab the lock even the current owner has not finished
@@ -174,10 +172,14 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
                 .update(_lockPath, new ZNRecordUpdater(znRecord), AccessOption.PERSISTENT);
             return true;
           } else {
+            _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
             throw new HelixException("Cleanup has not been finished by lock owner");
           }
         }
       }
+    }
+    if (!updateResult) {
+      _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
     }
     return updateResult;
   }
@@ -208,6 +210,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     if (isCurrentOwner()) {
       throw new HelixException("Please unlock the lock before closing it.");
     }
+    _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
     _baseDataAccessor.close();
   }
 
@@ -219,9 +222,9 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     LockInfo lockInfo = new LockInfo(readData);
     // We are the current owner
     if (lockInfo.getOwner().equals(_userId)) {
-      if (lockInfo.getRequestorId() == null || lockInfo.getPriority() > lockInfo
+      if (lockInfo.getRequestorId().equals("NONE")|| lockInfo.getPriority() > lockInfo
           .getRequestorPriority()) {
-        LOG.info("We do not need to handle this data change");
+        LOG.debug("We do not need to handle this data change");
       } else {
         _lockListener.onCleanupNotification();
         // read the lock information again to avoid stale data
@@ -229,12 +232,18 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         // If we are still the lock owner, clean the lock owner field.
         if (lockInfo.getOwner().equals(_userId)) {
           ZNRecord znRecord = new ZNRecord(readData);
-          znRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), "");
-          znRecord.setSimpleField(LockInfo.LockInfoAttribute.MESSAGE.name(), "");
-          znRecord.setLongField(LockInfo.LockInfoAttribute.TIMEOUT.name(), -1);
-          znRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), -1);
-          znRecord.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(), -1);
-          znRecord.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(), -1);
+          znRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(),
+              LockConstants.DEFAULT_OWNER_TEXT);
+          znRecord.setSimpleField(LockInfo.LockInfoAttribute.MESSAGE.name(),
+              LockConstants.DEFAULT_MESSAGE_TEXT);
+          znRecord.setLongField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
+              LockConstants.DEFAULT_TIMEOUT_LONG);
+          znRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(),
+              LockConstants.DEFAULT_PRIORITY_INT);
+          znRecord.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(),
+              LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
+          znRecord.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(),
+              LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG);
           _baseDataAccessor
               .update(_lockPath, new ZNRecordUpdater(znRecord), AccessOption.PERSISTENT);
         } else {
@@ -244,16 +253,17 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     } // We are the current requestor
     else if (lockInfo.getRequestorId().equals(_userId)) {
       // In case the owner field is empty, it means previous owner has finished cleanup work.
-      if (lockInfo.getOwner().isEmpty()) {
+      if (lockInfo.getOwner().equals("NONE")) {
         ZNRecord znRecord = composeNewOwnerRecord();
-        _baseDataAccessor.update(_lockPath, new ZNRecordUpdater(znRecord), AccessOption.PERSISTENT);
+        LockUpdater updater = new LockUpdater(new LockInfo(znRecord));
+        _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
         onAcquiredLockNotification();
       } else {
         LOG.info("We do not need to handle this data change");
       }
     } // If we are waiting for the lock, but find we are not the requestor any more, meaning we
     // are preempted by an even higher priority request
-    else if (lockInfo.getRequestorId() != null && !lockInfo.getRequestorId().equals(_userId)
+    else if (!lockInfo.getRequestorId().equals("NONE") && !lockInfo.getRequestorId().equals(_userId)
         && _isPending) {
       onDeniedPendingLockNotification();
     }
@@ -276,6 +286,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     synchronized (ZKDistributedNonblockingLock.this) {
       _isLocked = false;
       _isPreempted = true;
+      _isPending = false;
       ZKDistributedNonblockingLock.this.notify();
     }
   }
@@ -303,26 +314,25 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       // If no one owns the lock, allow the update
       // If the user is the current lock owner, allow the update
       LockInfo curLockInfo = new LockInfo(current);
-      if (System.currentTimeMillis() > curLockInfo.getTimeout() || isCurrentOwner()) {
+      if (System.currentTimeMillis() > curLockInfo.getTimeout() || isCurrentOwner(curLockInfo)) {
         return _record;
       }
 
       // higher priority lock request will preempt current lock owner that is with lower priority
-      if (!isCurrentOwner() && _priority > curLockInfo.getPriority() && curLockInfo.getRequestorId()
-          .isEmpty()) {
+      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority() && curLockInfo
+          .getRequestorId().equals("NONE")) {
         // update lock Znode with requestor information
         ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
         _isPending = true;
-        _pendingTimeout =
-            _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
+        _pendingTimeout = _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
                 : _waitingTimeout;
         return newRecord;
       }
 
       // If the requestor field is not empty, and the coming lock request has a even higher
       // priority. The new request will replace current requestor field of the lock
-      if (!isCurrentOwner() && _priority > curLockInfo.getPriority() && !curLockInfo
-          .getRequestorId().isEmpty() && _priority > curLockInfo.getRequestorPriority()) {
+      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority() && !curLockInfo
+          .getRequestorId().equals("NONE") && _priority > curLockInfo.getRequestorPriority()) {
         ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
         _isPending = true;
         long remainingCleanupTime =
@@ -385,6 +395,10 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     }
   }
 
+  private boolean isCurrentOwner(LockInfo lockInfo) {
+    return lockInfo.getOwner().equals(_userId) && (System.currentTimeMillis() < lockInfo
+        .getTimeout());
+  }
   /**
    * Builder class to use with ZKDistributedNonblockingLock.
    */

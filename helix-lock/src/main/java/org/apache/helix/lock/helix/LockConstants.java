@@ -24,13 +24,13 @@ package org.apache.helix.lock.helix;
  * Default values for each attribute if there are no current values set by user
  */
 public class LockConstants {
-  public static final String DEFAULT_OWNER_TEXT = "";
-  public static final String DEFAULT_MESSAGE_TEXT = "";
+  public static final String DEFAULT_OWNER_TEXT = "NONE";
+  public static final String DEFAULT_MESSAGE_TEXT = "NONE";
   public static final long DEFAULT_TIMEOUT_LONG = -1;
   public static final int DEFAULT_PRIORITY_INT = -1;
   public static final long DEFAULT_WAITING_TIMEOUT_LONG = -1;
   public static final long DEFAULT_CLEANUP_TIMEOUT_LONG = -1;
-  public static final String DEFAULT_REQUESTOR_ID = "";
+  public static final String DEFAULT_REQUESTOR_ID = "NONE";
   public static final int DEFAULT_REQUESTOR_PRIORITY_INT = -1;
   public static final long DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG = -1;
   public static final long DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG = -1;

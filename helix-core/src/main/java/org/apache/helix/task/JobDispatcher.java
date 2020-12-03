@@ -161,6 +161,9 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       // TIMING_OUT/FAILING/ABORTING job can't be stopped, because all tasks are being aborted
       // Update running status in workflow context
       if (jobTgtState == TargetState.STOP) {
+        // If the assigned instance is no longer live, so mark it as DROPPED in the context
+        markPartitionsWithoutLiveInstance(jobCtx, liveInstances);
+        
         if (jobState != TaskState.NOT_STARTED && TaskUtil.checkJobStopped(jobCtx)) {
           workflowCtx.setJobState(jobName, TaskState.STOPPED);
         } else {
@@ -198,7 +201,6 @@ public class JobDispatcher extends AbstractTaskDispatcher {
       Collection<String> liveInstances, CurrentStateOutput currStateOutput,
       WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
       WorkflowControllerDataProvider cache) {
-
     // Used to keep track of tasks that have already been assigned to instances.
     // InstanceName -> Set of task partitions assigned to that instance in this iteration
     Map<String, Set<Integer>> assignedPartitions = new HashMap<>();
@@ -522,6 +524,20 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             partition, jobName);
         jobContext.removePartition(partition);
         allPartitions.remove(partition);
+      }
+    }
+  }
+
+  protected void markPartitionsWithoutLiveInstance(JobContext jobCtx,
+      Collection<String> liveInstances) {
+    for (int partitionNumber : jobCtx.getPartitionSet()) {
+      TaskPartitionState state = jobCtx.getPartitionState(partitionNumber);
+      if (isTaskNotInTerminalState(state)) {
+        String assignedParticipant = jobCtx.getAssignedParticipant(partitionNumber);
+        if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
+          // The assigned instance is no longer live, so mark it as DROPPED in the context
+          jobCtx.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
+        }
       }
     }
   }

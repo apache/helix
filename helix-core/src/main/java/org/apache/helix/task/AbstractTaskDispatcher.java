@@ -837,7 +837,7 @@ public abstract class AbstractTaskDispatcher {
    * @param state
    * @return
    */
-  private boolean isTaskNotInTerminalState(TaskPartitionState state) {
+  protected static boolean isTaskNotInTerminalState(TaskPartitionState state) {
     return state != TaskPartitionState.COMPLETED && state != TaskPartitionState.TASK_ABORTED
         && state != TaskPartitionState.ERROR;
   }

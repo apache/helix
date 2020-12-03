@@ -47,6 +47,8 @@ public class ZkConnection implements IZkConnection {
   /** It is recommended to use quite large sessions timeouts for ZooKeeper. */
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
 
+  // A config to force disabling using ZK's paginated getChildren.
+  // By default the value is false.
   private static final boolean GETCHILDREN_PAGINATION_DISABLED =
       Boolean.getBoolean(ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED);
 
@@ -92,6 +94,7 @@ public class ZkConnection implements IZkConnection {
         LOG.debug("Closing ZooKeeper connected to " + _servers);
         _zk.close();
         _zk = null;
+        _getChildrenMethod = null;
       }
     } finally {
       _zookeeperLock.unlock();
@@ -109,6 +112,7 @@ public class ZkConnection implements IZkConnection {
         LOG.debug("Creating new ZookKeeper instance to reconnect to " + _servers + ".");
         _zk = new ZooKeeper(_servers, _sessionTimeOut, watcher);
         prevZk.close();
+        _getChildrenMethod = null;
       } catch (IOException e) {
         throw new ZkException("Unable to connect to " + _servers, e);
       }
@@ -236,29 +240,35 @@ public class ZkConnection implements IZkConnection {
       // Method is already cached.
       return;
     }
-    try {
-      if (GETCHILDREN_PAGINATION_DISABLED) {
-        lookupNonPaginatedGetChildren();
-      } else {
-        // Lookup the paginated getChildren API
-        _getChildrenMethod =
-            ZooKeeper.class.getMethod("getAllChildrenPaginated", String.class, boolean.class);
-      }
-    } catch (NoSuchMethodException e1) {
-      // Pagination API is not supported, fall back to non-paginated API
-      lookupNonPaginatedGetChildren();
-    }
+
+    doLookUpGetChildrenMethod();
+
     LOG.info("Pagination config {}={}, method to be invoked: {}",
         ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
         _getChildrenMethod.getName());
   }
 
+  private void doLookUpGetChildrenMethod() {
+    if (!GETCHILDREN_PAGINATION_DISABLED) {
+      try {
+        // Lookup the paginated getChildren API
+        _getChildrenMethod =
+            ZooKeeper.class.getMethod("getAllChildrenPaginated", String.class, boolean.class);
+        return;
+      } catch (NoSuchMethodException e) {
+        LOG.info("Paginated getChildren is not supported, fall back to non-paginated getChildren");
+      }
+    }
+
+    lookupNonPaginatedGetChildren();
+  }
+
   private void lookupNonPaginatedGetChildren() {
     try {
       _getChildrenMethod = ZooKeeper.class.getMethod("getChildren", String.class, boolean.class);
-    } catch (NoSuchMethodException e2) {
+    } catch (NoSuchMethodException e) {
       // We should not expect this exception here.
-      LOG.error("getChildren is not supported in this zookeeper version!");
+      throw ExceptionUtil.convertToRuntimeException(e.getCause());
     }
   }
 

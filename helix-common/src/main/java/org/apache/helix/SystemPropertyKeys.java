@@ -84,4 +84,6 @@ public class SystemPropertyKeys {
       MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY;
 
   public static final String STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED = "helix.StateUpdateUtil.errorLog.enabled";
+
+  public static final String TASK_CURRENT_PATH_DISABLED = "helix.taskCurrentPathDisabled";
 }

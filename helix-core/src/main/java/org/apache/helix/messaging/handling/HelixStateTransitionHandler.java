@@ -38,6 +38,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -140,9 +141,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
       String sessionId = _message.getTgtSessionId();
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key = _stateModel instanceof TaskStateModel ? accessor.keyBuilder()
-          .taskCurrentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName))
-          : accessor.keyBuilder()
+      PropertyKey key =
+          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+              ? accessor.keyBuilder().taskCurrentState(instance, sessionId, resource,
+              bucketizer.getBucketName(partitionName)) : accessor.keyBuilder()
               .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
       ZNRecord rec = new ZNRecord(resource);
       Map<String, String> map = new TreeMap<String, String>();
@@ -443,9 +445,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
           disablePartition();
         }
 
-        PropertyKey currentStateKey = _stateModel instanceof TaskStateModel ? keyBuilder
-            .taskCurrentState(instanceName, _message.getTgtSessionId(), resourceName)
-            : keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName);
+        PropertyKey currentStateKey =
+            _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+                ? keyBuilder
+                .taskCurrentState(instanceName, _message.getTgtSessionId(), resourceName)
+                : keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName);
         if (!accessor.updateProperty(currentStateKey, currentStateDelta)) {
           logger.error("Fails to persist ERROR current state to ZK for resource " + resourceName
               + " partition: " + partition);

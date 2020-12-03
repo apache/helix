@@ -84,9 +84,8 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
         _propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE).getAndSet(false)
             || _propertyDataChangedMap.get(HelixConstants.ChangeType.TASK_CURRENT_STATE)
             .getAndSet(false) || _propertyDataChangedMap.get(HelixConstants.ChangeType.MESSAGE)
-            .getAndSet(false) || propertyRefreshed.contains(HelixConstants.ChangeType.CURRENT_STATE)
-            || propertyRefreshed.contains(HelixConstants.ChangeType.TASK_CURRENT_STATE)
-            || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE);
+            .getAndSet(false) || propertyRefreshed
+            .contains(HelixConstants.ChangeType.LIVE_INSTANCE);
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {

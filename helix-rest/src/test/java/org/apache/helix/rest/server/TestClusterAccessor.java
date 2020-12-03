@@ -224,6 +224,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
+    //Need to use TestCluster_1 here since other test may add unwanted key to listField. issue-1336
     String cluster = "TestCluster_1";
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
 

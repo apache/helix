@@ -52,11 +52,11 @@ public class TestCurrentStateDropWithoutConfigs extends TaskTestBase {
     currentState.setStartTime(taskName, System.currentTimeMillis());
     currentState.setEndTime(taskName, System.currentTimeMillis());
     _accessor.setProperty(_accessor.keyBuilder()
-        .currentState(_participants[0].getInstanceName(), liveInstance.getEphemeralOwner(),
+        .taskCurrentState(_participants[0].getInstanceName(), liveInstance.getEphemeralOwner(),
             jobName), currentState);
 
     Assert.assertTrue(TestHelper.verify(() -> _accessor.getProperty(_accessor.keyBuilder()
-        .currentState(_participants[0].getInstanceName(), liveInstance.getEphemeralOwner(),
+        .taskCurrentState(_participants[0].getInstanceName(), liveInstance.getEphemeralOwner(),
             jobName)) == null, TestHelper.WAIT_DURATION * 10));
   }
 }

@@ -592,16 +592,18 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId,
       boolean isTaskPipeline) {
-    Map<String, CurrentState> allCurrentStates =
+    Map<String, CurrentState> regularCurrentStates =
         _currentStateCache.getParticipantState(instanceName, clientSessionId);
     if (isTaskPipeline) {
       // Targeted jobs still rely on regular resource current states, so need to include all
       // resource current states without filtering
-      allCurrentStates
+      Map<String, CurrentState> mergedCurrentStates = new HashMap<>();
+      mergedCurrentStates
           .putAll(_taskCurrentStateCache.getParticipantState(instanceName, clientSessionId));
-      return allCurrentStates;
+      mergedCurrentStates.putAll(regularCurrentStates);
+      return Collections.unmodifiableMap(mergedCurrentStates);
     }
-    return allCurrentStates.entrySet().stream().filter(
+    return regularCurrentStates.entrySet().stream().filter(
         entry -> !TaskConstants.STATE_MODEL_NAME.equals(entry.getValue().getStateModelDefRef()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }

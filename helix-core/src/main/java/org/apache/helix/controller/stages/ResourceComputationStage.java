@@ -188,19 +188,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
       for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
         String clientSessionId = instance.getEphemeralOwner();
-
-        processCurrentStateMap(cache.getCurrentState(instanceName, clientSessionId), resourceMap,
-            resourceToRebalance, idealStates, isTaskCache);
-
-        // Duplicate resource names between regular and task resources may happen, but most likely
-        // won't. If it does, let regular resources overwrite task resources. To avoid duplicate
-        // resource overwriting, it's better to split regular and task pipelines entirely.
-        if (isTaskCache) {
-          Map<String, CurrentState> taskCurrentStateMap = ((WorkflowControllerDataProvider) cache)
-              .getTaskCurrentState(instanceName, clientSessionId);
-          processCurrentStateMap(taskCurrentStateMap, resourceMap, resourceToRebalance, idealStates,
-              true);
-        }
+        processCurrentStateMap(cache.getCurrentState(instanceName, clientSessionId, isTaskCache),
+            resourceMap, resourceToRebalance, idealStates, isTaskCache);
       }
     }
   }

@@ -56,7 +56,6 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
   private static final String PIPELINE_NAME = Pipeline.Type.TASK.name();
 
   private TaskDataCache _taskDataCache;
-  private TaskCurrentStateCache _taskCurrentStateCache;
   private Map<String, Integer> _participantActiveTaskCount;
 
   // For detecting live instance and target resource partition state change in task assignment
@@ -71,7 +70,6 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
     super(clusterName, PIPELINE_NAME);
     _participantActiveTaskCount = new HashMap<>();
     _taskDataCache = new TaskDataCache(this);
-    _taskCurrentStateCache = new TaskCurrentStateCache(this);
   }
 
   private void refreshClusterStateChangeFlags(Set<HelixConstants.ChangeType> propertyRefreshed) {

@@ -44,6 +44,7 @@ import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.CurrentStateCache;
 import org.apache.helix.common.caches.InstanceMessagesCache;
 import org.apache.helix.common.caches.PropertyCache;
+import org.apache.helix.common.caches.TaskCurrentStateCache;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.rebalancer.constraint.MonitoredAbnormalResolver;
@@ -58,6 +59,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +104,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   // Special caches
   private CurrentStateCache _currentStateCache;
+  protected TaskCurrentStateCache _taskCurrentStateCache;
   private InstanceMessagesCache _instanceMessagesCache;
 
   // Other miscellaneous caches
@@ -226,6 +229,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       }
     }, false);
     _currentStateCache = new CurrentStateCache(this);
+    _taskCurrentStateCache = new TaskCurrentStateCache(this);
     _instanceMessagesCache = new InstanceMessagesCache(_clusterName);
   }
 
@@ -576,7 +580,31 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    * @return
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
-    return _currentStateCache.getParticipantState(instanceName, clientSessionId);
+    return getCurrentState(instanceName, clientSessionId, false);
+  }
+
+  /**
+   * Provides the current state of the node for a given session id, the sessionid can be got from
+   * LiveInstance
+   * @param instanceName
+   * @param clientSessionId
+   * @return
+   */
+  public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId,
+      boolean isTaskPipeline) {
+    Map<String, CurrentState> allCurrentStates =
+        _currentStateCache.getParticipantState(instanceName, clientSessionId);
+    if (isTaskPipeline) {
+      Map<String, CurrentState> filteredCurrentStates = allCurrentStates.entrySet().stream().filter(
+          entry -> TaskConstants.STATE_MODEL_NAME.equals(entry.getValue().getStateModelDefRef()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      filteredCurrentStates
+          .putAll(_taskCurrentStateCache.getParticipantState(instanceName, clientSessionId));
+      return filteredCurrentStates;
+    }
+    return allCurrentStates.entrySet().stream().filter(
+        entry -> !TaskConstants.STATE_MODEL_NAME.equals(entry.getValue().getStateModelDefRef()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**

@@ -729,60 +729,65 @@ public class JobConfig extends ResourceConfig {
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
-            String.format("%s cannot be null", JobConfigProperty.TargetResource));
+            String.format("Job %s, %s cannot be null", _jobId, JobConfigProperty.TargetResource));
       }
-      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null
-          && _targetPartitionStates.isEmpty()) {
-        throw new IllegalArgumentException(
-            String.format("%s cannot be an empty set", JobConfigProperty.TargetPartitionStates));
+      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null && _targetPartitionStates
+          .isEmpty()) {
+        throw new IllegalArgumentException(String
+            .format("Job %s, %s cannot be an empty set", _jobId,
+                JobConfigProperty.TargetPartitionStates));
       }
       if (_taskConfigMap.isEmpty()) {
         // Check Job command is not null when none taskconfig specified
         if (_command == null) {
           throw new IllegalArgumentException(
-              String.format("%s cannot be null", JobConfigProperty.Command));
+              String.format("Job %s, %s cannot be null", _jobId, JobConfigProperty.Command));
         }
         // Check number of task is set when Job command is not null and none taskconfig specified
         if (_targetResource == null && _numberOfTasks == 0) {
-          throw new IllegalArgumentException("Either targetResource or numberOfTask should be set");
+          throw new IllegalArgumentException(
+              String.format("Job %s, Either targetResource or numberOfTask should be set", _jobId));
         }
       }
       // Check each either Job command is not null or none of task command is not null
       if (_command == null) {
         for (TaskConfig taskConfig : _taskConfigMap.values()) {
           if (taskConfig.getCommand() == null) {
-            throw new IllegalArgumentException(
-                String.format("Task %s command cannot be null", taskConfig.getId()));
+            throw new IllegalArgumentException(String
+                .format("Job %s, Task %s command cannot be null", _jobId, taskConfig.getId()));
           }
         }
       }
       if (_timeout < TaskConstants.DEFAULT_NEVER_TIMEOUT) {
-        throw new IllegalArgumentException(
-            String.format("%s has invalid value %s", JobConfigProperty.Timeout, _timeout));
+        throw new IllegalArgumentException(String
+            .format("Job %s, %s has invalid value %s", _jobId, JobConfigProperty.Timeout,
+                _timeout));
       }
       if (_timeoutPerTask < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+        throw new IllegalArgumentException(String.format("Job %s, %s has invalid value %s", _jobId,
             JobConfigProperty.TimeoutPerPartition, _timeoutPerTask));
       }
       if (_numConcurrentTasksPerInstance < 1) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+        throw new IllegalArgumentException(String.format("Job %s, %s has invalid value %s", _jobId,
             JobConfigProperty.ConcurrentTasksPerInstance, _numConcurrentTasksPerInstance));
       }
       if (_maxAttemptsPerTask < 1) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            JobConfigProperty.MaxAttemptsPerTask, _maxAttemptsPerTask));
+        throw new IllegalArgumentException(String
+            .format("Job %s, %s has invalid value %s", _jobId, JobConfigProperty.MaxAttemptsPerTask,
+                _maxAttemptsPerTask));
       }
       if (_maxForcedReassignmentsPerTask < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+        throw new IllegalArgumentException(String.format("Job %s, %s has invalid value %s", _jobId,
             JobConfigProperty.MaxForcedReassignmentsPerTask, _maxForcedReassignmentsPerTask));
       }
       if (_failureThreshold < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            JobConfigProperty.FailureThreshold, _failureThreshold));
+        throw new IllegalArgumentException(String
+            .format("Job %s, %s has invalid value %s", _jobId, JobConfigProperty.FailureThreshold,
+                _failureThreshold));
       }
       if (_workflow == null) {
         throw new IllegalArgumentException(
-            String.format("%s cannot be null", JobConfigProperty.WorkflowID));
+            String.format("Job %s, %s cannot be null", _jobId, JobConfigProperty.WorkflowID));
       }
     }
 

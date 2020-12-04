@@ -42,8 +42,7 @@ public class TaskPersistDataStage extends AbstractBaseStage {
     cache.getTaskDataCache().persistDataChanges(manager.getHelixDataAccessor());
 
     long endTime = System.currentTimeMillis();
-    LOG.info(
-        "END TaskPersistDataStage.process() for cluster " + cache.getClusterName() + " took " + (
-            endTime - startTime) + " ms");
+    LOG.info("END TaskPersistDataStage.process() for cluster {} took {} ms", cache.getClusterName(),
+        (endTime - startTime));
   }
 }

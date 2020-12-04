@@ -149,7 +149,8 @@ public class RuntimeJobDag extends JobDag {
     if (!_inflightJobList.remove(job)) {
       // this job is not in in-flight list
       LOG.warn(
-          String.format("Job: %s has either finished already, never been scheduled, or been removed from DAG", job));
+          "Job: {} has either finished already, never been scheduled, or been removed from DAG",
+          job);
     }
     // Add finished job's successors to ready-list
 

@@ -678,19 +678,16 @@ public class TaskUtil {
     }
 
     if (!removeWorkflowConfig(accessor, workflow)) {
-      LOG.warn(
-          String.format("Error occurred while trying to remove workflow config for %s.", workflow));
+      LOG.warn("Error occurred while trying to remove workflow config for {}.", workflow);
       return false;
     }
     if (!cleanupWorkflowIdealStateExtView(accessor, workflow)) {
-      LOG.warn(String.format(
-          "Error occurred while trying to remove workflow idealstate/externalview for %s.",
-          workflow));
+      LOG.warn("Error occurred while trying to remove workflow idealstate/externalview for {}.",
+          workflow);
       return false;
     }
     if (!removeWorkflowContext(propertyStore, workflow)) {
-      LOG.warn(String.format("Error occurred while trying to remove workflow context for %s.",
-          workflow));
+      LOG.warn("Error occurred while trying to remove workflow context for {}.", workflow);
       return false;
     }
     return true;
@@ -712,13 +709,13 @@ public class TaskUtil {
       final Set<String> jobs, boolean maintainDependency) {
     boolean success = true;
     if (!removeJobsFromDag(dataAccessor, workflow, jobs, maintainDependency)) {
-      LOG.warn("Error occurred while trying to remove jobs + " + jobs + " from the workflow "
-          + workflow);
+      LOG.warn("Error occurred while trying to remove jobs {} from the workflow {}.", jobs,
+          workflow);
       success = false;
     }
     if (!removeJobsState(propertyStore, workflow, jobs)) {
-      LOG.warn("Error occurred while trying to remove jobs states from workflow + " + workflow
-          + " jobs " + jobs);
+      LOG.warn("Error occurred while trying to remove jobs states from workflow {} jobs {}.",
+          workflow, jobs);
       success = false;
     }
     for (String job : jobs) {
@@ -865,12 +862,12 @@ public class TaskUtil {
       return false;
     }
     if (!cleanupJobIdealStateExtView(accessor, job)) {
-      LOG.warn(String.format(
-          "Error occurred while trying to remove job idealstate/externalview for %s.", job));
+      LOG.warn(
+          "Error occurred while trying to remove job idealstate/externalview for {}.", job);
       return false;
     }
     if (!removeJobContext(propertyStore, job)) {
-      LOG.warn(String.format("Error occurred while trying to remove job context for %s.", job));
+      LOG.warn("Error occurred while trying to remove job context for {}.", job);
       return false;
     }
     return true;
@@ -888,7 +885,7 @@ public class TaskUtil {
           JobDag jobDag = JobDag.fromJson(
               currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
           if (jobDag == null) {
-            LOG.warn("Could not update DAG for workflow: " + workflow + " JobDag is null.");
+            LOG.warn("Could not update DAG for workflow: {} JobDag is null.", workflow);
             return null;
           }
           for (String job : jobsToRemove) {
@@ -907,7 +904,7 @@ public class TaskUtil {
 
     String configPath = accessor.keyBuilder().resourceConfig(workflow).getPath();
     if (!accessor.getBaseDataAccessor().update(configPath, dagRemover, AccessOption.PERSISTENT)) {
-      LOG.warn("Failed to remove jobs " + jobsToRemove + " from DAG of workflow " + workflow);
+      LOG.warn("Failed to remove jobs {} from DAG of workflow {}", jobsToRemove, workflow);
       return false;
     }
 
@@ -940,7 +937,7 @@ public class TaskUtil {
       }
     };
     if (!propertyStore.update(contextPath, updater, AccessOption.PERSISTENT)) {
-      LOG.warn("Fail to remove job state for jobs " + jobs + " from workflow " + workflow);
+      LOG.warn("Fail to remove job state for jobs {} from workflow {}", jobs, workflow);
       return false;
     }
     return true;
@@ -951,9 +948,9 @@ public class TaskUtil {
     String path = Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource);
     if (propertyStore.exists(path, AccessOption.PERSISTENT)) {
       if (!propertyStore.remove(path, AccessOption.PERSISTENT)) {
-        LOG.warn(String.format(
-            "Error occurred while trying to remove workflow/jobcontext for %s. Failed to remove node %s.",
-            workflowJobResource, path));
+        LOG.warn(
+            "Error occurred while trying to remove workflow/jobcontext for {}. Failed to remove node {}.",
+            workflowJobResource, path);
         return false;
       }
     }
@@ -971,9 +968,8 @@ public class TaskUtil {
     PropertyKey cfgKey = accessor.keyBuilder().resourceConfig(workflowJobResource);
     if (accessor.getPropertyStat(cfgKey) != null) {
       if (!accessor.removeProperty(cfgKey)) {
-        LOG.warn(String.format(
-            "Error occurred while trying to remove config for %s. Failed to remove node %s.",
-            workflowJobResource, cfgKey));
+        LOG.warn("Error occurred while trying to remove config for {}. Failed to remove node {}.",
+            workflowJobResource, cfgKey);
         return false;
       }
     }

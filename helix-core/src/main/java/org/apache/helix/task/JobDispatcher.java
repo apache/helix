@@ -103,7 +103,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
     }
 
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
-      LOG.info("Job is not ready to be run since workflow is not ready {}", jobName);
+      LOG.info("Job {} is not ready to be run since workflow is not ready.", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -111,7 +111,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
         workflowCtx, TaskUtil.getInCompleteJobCount(workflowCfg, workflowCtx),
         _dataProvider.getJobConfigMap(), _dataProvider,
         _dataProvider.getAssignableInstanceManager())) {
-      LOG.info("Job is not ready to run {}", jobName);
+      LOG.info("Job {} is not ready to run.", jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -145,7 +145,7 @@ public class JobDispatcher extends AbstractTaskDispatcher {
             : _dataProvider.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
-      LOG.error("No available instance found for job: " + jobName);
+      LOG.error("No available instance found for job: {}", jobName);
     }
 
     TargetState jobTgtState = workflowCfg.getTargetState();

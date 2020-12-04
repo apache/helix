@@ -89,7 +89,7 @@ public class TaskStateModel extends StateModel {
 
     _taskRunner.cancel();
     TaskResult r = _taskRunner.waitTillDone();
-    LOG.info(String.format("Task %s completed with result %s.", msg.getPartitionName(), r));
+    LOG.info("Task {} completed with result {}.", msg.getPartitionName(), r);
 
     timeout_task.cancel(false);
 

@@ -143,7 +143,7 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
       _driver.enqueueJob(queue, "JOB" + capacity, jobBuilder);
       Assert.fail("Queue is not full.");
     } catch (HelixException e) {
-      Assert.assertTrue(e.getMessage().contains("queue is full"));
+      Assert.assertTrue(e.getMessage().contains("queue " + queue + " is full"));
     }
 
     for (int i = 0; i < capacity; i++) {

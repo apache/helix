@@ -142,7 +142,7 @@ public class WorkflowContext extends HelixProperty {
       long ret = Long.valueOf(t);
       return ret;
     } catch (NumberFormatException e) {
-      LOG.warn("Number error " + t + " for job start time of " + job);
+      LOG.warn("Number error {} for job start time of {}.", t, job, e);
       return -1;
     }
   }

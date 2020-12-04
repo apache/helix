@@ -139,7 +139,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
   private ZkBaseDataAccessor(RealmAwareZkClient zkClient, boolean usesExternalZkClient) {
     if (zkClient == null) {
-      throw new NullPointerException("zkclient is null");
+      throw new IllegalArgumentException("zkclient is null");
     }
     _zkClient = zkClient;
     _usesExternalZkClient = usesExternalZkClient;

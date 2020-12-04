@@ -66,6 +66,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances) {
+    // usesExternalZkClient = true because ZkClient is given by the caller
+    // at close(), we will not close this ZkClient because it might be being used elsewhere
     super(zkClient, clusterName, true, 0);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
     _expectLiveInstances =

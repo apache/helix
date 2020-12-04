@@ -111,6 +111,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public BestPossibleExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Map<String, Map<String, String>> errStates,
       Set<String> expectLiveInstances, int waitTillVerify) {
+    // usesExternalZkClient = true because ZkClient is given by the caller
+    // at close(), we will not close this ZkClient because it might be being used elsewhere
     super(zkClient, clusterName, true, waitTillVerify);
     _errStates = errStates;
     _resources = resources;

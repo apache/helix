@@ -19,7 +19,8 @@ package org.apache.helix.lock.helix;
  * under the License.
  */
 
-import java.util.Date;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -31,14 +32,11 @@ import org.apache.helix.lock.LockScope;
 import org.apache.helix.manager.zk.GenericZkHelixApiBuilder;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.ZNRecordUpdater;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.helix.lock.LockInfo.ZNODE_ID;
 
 
 /**
@@ -59,10 +57,9 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   private final boolean _isForceful;
   private final LockListener _lockListener;
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  private boolean _isLocked;
-  private boolean _isPending;
-  private boolean _isPreempted;
+  private LockConstants.LockStatus _lockStatus;
   private long _pendingTimeout;
+  private CountDownLatch _countDownLatch = new CountDownLatch(1);
 
   /**
    * Initialize the lock with user provided information, e.g.,cluster, scope, etc.
@@ -74,12 +71,23 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
    */
   public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long leaseTimeout,
       String lockMsg, String userId) {
-    this(scope.getPath(), leaseTimeout, lockMsg, userId, 0, Integer.MAX_VALUE, 0, false,
-        null, new ZkBaseDataAccessor<ZNRecord>(zkAddress));
+    this(scope.getPath(), leaseTimeout, lockMsg, userId, 0, Integer.MAX_VALUE, 0, false, null,
+        new ZkBaseDataAccessor<ZNRecord>(zkAddress));
   }
 
   /**
-   * Initialize the lock with user provided information, e.g.,cluster, scope, etc.
+   * Initialize the lock with ZKLockConfig. This is the preferred way to construct the lock.
+   */
+  public ZKDistributedNonblockingLock(ZKLockConfig zkLockConfig) {
+    this(zkLockConfig.getLockScope(), zkLockConfig.getZkAddress(), zkLockConfig.getLeaseTimeout(),
+        zkLockConfig.getLockMsg(), zkLockConfig.getUserId(), zkLockConfig.getPriority(),
+        zkLockConfig.getWaitingTimeout(), zkLockConfig.getCleanupTimeout(),
+        zkLockConfig.getIsForceful(), zkLockConfig.getLockListener());
+  }
+
+  /**
+   * Initialize the lock with user provided information, e.g.,cluster, scope, priority,
+   * different kinds of timeout, etc.
    * @param scope the scope to lock
    * @param zkAddress the zk address the cluster connects to
    * @param leaseTimeout the leasing timeout period of the lock
@@ -101,7 +109,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   }
 
   /**
-   * Initialize the lock with user provided information, e.g., lock path under zookeeper, etc.
+   * Internal construction of the lock with user provided information, e.g., lock path under
+   * zookeeper, etc.
    * @param lockPath the path of the lock under Zookeeper
    * @param leaseTimeout the leasing timeout period of the lock
    * @param lockMsg the reason for having this lock
@@ -137,7 +146,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   }
 
   @Override
-  public synchronized boolean tryLock() {
+  public boolean tryLock() {
     // Set lock information fields
     _baseDataAccessor.subscribeDataChanges(_lockPath, this);
     LockUpdater updater = new LockUpdater(
@@ -145,43 +154,45 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
             _waitingTimeout, _cleanupTimeout, null, 0, 0, 0));
     boolean updateResult = _baseDataAccessor.update(_lockPath, updater, AccessOption.PERSISTENT);
 
-    // Check whether the lock request is still pending. If yes, we will wait for the period
-    // recorded in _pendingTimeout.
-    if (_isPending) {
-      try {
-        wait(_pendingTimeout);
-      } catch (InterruptedException e) {
-        throw new HelixException(
-            String.format("Interruption happened while %s is waiting for the " + "lock", _userId),
-            e);
+    // Immediately return if the lock statue is not PENDING.
+    if (_lockStatus != LockConstants.LockStatus.PENDING) {
+      if (!updateResult) {
+        _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
       }
-      // We have not acquired the lock yet.
-      if (!_isLocked) {
-        // If the reason for not being able to acquire the lock is due to high priority lock
-        // preemption, directly return false.
-        if (_isPreempted) {
-          _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
-          return false;
-        } else {
-          // Forceful lock request will grab the lock even the current owner has not finished
-          // cleanup work, while non forceful lock request will get an exception.
-          if (_isForceful) {
-            ZNRecord znRecord = composeNewOwnerRecord();
-            LOG.info("Updating Zookeeper with new owner {} information", _userId);
-            _baseDataAccessor
-                .update(_lockPath, new ZNRecordUpdater(znRecord), AccessOption.PERSISTENT);
-            return true;
-          } else {
-            _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
-            throw new HelixException("Cleanup has not been finished by lock owner");
-          }
-        }
+      return updateResult;
+    }
+
+    // When the lock status is still pending, wait for the period recorded in _pendingTimeout.
+    try {
+      _countDownLatch.await(_pendingTimeout, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      throw new HelixException(
+          String.format("Interruption happened while %s is waiting for the " + "lock", _userId), e);
+    }
+
+    // Note the following checks need to be ordered in the current way. Reordering the sequence of
+    // checks would cause problem.
+    if (_lockStatus != LockConstants.LockStatus.LOCKED) {
+      // If the reason for not being able to acquire the lock is due to high priority lock
+      // preemption, directly return false.
+      if (_lockStatus == LockConstants.LockStatus.PREEMPTED) {
+        _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
+        return false;
+      }
+      // Forceful lock request will grab the lock even the current owner has not finished
+      // cleanup work, while non forceful lock request will get an exception.
+      if (_isForceful) {
+        ZNRecord znRecord = composeNewOwnerRecord();
+        ForcefulUpdater forcefulUpdater = new ForcefulUpdater(new LockInfo(znRecord));
+        LOG.info("Updating Zookeeper with new owner {} information", _userId);
+        _baseDataAccessor.update(_lockPath, forcefulUpdater, AccessOption.PERSISTENT);
+        return true;
+      } else {
+        _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
+        throw new HelixException("Cleanup has not been finished by lock owner");
       }
     }
-    if (!updateResult) {
-      _baseDataAccessor.unsubscribeDataChanges(_lockPath, this);
-    }
-    return updateResult;
+    return true;
   }
 
   //TODO: update release lock logic so it would not leave empty znodes after the lock is released
@@ -221,33 +232,17 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         _baseDataAccessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
     LockInfo lockInfo = new LockInfo(readData);
     // We are the current owner
-    if (lockInfo.getOwner().equals(_userId)) {
-      if (lockInfo.getRequestorId().equals("NONE")|| lockInfo.getPriority() > lockInfo
+    if (isCurrentOwner(lockInfo)) {
+      if (lockInfo.getRequestorId().equals("NONE") || lockInfo.getPriority() > lockInfo
           .getRequestorPriority()) {
         LOG.debug("We do not need to handle this data change");
       } else {
         _lockListener.onCleanupNotification();
-        // read the lock information again to avoid stale data
-        readData = _baseDataAccessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
-        // If we are still the lock owner, clean the lock owner field.
-        if (lockInfo.getOwner().equals(_userId)) {
-          ZNRecord znRecord = new ZNRecord(readData);
-          znRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(),
-              LockConstants.DEFAULT_OWNER_TEXT);
-          znRecord.setSimpleField(LockInfo.LockInfoAttribute.MESSAGE.name(),
-              LockConstants.DEFAULT_MESSAGE_TEXT);
-          znRecord.setLongField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
-              LockConstants.DEFAULT_TIMEOUT_LONG);
-          znRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(),
-              LockConstants.DEFAULT_PRIORITY_INT);
-          znRecord.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(),
-              LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
-          znRecord.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(),
-              LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG);
-          _baseDataAccessor
-              .update(_lockPath, new ZNRecordUpdater(znRecord), AccessOption.PERSISTENT);
-        } else {
-          LOG.info("We are not current lock owner");
+        CleanupUpdater cleanupUpdater = new CleanupUpdater();
+        boolean res = _baseDataAccessor.update(_lockPath, cleanupUpdater, AccessOption.PERSISTENT);
+        if (!res) {
+          throw new HelixException(
+              String.format("User %s failed to update lock path %s", _userId, _lockPath));
         }
       }
     } // We are the current requestor
@@ -264,7 +259,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     } // If we are waiting for the lock, but find we are not the requestor any more, meaning we
     // are preempted by an even higher priority request
     else if (!lockInfo.getRequestorId().equals("NONE") && !lockInfo.getRequestorId().equals(_userId)
-        && _isPending) {
+        && _lockStatus == LockConstants.LockStatus.PENDING) {
       onDeniedPendingLockNotification();
     }
   }
@@ -273,22 +268,16 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
    * call back called when the lock is acquired
    */
   public void onAcquiredLockNotification() {
-    synchronized (ZKDistributedNonblockingLock.this) {
-      _isLocked = true;
-      ZKDistributedNonblockingLock.this.notify();
-    }
+    _lockStatus = LockConstants.LockStatus.LOCKED;
+    _countDownLatch.countDown();
   }
 
   /**
    * call back called when the pending request is denied due to another higher priority request
    */
   public void onDeniedPendingLockNotification() {
-    synchronized (ZKDistributedNonblockingLock.this) {
-      _isLocked = false;
-      _isPreempted = true;
-      _isPending = false;
-      ZKDistributedNonblockingLock.this.notify();
-    }
+    _lockStatus = LockConstants.LockStatus.PREEMPTED;
+    _countDownLatch.countDown();
   }
 
   @Override
@@ -296,7 +285,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   }
 
   /**
-   * Class that specifies how a lock node should be updated with another lock node
+   * Class that specifies how a lock node should be updated with another lock node during a
+   * trylock/unlock request
    */
   private class LockUpdater implements DataUpdater<ZNRecord> {
     final ZNRecord _record;
@@ -318,39 +308,104 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
         return _record;
       }
 
-      // higher priority lock request will preempt current lock owner that is with lower priority
-      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority() && curLockInfo
-          .getRequestorId().equals("NONE")) {
-        // update lock Znode with requestor information
-        ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
-        _isPending = true;
-        _pendingTimeout = _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
-                : _waitingTimeout;
-        return newRecord;
-      }
-
-      // If the requestor field is not empty, and the coming lock request has a even higher
-      // priority. The new request will replace current requestor field of the lock
-      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority() && !curLockInfo
-          .getRequestorId().equals("NONE") && _priority > curLockInfo.getRequestorPriority()) {
-        ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
-        _isPending = true;
-        long remainingCleanupTime =
-            curLockInfo.getCleanupTimeout() - (System.currentTimeMillis() - curLockInfo
-                .getRequestorRequestingTimestamp());
-        _pendingTimeout =
-            _waitingTimeout > remainingCleanupTime ? remainingCleanupTime : _waitingTimeout;
-        return newRecord;
+      // higher priority lock request will try to  preempt current lock owner
+      if (!isCurrentOwner(curLockInfo) && _priority > curLockInfo.getPriority()) {
+        if (curLockInfo.getRequestorId().equals("NONE")) {
+          // update lock Znode with requestor information
+          ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
+          _lockStatus = LockConstants.LockStatus.PENDING;
+          _pendingTimeout =
+              _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
+                  : _waitingTimeout;
+          return newRecord;
+        } // If the requestor field is not empty, and the coming lock request has a even higher
+        // priority. The new request will replace current requestor field of the lock
+        else if (_priority > curLockInfo.getRequestorPriority()) {
+          ZNRecord newRecord = composeNewRequestorRecord(curLockInfo, _record);
+          _lockStatus = LockConstants.LockStatus.PENDING;
+          long remainingCleanupTime =
+              curLockInfo.getCleanupTimeout() - (System.currentTimeMillis() - curLockInfo
+                  .getRequestingTimestamp());
+          //_pendingTimeout = _waitingTimeout > remainingCleanupTime ? remainingCleanupTime :
+          // _waitingTimeout;
+          _pendingTimeout =
+              _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
+                  : _waitingTimeout;
+          return newRecord;
+        }
       }
 
       // For users who are not the lock owner and the priority is not higher than current lock
-      // owner, throw an exception. The exception will be caught by data accessor, and return
-      // false for the update
-      LOG.error(
-          "User " + _userId + " tried to update the lock at " + new Date(System.currentTimeMillis())
-              + ". Lock path: " + _lockPath);
+      // owner, or the priority is higher than current lock, but lower than the requestor, throw
+      // an exception. The exception will be caught by data accessor, and return false for the
+      // update operation.
+      LOG.error("User {} failed to acquire lock at Lock path {}.", _userId, _lockPath);
+      throw new HelixException(
+          String.format("User %s failed to acquire lock at Lock path %s.", _userId, _lockPath));
+    }
+  }
 
-      throw new HelixException("User is not authorized to perform this operation.");
+  /**
+   * Class that specifies how a lock node should be updated after the previous owner finishes the
+   * cleanup work
+   */
+  private class CleanupUpdater implements DataUpdater<ZNRecord> {
+    public CleanupUpdater() {
+    }
+
+    @Override
+    public ZNRecord update(ZNRecord current) {
+      // If we are still the lock owner, clean owner field.
+      LockInfo curLockInfo = new LockInfo(current);
+      if (isCurrentOwner(curLockInfo)) {
+        ZNRecord record = current;
+        record
+            .setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), LockConstants.DEFAULT_USER_ID);
+        record.setSimpleField(LockInfo.LockInfoAttribute.MESSAGE.name(),
+            LockConstants.DEFAULT_MESSAGE_TEXT);
+        record.setLongField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
+            LockConstants.DEFAULT_TIMEOUT_LONG);
+        record.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(),
+            LockConstants.DEFAULT_PRIORITY_INT);
+        record.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(),
+            LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
+        record.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(),
+            LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG);
+        return record;
+      }
+      LOG.error("User {} is not current lock owner, and does not need to unlock {}", _userId,
+          _lockPath);
+      throw new HelixException(String
+          .format("User %s is not current lock owner, and does not need" + " to unlock %s", _userId,
+              _lockPath));
+    }
+  }
+
+  /**
+   * Class that specifies how a lock node should be updated during a forceful get lock operation
+   */
+  private class ForcefulUpdater implements DataUpdater<ZNRecord> {
+    final ZNRecord _record;
+
+    /**
+     * Initialize a structure for lock user to update a lock node value
+     * @param lockInfo the lock node value will be used to update the lock
+     */
+    public ForcefulUpdater(LockInfo lockInfo) {
+      _record = lockInfo.getRecord();
+    }
+
+    @Override
+    public ZNRecord update(ZNRecord current) {
+      // If we are still the lock requestor, change ourselves to be lock owner.
+      LockInfo curLockInfo = new LockInfo(current);
+      if (curLockInfo.getRequestorId().equals(_userId)) {
+        return _record;
+      }
+      LOG.error("User {} is not current lock requestor, and cannot forcefully acquire the lock at "
+          + "{}", _userId, _lockPath);
+      throw new HelixException(String.format("User %s is not current lock requestor, and cannot "
+          + "forcefully acquire the lock at %s", _userId, _lockPath));
     }
   }
 
@@ -368,23 +423,12 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
   }
 
   private ZNRecord composeNewOwnerRecord() {
-    ZNRecord znRecord = new ZNRecord(ZNODE_ID);
-    znRecord.setSimpleField(LockInfo.LockInfoAttribute.OWNER.name(), _userId);
-    znRecord.setSimpleField(LockInfo.LockInfoAttribute.MESSAGE.name(), _lockMsg);
-    znRecord.setLongField(LockInfo.LockInfoAttribute.TIMEOUT.name(),
-        getNonOverflowTimestamp(_leaseTimeout));
-    znRecord.setIntField(LockInfo.LockInfoAttribute.PRIORITY.name(), _priority);
-    znRecord.setLongField(LockInfo.LockInfoAttribute.WAITING_TIMEOUT.name(), _waitingTimeout);
-    znRecord.setLongField(LockInfo.LockInfoAttribute.CLEANUP_TIMEOUT.name(), _cleanupTimeout);
-    znRecord.setSimpleField(LockInfo.LockInfoAttribute.REQUESTOR_ID.name(),
-        LockConstants.DEFAULT_REQUESTOR_ID);
-    znRecord.setIntField(LockInfo.LockInfoAttribute.REQUESTOR_PRIORITY.name(),
-        LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT);
-    znRecord.setLongField(LockInfo.LockInfoAttribute.REQUESTOR_WAITING_TIMEOUT.name(),
-        LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
-    znRecord.setLongField(LockInfo.LockInfoAttribute.REQUESTOR_REQUESTING_TIMESTAMP.name(),
-        LockConstants.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
-    return znRecord;
+    LockInfo lockInfo =
+        new LockInfo(_userId, _lockMsg, getNonOverflowTimestamp(_leaseTimeout), _priority,
+            _waitingTimeout, _cleanupTimeout, LockConstants.DEFAULT_USER_ID,
+            LockConstants.DEFAULT_PRIORITY_INT, LockConstants.DEFAULT_WAITING_TIMEOUT_LONG,
+            LockConstants.DEFAULT_REQUESTING_TIMESTAMP_LONG);
+    return lockInfo.getRecord();
   }
 
   private long getNonOverflowTimestamp(Long timePeriod) {
@@ -399,6 +443,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     return lockInfo.getOwner().equals(_userId) && (System.currentTimeMillis() < lockInfo
         .getTimeout());
   }
+
   /**
    * Builder class to use with ZKDistributedNonblockingLock.
    */

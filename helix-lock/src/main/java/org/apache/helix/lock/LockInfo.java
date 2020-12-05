@@ -47,7 +47,7 @@ public class LockInfo {
     REQUESTOR_ID,
     REQUESTOR_PRIORITY,
     REQUESTOR_WAITING_TIMEOUT,
-    REQUESTOR_REQUESTING_TIMESTAMP
+    REQUESTING_TIMESTAMP
   }
 
   /**
@@ -55,12 +55,12 @@ public class LockInfo {
    */
   private LockInfo() {
     _record = new ZNRecord(ZNODE_ID);
-    setLockInfoFields(LockConstants.DEFAULT_OWNER_TEXT, LockConstants.DEFAULT_MESSAGE_TEXT,
+    setLockInfoFields(LockConstants.DEFAULT_USER_ID, LockConstants.DEFAULT_MESSAGE_TEXT,
         LockConstants.DEFAULT_TIMEOUT_LONG, LockConstants.DEFAULT_PRIORITY_INT,
         LockConstants.DEFAULT_WAITING_TIMEOUT_LONG, LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG,
-        LockConstants.DEFAULT_REQUESTOR_ID, LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT,
-        LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG,
-        LockConstants.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
+        LockConstants.DEFAULT_USER_ID, LockConstants.DEFAULT_PRIORITY_INT,
+        LockConstants.DEFAULT_WAITING_TIMEOUT_LONG,
+        LockConstants.DEFAULT_REQUESTING_TIMESTAMP_LONG);
   }
 
   /**
@@ -72,7 +72,7 @@ public class LockInfo {
     if (znRecord != null) {
       _record = new ZNRecord(ZNODE_ID);
       String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name()).isEmpty() ?
-          LockConstants.DEFAULT_OWNER_TEXT :
+          LockConstants.DEFAULT_USER_ID :
           znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
       String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
       long timeout = znRecord
@@ -85,15 +85,15 @@ public class LockInfo {
           LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG);
       String requestorId = znRecord.getSimpleField(LockInfoAttribute.REQUESTOR_ID.name());
       int requestorPriority = znRecord.getIntField(LockInfoAttribute.REQUESTOR_PRIORITY.name(),
-          LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT);
+          LockConstants.DEFAULT_PRIORITY_INT);
       long requestorWaitingTimeout = znRecord
           .getLongField(LockInfoAttribute.REQUESTOR_WAITING_TIMEOUT.name(),
-              LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
-      long requestorRequestingTimestamp = znRecord
-          .getLongField(LockInfoAttribute.REQUESTOR_REQUESTING_TIMESTAMP.name(),
-              LockConstants.DEFAULT_REQUESTOR_REQUESTING_TIMESTAMP_LONG);
+              LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
+      long requestingTimestamp = znRecord
+          .getLongField(LockInfoAttribute.REQUESTING_TIMESTAMP.name(),
+              LockConstants.DEFAULT_REQUESTING_TIMESTAMP_LONG);
       setLockInfoFields(ownerId, message, timeout, priority, waitingTimeout, cleanupTimeout,
-          requestorId, requestorPriority, requestorWaitingTimeout, requestorRequestingTimestamp);
+          requestorId, requestorPriority, requestorWaitingTimeout, requestingTimestamp);
     }
   }
 
@@ -108,14 +108,14 @@ public class LockInfo {
    * @param requestorId value of REQUESTOR_ID attribute
    * @param requestorPriority value of REQUESTOR_PRIORITY attribute
    * @param requestorWaitingTimeout value of REQUESTOR_WAITING_TIMEOUT attribute
-   * @param requestorRequestingTimestamp value of REQUESTOR_REQUESTING_TIMESTAMP attribute
+   * @param requestingTimestamp value of REQUESTING_TIMESTAMP attribute
    */
   public LockInfo(String ownerId, String message, long timeout, int priority, long waitingTimout,
       long cleanupTimeout, String requestorId, int requestorPriority, long requestorWaitingTimeout,
-      long requestorRequestingTimestamp) {
+      long requestingTimestamp) {
     _record = new ZNRecord(ZNODE_ID);
     setLockInfoFields(ownerId, message, timeout, priority, waitingTimout, cleanupTimeout,
-        requestorId, requestorPriority, requestorWaitingTimeout, requestorRequestingTimestamp);
+        requestorId, requestorPriority, requestorWaitingTimeout, requestingTimestamp);
   }
 
   /**
@@ -124,9 +124,9 @@ public class LockInfo {
    */
   private void setLockInfoFields(String ownerId, String message, long timeout, int priority,
       long waitingTimeout, long cleanupTimeout, String requestorId, int requestorPriority,
-      long requestorWaitingTimeout, long requestorRequestingTimestamp) {
+      long requestorWaitingTimeout, long requestingTimestamp) {
     _record.setSimpleField(LockInfoAttribute.OWNER.name(),
-        ownerId == null ? LockConstants.DEFAULT_OWNER_TEXT : ownerId);
+        ownerId == null ? LockConstants.DEFAULT_USER_ID : ownerId);
     _record.setSimpleField(LockInfoAttribute.MESSAGE.name(),
         message == null ? LockConstants.DEFAULT_MESSAGE_TEXT : message);
     _record.setLongField(LockInfoAttribute.TIMEOUT.name(), timeout);
@@ -137,8 +137,7 @@ public class LockInfo {
     _record.setIntField(LockInfoAttribute.REQUESTOR_PRIORITY.name(), requestorPriority);
     _record
         .setLongField(LockInfoAttribute.REQUESTOR_WAITING_TIMEOUT.name(), requestorWaitingTimeout);
-    _record.setLongField(LockInfoAttribute.REQUESTOR_REQUESTING_TIMESTAMP.name(),
-        requestorRequestingTimestamp);
+    _record.setLongField(LockInfoAttribute.REQUESTING_TIMESTAMP.name(), requestingTimestamp);
   }
 
   /**
@@ -147,7 +146,7 @@ public class LockInfo {
    */
   public String getOwner() {
     String owner = _record.getSimpleField(LockInfoAttribute.OWNER.name());
-    return owner == null ? LockConstants.DEFAULT_OWNER_TEXT : owner;
+    return owner == null ? LockConstants.DEFAULT_USER_ID : owner;
   }
 
   /**
@@ -201,7 +200,7 @@ public class LockInfo {
    */
   public String getRequestorId() {
     String requestorId = _record.getSimpleField(LockInfoAttribute.REQUESTOR_ID.name());
-    return requestorId == null ? LockConstants.DEFAULT_REQUESTOR_ID : requestorId;
+    return requestorId == null ? LockConstants.DEFAULT_USER_ID : requestorId;
   }
 
   /**
@@ -210,7 +209,7 @@ public class LockInfo {
    */
   public int getRequestorPriority() {
     return _record.getIntField(LockInfoAttribute.REQUESTOR_PRIORITY.name(),
-        LockConstants.DEFAULT_REQUESTOR_PRIORITY_INT);
+        LockConstants.DEFAULT_PRIORITY_INT);
   }
 
   /**
@@ -219,7 +218,7 @@ public class LockInfo {
    */
   public long getRequestorWaitingTimeout() {
     return _record.getLongField(LockInfoAttribute.REQUESTOR_WAITING_TIMEOUT.name(),
-        LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
+        LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
   }
 
   /**
@@ -227,9 +226,9 @@ public class LockInfo {
    * @return the requestor requesting timestamp of the lock, -1 if there is no requestor
    * requestingi timestamp set
    */
-  public long getRequestorRequestingTimestamp() {
-    return _record.getLongField(LockInfoAttribute.REQUESTOR_REQUESTING_TIMESTAMP.name(),
-        LockConstants.DEFAULT_REQUESTOR_WAITING_TIMEOUT_LONG);
+  public long getRequestingTimestamp() {
+    return _record.getLongField(LockInfoAttribute.REQUESTING_TIMESTAMP.name(),
+        LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
   }
 
   /**

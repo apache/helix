@@ -89,8 +89,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceSessionId = instance.getEphemeralOwner();
 
       // update current states.
-      // Like ResourceComputationStage, we give priority to regular resources, so update task ones
-      // first and allow regular ones to overwrite if there's any name conflicts.
       updateCurrentStates(instance,
           cache.getCurrentState(instanceName, instanceSessionId, _isTaskFrameworkPipeline).values(),
           currentStateOutput, resourceMap);

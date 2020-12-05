@@ -574,7 +574,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   /**
    * Provides the current state of the node for a given session id, the sessionid can be got from
-   * LiveInstance
+   * LiveInstance. This function is only called from the regular pipelines.
    * @param instanceName
    * @param clientSessionId
    * @return
@@ -595,8 +595,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     Map<String, CurrentState> regularCurrentStates =
         _currentStateCache.getParticipantState(instanceName, clientSessionId);
     if (isTaskPipeline) {
-      // Targeted jobs still rely on regular resource current states, so need to include all
-      // resource current states without filtering
+      // TODO: Targeted jobs still rely on regular resource current states, so need to include all
+      // resource current states without filtering. For now, allow regular current states to
+      // overwrite task current states in case of name conflicts, which are unlikely. Eventually,
+      // it should be completely split.
       Map<String, CurrentState> mergedCurrentStates = new HashMap<>();
       mergedCurrentStates
           .putAll(_taskCurrentStateCache.getParticipantState(instanceName, clientSessionId));

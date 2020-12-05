@@ -188,59 +188,54 @@ public class ResourceComputationStage extends AbstractBaseStage {
       for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
         String clientSessionId = instance.getEphemeralOwner();
-        processCurrentStateMap(cache.getCurrentState(instanceName, clientSessionId, isTaskCache),
-            resourceMap, resourceToRebalance, idealStates, isTaskCache);
-      }
-    }
-  }
 
-  private void processCurrentStateMap(Map<String, CurrentState> currentStateMap,
-      Map<String, Resource> resourceMap, Map<String, Resource> resourceToRebalance,
-      Map<String, IdealState> idealStates, boolean isTaskCache) throws StageException {
-    if (currentStateMap == null) {
-      return;
-    }
-    for (CurrentState currentState : currentStateMap.values()) {
-      String resourceName = currentState.getResourceName();
-      Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
+        Map<String, CurrentState> currentStateMap =
+            cache.getCurrentState(instanceName, clientSessionId, isTaskCache);
+        for (CurrentState currentState : currentStateMap.values()) {
 
-      if (resourceStateMap.keySet().isEmpty()) {
-        // don't include empty current state for dropped resource
-        continue;
-      }
+          String resourceName = currentState.getResourceName();
+          Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
 
-      // don't overwrite ideal state settings
-      if (!resourceMap.containsKey(resourceName)) {
-        Resource resource = new Resource(resourceName);
-        resource.setStateModelDefRef(currentState.getStateModelDefRef());
-        resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
-        resource.setBucketSize(currentState.getBucketSize());
-        resource.setBatchMessageMode(currentState.getBatchMessageMode());
-        // if state model def is null, it's added during resource pipeline; if it's not null,
-        // it's added when it matches the pipeline type
-        if (isTaskCache == TaskConstants.STATE_MODEL_NAME.equals(resource.getStateModelDefRef())) {
-          resourceToRebalance.put(resourceName, resource);
+          if (resourceStateMap.keySet().isEmpty()) {
+            // don't include empty current state for dropped resource
+            continue;
+          }
+
+          // don't overwrite ideal state settings
+          if (!resourceMap.containsKey(resourceName)) {
+            Resource resource = new Resource(resourceName);
+            resource.setStateModelDefRef(currentState.getStateModelDefRef());
+            resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
+            resource.setBucketSize(currentState.getBucketSize());
+            resource.setBatchMessageMode(currentState.getBatchMessageMode());
+            // if state model def is null, it's added during resource pipeline; if it's not null,
+            // it's added when it matches the pipeline type
+            if (isTaskCache == TaskConstants.STATE_MODEL_NAME
+                .equals(resource.getStateModelDefRef())) {
+              resourceToRebalance.put(resourceName, resource);
+            }
+
+            IdealState idealState = idealStates.get(resourceName);
+            if (idealState != null) {
+              resource.setResourceGroupName(idealState.getResourceGroupName());
+              resource.setResourceTag(idealState.getInstanceGroupTag());
+            }
+            resourceMap.put(resourceName, resource);
+          }
+
+          if (currentState.getStateModelDefRef() == null) {
+            LogUtil.logError(LOG, _eventId,
+                "state model def is null." + "resource:" + currentState.getResourceName()
+                    + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
+                    + currentState.getPartitionStateMap().values());
+            throw new StageException(
+                "State model def is null for resource:" + currentState.getResourceName());
+          }
+
+          for (String partition : resourceStateMap.keySet()) {
+            addPartition(partition, resourceName, resourceMap);
+          }
         }
-
-        IdealState idealState = idealStates.get(resourceName);
-        if (idealState != null) {
-          resource.setResourceGroupName(idealState.getResourceGroupName());
-          resource.setResourceTag(idealState.getInstanceGroupTag());
-        }
-        resourceMap.put(resourceName, resource);
-      }
-
-      if (currentState.getStateModelDefRef() == null) {
-        LogUtil.logError(LOG, _eventId,
-            "state model def is null." + "resource:" + currentState.getResourceName()
-                + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
-                + currentState.getPartitionStateMap().values());
-        throw new StageException(
-            "State model def is null for resource:" + currentState.getResourceName());
-      }
-
-      for (String partition : resourceStateMap.keySet()) {
-        addPartition(partition, resourceName, resourceMap);
       }
     }
   }

@@ -224,7 +224,8 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
   public void testAddConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String cluster = _clusters.iterator().next();
+    //Need to use TestCluster_1 here since other test may add unwanted key to listField. issue-1336
+    String cluster = "TestCluster_1";
     ClusterConfig oldConfig = getClusterConfigFromRest(cluster);
 
     ClusterConfig configDelta = new ClusterConfig(cluster);
@@ -249,7 +250,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testAddConfigFields")
   public void testUpdateConfigFields() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String cluster = _clusters.iterator().next();
+    String cluster = "TestCluster_1";
     ClusterConfig config = getClusterConfigFromRest(cluster);
 
     ZNRecord record = config.getRecord();

@@ -80,10 +80,9 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
         // This check (and set) is necessary for now since the current state flag in
         // _propertyDataChangedMap is not used by the BaseControllerDataProvider for now.
         _propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE).getAndSet(false)
-            || _propertyDataChangedMap.get(HelixConstants.ChangeType.TASK_CURRENT_STATE)
-            .getAndSet(false) || _propertyDataChangedMap.get(HelixConstants.ChangeType.MESSAGE)
-            .getAndSet(false) || propertyRefreshed
-            .contains(HelixConstants.ChangeType.LIVE_INSTANCE);
+            || _propertyDataChangedMap.get(HelixConstants.ChangeType.TASK_CURRENT_STATE).getAndSet(false)
+            || _propertyDataChangedMap.get(HelixConstants.ChangeType.MESSAGE).getAndSet(false)
+            || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE);
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {

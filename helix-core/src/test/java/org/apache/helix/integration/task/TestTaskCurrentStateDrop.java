@@ -88,10 +88,10 @@ public class TestTaskCurrentStateDrop extends TaskTestBase {
     String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
     ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
     String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
-    String taskCurrentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + sessionIdP0 + "/" + namespacedJobName;
-    String dataBaseCurrentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + sessionIdP0 + "/" + DATABASE;
+    String taskCurrentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, sessionIdP0, namespacedJobName).toString();
+    String dataBaseCurrentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .currentState(instanceP0, sessionIdP0, DATABASE).toString();
 
     // Read the current states of Participant0 and make sure they been created
     boolean isCurrentStateCreated = TestHelper.verify(() -> {
@@ -113,10 +113,10 @@ public class TestTaskCurrentStateDrop extends TaskTestBase {
 
     clientP0 = (ZkClient) _participants[0].getZkClient();
     String newSessionIdP0 = ZkTestHelper.getSessionId(clientP0);
-    String newTaskCurrentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + newSessionIdP0 + "/" + namespacedJobName;
-    String newDataBaseCurrentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + newSessionIdP0 + "/" + DATABASE;
+    String newTaskCurrentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, newSessionIdP0, namespacedJobName).toString();
+    String newDataBaseCurrentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .currentState(instanceP0, newSessionIdP0, DATABASE).toString();
 
     boolean isCurrentStateExpected = TestHelper.verify(() -> {
       ZNRecord taskRecord = _manager.getHelixDataAccessor().getBaseDataAccessor()

@@ -832,8 +832,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
         accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
-    curResourceNames
-        .addAll(accessor.getChildNames(keyBuilder.taskCurrentStates(instanceName, sessionId)));
+    List<String> taskCurResourceNames =
+        accessor.getChildNames(keyBuilder.taskCurrentStates(instanceName, sessionId));
     List<PropertyKey> createCurStateKeys = new ArrayList<>();
     List<CurrentState> metaCurStates = new ArrayList<>();
     Set<String> createCurStateNames = new HashSet<>();
@@ -912,8 +912,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       if (!message.isControlerMsg() && message.getMsgType()
           .equals(Message.MessageType.STATE_TRANSITION.name())) {
         String resourceName = message.getResourceName();
-        if (!curResourceNames.contains(resourceName) && !createCurStateNames
-            .contains(resourceName)) {
+        if (!curResourceNames.contains(resourceName) && !taskCurResourceNames.contains(resourceName)
+            && !createCurStateNames.contains(resourceName)) {
           createCurStateNames.add(resourceName);
           PropertyKey curStateKey = keyBuilder.currentState(instanceName, sessionId, resourceName);
           if (TaskConstants.STATE_MODEL_NAME.equals(message.getStateModelDef()) && !Boolean

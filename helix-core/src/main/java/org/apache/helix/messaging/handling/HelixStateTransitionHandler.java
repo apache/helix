@@ -271,8 +271,12 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     try {
       // Update the ZK current state of the node
-      PropertyKey key = keyBuilder.currentState(instanceName, sessionId, resource,
-          bucketizer.getBucketName(partitionKey));
+      PropertyKey key =
+          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+              ? accessor.keyBuilder().taskCurrentState(instanceName, sessionId, resource,
+              bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
+              .currentState(instanceName, sessionId, resource,
+                  bucketizer.getBucketName(partitionKey));
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
         // normal message
         if (!accessor.updateProperty(key, _currentStateDelta)) {

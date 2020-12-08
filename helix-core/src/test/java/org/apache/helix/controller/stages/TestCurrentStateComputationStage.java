@@ -19,9 +19,11 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.CurrentState;
@@ -99,11 +101,28 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     stateWithDeadSession.setStateModelDefRef("MasterSlave");
     stateWithDeadSession.setState("testResourceName_1", "MASTER");
 
+    ZNRecord record3 = new ZNRecord("testTaskResourceName");
+    CurrentState taskStateWithLiveSession = new CurrentState(record3);
+    taskStateWithLiveSession.setSessionId("session_3");
+    taskStateWithLiveSession.setStateModelDefRef("Task");
+    taskStateWithLiveSession.setState("testTaskResourceName_1", "INIT");
+    ZNRecord record4 = new ZNRecord("testTaskResourceName");
+    CurrentState taskStateWithDeadSession = new CurrentState(record4);
+    taskStateWithDeadSession.setSessionId("session_dead");
+    taskStateWithDeadSession.setStateModelDefRef("Task");
+    taskStateWithDeadSession.setState("testTaskResourceName_1", "INIT");
+
     accessor.setProperty(keyBuilder.currentState("localhost_3", "session_3", "testResourceName"),
         stateWithLiveSession);
-    accessor.setProperty(
-        keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
+    accessor.setProperty(keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
         stateWithDeadSession);
+    accessor.setProperty(
+        keyBuilder.taskCurrentState("localhost_3", "session_3", "testTaskResourceName"),
+        taskStateWithLiveSession);
+    accessor.setProperty(
+        keyBuilder.taskCurrentState("localhost_3", "session_dead", "testTaskResourceName"),
+        taskStateWithDeadSession);
+
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.name());
@@ -111,6 +130,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         output3.getCurrentState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
+    // Non Task Framework event will cause task current states to be ignored
+    String taskCurrentState = output3
+        .getCurrentState("testTaskResourceName", new Partition("testTaskResourceName_1"),
+            "localhost_3");
+    AssertJUnit.assertNull(taskCurrentState);
 
     // Add another state transition message which is stale
     message = new Message(Message.MessageType.STATE_TRANSITION, "msg2");
@@ -128,6 +152,24 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     AssertJUnit.assertEquals(dataCache.getStaleMessages().size(), 1);
     AssertJUnit.assertTrue(dataCache.getStaleMessages().containsKey("localhost_3"));
     AssertJUnit.assertTrue(dataCache.getStaleMessages().get("localhost_3").containsKey("msg2"));
+
+    // Use a task event to check that task current states are included
+    resourceMap = new HashMap<String, Resource>();
+    Resource testTaskResource = new Resource("testTaskResourceName");
+    testTaskResource.setStateModelDefRef("Task");
+    testTaskResource.addPartition("testTaskResourceName_1");
+    resourceMap.put("testTaskResourceName", testTaskResource);
+    ClusterEvent taskEvent = new ClusterEvent(ClusterEventType.Unknown);
+    taskEvent.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    taskEvent.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new WorkflowControllerDataProvider());
+    runStage(taskEvent, new ReadClusterDataStage());
+    runStage(taskEvent, stage);
+    CurrentStateOutput output5 = taskEvent.getAttribute(AttributeName.CURRENT_STATE.name());
+    taskCurrentState = output5
+        .getCurrentState("testTaskResourceName", new Partition("testTaskResourceName_1"),
+            "localhost_3");
+    AssertJUnit.assertEquals(taskCurrentState, "INIT");
   }
 
 }

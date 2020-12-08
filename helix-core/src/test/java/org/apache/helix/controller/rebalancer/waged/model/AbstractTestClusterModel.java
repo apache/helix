@@ -154,6 +154,7 @@ public abstract class AbstractTestClusterModel {
     currentStatemap.put(_resourceNames.get(0), testCurrentStateResource1);
     currentStatemap.put(_resourceNames.get(1), testCurrentStateResource2);
     when(testCache.getCurrentState(_testInstanceId, _sessionId)).thenReturn(currentStatemap);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId, false)).thenReturn(currentStatemap);
 
     // 5. Set up the resource config for the two resources with the partition weight.
     Map<String, Integer> capacityDataMapResource1 = new HashMap<>();

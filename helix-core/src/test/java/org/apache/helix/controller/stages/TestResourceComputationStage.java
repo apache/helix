@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -154,6 +155,14 @@ public class TestResourceComputationStage extends BaseStageTest {
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);
 
+    String oldTaskResource = "testTaskResourceOld";
+    CurrentState taskCurrentState = new CurrentState(oldTaskResource);
+    taskCurrentState.setState("testTaskResourceOld_0", "RUNNING");
+    taskCurrentState.setState("testTaskResourceOld_1", "FINISHED");
+    taskCurrentState.setStateModelDefRef("Task");
+    accessor.setProperty(keyBuilder.taskCurrentState(instanceName, sessionId, oldTaskResource),
+        taskCurrentState);
+
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
     ResourceComputationStage stage = new ResourceComputationStage();
@@ -185,6 +194,25 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));
 
+
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new WorkflowControllerDataProvider());
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, stage);
+
+    resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
+    // +2 because it will have current state and task current state
+    AssertJUnit.assertEquals(resources.length + 2, resourceMap.size());
+
+    Resource taskResource = resourceMap.get(oldTaskResource);
+    AssertJUnit.assertNotNull(taskResource);
+    AssertJUnit.assertEquals(taskResource.getResourceName(), oldTaskResource);
+    AssertJUnit
+        .assertEquals(taskResource.getStateModelDefRef(), taskCurrentState.getStateModelDefRef());
+    AssertJUnit.assertEquals(taskResource.getPartitions().size(),
+        taskCurrentState.getPartitionStateMap().size());
+    AssertJUnit.assertNotNull(taskResource.getPartition("testTaskResourceOld_0"));
+    AssertJUnit.assertNotNull(taskResource.getPartition("testTaskResourceOld_1"));
   }
 
   @Test

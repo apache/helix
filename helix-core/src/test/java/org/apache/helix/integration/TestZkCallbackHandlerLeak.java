@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
@@ -43,6 +44,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
 import org.slf4j.Logger;
@@ -62,6 +64,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 2;
     final int r = 2;
+    final int taskResourceCount = 2;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -78,6 +81,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     // start participants
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
@@ -85,6 +89,13 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
+
+      // Manually set up task current states
+      for (int j = 0; j < taskResourceCount; j++) {
+        _baseAccessor.create(keyBuilder
+            .taskCurrentState(instanceName, participants[i].getSessionId(), "TestTaskResource_" + j)
+            .toString(), new ZNRecord("TestTaskResource_" + j), AccessOption.PERSISTENT);
+      }
     }
 
     ZkHelixClusterVerifier verifier = new BestPossibleExternalViewVerifier.Builder(clusterName)
@@ -105,7 +116,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         // System.out.println("controller watch paths: " + watchPaths);
 
         // where n is number of nodes and r is number of resources
-        return watchPaths.size() == (8 + r + ( 5 + r) * n);
+        return watchPaths.size() == (8 + r + (6 + r + taskResourceCount) * n);
       }
     }, 2000);
     Assert.assertTrue(result, "Controller has incorrect number of zk-watchers.");
@@ -130,8 +141,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // printHandlers(participantManagerToExpire);
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 14,
-        "HelixController should have 14 (8+3n) callback handlers for 2 (n) participant");
+    Assert.assertEquals(controllerHandlerNb, 8 + 4 * n,
+        "HelixController should have 16 (8+4n) callback handlers for 2 (n) participant");
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
@@ -160,7 +171,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         // System.out.println("controller watch paths after session expiry: " + watchPaths);
 
         // where n is number of nodes and r is number of resources
-        return watchPaths.size() == (8 + r + ( 5 + r) * n);
+        // one participant is disconnected, and its task current states are removed
+        return watchPaths.size() == (8 + r + (6 + r + taskResourceCount) * (n - 1) + 6 + r);
       }
     }, 2000);
     Assert.assertTrue(result, "Controller has incorrect number of zk-watchers after session expiry.");
@@ -208,6 +220,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     final int n = 2;
     final int r = 1;
+    final int taskResourceCount = 1;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -224,6 +237,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
     // start participants
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
@@ -231,6 +245,12 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
+      // Manually set up task current states
+      for (int j = 0; j < taskResourceCount; j++) {
+        _baseAccessor.create(keyBuilder
+            .taskCurrentState(instanceName, participants[i].getSessionId(), "TestTaskResource_" + j)
+            .toString(), new ZNRecord("TestTaskResource_" + j), AccessOption.PERSISTENT);
+      }
     }
 
     ZkHelixClusterVerifier verifier =
@@ -256,8 +276,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 8 + 3 * n,
-        "HelixController should have 14 (8+3n) callback handlers for 2 participant, but was "
+    Assert.assertEquals(controllerHandlerNb, 8 + 4 * n,
+        "HelixController should have 16 (8+4n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + printHandlers(controller));
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
@@ -285,7 +305,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         System.err.println("controller watch paths after session expiry: " + watchPaths.size());
 
         // where r is number of resources and n is number of nodes
-        int expected = (8 + r + (5 + r) * n);
+        // task resource count does not attribute to ideal state watch paths
+        int expected = (8 + r + (6 + r + taskResourceCount) * n);
         return watchPaths.size() == expected;
       }
     }, 2000);

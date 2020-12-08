@@ -58,6 +58,7 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
+import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
 import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
@@ -128,6 +129,7 @@ import static org.apache.helix.HelixConstants.ChangeType;
  */
 public class GenericHelixController implements IdealStateChangeListener, LiveInstanceChangeListener,
                                                MessageListener, CurrentStateChangeListener,
+                                               TaskCurrentStateChangeListener,
                                                CustomizedStateRootChangeListener,
                                                CustomizedStateChangeListener,
     CustomizedStateConfigChangeListener, ControllerChangeListener,
@@ -569,6 +571,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           rebalancePipeline);
       registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess,
           rebalancePipeline);
+      registry.register(ClusterEventType.TaskCurrentStateChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
       registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess,
           rebalancePipeline);
       registry.register(ClusterEventType.ResourceConfigChange, dataRefresh, dataPreprocess,
@@ -900,6 +904,17 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext, Collections
         .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
     logger.info("END: GenericClusterController.onStateChange()");
+  }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onTaskCurrentStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext) {
+    logger.info("START: GenericClusterController.onTaskCurrentStateChange()");
+    notifyCaches(changeContext, ChangeType.TASK_CURRENT_STATE);
+    pushToEventQueues(ClusterEventType.TaskCurrentStateChange, changeContext, Collections
+        .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
+    logger.info("END: GenericClusterController.onTaskCurrentStateChange()");
   }
 
   @Override
@@ -1242,6 +1257,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
             // remove current-state listener for expired session
             String instanceName = lastSessions.get(session).getInstanceName();
             manager.removeListener(keyBuilder.currentStates(instanceName, session), this);
+            manager.removeListener(keyBuilder.taskCurrentStates(instanceName, session), this);
           }
         }
       }
@@ -1263,6 +1279,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           try {
             // add current-state listeners for new sessions
             manager.addCurrentStateChangeListener(this, instanceName, session);
+            manager.addTaskCurrentStateChangeListener(this, instanceName, session);
             logger.info(manager.getInstanceName() + " added current-state listener for instance: "
                 + instanceName + ", session: " + session + ", listener: " + this);
           } catch (Exception e) {

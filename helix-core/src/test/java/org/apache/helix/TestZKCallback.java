@@ -32,6 +32,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
+import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.ExternalView;
@@ -58,6 +59,7 @@ public class TestZKCallback extends ZkUnitTestBase {
 
   public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,
                                                ConfigChangeListener, CurrentStateChangeListener,
+                                               TaskCurrentStateChangeListener,
                                                CustomizedStateConfigChangeListener,
                                                CustomizedStateRootChangeListener,
                                                ExternalViewChangeListener,
@@ -66,6 +68,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     boolean liveInstanceChangeReceived = false;
     boolean configChangeReceived = false;
     boolean currentStateChangeReceived = false;
+    boolean taskCurrentStateChangeReceived = false;
     boolean customizedStateConfigChangeReceived = false;
     boolean customizedStateRootChangeReceived = false;
     boolean messageChangeReceived = false;
@@ -81,6 +84,12 @@ public class TestZKCallback extends ZkUnitTestBase {
     public void onStateChange(String instanceName, List<CurrentState> statesInfo,
         NotificationContext changeContext) {
       currentStateChangeReceived = true;
+    }
+
+    @Override
+    public void onTaskCurrentStateChange(String instanceName, List<CurrentState> statesInfo,
+        NotificationContext changeContext) {
+      taskCurrentStateChangeReceived = true;
     }
 
     @Override
@@ -149,6 +158,8 @@ public class TestZKCallback extends ZkUnitTestBase {
       testHelixManager.addMessageListener(testListener, "localhost_8900");
       testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
           testHelixManager.getSessionId());
+      testHelixManager.addTaskCurrentStateChangeListener(testListener, "localhost_8900",
+          testHelixManager.getSessionId());
       testHelixManager.addCustomizedStateRootChangeListener(testListener, "localhost_8900");
       testHelixManager.addConfigChangeListener(testListener);
       testHelixManager.addIdealStateChangeListener(testListener);
@@ -180,6 +191,18 @@ public class TestZKCallback extends ZkUnitTestBase {
           curState);
       result = TestHelper.verify(() -> {
         return testListener.currentStateChangeReceived;
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(result);
+      testListener.Reset();
+
+      CurrentState taskCurState = new CurrentState("db-12345");
+      taskCurState.setSessionId("sessionId");
+      taskCurState.setStateModelDefRef("StateModelDef");
+      accessor.setProperty(keyBuilder
+          .taskCurrentState("localhost_8900", testHelixManager.getSessionId(),
+              taskCurState.getId()), taskCurState);
+      result = TestHelper.verify(() -> {
+        return testListener.taskCurrentStateChangeReceived;
       }, TestHelper.WAIT_DURATION);
       Assert.assertTrue(result);
       testListener.Reset();

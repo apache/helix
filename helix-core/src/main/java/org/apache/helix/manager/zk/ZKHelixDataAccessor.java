@@ -186,6 +186,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     boolean success = false;
     switch (type) {
       case CURRENTSTATES:
+      case TASKCURRENTSTATES:
       case CUSTOMIZEDSTATES:
         success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
         break;
@@ -243,6 +244,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
       switch (type) {
       case CURRENTSTATES:
+      case TASKCURRENTSTATES:
       case IDEALSTATES:
       case EXTERNALVIEW:
         // check if bucketized
@@ -301,6 +303,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
     switch (type) {
     case CURRENTSTATES:
+    case TASKCURRENTSTATES:
     case IDEALSTATES:
     case EXTERNALVIEW:
       // check if bucketized
@@ -421,6 +424,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       for (ZNRecord record : children) {
         switch (type) {
         case CURRENTSTATES:
+        case TASKCURRENTSTATES:
         case IDEALSTATES:
         case EXTERNALVIEW:
           if (record != null) {

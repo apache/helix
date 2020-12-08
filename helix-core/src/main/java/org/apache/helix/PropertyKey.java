@@ -74,6 +74,7 @@ import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 import static org.apache.helix.PropertyType.TARGETEXTERNALVIEW;
+import static org.apache.helix.PropertyType.TASKCURRENTSTATES;
 
 
 /**
@@ -483,6 +484,50 @@ public class PropertyKey {
         return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName, bucketName);
       }
+    }
+
+    /**
+     * Get a property key associated with {@link CurrentState} of an instance and session. This key
+     * is for TaskCurrentState specifically.
+     * @param instanceName
+     * @param sessionId
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey taskCurrentStates(String instanceName, String sessionId) {
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+          sessionId);
+    }
+
+    /**
+     * Get a property key associated with {@link CurrentState} of an instance, session, and
+     * job. This key is for TaskCurrentState specifically.
+     * @param instanceName
+     * @param sessionId
+     * @param jobName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey taskCurrentState(String instanceName, String sessionId, String jobName) {
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+          sessionId, jobName);
+    }
+
+    /**
+     * Get a property key associated with {@link CurrentState} of an instance, session, job,
+     * and bucket name. This key is for TaskCurrentState specifically.
+     * @param instanceName
+     * @param sessionId
+     * @param jobName
+     * @param bucketName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey taskCurrentState(String instanceName, String sessionId, String jobName,
+        String bucketName) {
+      if (bucketName == null) {
+        return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+            sessionId, jobName);
+      }
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName,
+          sessionId, jobName, bucketName);
     }
 
     /**

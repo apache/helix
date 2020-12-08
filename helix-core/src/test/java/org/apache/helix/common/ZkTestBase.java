@@ -929,6 +929,13 @@ public class ZkTestBase {
             LOG.error("Current state not empty for " + participant);
             return false;
           }
+          CurrentState taskCurrentState =
+              accessor.getProperty(keyBuilder.taskCurrentState(participant, sessionId, _resourceName));
+          Map<String, String> taskPartitionStateMap = taskCurrentState.getPartitionStateMap();
+          if (taskPartitionStateMap != null && !taskPartitionStateMap.isEmpty()) {
+            LOG.error("Task current state not empty for " + participant);
+            return false;
+          }
         }
       }
       return true;

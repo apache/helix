@@ -222,6 +222,8 @@ public class MockHelixAdmin implements HelixAdmin {
     _baseDataAccessor
         .set(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId), new ZNRecord(nodeId),
             0);
+    _baseDataAccessor.set(PropertyPathBuilder.instanceTaskCurrentState(clusterName, nodeId),
+        new ZNRecord(nodeId), 0);
     _baseDataAccessor
         .set(PropertyPathBuilder.instanceCustomizedState(clusterName, nodeId), new ZNRecord(nodeId),
             0);

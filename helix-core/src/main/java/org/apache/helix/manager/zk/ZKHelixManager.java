@@ -591,6 +591,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
+  public void addTaskCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId) throws Exception {
+    addListener(listener, new Builder(_clusterName).taskCurrentStates(instanceName, sessionId),
+        ChangeType.TASK_CURRENT_STATE, new EventType[] { EventType.NodeChildrenChanged
+        });
+  }
+
+  @Override
   public void addCustomizedStateRootChangeListener(CustomizedStateRootChangeListener listener,
       String instanceName) throws Exception {
     addListener(listener, new Builder(_clusterName).customizedStatesRoot(instanceName),

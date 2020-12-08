@@ -89,9 +89,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceSessionId = instance.getEphemeralOwner();
 
       // update current states.
-      Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
-          instanceSessionId);
-      updateCurrentStates(instance, currentStateMap.values(), currentStateOutput, resourceMap);
+      updateCurrentStates(instance,
+          cache.getCurrentState(instanceName, instanceSessionId, _isTaskFrameworkPipeline).values(),
+          currentStateOutput, resourceMap);
 
       Set<Message> existingStaleMessages = cache.getStaleMessagesByInstance(instanceName);
       // update pending messages

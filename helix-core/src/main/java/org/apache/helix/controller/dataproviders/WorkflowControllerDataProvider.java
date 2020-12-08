@@ -26,6 +26,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.common.caches.TaskCurrentStateCache;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.caches.AbstractDataCache;
 import org.apache.helix.common.caches.TaskDataCache;
@@ -78,14 +80,15 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
         // This check (and set) is necessary for now since the current state flag in
         // _propertyDataChangedMap is not used by the BaseControllerDataProvider for now.
         _propertyDataChangedMap.get(HelixConstants.ChangeType.CURRENT_STATE).getAndSet(false)
+            || _propertyDataChangedMap.get(HelixConstants.ChangeType.TASK_CURRENT_STATE).getAndSet(false)
             || _propertyDataChangedMap.get(HelixConstants.ChangeType.MESSAGE).getAndSet(false)
-            || propertyRefreshed.contains(HelixConstants.ChangeType.CURRENT_STATE)
             || propertyRefreshed.contains(HelixConstants.ChangeType.LIVE_INSTANCE);
   }
 
   public synchronized void refresh(HelixDataAccessor accessor) {
     long startTime = System.currentTimeMillis();
     Set<HelixConstants.ChangeType> propertyRefreshed = super.doRefresh(accessor);
+    _taskCurrentStateCache.refresh(accessor, getLiveInstanceCache().getPropertyMap());
 
     refreshClusterStateChangeFlags(propertyRefreshed);
 
@@ -250,6 +253,17 @@ public class WorkflowControllerDataProvider extends BaseControllerDataProvider {
    */
   public boolean getExistsLiveInstanceOrCurrentStateOrMessageChange() {
     return _existsLiveInstanceOrCurrentStateOrMessageChange;
+  }
+
+  /**
+   * For a certain session, return the task current states on the node.
+   * @param instanceName
+   * @param clientSessionId
+   * @return A mapping of resource names to CurrentStates
+   */
+  public Map<String, CurrentState> getTaskCurrentState(String instanceName,
+      String clientSessionId) {
+    return _taskCurrentStateCache.getParticipantState(instanceName, clientSessionId);
   }
 
   @Override

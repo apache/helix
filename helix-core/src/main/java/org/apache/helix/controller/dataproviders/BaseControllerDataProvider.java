@@ -338,10 +338,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void updateIdealRuleMap() {
+  private void updateIdealRuleMap(ClusterConfig clusterConfig) {
     // Assumes cluster config is up-to-date
-    if (_clusterConfig != null) {
-      _idealStateRuleMap = _clusterConfig.getIdealStateRules();
+    if (clusterConfig != null) {
+      _idealStateRuleMap = clusterConfig.getIdealStateRules();
     } else {
       _idealStateRuleMap = new HashMap<>();
       LogUtil.logWarn(logger, getClusterEventId(), String
@@ -384,8 +384,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _instanceMessagesCache.updateRelayMessages(_liveInstanceCache.getPropertyMap(),
         _currentStateCache.getParticipantStatesMap());
 
-    updateIdealRuleMap();
-    updateDisabledInstances();
+    updateIdealRuleMap(getClusterConfig());
+    updateDisabledInstances(getInstanceConfigMap().values(), getClusterConfig());
 
     return refreshedTypes;
   }
@@ -418,6 +418,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   public void setClusterConfig(ClusterConfig clusterConfig) {
     _clusterConfig = clusterConfig;
     refreshAbnormalStateResolverMap(_clusterConfig);
+    updateIdealRuleMap(_clusterConfig);
+    updateDisabledInstances(getInstanceConfigMap().values(), _clusterConfig);
   }
 
   @Override
@@ -658,6 +660,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public void setInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
     _instanceConfigCache.setPropertyMap(instanceConfigMap);
+    updateDisabledInstances(instanceConfigMap.values(), getClusterConfig());
   }
 
   /**
@@ -744,30 +747,31 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _updateInstanceOfflineTime = false;
   }
 
-  private void updateDisabledInstances() {
+  private void updateDisabledInstances(Collection<InstanceConfig> instanceConfigs,
+      ClusterConfig clusterConfig) {
     // Move the calculating disabled instances to refresh
     _disabledInstanceForPartitionMap.clear();
     _disabledInstanceSet.clear();
-    for (InstanceConfig config : _instanceConfigCache.getPropertyMap().values()) {
+    for (InstanceConfig config : instanceConfigs) {
       Map<String, List<String>> disabledPartitionMap = config.getDisabledPartitionsMap();
       if (!config.getInstanceEnabled()) {
         _disabledInstanceSet.add(config.getInstanceName());
       }
       for (String resource : disabledPartitionMap.keySet()) {
         if (!_disabledInstanceForPartitionMap.containsKey(resource)) {
-          _disabledInstanceForPartitionMap.put(resource, new HashMap<String, Set<String>>());
+          _disabledInstanceForPartitionMap.put(resource, new HashMap<>());
         }
         for (String partition : disabledPartitionMap.get(resource)) {
           if (!_disabledInstanceForPartitionMap.get(resource).containsKey(partition)) {
-            _disabledInstanceForPartitionMap.get(resource).put(partition, new HashSet<String>());
+            _disabledInstanceForPartitionMap.get(resource).put(partition, new HashSet<>());
           }
           _disabledInstanceForPartitionMap.get(resource).get(partition)
               .add(config.getInstanceName());
         }
       }
     }
-    if (_clusterConfig != null && _clusterConfig.getDisabledInstances() != null) {
-      _disabledInstanceSet.addAll(_clusterConfig.getDisabledInstances().keySet());
+    if (clusterConfig != null && clusterConfig.getDisabledInstances() != null) {
+      _disabledInstanceSet.addAll(clusterConfig.getDisabledInstances().keySet());
     }
   }
 

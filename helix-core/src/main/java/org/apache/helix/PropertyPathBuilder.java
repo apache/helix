@@ -54,6 +54,7 @@ import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
+import static org.apache.helix.PropertyType.TASKCURRENTSTATES;
 import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
 
 
@@ -125,6 +126,14 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.CURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
+    addEntry(TASKCURRENTSTATES, 2,
+        "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES");
+    addEntry(TASKCURRENTSTATES, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}");
+    addEntry(TASKCURRENTSTATES, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}/{resourceName}");
+    addEntry(TASKCURRENTSTATES, 5,
+        "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
     addEntry(PropertyType.CUSTOMIZEDSTATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES");
     addEntry(PropertyType.CUSTOMIZEDSTATES, 3,
@@ -344,6 +353,23 @@ public class PropertyPathBuilder {
       String sessionId, String resourceName) {
     return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s/%s", clusterName, instanceName,
         sessionId, resourceName);
+  }
+
+  public static String instanceTaskCurrentState(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/TASKCURRENTSTATES", clusterName, instanceName);
+  }
+
+  public static String instanceTaskCurrentState(String clusterName, String instanceName,
+      String sessionId) {
+    return String
+        .format("/%s/INSTANCES/%s/TASKCURRENTSTATES/%s", clusterName, instanceName, sessionId);
+  }
+
+  public static String instanceTaskCurrentState(String clusterName, String instanceName,
+      String sessionId, String resourceName) {
+    return String
+        .format("/%s/INSTANCES/%s/TASKCURRENTSTATES/%s/%s", clusterName, instanceName, sessionId,
+            resourceName);
   }
 
   public static String instanceCustomizedState(String clusterName, String instanceName) {

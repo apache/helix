@@ -52,6 +52,7 @@ public enum PropertyType {
   // INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),
   CURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
+  TASKCURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
   INSTANCE_HISTORY(Type.INSTANCE, true, true, true),

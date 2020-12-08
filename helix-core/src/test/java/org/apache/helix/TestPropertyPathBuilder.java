@@ -39,6 +39,13 @@ public class TestPropertyPathBuilder {
     actual = PropertyPathBuilder.instanceCurrentState("test_cluster", "instanceName1", "sessionId");
     AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/CURRENTSTATES/sessionId");
 
+    actual = PropertyPathBuilder.instanceTaskCurrentState("test_cluster", "instanceName1");
+    AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/TASKCURRENTSTATES");
+    actual =
+        PropertyPathBuilder.instanceTaskCurrentState("test_cluster", "instanceName1", "sessionId");
+    AssertJUnit
+        .assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/TASKCURRENTSTATES/sessionId");
+
     actual = PropertyPathBuilder.instanceCustomizedState("test_cluster", "instanceName1");
     AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/CUSTOMIZEDSTATES");
     actual = PropertyPathBuilder.instanceCustomizedState("test_cluster", "instanceName1", "customizedState1");

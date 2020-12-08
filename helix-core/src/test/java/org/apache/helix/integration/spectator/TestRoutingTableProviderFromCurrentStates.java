@@ -157,6 +157,19 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
           TaskState.COMPLETED);
 
       Assert.assertFalse(routingTableCurrentStates.isOnStateChangeTriggered());
+
+      String dbName = "testDB";
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, NUM_REPLICAS);
+
+      ZkHelixClusterVerifier clusterVerifier =
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
+      Assert.assertTrue(routingTableCurrentStates.isOnStateChangeTriggered());
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, dbName);
     } finally {
       routingTableCurrentStates.shutdown();
     }

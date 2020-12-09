@@ -143,6 +143,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
     _cleanupTimeout = cleanupTimeout;
     _lockListener = lockListener;
     _isForceful = isForceful;
+    validateInput();
   }
 
   @Override
@@ -326,11 +327,8 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
           long remainingCleanupTime =
               curLockInfo.getCleanupTimeout() - (System.currentTimeMillis() - curLockInfo
                   .getRequestingTimestamp());
-          //_pendingTimeout = _waitingTimeout > remainingCleanupTime ? remainingCleanupTime :
-          // _waitingTimeout;
-          _pendingTimeout =
-              _waitingTimeout > curLockInfo.getCleanupTimeout() ? curLockInfo.getCleanupTimeout()
-                  : _waitingTimeout;
+          _pendingTimeout = _waitingTimeout > remainingCleanupTime ? remainingCleanupTime :
+           _waitingTimeout;
           return newRecord;
         }
       }
@@ -524,6 +522,21 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
       return new ZKDistributedNonblockingLock(_lockScope.getPath(), _timeout, _lockMsg, _userId,
           _priority, _waitingTimeout, _cleanupTimeout, _isForceful, _lockListener,
           baseDataAccessor);
+    }
+  }
+
+  private void validateInput() {
+    if (_lockPath == null) {
+      throw new IllegalArgumentException("Lock scope cannot be null");
+    }
+    if (_userId == null) {
+      throw new IllegalArgumentException("Owner Id cannot be null");
+    }
+    if (_leaseTimeout < 0 || _waitingTimeout < 0 || _cleanupTimeout < 0) {
+      throw new IllegalArgumentException("Timeout cannot be negative.");
+    }
+    if (_priority < 0) {
+      throw new IllegalArgumentException("Priority cannot be negative.");
     }
   }
 }

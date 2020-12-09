@@ -68,17 +68,19 @@ public class LockInfo {
    * @param znRecord The ZNRecord contains lock node data that used to initialize the LockInfo
    */
   public LockInfo(ZNRecord znRecord) {
-    this();
-    if (znRecord != null) {
-      _record = new ZNRecord(ZNODE_ID);
-      String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name()).isEmpty() ?
-          LockConstants.DEFAULT_USER_ID :
-          znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
-      String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
-      long timeout = znRecord
-          .getLongField(LockInfoAttribute.TIMEOUT.name(), LockConstants.DEFAULT_TIMEOUT_LONG);
-      int priority = znRecord
-          .getIntField(LockInfoAttribute.PRIORITY.name(), LockConstants.DEFAULT_PRIORITY_INT);
+    _record = new ZNRecord(ZNODE_ID);
+    if (znRecord == null) {
+      znRecord = new ZNRecord(ZNODE_ID);
+    }
+    String ownerId = znRecord.getSimpleField(LockInfoAttribute.OWNER.name()) == null
+        ? LockConstants.DEFAULT_USER_ID : znRecord.getSimpleField(LockInfoAttribute.OWNER.name());
+    String message = znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name()) == null
+        ? LockConstants.DEFAULT_MESSAGE_TEXT
+        : znRecord.getSimpleField(LockInfoAttribute.MESSAGE.name());
+    long timeout =
+        znRecord.getLongField(LockInfoAttribute.TIMEOUT.name(), LockConstants.DEFAULT_TIMEOUT_LONG);
+    int priority =
+        znRecord.getIntField(LockInfoAttribute.PRIORITY.name(), LockConstants.DEFAULT_PRIORITY_INT);
       long waitingTimeout = znRecord.getLongField(LockInfoAttribute.WAITING_TIMEOUT.name(),
           LockConstants.DEFAULT_WAITING_TIMEOUT_LONG);
       long cleanupTimeout = znRecord.getLongField(LockInfoAttribute.CLEANUP_TIMEOUT.name(),
@@ -94,7 +96,6 @@ public class LockInfo {
               LockConstants.DEFAULT_REQUESTING_TIMESTAMP_LONG);
       setLockInfoFields(ownerId, message, timeout, priority, waitingTimeout, cleanupTimeout,
           requestorId, requestorPriority, requestorWaitingTimeout, requestingTimestamp);
-    }
   }
 
   /**

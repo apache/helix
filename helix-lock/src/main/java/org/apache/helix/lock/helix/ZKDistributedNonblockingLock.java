@@ -101,7 +101,7 @@ public class ZKDistributedNonblockingLock implements DistributedLock, IZkDataLis
    *                   lock encountered an exception during preempting lower priority lock
    * @param lockListener the listener associated to the lock
    */
-  public ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long leaseTimeout,
+  private ZKDistributedNonblockingLock(LockScope scope, String zkAddress, Long leaseTimeout,
       String lockMsg, String userId, int priority, long waitingTimeout, long cleanupTimeout,
       boolean isForceful, LockListener lockListener) {
     this(scope.getPath(), leaseTimeout, lockMsg, userId, priority, waitingTimeout, cleanupTimeout,

@@ -84,9 +84,11 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
   @Test
   public void testLowerPriorityRequestRejected() throws Exception {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
-    ZKDistributedNonblockingLock lowerLock = new ZKDistributedNonblockingLock(_participantScope,
-        ZK_ADDR, 3600000L,
-        "lower priority lock", "low_lock", 0, 1000, 2000, false, createLockListener());
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("lower priority lock").setUserId("low_lock").setPriority(0).setWaitingTimeout(1000)
+        .setCleanupTimeout(2000).setIsForceful(false).setLockListener(createLockListener());
+    ZKDistributedNonblockingLock lowerLock = lockBuilder.build();
 
     Thread t = new Thread() {
       @Override
@@ -117,9 +119,13 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
   public void testHigherPriorityRequestAcquired() throws Exception {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
     // The waitingTimeout of higher priority request is larger than cleanup time of current owner
-    ZKDistributedNonblockingLock higherLock = new ZKDistributedNonblockingLock(_participantScope,
-        ZK_ADDR, 3600000L,
-        "higher priority lock", "high_lock", 2, 30000, 10000, false, createLockListener());
+
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock").setUserId("high_lock").setPriority(2)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock higherLock = lockBuilder.build();
 
     Thread t = new Thread() {
       @Override
@@ -152,9 +158,12 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
     // The waitingTimeout of higher priority request is shorter than cleanup time of current
     // owner, and the higher priority request is not forceful.
-    ZKDistributedNonblockingLock higherLock_short =
-        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L,
-            "higher priority lock short", "high_lock_short", 2, 2000, 10000, false, createLockListener());
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock short").setUserId("high_lock_short").setPriority(2)
+        .setWaitingTimeout(2000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock higherLock_short = lockBuilder.build();
 
     Thread t = new Thread() {
       @Override
@@ -196,14 +205,12 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
     // The waitingTimeout of higher priority request is shorter than cleanup time of current
     // owner, but the higher priority request is forceful.
-    ZKDistributedNonblockingLock higherLock_force =
-        new ZKDistributedNonblockingLock(_participantScope, ZK_ADDR, 3600000L,
-            "higher priority lock force", "high_lock_force", 2, 2000, 10000, true,
-            new LockListener() {
-              @Override
-              public void onCleanupNotification() {
-              }
-            });
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock force").setUserId("high_lock_force").setPriority(2)
+        .setWaitingTimeout(2000).setCleanupTimeout(10000).setIsForceful(true)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock higherLock_force = lockBuilder.build();
 
     Thread t = new Thread() {
       @Override
@@ -239,13 +246,21 @@ public class TestZKHelixNonblockingLockWithPriority extends ZkTestBase {
   @Test
   public void testHigherPriorityRequestPreemptedByAnother() throws Exception {
     ZKDistributedNonblockingLock lock = createLockWithConfig();
-    ZKDistributedNonblockingLock higherLock = new ZKDistributedNonblockingLock(_participantScope,
-        ZK_ADDR, 3600000L,
-        "higher priority lock", "high_lock", 2, 30000, 10000, false, createLockListener());
 
-    ZKDistributedNonblockingLock highestLock = new ZKDistributedNonblockingLock(_participantScope
-        , ZK_ADDR, 3600000L,
-        "highest priority lock", "highest_lock", 3, 30000, 20000, false, createLockListener());
+    ZKDistributedNonblockingLock.Builder lockBuilder = new ZKDistributedNonblockingLock.Builder();
+    lockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("higher priority lock").setUserId("high_lock").setPriority(2)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock higherLock = lockBuilder.build();
+
+    ZKDistributedNonblockingLock.Builder highestLockBuilder =
+        new ZKDistributedNonblockingLock.Builder();
+    highestLockBuilder.setLockScope(_participantScope).setZkAddress(ZK_ADDR).setTimeout(3600000L)
+        .setLockMsg("highest priority lock").setUserId("highest_lock").setPriority(3)
+        .setWaitingTimeout(30000).setCleanupTimeout(10000).setIsForceful(false)
+        .setLockListener(createLockListener());
+    ZKDistributedNonblockingLock highestLock = highestLockBuilder.build();
 
     Thread t = new Thread() {
       @Override

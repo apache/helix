@@ -90,7 +90,7 @@ public class InstanceValidationUtil {
   }
 
   /**
-   * Method to check if the instance is assigned at least 1 resource, not in a idle state;
+   * Method to check if the instance is assigned at least 1 resource or 1 job, not in an idle state;
    * Independent of the instance alive/enabled status
    * @param dataAccessor
    * @param clusterId

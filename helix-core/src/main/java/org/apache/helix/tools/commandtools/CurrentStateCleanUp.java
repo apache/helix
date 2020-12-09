@@ -134,15 +134,18 @@ public class CurrentStateCleanUp {
       taskCurrentStateNames.stream()
           .map(name -> accessor.keyBuilder().taskCurrentState(instanceName, session, name))
           .forEach(allCurrentStateKeys::add);
+
+      List<String> pathsToRemove = new ArrayList<>();
       for (PropertyKey key : allCurrentStateKeys) {
         accessor.getBaseDataAccessor().update(key.getPath(), updater, AccessOption.PERSISTENT);
         CurrentState currentState = accessor.getProperty(key);
         if (currentState.getPartitionStateMap().size() == 0) {
-          accessor.getBaseDataAccessor().remove(key.getPath(), AccessOption.PERSISTENT);
+          pathsToRemove.add(key.getPath());
           LOG.info(String.format("Remove current state for path %s", key.getPath()));
         }
-
       }
+
+      accessor.getBaseDataAccessor().remove(pathsToRemove, AccessOption.PERSISTENT);
     } catch (Exception e) {
       e.printStackTrace();
     } finally {

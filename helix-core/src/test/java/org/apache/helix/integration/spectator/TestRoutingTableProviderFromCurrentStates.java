@@ -38,6 +38,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.common.ZkTestBase;
@@ -143,20 +144,35 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
 
     try {
       TaskDriver taskDriver = new TaskDriver(_manager);
-      String workflowName = TestHelper.getTestMethodName();
+      String workflowName1 = TestHelper.getTestMethodName() + "_1";
       String jobName = "JOB0";
 
-      JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
-          .setNumberOfTasks(10).setNumConcurrentTasksPerInstance(1).setCommand(MockTask.TASK_COMMAND)
-          .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+      JobConfig.Builder jobBuilder =
+          new JobConfig.Builder().setWorkflow(workflowName1).setNumberOfTasks(NUM_NODES)
+              .setNumConcurrentTasksPerInstance(1).setCommand(MockTask.TASK_COMMAND)
+              .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
 
       Workflow.Builder workflowBuilder1 =
-          new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+          new Workflow.Builder(workflowName1).addJob(jobName, jobBuilder);
       taskDriver.start(workflowBuilder1.build());
-      taskDriver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
-          TaskState.COMPLETED);
+      taskDriver
+          .pollForJobState(workflowName1, TaskUtil.getNamespacedJobName(workflowName1, jobName),
+              TaskState.COMPLETED);
 
       Assert.assertFalse(routingTableCurrentStates.isOnStateChangeTriggered());
+
+      // Disable the task current path and the routing table provider should be notified
+      System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "true");
+      String workflowName2 = TestHelper.getTestMethodName() + "_2";
+      Workflow.Builder workflowBuilder2 =
+          new Workflow.Builder(workflowName2).addJob(jobName, jobBuilder);
+      taskDriver.start(workflowBuilder2.build());
+      taskDriver
+          .pollForJobState(workflowName2, TaskUtil.getNamespacedJobName(workflowName2, jobName),
+              TaskState.COMPLETED);
+
+      Assert.assertTrue(routingTableCurrentStates.isOnStateChangeTriggered());
+      System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "false");
 
       String dbName = "testDB";
       _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, NUM_PARTITIONS, "MasterSlave",

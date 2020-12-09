@@ -917,7 +917,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           createCurStateNames.add(resourceName);
           PropertyKey curStateKey = keyBuilder.currentState(instanceName, sessionId, resourceName);
           if (TaskConstants.STATE_MODEL_NAME.equals(message.getStateModelDef()) && !Boolean
-              .getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)) {
+              .getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)) {
             curStateKey = keyBuilder.taskCurrentState(instanceName, sessionId, resourceName);
           }
           createCurStateKeys.add(curStateKey);

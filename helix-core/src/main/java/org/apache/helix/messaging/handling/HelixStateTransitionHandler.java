@@ -142,7 +142,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
       PropertyKey key =
-          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
               ? accessor.keyBuilder().taskCurrentState(instance, sessionId, resource,
               bucketizer.getBucketName(partitionName)) : accessor.keyBuilder()
               .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
@@ -272,7 +272,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     try {
       // Update the ZK current state of the node
       PropertyKey key =
-          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
               ? accessor.keyBuilder().taskCurrentState(instanceName, sessionId, resource,
               bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
               .currentState(instanceName, sessionId, resource,
@@ -450,7 +450,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         }
 
         PropertyKey currentStateKey =
-            _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_PATH_DISABLED)
+            _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
                 ? keyBuilder
                 .taskCurrentState(instanceName, _message.getTgtSessionId(), resourceName)
                 : keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName);

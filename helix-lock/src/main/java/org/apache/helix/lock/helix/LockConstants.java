@@ -33,8 +33,12 @@ public class LockConstants {
   public static final long DEFAULT_REQUESTING_TIMESTAMP_LONG = -1;
 
   public enum LockStatus {
+    // The lock is already acquired and the requestor is the current lock owner
     LOCKED,
+    // The lock acquisition request is waiting on previous lock owner's cleanup work
     PENDING,
+    // The lock was in a PENDING status before, but it has been replaced by another higher
+    // priority lock and lose its waiting position.
     PREEMPTED,
   }
 }

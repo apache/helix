@@ -54,7 +54,6 @@ public class LockInfo {
    * Initialize a default LockInfo instance
    */
   private LockInfo() {
-    _record = new ZNRecord(ZNODE_ID);
     setLockInfoFields(LockConstants.DEFAULT_USER_ID, LockConstants.DEFAULT_MESSAGE_TEXT,
         LockConstants.DEFAULT_TIMEOUT_LONG, LockConstants.DEFAULT_PRIORITY_INT,
         LockConstants.DEFAULT_WAITING_TIMEOUT_LONG, LockConstants.DEFAULT_CLEANUP_TIMEOUT_LONG,
@@ -68,7 +67,6 @@ public class LockInfo {
    * @param znRecord The ZNRecord contains lock node data that used to initialize the LockInfo
    */
   public LockInfo(ZNRecord znRecord) {
-    _record = new ZNRecord(ZNODE_ID);
     if (znRecord == null) {
       znRecord = new ZNRecord(ZNODE_ID);
     }
@@ -114,7 +112,6 @@ public class LockInfo {
   public LockInfo(String ownerId, String message, long timeout, int priority, long waitingTimout,
       long cleanupTimeout, String requestorId, int requestorPriority, long requestorWaitingTimeout,
       long requestingTimestamp) {
-    _record = new ZNRecord(ZNODE_ID);
     setLockInfoFields(ownerId, message, timeout, priority, waitingTimout, cleanupTimeout,
         requestorId, requestorPriority, requestorWaitingTimeout, requestingTimestamp);
   }
@@ -126,6 +123,7 @@ public class LockInfo {
   private void setLockInfoFields(String ownerId, String message, long timeout, int priority,
       long waitingTimeout, long cleanupTimeout, String requestorId, int requestorPriority,
       long requestorWaitingTimeout, long requestingTimestamp) {
+    _record = new ZNRecord(ZNODE_ID);
     _record.setSimpleField(LockInfoAttribute.OWNER.name(),
         ownerId == null ? LockConstants.DEFAULT_USER_ID : ownerId);
     _record.setSimpleField(LockInfoAttribute.MESSAGE.name(),

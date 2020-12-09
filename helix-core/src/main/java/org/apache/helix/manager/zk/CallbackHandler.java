@@ -112,6 +112,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * define the next possible notification types
    */
   private static Map<Type, List<Type>> nextNotificationType = new HashMap<>();
+
   static {
     nextNotificationType.put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
     nextNotificationType.put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
@@ -134,6 +135,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
   private CallbackProcessor _batchCallbackProcessor;
+  private Object _batchCallbackProcessorLock = new Object();
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 
@@ -319,13 +321,15 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.info("CallbackHandler {} is not ready, ignore change callback from path: {}, for "
             + "listener: {}", _uid, _path, _listener);
       } else {
-        synchronized (this) {
-          if (_batchCallbackProcessor != null) {
-            _batchCallbackProcessor.queueEvent(changeContext.getType(), changeContext);
-          } else {
-            throw new HelixException(
-                "Failed to process callback in batch mode. Batch Callback Processor does not exist.");
-          }
+        CallbackProcessor callbackProcessorRef;
+        synchronized (_batchCallbackProcessorLock) {
+          callbackProcessorRef = _batchCallbackProcessor;
+        }
+        if (callbackProcessorRef != null) {
+          callbackProcessorRef.queueEvent(changeContext.getType(), changeContext);
+        } else {
+          throw new HelixException(
+              "Failed to process callback in batch mode. Batch Callback Processor does not exist.");
         }
       }
     } else {
@@ -643,7 +647,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
 
     if (_batchModeEnabled) {
-      synchronized (this) {
+      synchronized (_batchCallbackProcessorLock) {
         if (_batchCallbackProcessor != null) {
           _batchCallbackProcessor.resetEventQueue();
         } else {
@@ -766,7 +770,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         isShutdown);
     try {
       _ready = false;
-      synchronized (this) {
+      synchronized (_batchCallbackProcessorLock) {
         if (_batchCallbackProcessor != null) {
           if (isShutdown) {
             _batchCallbackProcessor.shutdown();

@@ -49,7 +49,9 @@ public class ZkAsyncRetryThread extends Thread {
           context.cancel();
           interrupt();
         } catch (Throwable e) {
-          LOG.error("Error retrying callback " + context, e);
+          LOG.error("Error retrying callback {}, cancelling it", context, e);
+          // Cancel the context so the upstream caller can stop waiting
+          context.cancel();
         }
       }
     } catch (InterruptedException e) {

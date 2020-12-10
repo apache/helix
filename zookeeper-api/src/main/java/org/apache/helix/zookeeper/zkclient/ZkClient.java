@@ -1927,15 +1927,23 @@ public class ZkClient implements Watcher {
       final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb,
       final String expectedSessionId) {
     retryUntilConnected(() -> {
-      getExpectedZookeeper(expectedSessionId)
-          .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
-              new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
-                @Override
-                protected void doRetry() {
-                  doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb,
-                      expectedSessionId);
-                }
-              });
+      final ZooKeeper zk;
+      try {
+        zk = getExpectedZookeeper(expectedSessionId);
+      } catch (ZkSessionMismatchedException e) {
+        // Use BADARGUMENTS rc to represent session mismatch error (invalid expectedSession)
+        // and not retry.
+        cb.processResult(KeeperException.Code.BADARGUMENTS.intValue(), path,
+            new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+        throw e;
+      }
+      zk.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
+          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
+            @Override
+            protected void doRetry() {
+              doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb, expectedSessionId);
+            }
+          });
       return null;
     });
   }
@@ -1958,7 +1966,17 @@ public class ZkClient implements Watcher {
   private void doAsyncSetData(final String path, byte[] data, final int version, final long startT,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb, final String expectedSessionId) {
     retryUntilConnected(() -> {
-      getExpectedZookeeper(expectedSessionId).setData(path, data, version, cb,
+      final ZooKeeper zk;
+      try {
+        zk = getExpectedZookeeper(expectedSessionId);
+      } catch (ZkSessionMismatchedException e) {
+        // Use BADARGUMENTS rc to represent session mismatch error (invalid expectedSession)
+        // and not retry.
+        cb.processResult(KeeperException.Code.BADARGUMENTS.intValue(), path,
+            new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+        throw e;
+      }
+      zk.setData(path, data, version, cb,
           new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
               data == null ? 0 : data.length, false) {
             @Override

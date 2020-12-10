@@ -865,7 +865,7 @@ public class TestRawZkClient extends ZkTestBase {
   }
 
   @Test
-  public void testAsyncCreateByExpectedSession() throws Exception {
+  public void testAsyncWriteByExpectedSession() throws Exception {
     ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     String sessionId = Long.toHexString(zkClient.getSessionId());
@@ -879,23 +879,44 @@ public class TestRawZkClient extends ZkTestBase {
 
     try {
       zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback);
-      createCallback.waitForSuccess();
       Assert.fail("Invalid session should not create znode");
     } catch (ZkSessionMismatchedException expected) {
       Assert.assertEquals(expected.getMessage(),
           "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
               + "ExpectedSession. Actual: " + sessionId);
+
+      // Ensure the async callback is cancelled because of the exception
+      Assert.assertTrue(createCallback.waitForSuccess(), "Callback operation should be done");
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.BADARGUMENTS.intValue());
     }
 
     Assert.assertFalse(zkClient.exists(path));
 
     // A valid session should be able to create the znode.
     record.setExpectedSessionId(sessionId);
+    createCallback = new ZkAsyncCallbacks.CreateCallbackHandler();
     zkClient.asyncCreate(path, record, CreateMode.PERSISTENT, createCallback);
-    createCallback.waitForSuccess();
 
+    Assert.assertTrue(createCallback.waitForSuccess(), "Callback operation should be done");
     Assert.assertEquals(createCallback.getRc(), 0);
     Assert.assertTrue(zkClient.exists(path));
+
+    // Test asyncSetData() failed by mismatched session
+    record.setExpectedSessionId("ExpectedSession");
+    ZkAsyncCallbacks.SetDataCallbackHandler setDataCallback =
+        new ZkAsyncCallbacks.SetDataCallbackHandler();
+    try {
+      zkClient.asyncSetData(path, record, 0, setDataCallback);
+      Assert.fail("Invalid session should not change znode data");
+    } catch (ZkSessionMismatchedException expected) {
+      Assert.assertEquals(expected.getMessage(),
+          "Failed to get expected zookeeper instance! There is a session id mismatch. Expected: "
+              + "ExpectedSession. Actual: " + sessionId);
+
+      // Ensure the async callback is cancelled because of the exception
+      Assert.assertTrue(setDataCallback.waitForSuccess(), "Callback operation should be done");
+      Assert.assertEquals(setDataCallback.getRc(), KeeperException.Code.BADARGUMENTS.intValue());
+    }
 
     TestHelper.verify(() -> zkClient.delete(path), TestHelper.WAIT_DURATION);
     zkClient.close();

@@ -650,6 +650,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           callbackProcessorRef = new CallbackProcessor(this);
           if (_batchCallbackProcessor.compareAndSet(null, callbackProcessorRef)) {
             callbackProcessorRef.start();
+          } else {
+            callbackProcessorRef.shutdown();
           }
         }
     }

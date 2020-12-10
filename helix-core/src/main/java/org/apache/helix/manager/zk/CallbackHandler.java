@@ -648,8 +648,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           callbackProcessorRef.resetEventQueue();
         } else {
           callbackProcessorRef = new CallbackProcessor(this);
-          callbackProcessorRef.start();
-          _batchCallbackProcessor.set(callbackProcessorRef);
+          if (_batchCallbackProcessor.compareAndSet(null, callbackProcessorRef)) {
+            callbackProcessorRef.start();
+          }
         }
     }
 
@@ -769,9 +770,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       CallbackProcessor callbackProcessorRef = _batchCallbackProcessor.get();
         if (callbackProcessorRef != null) {
           if (isShutdown) {
-            callbackProcessorRef.shutdown();
-            callbackProcessorRef = null;
-            _batchCallbackProcessor.set(callbackProcessorRef);
+            if (_batchCallbackProcessor.compareAndSet(callbackProcessorRef, null)) {
+              callbackProcessorRef.shutdown();
+            }
           } else {
             callbackProcessorRef.resetEventQueue();
           }

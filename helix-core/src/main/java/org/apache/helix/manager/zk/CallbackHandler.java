@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixConstants.ChangeType;
@@ -112,7 +113,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    * define the next possible notification types
    */
   private static Map<Type, List<Type>> nextNotificationType = new HashMap<>();
-
   static {
     nextNotificationType.put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
     nextNotificationType.put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
@@ -134,8 +134,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private HelixCallbackMonitor _monitor;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  private CallbackProcessor _batchCallbackProcessor;
-  private Object _batchCallbackProcessorLock = new Object();
+  private AtomicReference<CallbackProcessor> _batchCallbackProcessor = new AtomicReference<>();;
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 
@@ -321,10 +320,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.info("CallbackHandler {} is not ready, ignore change callback from path: {}, for "
             + "listener: {}", _uid, _path, _listener);
       } else {
-        CallbackProcessor callbackProcessorRef;
-        synchronized (_batchCallbackProcessorLock) {
-          callbackProcessorRef = _batchCallbackProcessor;
-        }
+        CallbackProcessor callbackProcessorRef = _batchCallbackProcessor.get();
         if (callbackProcessorRef != null) {
           callbackProcessorRef.queueEvent(changeContext.getType(), changeContext);
         } else {
@@ -647,14 +643,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
 
     if (_batchModeEnabled) {
-      synchronized (_batchCallbackProcessorLock) {
-        if (_batchCallbackProcessor != null) {
-          _batchCallbackProcessor.resetEventQueue();
+      CallbackProcessor callbackProcessorRef = _batchCallbackProcessor.get();
+        if (callbackProcessorRef != null) {
+          callbackProcessorRef.resetEventQueue();
         } else {
-          _batchCallbackProcessor = new CallbackProcessor(this);
-          _batchCallbackProcessor.start();
+          callbackProcessorRef = new CallbackProcessor(this);
+          callbackProcessorRef.start();
+          _batchCallbackProcessor.set(callbackProcessorRef);
         }
-      }
     }
 
     updateNotificationTime(System.nanoTime());
@@ -770,16 +766,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         isShutdown);
     try {
       _ready = false;
-      synchronized (_batchCallbackProcessorLock) {
-        if (_batchCallbackProcessor != null) {
+      CallbackProcessor callbackProcessorRef = _batchCallbackProcessor.get();
+        if (callbackProcessorRef != null) {
           if (isShutdown) {
-            _batchCallbackProcessor.shutdown();
-            _batchCallbackProcessor = null;
+            callbackProcessorRef.shutdown();
+            callbackProcessorRef = null;
+            _batchCallbackProcessor.set(callbackProcessorRef);
           } else {
-            _batchCallbackProcessor.resetEventQueue();
+            callbackProcessorRef.resetEventQueue();
           }
         }
-      }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       changeContext.setChangeType(_changeType);

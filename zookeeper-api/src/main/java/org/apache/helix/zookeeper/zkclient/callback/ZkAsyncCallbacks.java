@@ -194,7 +194,7 @@ public class ZkAsyncCallbacks {
         } else {
           LOG.warn(
               "The provided callback context {} is not ZkAsyncRetryCallContext. Skip retrying.",
-              ctx.getClass().getName());
+              ctx == null ? null : ctx.getClass().getName());
         }
       }
 

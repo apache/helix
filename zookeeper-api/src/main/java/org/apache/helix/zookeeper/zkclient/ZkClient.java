@@ -1926,26 +1926,25 @@ public class ZkClient implements Watcher {
   private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
       final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb,
       final String expectedSessionId) {
-    retryUntilConnected(() -> {
-      final ZooKeeper zk;
-      try {
-        zk = getExpectedZookeeper(expectedSessionId);
-      } catch (ZkSessionMismatchedException e) {
-        // Use BADARGUMENTS rc to represent session mismatch error (invalid expectedSession)
-        // and not retry.
-        cb.processResult(KeeperException.Code.BADARGUMENTS.intValue(), path,
-            new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
-        throw e;
-      }
-      zk.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
-            @Override
-            protected void doRetry() {
-              doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb, expectedSessionId);
-            }
-          });
-      return null;
-    });
+    try {
+      retryUntilConnected(() -> {
+        getExpectedZookeeper(expectedSessionId)
+            .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
+                new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
+                  @Override
+                  protected void doRetry() {
+                    doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb,
+                        expectedSessionId);
+                  }
+                });
+        return null;
+      });
+    } catch (RuntimeException e) {
+      // Process callback to release caller from waiting
+      cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      throw e;
+    }
   }
 
   // Async Data Accessors
@@ -1965,28 +1964,25 @@ public class ZkClient implements Watcher {
 
   private void doAsyncSetData(final String path, byte[] data, final int version, final long startT,
       final ZkAsyncCallbacks.SetDataCallbackHandler cb, final String expectedSessionId) {
-    retryUntilConnected(() -> {
-      final ZooKeeper zk;
-      try {
-        zk = getExpectedZookeeper(expectedSessionId);
-      } catch (ZkSessionMismatchedException e) {
-        // Use BADARGUMENTS rc to represent session mismatch error (invalid expectedSession)
-        // and not retry.
-        cb.processResult(KeeperException.Code.BADARGUMENTS.intValue(), path,
-            new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
-        throw e;
-      }
-      zk.setData(path, data, version, cb,
-          new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
-              data == null ? 0 : data.length, false) {
-            @Override
-            protected void doRetry() {
-              doAsyncSetData(path, data, version, System.currentTimeMillis(), cb,
-                  expectedSessionId);
-            }
-          });
-      return null;
-    });
+    try {
+      retryUntilConnected(() -> {
+        getExpectedZookeeper(expectedSessionId).setData(path, data, version, cb,
+            new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
+                data == null ? 0 : data.length, false) {
+              @Override
+              protected void doRetry() {
+                doAsyncSetData(path, data, version, System.currentTimeMillis(), cb,
+                    expectedSessionId);
+              }
+            });
+        return null;
+      });
+    } catch (RuntimeException e) {
+      // Process callback to release caller from waiting
+      cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      throw e;
+    }
   }
 
   public void asyncGetData(final String path, final ZkAsyncCallbacks.GetDataCallbackHandler cb) {

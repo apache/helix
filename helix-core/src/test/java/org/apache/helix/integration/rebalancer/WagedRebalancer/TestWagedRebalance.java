@@ -37,6 +37,7 @@ import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.rebalancer.waged.AssignmentMetadataStore;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -46,6 +47,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -53,6 +55,8 @@ import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.util.HelixUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -60,6 +64,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestWagedRebalance extends ZkTestBase {
+  private static final Logger logger =
+      LoggerFactory.getLogger(TestWagedRebalance.class.getName());
   protected final int NUM_NODE = 6;
   protected static final int START_PORT = 12918;
   protected static final int PARTITIONS = 20;
@@ -175,6 +181,11 @@ public class TestWagedRebalance extends ZkTestBase {
   @Test(dependsOnMethods = "test")
   public void testRebalanceTool() throws InterruptedException {
     // Create resources for testing
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    ClusterConfig clusterConfigGlobal =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+    clusterConfigGlobal.setGlobalRebalanceAsyncMode(false);
+    dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfigGlobal);
     int i = 0;
     for (String stateModel : _testModels) {
       String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
@@ -187,7 +198,7 @@ public class TestWagedRebalance extends ZkTestBase {
     validate(_replica);
 
     // Read cluster parameters from ZK
-    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    //HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     ClusterConfig clusterConfig =
         dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
     List<InstanceConfig> instanceConfigs =
@@ -200,9 +211,18 @@ public class TestWagedRebalance extends ZkTestBase {
         dataAccessor.getChildValues(dataAccessor.keyBuilder().resourceConfigs(), true);
 
     // Verify that utilResult contains the assignment for the resources added
+    logger.info("clusterConfig: {}", clusterConfig );
+    logger.info("instanceConfigs: {}", instanceConfigs);
+    logger.info("liveInstances: {}", liveInstances);
+    logger.info("idealStates: {}", idealStates);
+    logger.info("resourceConfigs: {}", resourceConfigs);
     Map<String, ResourceAssignment> utilResult = HelixUtil
         .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
             idealStates, resourceConfigs);
+    for (String resource : utilResult.keySet()) {
+      ResourceAssignment assignment = utilResult.get(resource);
+      logger.info("resource assignment: {}", assignment);
+    }
     Assert.assertNotNull(utilResult);
     Assert.assertEquals(utilResult.size(), idealStates.size());
     for (IdealState idealState : idealStates) {
@@ -211,11 +231,14 @@ public class TestWagedRebalance extends ZkTestBase {
           BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
               .getStateModelDefinition();
       for (String partition : idealState.getPartitionSet()) {
+        Map<String, String> ideaMapping  = HelixUtil
+            .computeIdealMapping(idealState.getPreferenceList(partition), stateModelDefinition,
+                new HashSet<>(liveInstances));
+        Map<String, String> utilMapping = utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition);
         Assert.assertEquals(
-            utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition),
-            HelixUtil
-                .computeIdealMapping(idealState.getPreferenceList(partition), stateModelDefinition,
-                    new HashSet<>(liveInstances)));
+            utilMapping,
+            ideaMapping,
+            "partition:" + partition + " resource:" + idealState.getResourceName() + " ideal mapping:" + ideaMapping + " util mapping:" + utilMapping);
       }
     }
 

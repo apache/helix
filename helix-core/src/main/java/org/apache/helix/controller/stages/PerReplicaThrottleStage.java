@@ -314,6 +314,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       for (Partition partition : selectedResourceMessages.keySet()) {
         output.addMessages(resourceName, partition, selectedResourceMessages.get(partition));
       }
+      return;
     }
     Map<String, List<String>> preferenceLists =
         bestPossibleStateOutput.getPreferenceLists(resourceName);

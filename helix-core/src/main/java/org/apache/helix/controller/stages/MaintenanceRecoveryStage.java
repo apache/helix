@@ -26,6 +26,7 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractAsyncBaseStage;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
@@ -97,12 +98,12 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
           event.getClusterName(), offlineDisabledCount, numOfflineInstancesForAutoExit);
       break;
     case MAX_PARTITION_PER_INSTANCE_EXCEEDED:
-      IntermediateStateOutput intermediateStateOutput =
-          event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-      if (intermediateStateOutput == null) {
+      ResourcesStateMap retracedResourceStateMap =
+          event.getAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name());
+      if (retracedResourceStateMap == null) {
         return;
       }
-      shouldExitMaintenance = !violatesMaxPartitionsPerInstance(cache, intermediateStateOutput);
+      shouldExitMaintenance = !violatesMaxPartitionsPerInstance(cache, retracedResourceStateMap);
       reason = String.format(
           "Auto-exiting maintenance mode for cluster %s; All instances have fewer or equal number of partitions than maxPartitionsPerInstance threshold.",
           event.getClusterName());
@@ -125,18 +126,18 @@ public class MaintenanceRecoveryStage extends AbstractAsyncBaseStage {
    * Check that the intermediateStateOutput assignment does not violate maxPartitionPerInstance
    * threshold.
    * @param cache
-   * @param intermediateStateOutput
+   * @param retracedResourceStateMap
    * @return true if violation is found, false otherwise.
    */
   private boolean violatesMaxPartitionsPerInstance(ResourceControllerDataProvider cache,
-      IntermediateStateOutput intermediateStateOutput) {
+      ResourcesStateMap retracedResourceStateMap) {
     int maxPartitionPerInstance = cache.getClusterConfig().getMaxPartitionsPerInstance();
     if (maxPartitionPerInstance <= 0) {
       // Config is not set; return
       return false;
     }
     Map<String, PartitionStateMap> resourceStatesMap =
-        intermediateStateOutput.getResourceStatesMap();
+        retracedResourceStateMap.getResourceStatesMap();
     Map<String, Integer> instancePartitionCounts = new HashMap<>();
 
     for (String resource : resourceStatesMap.keySet()) {

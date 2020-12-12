@@ -307,7 +307,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     Message msg = msgs.get(0);
     Assert.assertTrue(msg.getId().equals("001"));
 
-    MessageOutput msgsOut = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+    MessageOutput msgsOut = event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     msgs = msgsOut.getMessages(resources[0], new Partition(resources[0] + "_" + 0));
     Assert.assertTrue(msgs.size() == 1);
     msg = msgs.get(0);

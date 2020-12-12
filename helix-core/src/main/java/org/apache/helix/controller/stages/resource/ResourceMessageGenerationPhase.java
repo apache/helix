@@ -32,8 +32,6 @@ import org.apache.helix.controller.stages.MessageGenerationPhase;
 public class ResourceMessageGenerationPhase extends MessageGenerationPhase {
   @Override
   public void process(ClusterEvent event) throws Exception {
-    //IntermediateStateOutput intermediateStateOutput =
-    //    event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
     ResourcesStateMap bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     processEvent(event, bestPossibleStateOutput);

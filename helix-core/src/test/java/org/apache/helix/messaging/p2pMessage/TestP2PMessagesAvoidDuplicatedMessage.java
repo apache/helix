@@ -132,7 +132,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _bestpossibleState = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
     MessageOutput messageOutput =
-        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+        event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     List<Message> messages = messageOutput.getMessages(_db, _partition);
 
     Assert.assertEquals(messages.size(), 1);
@@ -166,7 +166,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _fullPipeline.handle(event);
 
-    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -184,7 +184,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _messagePipeline.handle(event);
 
-    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+    messageOutput = event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 2);
 
@@ -250,7 +250,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _fullPipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+        event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 1);
 
@@ -281,7 +281,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+        event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -298,7 +298,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+        event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 0);
 
@@ -316,7 +316,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _messagePipeline.handle(event);
 
     messageOutput =
-        event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name());
+        event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
     messages = messageOutput.getMessages(_db, _partition);
     Assert.assertEquals(messages.size(), 1);
 

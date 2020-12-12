@@ -60,7 +60,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     this(false);
   }
 
-  public PerReplicaThrottleStage(boolean enableEmitThrottledMsg) {
+  protected PerReplicaThrottleStage(boolean enableEmitThrottledMsg) {
     isEmitThrottledMsg = enableEmitThrottledMsg;
   }
 
@@ -106,7 +106,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         }
       }
     }
-    event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name(), output);
+    event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), output);
     LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
     event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
 
@@ -121,6 +121,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     if (maxPartitionPerInstance > 0) {
       validateMaxPartitionsPerInstance(retracedResourceStateMap, maxPartitionPerInstance, cache, event);
     }
+
+    //TODO: add metrics
   }
 
   /**
@@ -181,7 +183,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
                       + " mode due to an instance being assigned more replicas/partitions than "
                       + "the limit.");
             }
-            //TODO: add metrics
             throw new HelixException(errMsg);
           }
           instancePartitionCounts.put(instance, partitionCount);
@@ -223,8 +224,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
     // If resourcePriorityField is null at the cluster level, all resources will be considered equal
     // in priority by keeping all priorities at MIN_VALUE
-    if (dataCache.getClusterConfig().getResourcePriorityField() != null) {
-      String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
+    String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
+    if (priorityField != null) {
       for (ResourcePriority resourcePriority : prioritizedResourceList) {
         String resourceName = resourcePriority.getResourceName();
 
@@ -275,7 +276,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       Map<Partition, Map<String, String>> retracedPartitionsState = new HashMap<>();
       try {
         Map<Partition, List<Message>> resourceMessages =
-            computePerReplicaPartitionState(idealState, currentStateOutput,
+            computeReourcePartitionState(idealState, currentStateOutput,
                 selectedMessage.getResourceMessages(resourceName), resourceMap.get(resourceName),
                 bestPossibleStateOutput, dataCache,
                 throttleController, retracedPartitionsState, throttledRecoveryMsg, throttledLoadMsg);
@@ -298,7 +299,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * Return messages for partitions of a resource.
    * Out param retracedPartitionsCurrentState
    */
-  private Map<Partition, List<Message>> computePerReplicaPartitionState(IdealState idealState,
+  private Map<Partition, List<Message>> computeReourcePartitionState(IdealState idealState,
       CurrentStateOutput currentStateOutput, Map<Partition, List<Message>> selectedResourceMessages,
       Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
       ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
@@ -405,6 +406,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
 
     // Step 6: constructs all retraced partition state map for the resource;
+    constructRetracedPartitionStateMap(resource, retracedPartitionsStateMap, out);
+    return out;
+  }
+
+  private void constructRetracedPartitionStateMap(Resource resource,
+      Map<Partition, Map<String, String>> retracedPartitionsStateMap,
+      Map<Partition, List<Message>> out) {
     for (Partition partition : resource.getPartitions()) {
       List<Message> partitionMessages = out.get(partition);
       if (partitionMessages == null) {
@@ -424,7 +432,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         retracedStateMap.put(toInstance, toState);
       }
     }
-    return out;
   }
 
   private void getPartitionExpectedAndCurrentStateCountMap(
@@ -584,18 +591,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
   /*
    * Classify the messages of each partition into recovery and load messages.
    */
-  private void classifyMessages(
-      Resource resource,
-      CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput bestPossibleStateOutput,
-      IdealState idealState,
-      ResourceControllerDataProvider cache,
-      Map<Partition, List<Message>> selectedResourceMessages,
-
-      List<Message> recoveryMessages,
-      List<Message> loadMessages,
-      Map<Message, Partition> messagePartitionMap
-  ) {
+  private void classifyMessages(Resource resource, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput, IdealState idealState,
+      ResourceControllerDataProvider cache, Map<Partition, List<Message>> selectedResourceMessages,
+      List<Message> recoveryMessages, List<Message> loadMessages,
+      Map<Message, Partition> messagePartitionMap) {
 
     String resourceName = resource.getResourceName();
     Map<String, List<String>> preferenceLists =

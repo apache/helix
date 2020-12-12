@@ -54,7 +54,7 @@ public enum AttributeName {
   TO_BE_PURGED_JOBS_MAP,
 
   // This attribute denotes the messages output from Per Preplica Throttle stage
-  PER_REPLICA_THROTTLED_MESSAGES,
+  PER_REPLICA_OUTPUT_MESSAGES,
 
   // This attribute denotes the targeted partition state mapping from Per Preplica Throttle stage
   PER_REPLICA_RETRACED_STATES,

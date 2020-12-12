@@ -67,7 +67,7 @@ public class MessageOutput {
   public Map<Partition, List<Message>> getResourceMessages(String resourceName) {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
     if (map != null) {
-      return map;
+      return Collections.unmodifiableMap(map);
     }
     return Collections.emptyMap();
   }

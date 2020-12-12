@@ -108,7 +108,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     selectMessages.add(msg);
 
     msgSelectOutput.addMessages("TestDB", new Partition("TestDB_0"), selectMessages);
-    event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name(), msgSelectOutput);
+    event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), msgSelectOutput);
 
     runStage(event, throttleStage);
 
@@ -287,7 +287,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     selectMessages.add(msg6); // should be throttled
 
     msgSelectOutput.addMessages("TestDB", new Partition("TestDB_0"), selectMessages);
-    event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_MESSAGES.name(), msgSelectOutput);
+    event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), msgSelectOutput);
 
     runStage(event, throttleStage);
 

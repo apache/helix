@@ -24,6 +24,7 @@ import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryCallContext;
+import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -170,7 +171,66 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
     }
   }
 
+  /*
+   * Tests if exception is thrown during retry operation,
+   * the context should be cancelled correctly.
+   */
   @Test(dependsOnMethods = "testAsyncWriteRetry")
+  public void testAsyncWriteRetryThrowException() {
+    MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
+    try {
+      ZNRecord tmpRecord = new ZNRecord("tmpRecord");
+      tmpRecord.setSimpleField("foo", "bar");
+      testZkClient.createPersistent(NODE_PATH, tmpRecord);
+
+      // 1. Test async create retry
+      ZkAsyncCallbacks.CreateCallbackHandler createCallback =
+          new ZkAsyncCallbacks.CreateCallbackHandler();
+      Assert.assertEquals(createCallback.getRc(), UNKNOWN_RET_CODE);
+
+      tmpRecord.setSimpleField("test", "data");
+      testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
+      // Async set will be pending due to the mock error rc is retryable.
+      testZkClient.asyncCreate(NODE_PATH, tmpRecord, CreateMode.PERSISTENT, createCallback);
+      Assert.assertFalse(createCallback.isOperationDone());
+      Assert.assertEquals(createCallback.getRc(), CONNECTIONLOSS.intValue());
+      // Throw exception in retry
+      testZkClient.setZkExceptionInRetry(true);
+      // Async retry will succeed now. Wait until the operation is done and verify.
+      Assert.assertTrue(waitAsyncOperation(createCallback, 1000),
+          "Async callback should have been canceled");
+      Assert.assertEquals(createCallback.getRc(), CONNECTIONLOSS.intValue());
+      Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+
+      // Restore the state
+      testZkClient.setZkExceptionInRetry(false);
+
+      // 1. Test async set retry
+      ZkAsyncCallbacks.SetDataCallbackHandler setCallback =
+          new ZkAsyncCallbacks.SetDataCallbackHandler();
+      Assert.assertEquals(setCallback.getRc(), UNKNOWN_RET_CODE);
+
+      tmpRecord.setSimpleField("test", "data");
+      testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
+      // Async set will be pending due to the mock error rc is retryable.
+      testZkClient.asyncSetData(NODE_PATH, tmpRecord, -1, setCallback);
+      Assert.assertFalse(setCallback.isOperationDone());
+      Assert.assertEquals(setCallback.getRc(), CONNECTIONLOSS.intValue());
+      // Throw exception in retry
+      testZkClient.setZkExceptionInRetry(true);
+      // Async retry will succeed now. Wait until the operation is done and verify.
+      Assert.assertTrue(waitAsyncOperation(setCallback, 1000),
+          "Async callback should have been canceled");
+      Assert.assertEquals(setCallback.getRc(), CONNECTIONLOSS.intValue());
+      Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+    } finally {
+      testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
+      testZkClient.close();
+      _zkClient.delete(NODE_PATH);
+    }
+  }
+
+  @Test(dependsOnMethods = "testAsyncWriteRetryThrowException")
   public void testAsyncReadRetry() {
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
@@ -275,6 +335,8 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
      */
     private int _asyncCallRetCode = KeeperException.Code.OK.intValue();
 
+    private boolean _zkExceptionInRetry = false;
+
     public MockAsyncZkClient(String zkAddress) {
       super(zkAddress);
       setZkSerializer(new ZNRecordSerializer());
@@ -290,6 +352,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       return tmpCount;
     }
 
+    public void setZkExceptionInRetry(boolean zkExceptionInRetry) {
+      _zkExceptionInRetry = zkExceptionInRetry;
+    }
+
     @Override
     public void asyncCreate(String path, Object datat, CreateMode mode,
         ZkAsyncCallbacks.CreateCallbackHandler cb) {
@@ -301,12 +367,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
               protected void doRetry() {
-                _retryCount++;
-                try {
-                  Thread.sleep(RETRY_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                  throw new ZkInterruptedException(e);
-                }
+                preProcess();
                 asyncCreate(path, datat, mode, cb);
               }
             }, null);
@@ -324,12 +385,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
               protected void doRetry() {
-                _retryCount++;
-                try {
-                  Thread.sleep(RETRY_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                  throw new ZkInterruptedException(e);
-                }
+                preProcess();
                 asyncSetData(path, datat, version, cb);
               }
             }, null);
@@ -346,12 +402,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, true) {
               @Override
               protected void doRetry() {
-                _retryCount++;
-                try {
-                  Thread.sleep(RETRY_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                  throw new ZkInterruptedException(e);
-                }
+                preProcess();
                 asyncGetData(path, cb);
               }
             }, null, null);
@@ -368,12 +419,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, true) {
               @Override
               protected void doRetry() {
-                _retryCount++;
-                try {
-                  Thread.sleep(RETRY_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                  throw new ZkInterruptedException(e);
-                }
+                preProcess();
                 asyncExists(path, cb);
               }
             }, null);
@@ -390,15 +436,22 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
               protected void doRetry() {
-                _retryCount++;
-                try {
-                  Thread.sleep(RETRY_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                  throw new ZkInterruptedException(e);
-                }
+                preProcess();
                 asyncDelete(path, cb);
               }
             });
+      }
+    }
+
+    private void preProcess() {
+      _retryCount++;
+      if (_zkExceptionInRetry) {
+        throw new ZkException();
+      }
+      try {
+        Thread.sleep(RETRY_INTERVAL_MS);
+      } catch (InterruptedException e) {
+        throw new ZkInterruptedException(e);
       }
     }
   }

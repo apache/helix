@@ -89,6 +89,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
   private final HelixManager _manager;
   private final StateModelFactory<? extends StateModel> _stateModelFactory;
   private final boolean _isTaskMessage;
+  private final boolean _isTaskCurrentStatePathDisabled;
   volatile boolean _isTimeout = false;
 
   public HelixStateTransitionHandler(StateModelFactory<? extends StateModel> stateModelFactory,
@@ -102,6 +103,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
     _manager = _notificationContext.getManager();
     _stateModelFactory = stateModelFactory;
     _isTaskMessage = stateModel instanceof TaskStateModel;
+    _isTaskCurrentStatePathDisabled =
+        Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED);
   }
 
   void preHandleMessage() throws Exception {
@@ -141,10 +144,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
       String sessionId = _message.getTgtSessionId();
       String resource = _message.getResourceName();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key =
-          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
-              ? accessor.keyBuilder().taskCurrentState(instance, sessionId, resource,
-              bucketizer.getBucketName(partitionName)) : accessor.keyBuilder()
+      PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
+          .taskCurrentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName))
+          : accessor.keyBuilder()
               .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
       ZNRecord rec = new ZNRecord(resource);
       Map<String, String> map = new TreeMap<String, String>();
@@ -271,12 +273,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     try {
       // Update the ZK current state of the node
-      PropertyKey key =
-          _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
-              ? accessor.keyBuilder().taskCurrentState(instanceName, sessionId, resource,
+      PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
+          .taskCurrentState(instanceName, sessionId, resource,
               bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
-              .currentState(instanceName, sessionId, resource,
-                  bucketizer.getBucketName(partitionKey));
+          .currentState(instanceName, sessionId, resource, bucketizer.getBucketName(partitionKey));
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
         // normal message
         if (!accessor.updateProperty(key, _currentStateDelta)) {
@@ -450,8 +450,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         }
 
         PropertyKey currentStateKey =
-            _isTaskMessage && !Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)
-                ? keyBuilder
+            _isTaskMessage && !_isTaskCurrentStatePathDisabled ? keyBuilder
                 .taskCurrentState(instanceName, _message.getTgtSessionId(), resourceName)
                 : keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName);
         if (!accessor.updateProperty(currentStateKey, currentStateDelta)) {

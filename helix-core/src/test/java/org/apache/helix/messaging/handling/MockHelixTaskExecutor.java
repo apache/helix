@@ -57,6 +57,11 @@ public class MockHelixTaskExecutor extends HelixTaskExecutor {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey path = keyBuilder.currentStates(manager.getInstanceName(), manager.getSessionId());
     Map<String, CurrentState> currentStateMap = accessor.getChildValuesMap(path, true);
+    // Also add the task path
+    PropertyKey taskPath =
+        keyBuilder.taskCurrentStates(manager.getInstanceName(), manager.getSessionId());
+    Map<String, CurrentState> taskCurrentStateMap = accessor.getChildValuesMap(taskPath, true);
+    taskCurrentStateMap.forEach(currentStateMap::putIfAbsent);
 
     Set<String> seenPartitions = new HashSet<>();
     for (Message message : messages) {

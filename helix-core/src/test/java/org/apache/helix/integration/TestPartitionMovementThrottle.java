@@ -174,7 +174,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testThrottleOnlyClusterLevelAnyType")
   public void testPartitionRecoveryRebalanceThrottle() throws InterruptedException {
     // start some participants
     for (int i = 0; i < NODE_NR - 2; i++) {
@@ -207,7 +207,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testResourceThrottleWithDelayRebalancer")
   public void testANYtypeThrottle() throws InterruptedException {
     // start some participants
     for (int i = 0; i < NODE_NR - 3; i++) {
@@ -240,7 +240,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testANYtypeThrottle")
   public void testThrottleOnlyClusterLevelAnyType() {
     // start some participants
     for (int i = 0; i < NODE_NR - 3; i++) {

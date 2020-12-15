@@ -52,6 +52,7 @@ import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.GenericHelixController;
@@ -70,6 +71,7 @@ import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -830,6 +832,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
         accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
+    List<String> taskCurResourceNames =
+        accessor.getChildNames(keyBuilder.taskCurrentStates(instanceName, sessionId));
     List<PropertyKey> createCurStateKeys = new ArrayList<>();
     List<CurrentState> metaCurStates = new ArrayList<>();
     Set<String> createCurStateNames = new HashSet<>();
@@ -908,10 +912,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       if (!message.isControlerMsg() && message.getMsgType()
           .equals(Message.MessageType.STATE_TRANSITION.name())) {
         String resourceName = message.getResourceName();
-        if (!curResourceNames.contains(resourceName) && !createCurStateNames
-            .contains(resourceName)) {
+        if (!curResourceNames.contains(resourceName) && !taskCurResourceNames.contains(resourceName)
+            && !createCurStateNames.contains(resourceName)) {
           createCurStateNames.add(resourceName);
-          createCurStateKeys.add(keyBuilder.currentState(instanceName, sessionId, resourceName));
+          PropertyKey curStateKey = keyBuilder.currentState(instanceName, sessionId, resourceName);
+          if (TaskConstants.STATE_MODEL_NAME.equals(message.getStateModelDef()) && !Boolean
+              .getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED)) {
+            curStateKey = keyBuilder.taskCurrentState(instanceName, sessionId, resourceName);
+          }
+          createCurStateKeys.add(curStateKey);
 
           CurrentState metaCurState = new CurrentState(resourceName);
           metaCurState.setBucketSize(message.getBucketSize());

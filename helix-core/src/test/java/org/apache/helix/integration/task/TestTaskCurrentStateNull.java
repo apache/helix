@@ -88,10 +88,10 @@ public class TestTaskCurrentStateNull extends TaskTestBase {
     String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
     ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
     String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
-    String jobCurrentStatePath1 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + sessionIdP0 + "/" + namespacedJobName1;
-    String jobCurrentStatePath2 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0
-        + "/CURRENTSTATES/" + sessionIdP0 + "/" + namespacedJobName2;
+    String jobCurrentStatePath1 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, sessionIdP0, namespacedJobName1).toString();
+    String jobCurrentStatePath2 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, sessionIdP0, namespacedJobName2).toString();
 
     // Read the current states of Participant0 and make sure they have been created
     boolean isCurrentStateCreated = TestHelper.verify(() -> {

@@ -22,6 +22,7 @@ package org.apache.helix.task;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.task.TaskResult.Status;
 import org.slf4j.Logger;
@@ -208,7 +209,10 @@ public class TaskRunner implements Runnable {
         String.format("Requesting a state transition to %s for partition %s.", state, partition));
     try {
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      PropertyKey key = keyBuilder.currentState(instance, sessionId, resource);
+      PropertyKey key =
+          Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED) ? keyBuilder
+              .currentState(instance, sessionId, resource)
+              : keyBuilder.taskCurrentState(instance, sessionId, resource);
       CurrentState currStateDelta = new CurrentState(resource);
       currStateDelta.setRequestedState(partition, state.name());
 

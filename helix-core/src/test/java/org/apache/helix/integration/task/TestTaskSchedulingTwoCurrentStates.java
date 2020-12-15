@@ -158,15 +158,15 @@ public class TestTaskSchedulingTwoCurrentStates extends TaskTestBase {
     String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
     ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
     String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
-    String currentStatePathP0 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP0 + "/CURRENTSTATES/"
-        + sessionIdP0 + "/" + namespacedJobName;
+    String currentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, sessionIdP0, namespacedJobName).toString();
 
     // Get the current state of Participant1
     String instanceP1 = PARTICIPANT_PREFIX + "_" + (_startPort + 1);
     ZkClient clientP1 = (ZkClient) _participants[1].getZkClient();
     String sessionIdP1 = ZkTestHelper.getSessionId(clientP1);
-    String currentStatePathP1 = "/" + CLUSTER_NAME + "/INSTANCES/" + instanceP1 + "/CURRENTSTATES/"
-        + sessionIdP1 + "/" + namespacedJobName;
+    String currentStatePathP1 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP1, sessionIdP1, namespacedJobName).toString();
 
     boolean isCurrentStateCreated = TestHelper.verify(() -> {
       ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor()

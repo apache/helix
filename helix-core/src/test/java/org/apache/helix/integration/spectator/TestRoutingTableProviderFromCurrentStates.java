@@ -20,14 +20,17 @@ package org.apache.helix.integration.spectator;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -35,12 +38,14 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
@@ -49,7 +54,16 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.monitoring.mbeans.RoutingTableProviderMonitor;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.TaskFactory;
+import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.testng.Assert;
@@ -77,9 +91,15 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
+    Map<String, TaskFactory> taskFactoryReg = new HashMap<>();
+    taskFactoryReg.put(MockTask.TASK_COMMAND, MockTask::new);
+
     for (int i = 0; i < NUM_NODES; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
+      stateMachine.registerStateModelFactory(TaskConstants.STATE_MODEL_NAME,
+          new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
 
@@ -117,6 +137,61 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
   }
 
   @Test
+  public void testCurrentStatesRoutingTableIgnoreTaskCurrentStates() throws Exception {
+    FlaggedCurrentStateRoutingTableProvider routingTableCurrentStates =
+        new FlaggedCurrentStateRoutingTableProvider(_manager);
+    Assert.assertFalse(routingTableCurrentStates.isOnStateChangeTriggered());
+
+    try {
+      TaskDriver taskDriver = new TaskDriver(_manager);
+      String workflowName1 = TestHelper.getTestMethodName() + "_1";
+      String jobName = "JOB0";
+
+      JobConfig.Builder jobBuilder =
+          new JobConfig.Builder().setWorkflow(workflowName1).setNumberOfTasks(NUM_NODES)
+              .setNumConcurrentTasksPerInstance(1).setCommand(MockTask.TASK_COMMAND)
+              .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "1000"));
+
+      Workflow.Builder workflowBuilder1 =
+          new Workflow.Builder(workflowName1).addJob(jobName, jobBuilder);
+      taskDriver.start(workflowBuilder1.build());
+      taskDriver
+          .pollForJobState(workflowName1, TaskUtil.getNamespacedJobName(workflowName1, jobName),
+              TaskState.COMPLETED);
+
+      Assert.assertFalse(routingTableCurrentStates.isOnStateChangeTriggered());
+
+      // Disable the task current path and the routing table provider should be notified
+      System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "true");
+      String workflowName2 = TestHelper.getTestMethodName() + "_2";
+      Workflow.Builder workflowBuilder2 =
+          new Workflow.Builder(workflowName2).addJob(jobName, jobBuilder);
+      taskDriver.start(workflowBuilder2.build());
+      taskDriver
+          .pollForJobState(workflowName2, TaskUtil.getNamespacedJobName(workflowName2, jobName),
+              TaskState.COMPLETED);
+
+      Assert.assertTrue(routingTableCurrentStates.isOnStateChangeTriggered());
+      System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "false");
+
+      String dbName = "testDB";
+      _gSetupTool.addResourceToCluster(CLUSTER_NAME, dbName, NUM_PARTITIONS, "MasterSlave",
+          IdealState.RebalanceMode.FULL_AUTO.name(), CrushEdRebalanceStrategy.class.getName());
+      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, NUM_REPLICAS);
+
+      ZkHelixClusterVerifier clusterVerifier =
+          new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+              .build();
+      Assert.assertTrue(clusterVerifier.verifyByPolling());
+      Assert.assertTrue(routingTableCurrentStates.isOnStateChangeTriggered());
+      _gSetupTool.dropResourceFromCluster(CLUSTER_NAME, dbName);
+    } finally {
+      routingTableCurrentStates.shutdown();
+    }
+  }
+
+  @Test (dependsOnMethods = "testCurrentStatesRoutingTableIgnoreTaskCurrentStates")
   public void testRoutingTableWithCurrentStates() throws Exception {
     RoutingTableProvider routingTableEV =
         new RoutingTableProvider(_manager, PropertyType.EXTERNALVIEW);
@@ -363,6 +438,26 @@ public class TestRoutingTableProviderFromCurrentStates extends ZkTestBase {
         }
       }
       super.onLiveInstanceChange(liveInstances, changeContext);
+    }
+  }
+
+  static class FlaggedCurrentStateRoutingTableProvider extends RoutingTableProvider {
+    private boolean onStateChangeTriggered = false;
+
+    public FlaggedCurrentStateRoutingTableProvider(HelixManager manager) {
+      super(manager, PropertyType.CURRENTSTATES);
+    }
+
+    public boolean isOnStateChangeTriggered() {
+      return onStateChangeTriggered;
+    }
+
+    @Override
+    @PreFetch(enabled = false)
+    public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+        NotificationContext changeContext) {
+      onStateChangeTriggered = true;
+      super.onStateChange(instanceName, statesInfo, changeContext);
     }
   }
 }

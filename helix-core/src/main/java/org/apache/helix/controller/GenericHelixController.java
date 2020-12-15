@@ -729,7 +729,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
             "Controller pipeline is not invoked because event session doesn't match cluster " +
                 "manager session. Event type: {}, id: {}, session: {}, actual manager session: "
                 + "{}, instance: {}, cluster: {}", event.getEventType(), event.getEventId(),
-            eventSessionId.orElse("NOT_PRESENT"), managerSessionId, manager.getInstanceName(), manager.getClusterName());
+            eventSessionId.orElse("NOT_PRESENT"), managerSessionId, manager.getInstanceName(),
+            manager.getClusterName());
         return;
       }
     }
@@ -791,7 +792,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
 
     logger.info("START: Invoking {} controller pipeline for cluster: {}. Event type: {}, ID: {}. "
-            + "Event session ID: {}", manager.getClusterName(), dataProvider.getPipelineName(),
+            + "Event session ID: {}", dataProvider.getPipelineName(), manager.getClusterName(),
         event.getEventType(), event.getEventId(), eventSessionId.orElse("NOT_PRESENT"));
 
     long startTime = System.currentTimeMillis();

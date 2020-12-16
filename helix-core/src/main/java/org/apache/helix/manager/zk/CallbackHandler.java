@@ -134,7 +134,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private HelixCallbackMonitor _monitor;
 
   // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  private AtomicReference<CallbackProcessor> _batchCallbackProcessorRef = new AtomicReference<>();;
+  private AtomicReference<CallbackProcessor> _batchCallbackProcessorRef = new AtomicReference<>();
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 

@@ -280,6 +280,7 @@ public class ZkConnection implements IZkConnection {
       lookupNonPaginatedGetChildren();
       // ZK server would disconnect this connection because of UnimplementedException.
       // Throw CONNECTIONLOSS so ZkClient can retry.
+      // TODO: handle it in a better way without throwing CONNECTIONLOSS
       throw KeeperException.create(KeeperException.Code.CONNECTIONLOSS);
     } else if (cause instanceof KeeperException) {
       throw KeeperException.create(((KeeperException) cause).code());

@@ -94,7 +94,6 @@ public class ZkConnection implements IZkConnection {
         LOG.debug("Closing ZooKeeper connected to " + _servers);
         _zk.close();
         _zk = null;
-        _getChildrenMethod = null;
       }
     } finally {
       _zookeeperLock.unlock();
@@ -112,7 +111,6 @@ public class ZkConnection implements IZkConnection {
         LOG.debug("Creating new ZookKeeper instance to reconnect to " + _servers + ".");
         _zk = new ZooKeeper(_servers, _sessionTimeOut, watcher);
         prevZk.close();
-        _getChildrenMethod = null;
       } catch (IOException e) {
         throw new ZkException("Unable to connect to " + _servers, e);
       }
@@ -163,7 +161,10 @@ public class ZkConnection implements IZkConnection {
   @Override
   public List<String> getChildren(final String path, final boolean watch)
       throws KeeperException, InterruptedException {
-    lookupGetChildrenMethod();
+    if (_getChildrenMethod == null) {
+      lookupGetChildrenMethod();
+    }
+
     try {
       // This cast is safe because the type passed in is also List<String>
       @SuppressWarnings("unchecked")
@@ -236,11 +237,6 @@ public class ZkConnection implements IZkConnection {
   }
 
   private void lookupGetChildrenMethod() {
-    if (_getChildrenMethod != null) {
-      // Method is already cached.
-      return;
-    }
-
     doLookUpGetChildrenMethod();
 
     LOG.info("Pagination config {}={}, method to be invoked: {}",

@@ -74,7 +74,10 @@ public class ZkSystemPropertyKeys {
    * API to call zookeeper's <b>paginated</b> {@code getChildren} API.
    * <p>
    * The default value is {@code false}.
+   * <p>
+   * Note: be cautious to use this config as it can be deprecated soon.
    */
+  // TODO: deprecate this config after paginated API is deployed and stable
   public static final String ZK_GETCHILDREN_PAGINATION_DISABLED =
       "zk.getChildren.pagination.disabled";
 }

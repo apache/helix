@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.CreateMode;
@@ -52,7 +53,8 @@ public class ZkConnection implements IZkConnection {
   private static final boolean GETCHILDREN_PAGINATION_DISABLED =
       Boolean.getBoolean(ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED);
 
-  private ZooKeeper _zk = null;
+  @VisibleForTesting
+  protected ZooKeeper _zk = null;
   private Lock _zookeeperLock = new ReentrantLock();
   private Method _getChildrenMethod;
 
@@ -237,31 +239,29 @@ public class ZkConnection implements IZkConnection {
   }
 
   private void lookupGetChildrenMethod() {
-    doLookUpGetChildrenMethod();
+    _getChildrenMethod = doLookUpGetChildrenMethod();
 
     LOG.info("Pagination config {}={}, method to be invoked: {}",
         ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
         _getChildrenMethod.getName());
   }
 
-  private void doLookUpGetChildrenMethod() {
+  private Method doLookUpGetChildrenMethod() {
     if (!GETCHILDREN_PAGINATION_DISABLED) {
       try {
         // Lookup the paginated getChildren API
-        _getChildrenMethod =
-            ZooKeeper.class.getMethod("getAllChildrenPaginated", String.class, boolean.class);
-        return;
+        return ZooKeeper.class.getMethod("getAllChildrenPaginated", String.class, boolean.class);
       } catch (NoSuchMethodException e) {
         LOG.info("Paginated getChildren is not supported, fall back to non-paginated getChildren");
       }
     }
 
-    lookupNonPaginatedGetChildren();
+    return lookupNonPaginatedGetChildren();
   }
 
-  private void lookupNonPaginatedGetChildren() {
+  private Method lookupNonPaginatedGetChildren() {
     try {
-      _getChildrenMethod = ZooKeeper.class.getMethod("getChildren", String.class, boolean.class);
+      return ZooKeeper.class.getMethod("getChildren", String.class, boolean.class);
     } catch (NoSuchMethodException e) {
       // We should not expect this exception here.
       throw ExceptionUtil.convertToRuntimeException(e.getCause());
@@ -273,7 +273,7 @@ public class ZkConnection implements IZkConnection {
     if (cause instanceof KeeperException.UnimplementedException) {
       LOG.warn("Paginated getChildren is unimplemented in ZK server! "
           + "Falling back to non-paginated getChildren");
-      lookupNonPaginatedGetChildren();
+      _getChildrenMethod = lookupNonPaginatedGetChildren();
       // ZK server would disconnect this connection because of UnimplementedException.
       // Throw CONNECTIONLOSS so ZkClient can retry.
       // TODO: handle it in a better way without throwing CONNECTIONLOSS

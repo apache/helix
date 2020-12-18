@@ -1012,6 +1012,20 @@ public class ZkClient implements Watcher {
     }
   }
 
+  /**
+   * Returns a list of children of the given path.
+   * <p>
+   * NOTE: if the given path has too many children which causes the network packet length to exceed
+   * {@code jute.maxbuffer}, there are 2 cases, depending on whether or not the native
+   * zk supports paginated getChildren API and the config
+   * {@link ZkSystemPropertyKeys#ZK_GETCHILDREN_PAGINATION_DISABLED}:
+   * <p>1) pagination is disabled by {@link ZkSystemPropertyKeys#ZK_GETCHILDREN_PAGINATION_DISABLED}
+   * set to true or zk does not support pagination: the operation will fail.
+   * <p>2) config is false and zk supports pagination. A list of all children will be fetched using
+   * pagination and returned. But please note that the final children list is NOT strongly
+   * consistent with server - the list might contain some deleted children if some children
+   * are deleted before the last page is fetched. The upstream caller should be able to handle this.
+   */
   public List<String> getChildren(String path) {
     return getChildren(path, hasListeners(path));
   }

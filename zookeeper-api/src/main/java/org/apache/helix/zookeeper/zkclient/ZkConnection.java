@@ -20,12 +20,15 @@ package org.apache.helix.zookeeper.zkclient;
  */
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -36,16 +39,24 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZkConnection implements IZkConnection {
-  private static final Logger LOG = Logger.getLogger(ZkConnection.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZkConnection.class);
 
   /** It is recommended to use quite large sessions timeouts for ZooKeeper. */
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
 
-  private ZooKeeper _zk = null;
+  // A config to force disabling using ZK's paginated getChildren.
+  // By default the value is false.
+  private static final boolean GETCHILDREN_PAGINATION_DISABLED =
+      Boolean.getBoolean(ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED);
+
+  @VisibleForTesting
+  protected ZooKeeper _zk = null;
   private Lock _zookeeperLock = new ReentrantLock();
+  private Method _getChildrenMethod;
 
   private final String _servers;
   private final int _sessionTimeOut;
@@ -132,10 +143,44 @@ public class ZkConnection implements IZkConnection {
     return _zk.exists(path, watch) != null;
   }
 
+  /**
+   * Returns a list of children of the given path.
+   * <p>
+   * If the watch is non-null and the call is successful (no exception is thrown),
+   * a watch will be left on the node with the given path.
+   * <p>
+   * The implementation uses java reflection to check whether the native zk supports
+   * paginated getChildren API:
+   * <p>- if yes, and {@link #GETCHILDREN_PAGINATION_DISABLED} is false, call the paginated API;
+   * <p>- otherwise, fall back to the non-paginated API.
+   *
+   * @param path the path of the node
+   * @param watch a boolean flag to indicate whether the watch should be added to the node
+   * @return a list of children of the given path
+   * @throws KeeperException if the server signals an error with a non-zero error code
+   * @throws InterruptedException if the server transaction is interrupted
+   */
   @Override
   public List<String> getChildren(final String path, final boolean watch)
       throws KeeperException, InterruptedException {
-    return _zk.getChildren(path, watch);
+    if (_getChildrenMethod == null) {
+      lookupGetChildrenMethod();
+    }
+
+    try {
+      // This cast is safe because the type passed in is also List<String>
+      @SuppressWarnings("unchecked")
+      List<String> children = (List<String>) _getChildrenMethod.invoke(_zk, path, watch);
+      return children;
+    } catch (InvocationTargetException e) {
+      // Handle any exceptions thrown by method to be invoked
+      handleInvokedMethodException(e.getCause());
+    } catch (IllegalAccessException e) {
+      // Log the exception to understand the detailed reason.
+      LOG.error("Unable to get children for {}", path, e);
+    }
+    // If it reaches here, something must be wrong with the API.
+    throw KeeperException.create(KeeperException.Code.APIERROR, path);
   }
 
   @Override
@@ -191,5 +236,54 @@ public class ZkConnection implements IZkConnection {
   @Override
   public void addAuthInfo(String scheme, byte[] auth) {
     _zk.addAuthInfo(scheme, auth);
+  }
+
+  private void lookupGetChildrenMethod() {
+    _getChildrenMethod = doLookUpGetChildrenMethod();
+
+    LOG.info("Pagination config {}={}, method to be invoked: {}",
+        ZkSystemPropertyKeys.ZK_GETCHILDREN_PAGINATION_DISABLED, GETCHILDREN_PAGINATION_DISABLED,
+        _getChildrenMethod.getName());
+  }
+
+  private Method doLookUpGetChildrenMethod() {
+    if (!GETCHILDREN_PAGINATION_DISABLED) {
+      try {
+        // Lookup the paginated getChildren API
+        return ZooKeeper.class.getMethod("getAllChildrenPaginated", String.class, boolean.class);
+      } catch (NoSuchMethodException e) {
+        LOG.info("Paginated getChildren is not supported, fall back to non-paginated getChildren");
+      }
+    }
+
+    return lookupNonPaginatedGetChildren();
+  }
+
+  private Method lookupNonPaginatedGetChildren() {
+    try {
+      return ZooKeeper.class.getMethod("getChildren", String.class, boolean.class);
+    } catch (NoSuchMethodException e) {
+      // We should not expect this exception here.
+      throw ExceptionUtil.convertToRuntimeException(e.getCause());
+    }
+  }
+
+  private void handleInvokedMethodException(Throwable cause)
+      throws KeeperException, InterruptedException {
+    if (cause instanceof KeeperException.UnimplementedException) {
+      LOG.warn("Paginated getChildren is unimplemented in ZK server! "
+          + "Falling back to non-paginated getChildren");
+      _getChildrenMethod = lookupNonPaginatedGetChildren();
+      // ZK server would disconnect this connection because of UnimplementedException.
+      // Throw CONNECTIONLOSS so ZkClient can retry.
+      // TODO: handle it in a better way without throwing CONNECTIONLOSS
+      throw KeeperException.create(KeeperException.Code.CONNECTIONLOSS);
+    } else if (cause instanceof KeeperException) {
+      throw KeeperException.create(((KeeperException) cause).code());
+    } else if (cause instanceof InterruptedException) {
+      throw new InterruptedException(cause.getMessage());
+    } else {
+      throw ExceptionUtil.convertToRuntimeException(cause);
+    }
   }
 }

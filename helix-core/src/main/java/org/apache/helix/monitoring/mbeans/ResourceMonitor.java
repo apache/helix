@@ -47,7 +47,8 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     UNKNOWN,
     NORMAL,
     BEST_POSSIBLE_STATE_CAL_FAILED,
-    INTERMEDIATE_STATE_CAL_FAILED
+    INTERMEDIATE_STATE_CAL_FAILED,
+    PER_REPLICA_STATE_CAL_FAILED
   }
 
   private static final String GAUGE_METRIC_SUFFIX = "Gauge";
@@ -64,6 +65,12 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions;
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions;
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions;
+
+  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalanceMsgs;
+  private SimpleDynamicMetric<Long> _numPendingLoadRebalanceMsgs;
+  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledMsgs;
+  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledMsgs;
+
   private SimpleDynamicMetric<Long> _numPendingStateTransitions;
 
   // Counters
@@ -118,6 +125,17 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0L);
     _numPendingRecoveryRebalancePartitions =
         new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0L);
+
+    _numLoadRebalanceThrottledMsgs =
+        new SimpleDynamicMetric("LoadRebalanceThrottledMsgGauge", 0L);
+    _numRecoveryRebalanceThrottledMsgs =
+        new SimpleDynamicMetric("RecoveryRebalanceThrottledMsgGauge", 0L);
+    _numPendingLoadRebalanceMsgs =
+        new SimpleDynamicMetric("PendingLoadRebalanceMsgGauge", 0L);
+    _numPendingRecoveryRebalanceMsgs =
+        new SimpleDynamicMetric("PendingRecoveryRebalanceMsgGauge", 0L);
+
+
     _numLessReplicaPartitions = new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0L);
     _numLessMinActiveReplicaPartitions =
         new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0L);
@@ -376,6 +394,16 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
   }
 
+  public void updatePerReplicaRebalancerStats(long numPendingRecoveryRebalanceMsg,
+      long numPendingLoadRebalanceMsgs, long numRecoveryRebalanceThrottledMsgs,
+      long numLoadRebalanceThrottledMsgs) {
+    _numPendingRecoveryRebalancePartitions.updateValue(numPendingRecoveryRebalanceMsg);
+    _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalanceMsgs);
+    _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledMsgs);
+    _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledMsgs);
+  }
+
+
   /**
    * Updates partition weight metric. If the partition capacity keys are changed, all MBean
    * attributes will be updated accordingly: old capacity keys will be replaced with new capacity
@@ -436,6 +464,22 @@ public class ResourceMonitor extends DynamicMBeanProvider {
 
   public long getLoadRebalanceThrottledPartitionGauge() {
     return _numLoadRebalanceThrottledPartitions.getValue();
+  }
+
+  public long getPendingRecoveryRebalanceMsgGauge() {
+    return _numPendingRecoveryRebalanceMsgs.getValue();
+  }
+
+  public long getPendingLoadRebalanceMsgGauge() {
+    return _numPendingLoadRebalanceMsgs.getValue();
+  }
+
+  public long getRecoveryRebalanceThrottledMsgGauge() {
+    return _numRecoveryRebalanceThrottledMsgs.getValue();
+  }
+
+  public long getLoadRebalanceThrottledMsgGauge() {
+    return _numLoadRebalanceThrottledMsgs.getValue();
   }
 
   public long getNumPendingStateTransitionGauge() {

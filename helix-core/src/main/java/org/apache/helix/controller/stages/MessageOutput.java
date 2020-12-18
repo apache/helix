@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -34,6 +35,10 @@ public class MessageOutput {
   public MessageOutput() {
     _messagesMap = new HashMap<>();
 
+  }
+
+  public Set<String> resourceSet() {
+    return Collections.unmodifiableSet(_messagesMap.keySet());
   }
 
   public void addMessage(String resourceName, Partition partition, Message message) {

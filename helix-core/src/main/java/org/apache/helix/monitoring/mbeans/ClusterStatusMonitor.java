@@ -586,6 +586,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  public void updatePerReplicaRebalancerStats(String resourceName, long numPendingRecoveryRebalanceMsgs,
+      long numPendingLoadRebalanceMsgs, long numRecoveryRebalanceThrottledMsgs,
+      long numLoadRebalanceThrottledMsgs) {
+    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+    if (resourceMonitor != null) {
+      resourceMonitor.updateRebalancerStats(numPendingRecoveryRebalanceMsgs,
+          numPendingLoadRebalanceMsgs, numRecoveryRebalanceThrottledMsgs,
+          numLoadRebalanceThrottledMsgs);
+    }
+  }
+
   private ResourceMonitor getOrCreateResourceMonitor(String resourceName) {
     try {
       if (!_resourceMonitorMap.containsKey(resourceName)) {

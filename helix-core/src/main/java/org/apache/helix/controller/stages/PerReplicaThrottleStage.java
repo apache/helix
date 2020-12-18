@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,6 +47,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,8 +124,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     if (maxPartitionPerInstance > 0) {
       validateMaxPartitionsPerInstance(retracedResourceStateMap, maxPartitionPerInstance, cache, event);
     }
-
-    //TODO: add metrics
   }
 
   /**
@@ -182,6 +183,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
                   "HelixManager is not set/null! Failed to pause this cluster/enable maintenance"
                       + " mode due to an instance being assigned more replicas/partitions than "
                       + "the limit.");
+            }
+
+            ClusterStatusMonitor clusterStatusMonitor =
+                event.getAttribute(AttributeName.clusterStatusMonitor.name());
+            if (clusterStatusMonitor != null) {
+              clusterStatusMonitor.setResourceRebalanceStates(Collections.singletonList(resource),
+                  ResourceMonitor.RebalanceStatus.PER_REPLICA_STATE_CAL_FAILED);
             }
             throw new HelixException(errMsg);
           }
@@ -246,6 +254,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       prioritizedResourceList.sort(new ResourcePriorityComparator());
     }
 
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     List<String> failedResources = new ArrayList<>();
 
     // Priority is applied in assignment computation because higher priority by looping in order of
@@ -275,7 +285,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
       Map<Partition, Map<String, String>> retracedPartitionsState = new HashMap<>();
       try {
-        throttlePerReplicaMessages(idealState, currentStateOutput,
+        throttlePerReplicaMessages(idealState, clusterStatusMonitor, currentStateOutput,
             selectedMessage.getResourceMessages(resourceName), resourceMap.get(resourceName),
             bestPossibleStateOutput, dataCache, throttleController, retracedPartitionsState,
             throttledRecoveryMsg, throttledLoadMsg, output);
@@ -285,6 +295,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
             "Failed to calculate per replica partition states for resource " + resourceName, ex);
         failedResources.add(resourceName);
       }
+    }
+
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.setResourceRebalanceStates(failedResources,
+          ResourceMonitor.RebalanceStatus.PER_REPLICA_STATE_CAL_FAILED);
+      clusterStatusMonitor.setResourceRebalanceStates(output.resourceSet(),
+          ResourceMonitor.RebalanceStatus.NORMAL);
     }
 
     return output;
@@ -299,6 +316,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * Out param output
    */
   private void throttlePerReplicaMessages(IdealState idealState,
+      ClusterStatusMonitor clusterStatusMonitor,
       CurrentStateOutput currentStateOutput, Map<Partition, List<Message>> selectedResourceMessages,
       Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
       ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
@@ -412,6 +430,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     // Step 6: constructs all retraced partition state map for the resource;
     constructRetracedPartitionStateMap(resource, retracedPartitionsStateMap, out);
+
+    // Step 7: emit metrics
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.updatePerReplicaRebalancerStats(resourceName, recoveryMessages.size(),
+          loadMessages.size(), throttledRecoveryMsgOut.size(),
+          throttledLoadMessageOut.size());
+    }
   }
 
   private void constructRetracedPartitionStateMap(Resource resource,

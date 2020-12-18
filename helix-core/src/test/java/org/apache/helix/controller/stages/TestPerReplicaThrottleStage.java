@@ -110,7 +110,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, new PerReplicaThrottleStage(true));
 
-    List<Message> perReplicaThottledLoad = event.getAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name());
+    List<Message> perReplicaThottledLoad = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name());
     Assert.assertTrue(perReplicaThottledLoad.size() == 1);
     Message msg = perReplicaThottledLoad.get(0);
     Assert.assertTrue(msg.getId().equals("001"));
@@ -231,7 +231,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
 
     List<Message> msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 2);
-    msgs = event.getAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name());
+    msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 1);
   }
 
@@ -302,7 +302,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, new PerReplicaThrottleStage(true));
 
-    List<Message> msgs = event.getAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name());
+    List<Message> msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 1);
     Message msg = msgs.get(0);
     Assert.assertTrue(msg.getId().equals("001"));
@@ -379,7 +379,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
 
     List<Message> msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 0);
-    msgs = event.getAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name());
+    msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 0);
   }
 
@@ -438,7 +438,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
 
     List<Message> msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 0);
-    msgs = event.getAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name());
+    msgs = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name());
     Assert.assertTrue(msgs.size() == 0);
   }
 

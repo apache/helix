@@ -32,7 +32,7 @@ public class MockOFModelFactory extends StateModelFactory<MockOFStateModel> {
     _transition = transition;
   }
 
-  public void setTrasition(MockTransition transition) {
+  public void setTransition(MockTransition transition) {
     _transition = transition;
 
     // set existing transition

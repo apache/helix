@@ -21,9 +21,7 @@ package org.apache.helix.controller.stages.resource;
 
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.IntermediateStateOutput;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 
 /**

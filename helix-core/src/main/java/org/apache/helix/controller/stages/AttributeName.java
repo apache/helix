@@ -63,5 +63,5 @@ public enum AttributeName {
   PER_REPLICA_THROTTLED_RECOVERY_MESSAGES,
 
   // This attribute denotes the filtered out messages deemed as load message
-  PER_REPLICA_THOTTLED_LOAD_MESSAGES
+  PER_REPLICA_THROTTLED_LOAD_MESSAGES
 }

@@ -112,7 +112,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     if (isEmitThrottledMsg) {
       event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name(), throttledRecoveryMsg);
-      event.addAttribute(AttributeName.PER_REPLICA_THOTTLED_LOAD_MESSAGES.name(), throttledLoadMsg);
+      event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name(), throttledLoadMsg);
     }
 
     // Make sure no instance has more replicas/partitions assigned than maxPartitionPerInstance. If
@@ -351,6 +351,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     // Step 4: sorts load message list and applies throttling
 
+    // TODO: consider simplifying the following logic.
     // calculate error-on-recovery downward flag
     // If the threshold (ErrorOrRecovery) is set, then use it, if not, then check if the old
     // threshold (Error) is set. If the old threshold is set, use it. If not, use the default value

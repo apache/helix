@@ -47,7 +47,6 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import sun.applet.Main;
 
 
 public class MockHelixAdmin implements HelixAdmin {

@@ -32,7 +32,6 @@ import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.TaskConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class ThreadCountBasedTaskAssigner implements TaskAssigner {
   private static final Logger logger = LoggerFactory.getLogger(ThreadCountBasedTaskAssigner.class);
@@ -68,7 +67,7 @@ public class ThreadCountBasedTaskAssigner implements TaskAssigner {
   @Override
   public Map<String, TaskAssignResult> assignTasks(Iterable<AssignableInstance> assignableInstances,
       Iterable<TaskConfig> tasks, String quotaType) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override

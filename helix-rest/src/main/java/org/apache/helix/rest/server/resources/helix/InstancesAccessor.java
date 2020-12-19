@@ -41,7 +41,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -263,7 +262,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         break;
       case instance_based:
       default:
-        throw new NotImplementedException("instance_based selection is not supported yet!");
+        throw new UnsupportedOperationException("instance_based selection is not supported yet!");
       }
       return JSONRepresentation(result);
     } catch (HelixException e) {

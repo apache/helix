@@ -48,22 +48,27 @@ public class WorkflowContext extends HelixProperty {
     LAST_PURGE_TIME,
     StartTime, // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
     NAME
-    }
+  }
 
   public static final int NOT_STARTED = -1;
   public static final int UNFINISHED = -1;
 
+  private boolean isModified;
+
   public WorkflowContext(ZNRecord record) {
     super(record);
+    isModified = false;
   }
 
   public void setWorkflowState(TaskState s) {
     String workflowState = _record.getSimpleField(WorkflowContextProperties.STATE.name());
     if (workflowState == null) {
       _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
-    } else if (!workflowState.equals(TaskState.FAILED.name()) && !workflowState
-        .equals(TaskState.COMPLETED.name())) {
+      markWorkflowContextAsModified();
+    } else if (!workflowState.equals(TaskState.FAILED.name())
+        && !workflowState.equals(TaskState.COMPLETED.name()) && !workflowState.equals(s.name())) {
       _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
+      markWorkflowContextAsModified();
     }
   }
 
@@ -81,15 +86,20 @@ public class WorkflowContext extends HelixProperty {
     if (states == null) {
       states = new TreeMap<String, String>();
       _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
+      markWorkflowContextAsModified();
     }
-    states.put(job, s.name());
+    if (states.get(job) == null || !states.get(job).equals(s.name())) {
+      states.put(job, s.name());
+      markWorkflowContextAsModified();
+    }
   }
 
   protected void removeJobStates(Set<String> jobs) {
     Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
-    if (states != null) {
+    if (states != null && states.keySet().stream().anyMatch(jobs::contains)) {
       states.keySet().removeAll(jobs);
       _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
+      markWorkflowContextAsModified();
     }
   }
 
@@ -113,16 +123,21 @@ public class WorkflowContext extends HelixProperty {
     if (startTimes == null) {
       startTimes = new HashMap<String, String>();
       _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
+      markWorkflowContextAsModified();
     }
-    startTimes.put(job, String.valueOf(time));
+    if (startTimes.get(job) == null || !startTimes.get(job).equals(String.valueOf(time))) {
+      startTimes.put(job, String.valueOf(time));
+      markWorkflowContextAsModified();
+    }
   }
 
   protected void removeJobStartTime(Set<String> jobs) {
     Map<String, String> startTimes =
         _record.getMapField(WorkflowContextProperties.StartTime.name());
-    if (startTimes != null) {
+    if (startTimes != null && startTimes.keySet().stream().anyMatch(jobs::contains)) {
       startTimes.keySet().removeAll(jobs);
       _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
+      markWorkflowContextAsModified();
     }
   }
 
@@ -174,20 +189,28 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setStartTime(long t) {
-    _record.setSimpleField(WorkflowContextProperties.START_TIME.name(), String.valueOf(t));
+    long workflowStartTime = getStartTime();
+    if (workflowStartTime == NOT_STARTED || workflowStartTime != t) {
+      _record.setSimpleField(WorkflowContextProperties.START_TIME.name(), String.valueOf(t));
+      markWorkflowContextAsModified();
+    }
   }
 
   public long getStartTime() {
     String tStr = _record.getSimpleField(WorkflowContextProperties.START_TIME.name());
     if (tStr == null) {
-      return -1;
+      return NOT_STARTED;
     }
 
     return Long.parseLong(tStr);
   }
 
   public void setFinishTime(long t) {
-    _record.setSimpleField(WorkflowContextProperties.FINISH_TIME.name(), String.valueOf(t));
+    long workflowFinishTime = getFinishTime();
+    if (workflowFinishTime == UNFINISHED || workflowFinishTime != t) {
+      _record.setSimpleField(WorkflowContextProperties.FINISH_TIME.name(), String.valueOf(t));
+      markWorkflowContextAsModified();
+    }
   }
 
   public long getFinishTime() {
@@ -200,14 +223,24 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setLastScheduledSingleWorkflow(String workflow) {
-    _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), workflow);
-    // Record scheduled workflow into the history list as well
-    List<String> workflows = getScheduledWorkflows();
-    if (workflows == null) {
-      workflows = new ArrayList<String>();
-      _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(), workflows);
+    String lastScheduleWorkflow =
+        _record.getSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name());
+    if (lastScheduleWorkflow == null || !lastScheduleWorkflow.equals(workflow)) {
+      _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), workflow);
+      markWorkflowContextAsModified();
     }
-    workflows.add(workflow);
+    // Record scheduled workflow into the history list as well
+    List<String> scheduledWorkflows = getScheduledWorkflows();
+    if (scheduledWorkflows == null) {
+      scheduledWorkflows = new ArrayList<String>();
+      _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(),
+          scheduledWorkflows);
+      markWorkflowContextAsModified();
+    }
+    if (!scheduledWorkflows.contains(workflow)) {
+      scheduledWorkflows.add(workflow);
+      markWorkflowContextAsModified();
+    }
   }
 
   public String getLastScheduledSingleWorkflow() {
@@ -215,8 +248,12 @@ public class WorkflowContext extends HelixProperty {
   }
 
   protected void setLastJobPurgeTime(long epochTime) {
-    _record.setSimpleField(WorkflowContextProperties.LAST_PURGE_TIME.name(),
-        String.valueOf(epochTime));
+    long lastPurgeTime = getLastJobPurgeTime();
+    if (lastPurgeTime == -1 || lastPurgeTime == epochTime) {
+      _record.setSimpleField(WorkflowContextProperties.LAST_PURGE_TIME.name(),
+          String.valueOf(epochTime));
+      markWorkflowContextAsModified();
+    }
   }
 
   public long getLastJobPurgeTime() {
@@ -228,10 +265,22 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setName(String name) {
-    _record.setSimpleField(WorkflowContextProperties.NAME.name(), name);
+    String oldName = getName();
+    if (oldName == null || !oldName.equals(name)) {
+      _record.setSimpleField(WorkflowContextProperties.NAME.name(), name);
+      markWorkflowContextAsModified();
+    }
   }
 
   public String getName() {
     return _record.getSimpleField(WorkflowContextProperties.NAME.name());
+  }
+
+  public void markWorkflowContextAsModified() {
+    this.isModified = true;
+  }
+
+  public boolean isWorkflowContextModified() {
+    return this.isModified;
   }
 }

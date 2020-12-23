@@ -217,6 +217,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     } else {
       LOG.debug("Workflow {} is not ready to be scheduled.", workflow);
     }
+    _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
   public WorkflowContext getOrInitializeWorkflowContext(String workflowName, TaskDataCache cache) {

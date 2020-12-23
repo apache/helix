@@ -32,7 +32,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.controller.LogUtil;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.AssignableInstanceManager;
 import org.apache.helix.task.JobConfig;
@@ -260,7 +259,9 @@ public class TaskDataCache extends AbstractDataCache {
    * Update context of the Workflow
    */
   public void updateWorkflowContext(String resourceName, WorkflowContext workflowContext) {
-    updateContext(resourceName, workflowContext.getRecord());
+    if (!_contextMap.containsKey(resourceName) || workflowContext.isWorkflowContextModified()) {
+      updateContext(resourceName, workflowContext.getRecord());
+    }
   }
 
   /**

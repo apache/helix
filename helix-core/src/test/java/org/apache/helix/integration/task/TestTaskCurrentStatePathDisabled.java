@@ -33,6 +33,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -50,6 +51,12 @@ public class TestTaskCurrentStatePathDisabled extends TaskTestBase {
     _numPartitions = 1;
     _numNodes = 1;
     super.beforeClass();
+  }
+
+  @AfterClass
+  public void afterClass() throws Exception {
+    super.afterClass();
+    System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "false");
   }
 
   @Test
@@ -97,6 +104,5 @@ public class TestTaskCurrentStatePathDisabled extends TaskTestBase {
         != null, TestHelper.WAIT_DURATION));
     Assert.assertNull(_manager.getHelixDataAccessor()
         .getProperty(keyBuilder.taskCurrentState(instanceP0, sessionIdP0, namespacedJobName1)));
-    System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "false");
   }
 }

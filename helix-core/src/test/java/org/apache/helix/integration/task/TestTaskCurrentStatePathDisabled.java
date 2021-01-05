@@ -72,8 +72,9 @@ public class TestTaskCurrentStatePathDisabled extends TaskTestBase {
     ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
     String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
     PropertyKey.Builder keyBuilder = _manager.getHelixDataAccessor().keyBuilder();
-    Assert.assertNotNull(_manager.getHelixDataAccessor()
-        .getProperty(keyBuilder.taskCurrentState(instanceP0, sessionIdP0, namespacedJobName0)));
+    Assert.assertTrue(TestHelper.verify(() -> _manager.getHelixDataAccessor()
+        .getProperty(keyBuilder.taskCurrentState(instanceP0, sessionIdP0, namespacedJobName0))
+        != null, TestHelper.WAIT_DURATION));
     Assert.assertNull(_manager.getHelixDataAccessor()
         .getProperty(keyBuilder.currentState(instanceP0, sessionIdP0, namespacedJobName0)));
 
@@ -91,10 +92,11 @@ public class TestTaskCurrentStatePathDisabled extends TaskTestBase {
     _driver.start(jobQueue1.build());
     String namespacedJobName1 = TaskUtil.getNamespacedJobName(jobQueueName1, "JOB1");
     _driver.pollForJobState(jobQueueName1, namespacedJobName1, TaskState.IN_PROGRESS);
+    Assert.assertTrue(TestHelper.verify(() -> _manager.getHelixDataAccessor()
+        .getProperty(keyBuilder.currentState(instanceP0, sessionIdP0, namespacedJobName1))
+        != null, TestHelper.WAIT_DURATION));
     Assert.assertNull(_manager.getHelixDataAccessor()
         .getProperty(keyBuilder.taskCurrentState(instanceP0, sessionIdP0, namespacedJobName1)));
-    Assert.assertNotNull(_manager.getHelixDataAccessor()
-        .getProperty(keyBuilder.currentState(instanceP0, sessionIdP0, namespacedJobName1)));
     System.setProperty(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED, "false");
   }
 }

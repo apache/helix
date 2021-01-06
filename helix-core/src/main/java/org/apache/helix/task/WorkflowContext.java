@@ -64,11 +64,8 @@ public class WorkflowContext extends HelixProperty {
 
   public void setWorkflowState(TaskState s) {
     String workflowState = _record.getSimpleField(WorkflowContextProperties.STATE.name());
-    if (workflowState == null) {
-      _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
-      markWorkflowContextAsModified();
-    } else if (!workflowState.equals(TaskState.FAILED.name())
-        && !workflowState.equals(TaskState.COMPLETED.name()) && !workflowState.equals(s.name())) {
+    if (workflowState == null || (!workflowState.equals(TaskState.FAILED.name())
+        && !workflowState.equals(TaskState.COMPLETED.name()) && !workflowState.equals(s.name()))) {
       _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
       markWorkflowContextAsModified();
     }
@@ -268,7 +265,7 @@ public class WorkflowContext extends HelixProperty {
 
   public void setName(String name) {
     String oldName = getName();
-    if (oldName == null || !oldName.equals(name)) {
+    if (!name.equals(oldName)) {
       _record.setSimpleField(WorkflowContextProperties.NAME.name(), name);
       markWorkflowContextAsModified();
     }

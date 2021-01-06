@@ -17,9 +17,12 @@ jobs:
       with:
         java-version: 1.8
     - name: Get Changed Files
-      uses: lots0logs/gh-action-get-changed-files@2.1.4
+      uses: dorny/paths-filter@v2
       with:
         token: ${{ github.token }}
+        filters: |
+          helix-rest:
+            - 'helix-rest/**'
       id: file-diff
     - name: Build with Maven
       run: mvn clean install -Dmaven.test.skip.exec=true
@@ -40,7 +43,7 @@ jobs:
       if: ${{ contains(steps.file-diff.outputs.all, 'helix-lock') && (success() || failure()) }}
     - name: Test helix-rest
       run: cd helix-rest; mvn -q test
-      if: ${{ contains(steps.file-diff.outputs.all, 'helix-rest') && (success() || failure()) }}
+      if: ${{ steps.file-diff.outputs.helix-rest == 'true' && (success() || failure()) }}
     - name: Test helix-core
       run: cd helix-core; mvn -q test
       if: ${{ contains(steps.file-diff.outputs.all, 'helix-core') && (success() || failure()) }}

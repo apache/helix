@@ -49,6 +49,7 @@ class CustomRestClientImpl implements CustomRestClient {
 
   private static final String IS_HEALTHY_FIELD = "IS_HEALTHY";
   private static final String PARTITIONS = "partitions";
+  private static final String PARTITIONS_ADD = "partitionsadd";
   private static final String ACCEPT_CONTENT_TYPE = "application/json";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

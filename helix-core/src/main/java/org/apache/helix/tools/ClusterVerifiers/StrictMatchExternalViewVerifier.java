@@ -66,7 +66,13 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> resources, Set<String> expectLiveInstances) {
-    this(zkClient, clusterName, resources, expectLiveInstances, false, 0);
+    // usesExternalZkClient = true because ZkClient is given by the caller
+    // at close(), we will not close this ZkClient because it might be being used elsewhere
+    super(zkClient, clusterName, true, 0);
+    _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
+    _expectLiveInstances =
+        expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
+    _isDeactivatedNodeAware = false;
   }
 
   @Deprecated
@@ -79,8 +85,11 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private StrictMatchExternalViewVerifier(RealmAwareZkClient zkClient, String clusterName,
-      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware, int waitPeriodTillVerify) {
-    super(zkClient, clusterName, waitPeriodTillVerify);
+      Set<String> resources, Set<String> expectLiveInstances, boolean isDeactivatedNodeAware,
+      int waitPeriodTillVerify, boolean usesExternalZkClient) {
+    // Initialize StrictMatchExternalViewVerifier with usesExternalZkClient = false so that
+    // StrictMatchExternalViewVerifier::close() would close ZkClient to prevent thread leakage
+    super(zkClient, clusterName, usesExternalZkClient, 0);
     _resources = resources == null ? new HashSet<>() : new HashSet<>(resources);
     _expectLiveInstances =
         expectLiveInstances == null ? new HashSet<>() : new HashSet<>(expectLiveInstances);
@@ -94,6 +103,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     private RealmAwareZkClient _zkClient;
     // For backward compatibility, set the default isDeactivatedNodeAware to be false.
     private boolean _isDeactivatedNodeAware = false;
+    private boolean _usesExternalZkClient = false; // false by default
 
     public StrictMatchExternalViewVerifier build() {
       if (_clusterName == null) {
@@ -102,7 +112,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
       if (_zkClient != null) {
         return new StrictMatchExternalViewVerifier(_zkClient, _clusterName, _resources,
-            _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify);
+            _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify,
+            _usesExternalZkClient);
       }
 
       if (_realmAwareZkConnectionConfig == null || _realmAwareZkClientConfig == null) {
@@ -115,7 +126,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
       return new StrictMatchExternalViewVerifier(
           createZkClient(RealmAwareZkClient.RealmMode.SINGLE_REALM, _realmAwareZkConnectionConfig,
               _realmAwareZkClientConfig, _zkAddress), _clusterName, _resources,
-          _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify);
+          _expectLiveInstances, _isDeactivatedNodeAware, _waitPeriodTillVerify,
+          _usesExternalZkClient);
     }
 
     public Builder(String clusterName) {
@@ -151,6 +163,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     @Deprecated
     public Builder setZkClient(RealmAwareZkClient zkClient) {
       _zkClient = zkClient;
+      _usesExternalZkClient = true; // Set the flag since external ZkClient is used
       return this;
     }
 

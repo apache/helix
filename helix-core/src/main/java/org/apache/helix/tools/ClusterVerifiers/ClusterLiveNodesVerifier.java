@@ -34,13 +34,17 @@ public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
   @Deprecated
   public ClusterLiveNodesVerifier(RealmAwareZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
-    super(zkclient, clusterName, 0);
+    // usesExternalZkClient = true because ZkClient is given by the caller
+    // at close(), we will not close this ZkClient because it might be being used elsewhere
+    super(zkclient, clusterName, true, 0);
     _expectLiveNodes = new HashSet<>(expectLiveNodes);
   }
 
   private ClusterLiveNodesVerifier(RealmAwareZkClient zkClient, String clusterName,
       Set<String> expectLiveNodes, int waitPeriodTillVerify) {
-    super(zkClient, clusterName, waitPeriodTillVerify);
+    // Initialize ClusterLiveNodesVerifier with usesExternalZkClient = false so that
+    // ClusterLiveNodesVerifier::close() would close ZkClient to prevent thread leakage
+    super(zkClient, clusterName, false, waitPeriodTillVerify);
     _expectLiveNodes = expectLiveNodes == null ? new HashSet<>() : new HashSet<>(expectLiveNodes);
   }
 

@@ -94,12 +94,13 @@ public abstract class ZkHelixClusterVerifier
     }
   }
 
-  protected ZkHelixClusterVerifier(RealmAwareZkClient zkClient, String clusterName, int waitPeriodTillVerify) {
+  protected ZkHelixClusterVerifier(RealmAwareZkClient zkClient, String clusterName,
+      boolean usesExternalZkClient, int waitPeriodTillVerify) {
     if (zkClient == null || clusterName == null) {
       throw new IllegalArgumentException("requires zkClient|clusterName");
     }
     _zkClient = zkClient;
-    _usesExternalZkClient = true;
+    _usesExternalZkClient = usesExternalZkClient;
     _clusterName = clusterName;
     _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     _keyBuilder = _accessor.keyBuilder();
@@ -113,6 +114,9 @@ public abstract class ZkHelixClusterVerifier
     }
     // If the multi ZK config is enabled, use DedicatedZkClient on multi-realm mode
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
+      LOG.info(
+          "ZkHelixClusterVerifier: zkAddr is null or multi-zk mode is enabled in System Properties."
+              + " Instantiating in multi-zk mode!");
       try {
         RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
             new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
@@ -127,9 +131,6 @@ public abstract class ZkHelixClusterVerifier
         throw new HelixException("ZkHelixClusterVerifier: failed to create ZkClient!", e);
       }
     } else {
-      if (zkAddr == null) {
-        throw new IllegalArgumentException("ZkHelixClusterVerifier: ZkAddress is null or empty!");
-      }
       _zkClient = DedicatedZkClientFactory.getInstance()
           .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
     }

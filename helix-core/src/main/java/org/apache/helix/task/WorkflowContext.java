@@ -85,7 +85,6 @@ public class WorkflowContext extends HelixProperty {
     if (states == null) {
       states = new TreeMap<String, String>();
       _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
-      markWorkflowContextAsModified();
     }
     if (!s.name().equals(states.get(job))) {
       states.put(job, s.name());
@@ -234,7 +233,6 @@ public class WorkflowContext extends HelixProperty {
       scheduledWorkflows = new ArrayList<String>();
       _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(),
           scheduledWorkflows);
-      markWorkflowContextAsModified();
     }
     if (!scheduledWorkflows.contains(workflow)) {
       scheduledWorkflows.add(workflow);

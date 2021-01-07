@@ -53,8 +53,8 @@ public class WorkflowContext extends HelixProperty {
   public static final int NOT_STARTED = -1;
   public static final int UNFINISHED = -1;
 
-  // Note: This field needs to be set if the workflow context fields has been changed. Otherwise,
-  // the context will not be written to ZK by the controller.
+  // Note: This field needs to be set if any of the workflow context fields have been changed.
+  // Otherwise, the context will not be written to ZK by the controller.
   private boolean isModified;
 
   public WorkflowContext(ZNRecord record) {

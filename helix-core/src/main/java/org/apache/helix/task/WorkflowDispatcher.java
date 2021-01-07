@@ -46,8 +46,6 @@ import org.slf4j.LoggerFactory;
 
 public class WorkflowDispatcher extends AbstractTaskDispatcher {
   private static final Logger LOG = LoggerFactory.getLogger(WorkflowDispatcher.class);
-  private static final Set<TaskState> finalStates = new HashSet<>(
-      Arrays.asList(TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED, TaskState.TIMED_OUT));
   private WorkflowControllerDataProvider _clusterDataCache;
   private JobDispatcher _jobDispatcher;
 
@@ -86,7 +84,8 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     // Step 2: handle timeout, which should have higher priority than STOP
     // Only generic workflow get timeouted and schedule rebalance for timeout. Will skip the set if
     // the workflow already got timeouted. Job Queue will ignore the setup.
-    if (!workflowCfg.isJobQueue() && !finalStates.contains(workflowCtx.getWorkflowState())) {
+    if (!workflowCfg.isJobQueue()
+        && !TaskConstants.FINAL_STATES.contains(workflowCtx.getWorkflowState())) {
       // If timeout point has already been passed, it will not be scheduled
       scheduleRebalanceForTimeout(workflow, workflowCtx.getStartTime(), workflowCfg.getTimeout());
 
@@ -149,7 +148,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
 
     // Step 5: handle workflow that should STOP
     // For workflows that have already reached final states, STOP should not take into effect.
-    if (!finalStates.contains(workflowCtx.getWorkflowState())
+    if (!TaskConstants.FINAL_STATES.contains(workflowCtx.getWorkflowState())
         && TargetState.STOP.equals(targetState)) {
       LOG.info("Workflow {} is marked as stopped. Workflow state is {}", workflow,
           workflowCtx.getWorkflowState());
@@ -217,6 +216,7 @@ public class WorkflowDispatcher extends AbstractTaskDispatcher {
     } else {
       LOG.debug("Workflow {} is not ready to be scheduled.", workflow);
     }
+    _clusterDataCache.updateWorkflowContext(workflow, workflowCtx);
   }
 
   public WorkflowContext getOrInitializeWorkflowContext(String workflowName, TaskDataCache cache) {

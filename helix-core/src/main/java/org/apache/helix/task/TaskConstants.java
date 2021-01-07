@@ -19,6 +19,10 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Constants used in the task framework.
  */
@@ -56,4 +60,7 @@ public class TaskConstants {
    * pool size default value if the current thread pool size is not defined in LiveInstance
    */
   public final static int DEFAULT_TASK_THREAD_POOL_SIZE = 40;
+
+  public static final Set<TaskState> FINAL_STATES = new HashSet<>(
+      Arrays.asList(TaskState.COMPLETED, TaskState.FAILED, TaskState.ABORTED, TaskState.TIMED_OUT));
 }

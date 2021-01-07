@@ -82,4 +82,47 @@ public class TestContextRedundantUpdates extends TaskTestBase {
 
     Assert.assertEquals(initialWorkflowContextVersion, finalWorkflowContextVersion);
   }
+
+  @Test
+  public void testRunningWorkflowContextNoUpdate() throws Exception {
+    // Create a workflow with a long running job
+    String workflowName1 = TestHelper.getTestMethodName() + "_1";
+    String jobName = "JOB0";
+    JobConfig.Builder jobBuilder1 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setWorkflow(workflowName1).setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100)
+        .setTimeoutPerTask(Long.MAX_VALUE).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "10000000"));
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName1).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName1, TaskUtil.getNamespacedJobName(workflowName1, jobName),
+        TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(workflowName1, TaskState.IN_PROGRESS);
+
+    int initialWorkflowContextVersion = _manager.getHelixDataAccessor()
+        .getProperty(
+            _manager.getHelixDataAccessor().keyBuilder().workflowContextZNode(workflowName1))
+        .getRecord().getVersion();
+
+    // Create another workflow with short running job
+    String workflowName2 = TestHelper.getTestMethodName() + "_2";
+    JobConfig.Builder jobBuilder2 = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG)
+        .setWorkflow(workflowName2).setNumberOfTasks(10).setNumConcurrentTasksPerInstance(100)
+        .setTimeoutPerTask(Long.MAX_VALUE).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "2000"));
+    Workflow.Builder workflowBuilder2 =
+        new Workflow.Builder(workflowName2).addJob(jobName, jobBuilder2);
+    // Start new workflow and make sure it gets completed. This would help us to make sure pipeline
+    // has been run several times
+    _driver.start(workflowBuilder2.build());
+    _driver.pollForWorkflowState(workflowName2, TaskState.COMPLETED);
+
+    int finalWorkflowContextVersion = _manager.getHelixDataAccessor()
+        .getProperty(
+            _manager.getHelixDataAccessor().keyBuilder().workflowContextZNode(workflowName1))
+        .getRecord().getVersion();
+
+    Assert.assertEquals(initialWorkflowContextVersion, finalWorkflowContextVersion);
+  }
 }

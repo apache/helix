@@ -87,7 +87,7 @@ public class WorkflowContext extends HelixProperty {
       _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
       markWorkflowContextAsModified();
     }
-    if (states.get(job) == null || !states.get(job).equals(s.name())) {
+    if (!s.name().equals(states.get(job))) {
       states.put(job, s.name());
       markWorkflowContextAsModified();
     }
@@ -124,7 +124,7 @@ public class WorkflowContext extends HelixProperty {
       _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
       markWorkflowContextAsModified();
     }
-    if (startTimes.get(job) == null || !startTimes.get(job).equals(String.valueOf(time))) {
+    if (!String.valueOf(time).equals(startTimes.get(job))) {
       startTimes.put(job, String.valueOf(time));
       markWorkflowContextAsModified();
     }
@@ -224,7 +224,7 @@ public class WorkflowContext extends HelixProperty {
   public void setLastScheduledSingleWorkflow(String workflow) {
     String lastScheduleWorkflow =
         _record.getSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name());
-    if (lastScheduleWorkflow == null || !lastScheduleWorkflow.equals(workflow)) {
+    if (!workflow.equals(lastScheduleWorkflow)) {
       _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), workflow);
       markWorkflowContextAsModified();
     }

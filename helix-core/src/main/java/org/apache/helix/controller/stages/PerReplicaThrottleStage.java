@@ -463,6 +463,36 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
   }
 
+  private void propagateCountsTopDown(
+      StateModelDefinition stateModelDef,
+      Map<String, Integer> expectedStateCountMap
+  ) {
+    // attribute state in higher priority to lower priority
+    List<String> stateList = stateModelDef.getStatesPriorityList();
+    if (stateList.size() <= 0) {
+      return;
+    }
+    int index = 0;
+    String prevState = stateList.get(index);
+    if (!expectedStateCountMap.containsKey(prevState)) {
+      expectedStateCountMap.put(prevState, 0);
+    }
+    while (true) {
+      if (index == stateList.size() - 1) {
+        break;
+      }
+      index++;
+      String curState = stateList.get(index);
+      String num = stateModelDef.getNumInstancesPerState(curState);
+      if ("-1".equals(num)) {
+        break;
+      }
+      Integer prevCnt = expectedStateCountMap.get(prevState);
+      expectedStateCountMap.put(curState, prevCnt + expectedStateCountMap.getOrDefault(curState,0));
+      prevState = curState;
+    }
+  }
+
   private void getPartitionExpectedAndCurrentStateCountMap(
       Partition partition,
       Map<String, List<String>> preferenceLists,
@@ -495,6 +525,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     expectedStateCountMapOut.putAll(expectedStateCountMap);
     currentStateCountsOut.putAll(currentStateCounts);
+    propagateCountsTopDown(stateModelDef, expectedStateCountMapOut);
+    propagateCountsTopDown(stateModelDef, currentStateCountsOut);
   }
 
   /*
@@ -559,19 +591,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         currentCount = currentCount == null ? 0 : currentCount;
 
         boolean isUpward = !isDownwardTransition(idealState, cache, msg);
-        // the gist is that if there is a topState, we should deem the topState also satisfy as secondTopState requirement.
-        // upward AND (condition 1 or condition 2)
-        // condition1: currentCount < expectedCount
-        // condition2: currentCount == expected && toState is secondary state && currentCount(topState) < expectedCount(topState)
-        String topState = stateModelDef.getTopState();
-        String secondTopState = stateModelDef.getStatesPriorityList().get(1);
-        Integer expectedTopCount = expectedStateCountMap.get(topState);
-        Integer currentTopCount = currentStateCounts.get(topState);
-        currentTopCount = currentTopCount == null ? 0 : currentTopCount;
-        expectedTopCount = expectedTopCount == null ? 0 : expectedTopCount;
-
-        if (isUpward && ((currentCount < expectedCount) || (currentCount == expectedCount && toState
-            .equals(secondTopState) && currentTopCount < expectedTopCount))) {
+        if (isUpward && (currentCount < expectedCount)) {
           recoveryMessages.add(msg);
           partitionsNeedRecovery.add(partition);
           // update
@@ -694,15 +714,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         expectedCount = expectedCount == null ? 0 : expectedCount;
         currentCount = currentCount == null ? 0 : currentCount;
 
-        String topState = stateModelDef.getTopState();
-        String secondTopState = stateModelDef.getStatesPriorityList().get(1);
-        Integer expectedTopCount = expectedStateCountMap.get(topState);
-        Integer currentTopCount = currentStateCounts.get(topState);
-        currentTopCount = currentTopCount == null ? 0 : currentTopCount;
-        expectedTopCount = expectedTopCount == null ? 0 : expectedTopCount;
-
-        if (isUpward && ((currentCount < expectedCount) || (currentCount == expectedCount && toState
-            .equals(secondTopState) && currentTopCount < expectedTopCount))) {
+        if (isUpward && (currentCount < expectedCount)) {
           recoveryMessages.add(msg);
           currentStateCounts.put(toState, currentCount + 1);
         } else {
@@ -738,8 +750,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     logger.trace("throttleControllerstate->{} before load", throttleController);
     for (Message msg: messages) {
       if (onlyDownwardLoadBalance) {
-        boolean isDownward = isDownwardTransition(idealState, cache, msg);
-        if (isDownward == false) {
+        if (isDownwardTransition(idealState, cache, msg) == false) {
           throttledMessages.add(msg);
           if (logger.isDebugEnabled()) {
             LogUtil.logDebug(logger, _eventId,

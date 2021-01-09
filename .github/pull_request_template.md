@@ -17,9 +17,9 @@ Any of the following keywords can be used: close, closes, closed, fix, fixes, fi
 
 (List the names of added unit/integration tests)
 
-- [ ] The following is the result of the "mvn test" command on the appropriate module:
+- The following is the result of the "mvn test" command on the appropriate module:
 
-(Before CI test pass, please copy & paste the result of "mvn test")
+(If CI test fails due to known issue, please specify the issue and test PR locally. Then copy & paste the result of "mvn test" to here.)
 
 ### Documentation (Optional)
 

@@ -380,6 +380,11 @@ public class MockManager implements HelixManager {
   }
 
   @Override
+  public void submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
+    return;
+  }
+
+  @Override
   public Long getSessionStartTime() {
     return 0L;
   }

@@ -529,6 +529,27 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     propagateCountsTopDown(stateModelDef, currentStateCountsOut);
   }
 
+  private void chargePendingMessageAndRetrace(
+      List<Message> messages,
+      Map<String, String> retracedStateMap,
+      String resourceName,
+      StateTransitionThrottleController throttleController,
+      StateTransitionThrottleConfig.RebalanceType rType
+  ) {
+    for (Message msg: messages) {
+      String toState = msg.getToState();
+      String toInstance = msg.getTgtName();
+      // toInstance should be in currentStateMap
+      retracedStateMap.put(toInstance, toState);
+
+      throttleController.chargeInstance(rType, toInstance);
+      throttleController.chargeCluster(rType);
+      throttleController.chargeResource(rType, resourceName);
+      logger.trace("throttleControllerstate->{} after pending {} charge msg:{}", throttleController, rType.name(), msg);
+    }
+
+  }
+
   /*
    * Charge pending messages with recovery or load rebalance and update the retraced partition map
    * accordingly.
@@ -601,37 +622,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         }
       }
       // charge recovery message and retrace
-      for (Message recoveryMsg : recoveryMessages) {
-        String toState = recoveryMsg.getToState();
-        String toInstance = recoveryMsg.getTgtName();
-        // toInstance should be in currentStateMap
-        retracedStateMap.put(toInstance, toState);
-
-        throttleController
-            .chargeInstance(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-                toInstance);
-        throttleController
-            .chargeCluster(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
-        throttleController
-            .chargeResource(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-                resourceName);
-        logger.trace("throttleControllerstate->{} after pending recovery charge msg:{}", throttleController, recoveryMsg);
-      }
+      chargePendingMessageAndRetrace(recoveryMessages, retracedStateMap, resourceName,
+          throttleController, StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
       // charge load message and retrace;
       // note if M->S with relay message, we don't charge relay message now. We would charge relay
       // message only when it shows in pending messages in the next cycle of controller run.
-      for (Message loadMsg : loadMessages) {
-        String toState = loadMsg.getToState();
-        String toInstance = loadMsg.getTgtName();
-        retracedStateMap.put(toInstance, toState);
-
-        throttleController
-            .chargeInstance(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, toInstance);
-        throttleController.chargeCluster(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
-        throttleController
-            .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
-        logger.trace("throttleControllerstate->{} after pending load charge msg:{}", throttleController, loadMsg);
-      }
+      chargePendingMessageAndRetrace(loadMessages, retracedStateMap, resourceName,
+          throttleController, StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
       retracedPartitionsStateMap.put(partition, retracedStateMap);
     }
 

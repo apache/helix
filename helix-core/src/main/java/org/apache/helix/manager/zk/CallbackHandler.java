@@ -63,7 +63,6 @@ import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
 import org.apache.helix.common.DedupEventBlockingQueue;
-import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedState;
@@ -167,28 +166,32 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
     @Override
     public void run() {
-      if (_callBackEventQueue.size() > 0) {
-        try {
-          NotificationContext event = _callBackEventQueue.take();
-          handleEvent(event);
-        } catch (InterruptedException e) {
-          logger.warn(_processorName + " thread interrupted", e);
-        } catch (ZkInterruptedException e) {
-          logger.warn(_processorName + " thread caught a ZK connection interrupt", e);
-        } catch (ThreadDeath death) {
-          throw death;
-        } catch (Throwable t) {
-          logger.error(_processorName + " thread failed while running " + _processorName, t);
-        }
-
+      NotificationContext event = null;
+      try {
         synchronized (_callBackEventQueue) {
           if (_callBackEventQueue.size() > 0) {
-            submitHandleCallBackEventToManagerThreadPool();
+            event = _callBackEventQueue.take();
           }
+        }
+        if (event != null) {
+          handleEvent(event);
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } catch (ZkInterruptedException e) {
+        logger.warn(_processorName + " thread caught a ZK connection interrupt", e);
+      } catch (ThreadDeath death) {
+        throw death;
+      } catch (Throwable t) {
+        logger.error(_processorName + " thread failed while running " + _processorName, t);
+      }
+
+      synchronized (_callBackEventQueue) {
+        if (_callBackEventQueue.size() > 0) {
+          submitHandleCallBackEventToManagerThreadPool();
         }
       }
     }
-
   }
 
   /**

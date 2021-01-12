@@ -14,13 +14,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify All Tasks are Finished
-        uses: venkatsarvesh/pr-tasks-completed-action@v1.0.0
+      - name: Label PR if ready to be merged.
+        uses: actions/github-script@v3
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Verify the PR has been approved
-        uses: abinoda/label-when-approved-action@1.0.5
-        env:
-          APPROVALS: "1"
-          ADD_LABEL: "CheckedAndApproved"
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const approvalLabel = 'CheckedAndApproved'
+            
+            const reviews = await github.pulls.listReviews({
+              pull_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+            
+            // Check if any recent APPROVED or CHANGES_REQUESTED reviews.
+            var approved = false
+            for (const review_info of reviews.data) {
+              if (review_info.author_association == 'NONE' || review_info.author_association == 'FIRST_TIMER' || review_info.author_association == 'FIRST_TIME_CONTRIBUTOR') {
+                continue
+              }
+              if (review_info.state == 'APPROVED') {
+                approved = true
+              } else if (review_info.state == 'CHANGES_REQUESTED') {
+                approved = false
+              }
+            }
+            
+            if (approved) {
+              console.log("This PR has been approved.")
+              github.issues.addLabels({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: [approvalLabel]
+              })
+            } else {
+              console.log("This PR has not been approved.")
+              const labels_info = await github.issues.listLabelsOnIssue({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              })
+              
+              var approvalLabelExist = false
+              for (const label of labels_info.data) {
+                if (label.name == approvalLabel) {
+                  approvalLabelExist = true
+                  break
+                }
+              }
+              if (approvalLabelExist) {
+                github.issues.removeLabel({
+                  issue_number: context.payload.pull_request.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: approvalLabel
+                })
+              }
+            }
+        if: ${{ (!contains(github.event.pull_request.body, '[ ]') || contains(github.event.pull_request.labels.*.name, 'CheckedAndApproved')) && (github.event.pull_request.state == 'open') }}

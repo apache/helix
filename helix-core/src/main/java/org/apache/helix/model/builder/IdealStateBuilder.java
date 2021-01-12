@@ -29,6 +29,7 @@ public abstract class IdealStateBuilder {
    * Resource name e.g. myDB,
    */
   private String resourceName;
+
   /**
    * Number of partitions/subresources
    */
@@ -38,7 +39,6 @@ public abstract class IdealStateBuilder {
    * Number of replicas for each partition
    */
   private int numReplica;
-
 
   /**
    * Number of minimal active replicas for each partition
@@ -59,6 +59,7 @@ public abstract class IdealStateBuilder {
    * State model that is applicable for this resource
    */
   private String stateModel;
+
   /**
    * The state model factory implementation in the participant. Allows
    * participants to plugin resource specific implementation, by default Helix
@@ -66,6 +67,7 @@ public abstract class IdealStateBuilder {
    * This is optional
    */
   private String stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+
   /**
    * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
    */
@@ -85,12 +87,13 @@ public abstract class IdealStateBuilder {
    * A constraint that limits the maximum number of partitions per Node.
    */
   private int maxPartitionsPerNode;
+
   /**
    * Allocate the resource to nodes that are tagged with a specific "nodeGroup"
    * name. By default a resource will be allocated to all nodes registered to
    * the cluster.
    */
-  private String nodeGroup = "*";
+  private String nodeGroup = null;
 
   /**
    * Whether to disable external view for this resource
@@ -107,12 +110,10 @@ public abstract class IdealStateBuilder {
    */
   private Boolean enableGroupRouting = null;
 
-
   /**
    * Resource Type
    */
   private String resourceType;
-
 
   protected ZNRecord _record;
 
@@ -313,6 +314,10 @@ public abstract class IdealStateBuilder {
 
     if (delayRebalanceEnabled != null) {
       idealstate.setDelayRebalanceEnabled(delayRebalanceEnabled);
+    }
+
+    if (nodeGroup != null) {
+      idealstate.setInstanceGroupTag(nodeGroup);
     }
 
     if (!idealstate.isValid()) {

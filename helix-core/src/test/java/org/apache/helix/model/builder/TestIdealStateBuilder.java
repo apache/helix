@@ -44,8 +44,9 @@ public class TestIdealStateBuilder {
 
   @Test
   public void testFullAutoModeISModeBuilder() {
+    String nodeGroup = "groupA";
     FullAutoModeISBuilder builder = new FullAutoModeISBuilder("test-db");
-    builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
+    builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2).setNodeGroup(nodeGroup);
     builder.add("test-db_0").add("test-db_1");
 
     IdealState idealState = null;
@@ -57,7 +58,7 @@ public class TestIdealStateBuilder {
     // System.out.println("ideal-state: " + idealState);
     Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO,
         "rebalancer mode should be auto");
-
+    Assert.assertEquals(idealState.getInstanceGroupTag(), nodeGroup);
   }
 
   @Test

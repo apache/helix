@@ -181,8 +181,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
           logger.error(_processorName + " thread failed while running " + _processorName, t);
         }
 
-        if (_callBackEventQueue.size() > 0) {
-          submitHandleCallBackEventToManagerThreadPool();
+        synchronized (_callBackEventQueue) {
+          if (_callBackEventQueue.size() > 0) {
+            submitHandleCallBackEventToManagerThreadPool();
+          }
         }
       }
     }

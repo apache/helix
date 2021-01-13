@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -145,6 +146,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _ready = false;
 
   private DedupEventBlockingQueue<Type, NotificationContext> _callBackEventQueue;
+  private Future _futureCallBackProcessEvent;
 
   class CallbackProcessor implements Runnable {
     private CallbackHandler _handler;
@@ -353,14 +355,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     synchronized (_callBackEventQueue) {
       _callBackEventQueue.put(eventType, event);
       if (_callBackEventQueue.size() == 1) {
-        _manager.submitHandleCallBackEventToThreadPool(new CallbackProcessor(this));
+        _futureCallBackProcessEvent = _manager.submitHandleCallBackEventToThreadPool(new CallbackProcessor(this));
       }
     }
   }
 
   private void submitHandleCallBackEventToManagerThreadPool() {
     if (_callBackEventQueue.size() !=0) {
-      _manager.submitHandleCallBackEventToThreadPool(new CallbackProcessor(this));
+      _futureCallBackProcessEvent = _manager.submitHandleCallBackEventToThreadPool(new CallbackProcessor(this));
     }
   }
 
@@ -840,6 +842,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     try {
       _ready = false;
       _callBackEventQueue.clear();
+      _futureCallBackProcessEvent.cancel(false);
       /*
       CallbackProcessor callbackProcessor = _batchCallbackProcessorRef.get();
         if (callbackProcessor != null) {

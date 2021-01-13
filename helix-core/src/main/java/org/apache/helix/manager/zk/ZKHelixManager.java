@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.JMException;
@@ -1420,8 +1421,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   @Override
-  public void submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
-    _callbackHandlerExecutorService.submit(eventProcessor);
+  public Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
+    return _callbackHandlerExecutorService.submit(eventProcessor);
   }
 
   /*

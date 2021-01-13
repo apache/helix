@@ -21,6 +21,7 @@ package org.apache.helix.mock;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -380,8 +381,8 @@ public class MockManager implements HelixManager {
   }
 
   @Override
-  public void submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
-    return;
+  public Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
+    return null;
   }
 
   @Override

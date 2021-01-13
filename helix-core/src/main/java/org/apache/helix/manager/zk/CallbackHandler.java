@@ -838,11 +838,15 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   void reset(boolean isShutdown) {
     logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid,
-        isShutdown);
-    try {
-      _ready = false;
-      _callBackEventQueue.clear();
-      _futureCallBackProcessEvent.cancel(false);
+      isShutdown);
+      try {
+        _ready = false;
+        _callBackEventQueue.clear();
+        synchronized (_callBackEventQueue) {
+          if (_futureCallBackProcessEvent != null) {
+            _futureCallBackProcessEvent.cancel(false);
+          }
+        }
       /*
       CallbackProcessor callbackProcessor = _batchCallbackProcessorRef.get();
         if (callbackProcessor != null) {

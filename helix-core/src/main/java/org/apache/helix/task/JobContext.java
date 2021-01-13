@@ -192,8 +192,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionTarget(int p, String targetPName) {
-    String targetForPartition = getTargetForPartition(p);
-    if (targetPName != null && !targetPName.equals(targetForPartition)) {
+    if (targetPName != null && !targetPName.equals(getTargetForPartition(p))) {
       Map<String, String> map = getMapField(p, true);
       map.put(ContextProperties.TARGET.toString(), targetPName);
       markJobContextAsModified();

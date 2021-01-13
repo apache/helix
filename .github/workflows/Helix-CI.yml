@@ -4,6 +4,8 @@ name: Helix Merge CI
 on:
   push:
     branches: [ master ]
+  schedule:
+    - cron: '0 */12 * * *'
 
 jobs:
   Merge_PR_CI:

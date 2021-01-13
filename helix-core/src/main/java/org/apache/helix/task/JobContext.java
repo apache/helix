@@ -50,12 +50,20 @@ public class JobContext extends HelixProperty {
     EXECUTION_START_TIME, // Time at which the first task of this job got scheduled
   }
 
+  // Note: This field needs to be set if any of the job context fields have been changed.
+  // Otherwise, the context will not be written to ZK by the controller.
+  private boolean isModified;
+
   public JobContext(ZNRecord record) {
     super(record);
+    isModified = false;
   }
 
   public void setStartTime(long t) {
-    _record.setSimpleField(ContextProperties.START_TIME.toString(), String.valueOf(t));
+    if (getStartTime() != t) {
+      _record.setSimpleField(ContextProperties.START_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
+    }
   }
 
   public long getStartTime() {
@@ -67,7 +75,10 @@ public class JobContext extends HelixProperty {
   }
 
   public void setFinishTime(long t) {
-    _record.setSimpleField(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
+    if (getFinishTime() != t) {
+      _record.setSimpleField(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
+    }
   }
 
   public long getFinishTime() {
@@ -79,8 +90,9 @@ public class JobContext extends HelixProperty {
   }
 
   public void setInfo(String info) {
-    if (info != null) {
+    if (info != null && !info.equals(getInfo())) {
       _record.setSimpleField(ContextProperties.INFO.toString(), info);
+      markJobContextAsModified();
     }
   }
 
@@ -89,8 +101,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionState(int p, TaskPartitionState s) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.STATE.toString(), s.name());
+    if (s != null && !s.equals(getPartitionState(p))) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.STATE.toString(), s.name());
+      markJobContextAsModified();
+    }
   }
 
   public TaskPartitionState getPartitionState(int p) {
@@ -107,8 +122,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionNumAttempts(int p, int n) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.NUM_ATTEMPTS.toString(), String.valueOf(n));
+    if (getPartitionNumAttempts(p) != n) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.NUM_ATTEMPTS.toString(), String.valueOf(n));
+      markJobContextAsModified();
+    }
   }
 
   public int incrementNumAttempts(int pId) {
@@ -134,8 +152,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionStartTime(int p, long t) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.START_TIME.toString(), String.valueOf(t));
+    if (getPartitionStartTime(p) != t) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.START_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
+    }
   }
 
   public long getPartitionStartTime(int p) {
@@ -151,8 +172,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionFinishTime(int p, long t) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
+    if (getPartitionFinishTime(p) != t) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
+    }
   }
 
   public long getPartitionFinishTime(int p) {
@@ -168,8 +192,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionTarget(int p, String targetPName) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.TARGET.toString(), targetPName);
+    if (targetPName != null && !targetPName.equals(getTargetForPartition(p))) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.TARGET.toString(), targetPName);
+      markJobContextAsModified();
+    }
   }
 
   public String getTargetForPartition(int p) {
@@ -178,8 +205,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionInfo(int p, String info) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.INFO.toString(), info);
+    if (info != null && !info.equals(getPartitionInfo(p))) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.INFO.toString(), info);
+      markJobContextAsModified();
+    }
   }
 
   public String getPartitionInfo(int p) {
@@ -216,8 +246,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setTaskIdForPartition(int p, String taskId) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.TASK_ID.toString(), taskId);
+    if (taskId != null && !taskId.equals(getTaskIdForPartition(p))) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.TASK_ID.toString(), taskId);
+      markJobContextAsModified();
+    }
   }
 
   public String getTaskIdForPartition(int p) {
@@ -238,8 +271,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setAssignedParticipant(int p, String participantName) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
+    if (participantName != null && !participantName.equals(getAssignedParticipant(p))) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
+      markJobContextAsModified();
+    }
   }
 
   public String getAssignedParticipant(int p) {
@@ -248,8 +284,11 @@ public class JobContext extends HelixProperty {
   }
 
   public void setNextRetryTime(int p, long t) {
-    Map<String, String> map = getMapField(p, true);
-    map.put(ContextProperties.NEXT_RETRY_TIME.toString(), String.valueOf(t));
+    if (getNextRetryTime(p) != t) {
+      Map<String, String> map = getMapField(p, true);
+      map.put(ContextProperties.NEXT_RETRY_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
+    }
   }
 
   public long getNextRetryTime(int p) {
@@ -265,7 +304,10 @@ public class JobContext extends HelixProperty {
   }
 
   public void setName(String name) {
-    _record.setSimpleField(ContextProperties.NAME.name(), name);
+    if (!name.equals(getName())) {
+      _record.setSimpleField(ContextProperties.NAME.name(), name);
+      markJobContextAsModified();
+    }
   }
 
   public String getName() {
@@ -281,9 +323,9 @@ public class JobContext extends HelixProperty {
    * @param t
    */
   public void setExecutionStartTime(long t) {
-    String tStr = _record.getSimpleField(ContextProperties.EXECUTION_START_TIME.toString());
-    if (tStr == null) {
+    if (getExecutionStartTime() == WorkflowContext.NOT_STARTED) {
       _record.setSimpleField(ContextProperties.EXECUTION_START_TIME.toString(), String.valueOf(t));
+      markJobContextAsModified();
     }
   }
 
@@ -319,6 +361,17 @@ public class JobContext extends HelixProperty {
    * @param partitionSeqNumber
    */
   public void removePartition(int partitionSeqNumber) {
-    _record.getMapFields().remove(String.valueOf(partitionSeqNumber));
+    if (getPartitionSet().contains(partitionSeqNumber)) {
+      _record.getMapFields().remove(String.valueOf(partitionSeqNumber));
+      markJobContextAsModified();
+    }
+  }
+
+  public void markJobContextAsModified() {
+    this.isModified = true;
+  }
+
+  public boolean isJobContextModified() {
+    return this.isModified;
   }
 }

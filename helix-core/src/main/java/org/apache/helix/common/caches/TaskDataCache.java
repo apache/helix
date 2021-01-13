@@ -252,7 +252,9 @@ public class TaskDataCache extends AbstractDataCache {
    * Update context of the Job
    */
   public void updateJobContext(String resourceName, JobContext jobContext) {
-    updateContext(resourceName, jobContext.getRecord());
+    if (!_contextMap.containsKey(resourceName) || jobContext.isJobContextModified()) {
+      updateContext(resourceName, jobContext.getRecord());
+    }
   }
 
   /**

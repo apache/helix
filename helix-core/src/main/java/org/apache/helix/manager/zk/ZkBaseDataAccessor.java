@@ -569,7 +569,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       return records;
     } catch (Exception e) {
       throw new HelixMetaDataAccessException(
-          String.format("Fail to read nodes for %s, err: %s", paths, e.getMessage()));
+          String.format("Fail to read nodes for %s", paths), e);
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {

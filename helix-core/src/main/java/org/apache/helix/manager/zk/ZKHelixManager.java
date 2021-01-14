@@ -255,7 +255,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK);
     _preConnectCallbacks = new ArrayList<>();
     _handlers = new ArrayList<>();
-    _callbackHandlerExecutorService = Executors.newScheduledThreadPool(10);
+    _callbackHandlerExecutorService = Executors.newScheduledThreadPool(1);
     _properties = new HelixManagerProperties(SystemPropertyKeys.CLUSTER_MANAGER_VERSION);
     _version = _properties.getVersion();
 

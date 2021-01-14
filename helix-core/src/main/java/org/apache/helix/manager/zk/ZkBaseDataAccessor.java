@@ -366,7 +366,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               return result;
           }
         } catch (Exception e1) {
-          LOG.error("Exception while setting path by creating: " + path, e);
+          LOG.error("Exception while setting path by creating: " + path, e1);
           result._retCode = RetCode.ERROR;
           return result;
         }
@@ -441,7 +441,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               retry = true;
               break;
             default:
-              LOG.error("Fail to update path by creating: " + path);
+              LOG.error("Fail to update path by creating: " + path, e);
               result._retCode = RetCode.ERROR;
               return result;
           }

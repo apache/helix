@@ -38,7 +38,8 @@ public class ConstraintBasedAlgorithmFactory {
   private static final Map<String, Float> MODEL = new HashMap<String, Float>() {
     {
       // The default setting
-      put(PartitionMovementConstraint.class.getSimpleName(), 2f);
+      put(PartitionMovementConstraintGR.class.getSimpleName(), 2f);
+      put(PartitionMovementConstraintPR.class.getSimpleName(), 2f);
       put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
       put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
       put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 3f);
@@ -67,13 +68,14 @@ public class ConstraintBasedAlgorithmFactory {
         preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
 
     List<SoftConstraint> softConstraints = ImmutableList
-        .of(new PartitionMovementConstraint(), new InstancePartitionsCountConstraint(),
-            new ResourcePartitionAntiAffinityConstraint(),
+        .of(new PartitionMovementConstraintGR(), new PartitionMovementConstraintPR(),
+            new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
             new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint());
     Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
       String name = key.getClass().getSimpleName();
       float weight = MODEL.get(name);
-      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ?
+      return name.equals(PartitionMovementConstraintGR.class.getSimpleName()) || name
+          .equals(PartitionMovementConstraintPR.class.getSimpleName()) ?
           movementPreference * weight : evennessPreference * weight;
     });
 

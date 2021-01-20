@@ -39,7 +39,7 @@ import org.apache.helix.model.ResourceAssignment;
  */
 class PartitionMovementConstraint extends SoftConstraint {
   private static final double MAX_SCORE = 1f;
-  private static final double MIN_SCORE = 0f;
+  protected static final double MIN_SCORE = 0f;
   // The scale factor to adjust score when the proposed allocation partially matches the assignment
   // plan but will require a state transition (with partition movement).
   // TODO: these factors will be tuned based on user's preference

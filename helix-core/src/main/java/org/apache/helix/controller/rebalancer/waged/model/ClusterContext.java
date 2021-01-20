@@ -43,6 +43,8 @@ public class ClusterContext {
   private final Map<String, Integer> _estimatedMaxPartitionByResource = new HashMap<>();
   // This estimation helps to ensure global resource usage evenness.
   private final float _estimatedMaxUtilization;
+  // This classifies the rebalance scope this ClusterContext belongs
+  private final ClusterModelProvider.RebalanceScopeType _scopeType;
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
@@ -58,7 +60,9 @@ public class ClusterContext {
    * @param nodeSet All the active nodes that are managed by the rebalancer
    */
   ClusterContext(Set<AssignableReplica> replicaSet, Set<AssignableNode> nodeSet,
-      Map<String, ResourceAssignment> baselineAssignment, Map<String, ResourceAssignment> bestPossibleAssignment) {
+      Map<String, ResourceAssignment> baselineAssignment,
+      Map<String, ResourceAssignment> bestPossibleAssignment,
+      ClusterModelProvider.RebalanceScopeType scopeType) {
     int instanceCount = nodeSet.size();
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
@@ -104,6 +108,7 @@ public class ClusterContext {
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
     _baselineAssignment = baselineAssignment;
     _bestPossibleAssignment = bestPossibleAssignment;
+    _scopeType = scopeType;
   }
 
   public Map<String, ResourceAssignment> getBaselineAssignment() {
@@ -133,6 +138,10 @@ public class ClusterContext {
 
   public float getEstimatedMaxUtilization() {
     return _estimatedMaxUtilization;
+  }
+
+  public ClusterModelProvider.RebalanceScopeType getScopeType() {
+    return _scopeType;
   }
 
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {

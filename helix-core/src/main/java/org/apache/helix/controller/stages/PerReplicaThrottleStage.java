@@ -491,6 +491,10 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       Map<String, Integer> currentStateCountsOut
       ) {
     List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
+    if (preferenceList == null) {
+      preferenceList = Collections.emptyList();
+    }
+
     int replica = idealState.getMinActiveReplicas() == -1 ? idealState
         .getReplicaCount(preferenceList.size()) : idealState.getMinActiveReplicas();
     Set<String> activeList = new HashSet<>(preferenceList);

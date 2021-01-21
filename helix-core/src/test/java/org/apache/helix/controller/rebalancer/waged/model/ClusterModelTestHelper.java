@@ -43,7 +43,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
 
     ClusterContext context =
         new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
-            Collections.emptyMap(), ClusterModelProvider.RebalanceScopeType.GLOBAL_BASELINE);
+            Collections.emptyMap());
     return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 
@@ -61,7 +61,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
 
     ClusterContext context =
         new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
-            Collections.emptyMap(), ClusterModelProvider.RebalanceScopeType.GLOBAL_BASELINE);
+            Collections.emptyMap());
     return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 }

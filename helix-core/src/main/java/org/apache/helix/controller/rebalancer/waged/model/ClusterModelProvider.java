@@ -45,7 +45,7 @@ import org.apache.helix.model.StateModelDefinition;
  */
 public class ClusterModelProvider {
 
-  public enum RebalanceScopeType {
+  private enum RebalanceScopeType {
     // Set the rebalance scope to cover the difference between the current assignment and the
     // Baseline assignment only.
     PARTIAL,
@@ -176,7 +176,7 @@ public class ClusterModelProvider {
     // Construct and initialize cluster context.
     ClusterContext context = new ClusterContext(
         replicaMap.values().stream().flatMap(Set::stream).collect(Collectors.toSet()),
-        assignableNodes, idealAssignment, currentAssignment, scopeType);
+        assignableNodes, idealAssignment, currentAssignment);
     // Initial the cluster context with the allocated assignments.
     context.setAssignmentForFaultZoneMap(mapAssignmentToFaultZone(assignableNodes));
 

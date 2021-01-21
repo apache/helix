@@ -46,7 +46,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
 
     ClusterContext context =
         new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
-            new HashMap<>(), ClusterModelProvider.RebalanceScopeType.GLOBAL_BASELINE);
+            new HashMap<>());
 
     Assert.assertEquals(context.getEstimatedMaxPartitionCount(), 4);
     Assert.assertEquals(context.getEstimatedMaxTopStateCount(), 2);
@@ -84,7 +84,7 @@ public class TestClusterContext extends AbstractTestClusterModel {
     Set<AssignableReplica> assignmentSet = generateReplicas(testCache);
     ClusterContext context =
         new ClusterContext(assignmentSet, generateNodes(testCache), new HashMap<>(),
-            new HashMap<>(), ClusterModelProvider.RebalanceScopeType.GLOBAL_BASELINE);
+            new HashMap<>());
     context.addPartitionToFaultZone(_testFaultZoneId, _resourceNames.get(0), _partitionNames.get(0));
     // Insert again and trigger the error.
     context

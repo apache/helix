@@ -31,65 +31,37 @@ import org.apache.helix.model.ResourceAssignment;
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost.
  * The cost is evaluated based on the difference between the old assignment and the new assignment.
- * In detail, we consider the following two previous assignments as the base.
- * - Baseline assignment that is calculated regardless of the node state (online/offline).
- * - Previous Best Possible assignment.
- * Any change to these two assignments will increase the partition movements cost, so that the
+ * Any change from the old assignment will increase the partition movements cost, so that the
  * evaluated score will become lower.
  */
-class PartitionMovementConstraint extends SoftConstraint {
+abstract class PartitionMovementConstraint extends SoftConstraint {
   private static final double MAX_SCORE = 1f;
-  protected static final double MIN_SCORE = 0f;
+  private static final double MIN_SCORE = 0f;
   // The scale factor to adjust score when the proposed allocation partially matches the assignment
   // plan but will require a state transition (with partition movement).
   // TODO: these factors will be tuned based on user's preference
   private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
-  private static final double MOVEMENT_COST_FACTOR = 0.25;
 
   PartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
 
   /**
-   * @return 1 if the proposed assignment completely matches the previous best possible assignment
-   *         (or baseline assignment if the replica is newly added).
+   * @return 1 if the proposed assignment completely matches the previous assignment.
    *         STATE_TRANSITION_COST_FACTOR if the proposed assignment's allocation matches the
-   *         previous Best Possible assignment (or baseline assignment if the replica is newly
-   *         added) but state does not match.
-   *         MOVEMENT_COST_FACTOR if the proposed assignment's allocation matches the baseline
-   *         assignment only, but not matches the previous best possible assignment.
-   *         0 if the proposed assignment is a pure random movement.
+   *         previous assignment but state does not match.
    */
   @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    Map<String, String> bestPossibleAssignment =
-        getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    Map<String, String> baselineAssignment =
-        getStateMap(replica, clusterContext.getBaselineAssignment());
-    String nodeName = node.getInstanceName();
-    String state = replica.getReplicaState();
-
-    if (bestPossibleAssignment.isEmpty()) {
-      // If bestPossibleAssignment of the replica is empty, indicating this is a new replica.
-      // Then the baseline is the only reference.
-      return calculateAssignmentScore(nodeName, state, baselineAssignment);
-    } else {
-      // Else, for minimizing partition movements or state transitions, prioritize the proposed
-      // assignment that matches the previous Best Possible assignment.
-      double score = calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
-      // If no Best Possible assignment matches, check the baseline assignment.
-      if (score == 0 && baselineAssignment.containsKey(nodeName)) {
-        // Although not desired, the proposed assignment that matches the baseline is still better
-        // than a random movement. So try to evaluate the score with the MOVEMENT_COST_FACTOR
-        // punishment.
-        score = MOVEMENT_COST_FACTOR;
-      }
-      return score;
-    }
+    return calculateAssignmentScore(node.getInstanceName(), replica.getReplicaState(),
+        getReplicaStateMap(replica, clusterContext));
   }
 
-  private Map<String, String> getStateMap(AssignableReplica replica,
+  protected abstract Map<String, String> getReplicaStateMap(AssignableReplica replica,
+      ClusterContext clusterContext);
+
+  protected Map<String, String> getStateMap(AssignableReplica replica,
       Map<String, ResourceAssignment> assignment) {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();

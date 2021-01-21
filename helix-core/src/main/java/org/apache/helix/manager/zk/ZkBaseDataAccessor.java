@@ -366,7 +366,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               return result;
           }
         } catch (Exception e1) {
-          LOG.error("Exception while setting path by creating: " + path, e);
+          LOG.error("Exception while setting path by creating: " + path, e1);
           result._retCode = RetCode.ERROR;
           return result;
         }
@@ -441,7 +441,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
               retry = true;
               break;
             default:
-              LOG.error("Fail to update path by creating: " + path);
+              LOG.error("Fail to update path by creating: " + path, e);
               result._retCode = RetCode.ERROR;
               return result;
           }
@@ -557,8 +557,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             stats.set(i, cb._stat);
           }
         } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
-          throw new HelixMetaDataAccessException(
-              String.format("Failed to read node %s", paths.get(i)));
+          throw new HelixMetaDataAccessException(String
+              .format("Failed to read node %s, return code: %s", paths.get(i),
+                  Code.get(cb.getRc())));
         } else {
           pathFailToRead.put(paths.get(i), cb.getRc());
         }
@@ -568,7 +569,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       }
       return records;
     } catch (Exception e) {
-      throw new HelixMetaDataAccessException(String.format("Fail to read nodes for %s", paths));
+      throw new HelixMetaDataAccessException(
+          String.format("Fail to read nodes for %s", paths), e);
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {

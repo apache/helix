@@ -50,5 +50,11 @@ public enum AttributeName {
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   JOBS_WITHOUT_CONFIG,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
-  TO_BE_PURGED_JOBS_MAP
+  TO_BE_PURGED_JOBS_MAP,
+
+  // This attribute denotes the messages output from Per Preplica Throttle stage
+  PER_REPLICA_OUTPUT_MESSAGES,
+
+  // This attribute denotes the targeted partition state mapping from Per Preplica Throttle stage
+  PER_REPLICA_RETRACED_STATES
 }

@@ -557,8 +557,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             stats.set(i, cb._stat);
           }
         } else if (Code.get(cb.getRc()) != Code.NONODE && throwException) {
-          throw new HelixMetaDataAccessException(
-              String.format("Failed to read node %s, return code: %s", paths.get(i), Code.get(cb.getRc())));
+          throw new HelixMetaDataAccessException(String
+              .format("Failed to read node %s, return code: %s", paths.get(i),
+                  Code.get(cb.getRc())));
         } else {
           pathFailToRead.put(paths.get(i), cb.getRc());
         }

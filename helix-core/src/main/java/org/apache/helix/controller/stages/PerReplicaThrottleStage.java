@@ -18,6 +18,7 @@ import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -79,7 +80,19 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name(), throttledLoadMsg);
     }
 
-    //TODO: enter maintenance mode logic
+    //TODO: enter maintenance mode logic in next PR
+  }
+
+  private List<ResourcePriority> getResourcePriorityList(
+      Map<String, Resource> resourceMap,
+      ResourceControllerDataProvider dataCache) {
+    List<ResourcePriority> prioritizedResourceList = new ArrayList<>();
+    for (String resourceName : resourceMap.keySet()) {
+      prioritizedResourceList.add(new ResourcePriority(resourceName, dataCache));
+    }
+    Collections.sort(prioritizedResourceList);
+
+    return prioritizedResourceList;
   }
 
   /**
@@ -106,39 +119,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         new StateTransitionThrottleController(resourceMap.keySet(), dataCache.getClusterConfig(),
             dataCache.getLiveInstances().keySet());
 
-    // Resource level prioritization based on the numerical (sortable) priority field.
-    // If the resource priority field is null/not set, the resource will be treated as lowest
-    // priority.
-    List<ResourcePriority> prioritizedResourceList = new ArrayList<>();
-    for (String resourceName : resourceMap.keySet()) {
-      prioritizedResourceList.add(new ResourcePriority(resourceName, Integer.MIN_VALUE));
-    }
-    // If resourcePriorityField is null at the cluster level, all resources will be considered equal
-    // in priority by keeping all priorities at MIN_VALUE
-    String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
-    if (priorityField != null) {
-      for (ResourcePriority resourcePriority : prioritizedResourceList) {
-        String resourceName = resourcePriority.getResourceName();
+    List<ResourcePriority> prioritizedResourceList = getResourcePriorityList(resourceMap, dataCache);
 
-        // Will take the priority from ResourceConfig first
-        // If ResourceConfig does not exist or does not have this field.
-        // Try to load it from the resource's IdealState. Otherwise, keep it at the lowest priority
-        if (dataCache.getResourceConfig(resourceName) != null
-            && dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField) != null) {
-          resourcePriority.setPriority(
-              dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField));
-        } else if (dataCache.getIdealState(resourceName) != null
-            && dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField)
-            != null) {
-          resourcePriority.setPriority(
-              dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField));
-        }
-      }
-      prioritizedResourceList.sort(new ResourcePriorityComparator());
-    }
-
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     List<String> failedResources = new ArrayList<>();
 
     // Priority is applied in assignment computation because higher priority by looping in order of
@@ -168,8 +150,13 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
       Map<Partition, Map<String, String>> retracedPartitionsState = new HashMap<>();
       try {
-        throttlePerReplicaMessages(idealState, clusterStatusMonitor, currentStateOutput,
-            selectedMessage.getResourceMessages(resourceName), resourceMap.get(resourceName),
+        Map<Partition, List<Message>> partitonMsgMap = new HashMap<>();
+        for (Partition partition : resource.getPartitions()) {
+          List<Message> msgList = selectedMessage.getMessages(resource.getResourceName(), partition);
+          partitonMsgMap.put(partition, msgList);
+        }
+        throttlePerReplicaMessages(idealState, currentStateOutput,
+            partitonMsgMap, resourceMap.get(resourceName),
             bestPossibleStateOutput, dataCache, throttleController, retracedPartitionsState,
             throttledRecoveryMsg, throttledLoadMsg, output);
         retracedResourceStateMap.setState(resourceName, retracedPartitionsState);
@@ -180,12 +167,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
     }
 
-    if (clusterStatusMonitor != null) {
-      clusterStatusMonitor.setResourceRebalanceStates(failedResources,
-          ResourceMonitor.RebalanceStatus.PER_REPLICA_STATE_CAL_FAILED);
-      clusterStatusMonitor.setResourceRebalanceStates(output.resourceSet(),
-          ResourceMonitor.RebalanceStatus.NORMAL);
-    }
+    // TODO: add monitoring in next PR.
 
     return output;
   }
@@ -394,11 +376,20 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * given resource.
    * Reconstruct retrace partition states for a resource based on pending and targeted messages
    * Return messages for partitions of a resource.
-   * Out param retracedPartitionsCurrentState
-   * Out param output
+   * @param idealState
+   * @param currentStateOutput
+   * @param selectedResourceMessages
+   * @param resource
+   * @param bestPossibleStateOutput
+   * @param cache
+   * @param throttleController
+   * @param retracedPartitionsStateMap
+   * @param throttledRecoveryMsgOut
+   * @param throttledLoadMessageOut
+   * @param output
+   * @return
    */
   private void throttlePerReplicaMessages(IdealState idealState,
-      ClusterStatusMonitor clusterStatusMonitor,
       CurrentStateOutput currentStateOutput, Map<Partition, List<Message>> selectedResourceMessages,
       Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
       ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
@@ -408,6 +399,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     String resourceName = resource.getResourceName();
     LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
+    // TODO: expand per-replica-throttling beyond FULL_AUTO
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
         .equals(idealState.getRebalanceMode())) {
       retracedPartitionsStateMap.putAll(bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap());
@@ -543,17 +535,43 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
   /**
    * POJO that maps resource name to its priority represented by an integer.
    */
-  private static class ResourcePriority {
+  private static class ResourcePriority implements Comparable<ResourcePriority> {
     private String _resourceName;
     private int _priority;
 
-    ResourcePriority(String resourceName, Integer priority) {
+    ResourcePriority(String resourceName, ResourceControllerDataProvider dataCache) {
+      // Resource level prioritization based on the numerical (sortable) priority field.
+      // If the resource priority field is null/not set, the resource will be treated as lowest
+      // priority.
+      _priority = Integer.MIN_VALUE;
+      _resourceName = resourceName;
+      String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
+      if (priorityField != null) {
+        // Will take the priority from ResourceConfig first
+        // If ResourceConfig does not exist or does not have this field.
+        // Try to load it from the resource's IdealState. Otherwise, keep it at the lowest priority
+        if (dataCache.getResourceConfig(resourceName) != null
+            && dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField) != null) {
+          this.setPriority(
+              dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField));
+        } else if (dataCache.getIdealState(resourceName) != null
+            && dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField)
+            != null) {
+          this.setPriority(
+              dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField));
+        }
+      }
+    }
+
+    ResourcePriority(String resourceName, int priority) {
       _resourceName = resourceName;
       _priority = priority;
     }
 
+    @Override
     public int compareTo(ResourcePriority resourcePriority) {
-      return Integer.compare(_priority, resourcePriority._priority);
+      // make sure larger _priority is in front of small _priority at sort time
+      return Integer.compare(resourcePriority._priority, _priority);
     }
 
     public String getResourceName() {
@@ -569,14 +587,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
     }
   }
-
-  private static class ResourcePriorityComparator implements Comparator<ResourcePriority> {
-    @Override
-    public int compare(ResourcePriority priority1, ResourcePriority priority2) {
-      return priority2.compareTo(priority1);
-    }
-  }
-
 
   // compare message for throttling, note, all these message are of type state_transition
   // recovery are all upward

@@ -37,10 +37,6 @@ public class MessageOutput {
 
   }
 
-  public Set<String> resourceSet() {
-    return Collections.unmodifiableSet(_messagesMap.keySet());
-  }
-
   public void addMessage(String resourceName, Partition partition, Message message) {
     if (!_messagesMap.containsKey(resourceName)) {
       _messagesMap.put(resourceName, new HashMap<Partition, List<Message>>());
@@ -67,14 +63,6 @@ public class MessageOutput {
       return map.get(resource);
     }
     return Collections.emptyList();
-  }
-
-  public Map<Partition, List<Message>> getResourceMessages(String resourceName) {
-    Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
-    if (map != null) {
-      return Collections.unmodifiableMap(map);
-    }
-    return Collections.emptyMap();
   }
 
   @Override

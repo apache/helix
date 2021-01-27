@@ -34,16 +34,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
   private static final Logger logger =
       LoggerFactory.getLogger(PerReplicaThrottleStage.class.getName());
 
-  private boolean isEmitThrottledMsg = false;
-
-  public PerReplicaThrottleStage() {
-    this(false);
-  }
-
-  protected PerReplicaThrottleStage(boolean enableEmitThrottledMsg) {
-    isEmitThrottledMsg = enableEmitThrottledMsg;
-  }
-
   @Override
   public void process(ClusterEvent event) throws Exception {
     _eventId = event.getEventId();
@@ -66,19 +56,12 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
 
     ResourcesStateMap retracedResourceStateMap = new ResourcesStateMap();
-    List<Message> throttledRecoveryMsg = new ArrayList<>();
-    List<Message> throttledLoadMsg = new ArrayList<>();
     MessageOutput output =
-        compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap, throttledRecoveryMsg, throttledLoadMsg);
+        compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
 
     event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), output);
     LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
     event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
-
-    if (isEmitThrottledMsg) {
-      event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name(), throttledRecoveryMsg);
-      event.addAttribute(AttributeName.PER_REPLICA_THROTTLED_LOAD_MESSAGES.name(), throttledLoadMsg);
-    }
 
     //TODO: enter maintenance mode logic in next PR
   }
@@ -108,8 +91,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    */
   private MessageOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       CurrentStateOutput currentStateOutput, MessageOutput selectedMessage,
-      ResourcesStateMap retracedResourceStateMap,
-      List<Message> throttledRecoveryMsg, List<Message> throttledLoadMsg) {
+      ResourcesStateMap retracedResourceStateMap) {
     MessageOutput output = new MessageOutput();
 
     ResourceControllerDataProvider dataCache =
@@ -158,7 +140,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttlePerReplicaMessages(idealState, currentStateOutput,
             partitonMsgMap, resourceMap.get(resourceName),
             bestPossibleStateOutput, dataCache, throttleController, retracedPartitionsState,
-            throttledRecoveryMsg, throttledLoadMsg, output);
+            output);
         retracedResourceStateMap.setState(resourceName, retracedPartitionsState);
       } catch (HelixException ex) {
         LogUtil.logInfo(logger, _eventId,
@@ -394,7 +376,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
       ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
       Map<Partition, Map<String, String>> retracedPartitionsStateMap,
-      List<Message> throttledRecoveryMsgOut, List<Message> throttledLoadMessageOut,
       MessageOutput output) {
     String resourceName = resource.getResourceName();
     LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
@@ -444,7 +425,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // Step 4: sorts load message list and applies throttling
     // TODO: next PR
     // Step 5: construct output
-    throttledRecoveryMsgOut.addAll(throttledRecoveryMessages);
     Map<Partition, List<Message>> outMessagesByPartition = new HashMap<>();
     for (Partition partition : resource.getPartitions()) {
       List<Message> partitionMessages = selectedResourceMessages.get(partition);
@@ -468,7 +448,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // TODO: next PR
   }
 
-  private void applyThrottling(Resource resource,
+  protected void applyThrottling(Resource resource,
       StateTransitionThrottleController throttleController,
       Map<Partition, Map<String, String>> currentStateMap,
       Map<Partition, Map<String, String>> bestPossibleMap,

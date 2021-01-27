@@ -107,10 +107,11 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
 
+    MsgRecordingPerReplicaThrottleStage msgRecordingStage = new MsgRecordingPerReplicaThrottleStage();
     runStage(event, new ReadClusterDataStage());
-    runStage(event, new PerReplicaThrottleStage(true));
+    runStage(event, msgRecordingStage);
 
-    List<Message> perReplicaThottledRecovery = event.getAttribute(AttributeName.PER_REPLICA_THROTTLED_RECOVERY_MESSAGES.name());
+    List<Message> perReplicaThottledRecovery = msgRecordingStage.getRecoveryThrottledMessages();
     Assert.assertTrue(perReplicaThottledRecovery.size() == 1);
     Message msg = perReplicaThottledRecovery.get(0);
     Assert.assertTrue(msg.getId().equals("001"));

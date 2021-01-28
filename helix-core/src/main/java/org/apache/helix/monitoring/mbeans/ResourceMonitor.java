@@ -48,7 +48,7 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     NORMAL,
     BEST_POSSIBLE_STATE_CAL_FAILED,
     INTERMEDIATE_STATE_CAL_FAILED,
-    PER_REPLICA_STATE_CAL_FAILED
+    PER_REPLICA_THROTTLE_CAL_FAILED
   }
 
   private static final String GAUGE_METRIC_SUFFIX = "Gauge";

@@ -51,7 +51,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
 
   // null case, make sure the messages would pass without any throttle
   @Test
-  public void testRecoverySlave() {
+  public void testNoThrottleMessagePass() {
     String resourcePrefix = "resource";
     int nResource = 1;
     int nPartition = 1;

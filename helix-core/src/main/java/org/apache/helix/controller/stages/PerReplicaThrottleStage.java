@@ -50,6 +50,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
 
     event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), output);
+    LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
     event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
 
     //TODO: enter maintenance mode logic in next PR

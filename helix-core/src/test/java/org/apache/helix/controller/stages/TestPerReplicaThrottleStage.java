@@ -49,19 +49,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     setupLiveInstances(nReplica);
   }
 
-  private void setupThrottleConfig(int recoveryLimit, int loadLimit) {
-    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-    clusterConfig.setStateTransitionThrottleConfigs(ImmutableList
-        .of(new StateTransitionThrottleConfig(
-                StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-                StateTransitionThrottleConfig.ThrottleScope.INSTANCE, recoveryLimit),
-            new StateTransitionThrottleConfig(
-                StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-                StateTransitionThrottleConfig.ThrottleScope.INSTANCE, loadLimit)));
-    setClusterConfig(clusterConfig);
-  }
-
-  // case 0. N1(O), N2(S), N3(O), message N3(O->S) is treated as recovery
+  // null case, make sure the messages would pass without any throttle
   @Test
   public void testRecoverySlave() {
     String resourcePrefix = "resource";
@@ -74,7 +62,6 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     }
 
     preSetup(resources, nPartition, nReplica);
-    setupThrottleConfig(0, 0);
 
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         getResourceMap(resources, nPartition, "MasterSlave"));
@@ -107,13 +94,14 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
 
-    MsgRecordingPerReplicaThrottleStage msgRecordingStage = new MsgRecordingPerReplicaThrottleStage();
     runStage(event, new ReadClusterDataStage());
-    runStage(event, msgRecordingStage);
+    runStage(event, new PerReplicaThrottleStage());
 
-    List<Message> perReplicaThottledRecovery = msgRecordingStage.getRecoveryThrottledMessages();
-    Assert.assertTrue(perReplicaThottledRecovery.size() == 1);
-    Message msg = perReplicaThottledRecovery.get(0);
+    MessageOutput output = event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
+    Partition partition = new Partition(resources[0] + "_0");
+    List<Message> msgs = output.getMessages(resources[0], partition);
+    Assert.assertTrue(msgs.size() == 1);
+    Message msg = msgs.get(0);
     Assert.assertTrue(msg.getId().equals("001"));
   }
 

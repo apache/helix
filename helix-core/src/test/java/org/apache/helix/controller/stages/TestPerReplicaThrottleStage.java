@@ -97,7 +97,7 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, new PerReplicaThrottleStage());
 
-    MessageOutput output = event.getAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name());
+    MessageOutput output = event.getAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name());
     Partition partition = new Partition(resources[0] + "_0");
     List<Message> msgs = output.getMessages(resources[0], partition);
     Assert.assertTrue(msgs.size() == 1);

@@ -16,6 +16,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +50,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     MessageOutput output =
         compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
 
-    event.addAttribute(AttributeName.PER_REPLICA_OUTPUT_MESSAGES.name(), output);
+    event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name(), output);
     LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
-    event.addAttribute(AttributeName.PER_REPLICA_RETRACED_STATES.name(), retracedResourceStateMap);
+    event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_RETRACED_STATES.name(), retracedResourceStateMap);
 
     //TODO: enter maintenance mode logic in next PR
   }
@@ -124,13 +125,16 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       try {
         Map<Partition, List<Message>> partitonMsgMap = new HashMap<>();
         for (Partition partition : resource.getPartitions()) {
-          List<Message> msgList = selectedMessage.getMessages(resource.getResourceName(), partition);
+          List<Message> msgList = selectedMessage.getMessages(resourceName, partition);
           partitonMsgMap.put(partition, msgList);
         }
-        throttlePerReplicaMessages(idealState, currentStateOutput,
+        MessageOutput resourceMsgOut = throttlePerReplicaMessages(idealState,
             partitonMsgMap, resourceMap.get(resourceName),
-            bestPossibleStateOutput, dataCache, throttleController, retracedPartitionsState,
-            output);
+            bestPossibleStateOutput, throttleController, retracedPartitionsState);
+        for (Partition partition : resource.getPartitions()) {
+          List<Message> msgList = resourceMsgOut.getMessages(resourceName, partition);
+          output.addMessages(resourceName, partition, msgList);
+        }
         retracedResourceStateMap.setState(resourceName, retracedPartitionsState);
       } catch (HelixException ex) {
         LogUtil.logInfo(logger, _eventId,
@@ -150,24 +154,21 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * Reconstruct retrace partition states for a resource based on pending and targeted messages
    * Return messages for partitions of a resource.
    * @param idealState
-   * @param currentStateOutput
    * @param selectedResourceMessages
    * @param resource
    * @param bestPossibleStateOutput
-   * @param cache
    * @param throttleController
    * @param retracedPartitionsStateMap
    * @param throttledRecoveryMsgOut
    * @param throttledLoadMessageOut
-   * @param output
-   * @return
+   * @return output
    */
-  private void throttlePerReplicaMessages(IdealState idealState,
-      CurrentStateOutput currentStateOutput, Map<Partition, List<Message>> selectedResourceMessages,
+  private MessageOutput throttlePerReplicaMessages(IdealState idealState,
+      Map<Partition, List<Message>> selectedResourceMessages,
       Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
-      ResourceControllerDataProvider cache, StateTransitionThrottleController throttleController,
-      Map<Partition, Map<String, String>> retracedPartitionsStateMap,
-      MessageOutput output) {
+      StateTransitionThrottleController throttleController,
+      Map<Partition, Map<String, String>> retracedPartitionsStateMap) {
+    MessageOutput output = new MessageOutput();
     String resourceName = resource.getResourceName();
     LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
@@ -178,7 +179,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       for (Partition partition : selectedResourceMessages.keySet()) {
         output.addMessages(resourceName, partition, selectedResourceMessages.get(partition));
       }
-      return;
+      return output;
     }
 
     Map<Partition, Map<String, Integer>> expectedStateCountByPartition = new HashMap<>();
@@ -189,7 +190,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     // Step 3: sorts recovery message list and applies throttling
     // Step 4: sorts load message list and applies throttling
     // Step 5: construct output
-    Map<Partition, List<Message>> outMessagesByPartition = new HashMap<>();
     for (Partition partition : resource.getPartitions()) {
       List<Message> partitionMessages = selectedResourceMessages.get(partition);
       if (partitionMessages == null) {
@@ -200,15 +200,14 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         // TODO: next PR messages exclusion
         finalPartitionMessages.add(message);
       }
-      outMessagesByPartition.put(partition, finalPartitionMessages);
       output.addMessages(resourceName, partition, finalPartitionMessages);
     }
     // Step 6: constructs all retraced partition state map for the resource
     // TODO: next PR
     // Step 7: emit metrics
     // TODO: next PR
+    return output;
   }
-
 
   // ------------------ utilities ---------------------------
   /**
@@ -266,5 +265,4 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
     }
   }
-
 }

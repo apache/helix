@@ -42,9 +42,9 @@ public class TestPartitionMovementConstraint {
   private AssignableNode _testNode;
   private AssignableReplica _testReplica;
   private ClusterContext _clusterContext;
-  private SoftConstraint _baselineConstraint = new BaselinePartitionMovementConstraint();
+  private SoftConstraint _baselineConstraint = new BaselineConvergeConstraint();
   private SoftConstraint _bestPossibleStateConstraint =
-      new BestPossibleStatePartitionMovementConstraint();
+      new PartitionMovementConstraint();
 
   @BeforeMethod
   public void init() {

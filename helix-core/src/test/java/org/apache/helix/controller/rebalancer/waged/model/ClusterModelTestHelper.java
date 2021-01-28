@@ -42,8 +42,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =
-        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
-            Collections.emptyMap());
+        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(), Collections.emptyMap());
     return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 
@@ -60,8 +59,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =
-        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
-            Collections.emptyMap());
+        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(), Collections.emptyMap());
     return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 }

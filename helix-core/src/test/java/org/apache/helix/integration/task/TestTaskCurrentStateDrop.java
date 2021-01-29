@@ -23,12 +23,14 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.apache.zookeeper.data.Stat;
@@ -126,5 +128,78 @@ public class TestTaskCurrentStateDrop extends TaskTestBase {
       return (taskRecord == null && dataBase != null);
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(isCurrentStateExpected);
+    _driver.stop(jobQueueName);
+  }
+
+  @Test (dependsOnMethods = "testCurrentStateDropAfterReconnecting")
+  public void testDropCurrentStateDisableInstance() throws Exception {
+    // Start the Controller
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
+    String workflowName1 = TestHelper.getTestMethodName() + "_1";
+    String jobName = "JOB0";
+    JobConfig.Builder jobBuilder1 =
+        new JobConfig.Builder().setWorkflow(workflowName1).setNumberOfTasks(1)
+            .setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+            .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName1).addJob(jobName, jobBuilder1);
+
+    _driver.start(workflowBuilder1.build());
+    String namespacedJobName = TaskUtil.getNamespacedJobName(workflowName1, jobName);
+    // Make sure current state and context are going to expected state of RUNNING
+    String instanceP0 = PARTICIPANT_PREFIX + "_" + (_startPort + 0);
+    ZkClient clientP0 = (ZkClient) _participants[0].getZkClient();
+    String sessionIdP0 = ZkTestHelper.getSessionId(clientP0);
+    String currentStatePathP0 = _manager.getHelixDataAccessor().keyBuilder()
+        .taskCurrentState(instanceP0, sessionIdP0, namespacedJobName).toString();
+
+    _driver.pollForJobState(workflowName1, namespacedJobName, TaskState.IN_PROGRESS);
+
+    boolean isCurrentStateCreated = TestHelper.verify(() -> {
+      ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor()
+          .get(currentStatePathP0, new Stat(), AccessOption.PERSISTENT);
+      return record != null;
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isCurrentStateCreated);
+
+    Assert.assertTrue(TestHelper
+        .verify(() -> (TaskPartitionState.RUNNING
+                .equals(_driver.getJobContext(namespacedJobName)
+                    .getPartitionState(0))),
+            TestHelper.WAIT_DURATION));
+
+
+    // Disable the instance and make sure the task current state is dropped
+    String disabledInstance = _participants[0].getInstanceName();
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
+
+
+    boolean isCurrentStateDeleted = TestHelper.verify(() -> {
+      ZNRecord record = _manager.getHelixDataAccessor().getBaseDataAccessor()
+          .get(currentStatePathP0, new Stat(), AccessOption.PERSISTENT);
+      return record == null;
+    }, TestHelper.WAIT_DURATION);
+
+    Assert.assertTrue(TestHelper
+        .verify(() -> (TaskPartitionState.DROPPED
+                .equals(_driver.getJobContext(namespacedJobName)
+                    .getPartitionState(0))),
+            TestHelper.WAIT_DURATION));
+    Assert.assertTrue(isCurrentStateDeleted);
+
+    // enable participant again and make sure task will be retried and number of attempts is increased
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
+
+    Assert.assertTrue(TestHelper
+        .verify(() -> (TaskPartitionState.RUNNING
+                .equals(_driver.getJobContext(namespacedJobName)
+                    .getPartitionState(0)) && _driver.getJobContext(namespacedJobName)
+                .getPartitionNumAttempts(0) == 2),
+            TestHelper.WAIT_DURATION));
   }
 }

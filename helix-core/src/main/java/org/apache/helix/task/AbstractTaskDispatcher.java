@@ -562,8 +562,9 @@ public abstract class AbstractTaskDispatcher {
 
     // The following is filtering of tasks before passing them to the assigner
     // Only feed in tasks that need to be assigned (have state equal to null, STOPPED, TIMED_OUT,
-    // TASK_ERROR, or DROPPED) or their assigned participant is not live anymore
-    Set<Integer> filteredTaskPartitionNumbers = filterTasks(allPartitions, jobCtx, liveInstances);
+    // TASK_ERROR, or DROPPED) or their assigned participant is disabled or not live anymore
+    Set<Integer> filteredTaskPartitionNumbers = filterTasks(jobResource, allPartitions, jobCtx,
+        liveInstances, cache.getDisabledInstances(), currStateOutput, paMap);
     // Remove all excludeSet tasks to be safer because some STOPPED tasks have been already
     // re-started (excludeSet includes already-assigned partitions). Also tasks with their retry
     // limit exceed (addGiveupPartitions) will be removed as well
@@ -795,13 +796,17 @@ public abstract class AbstractTaskDispatcher {
    * only the
    * tasks whose contexts are in these states are eligible to be assigned or re-tried.
    * Also, for those tasks in non-terminal states whose previously assigned instances are no longer
-   * LiveInstances are re-added so that they could be re-assigned.
-   * @param allPartitions
-   * @param jobContext
-   * @return a filter Iterable of task partition numbers
+   * LiveInstances are re-added so that they could be re-assigned. Since in Task Pipeline,
+   * LiveInstance list contains instances that are live and enable, if instance is not among live
+   * instance, it is either not live or not enabled. If instance is not enabled, controller should
+   * first drop the task on the participant. After the task is dropped, then the task can be
+   * filtered for new assignment. Otherwise, once the participant is re-enabled, controller will
+   * two tasks in running state on two different participant and that cause quota and scheduling
+   * issues.
    */
-  private Set<Integer> filterTasks(Iterable<Integer> allPartitions, JobContext jobContext,
-      Collection<String> liveInstances) {
+  private Set<Integer> filterTasks(String jobResource, Iterable<Integer> allPartitions,
+      JobContext jobContext, Collection<String> liveInstances, Set<String> disableInstances,
+      CurrentStateOutput currStateOutput, Map<Integer, PartitionAssignment> paMap) {
     Set<Integer> filteredTasks = new HashSet<>();
     for (int partitionNumber : allPartitions) {
       TaskPartitionState state = jobContext.getPartitionState(partitionNumber);
@@ -811,13 +816,23 @@ public abstract class AbstractTaskDispatcher {
           || state == TaskPartitionState.DROPPED) {
         filteredTasks.add(partitionNumber);
       }
-      // Allow tasks whose assigned instances are no longer live for rescheduling
+      // Allow tasks whose assigned instances are no longer live or enable for rescheduling
       if (isTaskNotInTerminalState(state)) {
         String assignedParticipant = jobContext.getAssignedParticipant(partitionNumber);
+        final String pName = pName(jobResource, partitionNumber);
         if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
-          // The assigned instance is no longer live, so mark it as DROPPED in the context
-          jobContext.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
-          filteredTasks.add(partitionNumber);
+          // The assigned instance is no longer in the liveInstance list. It is either not live or
+          // disabled. If instance is disabled and current state still exist on the instance,
+          // then controller needs to drop the current state, otherwise, the task can be marked as
+          // dropped and be reassigned to other instances
+          if (disableInstances.contains(assignedParticipant) && currStateOutput
+              .getCurrentState(jobResource, new Partition(pName), assignedParticipant) != null) {
+            paMap.put(partitionNumber,
+                new PartitionAssignment(assignedParticipant, TaskPartitionState.DROPPED.name()));
+          } else {
+            jobContext.setPartitionState(partitionNumber, TaskPartitionState.DROPPED);
+            filteredTasks.add(partitionNumber);
+          }
         }
       }
     }

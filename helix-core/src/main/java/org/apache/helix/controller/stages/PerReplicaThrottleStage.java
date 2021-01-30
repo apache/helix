@@ -216,28 +216,25 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
   private static class ResourcePriority implements Comparable<ResourcePriority> {
     private String _resourceName;
     private int _priority;
-    private final String DEFAULT_PRIORITY = Integer.valueOf(Integer.MIN_VALUE).toString();
 
     ResourcePriority(String resourceName, ResourceControllerDataProvider dataCache) {
       // Resource level prioritization based on the numerical (sortable) priority field.
       // If the resource priority field is null/not set, the resource will be treated as lowest
       // priority.
-      _priority = Integer.valueOf(DEFAULT_PRIORITY);
+      _priority = Integer.MIN_VALUE;
       _resourceName = resourceName;
       String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
-
       if (priorityField != null) {
         // Will take the priority from ResourceConfig first
         // If ResourceConfig does not exist or does not have this field.
         // Try to load it from the resource's IdealState. Otherwise, keep it at the lowest priority
         ResourceConfig config = dataCache.getResourceConfig(resourceName);
         IdealState idealState = dataCache.getIdealState(resourceName);
-        if (config != null) {
-          String priority = config.getSimpleConfig(priorityField);
-          this.setPriority(priority == null ? DEFAULT_PRIORITY : priority);
-        } else if (idealState != null) {
-          String priority = idealState.getRecord().getSimpleField(priorityField);
-          this.setPriority(priority == null ? DEFAULT_PRIORITY : priority);
+        if (config != null && config.getSimpleConfig(priorityField) != null) {
+          this.setPriority(config.getSimpleConfig(priorityField));
+        } else if (idealState != null
+            && idealState.getRecord().getSimpleField(priorityField) != null) {
+          this.setPriority(idealState.getRecord().getSimpleField(priorityField));
         }
       }
     }

@@ -40,7 +40,7 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
   // The scale factor to adjust score when the proposed allocation partially matches the assignment
   // plan but will require a state transition (with partition movement).
   // TODO: these factors will be tuned based on user's preference
-  private static final double STATE_TRANSITION_COST_FACTOR = 0.3;
+  private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
 
   AbstractPartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
@@ -52,16 +52,10 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
    *         previous assignment but state does not match.
    */
   @Override
-  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
-      ClusterContext clusterContext) {
-    return calculateAssignmentScore(node.getInstanceName(), replica.getReplicaState(),
-        getStateMap(replica, clusterContext));
-  }
-
-  protected abstract Map<String, String> getStateMap(AssignableReplica replica,
+  protected abstract double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
-  protected Map<String, String> getStateMapFromAssignment(AssignableReplica replica,
+  protected Map<String, String> getStateMap(AssignableReplica replica,
       Map<String, ResourceAssignment> assignment) {
     String resourceName = replica.getResourceName();
     String partitionName = replica.getPartitionName();
@@ -71,7 +65,7 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
     return assignment.get(resourceName).getReplicaMap(new Partition(partitionName));
   }
 
-  private double calculateAssignmentScore(String nodeName, String state,
+  protected double calculateAssignmentScore(String nodeName, String state,
       Map<String, String> instanceToStateMap) {
     if (instanceToStateMap.containsKey(nodeName)) {
       return state.equals(instanceToStateMap.get(nodeName)) ?

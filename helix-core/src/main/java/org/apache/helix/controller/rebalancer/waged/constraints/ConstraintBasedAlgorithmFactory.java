@@ -38,7 +38,7 @@ public class ConstraintBasedAlgorithmFactory {
   private static final Map<String, Float> MODEL = new HashMap<String, Float>() {
     {
       // The default setting
-      put(BaselineConvergeConstraint.class.getSimpleName(), 0.5f);
+      put(BaselineInfluenceConstraint.class.getSimpleName(), 0.5f);
       put(PartitionMovementConstraint.class.getSimpleName(), 2f);
       put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
       put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
@@ -68,7 +68,7 @@ public class ConstraintBasedAlgorithmFactory {
         preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
 
     List<SoftConstraint> softConstraints = ImmutableList
-        .of(new BaselineConvergeConstraint(), new PartitionMovementConstraint(),
+        .of(new BaselineInfluenceConstraint(), new PartitionMovementConstraint(),
             new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
             new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint());
     Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {

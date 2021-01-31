@@ -2,20 +2,29 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.Map;
 
+import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost.
- * During partial rebalance, the cost is evaluated based on the existing best possible state
- * assignment; during global rebalance, the cost is evaluated based on the existing baseline
- * assignment
+ * Best possible assignment is the sole reference, and if it's missing, use baseline assignment
+ * instead.
  */
 public class PartitionMovementConstraint extends AbstractPartitionMovementConstraint {
-  @Override
-  protected Map<String, String> getStateMap(AssignableReplica replica,
+  protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    return super.getStateMapFromAssignment(replica, clusterContext.getBestPossibleAssignment());
+    Map<String, String> bestPossibleAssignment =
+        getStateMap(replica, clusterContext.getBestPossibleAssignment());
+    Map<String, String> baselineAssignment =
+        getStateMap(replica, clusterContext.getBaselineAssignment());
+    String nodeName = node.getInstanceName();
+    String state = replica.getReplicaState();
+
+    if (bestPossibleAssignment.isEmpty()) {
+      return calculateAssignmentScore(nodeName, state, baselineAssignment);
+    }
+    return calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
   }
 }

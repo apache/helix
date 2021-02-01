@@ -262,6 +262,15 @@
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>zhangmeng</id>
+      <name>Meng Zhang</name>
+      <email>zhangmeng@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>metrics-common</module>

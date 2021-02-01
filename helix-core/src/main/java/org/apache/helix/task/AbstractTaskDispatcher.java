@@ -793,16 +793,15 @@ public abstract class AbstractTaskDispatcher {
   /**
    * Returns a filtered Iterable of tasks. To filter tasks in this context means to only allow tasks
    * whose contexts are either null or in STOPPED, TIMED_OUT, TASK_ERROR, or DROPPED state because
-   * only the
-   * tasks whose contexts are in these states are eligible to be assigned or re-tried.
+   * only the tasks whose contexts are in these states are eligible to be assigned or re-tried.
    * Also, for those tasks in non-terminal states whose previously assigned instances are no longer
-   * LiveInstances are re-added so that they could be re-assigned. Since in Task Pipeline,
+   * LiveInstances are re-added so that they could be re-assigned. Since in the Task Pipeline,
    * LiveInstance list contains instances that are live and enable, if instance is not among live
-   * instance, it is either not live or not enabled. If instance is not enabled, controller should
-   * first drop the task on the participant. After the task is dropped, then the task can be
-   * filtered for new assignment. Otherwise, once the participant is re-enabled, controller will
-   * two tasks in running state on two different participant and that cause quota and scheduling
-   * issues.
+   * instance, it is either not live or not enabled. If the instance is not enabled, the controller
+   * should first drop the task on the disabled participant. After the task is dropped, then the
+   * task can be filtered out for new assignment. Otherwise, once the participant is re-enabled,
+   * the controller see the task is running state on two different participants and that cause quota
+   * and scheduling issues.
    */
   private Set<Integer> filterTasks(String jobResource, Iterable<Integer> allPartitions,
       JobContext jobContext, Collection<String> liveInstances, Set<String> disableInstances,
@@ -816,17 +815,18 @@ public abstract class AbstractTaskDispatcher {
           || state == TaskPartitionState.DROPPED) {
         filteredTasks.add(partitionNumber);
       }
-      // Allow tasks whose assigned instances are no longer live or enable for rescheduling
+      // Allow tasks that their assigned instances are no longer live or enabled for rescheduling
       if (isTaskNotInTerminalState(state)) {
         String assignedParticipant = jobContext.getAssignedParticipant(partitionNumber);
-        final String pName = pName(jobResource, partitionNumber);
+        final String partitionName = pName(jobResource, partitionNumber);
         if (assignedParticipant != null && !liveInstances.contains(assignedParticipant)) {
           // The assigned instance is no longer in the liveInstance list. It is either not live or
           // disabled. If instance is disabled and current state still exist on the instance,
           // then controller needs to drop the current state, otherwise, the task can be marked as
           // dropped and be reassigned to other instances
-          if (disableInstances.contains(assignedParticipant) && currStateOutput
-              .getCurrentState(jobResource, new Partition(pName), assignedParticipant) != null) {
+          if (disableInstances.contains(assignedParticipant)
+              && currStateOutput.getCurrentState(jobResource, new Partition(partitionName),
+                  assignedParticipant) != null) {
             paMap.put(partitionNumber,
                 new PartitionAssignment(assignedParticipant, TaskPartitionState.DROPPED.name()));
           } else {

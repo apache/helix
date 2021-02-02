@@ -21,10 +21,13 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -90,7 +93,13 @@ public class TestAddClusterV2 extends ZkTestBase {
 
   @Test
   public void Test() {
-
+    // Verify the super cluster resources are all rebalanced by the WAGED rebalancer.
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+    for (String clusterName : admin.getResourcesInCluster(CONTROLLER_CLUSTER)) {
+      IdealState is = _gSetupTool.getClusterManagementTool()
+          .getResourceIdealState(CONTROLLER_CLUSTER, clusterName);
+      Assert.assertEquals(is.getRebalancerClassName(), WagedRebalancer.class.getName());
+    }
   }
 
   @AfterClass

@@ -27,10 +27,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -43,6 +42,8 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.store.ZNRecordJsonSerializer;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.AfterMethod;
@@ -250,10 +251,7 @@ public class TestHelixAdminCli extends ZkTestBase {
       // OK
     }
 
-    command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Thread.sleep(500);
+    activateCluster();
 
     // drop a running cluster
     command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
@@ -318,10 +316,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     MockParticipantManager[] participants = new MockParticipantManager[n];
     ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
-    String command =
-        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Thread.sleep(500);
+    activateCluster();
 
     // save ideal state
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
@@ -339,7 +334,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     pw.write(new String(serializer.serialize(idealState.getRecord())));
     pw.close();
 
-    command = "-zkSvr " + ZK_ADDR + " -dropResource " + clusterName + " db_11 ";
+    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + clusterName + " db_11 ";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     boolean verifyResult = ClusterStateVerifier
@@ -420,13 +415,10 @@ public class TestHelixAdminCli extends ZkTestBase {
     MockParticipantManager[] participants = new MockParticipantManager[n];
     ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
-    String command =
-        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Thread.sleep(500);
+    activateCluster();
 
     // drop node should fail if the node is not disabled
-    command = "-zkSvr " + ZK_ADDR + " -dropNode " + clusterName + " localhost:1232";
+    String command = "-zkSvr " + ZK_ADDR + " -dropNode " + clusterName + " localhost:1232";
     try {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("dropNode should fail since the node is not disabled");
@@ -503,12 +495,9 @@ public class TestHelixAdminCli extends ZkTestBase {
     MockParticipantManager[] participants = new MockParticipantManager[n];
     ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
-    String command =
-        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    Thread.sleep(500);
+    activateCluster();
 
-    command = "-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    String command = "-zkSvr " + ZK_ADDR + " -addNode " + clusterName
         + " localhost:12331;localhost:12341;localhost:12351;localhost:12361";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
@@ -566,21 +555,19 @@ public class TestHelixAdminCli extends ZkTestBase {
     MockParticipantManager[] participants = new MockParticipantManager[n];
     ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
-    String command =
-        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+    activateCluster();
     // wait till grand_cluster converge
-    BestPossibleExternalViewVerifier verifier = new BestPossibleExternalViewVerifier.Builder(grandClusterName)
-        .setZkClient(_gZkClient)
-        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-        .build();
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(grandClusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
 
     boolean result = verifier.verifyByPolling();
     Assert.assertTrue(result, "grand cluster not converging.");
 
     // deactivate cluster
-    command = "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
-        + " false";
+    String command =
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
+            + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
@@ -727,5 +714,24 @@ public class TestHelixAdminCli extends ZkTestBase {
     // rebalance with key prefix
     command = "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 2 -key alias";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+  }
+
+  private void activateCluster() throws Exception {
+    String command =
+        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
+    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+    TestHelper.verify(() -> {
+      if (admin.getResourceExternalView(grandClusterName, clusterName) == null) {
+        // TODO: Remove the following logic once https://github.com/apache/helix/issues/1617 is fixed.
+        // TODO: For now, we may need to touch the IdealState to trigger a new rebalance since the test
+        // TODO: is running multiple GenericHelixController instances in one JVM.
+        IdealState is = admin.getResourceIdealState(grandClusterName, clusterName);
+        admin.setResourceIdealState(grandClusterName, clusterName, is);
+        return false;
+      }
+      return true;
+    }, TestHelper.WAIT_DURATION);
   }
 }

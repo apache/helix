@@ -1266,11 +1266,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     idealState.setNumPartitions(1);
     idealState.setStateModelDefRef("LeaderStandby");
     idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
-    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
-    idealState.setRebalanceStrategy(CrushEdRebalanceStrategy.class.getName());
+    idealState.setRebalancerClassName(WagedRebalancer.class.getName());
     // TODO: Give user an option, say from RestAPI to config the number of replicas.
     idealState.setReplicas(Integer.toString(DEFAULT_SUPERCLUSTER_REPLICA));
-    idealState.getRecord().setListField(clusterName, new ArrayList<String>());
+    idealState.getRecord().setListField(clusterName, new ArrayList<>());
 
     List<String> controllers = getInstancesInCluster(grandCluster);
     if (controllers.size() == 0) {
@@ -1278,10 +1277,12 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+        new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
+    LOG.info("Cluster {} has been added to grand cluster {} with rebalance configuration {}.",
+        clusterName, grandCluster, idealState.getRecord().getSimpleFields().toString());
   }
 
   @Override

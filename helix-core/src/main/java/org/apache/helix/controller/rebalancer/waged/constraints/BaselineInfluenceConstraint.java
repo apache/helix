@@ -53,4 +53,9 @@ public class BaselineInfluenceConstraint extends AbstractPartitionMovementConstr
     }
     return calculateAssignmentScore(nodeName, state, baselineAssignment);
   }
+
+  @Override
+  protected double getStateTransitionCostFactor() {
+    return MAX_SCORE;
+  }
 }

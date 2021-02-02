@@ -35,12 +35,8 @@ import org.apache.helix.model.ResourceAssignment;
  * evaluated score will become lower.
  */
 abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
-  private static final double MAX_SCORE = 1f;
-  private static final double MIN_SCORE = 0f;
-  // The scale factor to adjust score when the proposed allocation partially matches the assignment
-  // plan but will require a state transition (with partition movement).
-  // TODO: these factors will be tuned based on user's preference
-  private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
+  protected static final double MAX_SCORE = 1f;
+  protected static final double MIN_SCORE = 0f;
 
   AbstractPartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
@@ -54,6 +50,12 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
   @Override
   protected abstract double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
+
+  /**
+   * @return The scale factor to adjust score when the proposed allocation partially matches the
+   * assignment plan but will require a state transition (with partition movement).
+   */
+  protected abstract double getStateTransitionCostFactor();
 
   protected Map<String, String> getStateMap(AssignableReplica replica,
       Map<String, ResourceAssignment> assignment) {
@@ -69,11 +71,11 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
       Map<String, String> instanceToStateMap) {
     if (instanceToStateMap.containsKey(nodeName)) {
       return state.equals(instanceToStateMap.get(nodeName)) ?
-          1 : // if state matches, no state transition required for the proposed assignment
-          STATE_TRANSITION_COST_FACTOR; // if state does not match,
-                                        // then the proposed assignment requires state transition.
+          MAX_SCORE : // if state matches, no state transition required for the proposed assignment
+          getStateTransitionCostFactor(); // if state does not match, then the proposed assignment
+                                          // requires state transition.
     }
-    return 0;
+    return MIN_SCORE;
   }
 
   @Override

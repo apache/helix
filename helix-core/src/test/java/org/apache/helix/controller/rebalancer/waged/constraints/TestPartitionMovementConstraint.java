@@ -192,8 +192,8 @@ public class TestPartitionMovementConstraint {
         .getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);
     normalizedScore = _baselineInfluenceConstraint
         .getAssignmentNormalizedScore(testAssignableNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5);
-    Assert.assertEquals(normalizedScore, 0.5);
+    Assert.assertEquals(score, 1.0);
+    Assert.assertEquals(normalizedScore, 1.0);
 
     score = _partitionMovementConstraint
         .getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);

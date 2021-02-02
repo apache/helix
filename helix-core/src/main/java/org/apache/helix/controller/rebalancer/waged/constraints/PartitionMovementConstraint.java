@@ -46,4 +46,9 @@ public class PartitionMovementConstraint extends AbstractPartitionMovementConstr
     }
     return calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
   }
+
+  @Override
+  protected double getStateTransitionCostFactor() {
+    return MAX_SCORE / 2;
+  }
 }

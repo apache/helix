@@ -96,7 +96,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * @param resourceMap
    * @param selectedMessage
    * @param retracedResourceStateMap out
-   * @return
    */
   private MessageOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
       MessageOutput selectedMessage, ResourcesStateMap retracedResourceStateMap) {
@@ -175,7 +174,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * @param bestPossibleStateOutput
    * @param throttleController
    * @param retracedPartitionsStateMap
-   * @return output
    */
   private MessageOutput throttlePerReplicaMessages(IdealState idealState,
       Map<Partition, List<Message>> selectedResourceMessages,

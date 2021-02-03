@@ -1,4 +1,5 @@
 package org.apache.helix.controller.stages;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,16 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
-import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
-import org.apache.helix.controller.pipeline.Stage;
-import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -43,8 +36,8 @@ import org.testng.annotations.Test;
 public class TestPerReplicaThrottleStage extends BaseStageTest {
 
   private void preSetup(String[] resources, int nPartition, int nReplica) {
-    setupIdealState(nReplica, resources, nPartition, nReplica,
-        IdealState.RebalanceMode.FULL_AUTO, "MasterSlave", null, null, 2);
+    setupIdealState(nReplica, resources, nPartition, nReplica, IdealState.RebalanceMode.FULL_AUTO,
+        "MasterSlave", null, null, 2);
     setupStateModel();
     setupLiveInstances(nReplica);
   }
@@ -84,7 +77,8 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
         bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 0, "MASTER");
         bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 1, "SLAVE");
         bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 2, "SLAVE");
-        List<String> list = Arrays.asList(HOSTNAME_PREFIX + 0, HOSTNAME_PREFIX + 1, HOSTNAME_PREFIX + 2);
+        List<String> list =
+            Arrays.asList(HOSTNAME_PREFIX + 0, HOSTNAME_PREFIX + 1, HOSTNAME_PREFIX + 2);
         bestPossibleStateOutput.setPreferenceList(resource, partition.getPartitionName(), list);
       }
     }
@@ -97,7 +91,8 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, new PerReplicaThrottleStage());
 
-    MessageOutput output = event.getAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name());
+    MessageOutput output =
+        event.getAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name());
     Partition partition = new Partition(resources[0] + "_0");
     List<Message> msgs = output.getMessages(resources[0], partition);
     Assert.assertTrue(msgs.size() == 1);

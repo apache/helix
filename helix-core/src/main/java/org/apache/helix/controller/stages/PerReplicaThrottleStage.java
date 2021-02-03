@@ -67,22 +67,22 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     ResourcesStateMap retracedResourceStateMap = new ResourcesStateMap();
     MessageOutput output =
-        compute(event, resourceToRebalance, currentStateOutput, selectedMessages, retracedResourceStateMap);
+        compute(event, resourceToRebalance, selectedMessages, retracedResourceStateMap);
 
     event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name(), output);
-    LogUtil.logDebug(logger,_eventId, String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
-    event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_RETRACED_STATES.name(), retracedResourceStateMap);
+    LogUtil.logDebug(logger, _eventId,
+        String.format("retraceResourceStateMap is: %s", retracedResourceStateMap));
+    event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_RETRACED_STATES.name(),
+        retracedResourceStateMap);
 
     //TODO: enter maintenance mode logic in next PR
   }
 
-  private List<ResourcePriority> getResourcePriorityList(
-      Map<String, Resource> resourceMap,
+  private List<ResourcePriority> getResourcePriorityList(Map<String, Resource> resourceMap,
       ResourceControllerDataProvider dataCache) {
     List<ResourcePriority> prioritizedResourceList = new ArrayList<>();
-    for (String resourceName : resourceMap.keySet()) {
-      prioritizedResourceList.add(new ResourcePriority(resourceName, dataCache));
-    }
+    resourceMap.keySet().stream().forEach(
+        resourceName -> prioritizedResourceList.add(new ResourcePriority(resourceName, dataCache)));
     Collections.sort(prioritizedResourceList);
 
     return prioritizedResourceList;
@@ -94,14 +94,12 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * of possible pending state transitions does NOT go over the set threshold).
    * @param event
    * @param resourceMap
-   * @param currentStateOutput
    * @param selectedMessage
    * @param retracedResourceStateMap out
    * @return
    */
   private MessageOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
-      CurrentStateOutput currentStateOutput, MessageOutput selectedMessage,
-      ResourcesStateMap retracedResourceStateMap) {
+      MessageOutput selectedMessage, ResourcesStateMap retracedResourceStateMap) {
     MessageOutput output = new MessageOutput();
 
     ResourceControllerDataProvider dataCache =
@@ -111,7 +109,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         new StateTransitionThrottleController(resourceMap.keySet(), dataCache.getClusterConfig(),
             dataCache.getLiveInstances().keySet());
 
-    List<ResourcePriority> prioritizedResourceList = getResourcePriorityList(resourceMap, dataCache);
+    List<ResourcePriority> prioritizedResourceList =
+        getResourcePriorityList(resourceMap, dataCache);
 
     List<String> failedResources = new ArrayList<>();
 
@@ -147,9 +146,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
           List<Message> msgList = selectedMessage.getMessages(resourceName, partition);
           partitonMsgMap.put(partition, msgList);
         }
-        MessageOutput resourceMsgOut = throttlePerReplicaMessages(idealState,
-            partitonMsgMap, resourceMap.get(resourceName),
-            bestPossibleStateOutput, throttleController, retracedPartitionsState);
+        MessageOutput resourceMsgOut =
+            throttlePerReplicaMessages(idealState, partitonMsgMap, bestPossibleStateOutput,
+                throttleController, retracedPartitionsState);
         for (Partition partition : resource.getPartitions()) {
           List<Message> msgList = resourceMsgOut.getMessages(resourceName, partition);
           output.addMessages(resourceName, partition, msgList);
@@ -163,7 +162,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
 
     // TODO: add monitoring in next PR.
-
     return output;
   }
 
@@ -174,48 +172,44 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    * Return messages for partitions of a resource.
    * @param idealState
    * @param selectedResourceMessages
-   * @param resource
    * @param bestPossibleStateOutput
    * @param throttleController
    * @param retracedPartitionsStateMap
-   * @param throttledRecoveryMsgOut
-   * @param throttledLoadMessageOut
    * @return output
    */
   private MessageOutput throttlePerReplicaMessages(IdealState idealState,
       Map<Partition, List<Message>> selectedResourceMessages,
-      Resource resource, BestPossibleStateOutput bestPossibleStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput,
       StateTransitionThrottleController throttleController,
       Map<Partition, Map<String, String>> retracedPartitionsStateMap) {
     MessageOutput output = new MessageOutput();
-    String resourceName = resource.getResourceName();
+    String resourceName = idealState.getResourceName();
     LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
     // TODO: expand per-replica-throttling beyond FULL_AUTO
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
         .equals(idealState.getRebalanceMode())) {
-      retracedPartitionsStateMap.putAll(bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap());
+      retracedPartitionsStateMap
+          .putAll(bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap());
       for (Partition partition : selectedResourceMessages.keySet()) {
         output.addMessages(resourceName, partition, selectedResourceMessages.get(partition));
       }
       return output;
     }
 
-    Map<Partition, Map<String, Integer>> expectedStateCountByPartition = new HashMap<>();
-    Map<Partition, Map<String, Integer>> currentStateCountsByPartition = new HashMap<>();
     // TODO: later PRs
     // Step 1: charge existing pending messages and update retraced state map.
     // Step 2: classify all the messages into recovery message list and load message list
     // Step 3: sorts recovery message list and applies throttling
     // Step 4: sorts load message list and applies throttling
     // Step 5: construct output
-    for (Partition partition : resource.getPartitions()) {
+    for (Partition partition : selectedResourceMessages.keySet()) {
       List<Message> partitionMessages = selectedResourceMessages.get(partition);
       if (partitionMessages == null) {
         continue;
       }
       List<Message> finalPartitionMessages = new ArrayList<>();
-      for (Message message: partitionMessages) {
+      for (Message message : partitionMessages) {
         // TODO: next PR messages exclusion
         finalPartitionMessages.add(message);
       }
@@ -229,6 +223,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
   }
 
   // ------------------ utilities ---------------------------
+
   /**
    * POJO that maps resource name to its priority represented by an integer.
    */
@@ -256,11 +251,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
           this.setPriority(idealState.getRecord().getSimpleField(priorityField));
         }
       }
-    }
-
-    ResourcePriority(String resourceName, int priority) {
-      _resourceName = resourceName;
-      _priority = priority;
     }
 
     @Override

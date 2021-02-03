@@ -175,98 +175,103 @@ public class TestWagedRebalance extends ZkTestBase {
   @Test(dependsOnMethods = "test")
   public void testRebalanceTool() throws InterruptedException {
     // Create resources for testing
-    int i = 0;
-    for (String stateModel : _testModels) {
-      String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
-      createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
-          _replica);
-      _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
-      _allDBs.add(db);
-    }
-
-    validate(_replica);
-
-    // Read cluster parameters from ZK
+    // It is important to let controller to use sync mode the same as getTargetAssignmentForWagedFullAuto
+    // to make the test correct and stable.
     HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-    ClusterConfig clusterConfig =
+    ClusterConfig clusterConfigGlobal =
         dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
-    List<InstanceConfig> instanceConfigs =
-        dataAccessor.getChildValues(dataAccessor.keyBuilder().instanceConfigs(), true);
-    List<String> liveInstances =
-        dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
-    List<IdealState> idealStates =
-        dataAccessor.getChildValues(dataAccessor.keyBuilder().idealStates(), true);
-    List<ResourceConfig> resourceConfigs =
-        dataAccessor.getChildValues(dataAccessor.keyBuilder().resourceConfigs(), true);
-
-    // Verify that utilResult contains the assignment for the resources added
-    Map<String, ResourceAssignment> utilResult = HelixUtil
-        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
-            idealStates, resourceConfigs);
-    Assert.assertNotNull(utilResult);
-    Assert.assertEquals(utilResult.size(), idealStates.size());
-    for (IdealState idealState : idealStates) {
-      Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
-      StateModelDefinition stateModelDefinition =
-          BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
-              .getStateModelDefinition();
-      for (String partition : idealState.getPartitionSet()) {
-        Assert.assertEquals(
-            utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition),
-            HelixUtil
-                .computeIdealMapping(idealState.getPreferenceList(partition), stateModelDefinition,
-                    new HashSet<>(liveInstances)));
+    clusterConfigGlobal.setGlobalRebalanceAsyncMode(false);
+    dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfigGlobal);
+    try {
+      int i = 0;
+      for (String stateModel : _testModels) {
+        String db = "Test-DB-" + TestHelper.getTestMethodName() + i++;
+        createResourceWithWagedRebalance(CLUSTER_NAME, db, stateModel, PARTITIONS, _replica,
+            _replica);
+        _gSetupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
+        _allDBs.add(db);
       }
+
+      validate(_replica);
+
+      // Read cluster parameters from ZK
+      dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+      ClusterConfig clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+      List<InstanceConfig> instanceConfigs = dataAccessor.getChildValues(dataAccessor.keyBuilder().instanceConfigs(), true);
+      List<String> liveInstances = dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances());
+      List<IdealState> idealStates = dataAccessor.getChildValues(dataAccessor.keyBuilder().idealStates(), true);
+      List<ResourceConfig> resourceConfigs = dataAccessor.getChildValues(dataAccessor.keyBuilder().resourceConfigs(), true);
+
+      // Verify that utilResult contains the assignment for the resources added
+      Map<String, ResourceAssignment> utilResult = HelixUtil
+          .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+      Assert.assertNotNull(utilResult);
+      Assert.assertEquals(utilResult.size(), idealStates.size());
+      for (IdealState idealState : idealStates) {
+        Assert.assertTrue(utilResult.containsKey(idealState.getResourceName()));
+        StateModelDefinition stateModelDefinition =
+            BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef()).getStateModelDefinition();
+        for (String partition : idealState.getPartitionSet()) {
+          Assert.assertEquals(utilResult.get(idealState.getResourceName()).getRecord().getMapField(partition),
+              HelixUtil.computeIdealMapping(idealState.getPreferenceList(partition),
+                  stateModelDefinition, new HashSet<>(liveInstances)));
+        }
+      }
+
+      // Verify that the partition state mapping mode also works
+      Map<String, ResourceAssignment> paritionMappingBasedResult = HelixUtil
+          .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+      Assert.assertNotNull(paritionMappingBasedResult);
+      Assert.assertEquals(paritionMappingBasedResult.size(), idealStates.size());
+      for (IdealState idealState : idealStates) {
+        Assert.assertTrue(paritionMappingBasedResult.containsKey(idealState.getResourceName()));
+        Assert.assertEquals(
+            paritionMappingBasedResult.get(idealState.getResourceName()).getRecord().getMapFields(),
+            idealState.getRecord().getMapFields());
+      }
+
+      // Try to add a few extra instances
+      String instance_0 = "instance_0";
+      String instance_1 = "instance_1";
+      Set<String> newInstances = new HashSet<>();
+      newInstances.add(instance_0);
+      newInstances.add(instance_1);
+      liveInstances.addAll(newInstances);
+      for (String instance : newInstances) {
+        InstanceConfig instanceConfig = new InstanceConfig(instance);
+        instanceConfigs.add(instanceConfig);
+      }
+
+      utilResult = HelixUtil
+          .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+
+      Set<String> instancesWithAssignments = new HashSet<>();
+      utilResult.values().forEach(
+          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().forEach(entry -> instancesWithAssignments.addAll(entry.keySet())));
+      // The newly added instances should contain some partitions
+      Assert.assertTrue(instancesWithAssignments.contains(instance_0));
+      Assert.assertTrue(instancesWithAssignments.contains(instance_1));
+
+      // Perform the same test with immediate assignment
+      utilResult = HelixUtil
+          .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+      Set<String> instancesWithAssignmentsImmediate = new HashSet<>();
+      utilResult.values().forEach(
+          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().forEach(entry -> instancesWithAssignmentsImmediate.addAll(entry.keySet())));
+      // The newly added instances should contain some partitions
+      Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
+      Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
+    } finally {
+      // restore the config with async mode
+      clusterConfigGlobal =
+          dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+      clusterConfigGlobal.setGlobalRebalanceAsyncMode(true);
+      dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfigGlobal);
     }
-
-    // Verify that the partition state mapping mode also works
-    Map<String, ResourceAssignment> paritionMappingBasedResult = HelixUtil
-        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
-            liveInstances, idealStates, resourceConfigs);
-    Assert.assertNotNull(paritionMappingBasedResult);
-    Assert.assertEquals(paritionMappingBasedResult.size(), idealStates.size());
-    for (IdealState idealState : idealStates) {
-      Assert.assertTrue(paritionMappingBasedResult.containsKey(idealState.getResourceName()));
-      Assert.assertEquals(
-          paritionMappingBasedResult.get(idealState.getResourceName()).getRecord().getMapFields(),
-          idealState.getRecord().getMapFields());
-    }
-
-    // Try to add a few extra instances
-    String instance_0 = "instance_0";
-    String instance_1 = "instance_1";
-    Set<String> newInstances = new HashSet<>();
-    newInstances.add(instance_0);
-    newInstances.add(instance_1);
-    liveInstances.addAll(newInstances);
-    for (String instance : newInstances) {
-      InstanceConfig instanceConfig = new InstanceConfig(instance);
-      instanceConfigs.add(instanceConfig);
-    }
-
-    utilResult = HelixUtil
-        .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs, liveInstances,
-            idealStates, resourceConfigs);
-
-    Set<String> instancesWithAssignments = new HashSet<>();
-    utilResult.values().forEach(
-        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
-            .forEach(entry -> instancesWithAssignments.addAll(entry.keySet())));
-    // The newly added instances should contain some partitions
-    Assert.assertTrue(instancesWithAssignments.contains(instance_0));
-    Assert.assertTrue(instancesWithAssignments.contains(instance_1));
-
-    // Perform the same test with immediate assignment
-    utilResult = HelixUtil
-        .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
-            liveInstances, idealStates, resourceConfigs);
-    Set<String> instancesWithAssignmentsImmediate = new HashSet<>();
-    utilResult.values().forEach(
-        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
-            .forEach(entry -> instancesWithAssignmentsImmediate.addAll(entry.keySet())));
-    // The newly added instances should contain some partitions
-    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
-    Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
   }
 
   @Test(dependsOnMethods = "test")

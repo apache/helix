@@ -142,8 +142,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // want to enforce it, which may cause backward incompatibility.
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+    String zkAddress = manager.getMetadataStoreConnectionString();
 
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED)) {
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       String clusterName = manager.getClusterName();
       String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
@@ -158,7 +159,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
 
     return SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(manager.getMetadataStoreConnectionString()),
+        new HelixZkClient.ZkConnectionConfig(zkAddress),
         clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
   }
 }

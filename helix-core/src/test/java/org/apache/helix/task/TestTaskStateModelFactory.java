@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
@@ -31,9 +32,13 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.when;
 
 
 public class TestTaskStateModelFactory extends TaskTestBase {
@@ -85,6 +90,17 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     Assert.assertEquals(TaskUtil
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    Assert.assertTrue(zkClient instanceof FederatedZkClient);
+
+    // Turn off multiZk mode in System config, and remove zkAddress
+    System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
+    HelixManager participantManager = Mockito.spy(anyParticipantManager);
+    when(participantManager.getMetadataStoreConnectionString()).thenReturn(null);
+    zkClient = TaskStateModelFactory.createZkClient(participantManager);
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    Assert.assertTrue(zkClient instanceof FederatedZkClient);
 
     // Restore system properties
     if (prevMultiZkEnabled == null) {

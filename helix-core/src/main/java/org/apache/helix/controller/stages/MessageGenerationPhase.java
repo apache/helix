@@ -211,8 +211,8 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         }
 
         if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
-          if (desiredState.equals(NO_DESIRED_STATE) || pendingMessage != null && !currentState
-              .equalsIgnoreCase(pendingMessage.getToState())) {
+          if (shouldCreateSTCancellation(pendingMessage, currentState, desiredState,
+              stateModelDef.getInitialState())) {
             message = createStateTransitionCancellationMessage(manager, resource,
                 partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
                 stateModelDef.getId(), pendingMessage.getFromState(), pendingMessage.getToState(),
@@ -269,6 +269,23 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         }
       }
     } // end of for-each-partition
+  }
+
+  private boolean shouldCreateSTCancellation(Message pendingMessage, String currentState,
+      String desiredState, String initialState) {
+    if (pendingMessage == null) {
+      return false;
+    }
+    if (NO_DESIRED_STATE.equals(desiredState)) {
+      return true;
+    }
+
+    // Don't cancel the ST for below scenarios:
+    // 1. current state has arrived at pending message's to state
+    // 2. pending message is an ERROR reset: ERROR -> initState (eg. OFFLINE)
+    return !currentState.equalsIgnoreCase(pendingMessage.getToState())
+        && !HelixDefinedState.ERROR.name().equals(pendingMessage.getFromState())
+        && !initialState.equals(pendingMessage.getToState());
   }
 
   private void logAndAddToCleanUp(Map<String, Map<String, Message>> messagesToCleanUp,
@@ -437,10 +454,10 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
       boolean isCancellationEnabled, String currentState) {
 
     if (isCancellationEnabled && cancellationMessage == null) {
-      LogUtil.logInfo(logger, _eventId,
-          "Send cancellation message of the state transition for " + resource.getResourceName()
-              + "." + partitionName + " on " + instanceName + ", currentState: " + currentState
-              + ", nextState: " + (nextState == null ? "N/A" : nextState));
+      logger.info("Event {} : Send cancellation message of the state transition for {}.{} on {}, "
+              + "currentState: {}, nextState: {},  toState: {}",
+          _eventId, resource.getResourceName(), partitionName, instanceName,
+          currentState, nextState == null ? "N/A" : nextState, toState);
 
       String uuid = UUID.randomUUID().toString();
       String managerSessionId = manager.getSessionId();

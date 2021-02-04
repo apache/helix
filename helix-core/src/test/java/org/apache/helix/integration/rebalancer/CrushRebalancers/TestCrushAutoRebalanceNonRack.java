@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -43,6 +44,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.apache.helix.tools.ClusterVerifiers.StrictMatchExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
@@ -278,6 +280,15 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
         return !InstanceValidationUtil.isEnabled(helixDataAccessor, p.getInstanceName())
             && !InstanceValidationUtil.isAlive(helixDataAccessor, p.getInstanceName());
       }, TestHelper.WAIT_DURATION), "Instance should be disabled and offline");
+
+      // There is still a possibility that controller may see the liveinstance before the instance
+      // is stopped, even from admin tool perspective the node is not alive and disabled. Thus sending
+      // messages before or during instance getting dropped.
+      Assert.assertTrue(TestHelper.verify(() -> {
+        PropertyKey.Builder propertyKeyBuilder = helixDataAccessor.keyBuilder();
+        Message messages = helixDataAccessor.getProperty(propertyKeyBuilder.messages(p.getInstanceName()));
+        return messages == null;
+      }, TestHelper.WAIT_DURATION));
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
     }
 

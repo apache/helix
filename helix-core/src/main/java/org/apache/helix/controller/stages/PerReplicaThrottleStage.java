@@ -229,9 +229,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         throttledRecoveryMessages, StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
 
     // Step 4: sorts load message list and applies throttling
-    // Perform regular load balance only if the number of partitions in recovery and in error is
-    // less than the threshold. Otherwise, only allow downward-transition load balance
-    // TODO: calculate error-on-recovery downward threshold
+    // TODO: calculate error-on-recovery downward threshold with complex backward compatibility next
+    // TODO: this can be done together with chargePendingMessage() where partitionsNeedRecovery is from
     boolean onlyDownwardLoadBalance = partitionsWithErrorStateReplica.size() > 1;
     Set<Message> throttledLoadMessages = new HashSet<>();
     LogUtil.logDebug(logger, _eventId, String

@@ -43,6 +43,8 @@ public class ClusterContext {
   private final Map<String, Integer> _estimatedMaxPartitionByResource = new HashMap<>();
   // This estimation helps to ensure global resource usage evenness.
   private final float _estimatedMaxUtilization;
+  // This estimation helps to ensure global resource top state usage evenness.
+  private final float _estimatedTopStateMaxUtilization;
 
   // map{zoneName : map{resourceName : set(partitionNames)}}
   private Map<String, Map<String, Set<String>>> _assignmentForFaultZoneMap = new HashMap<>();
@@ -63,6 +65,7 @@ public class ClusterContext {
     int totalReplicas = 0;
     int totalTopStateReplicas = 0;
     Map<String, Integer> totalUsage = new HashMap<>();
+    Map<String, Integer> totalTopStateUsage = new HashMap<>();
     Map<String, Integer> totalCapacity = new HashMap<>();
 
     for (Map.Entry<String, List<AssignableReplica>> entry : replicaSet.stream()
@@ -77,6 +80,9 @@ public class ClusterContext {
       for (AssignableReplica replica : entry.getValue()) {
         if (replica.isReplicaTopState()) {
           totalTopStateReplicas += 1;
+          replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalTopStateUsage
+              .compute(capacityEntry.getKey(), (k, v) -> (v == null) ? capacityEntry.getValue()
+                  : (v + capacityEntry.getValue())));
         }
         replica.getCapacity().entrySet().stream().forEach(capacityEntry -> totalUsage
             .compute(capacityEntry.getKey(),
@@ -90,15 +96,22 @@ public class ClusterContext {
     if (totalCapacity.isEmpty()) {
       // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;
+      _estimatedTopStateMaxUtilization = 1f;
     } else {
       float estimatedMaxUsage = 0;
+      float estimatedTopStateMaxUsage = 0;
       for (String capacityKey : totalCapacity.keySet()) {
         int maxCapacity = totalCapacity.get(capacityKey);
         int usage = totalUsage.getOrDefault(capacityKey, 0);
         float utilization = (maxCapacity == 0) ? 1 : (float) usage / maxCapacity;
         estimatedMaxUsage = Math.max(estimatedMaxUsage, utilization);
+
+        int topStateUsage = totalTopStateUsage.getOrDefault(capacityKey, 0);
+        float topStateUtilization = (maxCapacity == 0) ? 1 : (float) topStateUsage / maxCapacity;
+        estimatedTopStateMaxUsage = Math.max(estimatedTopStateMaxUsage, topStateUtilization);
       }
       _estimatedMaxUtilization = estimatedMaxUsage;
+      _estimatedTopStateMaxUtilization = estimatedTopStateMaxUsage;
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -133,6 +146,10 @@ public class ClusterContext {
 
   public float getEstimatedMaxUtilization() {
     return _estimatedMaxUtilization;
+  }
+
+  public float getEstimatedTopStateMaxUtilization() {
+    return _estimatedTopStateMaxUtilization;
   }
 
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {

@@ -119,6 +119,28 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
    */
   @Test
   public void testNoCancellationForErrorReset() throws Exception {
+    List<Message> messages = generateMessages("ERROR", "ERROR", "OFFLINE");
+
+    Assert.assertTrue(messages.isEmpty(), "Should not create cancellation message");
+  }
+
+  /*
+   * Tests that controller should be able to cancel ST: ONLINE -> OFFLINE
+   */
+  @Test
+  public void testCancelOnlineToOffline() throws Exception {
+    List<Message> messages = generateMessages("ONLINE", "ONLINE", "OFFLINE");
+
+    Assert.assertEquals(messages.size(), 1, "Should create cancellation message");
+
+    Message msg = messages.get(0);
+    Assert.assertEquals(msg.getMsgType(), Message.MessageType.STATE_TRANSITION_CANCELLATION.name());
+    Assert.assertEquals(msg.getFromState(), "ONLINE");
+    Assert.assertEquals(msg.getToState(), "OFFLINE");
+  }
+
+  private List<Message> generateMessages(String currentState, String fromState, String toState)
+      throws Exception {
     ClusterEvent event = new ClusterEvent(TEST_CLUSTER, ClusterEventType.Unknown);
 
     // Set current state to event
@@ -126,12 +148,12 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     Partition partition = mock(Partition.class);
     when(partition.getPartitionName()).thenReturn(TEST_PARTITION);
     when(currentStateOutput.getCurrentState(TEST_RESOURCE, partition, TEST_INSTANCE))
-        .thenReturn("ERROR");
+        .thenReturn(currentState);
 
     // Pending message for error partition reset
     Message pendingMessage = mock(Message.class);
-    when(pendingMessage.getFromState()).thenReturn("ERROR");
-    when(pendingMessage.getToState()).thenReturn("OFFLINE");
+    when(pendingMessage.getFromState()).thenReturn(fromState);
+    when(pendingMessage.getToState()).thenReturn(toState);
     when(currentStateOutput.getPendingMessage(TEST_RESOURCE, partition, TEST_INSTANCE))
         .thenReturn(pendingMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
@@ -139,17 +161,18 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     // Set helix manager to event
     event.addAttribute(AttributeName.helixmanager.name(), mock(HelixManager.class));
 
-    StateModelDefinition stateModelDefinition =
-        new StateModelDefinition.Builder("TestStateModel").addState("ONLINE", 1).addState("OFFLINE")
-            .addState("DROPPED").addState("ERROR").initialState("OFFLINE")
-            .addTransition("ERROR", "OFFLINE", 1).addTransition("ONLINE", "OFFLINE", 2)
-            .addTransition("OFFLINE", "DROPPED", 3).addTransition("OFFLINE", "ONLINE", 4)
-            .build();
+    StateModelDefinition stateModelDefinition = new StateModelDefinition.Builder("TestStateModel")
+        .addState("ONLINE", 1).addState("OFFLINE")
+        .addState("DROPPED").addState("ERROR")
+        .initialState("OFFLINE")
+        .addTransition("ERROR", "OFFLINE", 1).addTransition("ONLINE", "OFFLINE", 2)
+        .addTransition("OFFLINE", "DROPPED", 3).addTransition("OFFLINE", "ONLINE", 4)
+        .build();
 
     // Set controller data provider to event
     BaseControllerDataProvider cache = mock(BaseControllerDataProvider.class);
     when(cache.getStateModelDef(TaskConstants.STATE_MODEL_NAME)).thenReturn(stateModelDefinition);
-    Map<String, LiveInstance> liveInstances= mock(Map.class);
+    Map<String, LiveInstance> liveInstances = mock(Map.class);
     LiveInstance mockLiveInstance = mock(LiveInstance.class);
     when(mockLiveInstance.getInstanceName()).thenReturn(TEST_INSTANCE);
     when(mockLiveInstance.getEphemeralOwner()).thenReturn("TEST");
@@ -175,7 +198,7 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     PartitionStateMap partitionStateMap = new PartitionStateMap(TEST_RESOURCE);
     Map<Partition, Map<String, String>> stateMap = partitionStateMap.getStateMap();
     Map<String, String> instanceStateMap = new HashMap<>();
-    instanceStateMap.put(TEST_INSTANCE, HelixDefinedState.ERROR.name());
+    instanceStateMap.put(TEST_INSTANCE, currentState);
     stateMap.put(partition, instanceStateMap);
     resourcesStateMap.setState(TEST_RESOURCE, partition, instanceStateMap);
 
@@ -183,8 +206,6 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     processEvent(event, resourcesStateMap);
     MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
 
-    // No cancellation message is created
-    Assert.assertTrue(output.getMessages(TEST_RESOURCE, partition).isEmpty(),
-        "Should not create cancellation message");
+    return output.getMessages(TEST_RESOURCE, partition);
   }
 }

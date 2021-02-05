@@ -266,6 +266,12 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     System.out.println("TestLackEnoughInstances " + rebalanceStrategyName);
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
+    // Drop instance from admin tools and controller sending message to the same instance are
+    // fundamentally async. This is design drawback of Helix. The race condition can also happen
+    // in production.  For now we stabilize the test by disable controller and re-enable controller
+    // to eliminate this race condition.
+    _controller.syncStop();
+
     // shutdown participants, keep only two left
     HelixDataAccessor helixDataAccessor =
         new ZKHelixDataAccessor(CLUSTER_NAME, InstanceType.PARTICIPANT, _baseAccessor);
@@ -280,19 +286,12 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
         return !InstanceValidationUtil.isEnabled(helixDataAccessor, p.getInstanceName())
             && !InstanceValidationUtil.isAlive(helixDataAccessor, p.getInstanceName());
       }, TestHelper.WAIT_DURATION), "Instance should be disabled and offline");
-
-      // There is still a possibility that controller may see the liveinstance before the instance
-      // is stopped, even from admin tool perspective the node is not alive and disabled. Thus sending
-      // messages before or during instance getting dropped.
-      Assert.assertTrue(TestHelper.verify(() -> {
-        PropertyKey.Builder propertyKeyBuilder = helixDataAccessor.keyBuilder();
-        Message messages =
-            helixDataAccessor.getProperty(propertyKeyBuilder.messages(p.getInstanceName()));
-        return messages == null;
-      }, TestHelper.WAIT_DURATION));
-
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
     }
+
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
 
     int j = 0;
     for (String stateModel : _testModels) {

@@ -267,9 +267,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     // Drop instance from admin tools and controller sending message to the same instance are
-    // fundamentally async. This is design drawback of Helix. The race condition can also happen
-    // in production.  For now we stabilize the test by disable controller and re-enable controller
-    // to eliminate this race condition.
+    // fundamentally async. The race condition can also happen in production.  For now we stabilize
+    // the test by disable controller and re-enable controller to eliminate this race condition as
+    // a workaround. New design is needed to fundamentally resolve the expose issue.
     _controller.syncStop();
 
     // shutdown participants, keep only two left

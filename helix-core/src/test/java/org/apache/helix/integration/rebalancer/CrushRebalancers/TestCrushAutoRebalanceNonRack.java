@@ -16,7 +16,7 @@ package org.apache.helix.integration.rebalancer.CrushRebalancers;
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
- * under the License.
+ * under the License. 
  */
 
 import java.util.ArrayList;
@@ -281,7 +281,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
         return !InstanceValidationUtil.isEnabled(helixDataAccessor, p.getInstanceName())
             && !InstanceValidationUtil.isAlive(helixDataAccessor, p.getInstanceName());
       }, TestHelper.WAIT_DURATION), "Instance should be disabled and offline");
-      
+
       _gSetupTool.dropInstanceFromCluster(CLUSTER_NAME, p.getInstanceName());
     }
 

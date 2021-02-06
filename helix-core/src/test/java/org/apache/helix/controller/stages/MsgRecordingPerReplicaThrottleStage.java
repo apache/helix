@@ -28,6 +28,7 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +41,11 @@ public class MsgRecordingPerReplicaThrottleStage extends PerReplicaThrottleStage
   private List<Message> _throttledLoadMsg = new ArrayList<>();
 
   protected void applyThrottling(String resourceName,
-      StateTransitionThrottleController throttleController, IdealState idealState,
-      ResourceControllerDataProvider cache, boolean onlyDownwardLoadBalance, List<Message> messages,
+      StateTransitionThrottleController throttleController, StateModelDefinition stateModelDef,
+      boolean onlyDownwardLoadBalance, List<Message> messages,
       Set<Message> throttledMessages, StateTransitionThrottleConfig.RebalanceType rebalanceType) {
     Set<Message> middleThrottledMessages = new HashSet<>();
-    super.applyThrottling(resourceName, throttleController, idealState, cache,
+    super.applyThrottling(resourceName, throttleController, stateModelDef,
         onlyDownwardLoadBalance, messages, middleThrottledMessages, rebalanceType);
 
     if (rebalanceType == StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE) {

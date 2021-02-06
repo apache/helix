@@ -355,6 +355,71 @@ public class TestPerReplicaThrottleStage extends BaseStageTest {
     Assert.assertTrue(msgs.size() == 1);
   }
 
+
+  // case N1(S), N2(O), N3(O), message N2 (O->S), N3(O->S), one is recovery, one is load
+  @Test
+  public void testOneRecoveryOneLoad() {
+    String resourcePrefix = "resource";
+    int nResource = 1;
+    int nPartition = 1;
+    int nReplica = 3;
+    String[] resources = new String[nResource];
+    for (int i = 0; i < nResource; i++) {
+      resources[i] = resourcePrefix + "-" + i;
+    }
+
+    preSetup(resources, nPartition, nReplica);
+    setupThrottleConfig(0, 0);
+    event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
+        getResourceMap(resources, nPartition, "MasterSlave"));
+    // setup current state; setup message output; setup best possible
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    MessageOutput messageOutput = new MessageOutput();
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    for (String resource : resources) {
+      for (int p = 0; p < nPartition; p++) {
+        Partition partition = new Partition(resource + "_" + p);
+        currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 0, "SLAVE");
+        currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 1, "OFFLINE");
+        currentStateOutput.setCurrentState(resource, partition, HOSTNAME_PREFIX + 2, "OFFLINE");
+        Message msg = new Message(Message.MessageType.STATE_TRANSITION, "001");
+        msg.setToState("SLAVE");
+        msg.setFromState("OFFLINE");
+        msg.setTgtName(HOSTNAME_PREFIX + 1);
+        messageOutput.addMessage(resource, partition, msg);
+
+        msg = new Message(Message.MessageType.STATE_TRANSITION, "002");
+        msg.setToState("SLAVE");
+        msg.setFromState("OFFLINE");
+        msg.setTgtName(HOSTNAME_PREFIX + 2);
+        messageOutput.addMessage(resource, partition, msg);
+        bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 0, "MASTER");
+        bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 1, "SLAVE");
+        bestPossibleStateOutput.setState(resource, partition, HOSTNAME_PREFIX + 2, "SLAVE");
+        List<String> list =
+            Arrays.asList(HOSTNAME_PREFIX + 0, HOSTNAME_PREFIX + 1, HOSTNAME_PREFIX + 2);
+        bestPossibleStateOutput.setPreferenceList(resource, partition.getPartitionName(), list);
+      }
+    }
+
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(),
+        new ResourceControllerDataProvider());
+
+    MsgRecordingPerReplicaThrottleStage msgRecordingStage =
+        new MsgRecordingPerReplicaThrottleStage();
+    runStage(event, new ReadClusterDataStage());
+    runStage(event, msgRecordingStage);
+
+    List<Message> msgs = msgRecordingStage.getRecoveryThrottledMessages();
+    Assert.assertTrue(msgs.size() == 1);
+    msgs = msgRecordingStage.getLoadThrottledMessages();
+    Assert.assertTrue(msgs.size() == 1);
+  }
+
+
   protected Map<String, Resource> getResourceMap(String[] resources, int partitions,
       String stateModel) {
     Map<String, Resource> resourceMap = new HashMap<String, Resource>();

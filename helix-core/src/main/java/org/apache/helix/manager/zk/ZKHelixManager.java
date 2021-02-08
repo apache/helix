@@ -692,6 +692,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return _zkAddress;
   }
 
+  public RealmAwareZkClient.RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
+    return _realmAwareZkConnectionConfig;
+  }
+
   @Override
   public String getInstanceName() {
     return _instanceName;

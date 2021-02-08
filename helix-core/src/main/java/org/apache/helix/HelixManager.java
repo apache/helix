@@ -50,6 +50,7 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
@@ -361,6 +362,13 @@ public interface HelixManager {
    * @return a string used to connect to metadata store
    */
   String getMetadataStoreConnectionString();
+
+  /**
+   * @return the RealmAwareZkConnectionConfig usd to create a realm aware zkClient
+   */
+  default RealmAwareZkClient.RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
+    return null;
+  }
 
   /**
    * Returns the instanceName used to connect to the cluster

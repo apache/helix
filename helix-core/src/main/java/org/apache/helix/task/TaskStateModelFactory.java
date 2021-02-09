@@ -145,20 +145,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
-      String clusterName = manager.getClusterName();
-      String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
-      RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig =
-          manager.getRealmAwareZkConnectionConfig();
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-              .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-              .setZkRealmShardingKey(shardingKey).setRoutingDataSourceEndpoint(
-              (zkConnectionConfig != null) ? zkConnectionConfig.getRoutingDataSourceEndpoint()
-                  : null).setRoutingDataSourceType(
-              (zkConnectionConfig != null) ? zkConnectionConfig.getRoutingDataSourceType() : null)
-              .build();
       try {
-        return new FederatedZkClient(connectionConfig, clientConfig);
+        return new FederatedZkClient(manager.getRealmAwareZkConnectionConfig(), clientConfig);
       } catch (InvalidRoutingDataException | IllegalArgumentException e) {
         throw new HelixException("Failed to create FederatedZkClient!", e);
       }

@@ -290,31 +290,66 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
    *  When determining a message as LOAD or RECOVERY, we look at the toState of this message.
    *  If the accumulated current count of toState meet the required accumulated expected count
    *  of the toState, we will treat it as Load, otherwise, it is Recovery.
+   *
+   *  Note, there can be customerized model that having more than one route to a top state. For
+   *  example S1, S2, S3 are three levels of states with S1 as top state with lowest priority.
+   *  It is possible that S2 can transits upward to S1 while S3 can also transits upward to S1.
+   *  Thus, we consider S1 meet count requirement of both S2 and S3. In propagation time, we will
+   *  add state count of S1 to both S2 and S3.
    */
-
   private void propagateCountsTopDown(StateModelDefinition stateModelDef,
       Map<String, Integer> stateCountMap) {
-    // attribute state in higher priority to lower priority
     List<String> stateList = stateModelDef.getStatesPriorityList();
     if (stateList == null || stateList.size() <= 0) {
       return;
     }
+
+    Map<String, Integer> statePriorityMap = new HashMap<>();
+
+    // calculate rank of each state. Next use the rank to compare if a transition is upward or not
+    int rank = 0;
+    for (String state : stateList) {
+      statePriorityMap.put(state, Integer.valueOf(rank));
+      rank++;
+    }
+
+    // given a key state, find the set of states that can transit to this key state upwards.
+    Map<String, Set<String>> fromStatesMap = new HashMap<>();
+    for (String transition : stateModelDef.getStateTransitionPriorityList()) {
+      // Note, we assume stateModelDef is properly constructed.
+      String[] fromStateAndToState = transition.split("-");
+      String fromState = fromStateAndToState[0];
+      String toState = fromStateAndToState[1];
+      Integer fromStatePriority = statePriorityMap.get(fromState);
+      Integer toStatePriority = statePriorityMap.get(toState);
+      if (fromStatePriority.compareTo(toStatePriority) <= 0) {
+        // skip downward transitition
+        continue;
+      }
+      fromStatesMap.putIfAbsent(toState, new HashSet<>());
+      fromStatesMap.get(toState).add(fromState);
+    }
+
+    // propagation by adding state counts of current state to all lower priority state that can
+    // transit to this current state
     int index = 0;
-    String prevState = stateList.get(index);
-    stateCountMap.putIfAbsent(prevState, 0);
     while (true) {
       if (index == stateList.size() - 1) {
         break;
       }
-      index++;
       String curState = stateList.get(index);
       String num = stateModelDef.getNumInstancesPerState(curState);
       if ("-1".equals(num)) {
         break;
       }
-      int prevCnt = stateCountMap.get(prevState);
-      stateCountMap.put(curState, prevCnt + stateCountMap.getOrDefault(curState, 0));
-      prevState = curState;
+      stateCountMap.putIfAbsent(curState, 0);
+      Integer curCount = stateCountMap.get(curState);
+      // for all states S that can transition to curState, add curState count back to S in stateCountMap
+      for (String fromState : fromStatesMap.getOrDefault(curState, Collections.emptySet())) {
+        Integer fromStateCount = stateCountMap.getOrDefault(fromState, 0);
+        stateCountMap.put(fromState, Integer.sum(fromStateCount, curCount));
+      }
+      index++;
     }
   }
 
@@ -329,7 +364,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     }
 
     int replica =
-        idealState.getMinActiveReplicas() == -1 ? idealState.getReplicaCount(preferenceList.size())
+        idealState.getMinActiveReplicas() <= 0 ? idealState.getReplicaCount(preferenceList.size())
             : idealState.getMinActiveReplicas();
     Set<String> activeList = new HashSet<>(preferenceList);
     activeList.retainAll(enabledLiveInstance);
@@ -439,11 +474,11 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
         // TODO: dropped and Error state special treatment
 
-        Integer expectedCount = partitionExpectedStateCounts.getOrDefault(toState, 0);
+        Integer minimumRequiredCount = partitionExpectedStateCounts.getOrDefault(toState, 0);
         Integer currentCount = partitionCurrentStateCounts.getOrDefault(toState, 0);
 
         //
-        if (isUpward && (currentCount < expectedCount)) {
+        if (isUpward && (currentCount < minimumRequiredCount)) {
           recoveryMessages.add(msg);
           // It is critical to increase toState value by one here. For example, current state
           // of 3 replica in a partition is (M, O, O). Two messages here bringing up the two O to S.

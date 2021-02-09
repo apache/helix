@@ -29,11 +29,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -121,6 +127,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final int _connectionInitTimeout; // client timeout to init connect
   private final List<PreConnectCallback> _preConnectCallbacks;
   protected final List<CallbackHandler> _handlers;
+  protected final ThreadPoolExecutor _callbackHandlerExecutorService;
   private final HelixManagerProperties _properties;
   private final HelixManagerProperty _helixManagerProperty;
   private final HelixManagerStateListener _stateListener;
@@ -251,6 +258,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK);
     _preConnectCallbacks = new ArrayList<>();
     _handlers = new ArrayList<>();
+    ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(
+        String.format("CallbackHandlerExecutorService - %s - %s", _clusterName, this.hashCode()))
+        .build();
+    _callbackHandlerExecutorService = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(), namedThreadFactory);
+    _callbackHandlerExecutorService.allowCoreThreadTimeOut(true);
     _properties = new HelixManagerProperties(SystemPropertyKeys.CLUSTER_MANAGER_VERSION);
     _version = _properties.getVersion();
 
@@ -855,6 +868,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       for (HelixCallbackMonitor callbackMonitor : _callbackMonitors.values()) {
         callbackMonitor.unregister();
       }
+      _callbackHandlerExecutorService.shutdown();
 
       _helixPropertyStore = null;
 
@@ -1419,6 +1433,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public Long getSessionStartTime() {
     return _sessionStartTime;
+  }
+
+  @Override
+  public Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
+    return _callbackHandlerExecutorService.submit(eventProcessor);
   }
 
   /*

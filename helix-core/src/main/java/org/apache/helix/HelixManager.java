@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
@@ -485,4 +486,6 @@ public interface HelixManager {
    * @return ParticipantHealthReportCollector
    */
   ParticipantHealthReportCollector getHealthReportCollector();
+
+  Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor);
 }

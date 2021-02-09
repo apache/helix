@@ -21,6 +21,7 @@ package org.apache.helix.participant;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -375,6 +376,11 @@ public class MockZKHelixManager implements HelixManager {
   @Override
   public ParticipantHealthReportCollector getHealthReportCollector() {
     // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
     return null;
   }
 

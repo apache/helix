@@ -364,13 +364,6 @@ public interface HelixManager {
   String getMetadataStoreConnectionString();
 
   /**
-   * @return the RealmAwareZkConnectionConfig usd to create a realm aware zkClient
-   */
-  default RealmAwareZkClient.RealmAwareZkConnectionConfig getRealmAwareZkConnectionConfig() {
-    return null;
-  }
-
-  /**
    * Returns the instanceName used to connect to the cluster
    * @return the associated instance name
    */

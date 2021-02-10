@@ -19,7 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,10 +31,10 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -140,13 +139,18 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // and some connect the manager before registering the state model factory (in which case we
     // can use manager's connection). We need to think about the right order and determine if we
     // want to enforce it, which may cause backward incompatibility.
+    if (!(manager instanceof ZKHelixManager)) {
+      throw new IllegalArgumentException(
+          "Provided manager must be a ZKHelixManager for configurable thread pool.");
+    }
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       try {
-        return new FederatedZkClient(manager.getRealmAwareZkConnectionConfig(), clientConfig);
+        return new FederatedZkClient(((ZKHelixManager) manager).getRealmAwareZkConnectionConfig(),
+            clientConfig);
       } catch (InvalidRoutingDataException | IllegalArgumentException e) {
         throw new HelixException("Failed to create FederatedZkClient!", e);
       }

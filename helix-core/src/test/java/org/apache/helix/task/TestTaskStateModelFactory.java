@@ -24,10 +24,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
@@ -48,7 +49,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
       TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
 
   @Test
-  public void testConfigAccessorCreationMultiZk() throws Exception {
+  public void testZkClientCreationMultiZk() throws Exception {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     InstanceConfig instanceConfig =
@@ -97,7 +98,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     // Turn off multiZk mode in System config, and remove zkAddress
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
-    HelixManager participantManager = Mockito.spy(anyParticipantManager);
+    ZKHelixManager participantManager = Mockito.spy(anyParticipantManager);
     when(participantManager.getMetadataStoreConnectionString()).thenReturn(null);
     zkClient = TaskStateModelFactory.createZkClient(participantManager);
     Assert.assertEquals(TaskUtil
@@ -133,8 +134,8 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     msds.stopServer();
   }
 
-  @Test(dependsOnMethods = "testConfigAccessorCreationMultiZk")
-  public void testConfigAccessorCreationSingleZk() {
+  @Test(dependsOnMethods = "testZkClientCreationMultiZk")
+  public void testZkClientCreationSingleZk() {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     // Save previously-set system configs
@@ -153,5 +154,11 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     } else {
       System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
     }
+  }
+
+  @Test(dependsOnMethods = "testZkClientCreationSingleZk",
+      expectedExceptions = IllegalArgumentException.class)
+  public void testZkClientCreationNonZKManager() {
+    TaskStateModelFactory.createZkClient(new MockManager());
   }
 }

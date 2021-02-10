@@ -86,6 +86,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private AtomicLong _totalPastDueMsgSize = new AtomicLong(0L);
   private boolean _rebalanceFailure = false;
   private AtomicLong _rebalanceFailureCount = new AtomicLong(0L);
+  private AtomicLong _continuousResourceRebalanceFailureCount = new AtomicLong(0L);
+  private AtomicLong _continuousTaskRebalanceFailureCount = new AtomicLong(0L);
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMonitorMap =
       new ConcurrentHashMap<>();
@@ -641,6 +643,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       _totalPastDueMsgSize.set(0L);
       _totalMsgQueueSize.set(0L);
       _rebalanceFailureCount.set(0L);
+      _continuousResourceRebalanceFailureCount.set(0L);
+      _continuousTaskRebalanceFailureCount.set(0L);
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }
@@ -1014,9 +1018,27 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _rebalanceFailureCount.incrementAndGet();
   }
 
+  public void reportContinuousResourceRebalanceFailureCount(long newValue) {
+    _continuousResourceRebalanceFailureCount.set(newValue);
+  }
+
+  public void reportContinuousTaskRebalanceFailureCount(long newValue) {
+    _continuousTaskRebalanceFailureCount.set(newValue);
+  }
+
   @Override
   public long getRebalanceFailureCounter() {
     return _rebalanceFailureCount.get();
+  }
+
+  @Override
+  public long getContinuousResourceRebalanceFailureCount() {
+    return _continuousResourceRebalanceFailureCount.get();
+  }
+
+  @Override
+  public long getContinuousTaskRebalanceFailureCount() {
+    return _continuousTaskRebalanceFailureCount.get();
   }
 
   @Override

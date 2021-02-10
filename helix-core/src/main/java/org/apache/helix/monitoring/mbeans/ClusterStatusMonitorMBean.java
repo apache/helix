@@ -89,6 +89,18 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
   long getRebalanceFailureCounter();
 
   /**
+   * The number of continuous resource rebalance failure count
+   * @return
+   */
+  long getContinuousResourceRebalanceFailureCount();
+
+  /**
+   * The number of continuous task rebalance failure count
+   * @return
+   */
+  long getContinuousTaskRebalanceFailureCount();
+
+  /**
    * @return number of all resources in this cluster
    */
   long getTotalResourceGauge();

@@ -541,6 +541,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       return registry;
     }
   }
+
   private static PipelineRegistry createTaskRegistry(String pipelineName) {
     logger.info("createTaskRegistry");
     synchronized (GenericHelixController.class) {
@@ -923,7 +924,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onStateChange()");
     notifyCaches(changeContext, ChangeType.CURRENT_STATE);
-    pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext, /**/Collections
+    pushToEventQueues(ClusterEventType.CurrentStateChange, changeContext, Collections
         .<String, Object>singletonMap(AttributeName.instanceName.name(), instanceName));
     logger.info("END: GenericClusterController.onStateChange()");
   }

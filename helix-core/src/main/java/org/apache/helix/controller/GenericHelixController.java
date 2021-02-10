@@ -833,7 +833,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           }
         }
         _clusterStatusMonitor.reportRebalanceFailure();
-        updateContinousRebalanceFailureCount(isTaskFrameworkPipeline, false /*resetToZero*/);
+        updateContinuousRebalancedFailureCount(isTaskFrameworkPipeline, false /*resetToZero*/);
         rebalanceFail = true;
         break;
       }
@@ -842,7 +842,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _continuousRebalanceFailureCount = 0;
     }
     if (!rebalanceFail) {
-      updateContinousRebalanceFailureCount(isTaskFrameworkPipeline, true /*resetToZero*/);
+      updateContinuousRebalancedFailureCount(isTaskFrameworkPipeline, true /*resetToZero*/);
     }
 
     _lastPipelineEndTimestamp = System.currentTimeMillis();
@@ -889,16 +889,18 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     resetClusterStatusMonitor();
   }
 
-  private void updateContinousRebalanceFailureCount(boolean isTaskFrameworkPipeline,
+  private void updateContinuousRebalancedFailureCount(boolean isTaskFrameworkPipeline,
       boolean resetToZero) {
     if (isTaskFrameworkPipeline) {
       _continuousTaskRebalanceFailureCount =
           resetToZero ? 0 : _continuousTaskRebalanceFailureCount + 1;
-      _clusterStatusMonitor.reportContinuousTaskRebalanceFailureCount(_continuousTaskRebalanceFailureCount);
+      _clusterStatusMonitor
+          .reportContinuousTaskRebalanceFailureCount(_continuousTaskRebalanceFailureCount);
     } else {
       _continuousResourceRebalanceFailureCount =
           resetToZero ? 0 : _continuousResourceRebalanceFailureCount + 1;
-      _clusterStatusMonitor.reportContinuousResourceRebalanceFailureCount(_continuousResourceRebalanceFailureCount);
+      _clusterStatusMonitor
+          .reportContinuousResourceRebalanceFailureCount(_continuousResourceRebalanceFailureCount);
     }
   }
 

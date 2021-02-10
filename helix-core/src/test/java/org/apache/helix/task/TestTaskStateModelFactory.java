@@ -106,6 +106,14 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
     Assert.assertTrue(zkClient instanceof FederatedZkClient);
 
+    // Test no connection config case
+    when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(null);
+    zkClient = TaskStateModelFactory.createZkClient(participantManager);
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    Assert.assertTrue(zkClient instanceof FederatedZkClient);
+
     // Remove server endpoint key and use connection config to specify endpoint
     System.clearProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY);
     RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =

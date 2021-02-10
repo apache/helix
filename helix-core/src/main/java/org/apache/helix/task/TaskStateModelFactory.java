@@ -35,6 +35,7 @@ import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
@@ -150,9 +151,17 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
+      RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig =
+          ((ZKHelixManager) manager).getRealmAwareZkConnectionConfig();
+      if (zkConnectionConfig == null) {
+        String clusterName = manager.getClusterName();
+        String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
+        zkConnectionConfig = new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+            .setZkRealmShardingKey(shardingKey).build();
+      }
       try {
-        return new FederatedZkClient(((ZKHelixManager) manager).getRealmAwareZkConnectionConfig(),
-            clientConfig);
+        return new FederatedZkClient(zkConnectionConfig, clientConfig);
       } catch (InvalidRoutingDataException | IllegalArgumentException e) {
         throw new HelixException("Failed to create FederatedZkClient!", e);
       }

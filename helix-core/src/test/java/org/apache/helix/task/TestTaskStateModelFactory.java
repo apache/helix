@@ -157,7 +157,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
   }
 
   @Test(dependsOnMethods = "testZkClientCreationSingleZk",
-      expectedExceptions = IllegalArgumentException.class)
+      expectedExceptions = UnsupportedOperationException.class)
   public void testZkClientCreationNonZKManager() {
     TaskStateModelFactory.createZkClient(new MockManager());
   }

@@ -140,8 +140,10 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // can use manager's connection). We need to think about the right order and determine if we
     // want to enforce it, which may cause backward incompatibility.
     if (!(manager instanceof ZKHelixManager)) {
-      throw new IllegalArgumentException(
-          "Provided manager must be a ZKHelixManager for configurable thread pool.");
+      // TODO: None-ZKHelixManager cannot initialize this class. After interface rework of
+      // HelixManager, the initialization should be allowed.
+      throw new UnsupportedOperationException(
+          "Only ZKHelixManager is supported for configurable thread pool.");
     }
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());

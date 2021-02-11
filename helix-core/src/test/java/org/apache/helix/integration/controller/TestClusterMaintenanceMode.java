@@ -22,12 +22,15 @@ package org.apache.helix.integration.controller;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
@@ -37,12 +40,17 @@ import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
+
+
 public class TestClusterMaintenanceMode extends TaskTestBase {
+  private static final long TIMEOUT = 180 * 1000L;
   private MockParticipantManager _newInstance;
   private String newResourceAddedDuringMaintenanceMode =
       String.format("%s_%s", WorkflowGenerator.DEFAULT_TGT_DB, 1);
@@ -260,7 +268,7 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
    * @throws InterruptedException
    */
   @Test(dependsOnMethods = "testManualEnablingOverridesAutoEnabling")
-  public void testMaxPartitionLimit() throws InterruptedException {
+  public void testMaxPartitionLimit() throws Exception {
     // Manually exit maintenance mode
     _gSetupTool.getClusterManagementTool().manuallyEnableMaintenanceMode(CLUSTER_NAME, false, null,
         null);
@@ -325,6 +333,49 @@ public class TestClusterMaintenanceMode extends TaskTestBase {
         MaintenanceSignal.TriggeringEntity.CONTROLLER);
     Assert.assertEquals(maintenanceSignal.getAutoTriggerReason(),
         MaintenanceSignal.AutoTriggerReason.MAX_PARTITION_PER_INSTANCE_EXCEEDED);
+
+    // Check if failed rebalance counter is updated
+    boolean result = TestHelper.verify(() -> {
+      try {
+        Long value =
+            (Long) _server.getAttribute(getMbeanName(CLUSTER_NAME), "RebalanceFailureCounter");
+        return value != null && (value > 0);
+      } catch (Exception e) {
+        return false;
+      }
+    }, TIMEOUT);
+    Assert.assertTrue(result);
+
+    // Check failed continuous task rebalance counter is not updated
+    result = TestHelper.verify(() -> {
+      try {
+        Long value = (Long) _server
+            .getAttribute(getMbeanName(CLUSTER_NAME), "ContinuousTaskRebalanceFailureCount");
+        return value != null && (value == 0);
+      } catch (Exception e) {
+        return false;
+      }
+    }, TIMEOUT);
+    Assert.assertTrue(result);
+
+    // Check if failed continuous resource rebalance counter is updated
+    result = TestHelper.verify(() -> {
+      try {
+        Long value = (Long) _server
+            .getAttribute(getMbeanName(CLUSTER_NAME), "ContinuousResourceRebalanceFailureCount");
+        return value != null && (value > 0);
+      } catch (Exception e) {
+        return false;
+      }
+    }, TIMEOUT);
+    Assert.assertTrue(result);
+  }
+
+
+  private ObjectName getMbeanName(String clusterName) throws MalformedObjectNameException {
+    String clusterBeanName = String.format("%s=%s", CLUSTER_DN_KEY, clusterName);
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), clusterBeanName));
   }
 
   /**

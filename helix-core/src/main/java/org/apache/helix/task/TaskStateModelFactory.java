@@ -153,6 +153,11 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
       RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig =
           ((ZKHelixManager) manager).getRealmAwareZkConnectionConfig();
+      // TODO: a fallback logic is created because it's possible for the ZKHelixManager to not
+      // have a connection config, since a connection config may be created during
+      // ZKHelixManager.connect(). This is the same problem as described earlier because connect()
+      // may happen before or after TaskStateModelFactory initialization. Clean this up after that
+      // problem is fixed.
       if (zkConnectionConfig == null) {
         String clusterName = manager.getClusterName();
         String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);

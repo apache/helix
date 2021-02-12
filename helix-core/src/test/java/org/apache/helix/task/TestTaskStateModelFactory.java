@@ -24,14 +24,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.msdcommon.constant.MetadataStoreRoutingConstants;
 import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.mockito.Mockito;
@@ -47,7 +49,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
       TaskConstants.DEFAULT_TASK_THREAD_POOL_SIZE + 1;
 
   @Test
-  public void testConfigAccessorCreationMultiZk() throws Exception {
+  public void testZkClientCreationMultiZk() throws Exception {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     InstanceConfig instanceConfig =
@@ -82,8 +84,10 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     // Turn on multiZk mode in System config
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "true");
     // MSDS endpoint: http://localhost:11117/admin/v2/namespaces/testTaskStateModelFactory
+    String testMSDSServerEndpointKey =
+        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace;
     System.setProperty(MetadataStoreRoutingConstants.MSDS_SERVER_ENDPOINT_KEY,
-        "http://" + msdsHostName + ":" + msdsPort + "/admin/v2/namespaces/" + msdsNamespace);
+        testMSDSServerEndpointKey);
 
     RoutingDataManager.getInstance().reset();
     RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
@@ -94,8 +98,30 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     // Turn off multiZk mode in System config, and remove zkAddress
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
-    HelixManager participantManager = Mockito.spy(anyParticipantManager);
+    ZKHelixManager participantManager = Mockito.spy(anyParticipantManager);
     when(participantManager.getMetadataStoreConnectionString()).thenReturn(null);
+    zkClient = TaskStateModelFactory.createZkClient(participantManager);
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    Assert.assertTrue(zkClient instanceof FederatedZkClient);
+
+    // Test no connection config case
+    when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(null);
+    zkClient = TaskStateModelFactory.createZkClient(participantManager);
+    Assert.assertEquals(TaskUtil
+        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
+            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    Assert.assertTrue(zkClient instanceof FederatedZkClient);
+
+    // Remove server endpoint key and use connection config to specify endpoint
+    System.clearProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY);
+    RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRealmMode(RealmAwareZkClient.RealmMode.MULTI_REALM)
+            .setRoutingDataSourceEndpoint(testMSDSServerEndpointKey)
+            .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name()).build();
+    when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(connectionConfig);
     zkClient = TaskStateModelFactory.createZkClient(participantManager);
     Assert.assertEquals(TaskUtil
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
@@ -116,8 +142,8 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     msds.stopServer();
   }
 
-  @Test(dependsOnMethods = "testConfigAccessorCreationMultiZk")
-  public void testConfigAccessorCreationSingleZk() {
+  @Test(dependsOnMethods = "testZkClientCreationMultiZk")
+  public void testZkClientCreationSingleZk() {
     MockParticipantManager anyParticipantManager = _participants[0];
 
     // Save previously-set system configs
@@ -136,5 +162,11 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     } else {
       System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, prevMultiZkEnabled);
     }
+  }
+
+  @Test(dependsOnMethods = "testZkClientCreationSingleZk",
+      expectedExceptions = UnsupportedOperationException.class)
+  public void testZkClientCreationNonZKManager() {
+    TaskStateModelFactory.createZkClient(new MockManager());
   }
 }

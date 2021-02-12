@@ -19,7 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -140,19 +140,33 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     // and some connect the manager before registering the state model factory (in which case we
     // can use manager's connection). We need to think about the right order and determine if we
     // want to enforce it, which may cause backward incompatibility.
+    if (!(manager instanceof ZKHelixManager)) {
+      // TODO: None-ZKHelixManager cannot initialize this class. After interface rework of
+      // HelixManager, the initialization should be allowed.
+      throw new UnsupportedOperationException(
+          "Only ZKHelixManager is supported for configurable thread pool.");
+    }
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
-      String clusterName = manager.getClusterName();
-      String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
-      RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-          new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
-              .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
-              .setZkRealmShardingKey(shardingKey).build();
+      RealmAwareZkClient.RealmAwareZkConnectionConfig zkConnectionConfig =
+          ((ZKHelixManager) manager).getRealmAwareZkConnectionConfig();
+      // TODO: a fallback logic is created because it's possible for the ZKHelixManager to not
+      // have a connection config, since a connection config may be created during
+      // ZKHelixManager.connect(). This is the same problem as described earlier because connect()
+      // may happen before or after TaskStateModelFactory initialization. Clean this up after that
+      // problem is fixed.
+      if (zkConnectionConfig == null) {
+        String clusterName = manager.getClusterName();
+        String shardingKey = HelixUtil.clusterNameToShardingKey(clusterName);
+        zkConnectionConfig = new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder()
+            .setRealmMode(RealmAwareZkClient.RealmMode.SINGLE_REALM)
+            .setZkRealmShardingKey(shardingKey).build();
+      }
       try {
-        return new FederatedZkClient(connectionConfig, clientConfig);
+        return new FederatedZkClient(zkConnectionConfig, clientConfig);
       } catch (InvalidRoutingDataException | IllegalArgumentException e) {
         throw new HelixException("Failed to create FederatedZkClient!", e);
       }

@@ -1,35 +1,34 @@
 package org.apache.helix.manager.zk;
 
+    /*
+     * Licensed to the Apache Software Foundation (ASF) under one
+     * or more contributor license agreements.  See the NOTICE file
+     * distributed with this work for additional information
+     * regarding copyright ownership.  The ASF licenses this file
+     * to you under the Apache License, Version 2.0 (the
+     * "License"); you may not use this file except in compliance
+     * with the License.  You may obtain a copy of the License at
+     *
+     *     http://www.apache.org/licenses/LICENSE-2.0
+     *
+     * Unless required by applicable law or agreed to in writing,
+     * software distributed under the License is distributed on an
+     * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+     * KIND, either express or implied.  See the License for the
+     * specific language governing permissions and limitations
+     * under the License.
+     */
 
+    import java.util.concurrent.Future;
+    import java.util.concurrent.ThreadPoolExecutor;
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+    import org.apache.helix.HelixManager;
+    import org.apache.helix.NotificationContext;
+    import org.apache.helix.common.DedupEventBlockingQueue;
+    import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
+    import org.slf4j.Logger;
+    import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-
-import org.apache.helix.HelixManager;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.common.DedupEventBlockingQueue;
-import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Each CallbackHandler could have a
@@ -44,12 +43,11 @@ public class CallbackEventTPExecutor {
   private Future _futureCallBackProcessEvent = null;
   private final ThreadPoolExecutor _threadPoolExecutor;
 
-  public CallbackEventTPExecutor(HelixManager manager){
+  public CallbackEventTPExecutor(HelixManager manager) {
     _callBackEventQueue = new DedupEventBlockingQueue<>();
-    _manager= manager;
+    _manager = manager;
     _threadPoolExecutor = CallbackEventTPFactory.getThreadPool(manager.hashCode());
   }
-
 
   class CallbackProcessor implements Runnable {
     private CallbackHandler _handler;
@@ -57,24 +55,16 @@ public class CallbackEventTPExecutor {
     NotificationContext _event;
 
     public CallbackProcessor(CallbackHandler handler, NotificationContext event) {
-      _processorName = _manager.getClusterName() +
-          "CallbackProcessor@" + Integer.toHexString(handler.hashCode());
+      _processorName = _manager.getClusterName() + "CallbackProcessor@" + Integer
+          .toHexString(handler.hashCode());
       _handler = handler;
       _event = event;
-    }
-
-    protected void handleEvent() {
-      try {
-        _handler.invoke(_event);
-      } catch (Exception e) {
-        logger.warn("Exception in callback processing thread. Skipping callback", e);
-      }
     }
 
     @Override
     public void run() {
       try {
-        handleEvent();
+        _handler.invoke(_event);
       } catch (ZkInterruptedException e) {
         logger.warn(_processorName + " thread caught a ZK connection interrupt", e);
       } catch (ThreadDeath death) {
@@ -82,12 +72,12 @@ public class CallbackEventTPExecutor {
       } catch (Throwable t) {
         logger.error(_processorName + " thread failed while running " + _processorName, t);
       }
-
       submitPendingHandleCallBackEventToManagerThreadPool(_handler);
     }
   }
 
-  public void submitEventToEvecutor(NotificationContext.Type eventType, NotificationContext event, CallbackHandler handler) {
+  public void submitEventToEvecutor(NotificationContext.Type eventType, NotificationContext event,
+      CallbackHandler handler) {
     synchronized (_callBackEventQueue) {
       if (_futureCallBackProcessEvent == null || _futureCallBackProcessEvent.isDone()) {
         _futureCallBackProcessEvent =
@@ -120,5 +110,4 @@ public class CallbackEventTPExecutor {
       }
     }
   }
-
 }

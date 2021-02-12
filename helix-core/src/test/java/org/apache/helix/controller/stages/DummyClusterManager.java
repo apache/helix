@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.Set;
-import java.util.concurrent.Future;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -378,7 +377,6 @@ public class DummyClusterManager implements HelixManager {
     // TODO Auto-generated method stub
     return null;
   }
-
 
   @Override
   public Long getSessionStartTime() {

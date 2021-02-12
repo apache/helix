@@ -379,10 +379,6 @@ public class MockManager implements HelixManager {
     return null;
   }
 
-  @Override
-  public Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor) {
-    return null;
-  }
 
   @Override
   public Long getSessionStartTime() {

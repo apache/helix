@@ -486,6 +486,4 @@ public interface HelixManager {
    * @return ParticipantHealthReportCollector
    */
   ParticipantHealthReportCollector getHealthReportCollector();
-
-  Future submitHandleCallBackEventToThreadPool(Runnable eventProcessor);
 }

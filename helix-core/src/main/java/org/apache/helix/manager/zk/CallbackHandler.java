@@ -130,7 +130,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private final AtomicLong _lastNotificationTimeStamp;
   private final HelixManager _manager;
   private final PropertyKey _propertyKey;
-  private boolean _batchModeEnabled = false;
+  private boolean _batchModeEnabled = true;
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
 

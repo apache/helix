@@ -1421,7 +1421,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return _sessionStartTime;
   }
 
-
   /*
    * Prepares connection config and client config based on the internal parameters given to
    * HelixManager in order to create a ZkClient instance to use. Note that a shared ZkClient

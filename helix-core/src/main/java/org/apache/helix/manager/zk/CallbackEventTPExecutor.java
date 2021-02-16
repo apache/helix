@@ -31,7 +31,11 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Each CallbackHandler could have a
+ * Ehan batch mode is enabled, each CallbackHandler has a CallbackEventTPExecutor.
+ * It has a dedupe queue for pending call back event. Pending call back event will
+ * be submitted to a thread pool one at a time when
+ * 1. This is the first ever call back event for the callBackHandler, or
+ * 2. The previous call back event handling process is finished in thread pool.
  */
 
 public class CallbackEventTPExecutor {

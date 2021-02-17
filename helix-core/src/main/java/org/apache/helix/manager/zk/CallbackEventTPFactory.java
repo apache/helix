@@ -25,8 +25,6 @@ package org.apache.helix.manager.zk;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,14 +39,12 @@ public class CallbackEventTPFactory {
   static private final ReadWriteLock _lock = new ReentrantReadWriteLock();
   static private Map<Integer, ThreadPoolExecutor> _managerToCallBackThreadPoolMap = new HashMap();
 
-  public CallbackEventTPFactory() {}
-
   public static ThreadPoolExecutor getThreadPool(int mapHash) {
     // should not use general lock for read
     _lock.readLock().lock();
     ThreadPoolExecutor result;
     if (_managerToCallBackThreadPoolMap.containsKey(mapHash)) {
-      result =  _managerToCallBackThreadPoolMap.get(mapHash);
+      result = _managerToCallBackThreadPoolMap.get(mapHash);
       _lock.readLock().unlock();
     } else {
       _lock.readLock().unlock();
@@ -67,16 +63,14 @@ public class CallbackEventTPFactory {
       result = _managerToCallBackThreadPoolMap.get(mapHash);
       _lock.readLock().unlock();
     } else {
-      ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(
-          String.format("CallbackHandlerExecutorService - %s ", mapHash)).build();
-      result = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS,
-          new LinkedBlockingQueue<>(), namedThreadFactory);
+      ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+          .setNameFormat(String.format("CallbackHandlerExecutorService - %s ", mapHash)).build();
+      result = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+          namedThreadFactory);
       result.allowCoreThreadTimeOut(true);
       _managerToCallBackThreadPoolMap.put(mapHash, result);
     }
     _lock.writeLock().unlock();
     return result;
   }
-
-
 }

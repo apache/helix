@@ -179,7 +179,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     _lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
     _monitor = monitor;
 
-
     if (_changeType == MESSAGE || _changeType == MESSAGES_CONTROLLER || _changeType == CONTROLLER) {
       _watchChild = false;
     } else {
@@ -296,8 +295,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   public String getPath() {
     return _path;
   }
-
-
 
   public void enqueueTask(NotificationContext changeContext) throws Exception {
     // async mode only applicable to CALLBACK from ZK, During INIT and FINALIZE invoke the

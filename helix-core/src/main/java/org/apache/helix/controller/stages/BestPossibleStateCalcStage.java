@@ -193,15 +193,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   }
 
   // Check whether the offline/disabled instance count in the cluster reaches the set limit,
-  // if yes, pause the rebalancer, and throw exception to terminate rebalance cycle.
+  // if yes, auto enable maintenance mode, and use the maintenance rebalancer for this pipeline.
   private boolean validateOfflineInstancesLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
     if (maxOfflineInstancesAllowed >= 0) {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
+        // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
+        cache.enableMaintenanceMode();
+
         String errMsg = String.format(
-            "Offline Instances count %d greater than allowed count %d. Stop rebalance and put the cluster %s into maintenance mode.",
+            "Offline Instances count %d greater than allowed count %d. Put cluster %s into "
+                + "maintenance mode.",
             offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
         if (manager != null) {
           if (manager.getHelixDataAccessor()

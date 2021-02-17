@@ -259,8 +259,7 @@ public class MockManager implements HelixManager {
 
   @Override
   public HelixAdmin getClusterManagmentTool() {
-    // TODO Auto-generated method stub
-    return null;
+    return new MockHelixAdmin(this);
   }
 
   @Override

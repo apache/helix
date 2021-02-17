@@ -947,6 +947,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _isMaintenanceModeEnabled;
   }
 
+  public void enableMaintenanceMode() {
+    _isMaintenanceModeEnabled = true;
+  }
+
   public boolean hasMaintenanceSignalChanged() {
     return _hasMaintenanceSignalChanged;
   }

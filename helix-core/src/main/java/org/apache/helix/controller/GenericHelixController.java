@@ -165,7 +165,9 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
   private final Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> _asyncFIFOWorkerPool;
 
-  private long _continousRebalanceFailureCount = 0;
+  private long _continuousRebalanceFailureCount = 0;
+  private long _continuousResourceRebalanceFailureCount = 0;
+  private long _continuousTaskRebalanceFailureCount = 0;
 
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set handleEvent()
@@ -800,6 +802,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         event.getEventType(), event.getEventId(), eventSessionId.orElse("NOT_PRESENT"));
 
     long startTime = System.currentTimeMillis();
+    boolean helixMetaDataAccessRebalanceFail = false;
     boolean rebalanceFail = false;
     for (Pipeline pipeline : pipelines) {
       event.addAttribute(AttributeName.PipelineType.name(), pipeline.getPipelineType());
@@ -810,17 +813,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         logger.error(
             "Exception while executing {} pipeline: {} for cluster {}. Will not continue to next pipeline",
             dataProvider.getPipelineName(), _clusterName, Arrays.toString(e.getStackTrace()));
-
         if (e instanceof HelixMetaDataAccessException) {
-          rebalanceFail = true;
+          helixMetaDataAccessRebalanceFail = true;
           // If pipeline failed due to read/write fails to zookeeper, retry the pipeline.
           dataProvider.requireFullRefresh();
           logger.warn("Rebalance pipeline failed due to read failure from zookeeper, cluster: " + _clusterName);
 
           // only push a retry event when there is no pending event in the corresponding event queue.
           if (isEventQueueEmpty(isTaskFrameworkPipeline)) {
-            _continousRebalanceFailureCount ++;
-            long delay = getRetryDelay(_continousRebalanceFailureCount);
+            _continuousRebalanceFailureCount ++;
+            long delay = getRetryDelay(_continuousRebalanceFailureCount);
             if (delay == 0) {
               forceRebalance(manager, ClusterEventType.RetryRebalance);
             } else {
@@ -832,11 +834,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           }
         }
         _clusterStatusMonitor.reportRebalanceFailure();
+        updateContinuousRebalancedFailureCount(isTaskFrameworkPipeline, false /*resetToZero*/);
+        rebalanceFail = true;
         break;
       }
     }
+    if (!helixMetaDataAccessRebalanceFail) {
+      _continuousRebalanceFailureCount = 0;
+    }
     if (!rebalanceFail) {
-      _continousRebalanceFailureCount = 0;
+      updateContinuousRebalancedFailureCount(isTaskFrameworkPipeline, true /*resetToZero*/);
     }
 
     _lastPipelineEndTimestamp = System.currentTimeMillis();
@@ -881,6 +888,21 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     // So reset ClusterStatusMonitor according to it's status after all event handling.
     // TODO remove this once clusterStatusMonitor blocks any MBean register on isMonitoring = false.
     resetClusterStatusMonitor();
+  }
+
+  private void updateContinuousRebalancedFailureCount(boolean isTaskFrameworkPipeline,
+      boolean resetToZero) {
+    if (isTaskFrameworkPipeline) {
+      _continuousTaskRebalanceFailureCount =
+          resetToZero ? 0 : _continuousTaskRebalanceFailureCount + 1;
+      _clusterStatusMonitor
+          .reportContinuousTaskRebalanceFailureCount(_continuousTaskRebalanceFailureCount);
+    } else {
+      _continuousResourceRebalanceFailureCount =
+          resetToZero ? 0 : _continuousResourceRebalanceFailureCount + 1;
+      _clusterStatusMonitor
+          .reportContinuousResourceRebalanceFailureCount(_continuousResourceRebalanceFailureCount);
+    }
   }
 
   /**

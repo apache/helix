@@ -80,7 +80,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
    * the maintenance rebalancer is used immediately. No bootstraps in the best possible output.
    */
   @Test
-  public void testAutoEnterMaintenanceMode() {
+  public void testAutoEnterMaintenanceWhenExceedingOfflineNodes() {
     String[] resources = new String[]{"testResourceName"};
     int numInstances = 3;
     int numPartitions = 3;
@@ -91,6 +91,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     List<String> liveInstances = setupLiveInstances(numInstances);
     setupStateModel();
 
+    // Set offline instances threshold
     ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
     clusterConfig.setMaxOfflineInstancesAllowed(1);
     setClusterConfig(clusterConfig);

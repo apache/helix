@@ -116,8 +116,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
     WagedRebalancer wagedRebalancer = event.getAttribute(AttributeName.STATEFUL_REBALANCER.name());
 
-    // Check whether the offline/disabled instance count in the cluster reaches the set limit,
-    // if yes, pause the rebalancer.
+    // Check whether the offline/disabled instance count in the cluster exceeds the set limit,
+    // if yes, put the cluster into maintenance mode.
     boolean isValid =
         validateOfflineInstancesLimit(cache, event.getAttribute(AttributeName.helixmanager.name()));
 

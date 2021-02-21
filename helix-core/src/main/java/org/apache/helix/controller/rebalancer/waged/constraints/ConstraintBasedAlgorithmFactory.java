@@ -42,8 +42,8 @@ public class ConstraintBasedAlgorithmFactory {
       put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
       put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
       put(ResourceTopStateAntiAffinityConstraint.class.getSimpleName(), 0f);
-      put(ResourceTopStateUsageConstraint.class.getSimpleName(), 10f);
-      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 5f);
+      put(TopStateMaxCapacityUsageInstanceConstraint.class.getSimpleName(), 3f);
+      put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 3f);
     }
   };
 

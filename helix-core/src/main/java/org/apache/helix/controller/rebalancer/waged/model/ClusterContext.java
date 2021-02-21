@@ -98,20 +98,8 @@ public class ClusterContext {
       _estimatedMaxUtilization = 1f;
       _estimatedTopStateMaxUtilization = 1f;
     } else {
-      float estimatedMaxUsage = 0;
-      float estimatedTopStateMaxUsage = 0;
-      for (String capacityKey : totalCapacity.keySet()) {
-        int maxCapacity = totalCapacity.get(capacityKey);
-        int usage = totalUsage.getOrDefault(capacityKey, 0);
-        float utilization = (maxCapacity == 0) ? 1 : (float) usage / maxCapacity;
-        estimatedMaxUsage = Math.max(estimatedMaxUsage, utilization);
-
-        int topStateUsage = totalTopStateUsage.getOrDefault(capacityKey, 0);
-        float topStateUtilization = (maxCapacity == 0) ? 1 : (float) topStateUsage / maxCapacity;
-        estimatedTopStateMaxUsage = Math.max(estimatedTopStateMaxUsage, topStateUtilization);
-      }
-      _estimatedMaxUtilization = estimatedMaxUsage;
-      _estimatedTopStateMaxUtilization = estimatedTopStateMaxUsage;
+      _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
+      _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -185,5 +173,18 @@ public class ClusterContext {
     // if we use 1, most participant will have 1 partition assigned and several participant has 2
     // partitions. The later scenario is what we want to achieve.
     return (int) Math.floor((float) replicaCount / instanceCount);
+  }
+
+  private float estimateMaxUtilization(Map<String, Integer> totalCapacity,
+      Map<String, Integer> totalUsage) {
+    float estimatedMaxUsage = 0;
+    for (String capacityKey : totalCapacity.keySet()) {
+      int maxCapacity = totalCapacity.get(capacityKey);
+      int usage = totalUsage.getOrDefault(capacityKey, 0);
+      float utilization = (maxCapacity == 0) ? 1 : (float) usage / maxCapacity;
+      estimatedMaxUsage = Math.max(estimatedMaxUsage, utilization);
+    }
+
+    return estimatedMaxUsage;
   }
 }

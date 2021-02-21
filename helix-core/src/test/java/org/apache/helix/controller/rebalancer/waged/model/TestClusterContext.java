@@ -68,6 +68,8 @@ public class TestClusterContext extends AbstractTestClusterModel {
         .addPartitionToFaultZone(_testFaultZoneId, replica.getResourceName(),
             replica.getPartitionName()));
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), expectedFaultZoneMap);
+    Assert.assertEquals(context.getEstimatedMaxUtilization(), 16.0 / 20.0, 0.005);
+    Assert.assertEquals(context.getEstimatedTopStateMaxUtilization(), 8.0 / 20.0, 0.005);
 
     // release
     expectedFaultZoneMap.get(_testFaultZoneId).get(_resourceNames.get(0))

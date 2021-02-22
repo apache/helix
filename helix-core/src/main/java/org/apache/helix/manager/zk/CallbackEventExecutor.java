@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * 2. The previous call back event handling process is finished in thread pool.
  */
 
-public class CallbackEventTPExecutor {
+public class CallbackEventExecutor {
   private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
 
   private DedupEventBlockingQueue<NotificationContext.Type, NotificationContext>
@@ -47,10 +47,10 @@ public class CallbackEventTPExecutor {
   private Future _futureCallBackProcessEvent = null;
   private final ThreadPoolExecutor _threadPoolExecutor;
 
-  public CallbackEventTPExecutor(HelixManager manager) {
+  public CallbackEventExecutor(HelixManager manager) {
     _callBackEventQueue = new DedupEventBlockingQueue<>();
     _manager = manager;
-    _threadPoolExecutor = CallbackEventTPFactory.getThreadPool(manager.hashCode());
+    _threadPoolExecutor = CallbackEventTPFactory.getOrCreateThreadPool(manager.hashCode());
   }
 
   class CallbackProcessor implements Runnable {
@@ -113,5 +113,9 @@ public class CallbackEventTPExecutor {
         _futureCallBackProcessEvent.cancel(false);
       }
     }
+  }
+
+  public void unregisterFromFactory() {
+    CallbackEventTPFactory.unregisterEventProcessor(_manager.hashCode());
   }
 }

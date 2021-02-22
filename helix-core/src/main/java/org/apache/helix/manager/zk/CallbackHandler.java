@@ -134,8 +134,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
 
-  // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  private AtomicReference<CallbackEventTPExecutor> _batchCallbackExecutorrRef = new AtomicReference<>();
+  private AtomicReference<CallbackEventExecutor> _batchCallbackExecutorrRef = new AtomicReference<>();
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 
@@ -306,7 +305,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             + "listener: {}", _uid, _path, _listener);
       } else {
         // submit
-        CallbackEventTPExecutor callbackProcessor = _batchCallbackExecutorrRef.get();
+        CallbackEventExecutor callbackProcessor = _batchCallbackExecutorrRef.get();
         if (callbackProcessor != null) {
           callbackProcessor.submitEventToEvecutor(changeContext.getType(), changeContext, this);
         } else {
@@ -641,12 +640,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
 
     if (_batchModeEnabled) {
-      CallbackEventTPExecutor callbackTFExecutor = _batchCallbackExecutorrRef.get();
-      if (callbackTFExecutor != null) {
-        callbackTFExecutor.reset();
+      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorrRef.get();
+      if (callbackExecutor != null) {
+        callbackExecutor.reset();
       } else {
-        callbackTFExecutor = new CallbackEventTPExecutor(_manager);
-        _batchCallbackExecutorrRef.compareAndSet(null, callbackTFExecutor);
+        callbackExecutor = new CallbackEventExecutor(_manager);
+        if (!_batchCallbackExecutorrRef.compareAndSet(null, callbackExecutor)) {
+          callbackExecutor.unregisterFromFactory();
+        }
       }
     }
 
@@ -763,11 +764,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       isShutdown);
       try {
         _ready = false;
-        CallbackEventTPExecutor callbackTFExecutor = _batchCallbackExecutorrRef.get();
-        if (callbackTFExecutor != null) {
-          callbackTFExecutor.reset();
+        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorrRef.get();
+        if (callbackExecutor != null) {
+          callbackExecutor.reset();
           if (isShutdown) {
-            _batchCallbackExecutorrRef.compareAndSet(callbackTFExecutor, null);
+            callbackExecutor.unregisterFromFactory();
+            _batchCallbackExecutorrRef.compareAndSet(callbackExecutor, null);
           }
         }
       NotificationContext changeContext = new NotificationContext(_manager);

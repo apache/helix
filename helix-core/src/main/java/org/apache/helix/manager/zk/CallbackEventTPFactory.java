@@ -72,7 +72,7 @@ public class CallbackEventTPFactory {
           namedThreadFactory);
       result.allowCoreThreadTimeOut(true);
       _managerToCallBackThreadPoolMap.put(managerHash, result);
-      _callBackEventProcessorCountPerThreadPool.put(managerHash, new AtomicInteger(0));
+      _callBackEventProcessorCountPerThreadPool.put(managerHash, new AtomicInteger(1));
     }
     _lock.writeLock().unlock();
     return result;

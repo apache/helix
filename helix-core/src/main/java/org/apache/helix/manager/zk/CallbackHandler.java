@@ -134,7 +134,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
 
-  private AtomicReference<CallbackEventExecutor> _batchCallbackExecutorrRef = new AtomicReference<>();
+  private AtomicReference<CallbackEventExecutor> _batchCallbackExecutorRef = new AtomicReference<>();
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 
@@ -305,7 +305,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             + "listener: {}", _uid, _path, _listener);
       } else {
         // submit
-        CallbackEventExecutor callbackProcessor = _batchCallbackExecutorrRef.get();
+        CallbackEventExecutor callbackProcessor = _batchCallbackExecutorRef.get();
         if (callbackProcessor != null) {
           callbackProcessor.submitEventToEvecutor(changeContext.getType(), changeContext, this);
         } else {
@@ -640,12 +640,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
 
     if (_batchModeEnabled) {
-      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorrRef.get();
+      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
       if (callbackExecutor != null) {
         callbackExecutor.reset();
       } else {
         callbackExecutor = new CallbackEventExecutor(_manager);
-        if (!_batchCallbackExecutorrRef.compareAndSet(null, callbackExecutor)) {
+        if (!_batchCallbackExecutorRef.compareAndSet(null, callbackExecutor)) {
           callbackExecutor.unregisterFromFactory();
         }
       }
@@ -764,12 +764,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       isShutdown);
       try {
         _ready = false;
-        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorrRef.get();
+        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
         if (callbackExecutor != null) {
-          callbackExecutor.reset();
           if (isShutdown) {
-            callbackExecutor.unregisterFromFactory();
-            _batchCallbackExecutorrRef.compareAndSet(callbackExecutor, null);
+            if (_batchCallbackExecutorRef.compareAndSet(callbackExecutor, null)) {
+              callbackExecutor.unregisterFromFactory();
+            }
+          } else {
+            callbackExecutor.reset();
           }
         }
       NotificationContext changeContext = new NotificationContext(_manager);

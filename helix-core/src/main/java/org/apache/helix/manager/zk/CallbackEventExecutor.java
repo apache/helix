@@ -116,6 +116,7 @@ public class CallbackEventExecutor {
   }
 
   public void unregisterFromFactory() {
+    reset();
     CallbackEventTPFactory.unregisterEventProcessor(_manager.hashCode());
   }
 }

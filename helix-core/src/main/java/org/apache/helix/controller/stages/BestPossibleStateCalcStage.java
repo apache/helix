@@ -200,9 +200,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (maxOfflineInstancesAllowed >= 0) {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
-        // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
-        cache.enableMaintenanceMode();
-
         String errMsg = String.format(
             "Offline Instances count %d greater than allowed count %d. Put cluster %s into "
                 + "maintenance mode.",
@@ -219,6 +216,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
               + " into maintenance mode, HelixManager is not set!");
         }
+
+        // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
+        cache.enableMaintenanceMode();
+
         return false;
       }
     }

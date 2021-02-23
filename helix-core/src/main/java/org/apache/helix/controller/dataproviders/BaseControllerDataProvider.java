@@ -947,6 +947,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _isMaintenanceModeEnabled;
   }
 
+  /**
+   * Mark the pipeline to enable maintenance mode. It is not supposed to use anywhere
+   * except in the auto enter maintenance mode logic when offline instances exceeded.
+   */
+  // TODO: refactor it to writable cache once read-only/writable caches are separated.
+  public void enableMaintenanceMode() {
+    _isMaintenanceModeEnabled = true;
+  }
+
   public boolean hasMaintenanceSignalChanged() {
     return _hasMaintenanceSignalChanged;
   }

@@ -116,8 +116,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
     WagedRebalancer wagedRebalancer = event.getAttribute(AttributeName.STATEFUL_REBALANCER.name());
 
-    // Check whether the offline/disabled instance count in the cluster reaches the set limit,
-    // if yes, pause the rebalancer.
+    // Check whether the offline/disabled instance count in the cluster exceeds the set limit,
+    // if yes, put the cluster into maintenance mode.
     boolean isValid =
         validateOfflineInstancesLimit(cache, event.getAttribute(AttributeName.helixmanager.name()));
 
@@ -193,7 +193,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   }
 
   // Check whether the offline/disabled instance count in the cluster reaches the set limit,
-  // if yes, pause the rebalancer, and throw exception to terminate rebalance cycle.
+  // if yes, auto enable maintenance mode, and use the maintenance rebalancer for this pipeline.
   private boolean validateOfflineInstancesLimit(final ResourceControllerDataProvider cache,
       final HelixManager manager) {
     int maxOfflineInstancesAllowed = cache.getClusterConfig().getMaxOfflineInstancesAllowed();
@@ -201,7 +201,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       int offlineCount = cache.getAllInstances().size() - cache.getEnabledLiveInstances().size();
       if (offlineCount > maxOfflineInstancesAllowed) {
         String errMsg = String.format(
-            "Offline Instances count %d greater than allowed count %d. Stop rebalance and put the cluster %s into maintenance mode.",
+            "Offline Instances count %d greater than allowed count %d. Put cluster %s into "
+                + "maintenance mode.",
             offlineCount, maxOfflineInstancesAllowed, cache.getClusterName());
         if (manager != null) {
           if (manager.getHelixDataAccessor()
@@ -215,6 +216,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           LogUtil.logError(logger, _eventId, "Failed to put cluster " + cache.getClusterName()
               + " into maintenance mode, HelixManager is not set!");
         }
+
+        // Enable maintenance mode in cache so the maintenance rebalancer is used for this pipeline
+        cache.enableMaintenanceMode();
+
         return false;
       }
     }

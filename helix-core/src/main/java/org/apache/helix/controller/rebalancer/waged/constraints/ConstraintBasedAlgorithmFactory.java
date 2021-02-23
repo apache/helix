@@ -70,7 +70,8 @@ public class ConstraintBasedAlgorithmFactory {
     List<SoftConstraint> softConstraints = ImmutableList
         .of(new PartitionMovementConstraint(), new InstancePartitionsCountConstraint(),
             new ResourcePartitionAntiAffinityConstraint(),
-            new ResourceTopStateAntiAffinityConstraint(), new MaxCapacityUsageInstanceConstraint(),
+            new ResourceTopStateAntiAffinityConstraint(),
+            new TopStateMaxCapacityUsageInstanceConstraint(),
             new MaxCapacityUsageInstanceConstraint());
     Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
       String name = key.getClass().getSimpleName();

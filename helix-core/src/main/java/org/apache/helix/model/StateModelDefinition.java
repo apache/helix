@@ -517,4 +517,106 @@ public class StateModelDefinition extends HelixProperty {
     }
     return stateCounts;
   }
+
+  /**
+   * Propagate the state counts top down.
+   *
+   * @param stateCountMap
+   *
+   *  Let us use an example to illustrate the state count accumulation idea:
+   *  Currentstate N1(O), N2(S), N3(O), message N3(O->S) should be classified as recovery.
+   *  Assuming without the propagateCounts logic,
+   *  Here, the expectedStateCounts is {M->1, S->1, O->0}, given MIN_ACTIVE=2.
+   *  The currentStateCounts is {M->0, S->1, O->0}.
+   *  At the time, message N3(O->S) is tested for load/recovery, the logic would compare
+   *  currentStateCounts[S] with expectedStateCounts[S]. If less than expected, it is deemed as
+   *  recovery; otherwise load.
+   *  Then the message would be incorrectly classified as load.
+   *
+   *  With propogationTopDown, we have expectedStateCounts as {M->1, S->2 O->3}.
+   *  currentStateCountCounts as {M->0, S->1, O->1}. Thus the message is going to be classified
+   *  as recovery correctly.
+   *
+   *  The gist is that:
+   *  When determining a message as LOAD or RECOVERY, we look at the toState of this message.
+   *  If the accumulated current count of toState meet the required accumulated expected count
+   *  of the toState, we will treat it as Load, otherwise, it is Recovery.
+   *
+   *  Note, there can be customerized model that having more than one route to a top state. For
+   *  example S1, S2, S3 are three levels of states with S1 as top state with lowest priority.
+   *  It is possible that S2 can transits upward to S1 while S3 can also transits upward to S1.
+   *  Thus, we consider S1 meet count requirement of both S2 and S3. In propagation time, we will
+   *  add state count of S1 to both S2 and S3.
+   */
+  public void propagateCountsTopDown(Map<String, Integer> stateCountMap) {
+    List<String> stateList = getStatesPriorityList();
+    if (stateList == null || stateList.size() <= 0) {
+      return;
+    }
+
+    Map<String, Integer> statePriorityMap = new HashMap<>();
+
+    // calculate rank of each state. Next use the rank to compare if a transition is upward or not
+    int rank = 0;
+    for (String state : stateList) {
+      statePriorityMap.put(state, rank);
+      rank++;
+    }
+
+    // given a key state, find the set of states that can transit to this key state upwards.
+    Map<String, Set<String>> fromStatesMap = new HashMap<>();
+    for (String transition : getStateTransitionPriorityList()) {
+      // Note, we assume stateModelDef is properly constructed.
+      String[] fromStateAndToState = transition.split("-");
+      String fromState = fromStateAndToState[0];
+      String toState = fromStateAndToState[1];
+      Integer fromStatePriority = statePriorityMap.get(fromState);
+      Integer toStatePriority = statePriorityMap.get(toState);
+      if (fromStatePriority.compareTo(toStatePriority) <= 0) {
+        // skip downward transitition
+        continue;
+      }
+      fromStatesMap.putIfAbsent(toState, new HashSet<>());
+      fromStatesMap.get(toState).add(fromState);
+    }
+
+    // propagation by adding state counts of current state to all lower priority state that can
+    // transit to this current state
+    for (int index = 0; index < stateList.size() - 1; ++index) {
+      String curState = stateList.get(index);
+      String num = getNumInstancesPerState(curState);
+      if ("-1".equals(num)) {
+        break;
+      }
+      stateCountMap.putIfAbsent(curState, 0);
+      Integer curCount = stateCountMap.get(curState);
+      // for all states S that can transition to curState, add curState count back to S in stateCountMap
+      for (String fromState : fromStatesMap.getOrDefault(curState, Collections.emptySet())) {
+        Integer fromStateCount = stateCountMap.getOrDefault(fromState, 0);
+        stateCountMap.put(fromState, Integer.sum(fromStateCount, curCount));
+      }
+      index++;
+    }
+  }
+
+  /**
+   * Determine if a message is downward transition or not
+   *
+   * @param message
+   * @return boolean
+   */
+  public boolean isDownwardTransition(Message message) {
+
+    Map<String, Integer> statePriorityMap = getStatePriorityMap();
+    String fromState = message.getFromState();
+    String toState = message.getToState();
+
+    // Only when both fromState and toState can be found in the statePriorityMap, comparision of
+    // state priority is used to determine if the transition is downward. Otherwise, we can't
+    // really determine the order and by default consider the transition not downard.
+    Integer fromStatePriority = statePriorityMap.get(fromState);
+    Integer toStatePriority = statePriorityMap.get(toState);
+    return fromStatePriority != null && toStatePriority != null && fromStatePriority < toStatePriority;
+
+  }
 }

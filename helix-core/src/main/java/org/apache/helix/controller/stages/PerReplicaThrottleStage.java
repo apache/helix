@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -55,7 +56,10 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE.name());
 
     MessageOutput selectedMessages = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
-    logger.debug("event info: {}, selectedMessages is: {}", _eventId, selectedMessages);
+    if (logger.isDebugEnabled()) {
+      LogUtil
+          .logDebug(logger, _eventId, String.format("selectedMessages is: %s.", selectedMessages));
+    }
 
     Map<String, Resource> resourceToRebalance =
         event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
@@ -74,7 +78,10 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         retracedResourceStateMap);
 
     event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_OUTPUT_MESSAGES.name(), output);
-    logger.debug("Event info: {}, retraceResourceStateMap is: {}", retracedResourceStateMap);
+    if (logger.isDebugEnabled()) {
+      LogUtil.logDebug(logger, _eventId,
+          String.format("retraceResourceStateMap is: %s.", retracedResourceStateMap));
+    }
     event.addAttribute(AttributeName.PER_REPLICA_THROTTLE_RETRACED_STATES.name(),
         retracedResourceStateMap);
 
@@ -125,9 +132,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       BestPossibleStateOutput bestPossibleStateOutput =
           event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
       if (!bestPossibleStateOutput.containsResource(resourceName)) {
-        logger.info(
-            "Event info: {}, Skip calculating per replica state for resource {} because the best possible state is not available.",
-            _eventId, resourceName);
+        LogUtil.logInfo(logger, _eventId, String.format(
+            "Skip calculating per replica state for resource % because the best possible state is not available..",
+            resourceName));
         continue;
       }
 
@@ -135,9 +142,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       IdealState idealState = dataCache.getIdealState(resourceName);
       if (idealState == null) {
         // If IdealState is null, use an empty one
-        logger.info(
-            "Event info: {}, IdealState for resource {} does not exist; resource may not exist anymore.",
-            _eventId, resourceName);
+        LogUtil.logInfo(logger, _eventId, String
+            .format("IdealState for resource % does not exist; resource may not exist anymore.",
+                resourceName));
         idealState = new IdealState(resourceName);
         idealState.setStateModelDefRef(resource.getStateModelDefRef());
       }
@@ -158,9 +165,9 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         }
         retracedResourceStateMap.setState(resourceName, retracedPartitionsState);
       } catch (HelixException ex) {
-        logger.info(
-            "Event info: {}, Failed to calculate per replica partition states for resource {} ",
-            _eventId, resourceName, ex);
+        LogUtil.logInfo(logger, _eventId, String
+            .format("Failed to calculate per replica partition states for resource %s",
+                resourceName));
         failedResources.add(resourceName);
       }
     }
@@ -189,7 +196,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       Map<Partition, Map<String, String>> retracedPartitionsStateMap) {
     MessageOutput output = new MessageOutput();
     String resourceName = idealState.getResourceName();
-    logger.info("Event info: {}, Processing resource: {}", _eventId, resourceName);
+    LogUtil.logInfo(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
     // TODO: expand per-replica-throttling beyond FULL_AUTO
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
@@ -201,8 +208,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       }
       return output;
     }
-
-    Set<Partition> partitionsWithErrorStateReplica = new HashSet<>();
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
@@ -225,28 +230,37 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
     // Step 3: sorts recovery message list and applies throttling
     Set<Message> throttledRecoveryMessages = new HashSet<>();
-    logger.debug("Event info {}, applying recovery rebalance with resource {}", _eventId,
-        resourceName);
+    if (logger.isDebugEnabled()) {
+      LogUtil.logDebug(logger, _eventId,
+          String.format("applying recovery rebalance with resource %s.", resourceName));
+    }
+
     applyThrottling(resourceName, throttleController, stateModelDef, false, recoveryMessages,
         throttledRecoveryMessages, StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE);
 
     // Step 4: sorts load message list and applies throttling
     // TODO: calculate error-on-recovery downward threshold with complex backward compatibility next
     // TODO: this can be done together with chargePendingMessage() where partitionsNeedRecovery is from
-    boolean onlyDownwardLoadBalance = partitionsWithErrorStateReplica.size() > 1;
+    boolean onlyDownwardLoadBalance = false;
     Set<Message> throttledLoadMessages = new HashSet<>();
-    logger.debug(
-        "Event info {}, applying load rebalance with resource {}, onlyDownwardLoadBalance {} ",
-        _eventId, resourceName, onlyDownwardLoadBalance);
+    if (logger.isDebugEnabled()) {
+      LogUtil.logDebug(logger, _eventId, String.format(
+          "Event info %s, applying load rebalance with resource %s, onlyDownwardLoadBalance %s.",
+          loadMessages, throttledLoadMessages,
+          StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE));
+    }
+
     applyThrottling(resourceName, throttleController, stateModelDef, onlyDownwardLoadBalance,
         loadMessages, throttledLoadMessages,
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
 
-    logger
-        .debug("Event info {}, resource {}, throttled recovery message {}", _eventId, resourceName,
-            throttledRecoveryMessages);
-    logger.debug("Event info {}, resource {}, throttled load message {}", _eventId, resourceName,
-        throttledLoadMessages);
+    if (logger.isDebugEnabled()) {
+      LogUtil.logDebug(logger, _eventId, String
+          .format("resource %s, throttled recovery message %s", resourceName,
+              throttledRecoveryMessages));
+      LogUtil.logDebug(logger, _eventId, String
+          .format("resource %s, throttled load message %s", resourceName, throttledLoadMessages));
+    }
 
     // Step 5: construct output
     for (Partition partition : selectedResourceMessages.keySet()) {
@@ -271,89 +285,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     return output;
   }
 
-  /*
-   *  Let us use an example to illustrate the state count accumulation idea:
-   *  Currentstate N1(O), N2(S), N3(O), message N3(O->S) should be classified as recovery.
-   *  Assuming without the propagateCounts logic,
-   *  Here, the expectedStateCounts is {M->1, S->1, O->0}, given MIN_ACTIVE=2.
-   *  The currentStateCounts is {M->0, S->1, O->0}.
-   *  At the time, message N3(O->S) is tested for load/recovery, the logic would compare
-   *  currentStateCounts[S] with expectedStateCounts[S]. If less than expected, it is deemed as
-   *  recovery; otherwise load.
-   *  Then the message would be incorrectly classified as load.
-   *
-   *  With propogationTopDown, we have expectedStateCounts as {M->1, S->2 O->3}.
-   *  currentStateCountCounts as {M->0, S->1, O->1}. Thus the message is going to be classified
-   *  as recovery correctly.
-   *
-   *  The gist is that:
-   *  When determining a message as LOAD or RECOVERY, we look at the toState of this message.
-   *  If the accumulated current count of toState meet the required accumulated expected count
-   *  of the toState, we will treat it as Load, otherwise, it is Recovery.
-   *
-   *  Note, there can be customerized model that having more than one route to a top state. For
-   *  example S1, S2, S3 are three levels of states with S1 as top state with lowest priority.
-   *  It is possible that S2 can transits upward to S1 while S3 can also transits upward to S1.
-   *  Thus, we consider S1 meet count requirement of both S2 and S3. In propagation time, we will
-   *  add state count of S1 to both S2 and S3.
-   */
-  private void propagateCountsTopDown(StateModelDefinition stateModelDef,
-      Map<String, Integer> stateCountMap) {
-    List<String> stateList = stateModelDef.getStatesPriorityList();
-    if (stateList == null || stateList.size() <= 0) {
-      return;
-    }
-
-    Map<String, Integer> statePriorityMap = new HashMap<>();
-
-    // calculate rank of each state. Next use the rank to compare if a transition is upward or not
-    int rank = 0;
-    for (String state : stateList) {
-      statePriorityMap.put(state, Integer.valueOf(rank));
-      rank++;
-    }
-
-    // given a key state, find the set of states that can transit to this key state upwards.
-    Map<String, Set<String>> fromStatesMap = new HashMap<>();
-    for (String transition : stateModelDef.getStateTransitionPriorityList()) {
-      // Note, we assume stateModelDef is properly constructed.
-      String[] fromStateAndToState = transition.split("-");
-      String fromState = fromStateAndToState[0];
-      String toState = fromStateAndToState[1];
-      Integer fromStatePriority = statePriorityMap.get(fromState);
-      Integer toStatePriority = statePriorityMap.get(toState);
-      if (fromStatePriority.compareTo(toStatePriority) <= 0) {
-        // skip downward transitition
-        continue;
-      }
-      fromStatesMap.putIfAbsent(toState, new HashSet<>());
-      fromStatesMap.get(toState).add(fromState);
-    }
-
-    // propagation by adding state counts of current state to all lower priority state that can
-    // transit to this current state
-    int index = 0;
-    while (true) {
-      if (index == stateList.size() - 1) {
-        break;
-      }
-      String curState = stateList.get(index);
-      String num = stateModelDef.getNumInstancesPerState(curState);
-      if ("-1".equals(num)) {
-        break;
-      }
-      stateCountMap.putIfAbsent(curState, 0);
-      Integer curCount = stateCountMap.get(curState);
-      // for all states S that can transition to curState, add curState count back to S in stateCountMap
-      for (String fromState : fromStatesMap.getOrDefault(curState, Collections.emptySet())) {
-        Integer fromStateCount = stateCountMap.getOrDefault(fromState, 0);
-        stateCountMap.put(fromState, Integer.sum(fromStateCount, curCount));
-      }
-      index++;
-    }
-  }
-
-  Map<String, Integer> getPartitionExpectedStateCounts(Partition partition,
+  private Map<String, Integer> getPartitionExpectedStateCounts(Partition partition,
       Map<String, List<String>> preferenceLists, StateModelDefinition stateModelDef,
       IdealState idealState, Set<String> enabledLiveInstance) {
     Map<String, Integer> expectedStateCountsOut = new HashMap<>();
@@ -375,7 +307,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         stateModelDef.getStateCountMap(activeList.size(), replica);
 
     expectedStateCountsOut.putAll(expectedStateCountMap);
-    propagateCountsTopDown(stateModelDef, expectedStateCountsOut);
+    stateModelDef.propagateCountsTopDown(expectedStateCountsOut);
 
     return expectedStateCountsOut;
   }
@@ -399,7 +331,7 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     return expectedStateCountsByPartition;
   }
 
-  Map<String, Integer> getPartitionCurrentStateCounts(Map<String, String> currentStateMap,
+  private Map<String, Integer> getPartitionCurrentStateCounts(Map<String, String> currentStateMap,
       String resourceName, String partitionName, StateModelDefinition stateModelDef,
       ResourceControllerDataProvider cache) {
     // Current counts without disabled partitions or disabled instances
@@ -409,12 +341,12 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     Map<String, Integer> currentStateCountsOut =
         StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
 
-    propagateCountsTopDown(stateModelDef, currentStateCountsOut);
+    stateModelDef.propagateCountsTopDown(currentStateCountsOut);
 
     return currentStateCountsOut;
   }
 
-  Map<Partition, Map<String, Integer>> calculateCurrentStateCount(
+  private Map<Partition, Map<String, Integer>> calculateCurrentStateCount(
       Map<Partition, List<Message>> selectedResourceMessages, CurrentStateOutput currentStateOutput,
       StateModelDefinition stateModelDef, String resourceName,
       ResourceControllerDataProvider cache) {
@@ -441,7 +373,8 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
       List<Message> recoveryMessages, List<Message> loadMessages,
       Map<Partition, Map<String, Integer>> expectedStateCountByPartition,
       Map<Partition, Map<String, Integer>> currentStateCountsByPartition) {
-    logger.info("Event info {}, Classify message for resource {} ", _eventId, resourceName);
+    LogUtil
+        .logInfo(logger, _eventId, String.format("Classify message for resource %s", resourceName));
 
     for (Partition partition : selectedResourceMessages.keySet()) {
       Map<String, Integer> partitionExpectedStateCounts =
@@ -456,17 +389,17 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
 
       // sort partitionMessages based on transition priority and then creation timestamp for transition message
       // TODO: sort messages in same partition in next PR
-      Set<String> disabledInstances =
-          cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName());
       for (Message msg : partitionMessages) {
         if (!Message.MessageType.STATE_TRANSITION.name().equals(msg.getMsgType())) {
-          logger.debug(
-              "Event info: {} Message: {} not subject to throttle in resource: {} with type {}",
-              _eventId, msg, resourceName, msg.getMsgType());
+          if (logger.isDebugEnabled()) {
+            LogUtil.logDebug(logger, _eventId, String.format(
+                "Event info: %s Message: %s not subject to throttle in resource: %s with type %s",
+                msg, resourceName, msg.getMsgType()));
+          }
           continue;
         }
 
-        boolean isUpward = !isDownwardTransition(stateModelDef, msg);
+        boolean isUpward = !stateModelDef.isDownwardTransition(msg);
 
         // TODO: add disabled disabled instance special treatment
 
@@ -477,7 +410,6 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
         Integer minimumRequiredCount = partitionExpectedStateCounts.getOrDefault(toState, 0);
         Integer currentCount = partitionCurrentStateCounts.getOrDefault(toState, 0);
 
-        //
         if (isUpward && (currentCount < minimumRequiredCount)) {
           recoveryMessages.add(msg);
           // It is critical to increase toState value by one here. For example, current state
@@ -500,43 +432,44 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
     boolean isRecovery =
         rebalanceType == StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE;
     if (isRecovery && onlyDownwardLoadBalance) {
-      logger.error("onlyDownwardLoadBalance can't be used together with recovery_rebalance");
+      LogUtil.logError(logger, _eventId,
+          String.format("onlyDownwardLoadBalance can't be used together with recovery_rebalance"));
       return;
     }
 
     // TODO: add message sorting in next PR
-    logger.trace("throttleControllerstate->{} before load", throttleController);
     for (Message msg : messages) {
-      if (onlyDownwardLoadBalance) {
-        if (!isDownwardTransition(stateModelDef, msg)) {
+      if (onlyDownwardLoadBalance && !stateModelDef.isDownwardTransition(msg)) {
           throttledMessages.add(msg);
-          logger.debug(
-              "Event info: {}, Message: {} throttled in resource as not downward: {} with type: {}",
-              _eventId, msg, resourceName, rebalanceType);
-          continue;
+        if (logger.isDebugEnabled()) {
+          LogUtil.logDebug(logger, _eventId, String.format(
+              "Message: %s throttled in resource as not downward: %s with type: %s",
+              msg, resourceName, rebalanceType));
         }
       }
 
       if (throttleController.shouldThrottleForResource(rebalanceType, resourceName)) {
         throttledMessages.add(msg);
-        logger
-            .debug("Event info: {}, Message: {} throttled in resource: {} with type: {}", _eventId,
-                msg, resourceName, rebalanceType);
+        if (logger.isDebugEnabled()) {
+          LogUtil.logDebug(logger, _eventId, String
+              .format("Message: %s throttled in resource: %s with type: %s", msg, resourceName,
+                  rebalanceType));
+        }
         continue;
       }
       String instance = msg.getTgtName();
       if (throttleController.shouldThrottleForInstance(rebalanceType, instance)) {
         throttledMessages.add(msg);
-        logger.debug(
-            "Event info: {}, Message: {} throttled in instance {} in resource: {} with type: {} ",
-            _eventId, msg, instance, resourceName, rebalanceType);
+        if (logger.isDebugEnabled()) {
+          LogUtil.logDebug(logger, _eventId, String
+              .format("Message: %s throttled in instance %s in resource: %s with type: %s ", msg,
+                  instance, resourceName, rebalanceType));
+        }
         continue;
       }
       throttleController.chargeInstance(rebalanceType, instance);
       throttleController.chargeResource(rebalanceType, resourceName);
       throttleController.chargeCluster(rebalanceType);
-      logger
-          .trace("throttleControllerstate->{} after charge load msg: {}", throttleController, msg);
     }
   }
   // ------------------ utilities ---------------------------
@@ -588,24 +521,5 @@ public class PerReplicaThrottleStage extends AbstractBaseStage {
             String.format("Invalid priority field %s for resource %s", priority, _resourceName));
       }
     }
-  }
-
-  private boolean isDownwardTransition(StateModelDefinition stateModelDef, Message message) {
-    boolean isDownward = false;
-
-    Map<String, Integer> statePriorityMap = stateModelDef.getStatePriorityMap();
-    String fromState = message.getFromState();
-    String toState = message.getToState();
-
-    // Only when both fromState and toState can be found in the statePriorityMap, comparision of
-    // state priority is used to determine if the transition is downward. Otherwise, we can't
-    // really determine the order and by default consider the transition not downard.
-    if (statePriorityMap.containsKey(fromState) && statePriorityMap.containsKey(toState)) {
-      if (statePriorityMap.get(fromState) < statePriorityMap.get(toState)) {
-        isDownward = true;
-      }
-    }
-
-    return isDownward;
   }
 }

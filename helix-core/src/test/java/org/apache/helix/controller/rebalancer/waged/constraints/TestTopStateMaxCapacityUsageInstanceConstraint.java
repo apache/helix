@@ -27,7 +27,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +47,7 @@ public class TestTopStateMaxCapacityUsageInstanceConstraint {
   @Test
   public void testGetNormalizedScore() {
     when(_testReplica.isReplicaTopState()).thenReturn(true);
-    when(_testNode.getProjectedHighestUtilization(anyMap(), eq(true))).thenReturn(0.8f);
+    when(_testNode.getTopStateProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
     when(_clusterContext.getEstimatedTopStateMaxUtilization()).thenReturn(1f);
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     // Convert to float so as to compare with equal.

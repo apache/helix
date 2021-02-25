@@ -93,6 +93,8 @@ public class ClusterContext {
         capacityEntry -> totalCapacity.compute(capacityEntry.getKey(),
             (k, v) -> (v == null) ? capacityEntry.getValue() : (v + capacityEntry.getValue()))));
 
+    // TODO: these variables correspond to one constraint each, and may become unnecessary if the
+    // constraints are not used. A better design is to make them pluggable.
     if (totalCapacity.isEmpty()) {
       // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;

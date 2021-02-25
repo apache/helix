@@ -41,7 +41,7 @@ class TopStateMaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
     }
     float estimatedTopStateMaxUtilization = clusterContext.getEstimatedTopStateMaxUtilization();
     float projectedHighestUtilization =
-        node.getProjectedHighestUtilization(replica.getCapacity(), true);
+        node.getTopStateProjectedHighestUtilization(replica.getCapacity());
     return computeUtilizationScore(estimatedTopStateMaxUtilization, projectedHighestUtilization);
   }
 }

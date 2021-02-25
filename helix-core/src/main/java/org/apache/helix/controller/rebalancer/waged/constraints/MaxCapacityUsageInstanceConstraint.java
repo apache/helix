@@ -37,7 +37,7 @@ class MaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
       ClusterContext clusterContext) {
     float estimatedMaxUtilization = clusterContext.getEstimatedMaxUtilization();
     float projectedHighestUtilization =
-        node.getProjectedHighestUtilization(replica.getCapacity(), false);
+        node.getGeneralProjectedHighestUtilization(replica.getCapacity());
     return computeUtilizationScore(estimatedMaxUtilization, projectedHighestUtilization);
   }
 }

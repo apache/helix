@@ -45,18 +45,18 @@ public class CallbackEventExecutor {
       _callBackEventQueue;
   private final HelixManager _manager;
   private Future _futureCallBackProcessEvent = null;
-  private final ThreadPoolExecutor _threadPoolExecutor;
+  private ThreadPoolExecutor _threadPoolExecutor;
 
   public CallbackEventExecutor(HelixManager manager) {
     _callBackEventQueue = new DedupEventBlockingQueue<>();
     _manager = manager;
-    _threadPoolExecutor = CallbackEventTPFactory.getOrCreateThreadPool(manager.hashCode());
+    _threadPoolExecutor = CallbackEventThreadPoolFactory.getOrCreateThreadPool(manager.hashCode());
   }
 
   class CallbackProcessor implements Runnable {
-    private CallbackHandler _handler;
-    protected String _processorName;
-    NotificationContext _event;
+    private final CallbackHandler _handler;
+    protected final String _processorName;
+    private final NotificationContext _event;
 
     public CallbackProcessor(CallbackHandler handler, NotificationContext event) {
       _processorName = _manager.getClusterName() + "CallbackProcessor@" + Integer
@@ -72,7 +72,7 @@ public class CallbackEventExecutor {
       } catch (ZkInterruptedException e) {
         logger.warn(_processorName + " thread caught a ZK connection interrupt", e);
       } catch (ThreadDeath death) {
-        throw death;
+        logger.error(_processorName + " thread dead " + _processorName, death);
       } catch (Throwable t) {
         logger.error(_processorName + " thread failed while running " + _processorName, t);
       }
@@ -117,6 +117,7 @@ public class CallbackEventExecutor {
 
   public void unregisterFromFactory() {
     reset();
-    CallbackEventTPFactory.unregisterEventProcessor(_manager.hashCode());
+    CallbackEventThreadPoolFactory.unregisterEventProcessor(_manager.hashCode());
+    _threadPoolExecutor = null;
   }
 }

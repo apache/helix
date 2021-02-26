@@ -34,45 +34,45 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 // returns a thread pool object given a HelixManager identifier
-public class CallbackEventTPFactory {
+public class CallbackEventThreadPoolFactory {
   static private final ReadWriteLock _lock = new ReentrantReadWriteLock();
   static private Map<Integer, ThreadPoolExecutor> _managerToCallBackThreadPoolMap = new HashMap();
   static private Map<Integer, AtomicInteger> _callBackEventProcessorCountPerThreadPool =
       new HashMap();
 
-  public static ThreadPoolExecutor getOrCreateThreadPool(int managerHash) {
+  public static ThreadPoolExecutor getOrCreateThreadPool(int hash) {
     // should not use general lock for read
     _lock.readLock().lock();
     ThreadPoolExecutor result = null;
-    if (_managerToCallBackThreadPoolMap.containsKey(managerHash)) {
-      result = _managerToCallBackThreadPoolMap.get(managerHash);
-      _callBackEventProcessorCountPerThreadPool.get(managerHash).incrementAndGet();
+    if (_managerToCallBackThreadPoolMap.containsKey(hash)) {
+      result = _managerToCallBackThreadPoolMap.get(hash);
+      _callBackEventProcessorCountPerThreadPool.get(hash).incrementAndGet();
     }
     _lock.readLock().unlock();
     if (result == null) {
-      result = getOrCreateThreadPoolHelper(managerHash);
+      result = getOrCreateThreadPoolHelper(hash);
     }
     return result;
   }
 
-  private static ThreadPoolExecutor getOrCreateThreadPoolHelper(int managerHash) {
+  private static ThreadPoolExecutor getOrCreateThreadPoolHelper(int hash) {
     ThreadPoolExecutor result;
     _lock.writeLock().lock();
     // first check if the key is already in the map
-    if (_managerToCallBackThreadPoolMap.containsKey(managerHash)) {
+    if (_managerToCallBackThreadPoolMap.containsKey(hash)) {
       // downgrade to read lock since we dont need to modify the map
       _lock.readLock().lock();
-      result = _managerToCallBackThreadPoolMap.get(managerHash);
+      result = _managerToCallBackThreadPoolMap.get(hash);
       _lock.readLock().unlock();
     } else {
       ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-          .setNameFormat(String.format("CallbackHandlerExecutorService - %s ", managerHash))
+          .setNameFormat(String.format("CallbackHandlerExecutorService - %s ", hash))
           .build();
       result = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
           namedThreadFactory);
       result.allowCoreThreadTimeOut(true);
-      _managerToCallBackThreadPoolMap.put(managerHash, result);
-      _callBackEventProcessorCountPerThreadPool.put(managerHash, new AtomicInteger(1));
+      _managerToCallBackThreadPoolMap.put(hash, result);
+      _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
     }
     _lock.writeLock().unlock();
     return result;
@@ -81,11 +81,9 @@ public class CallbackEventTPFactory {
   public static void unregisterEventProcessor(int managerHash) {
     ThreadPoolExecutor threadPoolToClose = null;
     _lock.writeLock().lock();
-    int newVal = _callBackEventProcessorCountPerThreadPool.get(managerHash).decrementAndGet();
-    if (newVal == 0) {
+    if (_callBackEventProcessorCountPerThreadPool.get(managerHash).decrementAndGet() ==0 ) {
       _callBackEventProcessorCountPerThreadPool.remove(managerHash);
-      threadPoolToClose = _managerToCallBackThreadPoolMap.get(managerHash);
-      _managerToCallBackThreadPoolMap.remove(managerHash);
+      threadPoolToClose = _managerToCallBackThreadPoolMap.remove(managerHash);
     }
     _lock.writeLock().unlock();
 

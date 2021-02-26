@@ -51,8 +51,8 @@ class PartitionMovementConstraint extends SoftConstraint {
   private double _baseline_influence_factor = 0.25;
   private double _best_possible_influence_factor = 1.25;
 
-  private static final double CUSTOMIZED_BASELINE_INFLUENCE_FACTOR = 10000;
-  private static final double CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR = 0.001;
+  private static final double DEFAULT_CUSTOMIZED_BASELINE_INFLUENCE_FACTOR = 10000;
+  private static final double DEFAULT_CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR = 0.001;
 
   PartitionMovementConstraint(boolean useCustomizedMovementFactors) {
     super(MAX_SCORE, MIN_SCORE);
@@ -60,16 +60,16 @@ class PartitionMovementConstraint extends SoftConstraint {
       try {
         _baseline_influence_factor = Double.parseDouble(System
             .getProperty(SystemPropertyKeys.PARTITION_MOVEMENT_BASELINE_INFLUENCE_FACTOR,
-                String.valueOf(CUSTOMIZED_BASELINE_INFLUENCE_FACTOR)));
+                String.valueOf(DEFAULT_CUSTOMIZED_BASELINE_INFLUENCE_FACTOR)));
       } catch (NumberFormatException e) {
-        _baseline_influence_factor = CUSTOMIZED_BASELINE_INFLUENCE_FACTOR;
+        _baseline_influence_factor = DEFAULT_CUSTOMIZED_BASELINE_INFLUENCE_FACTOR;
       }
       try {
         _best_possible_influence_factor = Double.parseDouble(System
             .getProperty(SystemPropertyKeys.PARTITION_MOVEMENT_BEST_POSSIBLE_INFLUENCE_FACTOR,
-                String.valueOf(CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR)));
+                String.valueOf(DEFAULT_CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR)));
       } catch (NumberFormatException e) {
-        _best_possible_influence_factor = CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR;
+        _best_possible_influence_factor = DEFAULT_CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR;
       }
     }
   }

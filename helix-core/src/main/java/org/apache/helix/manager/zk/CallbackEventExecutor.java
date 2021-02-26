@@ -46,6 +46,7 @@ public class CallbackEventExecutor {
   private final HelixManager _manager;
   private Future _futureCallBackProcessEvent = null;
   private ThreadPoolExecutor _threadPoolExecutor;
+  private boolean _isShutdown = false;
 
   public CallbackEventExecutor(HelixManager manager) {
     _callBackEventQueue = new DedupEventBlockingQueue<>();
@@ -80,9 +81,12 @@ public class CallbackEventExecutor {
     }
   }
 
-  public void submitEventToEvecutor(NotificationContext.Type eventType, NotificationContext event,
+  public void submitEventToExecutor(NotificationContext.Type eventType, NotificationContext event,
       CallbackHandler handler) {
     synchronized (_callBackEventQueue) {
+      if (_isShutdown) {
+        logger.error("Failed to process callback. CallbackEventExecutor is already shut down.");
+      }
       if (_futureCallBackProcessEvent == null || _futureCallBackProcessEvent.isDone()) {
         _futureCallBackProcessEvent =
             _threadPoolExecutor.submit(new CallbackProcessor(handler, event));
@@ -116,6 +120,7 @@ public class CallbackEventExecutor {
   }
 
   public void unregisterFromFactory() {
+    _isShutdown = true;
     reset();
     CallbackEventThreadPoolFactory.unregisterEventProcessor(_manager.hashCode());
     _threadPoolExecutor = null;

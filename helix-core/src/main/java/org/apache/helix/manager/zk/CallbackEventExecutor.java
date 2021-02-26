@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -46,7 +45,7 @@ public class CallbackEventExecutor {
       _callBackEventQueue;
   private final HelixManager _manager;
   private Future _futureCallBackProcessEvent = null;
-  private ExecutorService _threadPoolExecutor;
+  private ThreadPoolExecutor _threadPoolExecutor;
   private boolean _isShutdown = false;
 
   public CallbackEventExecutor(HelixManager manager) {

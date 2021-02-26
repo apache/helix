@@ -760,20 +760,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   void reset(boolean isShutdown) {
-    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid,
-      isShutdown);
-      try {
-        _ready = false;
-        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
-        if (callbackExecutor != null) {
-          if (isShutdown) {
-            if (_batchCallbackExecutorRef.compareAndSet(callbackExecutor, null)) {
-              callbackExecutor.unregisterFromFactory();
-            }
-          } else {
-            callbackExecutor.reset();
+    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid, isShutdown);
+    try {
+      _ready = false;
+      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
+      if (callbackExecutor != null) {
+        if (isShutdown) {
+          if (_batchCallbackExecutorRef.compareAndSet(callbackExecutor, null)) {
+            callbackExecutor.unregisterFromFactory();
           }
+        } else {
+          callbackExecutor.reset();
         }
+      }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       changeContext.setChangeType(_changeType);

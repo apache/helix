@@ -42,7 +42,8 @@ public class TestPartitionMovementConstraint {
   private AssignableNode _testNode;
   private AssignableReplica _testReplica;
   private ClusterContext _clusterContext;
-  private SoftConstraint _constraint = new PartitionMovementConstraint();
+  private SoftConstraint _defaultConstraint = new PartitionMovementConstraint(false);
+  private SoftConstraint _customizedFactorConstraint = new PartitionMovementConstraint(true);
 
   @BeforeMethod
   public void init() {
@@ -52,44 +53,6 @@ public class TestPartitionMovementConstraint {
     when(_testReplica.getResourceName()).thenReturn(RESOURCE);
     when(_testReplica.getPartitionName()).thenReturn(PARTITION);
     when(_testNode.getInstanceName()).thenReturn(INSTANCE);
-  }
-
-  @Test
-  public void testGetAssignmentScoreWhenBestPossibleBaselineMissing() {
-    when(_clusterContext.getBaselineAssignment()).thenReturn(Collections.emptyMap());
-    when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
-    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    double normalizedScore =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.0);
-    Assert.assertEquals(normalizedScore, 0.0);
-  }
-
-  @Test
-  public void testGetAssignmentScoreWhenBestPossibleBaselineSame() {
-    ResourceAssignment mockResourceAssignment = mock(ResourceAssignment.class);
-    when(mockResourceAssignment.getReplicaMap(new Partition(PARTITION)))
-        .thenReturn(ImmutableMap.of(INSTANCE, "Master"));
-    Map<String, ResourceAssignment> assignmentMap =
-        ImmutableMap.of(RESOURCE, mockResourceAssignment);
-    when(_clusterContext.getBaselineAssignment()).thenReturn(assignmentMap);
-    when(_clusterContext.getBestPossibleAssignment()).thenReturn(assignmentMap);
-    // when the calculated states are both equal to the replica's current state
-    when(_testReplica.getReplicaState()).thenReturn("Master");
-    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    double normalizedScore =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertEquals(score, 1.0);
-    Assert.assertEquals(normalizedScore, 1.0);
-    // when the calculated states are both different from the replica's current state
-    when(_testReplica.getReplicaState()).thenReturn("Slave");
-    score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    normalizedScore =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
-
-    Assert.assertEquals(score, 0.5);
-    Assert.assertEquals(normalizedScore, 0.5);
   }
 
   @Test
@@ -113,43 +76,32 @@ public class TestPartitionMovementConstraint {
     // when the replica's state matches with best possible
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameA);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    double score =
-        _constraint.getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);
-    double normalizedScore =
-        _constraint.getAssignmentNormalizedScore(testAssignableNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 1.0);
-    Assert.assertEquals(normalizedScore, 1.0);
+    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 1.25, 1.25);
+    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext, 10000,
+        10000);
 
     // when the replica's allocation matches with best possible
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameB);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    score = _constraint.getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);
-    normalizedScore =
-        _constraint.getAssignmentNormalizedScore(testAssignableNode, _testReplica, _clusterContext);
-    Assert.assertEquals(score, 0.5);
-    Assert.assertEquals(normalizedScore, 0.5);
+    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.625, 0.625);
+    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext, 5000,
+        5000);
+
 
     // when the replica's state matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    score = _constraint.getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);
-    normalizedScore =
-        _constraint.getAssignmentNormalizedScore(testAssignableNode, _testReplica, _clusterContext);
-    // The calculated score is lower than previous value cause the replica's state matches with
-    // best possible is preferred
-    Assert.assertEquals(score, 0.25);
-    Assert.assertEquals(normalizedScore, 0.25);
+    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.25, 0.25);
+    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.0001, 0.0001);
 
     // when the replica's allocation matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Slave");
-    score = _constraint.getAssignmentScore(testAssignableNode, _testReplica, _clusterContext);
-    normalizedScore =
-        _constraint.getAssignmentNormalizedScore(testAssignableNode, _testReplica, _clusterContext);
-    // The calculated score is lower than previous value cause the replica's state matches with
-    // best possible is preferred
-    Assert.assertEquals(score, 0.25);
-    Assert.assertEquals(normalizedScore, 0.25);
+    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.125,
+        0.125);
+    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.00005, 0.00005);
   }
 
   @Test
@@ -163,19 +115,22 @@ public class TestPartitionMovementConstraint {
     when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
     // when the calculated states are both equal to the replica's current state
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    double normalizedScore =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    verifyScore(_defaultConstraint, _testNode, _testReplica, _clusterContext, 1.25, 1.25);
+    verifyScore(_customizedFactorConstraint, _testNode, _testReplica, _clusterContext, 10000,
+        10000);
 
-    Assert.assertEquals(score, 1.0);
-    Assert.assertEquals(normalizedScore, 1.0);
     // when the calculated states are both different from the replica's current state
     when(_testReplica.getReplicaState()).thenReturn("Slave");
-    score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
-    normalizedScore =
-        _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
+    verifyScore(_defaultConstraint, _testNode, _testReplica, _clusterContext, 0.625, 0.625);
+    verifyScore(_customizedFactorConstraint, _testNode, _testReplica, _clusterContext, 5000, 5000);
+  }
 
-    Assert.assertEquals(score, 0.5);
-    Assert.assertEquals(normalizedScore, 0.5);
+  private static void verifyScore(SoftConstraint constraint, AssignableNode node,
+      AssignableReplica replica, ClusterContext clusterContext, double expectedScore,
+      double expectedNormalizedScore) {
+    double score = constraint.getAssignmentScore(node, replica, clusterContext);
+    double normalizedScore = constraint.getAssignmentNormalizedScore(node, replica, clusterContext);
+    Assert.assertEquals(score, expectedScore);
+    Assert.assertEquals(normalizedScore, expectedNormalizedScore);
   }
 }

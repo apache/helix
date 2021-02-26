@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -61,22 +60,30 @@ public class ConstraintBasedAlgorithmFactory {
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
-    int evennessPreference =
-        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS, 1);
-    int movementPreference =
-        preferences.getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1);
+    int evennessPreference = 1;
+    int movementPreference = 1;
+    if (preferences.containsKey(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS) && preferences
+        .containsKey(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS)) {
+      evennessPreference = preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS);
+      movementPreference =
+          preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
+    }
+    boolean useCustomizedMovementFactors = preferences
+        .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.USE_CUSTOMIZED_MOVEMENT_FACTORS, 0)
+        > 0;
 
     List<SoftConstraint> softConstraints = ImmutableList
-        .of(new PartitionMovementConstraint(), new InstancePartitionsCountConstraint(),
-            new ResourcePartitionAntiAffinityConstraint(),
+        .of(new PartitionMovementConstraint(useCustomizedMovementFactors),
+            new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
             new TopStateMaxCapacityUsageInstanceConstraint(),
             new MaxCapacityUsageInstanceConstraint());
-    Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
-      String name = key.getClass().getSimpleName();
-      float weight = MODEL.get(name);
-      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ?
-          movementPreference * weight : evennessPreference * weight;
-    });
+    Map<SoftConstraint, Float> softConstraintsWithWeight = new HashMap<>();
+    for (SoftConstraint softConstraint : softConstraints) {
+      float constraintWeight = MODEL.get(softConstraint.getClass().getSimpleName());
+      softConstraintsWithWeight.put(softConstraint,
+          softConstraint instanceof PartitionMovementConstraint ? movementPreference
+              * constraintWeight : evennessPreference * constraintWeight);
+    }
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraintsWithWeight);
   }

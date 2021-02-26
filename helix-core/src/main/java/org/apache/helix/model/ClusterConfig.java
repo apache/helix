@@ -139,7 +139,8 @@ public class ClusterConfig extends HelixProperty {
 
   public enum GlobalRebalancePreferenceKey {
     EVENNESS,
-    LESS_MOVEMENT
+    LESS_MOVEMENT,
+    USE_CUSTOMIZED_MOVEMENT_FACTORS,
   }
 
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
@@ -160,7 +161,8 @@ public class ClusterConfig extends HelixProperty {
       DEFAULT_GLOBAL_REBALANCE_PREFERENCE =
       ImmutableMap.<GlobalRebalancePreferenceKey, Integer>builder()
           .put(GlobalRebalancePreferenceKey.EVENNESS, 1)
-          .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1).build();
+          .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1)
+          .put(GlobalRebalancePreferenceKey.USE_CUSTOMIZED_MOVEMENT_FACTORS, 0).build();
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
@@ -893,11 +895,9 @@ public class ClusterConfig extends HelixProperty {
     if (preferenceStrMap != null && !preferenceStrMap.isEmpty()) {
       Map<GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
       for (GlobalRebalancePreferenceKey key : GlobalRebalancePreferenceKey.values()) {
-        if (!preferenceStrMap.containsKey(key.name())) {
-          // If any key is not configured with a value, return the default config.
-          return DEFAULT_GLOBAL_REBALANCE_PREFERENCE;
+        if (preferenceStrMap.containsKey(key.name())) {
+          preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
         }
-        preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
       }
       return preference;
     }

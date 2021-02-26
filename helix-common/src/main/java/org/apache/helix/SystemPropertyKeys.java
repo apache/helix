@@ -87,4 +87,9 @@ public class SystemPropertyKeys {
 
   public static final String TASK_CURRENT_STATE_PATH_DISABLED =
       "helix.taskCurrentStatePathDisabled";
+
+  public static final String PARTITION_MOVEMENT_BASELINE_INFLUENCE_FACTOR =
+      "helix.waged.PartitionMovementConstraint.baselineInfluenceFactor";
+  public static final String PARTITION_MOVEMENT_BEST_POSSIBLE_INFLUENCE_FACTOR =
+      "helix.waged.PartitionMovementConstraint.bestPossibleInfluenceFactor";
 }

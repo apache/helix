@@ -122,13 +122,6 @@ public class TestClusterConfig {
     ClusterConfig testConfig = new ClusterConfig("testId");
     Assert.assertEquals(testConfig.getGlobalRebalancePreference(),
         ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
-
-    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
-    preference.put(EVENNESS, 5);
-    testConfig.setGlobalRebalancePreference(preference);
-
-    Assert.assertEquals(testConfig.getGlobalRebalancePreference(),
-        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
   }
 
   @Test

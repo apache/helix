@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
@@ -42,12 +43,35 @@ class PartitionMovementConstraint extends SoftConstraint {
   private static final double MIN_SCORE = 0f;
   // The scale factor to adjust score when the proposed allocation partially matches the assignment
   // plan but will require a state transition (with partition movement).
-  // TODO: these factors will be tuned based on user's preference
   private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
-  private static final double MOVEMENT_COST_FACTOR = 0.25;
 
-  PartitionMovementConstraint() {
+  // Influence factor for baseline and best possible assignments. If baseline factor is larger, the
+  // movement score will be greatly influenced by baseline, causing more movements and faster
+  // convergence to baseline. Recommend not to modify unless extensive tuning is done.
+  private double _baseline_influence_factor = 0.25;
+  private double _best_possible_influence_factor = 1.25;
+
+  private static final double CUSTOMIZED_BASELINE_INFLUENCE_FACTOR = 10000;
+  private static final double CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR = 0.001;
+
+  PartitionMovementConstraint(boolean useCustomizedMovementFactors) {
     super(MAX_SCORE, MIN_SCORE);
+    if (useCustomizedMovementFactors) {
+      try {
+        _baseline_influence_factor = Double.parseDouble(System
+            .getProperty(SystemPropertyKeys.PARTITION_MOVEMENT_BASELINE_INFLUENCE_FACTOR,
+                String.valueOf(CUSTOMIZED_BASELINE_INFLUENCE_FACTOR)));
+      } catch (NumberFormatException e) {
+        _baseline_influence_factor = CUSTOMIZED_BASELINE_INFLUENCE_FACTOR;
+      }
+      try {
+        _best_possible_influence_factor = Double.parseDouble(System
+            .getProperty(SystemPropertyKeys.PARTITION_MOVEMENT_BEST_POSSIBLE_INFLUENCE_FACTOR,
+                String.valueOf(CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR)));
+      } catch (NumberFormatException e) {
+        _best_possible_influence_factor = CUSTOMIZED_BEST_POSSIBLE_INFLUENCE_FACTOR;
+      }
+    }
   }
 
   /**
@@ -73,19 +97,13 @@ class PartitionMovementConstraint extends SoftConstraint {
     if (bestPossibleAssignment.isEmpty()) {
       // If bestPossibleAssignment of the replica is empty, indicating this is a new replica.
       // Then the baseline is the only reference.
-      return calculateAssignmentScore(nodeName, state, baselineAssignment);
+      return calculateAssignmentScore(nodeName, state, baselineAssignment)
+          * _best_possible_influence_factor;
     } else {
-      // Else, for minimizing partition movements or state transitions, prioritize the proposed
-      // assignment that matches the previous Best Possible assignment.
-      double score = calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
-      // If no Best Possible assignment matches, check the baseline assignment.
-      if (score == 0 && baselineAssignment.containsKey(nodeName)) {
-        // Although not desired, the proposed assignment that matches the baseline is still better
-        // than a random movement. So try to evaluate the score with the MOVEMENT_COST_FACTOR
-        // punishment.
-        score = MOVEMENT_COST_FACTOR;
-      }
-      return score;
+      return Math.max(calculateAssignmentScore(nodeName, state, baselineAssignment)
+              * _baseline_influence_factor,
+          calculateAssignmentScore(nodeName, state, bestPossibleAssignment)
+              * _best_possible_influence_factor);
     }
   }
 

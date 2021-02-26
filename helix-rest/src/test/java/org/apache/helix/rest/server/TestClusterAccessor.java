@@ -669,12 +669,16 @@ public class TestClusterAccessor extends AbstractTestClass {
     final HelixDataAccessor normalAccessor = new ZKHelixDataAccessor(ACTIVATE_NORM_CLUSTER, _baseAccessor);
     final PropertyKey.Builder normKeyBuilder = normalAccessor.keyBuilder();
 
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
-      @Override
-      public boolean verify() {
-        LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
-        return leader != null;
+    boolean result = TestHelper.verify(() -> {
+      LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
+      if (leader == null) {
+        // TODO: Remove the following logic once https://github.com/apache/helix/issues/1617 is fixed.
+        // TODO: For now, we may need to touch the IdealState to trigger a new rebalance since the test
+        // TODO: is running multiple GenericHelixController instances in one JVM.
+        IdealState is = normalAccessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
+        normalAccessor.setProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER), is);
       }
+      return leader != null;
     }, 12000);
     Assert.assertTrue(result);
 
@@ -685,8 +689,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
     Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO);
-    Assert.assertEquals(idealState.getRebalancerClassName(), DelayedAutoRebalancer.class.getName());
-    Assert.assertEquals(idealState.getRebalanceStrategy(), CrushEdRebalanceStrategy.class.getName());
+    Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
     // Note, set expected replicas value to 3, as the same value of DEFAULT_SUPERCLUSTER_REPLICA in ClusterAccessor.
     Assert.assertEquals(idealState.getReplicas(), "3");
 

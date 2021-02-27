@@ -68,6 +68,8 @@ public class TestClusterContext extends AbstractTestClusterModel {
         .addPartitionToFaultZone(_testFaultZoneId, replica.getResourceName(),
             replica.getPartitionName()));
     Assert.assertEquals(context.getAssignmentForFaultZoneMap(), expectedFaultZoneMap);
+    // Capacity with "item1" key is the highest utilized. Among 4 partitions, their weights are
+    // 3, 5, 3, 5, so a total of 16/20 is used; the 2 master partitions have 3, 5, so 8/20 used.
     Assert.assertEquals(context.getEstimatedMaxUtilization(), 16.0 / 20.0, 0.005);
     Assert.assertEquals(context.getEstimatedTopStateMaxUtilization(), 8.0 / 20.0, 0.005);
 

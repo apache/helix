@@ -279,7 +279,7 @@ public class ResourceAccessor extends AbstractHelixResource {
           TypeReference<Map<String, ZNRecord>> typeRef =
               new TypeReference<Map<String, ZNRecord>>() {
               };
-          input = OBJECT_MAPPER.readValue(content, typeRef);
+          input = ZNRECORD_READER.forType(typeRef).readValue(content);
         } catch (IOException e) {
           _logger.error("Failed to deserialize user's input {}, Exception: {}", content, e);
           return badRequest("Input is not a valid map of String-ZNRecord pairs!");

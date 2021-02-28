@@ -83,7 +83,7 @@ public class AbstractHelixResource extends AbstractResource {
 
   protected static ZNRecord toZNRecord(String data)
       throws IOException {
-    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    return ZNRECORD_READER.readValue(data);
   }
 
   private ServerContext getServerContext() {

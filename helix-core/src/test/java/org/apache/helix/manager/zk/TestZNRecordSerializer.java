@@ -1,24 +1,5 @@
 package org.apache.helix.manager.zk;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -37,6 +18,32 @@ import org.testng.annotations.Test;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestZNRecordSerializer {
   /**
@@ -269,6 +276,85 @@ public class TestZNRecordSerializer {
       ZNRecord result = (ZNRecord) serializer.deserialize(serializedBytes);
       Assert.assertEquals(result, record);
       runId = runId + 1;
+    }
+  }
+
+  /*
+   * Tests Jackson 1.x can work with ZNRecord
+   */
+  @Test
+  public void testCodehausJacksonSerializer() {
+    ZNRecord record = createZnRecord();
+
+    ZNRecordSerializer znRecordSerializer = new ZNRecordSerializer();
+    CodehausJsonSerializer<ZNRecord> codehausJsonSerializer =
+        new CodehausJsonSerializer<>(ZNRecord.class);
+
+    byte[] codehausBytes = codehausJsonSerializer.serialize(record);
+
+    ZNRecord deserialized =
+        (ZNRecord) codehausJsonSerializer.deserialize(codehausBytes);
+    Assert.assertEquals(deserialized, record,
+        "Codehaus jackson serializer should work with ZNRecord");
+
+    deserialized = (ZNRecord) znRecordSerializer.deserialize(codehausBytes);
+    Assert.assertEquals(deserialized, record,
+        "ZNRecordSerializer should deserialize bytes serialized by codehaus serializer");
+
+    deserialized =
+        (ZNRecord) codehausJsonSerializer.deserialize(znRecordSerializer.serialize(record));
+    Assert.assertEquals(deserialized, record,
+        "codehaus serializer should deserialize bytes serialized by ZNRecordSerializer");
+  }
+
+  private static class CodehausJsonSerializer<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(CodehausJsonSerializer.class);
+
+    private final Class<T> _clazz;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    public CodehausJsonSerializer(Class<T> clazz) {
+      _clazz = clazz;
+    }
+
+    public byte[] serialize(Object data) {
+      SerializationConfig serializationConfig = mapper.getSerializationConfig();
+      serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+      serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+      serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+      StringWriter sw = new StringWriter();
+
+      try {
+        mapper.writeValue(sw, data);
+
+        return sw.toString().getBytes();
+      } catch (Exception e) {
+        LOG.error("Error during serialization of data", e);
+      }
+
+      return new byte[]{};
+    }
+
+    public Object deserialize(byte[] bytes) {
+      if (bytes == null || bytes.length == 0) {
+        return null;
+      }
+
+      try {
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+
+        DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
+        deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+        deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
+        deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+
+        T value = mapper.readValue(bais, _clazz);
+        return value;
+      } catch (Exception e) {
+        LOG.error("Error during deserialization of bytes: " + new String(bytes), e);
+      }
+
+      return null;
     }
   }
 }

@@ -32,11 +32,14 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.introspect.CodehausJacksonIntrospector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,6 +161,12 @@ public class AbstractResource {
   }
 
   protected static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  // Needs a separate object reader for ZNRecord annotated with Jackson 1
+  // TODO: remove AnnotationIntrospector config once ZNRecord upgrades Jackson
+  protected static ObjectReader ZNRECORD_READER = new ObjectMapper()
+      .setAnnotationIntrospector(new CodehausJacksonIntrospector())
+      .readerFor(ZNRecord.class);
 
   protected static String toJson(Object object)
       throws IOException {

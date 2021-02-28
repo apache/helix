@@ -37,6 +37,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.common.base.Joiner;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -78,6 +79,7 @@ import org.apache.helix.util.ZKClientPool;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.factory.DedicatedZkClientFactory;
+import org.apache.helix.zookeeper.introspect.CodehausJacksonIntrospector;
 import org.apache.helix.zookeeper.zkclient.ZkServer;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -115,6 +117,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static ConfigAccessor _configAccessor;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
   protected static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  protected static ObjectReader ZNRECORD_READER = new ObjectMapper()
+      .setAnnotationIntrospector(new CodehausJacksonIntrospector())
+      .readerFor(ZNRecord.class);
   protected static boolean _init = false;
 
   // For testing namespaced access
@@ -475,7 +480,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected static ZNRecord toZNRecord(String data)
       throws IOException {
-    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    return ZNRECORD_READER.readValue(data);
   }
 
   protected String get(String uri, Map<String, String> queryParams, int expectedReturnStatus,

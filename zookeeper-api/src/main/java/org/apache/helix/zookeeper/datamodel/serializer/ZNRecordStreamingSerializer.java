@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class ZNRecordStreamingSerializer implements ZkSerializer {
-  private static Logger LOG = LoggerFactory.getLogger(ZNRecordStreamingSerializer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZNRecordStreamingSerializer.class);
 
   private static int getListFieldBound(ZNRecord record) {
     int max = Integer.MAX_VALUE;

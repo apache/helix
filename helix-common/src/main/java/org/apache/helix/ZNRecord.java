@@ -19,20 +19,20 @@ package org.apache.helix;
  * under the License.
  */
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
-
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
- * Deprecated; please use ZNRecord in zookeeper-api instead.
- *
+ * @deprecated
+ * Please use {@link org.apache.helix.zookeeper.datamodel.ZNRecord}
+ * in zookeeper-api instead.
+ * <p>
  * Generic Record Format to store data at a Node This can be used to store
  * simpleFields mapFields listFields
  */
 @Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSerialize(include = Inclusion.NON_NULL)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ZNRecord extends org.apache.helix.zookeeper.datamodel.ZNRecord {
   public ZNRecord(String id) {
     super(id);

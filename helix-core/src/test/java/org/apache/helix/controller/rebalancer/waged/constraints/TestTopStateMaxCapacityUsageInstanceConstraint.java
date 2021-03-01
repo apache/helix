@@ -30,11 +30,12 @@ import static org.mockito.Matchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestMaxCapacityUsageInstanceConstraint {
+
+public class TestTopStateMaxCapacityUsageInstanceConstraint {
   private AssignableReplica _testReplica;
   private AssignableNode _testNode;
   private ClusterContext _clusterContext;
-  private final SoftConstraint _constraint = new MaxCapacityUsageInstanceConstraint();
+  private final SoftConstraint _constraint = new TopStateMaxCapacityUsageInstanceConstraint();
 
   @BeforeMethod
   public void setUp() {
@@ -45,11 +46,12 @@ public class TestMaxCapacityUsageInstanceConstraint {
 
   @Test
   public void testGetNormalizedScore() {
-    when(_testNode.getGeneralProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
-    when(_clusterContext.getEstimatedMaxUtilization()).thenReturn(1f);
+    when(_testReplica.isReplicaTopState()).thenReturn(true);
+    when(_testNode.getTopStateProjectedHighestUtilization(anyMap())).thenReturn(0.8f);
+    when(_clusterContext.getEstimatedTopStateMaxUtilization()).thenReturn(1f);
     double score = _constraint.getAssignmentScore(_testNode, _testReplica, _clusterContext);
     // Convert to float so as to compare with equal.
-    Assert.assertEquals((float) score,0.8f);
+    Assert.assertEquals((float) score, 0.8f);
     double normalizedScore =
         _constraint.getAssignmentNormalizedScore(_testNode, _testReplica, _clusterContext);
     Assert.assertTrue(normalizedScore > 0.99);

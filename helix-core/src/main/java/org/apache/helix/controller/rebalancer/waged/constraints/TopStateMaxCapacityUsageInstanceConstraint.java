@@ -23,21 +23,25 @@ import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableReplica;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
+
 /**
- * The constraint evaluates the score by checking the max used capacity key out of all the capacity
- * keys.
+ * Evaluate the proposed assignment according to the top state resource usage on the instance.
  * The higher the maximum usage value for the capacity key, the lower the score will be, implying
  * that it is that much less desirable to assign anything on the given node.
  * It is a greedy approach since it evaluates only on the most used capacity key.
  */
-class MaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
-
+class TopStateMaxCapacityUsageInstanceConstraint extends UsageSoftConstraint {
   @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
-    float estimatedMaxUtilization = clusterContext.getEstimatedMaxUtilization();
+    if (!replica.isReplicaTopState()) {
+      // For non top state replica, this constraint is not applicable.
+      // So return zero on any assignable node candidate.
+      return 0;
+    }
+    float estimatedTopStateMaxUtilization = clusterContext.getEstimatedTopStateMaxUtilization();
     float projectedHighestUtilization =
-        node.getGeneralProjectedHighestUtilization(replica.getCapacity());
-    return computeUtilizationScore(estimatedMaxUtilization, projectedHighestUtilization);
+        node.getTopStateProjectedHighestUtilization(replica.getCapacity());
+    return computeUtilizationScore(estimatedTopStateMaxUtilization, projectedHighestUtilization);
   }
 }

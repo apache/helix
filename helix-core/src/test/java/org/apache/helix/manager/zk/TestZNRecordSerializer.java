@@ -326,7 +326,6 @@ public class TestZNRecordSerializer {
 
       try {
         mapper.writeValue(sw, data);
-
         return sw.toString().getBytes();
       } catch (Exception e) {
         LOG.error("Error during serialization of data", e);
@@ -348,8 +347,7 @@ public class TestZNRecordSerializer {
         deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
         deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
-        T value = mapper.readValue(bais, _clazz);
-        return value;
+        return mapper.readValue(bais, _clazz);
       } catch (Exception e) {
         LOG.error("Error during deserialization of bytes: " + new String(bytes), e);
       }

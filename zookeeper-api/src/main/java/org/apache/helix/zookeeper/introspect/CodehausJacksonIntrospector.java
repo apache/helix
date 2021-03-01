@@ -19,13 +19,13 @@ package org.apache.helix.zookeeper.introspect;
  * under the License.
  */
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties.Value;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Typing;
 import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
@@ -48,34 +48,22 @@ import org.codehaus.jackson.map.annotate.NoClass;
 public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   private static final long serialVersionUID = 1L;
 
-  @SuppressWarnings("deprecation")
-  @Override
-  public String findEnumValue(Enum<?> value) {
-    return value.name();
+  public Value findPropertyIgnorals(Annotated a) {
+    JsonIgnoreProperties ignoreAnnotation = a.getAnnotation(JsonIgnoreProperties.class);
+    if (ignoreAnnotation != null) {
+      return Value.forIgnoreUnknown(ignoreAnnotation.ignoreUnknown());
+    }
+    return super.findPropertyIgnorals(a);
   }
 
   @SuppressWarnings("deprecation")
   @Override
-  public Boolean findIgnoreUnknownProperties(AnnotatedClass ac) {
-    JsonIgnoreProperties ignore = ac.getAnnotation(JsonIgnoreProperties.class);
-    return (ignore == null) ? null : ignore.ignoreUnknown();
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public String[] findPropertiesToIgnore(Annotated ac) {
-    JsonIgnoreProperties ignore = ac.getAnnotation(JsonIgnoreProperties.class);
-    return (ignore == null) ? null : ignore.value();
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public Class<?> findDeserializationContentType(Annotated am, JavaType baseContentType) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<?> cls = ann.contentAs();
-      if (cls != NoClass.class) {
-        return cls;
+  public Class<?> findDeserializationContentType(Annotated a, JavaType baseContentType) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<?> serClass = serializeAnnotation.contentAs();
+      if (serClass != NoClass.class) {
+        return serClass;
       }
     }
     return null;
@@ -98,20 +86,20 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   }
 
   public String findDeserializationName(AnnotatedField af) {
-    JsonProperty pann = af.getAnnotation(JsonProperty.class);
-    return pann == null ? null : pann.value();
+    JsonProperty propertyAnnotation = af.getAnnotation(JsonProperty.class);
+    return propertyAnnotation == null ? null : propertyAnnotation.value();
   }
 
   public String findDeserializationName(AnnotatedMethod am) {
-    JsonProperty pann = am.getAnnotation(JsonProperty.class);
-    return pann == null ? null : pann.value();
+    JsonProperty propertyAnnotation = am.getAnnotation(JsonProperty.class);
+    return propertyAnnotation == null ? null : propertyAnnotation.value();
   }
 
   public String findDeserializationName(AnnotatedParameter param) {
     if (param != null) {
-      JsonProperty pann = param.getAnnotation(JsonProperty.class);
-      if (pann != null) {
-        return pann.value();
+      JsonProperty propertyAnnotation = param.getAnnotation(JsonProperty.class);
+      if (propertyAnnotation != null) {
+        return propertyAnnotation.value();
       }
     }
     return null;
@@ -119,12 +107,12 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
 
   @SuppressWarnings("deprecation")
   @Override
-  public Class<?> findSerializationContentType(Annotated am, JavaType baseType) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<?> cls = ann.contentAs();
-      if (cls != NoClass.class) {
-        return cls;
+  public Class<?> findSerializationContentType(Annotated a, JavaType baseType) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<?> serClass = serializeAnnotation.contentAs();
+      if (serClass != NoClass.class) {
+        return serClass;
       }
     }
     return null;
@@ -135,10 +123,10 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
    */
   @Override
   public JsonInclude.Value findPropertyInclusion(Annotated a) {
-    JsonSerialize ann = a.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
       for (Include include : Include.values()) {
-        if (include.name().equals(ann.include().name())) {
+        if (include.name().equals(serializeAnnotation.include().name())) {
           return JsonInclude.Value.construct(include, include);
         }
       }
@@ -149,25 +137,27 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   @SuppressWarnings("deprecation")
   @Override
   public Include findSerializationInclusion(Annotated a, Include defValue) {
-    JsonSerialize ann = a.getAnnotation(JsonSerialize.class);
-    return ann == null ? defValue : Include.valueOf(ann.include().name());
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    return serializeAnnotation == null ? defValue
+        : Include.valueOf(serializeAnnotation.include().name());
   }
 
   @SuppressWarnings("deprecation")
   @Override
   public Include findSerializationInclusionForContent(Annotated a, JsonInclude.Include defValue) {
-    JsonSerialize ann = a.getAnnotation(JsonSerialize.class);
-    return ann == null ? defValue : Include.valueOf(ann.include().name());
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    return serializeAnnotation == null ? defValue
+        : Include.valueOf(serializeAnnotation.include().name());
   }
 
   @SuppressWarnings("deprecation")
   @Override
-  public Class<?> findSerializationKeyType(Annotated am, JavaType baseType) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<?> cls = ann.keyAs();
-      if (cls != NoClass.class) {
-        return cls;
+  public Class<?> findSerializationKeyType(Annotated a, JavaType baseType) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<?> serClass = serializeAnnotation.keyAs();
+      if (serClass != NoClass.class) {
+        return serClass;
       }
     }
     return null;
@@ -176,11 +166,11 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   @SuppressWarnings("deprecation")
   @Override
   public Class<?> findSerializationType(Annotated a) {
-    JsonSerialize ann = a.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<?> cls = ann.as();
-      if (cls != NoClass.class) {
-        return cls;
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<?> serClass = serializeAnnotation.as();
+      if (serClass != NoClass.class) {
+        return serClass;
       }
     }
     return null;
@@ -188,8 +178,8 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
 
   @Override
   public Typing findSerializationTyping(Annotated a) {
-    JsonSerialize ann = a.getAnnotation(JsonSerialize.class);
-    return ann == null ? null : Typing.valueOf(ann.typing().name());
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    return serializeAnnotation == null ? null : Typing.valueOf(serializeAnnotation.typing().name());
   }
 
   @Override
@@ -212,9 +202,9 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   }
 
   public String findSerializationName(AnnotatedField af) {
-    JsonProperty pann = af.getAnnotation(JsonProperty.class);
-    if (pann != null) {
-      return pann.value();
+    JsonProperty propertyAnnotation = af.getAnnotation(JsonProperty.class);
+    if (propertyAnnotation != null) {
+      return propertyAnnotation.value();
     }
 
     if (af.hasAnnotation(JsonSerialize.class)) {
@@ -223,11 +213,10 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
     return null;
   }
 
-  @SuppressWarnings("deprecation")
   public String findSerializationName(AnnotatedMethod am) {
-    JsonProperty pann = am.getAnnotation(JsonProperty.class);
-    if (pann != null) {
-      return pann.value();
+    JsonProperty propertyAnnotation = am.getAnnotation(JsonProperty.class);
+    if (propertyAnnotation != null) {
+      return propertyAnnotation.value();
     }
 
     if (am.hasAnnotation(JsonSerialize.class)) {
@@ -243,19 +232,19 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   }
 
   @Override
-  public boolean hasIgnoreMarker(AnnotatedMember m) {
-    JsonIgnore ann = m.getAnnotation(JsonIgnore.class);
-    return (ann != null && ann.value());
+  public boolean hasIgnoreMarker(AnnotatedMember am) {
+    JsonIgnore ignoreAnnotation = am.getAnnotation(JsonIgnore.class);
+    return (ignoreAnnotation != null && ignoreAnnotation.value());
   }
 
   /*
    * handling of serializers
    */
   @Override
-  public Object findSerializer(Annotated am) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<? extends JsonSerializer<?>> serClass = ann.using();
+  public Object findSerializer(Annotated a) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.using();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }
@@ -264,10 +253,10 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   }
 
   @Override
-  public Object findKeySerializer(Annotated am) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<? extends JsonSerializer<?>> serClass = ann.keyUsing();
+  public Object findKeySerializer(Annotated a) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.keyUsing();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }
@@ -276,10 +265,10 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   }
 
   @Override
-  public Object findContentSerializer(Annotated am) {
-    JsonSerialize ann = am.getAnnotation(JsonSerialize.class);
-    if (ann != null) {
-      Class<? extends JsonSerializer<?>> serClass = ann.contentUsing();
+  public Object findContentSerializer(Annotated a) {
+    JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
+    if (serializeAnnotation != null) {
+      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.contentUsing();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }

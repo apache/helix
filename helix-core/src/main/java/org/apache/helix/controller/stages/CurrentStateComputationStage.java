@@ -298,7 +298,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
           String instanceName = node.getInstanceName();
           // There is no new usage adding to this node, so an empty map is passed in.
-          double usage = node.getProjectedHighestUtilization(Collections.emptyMap());
+          double usage = node.getGeneralProjectedHighestUtilization(Collections.emptyMap());
           clusterStatusMonitor
               .updateInstanceCapacityStatus(instanceName, usage, node.getMaxCapacity());
         }

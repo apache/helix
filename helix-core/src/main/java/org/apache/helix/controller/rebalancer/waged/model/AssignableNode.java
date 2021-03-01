@@ -62,6 +62,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
   private Map<String, Map<String, AssignableReplica>> _currentAssignedReplicaMap;
   // A map of <capacity key, capacity value> that tracks the current available node capacity
   private Map<String, Integer> _remainingCapacity;
+  private Map<String, Integer> _remainingTopStateCapacity;
 
   /**
    * Update the node with a ClusterDataCache. This resets the current assignment and recalculates
@@ -81,6 +82,7 @@ public class AssignableNode implements Comparable<AssignableNode> {
     // make a copy of max capacity
     _maxAllowedCapacity = ImmutableMap.copyOf(instanceCapacity);
     _remainingCapacity = new HashMap<>(instanceCapacity);
+    _remainingTopStateCapacity = new HashMap<>(instanceCapacity);
     _maxPartition = clusterConfig.getMaxPartitionsPerInstance();
     _currentAssignedReplicaMap = new HashMap<>();
   }
@@ -92,12 +94,18 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * Using this function avoids the overhead of updating capacity repeatedly.
    */
   void assignInitBatch(Collection<AssignableReplica> replicas) {
+    Map<String, Integer> totalTopStatePartitionCapacity = new HashMap<>();
     Map<String, Integer> totalPartitionCapacity = new HashMap<>();
     for (AssignableReplica replica : replicas) {
       // TODO: the exception could occur in the middle of for loop and the previous added records cannot be reverted
       addToAssignmentRecord(replica);
       // increment the capacity requirement according to partition's capacity configuration.
       for (Map.Entry<String, Integer> capacity : replica.getCapacity().entrySet()) {
+        if (replica.isReplicaTopState()) {
+          totalTopStatePartitionCapacity.compute(capacity.getKey(),
+              (key, totalValue) -> (totalValue == null) ? capacity.getValue()
+                  : totalValue + capacity.getValue());
+        }
         totalPartitionCapacity.compute(capacity.getKey(),
             (key, totalValue) -> (totalValue == null) ? capacity.getValue()
                 : totalValue + capacity.getValue());
@@ -105,9 +113,8 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     // Update the global state after all single replications' calculation is done.
-    for (String capacityKey : totalPartitionCapacity.keySet()) {
-      updateRemainingCapacity(capacityKey, totalPartitionCapacity.get(capacityKey));
-    }
+    updateRemainingCapacity(totalTopStatePartitionCapacity, _remainingTopStateCapacity, false);
+    updateRemainingCapacity(totalPartitionCapacity, _remainingCapacity, false);
   }
 
   /**
@@ -116,8 +123,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
    */
   void assign(AssignableReplica assignableReplica) {
     addToAssignmentRecord(assignableReplica);
-    assignableReplica.getCapacity().entrySet().stream()
-            .forEach(capacity -> updateRemainingCapacity(capacity.getKey(), capacity.getValue()));
+    updateRemainingCapacity(assignableReplica.getCapacity(), _remainingCapacity, false);
+    if (assignableReplica.isReplicaTopState()) {
+      updateRemainingCapacity(assignableReplica.getCapacity(), _remainingTopStateCapacity, false);
+    }
   }
 
   /**
@@ -146,8 +155,10 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
 
     AssignableReplica removedReplica = partitionMap.remove(partitionName);
-    removedReplica.getCapacity().entrySet().stream()
-        .forEach(entry -> updateRemainingCapacity(entry.getKey(), -1 * entry.getValue()));
+    updateRemainingCapacity(removedReplica.getCapacity(), _remainingCapacity, true);
+    if (removedReplica.isReplicaTopState()) {
+      updateRemainingCapacity(removedReplica.getCapacity(), _remainingTopStateCapacity, true);
+    }
   }
 
   /**
@@ -228,11 +239,30 @@ public class AssignableNode implements Comparable<AssignableNode> {
    * @param newUsage the proposed new additional capacity usage.
    * @return The highest utilization number of the node among all the capacity category.
    */
-  public float getProjectedHighestUtilization(Map<String, Integer> newUsage) {
+  public float getGeneralProjectedHighestUtilization(Map<String, Integer> newUsage) {
+    return getProjectedHighestUtilization(newUsage, _remainingCapacity);
+  }
+
+  /**
+   * Return the most concerning capacity utilization number for evenly partition assignment.
+   * The method dynamically calculates the projected highest utilization number among all the
+   * capacity categories assuming the new capacity usage is added to the node.
+   * For example, if the current node usage is {CPU: 0.9, MEM: 0.4, DISK: 0.6}. Then this call shall
+   * return 0.9.
+   * This function returns projected highest utilization for only top state partitions.
+   * @param newUsage the proposed new additional capacity usage.
+   * @return The highest utilization number of the node among all the capacity category.
+   */
+  public float getTopStateProjectedHighestUtilization(Map<String, Integer> newUsage) {
+    return getProjectedHighestUtilization(newUsage, _remainingTopStateCapacity);
+  }
+
+  private float getProjectedHighestUtilization(Map<String, Integer> newUsage,
+      Map<String, Integer> remainingCapacity) {
     float highestCapacityUtilization = 0;
     for (String capacityKey : _maxAllowedCapacity.keySet()) {
       float capacityValue = _maxAllowedCapacity.get(capacityKey);
-      float utilization = (capacityValue - _remainingCapacity.get(capacityKey) + newUsage
+      float utilization = (capacityValue - remainingCapacity.get(capacityKey) + newUsage
           .getOrDefault(capacityKey, 0)) / capacityValue;
       highestCapacityUtilization = Math.max(highestCapacityUtilization, utilization);
     }
@@ -311,13 +341,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
     }
   }
 
-  private void updateRemainingCapacity(String capacityKey, int usage) {
-    if (!_remainingCapacity.containsKey(capacityKey)) {
-      //if the capacityKey belongs to replicas does not exist in the instance's capacity,
-      // it will be treated as if it has unlimited capacity of that capacityKey
-      return;
-    }
-    _remainingCapacity.put(capacityKey, _remainingCapacity.get(capacityKey) - usage);
+  private void updateRemainingCapacity(Map<String, Integer> usedCapacity, Map<String, Integer> remainingCapacity,
+      boolean isRelease) {
+    int multiplier = isRelease ? -1 : 1;
+    // if the used capacity key does not exist in the node's capacity, ignore it
+    usedCapacity.forEach((capacityKey, capacityValue) -> remainingCapacity.compute(capacityKey,
+        (key, value) -> value == null ? null : value - multiplier * capacityValue));
   }
 
   /**

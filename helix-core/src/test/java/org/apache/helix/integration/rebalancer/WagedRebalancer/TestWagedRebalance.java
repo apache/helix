@@ -123,6 +123,16 @@ public class TestWagedRebalance extends ZkTestBase {
             return super.getBestPossibleAssignment();
           }
         };
+
+    // Set test instance capacity and partition weights
+    HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    ClusterConfig clusterConfig =
+        dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+    String testCapacityKey = "TestCapacityKey";
+    clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
+    clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 100));
+    clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 1));
+    dataAccessor.setProperty(dataAccessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 
   protected void addInstanceConfig(String storageNodeName, int seqNo, int tagCount) {

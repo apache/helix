@@ -69,11 +69,12 @@ public class ConstraintBasedAlgorithmFactory {
       movementPreference =
           preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
     }
+
     boolean forceBaselineConverge = preferences
         .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0)
         > 0;
     if (forceBaselineConverge) {
-      MODEL.put(PartitionMovementConstraint.class.getSimpleName(), 0.0001f);
+      MODEL.put(PartitionMovementConstraint.class.getSimpleName(), 0.001f);
       MODEL.put(BaselineInfluenceConstraint.class.getSimpleName(), 10000f);
     }
 

@@ -31,10 +31,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.tools.IdealCalculatorByConsistentHashing;
 import org.apache.helix.tools.IdealStateCalculatorByRush;
 import org.apache.helix.tools.IdealStateCalculatorByShuffling;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.introspect.CodehausJacksonIntrospector;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
 public class TestShuffledIdealState {
@@ -65,7 +66,8 @@ public class TestShuffledIdealState {
     IdealCalculatorByConsistentHashing.printNodeOfflineOverhead(result3);
 
     // System.out.println(result);
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper =
+        new ObjectMapper().setAnnotationIntrospector(new CodehausJacksonIntrospector());
 
     // ByteArrayOutputStream baos = new ByteArrayOutputStream();
     StringWriter sw = new StringWriter();

@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.introspect.CodehausJacksonIntrospector;
 import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
@@ -187,6 +188,7 @@ public class TestZNRecordSerializeWriteSizeLimit {
   // Returns raw serialized bytes before being compressed.
   private byte[] serialize(Object data) {
     ObjectMapper mapper = new ObjectMapper();
+    mapper.setAnnotationIntrospector(new CodehausJacksonIntrospector());
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
     mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
     mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);

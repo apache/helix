@@ -584,11 +584,11 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     String oneModelUri = urlBase + oneModel;
     String oneResult = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
-    ZNRecord oneRecord = OBJECT_MAPPER.readValue(oneResult, ZNRecord.class);
+    ZNRecord oneRecord = toZNRecord(oneResult);
 
     String twoResult =
         get("clusters/" + cluster + "/statemodeldefs/" + twoModel, null, Response.Status.OK.getStatusCode(), true);
-    ZNRecord twoRecord = OBJECT_MAPPER.readValue(twoResult, ZNRecord.class);
+    ZNRecord twoRecord = toZNRecord(twoResult);
 
     // delete one, expect success
     String deleteOneUri = urlBase + oneRecord.getId();
@@ -619,7 +619,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(setOneRsp.getStatus() == Response.Status.OK.getStatusCode());
 
     String oneResult2 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
-    ZNRecord oneRecord2 = OBJECT_MAPPER.readValue(oneResult2, ZNRecord.class);
+    ZNRecord oneRecord2 = toZNRecord(oneResult2);
     Assert.assertEquals(oneRecord2, newRecord);
 
     // set the delete one with original; namely restore the original condition
@@ -628,7 +628,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(setOneRsp2.getStatus() == Response.Status.OK.getStatusCode());
 
     String oneResult3 = get(oneModelUri, null, Response.Status.OK.getStatusCode(), true);
-    ZNRecord oneRecord3 = OBJECT_MAPPER.readValue(oneResult3, ZNRecord.class);
+    ZNRecord oneRecord3 = toZNRecord(oneResult3);
     Assert.assertEquals(oneRecord3, oneRecord);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -994,7 +994,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // Now test the getCloudConfig method.
     String body = get(urlBase, null, Response.Status.OK.getStatusCode(), true);
 
-    ZNRecord recordFromRest = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    ZNRecord recordFromRest = toZNRecord(body);
     CloudConfig cloudConfigRest = new CloudConfig.Builder(recordFromRest).build();
     CloudConfig cloudConfigZk = _configAccessor.getCloudConfig("TestCloud");
 
@@ -1112,7 +1112,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // Now get the Cloud Config and make sure the information is correct
     String body = get(urlBase, null, Response.Status.OK.getStatusCode(), true);
 
-    ZNRecord recordFromRest = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    ZNRecord recordFromRest = toZNRecord(body);
     CloudConfig cloudConfigRest = new CloudConfig.Builder(recordFromRest).build();
     Assert.assertTrue(cloudConfigRest.isCloudEnabled());
     Assert.assertEquals(cloudConfigRest.getCloudID(), "TestCloudID");
@@ -1139,7 +1139,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // Now get the Cloud Config and make sure the information has been updated
     body = get(urlBase, null, Response.Status.OK.getStatusCode(), true);
 
-    recordFromRest = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    recordFromRest = toZNRecord(body);
     cloudConfigRest = new CloudConfig.Builder(recordFromRest).build();
     Assert.assertTrue(cloudConfigRest.isCloudEnabled());
     Assert.assertEquals(cloudConfigRest.getCloudID(), "TestCloudIdNew");
@@ -1198,7 +1198,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     // Now test the getCustomizedStateConfig method.
     String body = get(urlBase, null, Response.Status.OK.getStatusCode(), true);
 
-    ZNRecord recordFromRest = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    ZNRecord recordFromRest = toZNRecord(body);
     CustomizedStateConfig customizedConfigRest = new CustomizedStateConfig.Builder(recordFromRest).build();
     CustomizedStateConfig customizedConfigZk = _configAccessor.getCustomizedStateConfig("TestClusterCustomized");
 
@@ -1298,7 +1298,7 @@ public class TestClusterAccessor extends AbstractTestClass {
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {
     String body = get("clusters/" + cluster + "/configs", null, Response.Status.OK.getStatusCode(), true);
 
-    ZNRecord record = new ObjectMapper().reader(ZNRecord.class).readValue(body);
+    ZNRecord record = toZNRecord(body);
     ClusterConfig clusterConfigRest = new ClusterConfig(record);
     ClusterConfig clusterConfigZk = _configAccessor.getClusterConfig(cluster);
     Assert.assertEquals(clusterConfigZk, clusterConfigRest, "cluster config from response: "

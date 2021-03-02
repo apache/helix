@@ -22,12 +22,11 @@ package org.apache.helix.store;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.apache.helix.HelixException;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +41,10 @@ public class PropertyJsonSerializer<T> implements PropertySerializer<T> {
 
   @Override
   public byte[] serialize(T data) throws PropertyStoreException {
-
-    mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
-    mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);
+    SerializationConfig serializationConfig = mapper.getSerializationConfig();
+    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     StringWriter sw = new StringWriter();
 
     try {
@@ -68,9 +67,10 @@ public class PropertyJsonSerializer<T> implements PropertySerializer<T> {
   public T deserialize(byte[] bytes) throws PropertyStoreException {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
-    mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
-    mapper.enable(MapperFeature.AUTO_DETECT_SETTERS);
-    mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
+    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
+    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     try {
       T value = mapper.readValue(bais, _clazz);
       return value;

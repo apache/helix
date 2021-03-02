@@ -85,7 +85,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     String data =
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/ZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
-    ZNRecord record = OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
+    ZNRecord record = toZNRecord(data);
     Assert.assertEquals(record.getId(), TEST_ZNRECORD.getId());
   }
 

@@ -38,17 +38,13 @@ public class BaselineInfluenceConstraint extends AbstractPartitionMovementConstr
       ClusterContext clusterContext) {
     Map<String, String> bestPossibleAssignment =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
-    Map<String, String> baselineAssignment =
-        getStateMap(replica, clusterContext.getBaselineAssignment());
     if (bestPossibleAssignment.isEmpty()) {
       return getMinScore();
     }
+
+    Map<String, String> baselineAssignment =
+        getStateMap(replica, clusterContext.getBaselineAssignment());
     return calculateAssignmentScore(node.getInstanceName(), replica.getReplicaState(),
         baselineAssignment);
-  }
-
-  @Override
-  protected double getStateTransitionCostFactor() {
-    return MAX_SCORE / 2;
   }
 }

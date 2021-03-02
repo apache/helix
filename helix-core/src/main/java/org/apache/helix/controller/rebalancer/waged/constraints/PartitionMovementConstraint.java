@@ -29,8 +29,8 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost based on
  * the previous best possible assignment.
- * The previous best possible assignment is the sole reference, and if it's missing, use baseline
- * assignment instead.
+ * The previous best possible assignment is the sole reference; if it's missing, it means the
+ * replica belongs to a newly added resource, so baseline assignment should be used instead.
  */
 public class PartitionMovementConstraint extends AbstractPartitionMovementConstraint {
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
@@ -43,13 +43,10 @@ public class PartitionMovementConstraint extends AbstractPartitionMovementConstr
     String state = replica.getReplicaState();
 
     if (bestPossibleAssignment.isEmpty()) {
+      // if best possible is missing, it means the replica belongs to a newly added resource, so
+      // baseline assignment should be used instead.
       return calculateAssignmentScore(nodeName, state, baselineAssignment);
     }
     return calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
-  }
-
-  @Override
-  protected double getStateTransitionCostFactor() {
-    return MAX_SCORE / 2;
   }
 }

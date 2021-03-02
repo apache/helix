@@ -53,10 +53,12 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
       ClusterContext clusterContext);
 
   /**
-   * @return The scale factor to adjust score when the proposed allocation partially matches the
-   * assignment plan but will require a state transition (with partition movement).
+   * @return The score when the proposed allocation partially matches the assignment plan but will
+   * require a state transition.
    */
-  protected abstract double getStateTransitionCostFactor();
+  protected double getScoreWithStateTransitionCost() {
+    return MAX_SCORE / 2;
+  }
 
   protected Map<String, String> getStateMap(AssignableReplica replica,
       Map<String, ResourceAssignment> assignment) {
@@ -73,8 +75,8 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
     if (instanceToStateMap.containsKey(nodeName)) {
       return state.equals(instanceToStateMap.get(nodeName)) ?
           MAX_SCORE : // if state matches, no state transition required for the proposed assignment
-          getStateTransitionCostFactor(); // if state does not match, then the proposed assignment
-      // requires state transition.
+          getScoreWithStateTransitionCost(); // if state does not match, then the proposed
+      // assignment requires state transition.
     }
     return MIN_SCORE;
   }

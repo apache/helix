@@ -140,7 +140,7 @@ public class ClusterConfig extends HelixProperty {
   public enum GlobalRebalancePreferenceKey {
     EVENNESS,
     LESS_MOVEMENT,
-    USE_CUSTOMIZED_MOVEMENT_FACTORS,
+    FORCE_BASELINE_CONVERGE,
   }
 
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
@@ -162,7 +162,7 @@ public class ClusterConfig extends HelixProperty {
       ImmutableMap.<GlobalRebalancePreferenceKey, Integer>builder()
           .put(GlobalRebalancePreferenceKey.EVENNESS, 1)
           .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1)
-          .put(GlobalRebalancePreferenceKey.USE_CUSTOMIZED_MOVEMENT_FACTORS, 0).build();
+          .put(GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0).build();
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;

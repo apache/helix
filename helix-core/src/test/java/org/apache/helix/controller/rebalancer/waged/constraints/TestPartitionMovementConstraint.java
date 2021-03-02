@@ -42,8 +42,8 @@ public class TestPartitionMovementConstraint {
   private AssignableNode _testNode;
   private AssignableReplica _testReplica;
   private ClusterContext _clusterContext;
-  private SoftConstraint _defaultConstraint = new PartitionMovementConstraint(false);
-  private SoftConstraint _customizedFactorConstraint = new PartitionMovementConstraint(true);
+  private SoftConstraint _baselineInfluenceConstraint = new BaselineInfluenceConstraint();
+  private SoftConstraint _partitionMovementConstraint = new PartitionMovementConstraint();
 
   @BeforeMethod
   public void init() {
@@ -56,7 +56,36 @@ public class TestPartitionMovementConstraint {
   }
 
   @Test
-  public void testGetAssignmentScoreWhenBestPossibleBaselineOpposite() {
+  public void testGetAssignmentScoreWhenBestPossibleBaselineMissing() {
+    when(_clusterContext.getBaselineAssignment()).thenReturn(Collections.emptyMap());
+    when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
+
+    verifyScore(_baselineInfluenceConstraint, _testNode, _testReplica, _clusterContext, 0.0, 0.0);
+    verifyScore(_partitionMovementConstraint, _testNode, _testReplica, _clusterContext, 0.0, 0.0);
+  }
+
+  @Test
+  public void testGetAssignmentScoreWhenBestPossibleMissing() {
+    ResourceAssignment mockResourceAssignment = mock(ResourceAssignment.class);
+    when(mockResourceAssignment.getReplicaMap(new Partition(PARTITION)))
+        .thenReturn(ImmutableMap.of(INSTANCE, "Master"));
+    Map<String, ResourceAssignment> assignmentMap =
+        ImmutableMap.of(RESOURCE, mockResourceAssignment);
+    when(_clusterContext.getBaselineAssignment()).thenReturn(assignmentMap);
+    when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
+    // when the calculated states are both equal to the replica's current state
+    when(_testReplica.getReplicaState()).thenReturn("Master");
+    verifyScore(_baselineInfluenceConstraint, _testNode, _testReplica, _clusterContext, 0.0, 0.0);
+    verifyScore(_partitionMovementConstraint, _testNode, _testReplica, _clusterContext, 1.0, 1.0);
+
+    // when the calculated states are both different from the replica's current state
+    when(_testReplica.getReplicaState()).thenReturn("Slave");
+    verifyScore(_baselineInfluenceConstraint, _testNode, _testReplica, _clusterContext, 0.0, 0.0);
+    verifyScore(_partitionMovementConstraint, _testNode, _testReplica, _clusterContext, 0.5, 0.5);
+  }
+
+  @Test
+  public void testGetAssignmentScore() {
     String instanceNameA = INSTANCE + "A";
     String instanceNameB = INSTANCE + "B";
     String instanceNameC = INSTANCE + "C";
@@ -73,56 +102,37 @@ public class TestPartitionMovementConstraint {
     when(_clusterContext.getBaselineAssignment())
         .thenReturn(ImmutableMap.of(RESOURCE, baselineResourceAssignment));
 
-    // when the replica's state matches with best possible
+    // when the replica's state matches with best possible, allocation matches with baseline
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameA);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 1.25, 1.25);
-    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext, 10000,
-        10000);
+    verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.5, 0.5);
+    verifyScore(_partitionMovementConstraint, testAssignableNode, _testReplica, _clusterContext,
+        1.0, 1.0);
 
-    // when the replica's allocation matches with best possible
+    // when the replica's allocation matches with best possible only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameB);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.625, 0.625);
-    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext, 5000,
-        5000);
-
+    verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.0, 0.0);
+    verifyScore(_partitionMovementConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.5, 0.5);
 
     // when the replica's state matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Master");
-    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.25, 0.25);
-    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext,
-        0.0001, 0.0001);
+    verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
+        1.0, 1.0);
+    verifyScore(_partitionMovementConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.0, 0.0);
 
     // when the replica's allocation matches with baseline only
     when(testAssignableNode.getInstanceName()).thenReturn(instanceNameC);
     when(_testReplica.getReplicaState()).thenReturn("Slave");
-    verifyScore(_defaultConstraint, testAssignableNode, _testReplica, _clusterContext, 0.125,
-        0.125);
-    verifyScore(_customizedFactorConstraint, testAssignableNode, _testReplica, _clusterContext,
-        0.00005, 0.00005);
-  }
-
-  @Test
-  public void testGetAssignmentScoreWhenBestPossibleMissing() {
-    ResourceAssignment mockResourceAssignment = mock(ResourceAssignment.class);
-    when(mockResourceAssignment.getReplicaMap(new Partition(PARTITION)))
-        .thenReturn(ImmutableMap.of(INSTANCE, "Master"));
-    Map<String, ResourceAssignment> assignmentMap =
-        ImmutableMap.of(RESOURCE, mockResourceAssignment);
-    when(_clusterContext.getBaselineAssignment()).thenReturn(assignmentMap);
-    when(_clusterContext.getBestPossibleAssignment()).thenReturn(Collections.emptyMap());
-    // when the calculated states are both equal to the replica's current state
-    when(_testReplica.getReplicaState()).thenReturn("Master");
-    verifyScore(_defaultConstraint, _testNode, _testReplica, _clusterContext, 1.25, 1.25);
-    verifyScore(_customizedFactorConstraint, _testNode, _testReplica, _clusterContext, 10000,
-        10000);
-
-    // when the calculated states are both different from the replica's current state
-    when(_testReplica.getReplicaState()).thenReturn("Slave");
-    verifyScore(_defaultConstraint, _testNode, _testReplica, _clusterContext, 0.625, 0.625);
-    verifyScore(_customizedFactorConstraint, _testNode, _testReplica, _clusterContext, 5000, 5000);
+    verifyScore(_baselineInfluenceConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.5, 0.5);
+    verifyScore(_partitionMovementConstraint, testAssignableNode, _testReplica, _clusterContext,
+        0.0, 0.0);
   }
 
   private static void verifyScore(SoftConstraint constraint, AssignableNode node,

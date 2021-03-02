@@ -38,6 +38,7 @@ public class ConstraintBasedAlgorithmFactory {
     {
       // The default setting
       put(PartitionMovementConstraint.class.getSimpleName(), 2f);
+      put(BaselineInfluenceConstraint.class.getSimpleName(), 0.5f);
       put(InstancePartitionsCountConstraint.class.getSimpleName(), 1f);
       put(ResourcePartitionAntiAffinityConstraint.class.getSimpleName(), 1f);
       put(TopStateMaxCapacityUsageInstanceConstraint.class.getSimpleName(), 3f);
@@ -68,12 +69,16 @@ public class ConstraintBasedAlgorithmFactory {
       movementPreference =
           preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
     }
-    boolean useCustomizedMovementFactors = preferences
-        .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.USE_CUSTOMIZED_MOVEMENT_FACTORS, 0)
+    boolean forceBaselineConverge = preferences
+        .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0)
         > 0;
+    if (forceBaselineConverge) {
+      MODEL.put(PartitionMovementConstraint.class.getSimpleName(), 0.0001f);
+      MODEL.put(BaselineInfluenceConstraint.class.getSimpleName(), 10000f);
+    }
 
     List<SoftConstraint> softConstraints = ImmutableList
-        .of(new PartitionMovementConstraint(useCustomizedMovementFactors),
+        .of(new PartitionMovementConstraint(), new BaselineInfluenceConstraint(),
             new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
             new TopStateMaxCapacityUsageInstanceConstraint(),
             new MaxCapacityUsageInstanceConstraint());

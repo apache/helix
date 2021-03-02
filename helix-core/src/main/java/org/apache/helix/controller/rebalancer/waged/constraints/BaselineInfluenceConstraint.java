@@ -28,24 +28,23 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 
 /**
  * Evaluate the proposed assignment according to the potential partition movements cost based on
- * the previous best possible assignment.
- * The previous best possible assignment is the sole reference, and if it's missing, use baseline
- * assignment instead.
+ * the baseline assignment's influence.
+ * This constraint promotes movements for evenness. If best possible doesn't exist, baseline will be
+ * used to restrict movements, so this constraint should give no score in that case.
  */
-public class PartitionMovementConstraint extends AbstractPartitionMovementConstraint {
+public class BaselineInfluenceConstraint extends AbstractPartitionMovementConstraint {
+  @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     Map<String, String> bestPossibleAssignment =
         getStateMap(replica, clusterContext.getBestPossibleAssignment());
     Map<String, String> baselineAssignment =
         getStateMap(replica, clusterContext.getBaselineAssignment());
-    String nodeName = node.getInstanceName();
-    String state = replica.getReplicaState();
-
     if (bestPossibleAssignment.isEmpty()) {
-      return calculateAssignmentScore(nodeName, state, baselineAssignment);
+      return getMinScore();
     }
-    return calculateAssignmentScore(nodeName, state, bestPossibleAssignment);
+    return calculateAssignmentScore(node.getInstanceName(), replica.getReplicaState(),
+        baselineAssignment);
   }
 
   @Override

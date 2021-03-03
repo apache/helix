@@ -38,6 +38,8 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
   protected static final double MAX_SCORE = 1f;
   protected static final double MIN_SCORE = 0f;
 
+  private static final double STATE_TRANSITION_COST_FACTOR = 0.5;
+
   AbstractPartitionMovementConstraint() {
     super(MAX_SCORE, MIN_SCORE);
   }
@@ -52,14 +54,6 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
   protected abstract double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext);
 
-  /**
-   * @return The score when the proposed allocation partially matches the assignment plan but will
-   * require a state transition.
-   */
-  protected double getScoreWithStateTransitionCost() {
-    return MAX_SCORE / 2;
-  }
-
   protected Map<String, String> getStateMap(AssignableReplica replica,
       Map<String, ResourceAssignment> assignment) {
     String resourceName = replica.getResourceName();
@@ -73,9 +67,13 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
   protected double calculateAssignmentScore(String nodeName, String state,
       Map<String, String> instanceToStateMap) {
     if (instanceToStateMap.containsKey(nodeName)) {
-      return state.equals(instanceToStateMap.get(nodeName)) ?
-          MAX_SCORE : // if state matches, no state transition required for the proposed assignment
-          getScoreWithStateTransitionCost(); // if state does not match, then the proposed
+      // The score when the proposed allocation partially matches the assignment plan but will
+      // require a state transition.
+      double scoreWithStateTransitionCost =
+          MIN_SCORE + (MAX_SCORE - MIN_SCORE) * STATE_TRANSITION_COST_FACTOR;
+      return state.equals(instanceToStateMap.get(nodeName)) ? getMaxScore() :
+          // if state matches, no state transition required for the proposed assignment
+          scoreWithStateTransitionCost; // if state does not match, then the proposed
       // assignment requires state transition.
     }
     return MIN_SCORE;

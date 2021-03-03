@@ -164,6 +164,15 @@ public class TestClusterConfig {
     testConfig.setGlobalRebalancePreference(preference);
   }
 
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testSetRebalancePreferenceMissingKey() {
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+    preference.put(EVENNESS, 1);
+
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setGlobalRebalancePreference(preference);
+  }
+
   @Test
   public void testGetInstanceCapacityMap() {
     Map<String, Integer> capacityDataMap = ImmutableMap.of("item1", 1, "item2", 2, "item3", 3);

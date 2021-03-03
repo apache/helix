@@ -33,6 +33,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
  * replica belongs to a newly added resource, so baseline assignment should be used instead.
  */
 public class PartitionMovementConstraint extends AbstractPartitionMovementConstraint {
+  @Override
   protected double getAssignmentScore(AssignableNode node, AssignableReplica replica,
       ClusterContext clusterContext) {
     Map<String, String> bestPossibleAssignment =

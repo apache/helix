@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -45,6 +46,10 @@ public class ConstraintBasedAlgorithmFactory {
       put(MaxCapacityUsageInstanceConstraint.class.getSimpleName(), 6f);
     }
   };
+  // The weight for BaselineInfluenceConstraint used when we are forcing a baseline converge. This
+  // number, multiplied by the max score returned by BaselineInfluenceConstraint, must be greater
+  // than the total maximum sum of all other constraints, in order to overpower other constraints.
+  private static final float FORCE_BASELINE_CONVERGE_WEIGHT = 10000f;
 
   static {
     Properties properties =
@@ -61,24 +66,20 @@ public class ConstraintBasedAlgorithmFactory {
             new ReplicaActivateConstraint(), new NodeMaxPartitionLimitConstraint(),
             new ValidGroupTagConstraint(), new SamePartitionOnInstanceConstraint());
 
-    int evennessPreference = ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE
-        .get(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS);
-    int movementPreference = ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE
-        .get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
-    ;
-    if (preferences.containsKey(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS) && preferences
-        .containsKey(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT)) {
-      evennessPreference = preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS);
-      movementPreference =
-          preferences.get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT);
-    }
+    int evennessPreference = preferences
+        .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS,
+            ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE
+                .get(ClusterConfig.GlobalRebalancePreferenceKey.EVENNESS));
+    int movementPreference = preferences
+        .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT,
+            ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE
+                .get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT));
 
     boolean forceBaselineConverge = preferences
         .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0)
         > 0;
     if (forceBaselineConverge) {
-      MODEL.put(PartitionMovementConstraint.class.getSimpleName(), 0.001f);
-      MODEL.put(BaselineInfluenceConstraint.class.getSimpleName(), 10000f);
+      MODEL.put(BaselineInfluenceConstraint.class.getSimpleName(), FORCE_BASELINE_CONVERGE_WEIGHT);
     }
 
     List<SoftConstraint> softConstraints = ImmutableList
@@ -86,16 +87,15 @@ public class ConstraintBasedAlgorithmFactory {
             new InstancePartitionsCountConstraint(), new ResourcePartitionAntiAffinityConstraint(),
             new TopStateMaxCapacityUsageInstanceConstraint(),
             new MaxCapacityUsageInstanceConstraint());
-    Map<SoftConstraint, Float> softConstraintsWithWeight = new HashMap<>();
-    for (SoftConstraint softConstraint : softConstraints) {
-      float constraintWeight = MODEL.get(softConstraint.getClass().getSimpleName());
+    Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
+      String name = key.getClass().getSimpleName();
+      float weight = MODEL.get(name);
       // Note that BaselineInfluenceConstraint is a constraint that promotes movement for evenness,
       // and is therefore controlled by the evenness preference. Only PartitionMovementConstraint
       // contributes to less movement.
-      softConstraintsWithWeight.put(softConstraint,
-          softConstraint instanceof PartitionMovementConstraint ? movementPreference
-              * constraintWeight : evennessPreference * constraintWeight);
-    }
+      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ?
+          movementPreference * weight : evennessPreference * weight;
+    });
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraintsWithWeight);
   }

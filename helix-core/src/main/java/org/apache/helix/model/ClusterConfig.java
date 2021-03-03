@@ -138,6 +138,7 @@ public class ClusterConfig extends HelixProperty {
   }
 
   public enum GlobalRebalancePreferenceKey {
+    // EVENNESS and LESS_MOVEMENT must be both specified
     EVENNESS,
     LESS_MOVEMENT,
     FORCE_BASELINE_CONVERGE,
@@ -864,14 +865,22 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the global rebalancer's assignment preference.
-   * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weight.
-   *                   The ratio of the configured weights will determine the rebalancer's behavior.
+   * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weights.
+   *                   The weights will determine the rebalancer's behavior. Note that
+   *                   GlobalRebalancePreferenceKey.EVENNESS and
+   *                   GlobalRebalancePreferenceKey.LESS_MOVEMENT must be both specified or not
+   *                   specified, or an exception will be thrown.
    *                   If null, the preference item will be removed from the config.
    */
   public void setGlobalRebalancePreference(Map<GlobalRebalancePreferenceKey, Integer> preference) {
     if (preference == null) {
       _record.getMapFields().remove(ClusterConfigProperty.REBALANCE_PREFERENCE.name());
     } else {
+      if (preference.containsKey(GlobalRebalancePreferenceKey.EVENNESS) != preference
+          .containsKey(GlobalRebalancePreferenceKey.LESS_MOVEMENT)) {
+        throw new IllegalArgumentException("GlobalRebalancePreferenceKey.EVENNESS and "
+            + "GlobalRebalancePreferenceKey.LESS_MOVEMENT must be both specified or not specified");
+      }
       Map<String, String> preferenceMap = new HashMap<>();
       preference.entrySet().stream().forEach(entry -> {
         if (entry.getValue() > MAX_REBALANCE_PREFERENCE

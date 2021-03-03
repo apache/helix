@@ -71,10 +71,10 @@ abstract class AbstractPartitionMovementConstraint extends SoftConstraint {
       // require a state transition.
       double scoreWithStateTransitionCost =
           MIN_SCORE + (MAX_SCORE - MIN_SCORE) * STATE_TRANSITION_COST_FACTOR;
-      return state.equals(instanceToStateMap.get(nodeName)) ? getMaxScore() :
-          // if state matches, no state transition required for the proposed assignment
-          scoreWithStateTransitionCost; // if state does not match, then the proposed
-      // assignment requires state transition.
+      // if state matches, no state transition required for the proposed assignment; if state does
+      // not match, then the proposed assignment requires state transition.
+      return state.equals(instanceToStateMap.get(nodeName)) ? getMaxScore()
+          : scoreWithStateTransitionCost;
     }
     return MIN_SCORE;
   }

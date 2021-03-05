@@ -62,4 +62,18 @@ public class ZkAsyncCallMonitorContext {
       }
     }
   }
+
+  /**
+   * Record the operation failure into the specified ZkClient monitor.
+   * @param path The monitored path
+   */
+  void recordFailure(String path) {
+    if (_monitor != null) {
+      if (_isRead) {
+        _monitor.recordFailure(path, ZkClientMonitor.AccessType.READ);
+      } else {
+        _monitor.recordFailure(path, ZkClientMonitor.AccessType.WRITE);
+      }
+    }
+  }
 }

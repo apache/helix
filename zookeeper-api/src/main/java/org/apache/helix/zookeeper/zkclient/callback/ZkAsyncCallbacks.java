@@ -50,6 +50,10 @@ public class ZkAsyncCallbacks {
         if (_data != null && ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
           ((ZkAsyncCallMonitorContext) ctx).setBytes(_data.length);
         }
+      } else if(rc != Code.NONODE.intValue()) {
+        if (ctx instanceof ZkAsyncCallMonitorContext) {
+          ((ZkAsyncCallMonitorContext) ctx).recordFailure(path);
+        }
       }
       callback(rc, path, ctx);
     }
@@ -67,6 +71,10 @@ public class ZkAsyncCallbacks {
     public void processResult(int rc, String path, Object ctx, Stat stat) {
       if (rc == 0) {
         _stat = stat;
+      } else {
+        if (ctx instanceof ZkAsyncCallMonitorContext) {
+          ((ZkAsyncCallMonitorContext) ctx).recordFailure(path);
+        }
       }
       callback(rc, path, ctx);
     }

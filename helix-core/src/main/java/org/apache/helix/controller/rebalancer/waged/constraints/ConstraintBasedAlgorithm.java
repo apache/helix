@@ -168,53 +168,79 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             replica -> Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet()),
             (hash1, hash2) -> hash2));
 
-    // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
-    // 2. Sort according to the state priority. Note that prioritizing the top state is required.
-    // Or the greedy algorithm will unnecessarily shuffle the states between replicas.
-    // 3. Sort according to the resource/partition name.
     orderedAssignableReplicas.sort((replica1, replica2) -> {
       String resourceName1 = replica1.getResourceName();
       String resourceName2 = replica2.getResourceName();
-      if (bestPossibleAssignment.containsKey(resourceName1) == bestPossibleAssignment
+
+      // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
+      if (bestPossibleAssignment.containsKey(resourceName1) != bestPossibleAssignment
           .containsKey(resourceName2)) {
-        if (baselineAssignment.containsKey(resourceName1) == baselineAssignment
-            .containsKey(resourceName2)) {
-          // If both assignment states have/not have the resource assignment the same,
-          // compare for additional dimensions.
-          int statePriority1 = replica1.getStatePriority();
-          int statePriority2 = replica2.getStatePriority();
-          if (statePriority1 == statePriority2) {
-            // If state priorities are the same, try to randomize the replicas order. Otherwise,
-            // the same replicas might always be moved in each rebalancing. This is because their
-            // placement calculating will always happen at the critical moment while the cluster is
-            // almost close to the expected utilization.
-            //
-            // Note that to ensure the algorithm is deterministic with the same inputs, do not use
-            // Random functions here. Use hashcode based on the cluster topology information to get
-            // a controlled randomized order is good enough.
-            Integer replicaHash1 = replicaHashCodeMap.get(replica1.toString());
-            Integer replicaHash2 = replicaHashCodeMap.get(replica2.toString());
-            if (!replicaHash1.equals(replicaHash2)) {
-              return replicaHash1.compareTo(replicaHash2);
-            } else {
-              // In case of hash collision, return order according to the name.
-              return replica1.toString().compareTo(replica2.toString());
-            }
-          } else {
-            // Note we shall prioritize the replica with a higher state priority,
-            // the smaller priority number means higher priority.
-            return statePriority1 - statePriority2;
-          }
-        } else {
-          // If the baseline assignment contains the assignment, prioritize the replica.
-          return baselineAssignment.containsKey(resourceName1) ? -1 : 1;
-        }
-      } else {
-        // If the best possible assignment contains the assignment, prioritize the replica.
+        // If the best possible assignment contains only one replica's assignment,
+        // prioritize the replica.
         return bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
+      }
+
+      if (baselineAssignment.containsKey(resourceName1) != baselineAssignment
+          .containsKey(resourceName2)) {
+        // If the baseline assignment contains only one replica's assignment, prioritize the replica.
+        return baselineAssignment.containsKey(resourceName1) ? -1 : 1;
+      }
+
+      // 2. Sort according to the state priority. Or the greedy algorithm will unnecessarily shuffle
+      // the states between replicas.
+      int statePriority1 = replica1.getStatePriority();
+      int statePriority2 = replica2.getStatePriority();
+      if (statePriority1 != statePriority2) {
+        // Note we shall prioritize the replica with a higher state priority,
+        // the smaller priority number means higher priority.
+        return statePriority1 - statePriority2;
+      }
+
+      // 3. Sort according to the replica impact based on the weight.
+      // So the greedy algorithm will place the more impactful replicas first.
+      double replica1Impact =
+          computeReplicaImpact(replica1, clusterModel.getAssignableNodes().values());
+      double replica2Impact =
+          computeReplicaImpact(replica2, clusterModel.getAssignableNodes().values());
+      int compareResult = Double.compare(replica2Impact, replica1Impact);
+      if (compareResult != 0) {
+        return compareResult;
+      }
+
+      // 4. Sort according to the resource/partition name.
+      // If none of the above conditions is making a difference, try to randomize the replicas
+      // order.
+      // Otherwise, the same replicas might always be moved in each rebalancing. This is because
+      // their placement calculating will always happen at the critical moment while the cluster is
+      // almost close to the expected utilization.
+      //
+      // Note that to ensure the algorithm is deterministic with the same inputs, do not use
+      // Random functions here. Use hashcode based on the cluster topology information to get
+      // a controlled randomized order is good enough.
+      Integer replicaHash1 = replicaHashCodeMap.get(replica1.toString());
+      Integer replicaHash2 = replicaHashCodeMap.get(replica2.toString());
+      if (!replicaHash1.equals(replicaHash2)) {
+        return replicaHash1.compareTo(replicaHash2);
+      } else {
+        // In case of hash collision, return order according to the name.
+        return replica1.toString().compareTo(replica2.toString());
       }
     });
     return orderedAssignableReplicas;
+  }
+
+  /**
+   * Return the potential impact of assigning a replica to the cluster based on the remaining
+   * capacity of all the AssignableNodes.
+   * Impact = the average maximum utilization of all the AssignableNodes assuming the replica is
+   * assigned.
+   * @return A value scale 0 to 1. 0 means no impact. 1 means extreme impactful.
+   */
+  private double computeReplicaImpact(AssignableReplica replica,
+      Collection<AssignableNode> assignableNodes) {
+    return assignableNodes.stream().mapToDouble(
+        assignableNode -> assignableNode.getProjectedHighestUtilization(replica.getCapacity()))
+        .average().orElse(1);
   }
 
   /**

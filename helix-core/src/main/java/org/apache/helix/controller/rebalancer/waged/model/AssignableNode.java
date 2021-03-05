@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged.model;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -232,8 +231,12 @@ public class AssignableNode implements Comparable<AssignableNode> {
     float highestCapacityUtilization = 0;
     for (String capacityKey : _maxAllowedCapacity.keySet()) {
       float capacityValue = _maxAllowedCapacity.get(capacityKey);
-      float utilization = (capacityValue - _remainingCapacity.get(capacityKey) + newUsage
-          .getOrDefault(capacityKey, 0)) / capacityValue;
+      int newUsageValue = newUsage.getOrDefault(capacityKey, 0);
+      if (newUsageValue >= _remainingCapacity.get(capacityKey)) {
+        return 1;
+      }
+      float utilization =
+          (capacityValue - _remainingCapacity.get(capacityKey) + newUsageValue) / capacityValue;
       highestCapacityUtilization = Math.max(highestCapacityUtilization, utilization);
     }
     return highestCapacityUtilization;

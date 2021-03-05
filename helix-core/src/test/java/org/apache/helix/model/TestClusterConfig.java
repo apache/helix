@@ -125,6 +125,17 @@ public class TestClusterConfig {
   }
 
   @Test
+  public void testGetRebalancePreferenceMissingKey() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Map<String, String> preference = new HashMap<>();
+    preference.put(EVENNESS.name(), String.valueOf(5));
+    testConfig.getRecord()
+        .setMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preference);
+
+    Assert.assertEquals(testConfig.getGlobalRebalancePreference(), Collections.emptyMap());
+  }
+
+  @Test
   public void testSetRebalancePreference() {
     Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
     preference.put(EVENNESS, 5);

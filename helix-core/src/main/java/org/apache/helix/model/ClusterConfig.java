@@ -908,6 +908,12 @@ public class ClusterConfig extends HelixProperty {
           preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
         }
       }
+      // In case this map is set incorrectly, check for both attributes to ensure strong pairing
+      if (preference.containsKey(GlobalRebalancePreferenceKey.EVENNESS) != preference
+          .containsKey(GlobalRebalancePreferenceKey.LESS_MOVEMENT)) {
+        preference.remove(GlobalRebalancePreferenceKey.EVENNESS);
+        preference.remove(GlobalRebalancePreferenceKey.LESS_MOVEMENT);
+      }
       return preference;
     }
     // If configuration is not complete, return the default one.

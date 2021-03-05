@@ -21,16 +21,21 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.tuple.MutableTriple;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
 import org.apache.helix.controller.rebalancer.waged.model.AssignableNode;
@@ -39,8 +44,7 @@ import org.apache.helix.controller.rebalancer.waged.model.ClusterContext;
 import org.apache.helix.controller.rebalancer.waged.model.ClusterModel;
 import org.apache.helix.controller.rebalancer.waged.model.OptimalAssignment;
 import org.apache.helix.model.ResourceAssignment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 /**
  * The algorithm is based on a given set of constraints
@@ -52,7 +56,6 @@ import org.slf4j.LoggerFactory;
  * "hard constraints"
  */
 class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
-  private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
 
@@ -65,27 +68,90 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   @Override
   public OptimalAssignment calculate(ClusterModel clusterModel) throws HelixRebalanceException {
     OptimalAssignment optimalAssignment = new OptimalAssignment();
+
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
     Set<String> busyInstances =
         getBusyInstances(clusterModel.getContext().getBestPossibleAssignment().values());
-    // Sort the replicas so the input is stable for the greedy algorithm.
-    // For the other algorithm implementation, this sorting could be unnecessary.
-    for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
+    List<AssignableReplica> allReplicas = clusterModel.getAssignableReplicaMap().values().stream()
+        .flatMap(replicas -> replicas.stream()).collect(Collectors.toList());
+
+    // Prioritize the replicas so the input is stable and optimized for the greedy algorithm.
+    // For the other algorithm implementation, this additional sorting might be unnecessary.
+    PriorityQueue<Triple<AssignableReplica, AssignableNode, Float>> replicaPriorityQueue =
+        new PriorityQueue<>(new AssignmentReplicaComparator(clusterModel, allReplicas));
+    for (AssignableReplica replica : allReplicas) {
+      // The impact of a replica is defined by the smallest "projected highest utilization" among
+      // all the instances. This indicate the minimum possible impact after this replica is
+      // assigned to the cluster.
+      float minHighestUtilization = Float.MAX_VALUE;
+      AssignableNode minNode = null;
+      for (AssignableNode node : nodes) {
+        float utilization = node.getProjectedHighestUtilization(replica.getCapacity());
+        if (utilization < minHighestUtilization) {
+          minHighestUtilization = utilization;
+          minNode = node;
+        }
+      }
+      if (minNode == null) {
+        throw new HelixRebalanceException("Failed to calculate the replicas impact to the cluster.",
+            HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+      }
+      replicaPriorityQueue.add(new MutableTriple<>(replica, minNode, minHighestUtilization));
+    }
+
+    while (!replicaPriorityQueue.isEmpty()) {
+      AssignableReplica replica = replicaPriorityQueue.poll().getLeft();
       Optional<AssignableNode> maybeBestNode =
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
-      if (optimalAssignment.hasAnyFailure()) {
-        String errorMessage = String
-            .format("Unable to find any available candidate node for partition %s; Fail reasons: %s",
+      if (!maybeBestNode.isPresent() || optimalAssignment.hasAnyFailure()) {
+        String errorMessage = String.format(
+            "Unable to find any available candidate node for partition %s; Fail reasons: %s",
             replica.getPartitionName(), optimalAssignment.getFailures());
         throw new HelixRebalanceException(errorMessage,
             HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
-      maybeBestNode.ifPresent(node -> clusterModel
+      AssignableNode bestNode = maybeBestNode.get();
+      // Assign the replica and update the cluster model.
+      clusterModel
           .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
-              node.getInstanceName()));
+              bestNode.getInstanceName());
+      // Update the runtime replica impact tracking map. Also update the replica priority queue if
+      // necessary.
+      List<Triple<AssignableReplica, AssignableNode, Float>> adjustedReplicas = new ArrayList<>();
+      Iterator<Triple<AssignableReplica, AssignableNode, Float>> iter =
+          replicaPriorityQueue.iterator();
+      while (iter.hasNext()) {
+        MutableTriple<AssignableReplica, AssignableNode, Float> curReplicaTriple =
+            (MutableTriple<AssignableReplica, AssignableNode, Float>) iter.next();
+        if (curReplicaTriple.getMiddle().equals(bestNode)) {
+          float newImpact =
+              bestNode.getProjectedHighestUtilization(curReplicaTriple.getLeft().getCapacity());
+          if (newImpact > curReplicaTriple.getRight()) {
+            // Adjust the order of the curReplica in the Queue
+            iter.remove();
+
+            float minHighestUtilization = Float.MAX_VALUE;
+            AssignableNode minNode = null;
+            for (AssignableNode node : nodes) {
+              float utilization = node.getProjectedHighestUtilization(replica.getCapacity());
+              if (utilization < minHighestUtilization) {
+                minHighestUtilization = utilization;
+                minNode = node;
+              }
+            }
+
+            curReplicaTriple.setMiddle(minNode);
+            curReplicaTriple.setRight(minHighestUtilization);
+
+            adjustedReplicas.add(curReplicaTriple);
+          }
+        }
+      }
+      replicaPriorityQueue.addAll(adjustedReplicas);
     }
+
     optimalAssignment.updateAssignments(clusterModel);
     return optimalAssignment;
   }
@@ -126,7 +192,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
             int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
             return idleScore1 != idleScore2 ? (idleScore1 - idleScore2)
-                : - instanceName1.compareTo(instanceName2);
+                : -instanceName1.compareTo(instanceName2);
           } else {
             return scoreCompareResult;
           }
@@ -152,38 +218,53 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  private List<AssignableReplica> getOrderedAssignableReplica(ClusterModel clusterModel) {
-    Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
-    List<AssignableReplica> orderedAssignableReplicas =
-        replicasByResource.values().stream().flatMap(replicas -> replicas.stream())
-            .collect(Collectors.toList());
+  /**
+   * @param assignments A collection of resource replicas assignment.
+   * @return A set of instance names that have at least one replica assigned in the input assignments.
+   */
+  private Set<String> getBusyInstances(Collection<ResourceAssignment> assignments) {
+    return assignments.stream().flatMap(
+        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().stream()
+            .flatMap(instanceStateMap -> instanceStateMap.keySet().stream())
+            .collect(Collectors.toSet()).stream()).collect(Collectors.toSet());
+  }
 
-    Map<String, ResourceAssignment> bestPossibleAssignment =
-        clusterModel.getContext().getBestPossibleAssignment();
-    Map<String, ResourceAssignment> baselineAssignment =
-        clusterModel.getContext().getBaselineAssignment();
+  private class AssignmentReplicaComparator implements Comparator<Triple<AssignableReplica, AssignableNode, Float>> {
+    private final Map<String, Integer> _replicaHashCodeMap;
+    private final Map<String, ResourceAssignment> _bestPossibleAssignment;
+    private final Map<String, ResourceAssignment> _baselineAssignment;
 
-    Map<String, Integer> replicaHashCodeMap = orderedAssignableReplicas.parallelStream().collect(
-        Collectors.toMap(AssignableReplica::toString,
-            replica -> Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet()),
-            (hash1, hash2) -> hash2));
+    AssignmentReplicaComparator(ClusterModel clusterModel, List<AssignableReplica> allReplicas) {
+      _bestPossibleAssignment = clusterModel.getContext().getBestPossibleAssignment();
+      _baselineAssignment = clusterModel.getContext().getBaselineAssignment();
+      // Pre-process information of all the replicas to avoid repeated calculation for comparing.
+      _replicaHashCodeMap = allReplicas.parallelStream().collect(Collectors
+          .toMap(AssignableReplica::toString, replica -> Objects
+                  .hash(replica.toString(), clusterModel.getAssignableNodes().keySet()),
+              (hash1, hash2) -> hash2));
+    }
 
-    orderedAssignableReplicas.sort((replica1, replica2) -> {
+    @Override
+    public int compare(Triple<AssignableReplica, AssignableNode, Float> replica1Triple,
+        Triple<AssignableReplica, AssignableNode, Float> replica2Triple) {
+      AssignableReplica replica1 = replica1Triple.getLeft();
+      AssignableReplica replica2 = replica2Triple.getLeft();
+
       String resourceName1 = replica1.getResourceName();
       String resourceName2 = replica2.getResourceName();
 
       // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
-      if (bestPossibleAssignment.containsKey(resourceName1) != bestPossibleAssignment
+      if (_bestPossibleAssignment.containsKey(resourceName1) != _bestPossibleAssignment
           .containsKey(resourceName2)) {
         // If the best possible assignment contains only one replica's assignment,
         // prioritize the replica.
-        return bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
+        return _bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
       }
 
-      if (baselineAssignment.containsKey(resourceName1) != baselineAssignment
+      if (_baselineAssignment.containsKey(resourceName1) != _baselineAssignment
           .containsKey(resourceName2)) {
         // If the baseline assignment contains only one replica's assignment, prioritize the replica.
-        return baselineAssignment.containsKey(resourceName1) ? -1 : 1;
+        return _baselineAssignment.containsKey(resourceName1) ? -1 : 1;
       }
 
       // 2. Sort according to the state priority. Or the greedy algorithm will unnecessarily shuffle
@@ -198,11 +279,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
       // 3. Sort according to the replica impact based on the weight.
       // So the greedy algorithm will place the more impactful replicas first.
-      double replica1Impact =
-          computeReplicaImpact(replica1, clusterModel.getAssignableNodes().values());
-      double replica2Impact =
-          computeReplicaImpact(replica2, clusterModel.getAssignableNodes().values());
-      int compareResult = Double.compare(replica2Impact, replica1Impact);
+      int compareResult = Float.compare(replica2Triple.getRight(), replica1Triple.getRight());
       if (compareResult != 0) {
         return compareResult;
       }
@@ -217,40 +294,14 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // Note that to ensure the algorithm is deterministic with the same inputs, do not use
       // Random functions here. Use hashcode based on the cluster topology information to get
       // a controlled randomized order is good enough.
-      Integer replicaHash1 = replicaHashCodeMap.get(replica1.toString());
-      Integer replicaHash2 = replicaHashCodeMap.get(replica2.toString());
+      Integer replicaHash1 = _replicaHashCodeMap.get(replica1.toString());
+      Integer replicaHash2 = _replicaHashCodeMap.get(replica2.toString());
       if (!replicaHash1.equals(replicaHash2)) {
         return replicaHash1.compareTo(replicaHash2);
       } else {
         // In case of hash collision, return order according to the name.
         return replica1.toString().compareTo(replica2.toString());
       }
-    });
-    return orderedAssignableReplicas;
-  }
-
-  /**
-   * Return the potential impact of assigning a replica to the cluster based on the remaining
-   * capacity of all the AssignableNodes.
-   * Impact = the average maximum utilization of all the AssignableNodes assuming the replica is
-   * assigned.
-   * @return A value scale 0 to 1. 0 means no impact. 1 means extreme impactful.
-   */
-  private double computeReplicaImpact(AssignableReplica replica,
-      Collection<AssignableNode> assignableNodes) {
-    return assignableNodes.stream().mapToDouble(
-        assignableNode -> assignableNode.getProjectedHighestUtilization(replica.getCapacity()))
-        .average().orElse(1);
-  }
-
-  /**
-   * @param assignments A collection of resource replicas assignment.
-   * @return A set of instance names that have at least one replica assigned in the input assignments.
-   */
-  private Set<String> getBusyInstances(Collection<ResourceAssignment> assignments) {
-    return assignments.stream().flatMap(
-        resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().stream()
-            .flatMap(instanceStateMap -> instanceStateMap.keySet().stream())
-            .collect(Collectors.toSet()).stream()).collect(Collectors.toSet());
+    }
   }
 }

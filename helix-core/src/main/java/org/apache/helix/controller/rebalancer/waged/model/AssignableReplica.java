@@ -65,7 +65,7 @@ public class AssignableReplica implements Comparable<AssignableReplica> {
     _capacityUsage = fetchCapacityUsage(partitionName, resourceConfig, clusterConfig);
     _resourceInstanceGroupTag = resourceConfig.getInstanceGroupTag();
     _resourceMaxPartitionsPerInstance = resourceConfig.getMaxPartitionsPerInstance();
-    _replicaKey = generateReplicaKey(_resourceName, _partitionName,_replicaState);
+    _replicaKey = generateReplicaKey(_resourceName, _partitionName, _replicaState);
   }
 
   public Map<String, Integer> getCapacity() {

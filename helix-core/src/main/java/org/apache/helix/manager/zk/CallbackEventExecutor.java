@@ -60,7 +60,7 @@ public class CallbackEventExecutor {
     private final NotificationContext _event;
 
     public CallbackProcessor(CallbackHandler handler, NotificationContext event) {
-      _processorName = _manager.getClusterName() + "CallbackProcessor@" + Integer
+      _processorName = _manager.getClusterName() + "-CallbackProcessor@" + Integer
           .toHexString(handler.hashCode());
       _handler = handler;
       _event = event;
@@ -104,7 +104,8 @@ public class CallbackEventExecutor {
           _futureCallBackProcessEvent =
               _threadPoolExecutor.submit(new CallbackProcessor(handler, event));
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger
+              .error("Error when submitting pending HandleCallBackEvent to manager thread pool", e);
         }
       }
     }

@@ -75,6 +75,7 @@ public class CallbackEventThreadPoolFactory {
       result = new ThreadPoolExecutor(CALLBACK_EVENT_THREAD_POOL_SIZE,
           CALLBACK_EVENT_THREAD_POOL_SIZE, CALLBACK_EVENT_THREAD_POOL_TTL_MINUTE, TimeUnit.MINUTES,
           new LinkedBlockingQueue<>(), namedThreadFactory);
+      result.allowCoreThreadTimeOut(true);
       _managerToCallBackThreadPoolMap.put(hash, result);
       _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
       _lock.writeLock().unlock();

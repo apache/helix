@@ -74,13 +74,9 @@ public class ConstraintBasedAlgorithmFactory {
         .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT,
             ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE
                 .get(ClusterConfig.GlobalRebalancePreferenceKey.LESS_MOVEMENT));
-
     boolean forceBaselineConverge = preferences
         .getOrDefault(ClusterConfig.GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0)
         > 0;
-    if (forceBaselineConverge) {
-      MODEL.put(BaselineInfluenceConstraint.class.getSimpleName(), FORCE_BASELINE_CONVERGE_WEIGHT);
-    }
 
     List<SoftConstraint> softConstraints = ImmutableList
         .of(new PartitionMovementConstraint(), new BaselineInfluenceConstraint(),
@@ -88,14 +84,18 @@ public class ConstraintBasedAlgorithmFactory {
             new TopStateMaxCapacityUsageInstanceConstraint(),
             new MaxCapacityUsageInstanceConstraint());
     Map<SoftConstraint, Float> softConstraintsWithWeight = Maps.toMap(softConstraints, key -> {
-      String name = key.getClass().getSimpleName();
-      float weight = MODEL.get(name);
+      if (key instanceof BaselineInfluenceConstraint && forceBaselineConverge) {
+        return FORCE_BASELINE_CONVERGE_WEIGHT;
+      }
+
+      float weight = MODEL.get(key.getClass().getSimpleName());
       // Note that BaselineInfluenceConstraint is a constraint that promotes movement for evenness,
       // and is therefore controlled by the evenness preference. Only PartitionMovementConstraint
       // contributes to less movement.
-      return name.equals(PartitionMovementConstraint.class.getSimpleName()) ?
-          movementPreference * weight : evennessPreference * weight;
+      return key instanceof PartitionMovementConstraint ? movementPreference * weight
+          : evennessPreference * weight;
     });
+
 
     return new ConstraintBasedAlgorithm(hardConstraints, softConstraintsWithWeight);
   }

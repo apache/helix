@@ -638,21 +638,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    */
   public void init() {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
-
-    if (_batchModeEnabled) {
-      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
-      if (callbackExecutor != null) {
-        callbackExecutor.reset();
-      } else {
-        callbackExecutor = new CallbackEventExecutor(_manager);
-        if (!_batchCallbackExecutorRef.compareAndSet(null, callbackExecutor)) {
-          callbackExecutor.unregisterFromFactory();
+    try {
+      if (_batchModeEnabled) {
+        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
+        if (callbackExecutor != null) {
+          callbackExecutor.reset();
+        } else {
+          callbackExecutor = new CallbackEventExecutor(_manager);
+          if (!_batchCallbackExecutorRef.compareAndSet(null, callbackExecutor)) {
+            callbackExecutor.unregisterFromFactory();
+          }
         }
       }
-    }
-
-    updateNotificationTime(System.nanoTime());
-    try {
+      updateNotificationTime(System.nanoTime());
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
       changeContext.setChangeType(_changeType);

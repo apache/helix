@@ -29,17 +29,19 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 // returns a thread pool object given a HelixManager identifier
 public class CallbackEventThreadPoolFactory {
+  private static Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
   private static final int CALLBACK_EVENT_THREAD_POOL_SIZE = 10;
   private static final int CALLBACK_EVENT_THREAD_POOL_TTL_MINUTE = 3;
-  static private final ReadWriteLock _lock = new ReentrantReadWriteLock();
+  static private final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock();
   static private Map<Integer, ThreadPoolExecutor> _managerToCallBackThreadPoolMap = new HashMap();
   static private Map<Integer, AtomicInteger> _callBackEventProcessorCountPerThreadPool =
       new HashMap();
@@ -60,7 +62,7 @@ public class CallbackEventThreadPoolFactory {
   }
 
   private static ThreadPoolExecutor getOrCreateThreadPoolHelper(int hash) {
-    ThreadPoolExecutor result;
+    ThreadPoolExecutor result = null;
     _lock.writeLock().lock();
     // first check if the key is already in the map
     if (_managerToCallBackThreadPoolMap.containsKey(hash)) {
@@ -70,16 +72,25 @@ public class CallbackEventThreadPoolFactory {
       result = _managerToCallBackThreadPoolMap.get(hash);
       _lock.readLock().unlock();
     } else {
-      ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-          .setNameFormat(String.format("CallbackHandlerExecutorService - %s ", hash)).build();
-      result = new ThreadPoolExecutor(CALLBACK_EVENT_THREAD_POOL_SIZE,
-          CALLBACK_EVENT_THREAD_POOL_SIZE, CALLBACK_EVENT_THREAD_POOL_TTL_MINUTE, TimeUnit.MINUTES,
-          new LinkedBlockingQueue<>(), namedThreadFactory);
-      result.allowCoreThreadTimeOut(true);
-      _managerToCallBackThreadPoolMap.put(hash, result);
-      _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
-      _lock.writeLock().unlock();
+      try {
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+            .setNameFormat(String.format("CallbackHandlerExecutorService - %s ", hash)).build();
+        result =
+            new ThreadPoolExecutor(CALLBACK_EVENT_THREAD_POOL_SIZE, CALLBACK_EVENT_THREAD_POOL_SIZE,
+                CALLBACK_EVENT_THREAD_POOL_TTL_MINUTE, TimeUnit.MINUTES,
+                new LinkedBlockingQueue<>(), namedThreadFactory);
+        result.allowCoreThreadTimeOut(true);
+        _managerToCallBackThreadPoolMap.put(hash, result);
+        _callBackEventProcessorCountPerThreadPool.put(hash, new AtomicInteger(1));
+      } catch (Exception e) {
+        logger.error(String
+            .format("Error when creating new ThreadPoolExecutor for %s.", hash), e);
+        throw e;
+      } finally {
+        _lock.writeLock().unlock();
+      }
     }
+
     return result;
   }
 

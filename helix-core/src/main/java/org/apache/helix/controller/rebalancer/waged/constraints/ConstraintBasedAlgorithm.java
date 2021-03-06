@@ -34,7 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.MutableTriple;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.rebalancer.waged.RebalanceAlgorithm;
@@ -79,25 +81,11 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     // For the other algorithm implementation, this additional sorting might be unnecessary.
     PriorityQueue<Triple<AssignableReplica, AssignableNode, Float>> replicaPriorityQueue =
         new PriorityQueue<>(new AssignmentReplicaComparator(clusterModel, allReplicas));
-    for (AssignableReplica replica : allReplicas) {
-      // The impact of a replica is defined by the smallest "projected highest utilization" among
-      // all the instances. This indicate the minimum possible impact after this replica is
-      // assigned to the cluster.
-      float minHighestUtilization = Float.MAX_VALUE;
-      AssignableNode minNode = null;
-      for (AssignableNode node : nodes) {
-        float utilization = node.getProjectedHighestUtilization(replica.getCapacity());
-        if (utilization < minHighestUtilization) {
-          minHighestUtilization = utilization;
-          minNode = node;
-        }
-      }
-      if (minNode == null) {
-        throw new HelixRebalanceException("Failed to calculate the replicas impact to the cluster.",
-            HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-      }
-      replicaPriorityQueue.add(new MutableTriple<>(replica, minNode, minHighestUtilization));
-    }
+    // A tracking map to support updating the replica-instance impact queue after each assignment.
+    Map<String, PriorityQueue<Pair<AssignableNode, Float>>> replicaImpactTrackingMap =
+        new HashMap<>();
+    initializeReplicaPriorityQueue(nodes, allReplicas, replicaPriorityQueue,
+        replicaImpactTrackingMap);
 
     while (!replicaPriorityQueue.isEmpty()) {
       AssignableReplica replica = replicaPriorityQueue.poll().getLeft();
@@ -117,41 +105,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       clusterModel
           .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
               bestNode.getInstanceName());
-      // Update the runtime replica impact tracking map. Also update the replica priority queue if
-      // necessary.
-      List<Triple<AssignableReplica, AssignableNode, Float>> adjustedReplicas = new ArrayList<>();
-      Iterator<Triple<AssignableReplica, AssignableNode, Float>> iter =
-          replicaPriorityQueue.iterator();
-      while (iter.hasNext()) {
-        MutableTriple<AssignableReplica, AssignableNode, Float> curReplicaTriple =
-            (MutableTriple<AssignableReplica, AssignableNode, Float>) iter.next();
-        if (curReplicaTriple.getMiddle().equals(bestNode)) {
-          float newImpact =
-              bestNode.getProjectedHighestUtilization(curReplicaTriple.getLeft().getCapacity());
-          if (newImpact > curReplicaTriple.getRight()) {
-            // Adjust the order of the curReplica in the Queue
-            iter.remove();
-
-            float minHighestUtilization = Float.MAX_VALUE;
-            AssignableNode minNode = null;
-            for (AssignableNode node : nodes) {
-              float utilization = node.getProjectedHighestUtilization(replica.getCapacity());
-              if (utilization < minHighestUtilization) {
-                minHighestUtilization = utilization;
-                minNode = node;
-              }
-            }
-
-            curReplicaTriple.setMiddle(minNode);
-            curReplicaTriple.setRight(minHighestUtilization);
-
-            adjustedReplicas.add(curReplicaTriple);
-          }
-        }
-      }
-      replicaPriorityQueue.addAll(adjustedReplicas);
+      UpdateReplicaPriorityQueue(replicaPriorityQueue, replicaImpactTrackingMap, bestNode);
     }
-
     optimalAssignment.updateAssignments(clusterModel);
     return optimalAssignment;
   }
@@ -227,6 +182,105 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         resourceAssignment -> resourceAssignment.getRecord().getMapFields().values().stream()
             .flatMap(instanceStateMap -> instanceStateMap.keySet().stream())
             .collect(Collectors.toSet()).stream()).collect(Collectors.toSet());
+  }
+
+  /**
+   * Initialize the replica priority queue and the tracking map.
+   */
+  private void initializeReplicaPriorityQueue(List<AssignableNode> allNodes,
+      List<AssignableReplica> allReplicas,
+      PriorityQueue<Triple<AssignableReplica, AssignableNode, Float>> replicaPriorityQueue,
+      Map<String, PriorityQueue<Pair<AssignableNode, Float>>> replicaImpactTrackingMap) {
+    for (AssignableReplica replica : allReplicas) {
+      Pair<AssignableNode, Float> criticalNodeImpact;
+      if (replicaImpactTrackingMap.containsKey(replica.toString())) {
+        // The impact has already been calculated for the other replica of the same partition with a
+        // same state. Just return the calculated result.
+        // WARN: the assumption here is that replicas of the same partition with same state are
+        // always weighted the same. Otherwise, the tracking map will return inaccurate result.
+        criticalNodeImpact = replicaImpactTrackingMap.get(replica.toString()).peek();
+      } else {
+        // Node priority queue is sorted so the smallest predicted used node is the first element.
+        PriorityQueue<Pair<AssignableNode, Float>> nodePriorityQueue =
+            new PriorityQueue<>(Comparator.comparing(Pair::getRight));
+        // The impact of a replica is defined by the smallest "projected highest utilization" among
+        // all the instances. This indicate the minimum possible impact after this replica is
+        // assigned to the cluster.
+        for (AssignableNode node : allNodes) {
+          float utilization = node.getProjectedHighestUtilization(replica.getCapacity());
+          nodePriorityQueue.add(new MutablePair<>(node, utilization));
+        }
+        replicaImpactTrackingMap.put(replica.toString(), nodePriorityQueue);
+        criticalNodeImpact = nodePriorityQueue.peek();
+      }
+      replicaPriorityQueue.add(new MutableTriple<>(replica, criticalNodeImpact.getLeft(),
+          criticalNodeImpact.getRight()));
+    }
+  }
+
+  /**
+   * Update the runtime replica impact tracking map. Also update the replica priority queue if
+   * necessary.
+   */
+  private void UpdateReplicaPriorityQueue(
+      PriorityQueue<Triple<AssignableReplica, AssignableNode, Float>> replicaPriorityQueue,
+      Map<String, PriorityQueue<Pair<AssignableNode, Float>>> replicaImpactTrackingMap,
+      AssignableNode updatedNode) {
+    List<Triple<AssignableReplica, AssignableNode, Float>> adjustedReplicaQueueElements =
+        new ArrayList<>();
+    Iterator<Triple<AssignableReplica, AssignableNode, Float>> iter =
+        replicaPriorityQueue.iterator();
+    while (iter.hasNext()) {
+      MutableTriple<AssignableReplica, AssignableNode, Float> curReplicaQueueElemTriple =
+          (MutableTriple<AssignableReplica, AssignableNode, Float>) iter.next();
+      if (!curReplicaQueueElemTriple.getMiddle().equals(updatedNode)) {
+        // If the current critical impact node does not have new assignment, then it is still
+        // valid since the new assignment only increase the utilization.
+        continue;
+      }
+      // else, if the current critical impact node has a new assignment, then we need to update
+      // the impact for this replica.
+      AssignableReplica curReplica = curReplicaQueueElemTriple.getLeft();
+      float newImpact = updatedNode.getProjectedHighestUtilization(curReplica.getCapacity());
+      if (Float.compare(newImpact, curReplicaQueueElemTriple.getRight()) == 0) {
+        // If the new assignment does not really increase the utilization, then there is no need
+        // to update anything.
+        continue;
+      }
+      // Otherwise, adjust the order of the current replica in the Queue
+      // 1. Remove the top item from the queue.
+      iter.remove();
+      // 2. Update and find the new critical impact node.
+      PriorityQueue<Pair<AssignableNode, Float>> nodeImpactRecords =
+          replicaImpactTrackingMap.get(curReplica.toString());
+      // Since we just need to find an item smaller than the newImpact and is still valid.
+      // Otherwise, the newImpact corresponding node will be update and it can be the new critical
+      // impact.
+      // Note that we have delayed the update of tracking map elements. So some items might become
+      // invalid since the real utilization has been already increased. It can be easily fixed by
+      // recalculating the projected highest utilization.
+      while (nodeImpactRecords.peek().getRight() <= newImpact) {
+        Pair<AssignableNode, Float> topNodeImpact = nodeImpactRecords.peek();
+        AssignableNode topNode = topNodeImpact.getLeft();
+        float recalculatedImpact = topNode
+            .getProjectedHighestUtilization(curReplica.getCapacity());
+        if (recalculatedImpact != topNodeImpact.getRight()) {
+          MutablePair adjustedNodeImpact = (MutablePair) nodeImpactRecords.poll();
+          adjustedNodeImpact.setRight(recalculatedImpact);
+          nodeImpactRecords.offer(adjustedNodeImpact);
+        } else {
+          // The current top record is still the critical impact. So no need to keep updating.
+          // We will just use it to update the replica priority queue.
+          break;
+        }
+      }
+      // Update the replica impact triple with the newly calculated node impact information.
+      Pair<AssignableNode, Float> topNodeImpact = nodeImpactRecords.peek();
+      curReplicaQueueElemTriple.setMiddle(topNodeImpact.getLeft());
+      curReplicaQueueElemTriple.setRight(topNodeImpact.getRight());
+      adjustedReplicaQueueElements.add(curReplicaQueueElemTriple);
+    }
+    replicaPriorityQueue.addAll(adjustedReplicaQueueElements);
   }
 
   private class AssignmentReplicaComparator implements Comparator<Triple<AssignableReplica, AssignableNode, Float>> {

@@ -62,7 +62,6 @@ import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
-import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedState;
@@ -135,32 +134,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private boolean _preFetchEnabled = true;
   private HelixCallbackMonitor _monitor;
 
-  // TODO: make this be per _manager or per _listener instaed of per callbackHandler -- Lei
-  private AtomicReference<CallbackProcessor> _batchCallbackProcessorRef = new AtomicReference<>();
+  private AtomicReference<CallbackEventExecutor> _batchCallbackExecutorRef = new AtomicReference<>();
   private boolean _watchChild = true; // Whether we should subscribe to the child znode's data
   // change.
 
   // indicated whether this CallbackHandler is ready to serve event callback from ZkClient.
   private boolean _ready = false;
-
-  class CallbackProcessor extends DedupEventProcessor<NotificationContext.Type, NotificationContext> {
-    private CallbackHandler _handler;
-
-    public CallbackProcessor(CallbackHandler handler) {
-      super(_manager.getClusterName(),
-          "CallbackProcessor@" + Integer.toHexString(handler.hashCode()));
-      _handler = handler;
-    }
-
-    @Override
-    protected void handleEvent(NotificationContext event) {
-      try {
-        _handler.invoke(event);
-      } catch (Exception e) {
-        logger.warn("Exception in callback processing thread. Skipping callback", e);
-      }
-    }
-  }
 
   /**
    * maintain the expected notification types
@@ -325,9 +304,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.info("CallbackHandler {} is not ready, ignore change callback from path: {}, for "
             + "listener: {}", _uid, _path, _listener);
       } else {
-        CallbackProcessor callbackProcessor = _batchCallbackProcessorRef.get();
+        // submit
+        CallbackEventExecutor callbackProcessor = _batchCallbackExecutorRef.get();
         if (callbackProcessor != null) {
-          callbackProcessor.queueEvent(changeContext.getType(), changeContext);
+          callbackProcessor.submitEventToExecutor(changeContext.getType(), changeContext, this);
         } else {
           throw new HelixException(
               "Failed to process callback in batch mode. Batch Callback Processor does not exist.");
@@ -658,22 +638,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
    */
   public void init() {
     logger.info("initializing CallbackHandler: {}, content: {} ", _uid, getContent());
-
-    if (_batchModeEnabled) {
-      CallbackProcessor callbackProcessor = _batchCallbackProcessorRef.get();
-      if (callbackProcessor != null) {
-        callbackProcessor.resetEventQueue();
-      } else {
-        callbackProcessor = new CallbackProcessor(this);
-        callbackProcessor.start();
-        if (!_batchCallbackProcessorRef.compareAndSet(null, callbackProcessor)) {
-          callbackProcessor.shutdown();
+    try {
+      if (_batchModeEnabled) {
+        CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
+        if (callbackExecutor != null) {
+          callbackExecutor.reset();
+        } else {
+          callbackExecutor = new CallbackEventExecutor(_manager);
+          if (!_batchCallbackExecutorRef.compareAndSet(null, callbackExecutor)) {
+            callbackExecutor.unregisterFromFactory();
+          }
         }
       }
-    }
-
-    updateNotificationTime(System.nanoTime());
-    try {
+      updateNotificationTime(System.nanoTime());
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
       changeContext.setChangeType(_changeType);
@@ -781,20 +758,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   }
 
   void reset(boolean isShutdown) {
-    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid,
-        isShutdown);
+    logger.info("Resetting CallbackHandler: {}. Is resetting for shutdown: {}.", _uid, isShutdown);
     try {
       _ready = false;
-      CallbackProcessor callbackProcessor = _batchCallbackProcessorRef.get();
-        if (callbackProcessor != null) {
-          if (isShutdown) {
-            if (_batchCallbackProcessorRef.compareAndSet(callbackProcessor, null)) {
-              callbackProcessor.shutdown();
-            }
-          } else {
-            callbackProcessor.resetEventQueue();
+      CallbackEventExecutor callbackExecutor = _batchCallbackExecutorRef.get();
+      if (callbackExecutor != null) {
+        if (isShutdown) {
+          if (_batchCallbackExecutorRef.compareAndSet(callbackExecutor, null)) {
+            callbackExecutor.unregisterFromFactory();
           }
+        } else {
+          callbackExecutor.reset();
         }
+      }
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       changeContext.setChangeType(_changeType);

@@ -138,8 +138,10 @@ public class ClusterConfig extends HelixProperty {
   }
 
   public enum GlobalRebalancePreferenceKey {
+    // EVENNESS and LESS_MOVEMENT must be both specified
     EVENNESS,
-    LESS_MOVEMENT
+    LESS_MOVEMENT,
+    FORCE_BASELINE_CONVERGE,
   }
 
   private final static int DEFAULT_MAX_CONCURRENT_TASK_PER_INSTANCE = 40;
@@ -160,7 +162,8 @@ public class ClusterConfig extends HelixProperty {
       DEFAULT_GLOBAL_REBALANCE_PREFERENCE =
       ImmutableMap.<GlobalRebalancePreferenceKey, Integer>builder()
           .put(GlobalRebalancePreferenceKey.EVENNESS, 1)
-          .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1).build();
+          .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1)
+          .put(GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0).build();
   private final static int MAX_REBALANCE_PREFERENCE = 10;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
@@ -862,14 +865,22 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Set the global rebalancer's assignment preference.
-   * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weight.
-   *                   The ratio of the configured weights will determine the rebalancer's behavior.
+   * @param preference A map of the GlobalRebalancePreferenceKey and the corresponding weights.
+   *                   The weights will determine the rebalancer's behavior. Note that
+   *                   GlobalRebalancePreferenceKey.EVENNESS and
+   *                   GlobalRebalancePreferenceKey.LESS_MOVEMENT must be both specified or not
+   *                   specified, or an exception will be thrown.
    *                   If null, the preference item will be removed from the config.
    */
   public void setGlobalRebalancePreference(Map<GlobalRebalancePreferenceKey, Integer> preference) {
     if (preference == null) {
       _record.getMapFields().remove(ClusterConfigProperty.REBALANCE_PREFERENCE.name());
     } else {
+      if (preference.containsKey(GlobalRebalancePreferenceKey.EVENNESS) != preference
+          .containsKey(GlobalRebalancePreferenceKey.LESS_MOVEMENT)) {
+        throw new IllegalArgumentException("GlobalRebalancePreferenceKey.EVENNESS and "
+            + "GlobalRebalancePreferenceKey.LESS_MOVEMENT must be both specified or not specified");
+      }
       Map<String, String> preferenceMap = new HashMap<>();
       preference.entrySet().stream().forEach(entry -> {
         if (entry.getValue() > MAX_REBALANCE_PREFERENCE
@@ -893,11 +904,15 @@ public class ClusterConfig extends HelixProperty {
     if (preferenceStrMap != null && !preferenceStrMap.isEmpty()) {
       Map<GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
       for (GlobalRebalancePreferenceKey key : GlobalRebalancePreferenceKey.values()) {
-        if (!preferenceStrMap.containsKey(key.name())) {
-          // If any key is not configured with a value, return the default config.
-          return DEFAULT_GLOBAL_REBALANCE_PREFERENCE;
+        if (preferenceStrMap.containsKey(key.name())) {
+          preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
         }
-        preference.put(key, Integer.parseInt(preferenceStrMap.get(key.name())));
+      }
+      // In case this map is set incorrectly, check for both attributes to ensure strong pairing
+      if (preference.containsKey(GlobalRebalancePreferenceKey.EVENNESS) != preference
+          .containsKey(GlobalRebalancePreferenceKey.LESS_MOVEMENT)) {
+        preference.remove(GlobalRebalancePreferenceKey.EVENNESS);
+        preference.remove(GlobalRebalancePreferenceKey.LESS_MOVEMENT);
       }
       return preference;
     }

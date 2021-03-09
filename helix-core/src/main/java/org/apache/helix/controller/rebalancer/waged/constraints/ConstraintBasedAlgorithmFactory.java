@@ -49,7 +49,7 @@ public class ConstraintBasedAlgorithmFactory {
   // The weight for BaselineInfluenceConstraint used when we are forcing a baseline converge. This
   // number, multiplied by the max score returned by BaselineInfluenceConstraint, must be greater
   // than the total maximum sum of all other constraints, in order to overpower other constraints.
-  private static final float FORCE_BASELINE_CONVERGE_WEIGHT = Integer.MAX_VALUE;
+  private static final float FORCE_BASELINE_CONVERGE_WEIGHT = 100000f;
 
   static {
     Properties properties =

@@ -122,13 +122,17 @@ public class TestClusterConfig {
     ClusterConfig testConfig = new ClusterConfig("testId");
     Assert.assertEquals(testConfig.getGlobalRebalancePreference(),
         ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+  }
 
-    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
-    preference.put(EVENNESS, 5);
-    testConfig.setGlobalRebalancePreference(preference);
+  @Test
+  public void testGetRebalancePreferenceMissingKey() {
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    Map<String, String> preference = new HashMap<>();
+    preference.put(EVENNESS.name(), String.valueOf(5));
+    testConfig.getRecord()
+        .setMapField(ClusterConfig.ClusterConfigProperty.REBALANCE_PREFERENCE.name(), preference);
 
-    Assert.assertEquals(testConfig.getGlobalRebalancePreference(),
-        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+    Assert.assertEquals(testConfig.getGlobalRebalancePreference(), Collections.emptyMap());
   }
 
   @Test
@@ -166,6 +170,15 @@ public class TestClusterConfig {
     Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
     preference.put(EVENNESS, -1);
     preference.put(LESS_MOVEMENT, 3);
+
+    ClusterConfig testConfig = new ClusterConfig("testId");
+    testConfig.setGlobalRebalancePreference(preference);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testSetRebalancePreferenceMissingKey() {
+    Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preference = new HashMap<>();
+    preference.put(EVENNESS, 1);
 
     ClusterConfig testConfig = new ClusterConfig("testId");
     testConfig.setGlobalRebalancePreference(preference);

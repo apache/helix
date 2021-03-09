@@ -50,10 +50,6 @@ public class ZkAsyncCallbacks {
         if (_data != null && ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
           ((ZkAsyncCallMonitorContext) ctx).setBytes(_data.length);
         }
-      } else if(rc != Code.NONODE.intValue()) {
-        if (ctx instanceof ZkAsyncCallMonitorContext) {
-          ((ZkAsyncCallMonitorContext) ctx).recordFailure(path);
-        }
       }
       callback(rc, path, ctx);
     }
@@ -71,10 +67,6 @@ public class ZkAsyncCallbacks {
     public void processResult(int rc, String path, Object ctx, Stat stat) {
       if (rc == 0) {
         _stat = stat;
-      } else {
-        if (ctx instanceof ZkAsyncCallMonitorContext) {
-          ((ZkAsyncCallMonitorContext) ctx).recordFailure(path);
-        }
       }
       callback(rc, path, ctx);
     }
@@ -178,7 +170,17 @@ public class ZkAsyncCallbacks {
       }
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
-        ((ZkAsyncCallMonitorContext) ctx).recordAccess(path);
+        ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
+        monitor.recordAccess(path);
+        // Record failure if the return code isn't 0 (i.e., OK), and this object
+        // is one of the five callback types derived from DefaultCallback
+        if ((rc != 0) && (
+            (this instanceof CreateCallbackHandler || this instanceof DeleteCallbackHandler
+                || this instanceof SetDataCallbackHandler) || (
+                (this instanceof ExistsCallbackHandler || this instanceof GetDataCallbackHandler)
+                    && (rc != Code.NONODE.intValue())))) {
+          monitor.recordFailure(path);
+        }
       }
 
       _rc = rc;

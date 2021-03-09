@@ -19,13 +19,22 @@ package org.apache.helix.zookeeper.impl.client;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.ZkTestBase;
+import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallMonitorContext;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncRetryCallContext;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
+import org.apache.helix.zookeeper.zkclient.metric.ZkClientPathMonitor;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.testng.Assert;
@@ -47,20 +56,53 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
   // the test environment is slow. Extra wait time won't impact the test logic.
   private final long RETRY_OPS_WAIT_TIMEOUT_MS = 3 * MockAsyncZkClient.RETRY_INTERVAL_MS;
 
+  final String TEST_TAG = "test_tag";
+  final String TEST_KEY = "test_key";
+  final String TEST_INSTANCE = "test_instance";
+
   private org.apache.helix.zookeeper.zkclient.ZkClient _zkClient;
   private String _zkServerAddress;
 
+  private final MBeanServer _beanServer = ManagementFactory.getPlatformMBeanServer();
+  private ZkClientMonitor _monitor;
+  ObjectName _rootName;
+  int _readFailures;
+  int _writeFailures;
+
   @BeforeClass
-  public void beforeClass() {
+  public void beforeClass() throws JMException {
     _zkClient = _zkServerMap.values().iterator().next().getZkClient();
     _zkServerAddress = _zkClient.getServers();
     _zkClient.createPersistent(TEST_ROOT);
+
+    _monitor = new ZkClientMonitor(TEST_TAG, TEST_KEY, TEST_INSTANCE, false, null);
+    _monitor.register();
+
+    _rootName = buildPathMonitorObjectName(TEST_TAG, TEST_KEY, TEST_INSTANCE,
+        ZkClientPathMonitor.PredefinedPath.Root.name());
+    _readFailures = 0;
+    _writeFailures = 0;
   }
 
   @AfterClass
   public void afterClass() {
+    _monitor.unregister();
     _zkClient.deleteRecursively(TEST_ROOT);
     _zkClient.close();
+  }
+
+  private boolean needRetry(int rc) {
+    switch (KeeperException.Code.get(rc)) {
+      /** Connection to the server has been lost */
+      case CONNECTIONLOSS:
+        /** The session has been expired by the server */
+      case SESSIONEXPIRED:
+        /** Session moved to another server, so operation is ignored */
+      case SESSIONMOVED:
+        return true;
+      default:
+        return false;
+    }
   }
 
   private boolean waitAsyncOperation(ZkAsyncCallbacks.DefaultCallback callback, long timeout) {
@@ -76,8 +118,19 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
     }
   }
 
+  private ObjectName buildObjectName(String tag, String key, String instance)
+      throws MalformedObjectNameException {
+    return ZkClientMonitor.getObjectName(tag, key, instance);
+  }
+
+  private ObjectName buildPathMonitorObjectName(String tag, String key, String instance,
+      String path) throws MalformedObjectNameException {
+    return new ObjectName(String.format("%s,%s=%s", buildObjectName(tag, key, instance).toString(),
+        ZkClientPathMonitor.MONITOR_PATH, path));
+  }
+
   @Test
-  public void testAsyncRetryCategories() {
+  public void testAsyncRetryCategories() throws JMException {
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
       ZNRecord tmpRecord = new ZNRecord("tmpRecord");
@@ -111,7 +164,11 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
           Assert.assertTrue(waitAsyncOperation(createCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
           Assert.assertEquals(createCallback.getRc(), code.intValue());
           Assert.assertEquals(testZkClient.getAndResetRetryCount(), 0);
+          ++_writeFailures;
         }
+        Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+            ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+            _writeFailures);
         testZkClient.delete(NODE_PATH);
         Assert.assertFalse(testZkClient.exists(NODE_PATH));
       }
@@ -123,7 +180,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testAsyncRetryCategories")
-  public void testAsyncWriteRetry() {
+  public void testAsyncWriteRetry() throws JMException {
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
       ZNRecord tmpRecord = new ZNRecord("tmpRecord");
@@ -149,6 +206,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(((ZNRecord) testZkClient.readData(NODE_PATH)).getSimpleField("test"),
           "data");
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
 
       // 2. Test async delete
       ZkAsyncCallbacks.DeleteCallbackHandler deleteCallback =
@@ -167,6 +228,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.OK.intValue());
       Assert.assertFalse(testZkClient.exists(NODE_PATH));
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       testZkClient.close();
@@ -179,7 +244,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
    * the context should be cancelled correctly.
    */
   @Test(dependsOnMethods = "testAsyncWriteRetry")
-  public void testAsyncWriteRetryThrowException() {
+  public void testAsyncWriteRetryThrowException() throws JMException {
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
       ZNRecord tmpRecord = new ZNRecord("tmpRecord");
@@ -204,6 +269,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
           "Async callback should have been canceled");
       Assert.assertEquals(createCallback.getRc(), CONNECTIONLOSS.intValue());
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
 
       // Restore the state
       testZkClient.setZkExceptionInRetry(false);
@@ -226,6 +295,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
           "Async callback should have been canceled");
       Assert.assertEquals(setCallback.getRc(), CONNECTIONLOSS.intValue());
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       testZkClient.close();
@@ -234,7 +307,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testAsyncWriteRetryThrowException")
-  public void testAsyncReadRetry() {
+  public void testAsyncReadRetry() throws JMException {
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
       ZNRecord tmpRecord = new ZNRecord("tmpRecord");
@@ -258,6 +331,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.OK.intValue());
       Assert.assertTrue(existsCallback._stat != null);
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
 
       // 2. Test async get
       ZkAsyncCallbacks.GetDataCallbackHandler getCallback =
@@ -277,6 +354,10 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       ZNRecord record = testZkClient.deserialize(getCallback._data, NODE_PATH);
       Assert.assertEquals(record.getSimpleField("foo"), "bar");
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+      // Check failure metric, which should be unchanged because the operation succeeded
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       testZkClient.close();
@@ -285,7 +366,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
   }
 
   @Test(dependsOnMethods = "testAsyncReadRetry")
-  public void testAsyncRequestCleanup() {
+  public void testAsyncRequestCleanup() throws JMException {
     int cbCount = 10;
     MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
     try {
@@ -316,8 +397,84 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       for (ZkAsyncCallbacks.ExistsCallbackHandler cb : existsCallbacks) {
         Assert.assertTrue(waitAsyncOperation(cb, RETRY_OPS_WAIT_TIMEOUT_MS));
         Assert.assertEquals(cb.getRc(), CONNECTIONLOSS.intValue());
+        // The failure metric doesn't increase here, because an exception is thrown before the logic
+        // responsible for increasing the metric is reached.
+        Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+            ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+            _readFailures);
       }
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
+    } finally {
+      testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
+      testZkClient.close();
+      _zkClient.delete(NODE_PATH);
+    }
+  }
+
+  @Test(dependsOnMethods = "testAsyncRequestCleanup")
+  public void testAsyncFailureMetrics() throws JMException {
+    // The remaining failure paths that weren't covered in other test methods are tested here
+    MockAsyncZkClient testZkClient = new MockAsyncZkClient(_zkServerAddress);
+    try {
+      ZNRecord tmpRecord = new ZNRecord("tmpRecord");
+      tmpRecord.setSimpleField("foo", "bar");
+      testZkClient.createPersistent(NODE_PATH, tmpRecord);
+
+      // Test asyncGet failure
+      ZkAsyncCallbacks.GetDataCallbackHandler getCallback =
+          new ZkAsyncCallbacks.GetDataCallbackHandler();
+      Assert.assertEquals(getCallback.getRc(), UNKNOWN_RET_CODE);
+      // asyncGet should fail because the return code is APIERROR
+      testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
+      testZkClient.asyncGetData(NODE_PATH, getCallback);
+      getCallback.waitForSuccess();
+      Assert.assertEquals(getCallback.getRc(), KeeperException.Code.APIERROR.intValue());
+      ++_readFailures;
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
+
+      // Test asyncExists failure
+      ZkAsyncCallbacks.ExistsCallbackHandler existsCallback =
+          new ZkAsyncCallbacks.ExistsCallbackHandler();
+      Assert.assertEquals(existsCallback.getRc(), UNKNOWN_RET_CODE);
+      // asyncSet should fail because the return code is APIERROR
+      testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
+      testZkClient.asyncExists(NODE_PATH, existsCallback);
+      existsCallback.waitForSuccess();
+      Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.APIERROR.intValue());
+      ++_readFailures;
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
+
+      // Test asyncSet failure
+      ZkAsyncCallbacks.SetDataCallbackHandler setCallback =
+          new ZkAsyncCallbacks.SetDataCallbackHandler();
+      Assert.assertEquals(setCallback.getRc(), UNKNOWN_RET_CODE);
+      // asyncSet should fail because the return code is APIERROR
+      testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
+      testZkClient.asyncSetData(NODE_PATH, tmpRecord, -1, setCallback);
+      setCallback.waitForSuccess();
+      Assert.assertEquals(setCallback.getRc(), KeeperException.Code.APIERROR.intValue());
+      ++_writeFailures;
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
+
+      // Test asyncDelete failure
+      ZkAsyncCallbacks.DeleteCallbackHandler deleteCallback =
+          new ZkAsyncCallbacks.DeleteCallbackHandler();
+      Assert.assertEquals(deleteCallback.getRc(), UNKNOWN_RET_CODE);
+      // asyncSet should fail because the return code is APIERROR
+      testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
+      testZkClient.asyncDelete(NODE_PATH, deleteCallback);
+      deleteCallback.waitForSuccess();
+      Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.APIERROR.intValue());
+      ++_writeFailures;
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       testZkClient.close();
@@ -365,7 +522,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       if (_asyncCallRetCode == KeeperException.Code.OK.intValue()) {
         super.asyncCreate(path, datat, mode, cb);
         return;
-      } else {
+      } else if (needRetry(_asyncCallRetCode)) {
         cb.processResult(_asyncCallRetCode, path,
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
@@ -374,6 +531,9 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
                 asyncCreate(path, datat, mode, cb);
               }
             }, null);
+      } else {
+        cb.processResult(_asyncCallRetCode, path,
+            new ZkAsyncCallMonitorContext(_monitor, 0, 0, false), null);
       }
     }
 
@@ -383,7 +543,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       if (_asyncCallRetCode == KeeperException.Code.OK.intValue()) {
         super.asyncSetData(path, datat, version, cb);
         return;
-      } else {
+      } else if (needRetry(_asyncCallRetCode)) {
         cb.processResult(_asyncCallRetCode, path,
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
@@ -392,6 +552,9 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
                 asyncSetData(path, datat, version, cb);
               }
             }, null);
+      } else {
+        cb.processResult(_asyncCallRetCode, path,
+            new ZkAsyncCallMonitorContext(_monitor, 0, 0, false), null);
       }
     }
 
@@ -400,7 +563,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       if (_asyncCallRetCode == KeeperException.Code.OK.intValue()) {
         super.asyncGetData(path, cb);
         return;
-      } else {
+      } else if (needRetry(_asyncCallRetCode)) {
         cb.processResult(_asyncCallRetCode, path,
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, true) {
               @Override
@@ -409,6 +572,9 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
                 asyncGetData(path, cb);
               }
             }, null, null);
+      } else {
+        cb.processResult(_asyncCallRetCode, path,
+            new ZkAsyncCallMonitorContext(_monitor, 0, 0, true), null, null);
       }
     }
 
@@ -417,7 +583,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       if (_asyncCallRetCode == KeeperException.Code.OK.intValue()) {
         super.asyncExists(path, cb);
         return;
-      } else {
+      } else if (needRetry(_asyncCallRetCode)) {
         cb.processResult(_asyncCallRetCode, path,
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, true) {
               @Override
@@ -426,6 +592,9 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
                 asyncExists(path, cb);
               }
             }, null);
+      } else {
+        cb.processResult(_asyncCallRetCode, path,
+            new ZkAsyncCallMonitorContext(_monitor, 0, 0, true), null);
       }
     }
 
@@ -434,7 +603,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       if (_asyncCallRetCode == KeeperException.Code.OK.intValue()) {
         super.asyncDelete(path, cb);
         return;
-      } else {
+      } else if (needRetry(_asyncCallRetCode)) {
         cb.processResult(_asyncCallRetCode, path,
             new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, null, 0, 0, false) {
               @Override
@@ -443,6 +612,9 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
                 asyncDelete(path, cb);
               }
             });
+      } else {
+        cb.processResult(_asyncCallRetCode, path,
+            new ZkAsyncCallMonitorContext(_monitor, 0, 0, false));
       }
     }
 

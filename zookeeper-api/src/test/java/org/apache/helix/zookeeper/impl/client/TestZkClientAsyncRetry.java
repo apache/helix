@@ -433,17 +433,33 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
           ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
           _readFailures);
+      // asyncGet should succeed because the return code is NONODE
+      testZkClient.setAsyncCallRC(KeeperException.Code.NONODE.intValue());
+      testZkClient.asyncGetData(NODE_PATH, getCallback);
+      getCallback.waitForSuccess();
+      Assert.assertEquals(getCallback.getRc(), KeeperException.Code.NONODE.intValue());
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
 
       // Test asyncExists failure
       ZkAsyncCallbacks.ExistsCallbackHandler existsCallback =
           new ZkAsyncCallbacks.ExistsCallbackHandler();
       Assert.assertEquals(existsCallback.getRc(), UNKNOWN_RET_CODE);
-      // asyncSet should fail because the return code is APIERROR
+      // asyncExists should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncExists(NODE_PATH, existsCallback);
       existsCallback.waitForSuccess();
       Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       ++_readFailures;
+      Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          _readFailures);
+      // asyncExists should fail because the return code is NONODE
+      testZkClient.setAsyncCallRC(KeeperException.Code.NONODE.intValue());
+      testZkClient.asyncExists(NODE_PATH, existsCallback);
+      existsCallback.waitForSuccess();
+      Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.NONODE.intValue());
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
           ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
           _readFailures);
@@ -466,7 +482,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       ZkAsyncCallbacks.DeleteCallbackHandler deleteCallback =
           new ZkAsyncCallbacks.DeleteCallbackHandler();
       Assert.assertEquals(deleteCallback.getRc(), UNKNOWN_RET_CODE);
-      // asyncSet should fail because the return code is APIERROR
+      // asyncDelete should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncDelete(NODE_PATH, deleteCallback);
       deleteCallback.waitForSuccess();

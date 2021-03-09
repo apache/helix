@@ -58,6 +58,13 @@ public class ZkAsyncCallbacks {
     public void handle() {
       // TODO Auto-generated method stub
     }
+
+    @Override
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      if(rc != Code.NONODE.intValue()) {
+        monitor.recordFailure(path);
+      }
+    }
   }
 
   public static class SetDataCallbackHandler extends DefaultCallback implements StatCallback {
@@ -95,6 +102,13 @@ public class ZkAsyncCallbacks {
     @Override
     public void handle() {
       // TODO Auto-generated method stub
+    }
+
+    @Override
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      if(rc != Code.NONODE.intValue()) {
+        monitor.recordFailure(path);
+      }
     }
   }
 
@@ -172,14 +186,8 @@ public class ZkAsyncCallbacks {
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
         ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
         monitor.recordAccess(path);
-        // Record failure if the return code isn't 0 (i.e., OK), and this object
-        // is one of the five callback types derived from DefaultCallback
-        if ((rc != 0) && (
-            (this instanceof CreateCallbackHandler || this instanceof DeleteCallbackHandler
-                || this instanceof SetDataCallbackHandler) || (
-                (this instanceof ExistsCallbackHandler || this instanceof GetDataCallbackHandler)
-                    && (rc != Code.NONODE.intValue())))) {
-          monitor.recordFailure(path);
+        if (rc != 0) {
+          recordFailure(rc, path, monitor);
         }
       }
 
@@ -214,6 +222,10 @@ public class ZkAsyncCallbacks {
       } finally {
         markOperationDone();
       }
+    }
+
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      monitor.recordFailure(path);
     }
 
     public boolean isOperationDone() {

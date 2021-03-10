@@ -164,7 +164,7 @@ public class ClusterConfig extends HelixProperty {
           .put(GlobalRebalancePreferenceKey.EVENNESS, 1)
           .put(GlobalRebalancePreferenceKey.LESS_MOVEMENT, 1)
           .put(GlobalRebalancePreferenceKey.FORCE_BASELINE_CONVERGE, 0).build();
-  private final static int MAX_REBALANCE_PREFERENCE = 10;
+  private final static int MAX_REBALANCE_PREFERENCE = 1000;
   private final static int MIN_REBALANCE_PREFERENCE = 0;
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;

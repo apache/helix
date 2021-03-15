@@ -380,6 +380,29 @@ public class TestResourceAccessor extends AbstractTestClass {
    * @throws Exception
    */
   @Test(dependsOnMethods = "updateResourceConfig")
+  public void updateResourceConfigIDMissing() throws Exception {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    // An invalid input which does not have any ID
+    String dummyInput = "{\"simpleFields\":{}}";
+
+    String dummyResourceName = "RESOURCE_TEST_DUMMY";
+    // Update the config with dummy input
+    Entity entity = Entity.entity(dummyInput, MediaType.APPLICATION_JSON_TYPE);
+    // As id field is missing, the response of the post request should be BAD_REQUEST
+    post("clusters/" + CLUSTER_NAME + "/resources/" + dummyResourceName + "/configs", null, entity,
+        Response.Status.BAD_REQUEST.getStatusCode());
+    ResourceConfig resourceConfig =
+        _configAccessor.getResourceConfig(CLUSTER_NAME, dummyResourceName);
+    // Since the id is missing in the input, the znode should not get created.
+    Assert.assertNull(resourceConfig);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  /**
+   * Test "delete" command of updateResourceConfig.
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = "updateResourceConfigIDMissing")
   public void deleteFromResourceConfig() throws Exception {
     ZNRecord record = new ZNRecord(RESOURCE_NAME);
 

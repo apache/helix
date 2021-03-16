@@ -185,8 +185,9 @@ public class ZkAsyncCallbacks {
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
         ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
-        monitor.recordAccess(path);
-        if (rc != 0) {
+        if(rc == 0) {
+          monitor.recordAccess(path);
+        } else {
           recordFailure(rc, path, monitor);
         }
       }

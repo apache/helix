@@ -167,7 +167,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
           ++_writeFailures;
         }
         Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-            ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+            ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
             _writeFailures);
         testZkClient.delete(NODE_PATH);
         Assert.assertFalse(testZkClient.exists(NODE_PATH));
@@ -208,7 +208,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
 
       // 2. Test async delete
@@ -230,7 +230,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
@@ -271,7 +271,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
 
       // Restore the state
@@ -297,7 +297,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
@@ -333,7 +333,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
 
       // 2. Test async get
@@ -356,7 +356,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
       // Check failure metric, which should be unchanged because the operation succeeded
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
@@ -400,7 +400,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
         // The failure metric doesn't increase here, because an exception is thrown before the logic
         // responsible for increasing the metric is reached.
         Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-            ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+            ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
             _readFailures);
       }
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
@@ -431,7 +431,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(getCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       ++_readFailures;
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
       // asyncGet should succeed because the return code is NONODE
       testZkClient.setAsyncCallRC(KeeperException.Code.NONODE.intValue());
@@ -439,7 +439,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       getCallback.waitForSuccess();
       Assert.assertEquals(getCallback.getRc(), KeeperException.Code.NONODE.intValue());
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
 
       // Test asyncExists failure
@@ -453,7 +453,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       ++_readFailures;
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
       // asyncExists should fail because the return code is NONODE
       testZkClient.setAsyncCallRC(KeeperException.Code.NONODE.intValue());
@@ -461,7 +461,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       existsCallback.waitForSuccess();
       Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.NONODE.intValue());
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.ReadFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.ReadAsyncFailureCounter.toString()),
           _readFailures);
 
       // Test asyncSet failure
@@ -475,7 +475,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(setCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       ++_writeFailures;
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
 
       // Test asyncDelete failure
@@ -489,7 +489,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       ++_writeFailures;
       Assert.assertEquals((long) _beanServer.getAttribute(_rootName,
-          ZkClientPathMonitor.PredefinedMetricDomains.WriteFailureCounter.toString()),
+          ZkClientPathMonitor.PredefinedMetricDomains.WriteAsyncFailureCounter.toString()),
           _writeFailures);
     } finally {
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());

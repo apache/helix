@@ -233,10 +233,6 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
       increaseAsyncFailureCounter(isRead);
     } else {
       increaseAsyncCounter(isRead);
-      increaseTotalLatency(isRead, latencyMilliSec);
-      if (bytes > 0) {
-        increaseBytesCounter(isRead, bytes);
-      }
     }
   }
 

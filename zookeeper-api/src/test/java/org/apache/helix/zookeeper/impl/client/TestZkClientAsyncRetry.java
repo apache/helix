@@ -43,6 +43,9 @@ import static org.apache.zookeeper.KeeperException.Code.CONNECTIONLOSS;
 public class TestZkClientAsyncRetry extends ZkTestBase {
   private final String TEST_ROOT = String.format("/%s", getClass().getSimpleName());
   private final String NODE_PATH = TEST_ROOT + "/async";
+  // Retry wait time is set to 3 times of the retry interval so as to leave extra buffer in case
+  // the test environment is slow. Extra wait time won't impact the test logic.
+  private final long RETRY_OPS_WAIT_TIMEOUT_MS = 3 * MockAsyncZkClient.RETRY_INTERVAL_MS;
 
   private org.apache.helix.zookeeper.zkclient.ZkClient _zkClient;
   private String _zkServerAddress;
@@ -98,14 +101,14 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
           // Change the mock response
           testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
           // Async retry will succeed now. Wait until the operation is successfully done and verify.
-          Assert.assertTrue(waitAsyncOperation(createCallback, 1000));
+          Assert.assertTrue(waitAsyncOperation(createCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
           Assert.assertEquals(createCallback.getRc(), KeeperException.Code.OK.intValue());
           Assert.assertTrue(testZkClient.exists(NODE_PATH));
           Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
         } else {
           // Async create will fail due to the mock error rc is not recoverable.
           testZkClient.asyncCreate(NODE_PATH, null, CreateMode.PERSISTENT, createCallback);
-          Assert.assertTrue(waitAsyncOperation(createCallback, 1000));
+          Assert.assertTrue(waitAsyncOperation(createCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
           Assert.assertEquals(createCallback.getRc(), code.intValue());
           Assert.assertEquals(testZkClient.getAndResetRetryCount(), 0);
         }
@@ -141,7 +144,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Change the mock return code.
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       // Async retry will succeed now. Wait until the operation is successfully done and verify.
-      Assert.assertTrue(waitAsyncOperation(setCallback, 1000));
+      Assert.assertTrue(waitAsyncOperation(setCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
       Assert.assertEquals(setCallback.getRc(), KeeperException.Code.OK.intValue());
       Assert.assertEquals(((ZNRecord) testZkClient.readData(NODE_PATH)).getSimpleField("test"),
           "data");
@@ -160,7 +163,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Change the mock return code.
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       // Async retry will succeed now. Wait until the operation is successfully done and verify.
-      Assert.assertTrue(waitAsyncOperation(deleteCallback, 1000));
+      Assert.assertTrue(waitAsyncOperation(deleteCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
       Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.OK.intValue());
       Assert.assertFalse(testZkClient.exists(NODE_PATH));
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
@@ -197,7 +200,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Throw exception in retry
       testZkClient.setZkExceptionInRetry(true);
       // Async retry will succeed now. Wait until the operation is done and verify.
-      Assert.assertTrue(waitAsyncOperation(createCallback, 1000),
+      Assert.assertTrue(waitAsyncOperation(createCallback, RETRY_OPS_WAIT_TIMEOUT_MS),
           "Async callback should have been canceled");
       Assert.assertEquals(createCallback.getRc(), CONNECTIONLOSS.intValue());
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
@@ -219,7 +222,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Throw exception in retry
       testZkClient.setZkExceptionInRetry(true);
       // Async retry will succeed now. Wait until the operation is done and verify.
-      Assert.assertTrue(waitAsyncOperation(setCallback, 1000),
+      Assert.assertTrue(waitAsyncOperation(setCallback, RETRY_OPS_WAIT_TIMEOUT_MS),
           "Async callback should have been canceled");
       Assert.assertEquals(setCallback.getRc(), CONNECTIONLOSS.intValue());
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
@@ -251,7 +254,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Change the mock return code.
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       // Async retry will succeed now. Wait until the operation is successfully done and verify.
-      Assert.assertTrue(waitAsyncOperation(existsCallback, 1000));
+      Assert.assertTrue(waitAsyncOperation(existsCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
       Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.OK.intValue());
       Assert.assertTrue(existsCallback._stat != null);
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);
@@ -269,7 +272,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Change the mock return code.
       testZkClient.setAsyncCallRC(KeeperException.Code.OK.intValue());
       // Async retry will succeed now. Wait until the operation is successfully done and verify.
-      Assert.assertTrue(waitAsyncOperation(getCallback, 1000));
+      Assert.assertTrue(waitAsyncOperation(getCallback, RETRY_OPS_WAIT_TIMEOUT_MS));
       Assert.assertEquals(getCallback.getRc(), KeeperException.Code.OK.intValue());
       ZNRecord record = testZkClient.deserialize(getCallback._data, NODE_PATH);
       Assert.assertEquals(record.getSimpleField("foo"), "bar");
@@ -303,7 +306,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
         Assert.assertEquals(cb.getRc(), CONNECTIONLOSS.intValue());
       }
       // Wait for a while, no callback finishes
-      Assert.assertFalse(waitAsyncOperation(existsCallbacks[0], 1000));
+      Assert.assertFalse(waitAsyncOperation(existsCallbacks[0], RETRY_OPS_WAIT_TIMEOUT_MS));
       for (ZkAsyncCallbacks.ExistsCallbackHandler cb : existsCallbacks) {
         Assert.assertEquals(cb.getRc(), CONNECTIONLOSS.intValue());
         Assert.assertFalse(cb.isOperationDone());
@@ -311,7 +314,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       testZkClient.close();
       // All callback retry will be cancelled because the zkclient is closed.
       for (ZkAsyncCallbacks.ExistsCallbackHandler cb : existsCallbacks) {
-        Assert.assertTrue(waitAsyncOperation(cb, 1000));
+        Assert.assertTrue(waitAsyncOperation(cb, RETRY_OPS_WAIT_TIMEOUT_MS));
         Assert.assertEquals(cb.getRc(), CONNECTIONLOSS.intValue());
       }
       Assert.assertTrue(testZkClient.getAndResetRetryCount() >= 1);

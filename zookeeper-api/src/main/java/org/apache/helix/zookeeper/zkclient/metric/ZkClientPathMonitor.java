@@ -69,10 +69,14 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     ReadTotalLatencyCounter,
     WriteFailureCounter,
     ReadFailureCounter,
+    WriteAsyncFailureCounter,
+    ReadAsyncFailureCounter,
     WriteBytesCounter,
     ReadBytesCounter,
     WriteCounter,
     ReadCounter,
+    WriteAsyncCounter,
+    ReadAsyncCounter,
     ReadLatencyGauge,
     WriteLatencyGauge,
     ReadBytesGauge,
@@ -91,10 +95,14 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
 
   private SimpleDynamicMetric<Long> _readCounter;
   private SimpleDynamicMetric<Long> _writeCounter;
+  private SimpleDynamicMetric<Long> _readAsyncCounter;
+  private SimpleDynamicMetric<Long> _writeAsyncCounter;
   private SimpleDynamicMetric<Long> _readBytesCounter;
   private SimpleDynamicMetric<Long> _writeBytesCounter;
   private SimpleDynamicMetric<Long> _readFailureCounter;
   private SimpleDynamicMetric<Long> _writeFailureCounter;
+  private SimpleDynamicMetric<Long> _readAsyncFailureCounter;
+  private SimpleDynamicMetric<Long> _writeAsyncFailureCounter;
   private SimpleDynamicMetric<Long> _readTotalLatencyCounter;
   private SimpleDynamicMetric<Long> _writeTotalLatencyCounter;
 
@@ -134,12 +142,20 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
         new SimpleDynamicMetric(PredefinedMetricDomains.WriteFailureCounter.name(), 0l);
     _readFailureCounter =
         new SimpleDynamicMetric(PredefinedMetricDomains.ReadFailureCounter.name(), 0l);
+    _writeAsyncFailureCounter =
+        new SimpleDynamicMetric(PredefinedMetricDomains.WriteAsyncFailureCounter.name(), 0l);
+    _readAsyncFailureCounter =
+        new SimpleDynamicMetric(PredefinedMetricDomains.ReadAsyncFailureCounter.name(), 0l);
     _writeBytesCounter =
         new SimpleDynamicMetric(PredefinedMetricDomains.WriteBytesCounter.name(), 0l);
     _readBytesCounter =
         new SimpleDynamicMetric(PredefinedMetricDomains.ReadBytesCounter.name(), 0l);
     _writeCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteCounter.name(), 0l);
     _readCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadCounter.name(), 0l);
+    _writeAsyncCounter =
+        new SimpleDynamicMetric(PredefinedMetricDomains.WriteAsyncCounter.name(), 0l);
+    _readAsyncCounter =
+        new SimpleDynamicMetric(PredefinedMetricDomains.ReadAsyncCounter.name(), 0l);
 
     _readLatencyGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadLatencyGauge.name(),
         new Histogram(
@@ -169,10 +185,14 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_readCounter);
     attributeList.add(_writeCounter);
+    attributeList.add(_readAsyncCounter);
+    attributeList.add(_writeAsyncCounter);
     attributeList.add(_readBytesCounter);
     attributeList.add(_writeBytesCounter);
     attributeList.add(_readFailureCounter);
     attributeList.add(_writeFailureCounter);
+    attributeList.add(_readAsyncFailureCounter);
+    attributeList.add(_writeAsyncFailureCounter);
     attributeList.add(_readTotalLatencyCounter);
     attributeList.add(_writeTotalLatencyCounter);
     attributeList.add(_readLatencyGauge);
@@ -204,6 +224,18 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
   }
 
+  /**
+   * Records metrics for async operations
+   */
+  protected synchronized void recordAsync(int bytes, long latencyMilliSec, boolean isFailure,
+      ZkClientMonitor.AccessType accessType) {
+    if (isFailure) {
+      increaseAsyncFailureCounter(accessType);
+    } else {
+      increaseAsyncCounter(accessType);
+    }
+  }
+
   public void recordDataPropagationLatency(long latency) {
     _dataPropagationLatencyGauge.updateValue(latency);
     _dataPropagationLatencyGuage.updateValue(latency);
@@ -217,11 +249,37 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
   }
 
+  private void increaseAsyncFailureCounter(ZkClientMonitor.AccessType accessType) {
+    switch (accessType) {
+      case READ:
+        _readAsyncFailureCounter.updateValue(_readAsyncFailureCounter.getValue() + 1);
+        return;
+      case WRITE:
+        _writeAsyncFailureCounter.updateValue(_writeAsyncFailureCounter.getValue() + 1);
+        return;
+      default:
+        return;
+    }
+  }
+
   private void increaseCounter(boolean isRead) {
     if (isRead) {
       _readCounter.updateValue(_readCounter.getValue() + 1);
     } else {
       _writeCounter.updateValue(_writeCounter.getValue() + 1);
+    }
+  }
+
+  private void increaseAsyncCounter(ZkClientMonitor.AccessType accessType) {
+    switch (accessType) {
+      case READ:
+      _readAsyncCounter.updateValue(_readAsyncCounter.getValue() + 1);
+        return;
+      case WRITE:
+      _writeAsyncCounter.updateValue(_writeAsyncCounter.getValue() + 1);
+        return;
+      default:
+        return;
     }
   }
 

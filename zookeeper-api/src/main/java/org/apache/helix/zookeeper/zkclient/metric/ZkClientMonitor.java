@@ -245,6 +245,32 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     }
   }
 
+  /**
+   * Records metrics for async operations
+   */
+  private void recordAsync(String path, int bytes, long latencyMilliSec, boolean isFailure,
+      AccessType accessType) {
+    if (null == path) {
+      return;
+    }
+    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
+        .filter(predefinedPath -> predefinedPath.match(path))
+        .forEach(predefinedPath -> {
+          ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
+          if (zkClientPathMonitor != null) {
+            zkClientPathMonitor.recordAsync(bytes, latencyMilliSec, isFailure, accessType);
+          }
+        });
+  }
+
+  public void recordAsync(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {
+    recordAsync(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, accessType);
+  }
+
+  public void recordAsyncFailure(String path, AccessType accessType) {
+    recordAsync(path, 0, 0, true, accessType);
+  }
+
   class ZkThreadMetric extends DynamicMetric<ZkEventThread, ZkEventThread> {
     public ZkThreadMetric(ZkEventThread eventThread) {
       super("ZkEventThead", eventThread);

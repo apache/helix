@@ -289,7 +289,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
 
     boolean verifyResult = TestHelper.verify(()->{
-      return (long) beanServer.getAttribute(rootname, "ReadCounter") == 1;
+      return (long) beanServer.getAttribute(rootname, "ReadAsyncCounter") == 1;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(verifyResult, " did not see first sync() read");
 
@@ -301,7 +301,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue(firstReadLatencyGauge >= 0);
     zkClient.exists(TEST_ROOT);
 
-    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadCounter") == 2);
+    Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadCounter") == 1);
 
     Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadTotalLatencyCounter") >= firstLatencyCounter);
     Assert.assertTrue((long) beanServer.getAttribute(rootname, "ReadLatencyGauge.Max") >= firstReadLatencyGauge);
@@ -333,7 +333,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "WriteLatencyGauge.Max") >= 0);
 
     // Test read
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"), 0);
@@ -344,7 +344,7 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertEquals(origIdealStatesReadTotalLatencyCounter, 0);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadLatencyGauge.Max"), 0);
     zkClient.readData(TEST_PATH, new Stat());
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 3);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 2);
     Assert
         .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 1);
@@ -356,27 +356,27 @@ public class TestRawZkClient extends ZkTestBase {
         >= origIdealStatesReadTotalLatencyCounter);
     Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "ReadLatencyGauge.Max") >= 0);
     zkClient.getChildren(TEST_PATH);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 4);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 3);
     Assert
         .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 2);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"),
         TEST_DATA_SIZE);
     zkClient.getStat(TEST_PATH);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 5);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 4);
     Assert
         .assertEquals((long) beanServer.getAttribute(rootname, "ReadBytesCounter"), TEST_DATA_SIZE);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadCounter"), 3);
     Assert.assertEquals((long) beanServer.getAttribute(idealStatename, "ReadBytesCounter"),
         TEST_DATA_SIZE);
     zkClient.readDataAndStat(TEST_PATH, new Stat(), true);
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 6);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 5);
 
     ZkAsyncCallbacks.ExistsCallbackHandler callbackHandler =
         new ZkAsyncCallbacks.ExistsCallbackHandler();
     zkClient.asyncExists(TEST_PATH, callbackHandler);
     callbackHandler.waitForSuccess();
-    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadCounter"), 7);
+    Assert.assertEquals((long) beanServer.getAttribute(rootname, "ReadAsyncCounter"), 2);
 
     // Test write
     zkClient.writeData(TEST_PATH, TEST_DATA);

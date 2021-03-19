@@ -58,6 +58,13 @@ public class ZkAsyncCallbacks {
     public void handle() {
       // TODO Auto-generated method stub
     }
+
+    @Override
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      if(rc != Code.NONODE.intValue()) {
+        monitor.recordFailure(path);
+      }
+    }
   }
 
   public static class SetDataCallbackHandler extends DefaultCallback implements StatCallback {
@@ -95,6 +102,13 @@ public class ZkAsyncCallbacks {
     @Override
     public void handle() {
       // TODO Auto-generated method stub
+    }
+
+    @Override
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      if(rc != Code.NONODE.intValue()) {
+        monitor.recordFailure(path);
+      }
     }
   }
 
@@ -170,7 +184,12 @@ public class ZkAsyncCallbacks {
       }
 
       if (ctx != null && ctx instanceof ZkAsyncCallMonitorContext) {
-        ((ZkAsyncCallMonitorContext) ctx).recordAccess(path);
+        ZkAsyncCallMonitorContext monitor = (ZkAsyncCallMonitorContext) ctx;
+        if(rc == 0) {
+          monitor.recordAccess(path);
+        } else {
+          recordFailure(rc, path, monitor);
+        }
       }
 
       _rc = rc;
@@ -204,6 +223,10 @@ public class ZkAsyncCallbacks {
       } finally {
         markOperationDone();
       }
+    }
+
+    protected void recordFailure(int rc, String path, ZkAsyncCallMonitorContext monitor) {
+      monitor.recordFailure(path);
     }
 
     public boolean isOperationDone() {

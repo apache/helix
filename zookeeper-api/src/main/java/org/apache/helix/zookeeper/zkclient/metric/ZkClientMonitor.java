@@ -249,7 +249,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
    * Records metrics for async operations
    */
   private void recordAsync(String path, int bytes, long latencyMilliSec, boolean isFailure,
-      boolean isRead) {
+      AccessType accessType) {
     if (null == path) {
       return;
     }
@@ -258,35 +258,17 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
         .forEach(predefinedPath -> {
           ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
           if (zkClientPathMonitor != null) {
-            zkClientPathMonitor.recordAsync(bytes, latencyMilliSec, isFailure, isRead);
+            zkClientPathMonitor.recordAsync(bytes, latencyMilliSec, isFailure, accessType);
           }
         });
   }
 
   public void recordAsync(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {
-    switch (accessType) {
-      case READ:
-        recordAsync(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, true);
-        return;
-      case WRITE:
-        recordAsync(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, false);
-        return;
-      default:
-        return;
-    }
+    recordAsync(path, dataSize, System.currentTimeMillis() - startTimeMilliSec, false, accessType);
   }
 
   public void recordAsyncFailure(String path, AccessType accessType) {
-    switch (accessType) {
-      case READ:
-        recordAsync(path, 0, 0, true, true);
-        return;
-      case WRITE:
-        recordAsync(path, 0, 0, true, false);
-        return;
-      default:
-        return;
-    }
+    recordAsync(path, 0, 0, true, accessType);
   }
 
   class ZkThreadMetric extends DynamicMetric<ZkEventThread, ZkEventThread> {

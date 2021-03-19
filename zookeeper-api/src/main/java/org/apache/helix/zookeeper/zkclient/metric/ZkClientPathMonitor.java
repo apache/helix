@@ -228,11 +228,11 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
    * Records metrics for async operations
    */
   protected synchronized void recordAsync(int bytes, long latencyMilliSec, boolean isFailure,
-      boolean isRead) {
+      ZkClientMonitor.AccessType accessType) {
     if (isFailure) {
-      increaseAsyncFailureCounter(isRead);
+      increaseAsyncFailureCounter(accessType);
     } else {
-      increaseAsyncCounter(isRead);
+      increaseAsyncCounter(accessType);
     }
   }
 
@@ -249,11 +249,16 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
   }
 
-  private void increaseAsyncFailureCounter(boolean isRead) {
-    if (isRead) {
-      _readAsyncFailureCounter.updateValue(_readAsyncFailureCounter.getValue() + 1);
-    } else {
-      _writeAsyncFailureCounter.updateValue(_writeAsyncFailureCounter.getValue() + 1);
+  private void increaseAsyncFailureCounter(ZkClientMonitor.AccessType accessType) {
+    switch (accessType) {
+      case READ:
+        _readAsyncFailureCounter.updateValue(_readAsyncFailureCounter.getValue() + 1);
+        return;
+      case WRITE:
+        _writeAsyncFailureCounter.updateValue(_writeAsyncFailureCounter.getValue() + 1);
+        return;
+      default:
+        return;
     }
   }
 
@@ -265,11 +270,16 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
   }
 
-  private void increaseAsyncCounter(boolean isRead) {
-    if (isRead) {
+  private void increaseAsyncCounter(ZkClientMonitor.AccessType accessType) {
+    switch (accessType) {
+      case READ:
       _readAsyncCounter.updateValue(_readAsyncCounter.getValue() + 1);
-    } else {
+        return;
+      case WRITE:
       _writeAsyncCounter.updateValue(_writeAsyncCounter.getValue() + 1);
+        return;
+      default:
+        return;
     }
   }
 

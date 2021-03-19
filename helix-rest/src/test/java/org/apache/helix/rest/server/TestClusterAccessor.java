@@ -671,13 +671,6 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     boolean result = TestHelper.verify(() -> {
       LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
-      if (leader == null) {
-        // TODO: Remove the following logic once https://github.com/apache/helix/issues/1617 is fixed.
-        // TODO: For now, we may need to touch the IdealState to trigger a new rebalance since the test
-        // TODO: is running multiple GenericHelixController instances in one JVM.
-        IdealState is = normalAccessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
-        normalAccessor.setProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER), is);
-      }
       return leader != null;
     }, 12000);
     Assert.assertTrue(result);

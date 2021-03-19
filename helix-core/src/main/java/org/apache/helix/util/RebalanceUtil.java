@@ -159,9 +159,10 @@ public class RebalanceUtil {
       LOG.error("Failed to issue a pipeline run. Delay is invalid.");
       return;
     }
-    GenericHelixController controller = GenericHelixController.getController(clusterName);
-    if (controller != null) {
-      controller.scheduleOnDemandRebalance(delay, shouldRefreshCache);
+    GenericHelixController leaderController =
+        GenericHelixController.getLeaderController(clusterName);
+    if (leaderController != null) {
+      leaderController.scheduleOnDemandRebalance(delay, shouldRefreshCache);
     } else {
       LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
           clusterName);

@@ -724,11 +724,6 @@ public class TestHelixAdminCli extends ZkTestBase {
     HelixAdmin admin = _gSetupTool.getClusterManagementTool();
     TestHelper.verify(() -> {
       if (admin.getResourceExternalView(grandClusterName, clusterName) == null) {
-        // TODO: Remove the following logic once https://github.com/apache/helix/issues/1617 is fixed.
-        // TODO: For now, we may need to touch the IdealState to trigger a new rebalance since the test
-        // TODO: is running multiple GenericHelixController instances in one JVM.
-        IdealState is = admin.getResourceIdealState(grandClusterName, clusterName);
-        admin.setResourceIdealState(grandClusterName, clusterName, is);
         return false;
       }
       return true;

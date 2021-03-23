@@ -95,6 +95,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
     Assert.assertTrue(zkClient instanceof FederatedZkClient);
+    zkClient.close();
 
     // Turn off multiZk mode in System config, and remove zkAddress
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
@@ -105,6 +106,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
     Assert.assertTrue(zkClient instanceof FederatedZkClient);
+    zkClient.close();
 
     // Test no connection config case
     when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(null);
@@ -113,6 +115,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
     Assert.assertTrue(zkClient instanceof FederatedZkClient);
+    zkClient.close();
 
     // Remove server endpoint key and use connection config to specify endpoint
     System.clearProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY);
@@ -127,6 +130,7 @@ public class TestTaskStateModelFactory extends TaskTestBase {
         .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
             anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
     Assert.assertTrue(zkClient instanceof FederatedZkClient);
+    zkClient.close();
 
     // Restore system properties
     if (prevMultiZkEnabled == null) {

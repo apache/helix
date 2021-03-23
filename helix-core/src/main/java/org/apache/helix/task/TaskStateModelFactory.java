@@ -58,16 +58,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private ThreadPoolExecutorMonitor _monitor;
 
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
-    this(manager, taskFactoryRegistry, Executors.newScheduledThreadPool(TaskUtil
-        .getTargetThreadPoolSize(createZkClient(manager), manager.getClusterName(),
-            manager.getInstanceName()), new ThreadFactory() {
-      private AtomicInteger threadId = new AtomicInteger(0);
-
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
-      }
-    }));
+    this(manager, taskFactoryRegistry, createThreadPoolExecutor(manager));
   }
 
   // DO NOT USE! This size of provided thread pool will not be reflected to controller
@@ -175,5 +166,22 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     return SharedZkClientFactory.getInstance().buildZkClient(
         new HelixZkClient.ZkConnectionConfig(zkAddress),
         clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+  }
+
+  private static ScheduledExecutorService createThreadPoolExecutor(HelixManager manager) {
+    RealmAwareZkClient zkClient = createZkClient(manager);
+    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(TaskUtil
+            .getTargetThreadPoolSize(zkClient, manager.getClusterName(), manager.getInstanceName()),
+        new ThreadFactory() {
+          private AtomicInteger threadId = new AtomicInteger(0);
+
+          @Override
+          public Thread newThread(Runnable r) {
+            return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
+          }
+        });
+    zkClient.close();
+
+    return executorService;
   }
 }

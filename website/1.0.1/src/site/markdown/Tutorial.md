@@ -57,6 +57,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 16. [Helix UI Setup](./tutorial_ui.html)
 17. [Helix Customized View](./tutorial_customized_view.html)
 18. [Helix Cloud Support](./tutorial_cloud_support.html)
+19. [Helix Distributed Lock](./tutorial_distributed_lock.html)
 
 ### Preliminaries
 

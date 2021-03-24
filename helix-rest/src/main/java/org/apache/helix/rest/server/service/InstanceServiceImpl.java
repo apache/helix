@@ -281,9 +281,8 @@ public class InstanceServiceImpl implements InstanceService {
 
       List <String> unHealthyPartitionsList = new ArrayList<>();
       for (String partitionName : unHealthyPartitions.keySet()) {
-        unHealthyPartitionsList.add(partitionName + ":" + unHealthyPartitions.get(partitionName).stream()
-            .map(String::toUpperCase)
-            .collect(Collectors.joining(",")));
+        for (String reason : unHealthyPartitions.get(partitionName))
+          unHealthyPartitionsList.add(reason.toUpperCase() + ":" + partitionName);
       }
       StoppableCheck stoppableCheck =
           new StoppableCheck(unHealthyPartitions.isEmpty(), unHealthyPartitionsList,

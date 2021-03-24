@@ -86,8 +86,8 @@ public class TestInstanceValidationUtilInRest{
     partitionStateMap.get("h4").put("p1", true);
 
     partitionStateMap.get("h1").put("p2", true);
-    partitionStateMap.get("h2").put("p2", true);
-    partitionStateMap.get("h3").put("p2", false);
+    partitionStateMap.get("h2").put("p2", false);
+    partitionStateMap.get("h3").put("p2", true);
 
     Map<String, List<String>> failedPartitions = InstanceValidationUtil
         .perPartitionHealthCheck(externalViews, partitionStateMap, "h1", accessor);
@@ -100,6 +100,7 @@ public class TestInstanceValidationUtilInRest{
     Assert.assertEquals(failedPartitions.get("p1").size(), 2);
     Assert.assertTrue(failedPartitions.get("p1").contains("PARTITION_INITIAL_STATE_FAIL"));
     Assert.assertTrue(failedPartitions.get("p1").contains("UNHEALTHY_PARTITION"));
+    Assert.assertEquals(failedPartitions.keySet().size(), 2);
   }
 
   private ExternalView prepareExternalView() {

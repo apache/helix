@@ -250,10 +250,8 @@ public class InstanceValidationUtil {
 
             // If the state is init state, we add appropriate messages
             if (stateMap.get(siblingInstance).equals(stateModelDefinition.getInitialState())) {
-              if (!unhealthyPartitions.containsKey(partition)) {
-                unhealthyPartitions.put(partition, new ArrayList<>());
-              }
-              unhealthyPartitions.get(partition).add(PARTITION_INITIAL_STATE_FAIL);
+              unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
+                  .add(PARTITION_INITIAL_STATE_FAIL);
               continue;
             }
 
@@ -262,10 +260,8 @@ public class InstanceValidationUtil {
             if (!globalPartitionHealthStatus.containsKey(siblingInstance)
                 || !globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
                 || !globalPartitionHealthStatus.get(siblingInstance).get(partition)) {
-              if (!unhealthyPartitions.containsKey(partition)) {
-                unhealthyPartitions.put(partition, new ArrayList<>());
-              }
-              unhealthyPartitions.get(partition).add(UNHEALTHY_PARTITION);
+              unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
+                  .add(UNHEALTHY_PARTITION);
             }
           }
         }

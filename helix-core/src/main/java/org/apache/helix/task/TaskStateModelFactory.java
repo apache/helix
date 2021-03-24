@@ -125,12 +125,6 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
    * Create a RealmAwareZkClient to get thread pool sizes
    */
   protected static RealmAwareZkClient createZkClient(HelixManager manager) {
-    // TODO: revisit the logic here - we are creating a connection although we already have a
-    // manager. We cannot use the connection within manager because some users connect the manager
-    // after registering the state model factory (in which case we cannot use manager's connection),
-    // and some connect the manager before registering the state model factory (in which case we
-    // can use manager's connection). We need to think about the right order and determine if we
-    // want to enforce it, which may cause backward incompatibility.
     if (!(manager instanceof ZKHelixManager)) {
       // TODO: None-ZKHelixManager cannot initialize this class. After interface rework of
       // HelixManager, the initialization should be allowed.
@@ -163,25 +157,39 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
       }
     }
 
-    return SharedZkClientFactory.getInstance().buildZkClient(
-        new HelixZkClient.ZkConnectionConfig(zkAddress),
-        clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+    // Fail early instead of retrying and blocking TaskStateModelFactory creation
+    HelixZkClient.ZkClientConfig zkClientConfig =
+        clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+    zkClientConfig.setOperationRetryTimeout((long) 60000);
+    return SharedZkClientFactory.getInstance()
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), zkClientConfig);
   }
 
   private static ScheduledExecutorService createThreadPoolExecutor(HelixManager manager) {
+    // TODO: revisit the logic here - we are creating a connection although we already have a
+    // manager. We cannot use the connection within manager because some users connect the manager
+    // after registering the state model factory (in which case we cannot use manager's connection),
+    // and some connect the manager before registering the state model factory (in which case we
+    // can use manager's connection). We need to think about the right order and determine if we
+    // want to enforce it, which may cause backward incompatibility.
     RealmAwareZkClient zkClient = createZkClient(manager);
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(TaskUtil
-            .getTargetThreadPoolSize(zkClient, manager.getClusterName(), manager.getInstanceName()),
-        new ThreadFactory() {
-          private AtomicInteger threadId = new AtomicInteger(0);
+    int targetThreadPoolSize;
 
-          @Override
-          public Thread newThread(Runnable r) {
-            return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
-          }
-        });
-    zkClient.close();
+    // Ensure the zkClient is closed after reading the pool size;
+    try {
+      targetThreadPoolSize = TaskUtil
+          .getTargetThreadPoolSize(zkClient, manager.getClusterName(), manager.getInstanceName());
+    } finally {
+      zkClient.close();
+    }
 
-    return executorService;
+    return Executors.newScheduledThreadPool(targetThreadPoolSize, new ThreadFactory() {
+      private AtomicInteger threadId = new AtomicInteger(0);
+
+      @Override
+      public Thread newThread(Runnable r) {
+        return new Thread(r, "TaskStateModelFactory-task_thread-" + threadId.getAndIncrement());
+      }
+    });
   }
 }

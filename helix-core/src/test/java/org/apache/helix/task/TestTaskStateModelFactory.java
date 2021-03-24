@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TaskTestBase;
@@ -35,6 +36,7 @@ import org.apache.helix.msdcommon.mock.MockMetadataStoreDirectoryServer;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.constant.RoutingDataReaderType;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
+import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.mockito.Mockito;
 import org.testng.Assert;
@@ -91,31 +93,22 @@ public class TestTaskStateModelFactory extends TaskTestBase {
 
     RoutingDataManager.getInstance().reset();
     RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
-    Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
-    Assert.assertTrue(zkClient instanceof FederatedZkClient);
-    zkClient.close();
+    verifyThreadPoolSizeAndZkClientClass(zkClient, anyParticipantManager,
+        TEST_TARGET_TASK_THREAD_POOL_SIZE, FederatedZkClient.class);
 
     // Turn off multiZk mode in System config, and remove zkAddress
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
     ZKHelixManager participantManager = Mockito.spy(anyParticipantManager);
     when(participantManager.getMetadataStoreConnectionString()).thenReturn(null);
     zkClient = TaskStateModelFactory.createZkClient(participantManager);
-    Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
-    Assert.assertTrue(zkClient instanceof FederatedZkClient);
-    zkClient.close();
+    verifyThreadPoolSizeAndZkClientClass(zkClient, anyParticipantManager,
+        TEST_TARGET_TASK_THREAD_POOL_SIZE, FederatedZkClient.class);
 
     // Test no connection config case
     when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(null);
     zkClient = TaskStateModelFactory.createZkClient(participantManager);
-    Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
-    Assert.assertTrue(zkClient instanceof FederatedZkClient);
-    zkClient.close();
+    verifyThreadPoolSizeAndZkClientClass(zkClient, anyParticipantManager,
+        TEST_TARGET_TASK_THREAD_POOL_SIZE, FederatedZkClient.class);
 
     // Remove server endpoint key and use connection config to specify endpoint
     System.clearProperty(SystemPropertyKeys.MSDS_SERVER_ENDPOINT_KEY);
@@ -126,11 +119,8 @@ public class TestTaskStateModelFactory extends TaskTestBase {
             .setRoutingDataSourceType(RoutingDataReaderType.HTTP.name()).build();
     when(participantManager.getRealmAwareZkConnectionConfig()).thenReturn(connectionConfig);
     zkClient = TaskStateModelFactory.createZkClient(participantManager);
-    Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
-    Assert.assertTrue(zkClient instanceof FederatedZkClient);
-    zkClient.close();
+    verifyThreadPoolSizeAndZkClientClass(zkClient, anyParticipantManager,
+        TEST_TARGET_TASK_THREAD_POOL_SIZE, FederatedZkClient.class);
 
     // Restore system properties
     if (prevMultiZkEnabled == null) {
@@ -156,9 +146,8 @@ public class TestTaskStateModelFactory extends TaskTestBase {
     System.setProperty(SystemPropertyKeys.MULTI_ZK_ENABLED, "false");
 
     RealmAwareZkClient zkClient = TaskStateModelFactory.createZkClient(anyParticipantManager);
-    Assert.assertEquals(TaskUtil
-        .getTargetThreadPoolSize(zkClient, anyParticipantManager.getClusterName(),
-            anyParticipantManager.getInstanceName()), TEST_TARGET_TASK_THREAD_POOL_SIZE);
+    verifyThreadPoolSizeAndZkClientClass(zkClient, anyParticipantManager,
+        TEST_TARGET_TASK_THREAD_POOL_SIZE, SharedZkClientFactory.InnerSharedZkClient.class);
 
     // Restore system properties
     if (prevMultiZkEnabled == null) {
@@ -172,5 +161,16 @@ public class TestTaskStateModelFactory extends TaskTestBase {
       expectedExceptions = UnsupportedOperationException.class)
   public void testZkClientCreationNonZKManager() {
     TaskStateModelFactory.createZkClient(new MockManager());
+  }
+
+  private void verifyThreadPoolSizeAndZkClientClass(RealmAwareZkClient zkClient,
+      HelixManager helixManager, int threadPoolSize, Class<?> zkClientClass) {
+    try {
+      Assert.assertEquals(TaskUtil.getTargetThreadPoolSize(zkClient, helixManager.getClusterName(),
+          helixManager.getInstanceName()), threadPoolSize);
+      Assert.assertEquals(zkClient.getClass(), zkClientClass);
+    } finally {
+      zkClient.close();
+    }
   }
 }

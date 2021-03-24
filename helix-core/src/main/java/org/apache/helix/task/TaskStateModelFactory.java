@@ -133,6 +133,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
+    // Set operation retry timeout to prevent hanging infinitely
+    clientConfig.setOperationRetryTimeout((long) 60000);
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {
@@ -157,9 +159,10 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
       }
     }
 
+    // Note: operation retry timeout doesn't take effect due to github.com/apache/helix/issues/1682
     return SharedZkClientFactory.getInstance()
         .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
-            clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
+            clientConfig.createHelixZkClientConfig());
   }
 
   private static ScheduledExecutorService createThreadPoolExecutor(HelixManager manager) {
@@ -181,7 +184,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     }
 
     LOG.info(
-        "Obtained target thread pool size: " + targetThreadPoolSize + ". Creating thread pool.");
+        "Obtained target thread pool size: {} from cluster {} for instance {}. Creating thread pool.",
+        targetThreadPoolSize, manager.getClusterName(), manager.getInstanceName());
     return Executors.newScheduledThreadPool(targetThreadPoolSize, new ThreadFactory() {
       private AtomicInteger threadId = new AtomicInteger(0);
 

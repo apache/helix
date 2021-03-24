@@ -157,12 +157,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
       }
     }
 
-    // Fail early instead of retrying and blocking TaskStateModelFactory creation
-    HelixZkClient.ZkClientConfig zkClientConfig =
-        clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer());
-    zkClientConfig.setOperationRetryTimeout((long) 60000);
     return SharedZkClientFactory.getInstance()
-        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress), zkClientConfig);
+        .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddress),
+            clientConfig.createHelixZkClientConfig().setZkSerializer(new ZNRecordSerializer()));
   }
 
   private static ScheduledExecutorService createThreadPoolExecutor(HelixManager manager) {
@@ -183,6 +180,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
       zkClient.close();
     }
 
+    LOG.info(
+        "Obtained target thread pool size: " + targetThreadPoolSize + ". Creating thread pool.");
     return Executors.newScheduledThreadPool(targetThreadPoolSize, new ThreadFactory() {
       private AtomicInteger threadId = new AtomicInteger(0);
 

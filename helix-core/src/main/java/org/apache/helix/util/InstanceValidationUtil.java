@@ -55,6 +55,8 @@ public class InstanceValidationUtil {
       ImmutableSet.of(HelixDefinedState.DROPPED.name(), HelixDefinedState.ERROR.name());
 
   static final String UNHEALTHY_PARTITION = "UNHEALTHY_PARTITION";
+  // The message that will be shown if partition is in initial state of the state model and
+  // partition health check has been skipped for that instance
   static final String PARTITION_INITIAL_STATE_FAIL = "PARTITION_INITIAL_STATE_FAIL";
 
   private InstanceValidationUtil() {

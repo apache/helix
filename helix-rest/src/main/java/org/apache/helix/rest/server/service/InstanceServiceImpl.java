@@ -279,14 +279,14 @@ public class InstanceServiceImpl implements InstanceService {
           .perPartitionHealthCheck(externalViews, allPartitionsHealthOnLiveInstance, instanceName,
               _dataAccessor);
 
-      List <String> unHealthyPartitionsList = new ArrayList<>();
+      List<String> unHealthyPartitionsList = new ArrayList<>();
       for (String partitionName : unHealthyPartitions.keySet()) {
-        for (String reason : unHealthyPartitions.get(partitionName))
+        for (String reason : unHealthyPartitions.get(partitionName)) {
           unHealthyPartitionsList.add(reason.toUpperCase() + ":" + partitionName);
+        }
       }
-      StoppableCheck stoppableCheck =
-          new StoppableCheck(unHealthyPartitions.isEmpty(), unHealthyPartitionsList,
-              StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
+      StoppableCheck stoppableCheck = new StoppableCheck(unHealthyPartitionsList.isEmpty(),
+          unHealthyPartitionsList, StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
       instanceStoppableChecks.put(instanceName, stoppableCheck);
     }
 

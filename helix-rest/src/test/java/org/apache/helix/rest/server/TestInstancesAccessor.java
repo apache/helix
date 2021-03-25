@@ -31,7 +31,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.helix.TestHelper;
@@ -45,7 +44,6 @@ import org.testng.annotations.Test;
 
 public class TestInstancesAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
-  private ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Test
   public void testInstancesStoppable_zoneBased() throws IOException {

@@ -83,7 +83,7 @@ public class TestInstanceService {
   public void testGetInstanceStoppableCheckWhenHelixOwnCheckFail() throws IOException {
     Map<String, Boolean> failedCheck = ImmutableMap.of("FailCheck", false);
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false,
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false, false,
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
@@ -105,7 +105,7 @@ public class TestInstanceService {
   @Test
   public void testGetInstanceStoppableCheckWhenCustomInstanceCheckFail() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false,
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false, false,
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
@@ -130,7 +130,7 @@ public class TestInstanceService {
   @Test
   public void testGetInstanceStoppableCheckConnectionRefused() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false,
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false, false,
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
@@ -211,23 +211,69 @@ public class TestInstanceService {
 
     // Valid data only from ZK, pass the check
     InstanceService instanceServiceReadZK =
-        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, false);
+        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, false,
+            false);
     StoppableCheck stoppableCheck =
         instanceServiceReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertTrue(stoppableCheck.isStoppable());
 
     // Even ZK data is valid. Skip ZK read should fail the test.
     InstanceService instanceServiceWithoutReadZK =
-        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, true);
+        new MockInstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, true,
+            false);
     stoppableCheck = instanceServiceWithoutReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertFalse(stoppableCheck.isStoppable());
+  }
+
+  /*
+   * Tests stoppable check api when all checks query is enabled. After helix own check fails,
+   * the subsequent checks should be performed.
+   */
+  @Test
+  public void testGetStoppableWithAllChecks() throws IOException {
+    String siblingInstance = "instance0.linkedin.com_1236";
+    BaseDataAccessor<ZNRecord> mockAccessor = mock(ZkBaseDataAccessor.class);
+    ZKHelixDataAccessor zkHelixDataAccessor =
+        new ZKHelixDataAccessor(TEST_CLUSTER, InstanceType.ADMINISTRATOR, mockAccessor);
+
+    when(mockAccessor.getChildNames(zkHelixDataAccessor.keyBuilder().liveInstances().getPath(), 2))
+        .thenReturn(Arrays.asList(TEST_INSTANCE, siblingInstance));
+
+    Map<String, Boolean> instanceHealthFailedCheck = ImmutableMap.of("FailCheck", false);
+    InstanceService service =
+        new InstanceServiceImpl(zkHelixDataAccessor, _configAccessor, _customRestClient, true, true,
+            HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
+          @Override
+          protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
+              String instanceName, List<HealthCheck> healthChecks) {
+            return instanceHealthFailedCheck;
+          }
+        };
+
+    when(_customRestClient.getInstanceStoppableCheck(anyString(), anyMap()))
+        .thenReturn(ImmutableMap.of("FailCheck", false));
+    when(_customRestClient.getPartitionStoppableCheck(anyString(), anyList(), anyMap()))
+        .thenReturn(ImmutableMap.of("FailCheck", false));
+
+    StoppableCheck actual = service.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, "");
+    List<String> expectedFailedChecks =
+        Arrays.asList("HELIX:FailCheck", "CUSTOM_INSTANCE_HEALTH_FAILURE:FailCheck");
+
+    Assert.assertEquals(actual.getFailedChecks(), expectedFailedChecks);
+    Assert.assertFalse(actual.isStoppable());
+
+    // Verify the subsequent checks are called
+    verify(_configAccessor, times(1)).getRESTConfig(anyString());
+    verify(_customRestClient, times(1)).getInstanceStoppableCheck(anyString(), anyMap());
+    verify(_customRestClient, times(2))
+        .getPartitionStoppableCheck(anyString(), anyList(), anyMap());
   }
 
   // TODO re-enable the test when partition health checks get decoupled
   @Test(enabled = false)
   public void testGetInstanceStoppableCheckWhenPartitionsCheckFail() throws IOException {
     InstanceService service =
-        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false,
+        new InstanceServiceImpl(_dataAccessor, _configAccessor, _customRestClient, false, false,
             HelixRestNamespace.DEFAULT_NAMESPACE_NAME) {
           @Override
           protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
@@ -247,16 +293,16 @@ public class TestInstanceService {
     verify(_customRestClient, times(1)).getInstanceStoppableCheck(any(), any());
   }
 
-  class MockInstanceServiceImpl extends InstanceServiceImpl {
+  private static class MockInstanceServiceImpl extends InstanceServiceImpl {
     MockInstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-        CustomRestClient customRestClient, boolean skipZKRead) {
-      super(dataAccessor, configAccessor, customRestClient, skipZKRead,
+        CustomRestClient customRestClient, boolean skipZKRead, boolean allChecks) {
+      super(dataAccessor, configAccessor, customRestClient, skipZKRead, allChecks,
           HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     }
 
     @Override
-    protected Map<String, Boolean> getInstanceHealthStatus(String clusterId,
-        String instanceName, List<InstanceService.HealthCheck> healthChecks) {
+    protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
+        List<InstanceService.HealthCheck> healthChecks) {
       return Collections.emptyMap();
     }
   }

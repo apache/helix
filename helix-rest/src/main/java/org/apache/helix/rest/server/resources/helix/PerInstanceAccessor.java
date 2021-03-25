@@ -39,7 +39,6 @@ import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -101,7 +100,6 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
     switch (cmd) {
     case getInstance:
-      ObjectMapper objectMapper = new ObjectMapper();
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
       InstanceService instanceService =
@@ -111,7 +109,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
       try {
-        instanceInfoString = objectMapper.writeValueAsString(instanceInfo);
+        instanceInfoString = OBJECT_MAPPER.writeValueAsString(instanceInfo);
       } catch (JsonProcessingException e) {
         return serverError(e);
       }
@@ -133,18 +131,34 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
   }
 
+  /**
+   * Performs health checks for an instance to answer if it is stoppable.
+   *
+   * @param jsonContent json payload
+   * @param clusterId cluster id
+   * @param instanceName Instance name to be checked
+   * @param skipZKRead skip reading from zk server
+   * @param allChecks whether or not force to do all checks including helix own check,
+   *                  custom instance check and custom partition check. If false, when helix own
+   *                  check fails, the succeeding checks will not be performed.
+   * @return json response representing if queried instance is stoppable
+   * @throws IOException if there is any IO/network error
+   */
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   @Path("stoppable")
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response isInstanceStoppable(String jsonContent, @PathParam("clusterId") String clusterId,
-      @PathParam("instanceName") String instanceName, @QueryParam("skipZKRead") String skipZKRead) throws IOException {
-    ObjectMapper objectMapper = new ObjectMapper();
+  public Response isInstanceStoppable(
+      String jsonContent,
+      @PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName,
+      @QueryParam("skipZKRead") boolean skipZKRead,
+      @QueryParam("allChecks") boolean allChecks) throws IOException {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     InstanceService instanceService =
-        new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
-            Boolean.parseBoolean(skipZKRead), getNamespace());
+        new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
+            allChecks, getNamespace());
     StoppableCheck stoppableCheck = null;
     try {
       stoppableCheck =
@@ -154,7 +168,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           e);
       return serverError(e);
     }
-    return OK(objectMapper.writeValueAsString(stoppableCheck));
+    return OK(OBJECT_MAPPER.writeValueAsString(stoppableCheck));
   }
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)

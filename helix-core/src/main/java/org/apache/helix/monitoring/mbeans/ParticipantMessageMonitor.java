@@ -19,9 +19,28 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean {
+import java.util.ArrayList;
+import java.util.List;
+import javax.management.JMException;
+import javax.management.ObjectName;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+
+
+public class ParticipantMessageMonitor extends DynamicMBeanProvider {
   public static final String PARTICIPANT_KEY = "ParticipantName";
   public static final String PARTICIPANT_STATUS_KEY = "ParticipantMessageStatus";
+
+  // For registering dynamic metrics
+  private final ObjectName _initObjectName;
+  private final String _participantName;
+
+  private SimpleDynamicMetric<Long> _receivedMessages;
+  private SimpleDynamicMetric<Long> _discardedMessages;
+  private SimpleDynamicMetric<Long> _completedMessages;
+  private SimpleDynamicMetric<Long> _failedMessages;
+  private SimpleDynamicMetric<Long> _pendingMessages;
 
   /**
    * The current processed state of the message
@@ -32,68 +51,42 @@ public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean
     COMPLETED
   }
 
-  private final String _participantName;
-  private long _receivedMessages = 0;
-  private long _discardedMessages = 0;
-  private long _completedMessages = 0;
-  private long _failedMessages = 0;
-  private long _pendingMessages = 0;
-
-  public ParticipantMessageMonitor(String participantName) {
+  public ParticipantMessageMonitor(String participantName, ObjectName objectName) {
     _participantName = participantName;
+    _initObjectName = objectName;
+    _receivedMessages = new SimpleDynamicMetric("ReceivedMessages", 0L);
+    _discardedMessages = new SimpleDynamicMetric("DiscardedMessages", 0L);
+    _completedMessages = new SimpleDynamicMetric("CompletedMessages", 0L);
+    _failedMessages = new SimpleDynamicMetric("FailedMessages", 0L);
+    _pendingMessages = new SimpleDynamicMetric("PendingMessages", 0L);
   }
 
   public String getParticipantBeanName() {
     return String.format("%s=%s", PARTICIPANT_KEY, _participantName);
   }
 
-  public void incrementReceivedMessages(int count) {
-    _receivedMessages += count;
+  public void incrementReceivedMessages(long count) {
+    incrementSimpleDynamicMetric(_receivedMessages, count);
   }
 
   public void incrementDiscardedMessages(int count) {
-    _discardedMessages += count;
+    incrementSimpleDynamicMetric(_discardedMessages, count);
   }
 
   public void incrementCompletedMessages(int count) {
-    _completedMessages += count;
+    incrementSimpleDynamicMetric(_completedMessages, count);
   }
 
   public void incrementFailedMessages(int count) {
-    _failedMessages += count;
+    incrementSimpleDynamicMetric(_failedMessages, count);
   }
 
   public void incrementPendingMessages(int count) {
-    _pendingMessages += count;
+    incrementSimpleDynamicMetric(_pendingMessages, count);
   }
 
   public void decrementPendingMessages(int count) {
-    _pendingMessages -= count;
-  }
-
-  @Override
-  public long getReceivedMessages() {
-    return _receivedMessages;
-  }
-
-  @Override
-  public long getDiscardedMessages() {
-    return _discardedMessages;
-  }
-
-  @Override
-  public long getCompletedMessages() {
-    return _completedMessages;
-  }
-
-  @Override
-  public long getFailedMessages() {
-    return _failedMessages;
-  }
-
-  @Override
-  public long getPendingMessages() {
-    return _pendingMessages;
+    incrementSimpleDynamicMetric(_pendingMessages, -1 * count);
   }
 
   @Override
@@ -101,4 +94,20 @@ public class ParticipantMessageMonitor implements ParticipantMessageMonitorMBean
     return PARTICIPANT_STATUS_KEY;
   }
 
+  /**
+   * This method registers the dynamic metrics.
+   * @return
+   * @throws JMException
+   */
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_receivedMessages);
+    attributeList.add(_discardedMessages);
+    attributeList.add(_completedMessages);
+    attributeList.add(_failedMessages);
+    attributeList.add(_pendingMessages);
+    doRegister(attributeList, _initObjectName);
+    return this;
+  }
 }

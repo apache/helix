@@ -49,7 +49,8 @@ public class ParticipantStatusMonitor {
     try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
-        _messageMonitor = new ParticipantMessageMonitor(instanceName);
+        _messageMonitor =
+            new ParticipantMessageMonitor(instanceName, getObjectName(_messageMonitor.getParticipantBeanName()));
         _messageLatencyMonitor =
             new MessageLatencyMonitor(MonitorDomainNames.CLMParticipantReport.name(), instanceName);
         _messageLatencyMonitor.register();

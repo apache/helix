@@ -46,7 +46,9 @@ public class ParticipantMessageMonitor extends DynamicMBeanProvider {
    * The current processed state of the message
    */
   public enum ProcessedMessageState {
-    DISCARDED, FAILED, COMPLETED
+    DISCARDED,
+    FAILED,
+    COMPLETED
   }
 
   public ParticipantMessageMonitor(String participantName, ObjectName objectName) {
@@ -84,7 +86,7 @@ public class ParticipantMessageMonitor extends DynamicMBeanProvider {
   }
 
   public void decrementPendingMessages(int count) {
-    decrementSimpleDynamicMetric(_pendingMessages, count);
+    incrementSimpleDynamicMetric(_pendingMessages, -1 * count);
   }
 
   @Override

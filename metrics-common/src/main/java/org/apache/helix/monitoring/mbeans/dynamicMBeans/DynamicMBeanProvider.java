@@ -228,14 +228,6 @@ public abstract class DynamicMBeanProvider implements DynamicMBean, SensorNamePr
   }
 
   /**
-   * NOTE: This method is not thread-safe nor atomic.
-   * Decrement the value of a given SimpleDynamicMetric with input value.
-   */
-  protected void decrementSimpleDynamicMetric(SimpleDynamicMetric<Long> metric, long value) {
-    metric.updateValue(metric.getValue() - value);
-  }
-
-  /**
    * Return the interval length for the underlying reservoir used by the MBean metric configured
    * in the system env variables. If not found, use default value.
    */

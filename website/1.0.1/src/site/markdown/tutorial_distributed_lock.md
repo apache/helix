@@ -85,48 +85,29 @@ Currently, Helix supports two kinds of locks. One is basic lock, and the other i
 * No notification support. When a client loses its lock after the timeout or due to some urgent maintenance work who does not check the lock, there is no notification sent out to the previous lock owner.
 
 #### How to Use Helix Basic Lock
-The implementation of Helix lock is called "ZkHelixNonblockingLock". It has two different constructors. One takes clusterName, and HelixConfigScope as inputs, while the other takes a lockPath string as input.  Note that HelixConfigScope can be "cluster", "participant", or "resource". 
+The implementation of Helix lock is called "ZkHelixNonblockingLock". It has two different constructors as shown below. One constructor takes clusterName, and HelixConfigScope as inputs. HelixConfigScope can be "cluster", "participant", or "resource". The other constructor takes a lockPath string as input.
+``` 
+  /**
+   * Initialize the lock with Helix scope.
+   */
+  public ZKHelixNonblockingLock(String clusterName, HelixConfigScope scope, String zkAddress,
+      Long timeout, String lockMsg) 
+ 
+  /**
+   * Initialize the lock with lock path under zookeeper.
+   */
+  public ZKHelixNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg) 
+```
 
-Based on the example code shown below, the client can use the lock in two different ways. If the client would like to use the lock for some specific Helix resource, it can use the first constructor which requires clusterName and HelixConfigScope. Or the client may choose to use the lock for generic purpose, basically on any resource they have. In this case, the client needs to provide the lock path, which is a string, and it represents where the lock should exist under zookeeper. 
+The client can use the lock in two different ways. If the client would like to use the lock for some specific Helix resource, it can use the first constructor which requires clusterName and HelixConfigScope. We show an example below on how to use Helix scope. Or the client may choose to use the lock for generic purpose, basically on any resource they have. In this case, the client needs to provide the lock path, which is a string, and it represents where the lock should exist under zookeeper.
+```
+    List<String> pathKeys = new ArrayList<>();
+    pathKeys.add(clusterName);
+    HelixLockScope participantScope = new HelixLockScope(HelixLockScope.LockScopeProperty.CLUSTER, pathKeys);
+```
 
 Note that if users have onboarded to ZooScalability that has multiple realms, they should instead use the builder instead of the above constructors.
 
-```
-/**
- * Helix nonblocking lock implementation based on Zookeeper
- */
-public class ZKHelixNonblockingLock implements HelixLock {
-  private static final Logger LOG = Logger.getLogger(ZKHelixNonblockingLock.class);
- 
-  private static final String LOCK_ROOT = "LOCKS";
-  private final HelixZkClient _zkClient;
-  private final String _lockPath;
- 
-  /**
-   * Initialize the lock with user provided information, e.g.,cluster, scope, etc.
-   * @param clusterName the cluster under which the lock will live
-   * @param scope the scope to lock
-   * @param zkAddress the zk address the cluster connects to
-   * @param timeout the timeout period of the lcok
-   * @param lockMsg the reason for having this lock
-   */
-  public ZKHelixNonblockingLock(String clusterName, HelixConfigScope scope, String zkAddress,
-      Long timeout, String lockMsg) {
-    this("/" + clusterName + '/' + LOCK_ROOT + '/' + scope, zkAddress, timeout, lockMsg);
-  }
- 
-  /**
-   * Initialize the lock with user provided information, e.g., lock path under zookeeper, etc.
-   * @param lockPath the path of the lock under Zookeeper
-   * @param zkAddress the zk address of the cluster
-   * @param timeout the timeout period of the lcok
-   * @param lockMsg the reason for having this lock
-   */
-  public ZKHelixNonblockingLock(String lockPath, String zkAddress, Long timeout, String lockMsg) {
-    _zkClient = new ZkClient(zkAddress);
-    _lockPath = lockPath;
-  }
-```
 
 ### Helix Priority Lock
 #### Features

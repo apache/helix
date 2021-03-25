@@ -53,11 +53,54 @@ public class TestInstanceValidationUtilInRest{
         .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
         .thenReturn(mock.stateModel);
     when(mock.stateModel.getTopState()).thenReturn("MASTER");
-    List<String> failedPartitions = InstanceValidationUtil
+    Map<String, List<String>> failedPartitions = InstanceValidationUtil
         .perPartitionHealthCheck(externalViews, preparePartitionStateMap(), "h2", accessor);
 
-    Assert.assertTrue(failedPartitions.size() == 1);
-    Assert.assertEquals(failedPartitions.iterator().next(), "p2");
+    Assert.assertTrue(failedPartitions.keySet().size() == 1);
+    Assert.assertEquals(failedPartitions.keySet().iterator().next(), "p2");
+  }
+
+  @Test
+  public void testPartitionLevelCheckInitState() {
+    List<ExternalView> externalViews = new ArrayList<>(Arrays.asList(prepareExternalViewOffline()));
+    Mock mock = new Mock();
+    HelixDataAccessor accessor = mock.dataAccessor;
+
+    when(mock.dataAccessor.keyBuilder())
+        .thenReturn(new PropertyKey.Builder(TEST_CLUSTER));
+    when(mock.dataAccessor
+        .getProperty(new PropertyKey.Builder(TEST_CLUSTER).stateModelDef(MasterSlaveSMD.name)))
+        .thenReturn(mock.stateModel);
+    when(mock.stateModel.getTopState()).thenReturn("MASTER");
+    when(mock.stateModel.getInitialState()).thenReturn("OFFLINE");
+
+    Map<String, Map<String, Boolean>> partitionStateMap = new HashMap<>();
+    partitionStateMap.put("h1", new HashMap<>());
+    partitionStateMap.put("h2", new HashMap<>());
+    partitionStateMap.put("h3", new HashMap<>());
+    partitionStateMap.put("h4", new HashMap<>());
+
+    partitionStateMap.get("h1").put("p1", true);
+    partitionStateMap.get("h2").put("p1", true);
+    partitionStateMap.get("h3").put("p1", true);
+    partitionStateMap.get("h4").put("p1", true);
+
+    partitionStateMap.get("h1").put("p2", true);
+    partitionStateMap.get("h2").put("p2", false);
+    partitionStateMap.get("h3").put("p2", true);
+
+    Map<String, List<String>> failedPartitions = InstanceValidationUtil
+        .perPartitionHealthCheck(externalViews, partitionStateMap, "h1", accessor);
+    Assert.assertEquals(failedPartitions.get("p1").size(), 1);
+    Assert.assertEquals(failedPartitions.get("p1").get(0), "PARTITION_INITIAL_STATE_FAIL");
+
+    partitionStateMap.get("h3").put("p1", false);
+    failedPartitions = InstanceValidationUtil
+        .perPartitionHealthCheck(externalViews, partitionStateMap, "h1", accessor);
+    Assert.assertEquals(failedPartitions.get("p1").size(), 2);
+    Assert.assertTrue(failedPartitions.get("p1").contains("PARTITION_INITIAL_STATE_FAIL"));
+    Assert.assertTrue(failedPartitions.get("p1").contains("UNHEALTHY_PARTITION"));
+    Assert.assertEquals(failedPartitions.keySet().size(), 2);
   }
 
   private ExternalView prepareExternalView() {
@@ -101,6 +144,23 @@ public class TestInstanceValidationUtilInRest{
     partitionStateMap.get("h3").put("p3", true);
 
     return partitionStateMap;
+  }
+
+  private ExternalView prepareExternalViewOffline() {
+    ExternalView externalView = new ExternalView(RESOURCE_NAME);
+    externalView.getRecord()
+        .setSimpleField(ExternalView.ExternalViewProperty.STATE_MODEL_DEF_REF.toString(),
+            MasterSlaveSMD.name);
+    externalView.setState("p1", "h1", "MASTER");
+    externalView.setState("p1", "h2", "SLAVE");
+    externalView.setState("p1", "h3", "SLAVE");
+    externalView.setState("p1", "h4", "OFFLINE");
+
+    externalView.setState("p2", "h1", "MASTER");
+    externalView.setState("p2", "h2", "SLAVE");
+    externalView.setState("p2", "h3", "SLAVE");
+
+    return externalView;
   }
 
   private final class Mock {

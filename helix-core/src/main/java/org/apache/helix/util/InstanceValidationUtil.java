@@ -20,6 +20,7 @@ package org.apache.helix.util;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,11 @@ public class InstanceValidationUtil {
 
   public static Set<String> UNHEALTHY_STATES =
       ImmutableSet.of(HelixDefinedState.DROPPED.name(), HelixDefinedState.ERROR.name());
+
+  static final String UNHEALTHY_PARTITION = "UNHEALTHY_PARTITION";
+  // The message that will be shown if partition is in initial state of the state model and
+  // partition health check has been skipped for that instance
+  static final String PARTITION_INITIAL_STATE_FAIL = "PARTITION_INITIAL_STATE_FAIL";
 
   private InstanceValidationUtil() {
   }
@@ -218,10 +224,10 @@ public class InstanceValidationUtil {
    * @param dataAccessor The data accessor
    * @return A list of problematic partitions if the instance is stopped
    */
-  public static List<String> perPartitionHealthCheck(List<ExternalView> externalViews,
+  public static Map<String, List<String>> perPartitionHealthCheck(List<ExternalView> externalViews,
       Map<String, Map<String, Boolean>> globalPartitionHealthStatus, String instanceToBeStop,
       HelixDataAccessor dataAccessor) {
-    List<String> unhealthyPartitions = new ArrayList<>();
+    Map<String, List<String>> unhealthyPartitions = new HashMap<>();
 
     for (ExternalView externalView : externalViews) {
       // Skip ANY_LIVEINSTANCES resources check, since ANY_LIVEINSTANCES resources have single partition
@@ -244,13 +250,20 @@ public class InstanceValidationUtil {
               continue;
             }
 
+            // If the state is init state, we add appropriate messages
+            if (stateMap.get(siblingInstance).equals(stateModelDefinition.getInitialState())) {
+              unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
+                  .add(PARTITION_INITIAL_STATE_FAIL);
+              continue;
+            }
+
             // We are checking sibling partition healthy status. So if partition health does not
             // exist or it is not healthy. We should mark this partition is unhealthy.
             if (!globalPartitionHealthStatus.containsKey(siblingInstance)
                 || !globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
                 || !globalPartitionHealthStatus.get(siblingInstance).get(partition)) {
-              unhealthyPartitions.add(partition);
-              break;
+              unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
+                  .add(UNHEALTHY_PARTITION);
             }
           }
         }

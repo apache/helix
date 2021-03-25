@@ -275,12 +275,18 @@ public class InstanceServiceImpl implements InstanceService {
         _dataAccessor.getChildValues(_dataAccessor.keyBuilder().externalViews(), true);
     Map<String, StoppableCheck> instanceStoppableChecks = new HashMap<>();
     for (String instanceName : instances) {
-      List<String> unHealthyPartitions = InstanceValidationUtil
+      Map<String, List<String>> unHealthyPartitions = InstanceValidationUtil
           .perPartitionHealthCheck(externalViews, allPartitionsHealthOnLiveInstance, instanceName,
               _dataAccessor);
-      StoppableCheck stoppableCheck =
-          new StoppableCheck(unHealthyPartitions.isEmpty(), unHealthyPartitions,
-              StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
+
+      List<String> unHealthyPartitionsList = new ArrayList<>();
+      for (String partitionName : unHealthyPartitions.keySet()) {
+        for (String reason : unHealthyPartitions.get(partitionName)) {
+          unHealthyPartitionsList.add(reason.toUpperCase() + ":" + partitionName);
+        }
+      }
+      StoppableCheck stoppableCheck = new StoppableCheck(unHealthyPartitionsList.isEmpty(),
+          unHealthyPartitionsList, StoppableCheck.Category.CUSTOM_PARTITION_CHECK);
       instanceStoppableChecks.put(instanceName, stoppableCheck);
     }
 

@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -134,7 +135,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
     // Set operation retry timeout to prevent hanging infinitely
-    clientConfig.setOperationRetryTimeout((long) 60000);
+    clientConfig.setOperationRetryTimeout(Duration.ofMinutes(5).toMillis());
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {

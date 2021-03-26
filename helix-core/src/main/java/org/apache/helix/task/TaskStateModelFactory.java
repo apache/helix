@@ -52,6 +52,9 @@ import org.slf4j.LoggerFactory;
 public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private static Logger LOG = LoggerFactory.getLogger(TaskStateModelFactory.class);
 
+  // Unit in minutes. Need a retry timeout to prevent zkClient from hanging infinitely.
+  private static int ZKCLIENT_OPERATION_RETRY_TIMEOUT = 5;
+
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private final ScheduledExecutorService _taskExecutor;
@@ -135,7 +138,8 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
         new RealmAwareZkClient.RealmAwareZkClientConfig().setZkSerializer(new ZNRecordSerializer());
     // Set operation retry timeout to prevent hanging infinitely
-    clientConfig.setOperationRetryTimeout(Duration.ofMinutes(5).toMillis());
+    clientConfig
+        .setOperationRetryTimeout(Duration.ofMinutes(ZKCLIENT_OPERATION_RETRY_TIMEOUT).toMillis());
     String zkAddress = manager.getMetadataStoreConnectionString();
 
     if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddress == null) {

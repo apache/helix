@@ -38,7 +38,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -204,7 +206,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   private long _lastPipelineEndTimestamp;
 
-  private String _clusterName;
+  private final String _clusterName;
   private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   private HelixManager _helixManager;
@@ -225,10 +227,52 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    *  1) ZK callback should go to ClusterDataCache and trigger data cache refresh only
    *  2) then ClusterDataCache.refresh triggers rebalance pipeline.
    */
-  /* Map of cluster->GenrichelixController */
-  private static Map<String, GenericHelixController> HelixControllerFactory = new ConcurrentHashMap<>();
-  public static GenericHelixController getController(String clusterName) {
-    return HelixControllerFactory.get(clusterName);
+  /* Map of cluster->Set of GenericHelixController*/
+  private static Map<String, ImmutableSet<GenericHelixController>> _helixControllerFactory =
+      new ConcurrentHashMap<>();
+
+  public static GenericHelixController getLeaderController(String clusterName) {
+    if (clusterName != null) {
+      ImmutableSet<GenericHelixController> controllers = _helixControllerFactory.get(clusterName);
+      if (controllers != null) {
+        return controllers.stream().filter(controller -> controller._helixManager.isLeader())
+            .findAny().orElse(null);
+      }
+    }
+    return null;
+  }
+
+  public static void addController(GenericHelixController controller) {
+    if (controller != null && controller._clusterName != null) {
+      synchronized (_helixControllerFactory) {
+        Set<GenericHelixController> currentControllerSet =
+            _helixControllerFactory.get(controller._clusterName);
+        if (currentControllerSet == null) {
+          _helixControllerFactory.put(controller._clusterName, ImmutableSet.of(controller));
+        } else {
+          ImmutableSet.Builder<GenericHelixController> builder = ImmutableSet.builder();
+          builder.addAll(currentControllerSet);
+          builder.add(controller);
+          _helixControllerFactory.put(controller._clusterName, builder.build());
+        }
+      }
+    }
+  }
+
+  public static void removeController(GenericHelixController controller) {
+    if (controller != null && controller._clusterName != null) {
+      synchronized (_helixControllerFactory) {
+        Set<GenericHelixController> currentControllerSet =
+            _helixControllerFactory.get(controller._clusterName);
+        if (currentControllerSet != null && currentControllerSet.contains(controller)) {
+          ImmutableSet.Builder<GenericHelixController> builder = ImmutableSet.builder();
+          builder.addAll(
+              currentControllerSet.stream().filter(c -> c.hashCode() != controller.hashCode())
+                  .collect(Collectors.toSet()));
+          _helixControllerFactory.put(controller._clusterName, builder.build());
+        }
+      }
+    }
   }
 
   /**
@@ -654,9 +698,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _taskEventThread = null;
     }
 
-    if (clusterName != null) {
-      HelixControllerFactory.put(clusterName, this);
-    }
+    addController(this);
   }
 
   private void initializeAsyncFIFOWorkers() {
@@ -1346,6 +1388,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   }
 
   public void shutdown() throws InterruptedException {
+    removeController(this);
+
     stopPeriodRebalance();
     _periodicalRebalanceExecutor.shutdown();
     if (!_periodicalRebalanceExecutor

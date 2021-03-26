@@ -53,7 +53,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private static Logger LOG = LoggerFactory.getLogger(TaskStateModelFactory.class);
 
   // Unit in minutes. Need a retry timeout to prevent zkClient from hanging infinitely.
-  private static int ZKCLIENT_OPERATION_RETRY_TIMEOUT = 5;
+  private static final int ZKCLIENT_OPERATION_RETRY_TIMEOUT = 5;
 
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;

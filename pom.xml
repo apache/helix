@@ -390,6 +390,7 @@ under the License.
     <helix.siteUrlDeployment>file://${helix.siteFilePath}</helix.siteUrlDeployment>
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
+    <fasterxml.jackson.version>2.10.5</fasterxml.jackson.version>
     <!-- fix issue with current apache parent pom -->
     <arguments />
 

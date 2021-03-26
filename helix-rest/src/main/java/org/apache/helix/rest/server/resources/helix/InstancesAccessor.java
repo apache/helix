@@ -50,10 +50,10 @@ import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.rest.server.service.InstanceServiceImpl;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,7 +194,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
           InstancesAccessor.InstanceHealthSelectionBase.valueOf(
               node.get(InstancesAccessor.InstancesProperties.selection_base.name())
-                  .getValueAsText());
+                  .asText());
       List<String> instances = OBJECT_MAPPER
           .readValue(node.get(InstancesAccessor.InstancesProperties.instances.name()).toString(),
               OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
@@ -202,7 +202,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       List<String> orderOfZone = null;
       String customizedInput = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).getTextValue();
+        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).asText();
       }
 
       if (node.get(InstancesAccessor.InstancesProperties.zone_order.name()) != null) {

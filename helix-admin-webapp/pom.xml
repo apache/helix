@@ -32,7 +32,6 @@ under the License.
   <properties>
     <osgi.import>
       org.apache.helix*,
-      org.codehaus.jackson*,
       org.apache.commons.cli*,
       org.apache.commons.cli;version="[1.2,2)",
       org.apache.commons.io*;version="[1.4,2)",
@@ -76,15 +75,11 @@ under the License.
       <artifactId>xstream</artifactId>
       <version>1.3.1</version>
     </dependency>
+
     <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-core-asl</artifactId>
-      <version>1.8.5</version>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-mapper-asl</artifactId>
-      <version>1.8.5</version>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${fasterxml.jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>

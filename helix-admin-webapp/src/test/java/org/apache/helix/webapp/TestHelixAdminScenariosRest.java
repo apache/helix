@@ -47,11 +47,12 @@ import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
 import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;
 import org.apache.helix.webapp.resources.JsonParameters;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationConfig;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.restlet.Component;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -75,10 +76,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
   String _tag2 = "tag212334";
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
-      JsonMappingException, IOException {
+        JsonMappingException, IOException {
     ObjectMapper mapper = new ObjectMapper();
-    SerializationConfig serializationConfig = mapper.getSerializationConfig();
-    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+    SerializationConfig serializationConfig = mapper.getSerializationConfig()
+        .with(SerializationFeature.INDENT_OUTPUT);
 
     StringWriter sw = new StringWriter();
     mapper.writeValue(sw, object);
@@ -160,7 +161,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
-    result.write(sw);
+    if (result != null) {
+      result.write(sw);
+    }
     return sw.toString();
   }
 

@@ -35,7 +35,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.exception.ZkMarshallingError;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
 import org.apache.http.HttpStatus;
-import org.codehaus.jackson.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -95,7 +95,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
         new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
             .isBodyReturnExpected(true).get(this);
     JsonNode jsonNode = OBJECT_MAPPER.readTree(actual);
-    String payLoad = jsonNode.get(CONTENT_KEY).getValueAsText();
+    String payLoad = jsonNode.get(CONTENT_KEY).asText();
 
     Assert.assertEquals(TEST_CONTENT, payLoad);
   }

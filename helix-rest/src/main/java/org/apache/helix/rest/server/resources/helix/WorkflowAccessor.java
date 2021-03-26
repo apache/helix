@@ -46,13 +46,13 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.type.TypeFactory;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.node.TextNode;
-import org.codehaus.jackson.type.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -371,7 +371,7 @@ public class WorkflowAccessor extends AbstractHelixResource {
   private Map<String, JobConfig.Builder> getJobConfigs(ArrayNode root)
       throws HelixException, IOException {
     Map<String, JobConfig.Builder> jobConfigsMap = new HashMap<>();
-    for (Iterator<JsonNode> it = root.getElements(); it.hasNext(); ) {
+    for (Iterator<JsonNode> it = root.elements(); it.hasNext(); ) {
       JsonNode job = it.next();
       ZNRecord record = null;
 
@@ -386,10 +386,10 @@ public class WorkflowAccessor extends AbstractHelixResource {
             TypeFactory.defaultInstance()
                 .constructMapType(HashMap.class, String.class, String.class));
         jobConfigsMap
-            .put(job.get(Properties.id.name()).getTextValue(), JobAccessor.getJobConfig(cfgMap));
+            .put(job.get(Properties.id.name()).asText(), JobAccessor.getJobConfig(cfgMap));
       } else {
         jobConfigsMap
-            .put(job.get(Properties.id.name()).getTextValue(), JobAccessor.getJobConfig(record));
+            .put(job.get(Properties.id.name()).asText(), JobAccessor.getJobConfig(record));
       }
     }
 

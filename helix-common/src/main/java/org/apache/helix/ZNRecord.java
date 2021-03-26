@@ -19,10 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Deprecated; please use ZNRecord in zookeeper-api instead.
@@ -32,7 +31,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
  */
 @Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSerialize(include = Inclusion.NON_NULL)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ZNRecord extends org.apache.helix.zookeeper.datamodel.ZNRecord {
   public ZNRecord(String id) {
     super(id);

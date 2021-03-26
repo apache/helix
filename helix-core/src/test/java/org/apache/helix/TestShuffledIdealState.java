@@ -30,7 +30,7 @@ import java.util.Map;
 import org.apache.helix.tools.IdealCalculatorByConsistentHashing;
 import org.apache.helix.tools.IdealStateCalculatorByRush;
 import org.apache.helix.tools.IdealStateCalculatorByShuffling;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;

@@ -31,7 +31,7 @@ import java.util.TreeMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.tools.ClusterSetup;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.restlet.data.Form;
 import org.restlet.representation.Representation;
 

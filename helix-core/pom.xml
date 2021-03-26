@@ -38,7 +38,7 @@ under the License.
       org.apache.commons.io*;version="[1.4,2)",
       org.apache.commons.math*;version="[2.1,4)",
       org.apache.jute*;resolution:=optional,
-      org.codehaus.jackson*;version="[1.8,2)",
+      org.fasterxml.jackson*;version="[2.10,5)",
       org.slf4j*;version="[1.6,2)",
       *
     </osgi.import>
@@ -81,16 +81,6 @@ under the License.
           <artifactId>jmxri</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-     <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-core-asl</artifactId>
-      <version>1.8.5</version>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-mapper-asl</artifactId>
-      <version>1.8.5</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>

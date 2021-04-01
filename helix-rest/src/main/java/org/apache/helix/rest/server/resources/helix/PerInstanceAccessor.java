@@ -138,9 +138,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
    * @param clusterId cluster id
    * @param instanceName Instance name to be checked
    * @param skipZKRead skip reading from zk server
-   * @param allChecks whether or not force to do all checks including helix own check,
+   * @param allChecks whether or not force to perform all checks including helix own check,
    *                  custom instance check and custom partition check. If false, when helix own
-   *                  check fails, the succeeding checks will not be performed.
+   *                  check fails, the subsequent custom checks will not be performed.
    * @return json response representing if queried instance is stoppable
    * @throws IOException if there is any IO/network error
    */
@@ -159,13 +159,13 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     InstanceService instanceService =
         new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
             allChecks, getNamespace());
-    StoppableCheck stoppableCheck = null;
+    StoppableCheck stoppableCheck;
     try {
       stoppableCheck =
           instanceService.getInstanceStoppableCheck(clusterId, instanceName, jsonContent);
     } catch (HelixException e) {
-      LOG.error(String.format("Current cluster %s has issue with health checks!", clusterId),
-          e);
+      LOG.error("Current cluster: {}, instance: {} has issue with health checks!", clusterId,
+          instanceName, e);
       return serverError(e);
     }
     return OK(OBJECT_MAPPER.writeValueAsString(stoppableCheck));

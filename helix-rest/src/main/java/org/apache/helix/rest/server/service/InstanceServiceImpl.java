@@ -231,9 +231,7 @@ public class InstanceServiceImpl implements InstanceService {
       stoppableChecks.put(instance, stoppableCheck);
     } else {
       // Merge two checks
-      StoppableCheck existedCheck = stoppableChecks.get(instance);
-      existedCheck.add(stoppableCheck);
-      stoppableChecks.put(instance, existedCheck);
+      stoppableChecks.get(instance).add(stoppableCheck);
     }
   }
 

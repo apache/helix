@@ -369,9 +369,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     taskResult.setCompleteTime(System.currentTimeMillis());
     // add task result to context for postHandling
     context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
-    synchronized (_stateModel) {
-      postHandleMessage();
-    }
+    postHandleMessage();
 
     return taskResult;
   }

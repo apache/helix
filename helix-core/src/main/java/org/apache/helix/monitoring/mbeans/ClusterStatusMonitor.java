@@ -533,17 +533,28 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setResourceStatus(ExternalView externalView, IdealState idealState,
-      StateModelDefinition stateModelDef, int messageCount) {
+  public void setResourceState(String resourceName, ExternalView externalView,
+      IdealState idealState, StateModelDefinition stateModelDef) {
     try {
-      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(externalView.getId());
+      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
 
       if (resourceMonitor != null) {
         resourceMonitor.updateResourceState(externalView, idealState, stateModelDef);
-        resourceMonitor.updatePendingStateTransitionMessages(messageCount);
       }
     } catch (Exception e) {
       LOG.error("Fail to set resource status, resource: " + idealState.getResourceName(), e);
+    }
+  }
+
+  public void setResourcePendingMessages(String resourceName, int messageCount) {
+    try {
+      ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+      if (resourceMonitor != null) {
+        resourceMonitor.updatePendingStateTransitionMessages(messageCount);
+      }
+    } catch (Exception e) {
+      LOG.error("Fail to set pending resource messages, resource: " + resourceName, e);
     }
   }
 

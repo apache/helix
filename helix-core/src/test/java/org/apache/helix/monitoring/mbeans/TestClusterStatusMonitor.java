@@ -278,7 +278,7 @@ public class TestClusterStatusMonitor {
     StateModelDefinition stateModelDef =
         BuiltInStateModelDefinitions.MasterSlave.getStateModelDefinition();
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
+    monitor.setResourceState(testDB, externalView, idealState, stateModelDef);
 
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getTotalResourceGauge(), 1);
@@ -287,7 +287,7 @@ public class TestClusterStatusMonitor {
     Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
-
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
 
     int lessMinActiveReplica = 6;
     Random r = new Random();
@@ -311,13 +311,14 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
+    monitor.setResourceState(testDB, externalView, idealState, stateModelDef);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), lessMinActiveReplica);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), lessMinActiveReplica);
 
     int missTopState = 7;
     externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
@@ -339,13 +340,14 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
+    monitor.setResourceState(testDB, externalView, idealState, stateModelDef);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), missTopState);
     Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), missTopState);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), missTopState);
 
     int missReplica = 5;
     externalView = new ExternalView(TestResourceMonitor.deepCopyZNRecord(idealStateRecord));
@@ -364,13 +366,14 @@ public class TestClusterStatusMonitor {
       externalView.setStateMap(partition, map);
     }
 
-    monitor.setResourceStatus(externalView, idealState, stateModelDef, 0);
+    monitor.setResourceState(testDB, externalView, idealState, stateModelDef);
     Assert.assertEquals(monitor.getTotalPartitionGauge(), numPartition);
     Assert.assertEquals(monitor.getMissingMinActiveReplicaPartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingTopStatePartitionGauge(), 0);
     Assert.assertEquals(monitor.getMissingReplicaPartitionGauge(), missReplica);
     Assert.assertEquals(monitor.getStateTransitionCounter(), 0);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), 0);
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), missReplica);
 
     int messageCount = 4;
     List<Message> messages = new ArrayList<>();
@@ -386,7 +389,7 @@ public class TestClusterStatusMonitor {
 
     // test pending state transition message report and read
     messageCount = new Random().nextInt(numPartition) + 1;
-    monitor.setResourceStatus(externalView, idealState, stateModelDef, messageCount);
+    monitor.setResourcePendingMessages(testDB, messageCount);
     Assert.assertEquals(monitor.getPendingStateTransitionGuage(), messageCount);
 
     // Reset monitor.

@@ -182,11 +182,8 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
           && (resourceConfig == null || !resourceConfig.isMonitoringDisabled()) // monitoring not disabled
           && !idealState.getStateModelDefRef() // and not a job resource
           .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-        StateModelDefinition stateModelDef =
-            cache.getStateModelDef(idealState.getStateModelDefRef());
         clusterStatusMonitor
-            .setResourceStatus(view, cache.getIdealState(view.getResourceName()),
-                stateModelDef, totalPendingMessageCount);
+            .setResourcePendingMessages(resourceName ,totalPendingMessageCount);
         monitoringResources.add(resourceName);
       }
     }

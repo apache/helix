@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -43,6 +45,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
@@ -795,6 +798,55 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
   }
 
+  private RebalanceType getRebalanceTypePerMessage(Map<String, Integer> requiredStates, Message message,
+      Map<String, String> derivedCurrentStates) {
+    Map<String, Integer> requiredStatesSnapshot = new HashMap<>(requiredStates);
+    // Looping existing current states to see whether current states fulfilled all the required states.
+    for (String state : derivedCurrentStates.values()) {
+      if (requiredStatesSnapshot.containsKey(state)) {
+        requiredStatesSnapshot.put(state, requiredStatesSnapshot.get(state) - 1);
+        if (requiredStatesSnapshot.get(state) == 0) {
+          requiredStatesSnapshot.remove(state);
+        }
+      }
+    }
+
+    // If the message is trying to bring the required state remaining in the map, it is recovery rebalance.
+    // Otherwise it is load rebalance.
+    return requiredStatesSnapshot.containsKey(message.getToState()) ? RebalanceType.RECOVERY_BALANCE
+        : RebalanceType.LOAD_BALANCE;
+  }
+
+  private Map<String, Integer> getRequiredStates(String resourceName,
+      ResourceControllerDataProvider resourceControllerDataProvider, List<String> preferenceList) {
+
+    // Prepare required inputs: 1) Priority State List 2) required number of replica
+    IdealState idealState = resourceControllerDataProvider.getIdealState(resourceName);
+    StateModelDefinition stateModelDefinition =
+        resourceControllerDataProvider.getStateModelDef(idealState.getStateModelDefRef());
+    int requiredNumReplica = idealState.getMinActiveReplicas() == -1
+        ? idealState.getReplicaCount(preferenceList.size())
+        : idealState.getMinActiveReplicas();
+    Set<String> activeList = new HashSet<>(preferenceList);
+    activeList.retainAll(resourceControllerDataProvider.getEnabledLiveInstances());
+
+    // For each state, check that this partition currently has the required number of that state as
+    // required by StateModelDefinition.
+    LinkedHashMap<String, Integer> expectedStateCountMap =
+        stateModelDefinition.getStateCountMap(activeList.size(), requiredNumReplica); // StateModelDefinition's counts
+
+    Map<String, Integer> requiredStates = new HashMap<>();
+    for (String state : stateModelDefinition.getStatesPriorityList()) {
+      if (requiredNumReplica <= 0) {
+        break;
+      }
+
+      requiredStates.put(state, Math.min(requiredNumReplica, expectedStateCountMap.get(state)));
+      requiredNumReplica -= requiredStates.get(state);
+    }
+    return requiredStates;
+  }
+
   /**
    * Log rebalancer metadata for debugging purposes.
    * @param resource
@@ -874,7 +926,31 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  // Compare partitions according following standard:
+  private class MessagePriorityComparator implements Comparator<Message> {
+    private Map<String, Integer> _preferenceInstanceMap;
+    private Map<String, Integer> _statePriorityMap;
+
+    MessagePriorityComparator(List<String> preferenceList, Map<String, Integer> statePriorityMap) {
+      // Get instance -> priority map.
+      _preferenceInstanceMap = IntStream.range(0, preferenceList.size())
+          .boxed()
+          .collect(Collectors.toMap(preferenceList::get, index -> index));
+      _statePriorityMap = statePriorityMap;
+    }
+
+    @Override
+    public int compare(Message m1, Message m2) {
+      //Compare rules:
+      //     1. Higher target state has higher priority.
+      //     2. If target state is same, range it as preference list order.
+      if (m1.getToState().equals(m2.getToState())) {
+        return _preferenceInstanceMap.get(m1.getTgtName()).compareTo(_preferenceInstanceMap.get(m2.getTgtName()));
+      }
+      return _statePriorityMap.get(m1.getToState()).compareTo(_statePriorityMap.get(m2.getToState()));
+    }
+  }
+
+    // Compare partitions according following standard:
   // 1) Partition without top state always is the highest priority.
   // 2) For partition with top-state, the more number of active replica it has, the less priority.
   private class PartitionPriorityComparator implements Comparator<Partition> {

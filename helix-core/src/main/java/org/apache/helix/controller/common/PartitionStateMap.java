@@ -39,10 +39,18 @@ public class PartitionStateMap {
     _stateMap = new HashMap<>();
   }
 
+  // Deep copy of the partitionStateMap is a safer way.
   public PartitionStateMap(String resourceName,
       Map<Partition, Map<String, String>> partitionStateMap) {
     _resourceName = resourceName;
-    _stateMap = partitionStateMap;
+    _stateMap = new HashMap<>();
+    for (Partition partition : partitionStateMap.keySet()) {
+      Map<String, String> map = new HashMap<>();
+      for (Map.Entry<String, String> entry : partitionStateMap.get(partition).entrySet()) {
+        map.put(entry.getKey(), entry.getValue());
+      }
+      _stateMap.put(partition, map);
+    }
   }
 
   public Set<Partition> partitionSet() {

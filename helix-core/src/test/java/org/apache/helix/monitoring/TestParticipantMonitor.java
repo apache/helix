@@ -23,18 +23,23 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
+import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,19 +49,22 @@ import org.testng.annotations.Test;
 public class TestParticipantMonitor {
   private static Logger _logger = LoggerFactory.getLogger(TestParticipantMonitor.class);
   private static String CLUSTER_NAME = TestHelper.getTestClassName();
+  private static final String PARTICIPANT_NAME = "participant_0";
+  private static final String DOMAIN_NAME = "CLMParticipantReport";
 
   class ParticipantMonitorListener extends ClusterMBeanObserver {
     Map<String, Map<String, Object>> _beanValueMap = new HashMap<>();
 
-    public ParticipantMonitorListener(String domain) throws IOException, InstanceNotFoundException {
+    public ParticipantMonitorListener(String domain, String key, String value)
+        throws IOException, InstanceNotFoundException {
       super(domain);
-      init();
+      init(key, value);
     }
 
-    void init() {
+    void init(String key, String value) {
       try {
         Set<ObjectInstance> existingInstances =
-            _server.queryMBeans(new ObjectName(_domain + ":Cluster=" + CLUSTER_NAME + ",*"), null);
+            _server.queryMBeans(new ObjectName(_domain + ":" + key + "=" + value + ",*"), null);
         for (ObjectInstance instance : existingInstances) {
           String mbeanName = instance.getObjectName().toString();
           // System.out.println("mbeanName: " + mbeanName);
@@ -102,15 +110,17 @@ public class TestParticipantMonitor {
   }
 
   @Test()
-  public void testReportData()
+  public void testReportStateTransitionData()
       throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
-      IOException, InterruptedException {
-    System.out.println("START TestParticipantMonitor");
+             IOException, InterruptedException, MBeanException, AttributeNotFoundException,
+             ReflectionException {
+    System.out.println("START TestParticipantStateTransitionMonitor");
     ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(false, null);
 
     int monitorNum = 0;
 
-    StateTransitionContext cxt = new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b");
+    StateTransitionContext cxt =
+        new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b");
     StateTransitionDataPoint data = new StateTransitionDataPoint(2000, 1000, 600, true);
     monitor.reportTransitionStat(cxt, data);
 
@@ -118,7 +128,7 @@ public class TestParticipantMonitor {
     monitor.reportTransitionStat(cxt, data);
 
     ParticipantMonitorListener monitorListener =
-        new ParticipantMonitorListener("CLMParticipantReport");
+        new ParticipantMonitorListener(DOMAIN_NAME, "Cluster", CLUSTER_NAME);
     Thread.sleep(1000);
     Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 1);
 
@@ -138,7 +148,8 @@ public class TestParticipantMonitor {
     Assert.assertEquals(monitorListener._beanValueMap.size(), monitorNum + 1);
 
     data = new StateTransitionDataPoint(1000, 500, 300, true);
-    StateTransitionContext cxt2 = new StateTransitionContext(CLUSTER_NAME, "instance", "db_2", "a-b");
+    StateTransitionContext cxt2 =
+        new StateTransitionContext(CLUSTER_NAME, "instance", "db_2", "a-b");
     monitor.reportTransitionStat(cxt2, data);
     monitor.reportTransitionStat(cxt2, data);
     Thread.sleep(1000);
@@ -147,12 +158,13 @@ public class TestParticipantMonitor {
 
     Assert.assertTrue(cxt.equals(cxt2));
     Assert.assertFalse(cxt.equals(new Object()));
-    Assert.assertTrue(cxt.equals(new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b")));
+    Assert.assertTrue(
+        cxt.equals(new StateTransitionContext(CLUSTER_NAME, "instance", "db_1", "a-b")));
 
     cxt2.getInstanceName();
 
     ParticipantMonitorListener monitorListener2 =
-        new ParticipantMonitorListener("CLMParticipantReport");
+        new ParticipantMonitorListener(DOMAIN_NAME, "Cluster", CLUSTER_NAME);
 
     Thread.sleep(1000);
     // Same here. Helix only measures per cluster + per state transitions.
@@ -160,6 +172,75 @@ public class TestParticipantMonitor {
 
     monitorListener2.disconnect();
     monitorListener.disconnect();
-    System.out.println("END TestParticipantMonitor");
+
+    System.out.println("END TestParticipantStateTransitionMonitor");
+  }
+
+  @Test()
+  public void testReportMessageData()
+      throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException,
+             IOException, InterruptedException, MBeanException, AttributeNotFoundException,
+             ReflectionException {
+    System.out.println("START TestParticipantMessageMonitor");
+    ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(true, PARTICIPANT_NAME);
+
+    Message message = new Message(Message.MessageType.NO_OP, "0");
+    monitor.reportReceivedMessage(message);
+    Thread.sleep(1000);
+    ParticipantMonitorListener monitorListener =
+        new ParticipantMonitorListener(DOMAIN_NAME, "ParticipantName", PARTICIPANT_NAME);
+    Thread.sleep(1000);
+    Assert.assertEquals(monitorListener._beanValueMap.size(), 2);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("ReceivedMessages"), 1L);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("PendingMessages"), 1L);
+
+    monitor
+        .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
+    Thread.sleep(1000);
+    monitorListener =
+        new ParticipantMonitorListener(DOMAIN_NAME, "ParticipantName", PARTICIPANT_NAME);
+    Thread.sleep(1000);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("ReceivedMessages"), 1L);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("PendingMessages"), 0L);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("CompletedMessages"), 1L);
+
+    monitor.reportReceivedMessage(message);
+    Thread.sleep(1000);
+    monitorListener =
+        new ParticipantMonitorListener(DOMAIN_NAME, "ParticipantName", PARTICIPANT_NAME);
+    Thread.sleep(1000);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("ReceivedMessages"), 2L);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("PendingMessages"), 1L);
+
+    monitor
+        .reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
+    Thread.sleep(1000);
+    monitorListener =
+        new ParticipantMonitorListener(DOMAIN_NAME, "ParticipantName", PARTICIPANT_NAME);
+    Thread.sleep(1000);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("DiscardedMessages"), 1L);
+    Assert.assertEquals(monitorListener._beanValueMap.get(
+        getObjectName("ParticipantName=participant_0,MonitorType=ParticipantMessageMonitor")
+            .toString()).get("PendingMessages"), 0L);
+
+    monitorListener.disconnect();
+
+    System.out.println("END TestParticipantMessageMonitor");
   }
 }

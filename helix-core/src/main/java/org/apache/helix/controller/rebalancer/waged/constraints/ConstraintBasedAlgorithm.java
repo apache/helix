@@ -56,7 +56,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
 
-
   ConstraintBasedAlgorithm(List<HardConstraint> hardConstraints,
       Map<SoftConstraint, Float> softConstraints) {
     _hardConstraints = hardConstraints;
@@ -294,9 +293,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     // Compare every replica with current candidate, update candidate if needed
     for (AssignableReplicaWithScore replica : allReplica) {
       replica.reComputeScore(overallClusterRemainingCapMap);
-      /*if (nextAssinableReplica!=null) {
-        System.out.println("comparing " + replica + " with current max :" + nextAssinableReplica);
-      }*/
       if (nextAssinableReplica == null || replica.compareTo(nextAssinableReplica) < 0) {
         nextAssinableReplica = replica;
       }

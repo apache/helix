@@ -42,6 +42,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * The algorithm is based on a given set of constraints
  * - HardConstraint: Approve or deny the assignment given its condition, any assignment cannot
@@ -80,9 +81,9 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             .map(replica -> new AssignableReplicaWithScore(replica, clusterModel))
             .collect(Collectors.toSet());
 
-    AssignableReplicaWithScore replicaWithScore =
-        getNextAssignableReplica(toBeAssignedReplicas,  overallClusterRemainingCapacityMap);
-    while (replicaWithScore != null) {
+    while (!toBeAssignedReplicas.isEmpty()) {
+      AssignableReplicaWithScore replicaWithScore =
+          getNextAssignableReplica(toBeAssignedReplicas, overallClusterRemainingCapacityMap);
       toBeAssignedReplicas.remove(replicaWithScore);
       AssignableReplica replica = replicaWithScore.getAssignableReplica();
       Optional<AssignableNode> maybeBestNode =
@@ -98,10 +99,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
       AssignableNode bestNode = maybeBestNode.get();
       // Assign the replica and update the cluster model.
-      clusterModel.assign(replica.getResourceName(), replica.getPartitionName(),
-          replica.getReplicaState(), bestNode.getInstanceName());
+      clusterModel
+          .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
+              bestNode.getInstanceName());
       updateOverallClusterRemainingCapacity(overallClusterRemainingCapacityMap, replica);
-      replicaWithScore = getNextAssignableReplica(toBeAssignedReplicas,  overallClusterRemainingCapacityMap);
     }
     optimalAssignment.updateAssignments(clusterModel);
     return optimalAssignment;
@@ -214,9 +215,13 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
       for (Map.Entry<String, Integer> resourceCapacity : _replica.getCapacity().entrySet()) {
-        score += resourceCapacity.getValue() * 100 / (
-            overallClusterRemainingCapMap.get(resourceCapacity.getKey())
-                + 0.01f /*avoid divide by 0*/);
+        score = resourceCapacity.getValue() == 0 ? score
+            : (overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0 ? Integer.MAX_VALUE
+                : score + Math.min(100, resourceCapacity.getValue() * 100 / (overallClusterRemainingCapMap
+                    .get(resourceCapacity.getKey()))));
+        if (score == Integer.MAX_VALUE) {
+          break;
+        }
       }
       _score = score;
     }

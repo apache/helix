@@ -80,28 +80,28 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             .map(replica -> new AssignableReplicaWithScore(replica, clusterModel))
             .collect(Collectors.toSet());
 
-    AssignableReplicaWithScore replica =
+    AssignableReplicaWithScore replicaWithScore =
         getNextAssignableReplica(toBeAssignedReplicas,  overallClusterRemainingCapacityMap);
-    while (replica != null) {
-      toBeAssignedReplicas.remove(replica);
-      AssignableReplica rawReplica = replica.getRawAssignableReplica();
+    while (replicaWithScore != null) {
+      toBeAssignedReplicas.remove(replicaWithScore);
+      AssignableReplica replica = replicaWithScore.getAssignableReplica();
       Optional<AssignableNode> maybeBestNode =
-          getNodeWithHighestPoints(rawReplica, nodes, clusterModel.getContext(), busyInstances,
+          getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
       if (!maybeBestNode.isPresent() || optimalAssignment.hasAnyFailure()) {
         String errorMessage = String.format(
             "Unable to find any available candidate node for partition %s; Fail reasons: %s",
-            rawReplica.getPartitionName(), optimalAssignment.getFailures());
+            replica.getPartitionName(), optimalAssignment.getFailures());
         throw new HelixRebalanceException(errorMessage,
             HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
       AssignableNode bestNode = maybeBestNode.get();
       // Assign the replica and update the cluster model.
-      clusterModel.assign(rawReplica.getResourceName(), rawReplica.getPartitionName(),
-          rawReplica.getReplicaState(), bestNode.getInstanceName());
-      updateOverallClusterRemainingCapacity(overallClusterRemainingCapacityMap, rawReplica);
-      replica = getNextAssignableReplica(toBeAssignedReplicas,  overallClusterRemainingCapacityMap);
+      clusterModel.assign(replica.getResourceName(), replica.getPartitionName(),
+          replica.getReplicaState(), bestNode.getInstanceName());
+      updateOverallClusterRemainingCapacity(overallClusterRemainingCapacityMap, replica);
+      replicaWithScore = getNextAssignableReplica(toBeAssignedReplicas,  overallClusterRemainingCapacityMap);
     }
     optimalAssignment.updateAssignments(clusterModel);
     return optimalAssignment;
@@ -173,15 +173,9 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Map<String, Integer> utilizationMap = new HashMap<>();
     for (AssignableNode node : nodes) {
       for (String capacityKey : node.getMaxCapacity().keySet()) {
-        if (utilizationMap.containsKey(capacityKey)) {
-          Integer newUtil =
-              utilizationMap.get(capacityKey) + node.getRemainingCapacity().get(capacityKey);
-          // update util
-          utilizationMap.put(capacityKey, newUtil);
-        } else {
-          Integer newUtil = node.getRemainingCapacity().get(capacityKey);
-          utilizationMap.put(capacityKey, newUtil);
-        }
+        utilizationMap.compute(capacityKey,
+            (k, v) -> v == null ? node.getRemainingCapacity().get(capacityKey)
+                : v + node.getRemainingCapacity().get(capacityKey));
       }
     }
     return utilizationMap;
@@ -215,7 +209,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet());
     }
 
-    public void reComputeScore(Map<String, Integer> overallClusterRemainingCapMap) {
+    public void computeScore(Map<String, Integer> overallClusterRemainingCapMap) {
       int score = 0;
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
@@ -227,7 +221,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       _score = score;
     }
 
-    public AssignableReplica getRawAssignableReplica() {
+    public AssignableReplica getAssignableReplica() {
       return _replica;
     }
 
@@ -292,7 +286,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     AssignableReplicaWithScore nextAssinableReplica = null;
     // Compare every replica with current candidate, update candidate if needed
     for (AssignableReplicaWithScore replica : allReplica) {
-      replica.reComputeScore(overallClusterRemainingCapMap);
+      replica.computeScore(overallClusterRemainingCapMap);
       if (nextAssinableReplica == null || replica.compareTo(nextAssinableReplica) < 0) {
         nextAssinableReplica = replica;
       }

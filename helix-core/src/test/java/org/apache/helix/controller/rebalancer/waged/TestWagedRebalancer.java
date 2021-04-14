@@ -441,6 +441,7 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
       Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
     }
+
     // But if call with the public method computeNewIdealStates(), the rebalance will return with
     // the previous rebalance result.
     Map<String, IdealState> newResult =
@@ -450,6 +451,16 @@ public class TestWagedRebalancer extends AbstractTestClusterModel {
     Assert.assertEquals(rebalancer.getMetricCollector().getMetric(
         WagedRebalancerMetricCollector.WagedRebalancerMetricNames.RebalanceFailureCounter.name(),
         CountMetric.class).getValue().longValue(), 1l);
+
+    // However, with the correct boolean flag, the public method will also raise an exception
+    rebalancer.setExceptionOnFailedToCalculate(true);
+    try {
+      rebalancer.computeNewIdealStates(clusterData, resourceMap, new CurrentStateOutput());
+      Assert.fail("Rebalance shall fail.");
+    } catch (HelixRebalanceException ex) {
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+      Assert.assertEquals(ex.getMessage(), "Algorithm fails. Failure Type: FAILED_TO_CALCULATE");
+    }
   }
 
   @Test(dependsOnMethods = "testRebalance")

@@ -90,6 +90,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private static final RebalanceAlgorithm DEFAULT_REBALANCE_ALGORITHM =
       ConstraintBasedAlgorithmFactory
           .getInstance(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+  // The default behavior is to not propagate the exception when it's FAILED_TO_CALCULATE
+  private static final boolean DEFAULT_EXCEPTION_ON_FAILED_TO_CALCULATE = false;
 
   // To calculate the baseline asynchronously
   private final ExecutorService _baselineCalculateExecutor;
@@ -109,6 +111,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private final BaselineDivergenceGauge _baselineDivergenceGauge;
 
   private boolean _asyncGlobalRebalanceEnabled;
+  private boolean _exceptionOnFailedToCalculate;
 
   // Note, the rebalance algorithm field is mutable so it should not be directly referred except for
   // the public method computeNewIdealStates.
@@ -144,7 +147,8 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         // cluster has converged.
         helixManager == null ? new WagedRebalancerMetricCollector()
             : new WagedRebalancerMetricCollector(helixManager.getClusterName()),
-        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED);
+        ClusterConfig.DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED,
+        DEFAULT_EXCEPTION_ON_FAILED_TO_CALCULATE);
     _preference = ImmutableMap.copyOf(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
   }
 
@@ -161,12 +165,13 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
         // If metricCollector is not provided, instantiate a version that does not register metrics
         // in order to allow rebalancer to proceed
         metricCollectorOptional.orElse(new WagedRebalancerMetricCollector()),
-        false);
+        false, DEFAULT_EXCEPTION_ON_FAILED_TO_CALCULATE);
   }
 
   private WagedRebalancer(AssignmentMetadataStore assignmentMetadataStore,
       RebalanceAlgorithm algorithm, MappingCalculator mappingCalculator, HelixManager manager,
-      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled) {
+      MetricCollector metricCollector, boolean isAsyncGlobalRebalanceEnabled,
+      boolean exceptionOnFailedToCalculate) {
     if (assignmentMetadataStore == null) {
       LOG.warn("Assignment Metadata Store is not configured properly."
           + " The rebalancer will not access the assignment store during the rebalance.");
@@ -212,11 +217,16 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
     _baselineCalculateExecutor = Executors.newSingleThreadExecutor();
     _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
+    _exceptionOnFailedToCalculate = exceptionOnFailedToCalculate;
   }
 
   // Update the global rebalance mode to be asynchronous or synchronous
   public void setGlobalRebalanceAsyncMode(boolean isAsyncGlobalRebalanceEnabled) {
     _asyncGlobalRebalanceEnabled = isAsyncGlobalRebalanceEnabled;
+  }
+
+  public void setExceptionOnFailedToCalculate(boolean exceptionOnFailedToCalculat) {
+    _exceptionOnFailedToCalculate = exceptionOnFailedToCalculat;
   }
 
   // Update the rebalancer preference if the new options are different from the current preference.
@@ -269,9 +279,12 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
       if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
-          .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE)) {
+          .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE) || (
+          failureType.equals(HelixRebalanceException.Type.FAILED_TO_CALCULATE)
+              && _exceptionOnFailedToCalculate)) {
         // If the failure is unknown or because of assignment store access failure, throw the
-        // rebalance exception.
+        // rebalance exception. If the rebalancer is configured to propagate the exception on
+        // calculation failure, throw it as well.
         throw ex;
       } else { // return the previously calculated assignment.
         LOG.warn(

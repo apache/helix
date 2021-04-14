@@ -151,7 +151,7 @@ public class InstancesAccessor extends AbstractHelixResource {
   public Response instancesOperations(
       @PathParam("clusterId") String clusterId,
       @QueryParam("command") String command,
-      @QueryParam("allChecks") boolean allChecks,
+      @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
       String content) {
     Command cmd;
@@ -181,7 +181,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, false);
         break;
       case stoppable:
-        return batchGetStoppableInstances(clusterId, node, skipZKRead, allChecks);
+        return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures);
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
@@ -198,7 +198,7 @@ public class InstancesAccessor extends AbstractHelixResource {
   }
 
   private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
-      boolean allChecks) throws IOException {
+      boolean continueOnFailures) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -228,7 +228,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
           new InstanceServiceImpl((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), skipZKRead, allChecks, getNamespace());
+              getConfigAccessor(), skipZKRead, continueOnFailures, getNamespace());
       ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {

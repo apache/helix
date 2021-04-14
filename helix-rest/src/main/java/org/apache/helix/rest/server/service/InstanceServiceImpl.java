@@ -74,7 +74,7 @@ public class InstanceServiceImpl implements InstanceService {
   private final CustomRestClient _customRestClient;
   private final String _namespace;
   private final boolean _skipZKRead;
-  private final boolean _allChecks;
+  private final boolean _continueOnFailures;
 
   @Deprecated
   public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor) {
@@ -87,7 +87,6 @@ public class InstanceServiceImpl implements InstanceService {
     this(dataAccessor, configAccessor, skipZKRead, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
   }
 
-  @Deprecated
   public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead, String namespace) {
     this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, false, namespace);
@@ -95,19 +94,20 @@ public class InstanceServiceImpl implements InstanceService {
 
   // TODO: too many params, convert to builder pattern
   public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-      boolean skipZKRead, boolean allChecks, String namespace) {
-    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, allChecks,
-        namespace);
+      boolean skipZKRead, boolean continueOnFailures, String namespace) {
+    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead,
+        continueOnFailures, namespace);
   }
 
   @VisibleForTesting
   InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient, boolean skipZKRead, boolean allChecks, String namespace) {
+      CustomRestClient customRestClient, boolean skipZKRead, boolean continueOnFailures,
+      String namespace) {
     _dataAccessor = new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace);
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
-    _allChecks = allChecks;
+    _continueOnFailures = continueOnFailures;
     _namespace = namespace;
   }
 
@@ -248,7 +248,7 @@ public class InstanceServiceImpl implements InstanceService {
           // put the check result of the failed-to-stop instances
           addStoppableCheck(finalStoppableCheckByInstance, instance, stoppableCheck);
         }
-        if (stoppableCheck.isStoppable() || _allChecks){
+        if (stoppableCheck.isStoppable() || _continueOnFailures){
           // instance passed this around of check or mandatory all checks
           // will be checked in the next round
           instancesForNextCheck.add(instance);

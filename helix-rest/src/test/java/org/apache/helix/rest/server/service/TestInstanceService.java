@@ -295,8 +295,8 @@ public class TestInstanceService {
 
   private static class MockInstanceServiceImpl extends InstanceServiceImpl {
     MockInstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-        CustomRestClient customRestClient, boolean skipZKRead, boolean allChecks) {
-      super(dataAccessor, configAccessor, customRestClient, skipZKRead, allChecks,
+        CustomRestClient customRestClient, boolean skipZKRead, boolean continueOnFailures) {
+      super(dataAccessor, configAccessor, customRestClient, skipZKRead, continueOnFailures,
           HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     }
 

@@ -181,7 +181,7 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
     Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
     Assert.assertEquals(_beanValueMap.get(WITHOUT_TOPSTATE_COUNT), 5L);
-    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 5L);
+    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 0L);
 
     // Re-enable all Participants (instances)
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {

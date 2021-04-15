@@ -205,7 +205,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
     // As we are not listening on external view change, external view will be
     // refreshed once during the cache's first refresh() call, or when full refresh is required
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW).getAndSet(false)) {
-      _externalViewCache.refresh(accessor);
+      synchronized (_externalViewCache) {
+        _externalViewCache.refresh(accessor);
+      }
     }
   }
 
@@ -269,7 +271,9 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @return
    */
   public Map<String, ExternalView> getExternalViews() {
-    return _externalViewCache.getPropertyMap();
+    synchronized (_externalViewCache) {
+      return _externalViewCache.getPropertyMap();
+    }
   }
 
   /**
@@ -277,8 +281,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    * @param externalViews
    */
   public void updateExternalViews(List<ExternalView> externalViews) {
-    for (ExternalView ev : externalViews) {
-      _externalViewCache.setProperty(ev);
+    synchronized (_externalViewCache) {
+      for (ExternalView ev : externalViews) {
+        _externalViewCache.setProperty(ev);
+      }
     }
   }
 
@@ -312,8 +318,10 @@ public class ResourceControllerDataProvider extends BaseControllerDataProvider {
    */
 
   public void removeExternalViews(List<String> resourceNames) {
-    for (String resourceName : resourceNames) {
-      _externalViewCache.deletePropertyByName(resourceName);
+    synchronized (_externalViewCache) {
+      for (String resourceName : resourceNames) {
+        _externalViewCache.deletePropertyByName(resourceName);
+      }
     }
   }
 

@@ -44,12 +44,14 @@ import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
@@ -88,21 +90,60 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     final Map<String, InstanceConfig> instanceConfigMap = cache.getInstanceConfigMap();
     final Map<String, StateModelDefinition> stateModelDefMap = cache.getStateModelDefMap();
-    asyncExecute(cache.getAsyncTasksThreadPool(), new Callable<Object>() {
-      @Override
-      public Object call() {
-        try {
-          if (clusterStatusMonitor != null) {
-            clusterStatusMonitor
-                .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap,
-                    resourceMap, stateModelDefMap);
+    final Map<String, IdealState> idealStateMap = cache.getIdealStates();
+    final Map<String, ExternalView> externalViewMap = cache.getExternalViews();
+    final Map<String, ResourceConfig> resourceConfigMap = cache.getResourceConfigMap();
+    asyncExecute(cache.getAsyncTasksThreadPool(), () -> {
+      try {
+        if (clusterStatusMonitor != null) {
+          clusterStatusMonitor
+              .setPerInstanceResourceStatus(bestPossibleStateOutput, instanceConfigMap, resourceMap,
+                  stateModelDefMap);
+
+          for (String resourceName : idealStateMap.keySet()) {
+            // TODO need to find a better way to process this monitoring config in a centralized
+            // place instead of separately in every single usage.
+            // Note that it is currently not respected by all the components. This may lead to
+            // frequent MBean objects creation and deletion.
+            if (resourceConfigMap.containsKey(resourceName) && resourceConfigMap.get(resourceName)
+                .isMonitoringDisabled()) {
+              continue;
+            }
+            IdealState is = idealStateMap.get(resourceName);
+            reportResourceState(clusterStatusMonitor, bestPossibleStateOutput, resourceName, is,
+                externalViewMap.get(resourceName), stateModelDefMap.get(is.getStateModelDefRef()));
           }
-        } catch (Exception e) {
-          LogUtil.logError(logger, _eventId, "Could not update cluster status metrics!", e);
         }
-        return null;
+      } catch (Exception e) {
+        LogUtil.logError(logger, _eventId, "Could not update cluster status metrics!", e);
       }
+      return null;
     });
+  }
+
+  private void reportResourceState(ClusterStatusMonitor clusterStatusMonitor,
+      BestPossibleStateOutput bestPossibleStateOutput, String resourceName, IdealState is,
+      ExternalView ev, StateModelDefinition stateModelDef) {
+    // Create a temporary local IdealState object for monitoring. This is to avoid modifying
+    // the IdealState cache.
+    IdealState tmpIdealState = new IdealState(is.getRecord());
+
+    if (bestPossibleStateOutput.containsResource(resourceName)) {
+      // Merge the best possible state output for resource status monitoring.
+      Map<String, List<String>> preferenceLists =
+          bestPossibleStateOutput.getPreferenceLists(resourceName);
+      tmpIdealState.getRecord().setListFields(preferenceLists);
+      Map<Partition, Map<String, String>> stateMap =
+          bestPossibleStateOutput.getPartitionStateMap(resourceName).getStateMap();
+      tmpIdealState.getRecord().setMapFields(stateMap.entrySet().stream()
+          .collect(Collectors.toMap(e -> e.getKey().getPartitionName(), Map.Entry::getValue)));
+    } else {
+      LogUtil.logWarn(logger, _eventId, String.format(
+          "Cannot find the best possible state of resource %s. "
+              + "Will update the resource status based on the content of the IdealState.",
+          resourceName));
+    }
+    clusterStatusMonitor.setResourceState(resourceName, ev, tmpIdealState, stateModelDef);
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

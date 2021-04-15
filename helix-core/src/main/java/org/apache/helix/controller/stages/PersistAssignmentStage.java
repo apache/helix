@@ -30,7 +30,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -42,7 +41,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,12 +103,15 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
         return;
       }
 
+      // Record IdealState delta in a different object. Avoid modifying the cached IdealState object
+      // which is supposed to be read only.
+      IdealState delta = new IdealState(resourceId);
       boolean needPersist = false;
       if (mode.equals(IdealState.RebalanceMode.FULL_AUTO)) {
         // persist preference list in ful-auto mode.
         Map<String, List<String>> newLists = bestPossibleAssignment.getPreferenceLists(resourceId);
         if (newLists != null && hasPreferenceListChanged(newLists, idealState)) {
-          idealState.setPreferenceLists(newLists);
+          delta.setPreferenceLists(newLists);
           needPersist = true;
         }
       }
@@ -128,25 +130,30 @@ public class PersistAssignmentStage extends AbstractAsyncBaseStage {
       if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
         for (Partition partition : assignmentToPersist.keySet()) {
           Map<String, String> instanceMap = assignmentToPersist.get(partition);
-          idealState.setInstanceStateMap(partition.getPartitionName(), instanceMap);
+          delta.setInstanceStateMap(partition.getPartitionName(), instanceMap);
         }
         needPersist = true;
       }
 
       if (needPersist) {
         // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
-        accessor.updateProperty(keyBuilder.idealStates(resourceId), new DataUpdater<ZNRecord>() {
-          @Override
-          public ZNRecord update(ZNRecord current) {
-            if (current != null) {
-              // Overwrite MapFields and ListFields items with the same key.
-              // Note that default merge will keep old values in the maps or lists unchanged, which is not desired.
+        accessor.updateProperty(keyBuilder.idealStates(resourceId), current -> {
+          if (current != null) {
+            ZNRecord deltaRecord = delta.getRecord();
+            // Overwrite MapFields and ListFields items with the same key.
+            if (!deltaRecord.getMapFields().isEmpty()) {
+              // Note that default merge will keep old values in the maps unchanged, which is not desired.
               current.getMapFields().clear();
-              current.getMapFields().putAll(idealState.getRecord().getMapFields());
-              current.getListFields().putAll(idealState.getRecord().getListFields());
+              current.getMapFields().putAll(deltaRecord.getMapFields());
             }
-            return current;
+            if (!deltaRecord.getListFields().isEmpty()) {
+              // Don't clear the list fields since the key might be user's input. And even the
+              // corresponding list is empty, we shall not remove it. Otherwise, it may cause
+              // rebalance failure.
+              current.getListFields().putAll(deltaRecord.getListFields());
+            }
           }
+          return current;
         }, idealState);
       }
     }

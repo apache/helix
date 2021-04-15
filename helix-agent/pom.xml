@@ -36,6 +36,7 @@
       *
     </osgi.import>
     <osgi.export>org.apache.helix.agent*;version="${project.version};-noimport:=true</osgi.export>
+    <maven.test.skip>true</maven.test.skip>
   </properties>
 
   <dependencies>

@@ -20,24 +20,6 @@ jobs:
         java-version: 1.8
     - name: Build with Maven
       run: mvn clean install -Dmaven.test.skip.exec=true
-    - name: Test metrics-common
-      run: cd metrics-common; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test metadata-store-directory-common
-      run: cd metadata-store-directory-common; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test zookeeper-api
-      run: cd zookeeper-api; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test helix-common
-      run: cd helix-common; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test helix-lock
-      run: cd helix-lock; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test helix-rest
-      run: cd helix-rest; mvn -q test
-      if: ${{ success() || failure() }}
-    - name: Test helix-core
-      run: cd helix-core; mvn -q test
+    - name: Run All Tests
+      run: mvn -q test
       if: ${{ success() || failure() }}

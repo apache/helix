@@ -42,6 +42,7 @@
       *
     </osgi.import>
     <osgi.export>org.apache.helix.webapp*;version="${project.version};-noimport:=true</osgi.export>
+    <maven.test.skip>true</maven.test.skip>
   </properties>
 
   <dependencies>

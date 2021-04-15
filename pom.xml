@@ -749,7 +749,7 @@
               See also: properties section and profiles section.
         -->
         <configuration>
-          <argLine>-Xms4096m -Xmx4096m</argLine>
+          <argLine>${argLine} -Xms4096m -Xmx4096m</argLine>
           <suiteXmlFiles>
             <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
           </suiteXmlFiles>
@@ -776,6 +776,29 @@
           </execution>
         </executions>
         <!--  Configuration for unit/integration tests section 2 of 3 (plugins) ENDS HERE. -->
+      </plugin>
+      <!-- Code Coverage report generation -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!-- Skip this phase if unit tests are skipped -->
+              <skip>${maven.test.skip.exec}</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-code-coverage-report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

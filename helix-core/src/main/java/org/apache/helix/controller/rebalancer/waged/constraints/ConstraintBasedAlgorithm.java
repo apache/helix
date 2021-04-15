@@ -42,6 +42,8 @@ import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Float.compare;
+
 
 /**
  * The algorithm is based on a given set of constraints
@@ -196,7 +198,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
   private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
     private final AssignableReplica _replica;
-    private int _score = 0;
+    private float _score = 0;
     private boolean _isInBestPossibleAssignment;
     private boolean _isInBaselineAssignment;
     private final Integer  _replicaHash;
@@ -211,15 +213,17 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }
 
     public void computeScore(Map<String, Integer> overallClusterRemainingCapMap) {
-      int score = 0;
+      float score = 0;
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
       for (Map.Entry<String, Integer> resourceCapacity : _replica.getCapacity().entrySet()) {
         score = resourceCapacity.getValue() == 0 ? score
-            : (overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0 ? Integer.MAX_VALUE
-                : score + Math.min(100, resourceCapacity.getValue() * 100 / (overallClusterRemainingCapMap
-                    .get(resourceCapacity.getKey()))));
-        if (score == Integer.MAX_VALUE) {
+            : ((overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0
+                || resourceCapacity.getValue() > (overallClusterRemainingCapMap
+                .get(resourceCapacity.getKey()))) ? Float.MAX_VALUE
+                : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
+                    .get(resourceCapacity.getKey())));
+        if (compare(score, Float.MAX_VALUE) == 0) {
           break;
         }
       }
@@ -262,8 +266,9 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
       // 3. Sort according to the replica impact based on the weight.
       // So the greedy algorithm will place the replicas with larger impact first.
-      if (replica2._score != _score) {
-        return replica2._score - _score;
+      int result = compare(replica2._score, _score);
+      if (result != 0) {
+        return result;
       }
 
       // 4. Sort according to the resource/partition name.

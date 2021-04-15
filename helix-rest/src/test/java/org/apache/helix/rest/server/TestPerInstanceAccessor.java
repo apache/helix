@@ -62,8 +62,13 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(STOPPABLE_CLUSTER, "instance1").post(this, entity);
     String stoppableCheckResult = response.readEntity(String.class);
-    Assert.assertEquals(stoppableCheckResult,
-        "{\"stoppable\":false,\"failedChecks\":[\"HELIX:EMPTY_RESOURCE_ASSIGNMENT\",\"HELIX:INSTANCE_NOT_ENABLED\",\"HELIX:INSTANCE_NOT_STABLE\"]}");
+
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
+    List<String> failedChecks = Arrays.asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT",
+        "HELIX:INSTANCE_NOT_ENABLED", "HELIX:INSTANCE_NOT_STABLE");
+    Map<String, Object> expectedMap =
+        ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);
+    Assert.assertEquals(actualMap, expectedMap);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

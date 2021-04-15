@@ -78,4 +78,9 @@ public class StoppableCheck {
   public List<String> getFailedChecks() {
     return failedChecks;
   }
+
+  public void add(StoppableCheck other) {
+    failedChecks.addAll(other.getFailedChecks());
+    isStoppable = failedChecks.isEmpty();
+  }
 }

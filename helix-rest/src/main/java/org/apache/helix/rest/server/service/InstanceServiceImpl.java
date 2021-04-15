@@ -72,8 +72,9 @@ public class InstanceServiceImpl implements InstanceService {
   private final HelixDataAccessorWrapper _dataAccessor;
   private final ConfigAccessor _configAccessor;
   private final CustomRestClient _customRestClient;
-  private String _namespace;
-  private boolean _skipZKRead;
+  private final String _namespace;
+  private final boolean _skipZKRead;
+  private final boolean _continueOnFailures;
 
   @Deprecated
   public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor) {
@@ -88,16 +89,25 @@ public class InstanceServiceImpl implements InstanceService {
 
   public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
       boolean skipZKRead, String namespace) {
-    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, namespace);
+    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead, false, namespace);
+  }
+
+  // TODO: too many params, convert to builder pattern
+  public InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
+      boolean skipZKRead, boolean continueOnFailures, String namespace) {
+    this(dataAccessor, configAccessor, CustomRestClientFactory.get(), skipZKRead,
+        continueOnFailures, namespace);
   }
 
   @VisibleForTesting
   InstanceServiceImpl(ZKHelixDataAccessor dataAccessor, ConfigAccessor configAccessor,
-      CustomRestClient customRestClient, boolean skipZKRead, String namespace) {
+      CustomRestClient customRestClient, boolean skipZKRead, boolean continueOnFailures,
+      String namespace) {
     _dataAccessor = new HelixDataAccessorWrapper(dataAccessor, customRestClient, namespace);
     _configAccessor = configAccessor;
     _customRestClient = customRestClient;
     _skipZKRead = skipZKRead;
+    _continueOnFailures = continueOnFailures;
     _namespace = namespace;
   }
 
@@ -181,7 +191,7 @@ public class InstanceServiceImpl implements InstanceService {
     List<String> instancesForCustomInstanceLevelChecks =
         filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
     if (instancesForCustomInstanceLevelChecks.isEmpty()) {
-      // if all instances failed at helix custom level checks
+      // if all instances failed at helix custom level checks and all checks are not required
       return finalStoppableChecks;
     }
 
@@ -206,12 +216,23 @@ public class InstanceServiceImpl implements InstanceService {
           instancesForCustomPartitionLevelChecks, restConfig, customPayLoads);
       for (Map.Entry<String, StoppableCheck> instancePartitionStoppableCheckEntry : instancePartitionLevelChecks
           .entrySet()) {
-        finalStoppableChecks.put(instancePartitionStoppableCheckEntry.getKey(),
-            instancePartitionStoppableCheckEntry.getValue());
+        String instance = instancePartitionStoppableCheckEntry.getKey();
+        StoppableCheck stoppableCheck = instancePartitionStoppableCheckEntry.getValue();
+        addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
       }
     }
 
     return finalStoppableChecks;
+  }
+
+  private void addStoppableCheck(Map<String, StoppableCheck> stoppableChecks, String instance,
+      StoppableCheck stoppableCheck) {
+    if (!stoppableChecks.containsKey(instance)) {
+      stoppableChecks.put(instance, stoppableCheck);
+    } else {
+      // Merge two checks
+      stoppableChecks.get(instance).add(stoppableCheck);
+    }
   }
 
   private List<String> filterInstancesForNextCheck(
@@ -225,9 +246,11 @@ public class InstanceServiceImpl implements InstanceService {
         StoppableCheck stoppableCheck = entry.getValue().get();
         if (!stoppableCheck.isStoppable()) {
           // put the check result of the failed-to-stop instances
-          finalStoppableCheckByInstance.put(instance, stoppableCheck);
-        } else {
-          // instance passed this around of check will be checked in the next round
+          addStoppableCheck(finalStoppableCheckByInstance, instance, stoppableCheck);
+        }
+        if (stoppableCheck.isStoppable() || _continueOnFailures){
+          // instance passed this around of check or mandatory all checks
+          // will be checked in the next round
           instancesForNextCheck.add(instance);
         }
       } catch (InterruptedException | ExecutionException e) {

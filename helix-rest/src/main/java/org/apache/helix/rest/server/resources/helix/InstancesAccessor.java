@@ -148,8 +148,12 @@ public class InstancesAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
-  public Response instancesOperations(@PathParam("clusterId") String clusterId,
-      @QueryParam("skipZKRead") String skipZKRead, @QueryParam("command") String command, String content) {
+  public Response instancesOperations(
+      @PathParam("clusterId") String clusterId,
+      @QueryParam("command") String command,
+      @QueryParam("continueOnFailures") boolean continueOnFailures,
+      @QueryParam("skipZKRead") boolean skipZKRead,
+      String content) {
     Command cmd;
     try {
       cmd = Command.valueOf(command);
@@ -177,7 +181,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, false);
         break;
       case stoppable:
-        return batchGetStoppableInstances(clusterId, node, Boolean.valueOf(skipZKRead));
+        return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures);
       default:
         _logger.error("Unsupported command :" + command);
         return badRequest("Unsupported command :" + command);
@@ -193,7 +197,8 @@ public class InstancesAccessor extends AbstractHelixResource {
     return OK();
   }
 
-  private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead) throws IOException {
+  private Response batchGetStoppableInstances(String clusterId, JsonNode node, boolean skipZKRead,
+      boolean continueOnFailures) throws IOException {
     try {
       // TODO: Process input data from the content
       InstancesAccessor.InstanceHealthSelectionBase selectionBase =
@@ -223,7 +228,7 @@ public class InstancesAccessor extends AbstractHelixResource {
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
       InstanceService instanceService =
           new InstanceServiceImpl((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), skipZKRead, getNamespace());
+              getConfigAccessor(), skipZKRead, continueOnFailures, getNamespace());
       ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
       switch (selectionBase) {

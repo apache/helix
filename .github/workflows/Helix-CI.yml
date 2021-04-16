@@ -23,3 +23,6 @@ jobs:
     - name: Run All Tests
       run: mvn -q test
       if: ${{ success() || failure() }}
+    - name: Upload to Codecov
+      run: bash <(curl -s https://codecov.io/bash)
+      if: ${{ success() || failure() }}

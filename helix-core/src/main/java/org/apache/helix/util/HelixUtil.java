@@ -238,8 +238,6 @@ public final class HelixUtil {
     ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
         new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
             globalSyncClusterConfig.getGlobalRebalancePreference());
-    // Set up the rebalancer to throw exception on calculation failure, so that callers are notified
-    readOnlyWagedRebalancer.setExceptionOnFailedToCalculate(true);
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
     // Attributes RESOURCES and RESOURCES_TO_REBALANCE are populated in ResourceComputationStage

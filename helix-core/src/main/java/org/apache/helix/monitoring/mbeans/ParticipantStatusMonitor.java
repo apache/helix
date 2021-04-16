@@ -136,16 +136,6 @@ public class ParticipantStatusMonitor {
   }
 
   public void shutDown() {
-    if (_messageMonitor != null) {  // is participant
-      try {
-        ObjectName name = getObjectName(getParticipantBeanName(_instanceName));
-        if (_beanServer.isRegistered(name)) {
-          _beanServer.unregisterMBean(name);
-        }
-      } catch (Exception e) {
-        LOG.warn("fail to unregister " + getParticipantBeanName(_instanceName), e);
-      }
-    }
     if (_messageLatencyMonitor != null) {
       _messageLatencyMonitor.unregister();
     }

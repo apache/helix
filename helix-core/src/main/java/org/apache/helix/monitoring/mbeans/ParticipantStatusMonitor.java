@@ -36,25 +36,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParticipantStatusMonitor {
+  public static final String PARTICIPANT_KEY = "ParticipantName";
+
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
       new ConcurrentHashMap<>();
   private static final Logger LOG = LoggerFactory.getLogger(ParticipantStatusMonitor.class);
 
+  private final String _instanceName;
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
   private MessageLatencyMonitor _messageLatencyMonitor;
   private Map<String, ThreadPoolExecutorMonitor> _executorMonitors;
 
   public ParticipantStatusMonitor(boolean isParticipant, String instanceName) {
+    _instanceName = instanceName;
     try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
-        _messageMonitor = new ParticipantMessageMonitor(instanceName);
+        _messageMonitor =
+            new ParticipantMessageMonitor(MonitorDomainNames.CLMParticipantReport.name(),
+                _instanceName);
+        _messageMonitor.register();
         _messageLatencyMonitor =
-            new MessageLatencyMonitor(MonitorDomainNames.CLMParticipantReport.name(), instanceName);
+            new MessageLatencyMonitor(MonitorDomainNames.CLMParticipantReport.name(),
+                _instanceName);
         _messageLatencyMonitor.register();
         _executorMonitors = new ConcurrentHashMap<>();
-        register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
       }
     } catch (Exception e) {
       LOG.warn(e.toString());
@@ -115,41 +122,25 @@ public class ParticipantStatusMonitor {
   }
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s:%s", MonitorDomainNames.CLMParticipantReport.name(), name));
+    return new ObjectName(
+        String.format("%s:%s", MonitorDomainNames.CLMParticipantReport.name(), name));
   }
 
-  private void register(Object bean, ObjectName name) {
-    LOG.info("Registering bean: " + name.toString());
-    if (_beanServer == null) {
-      LOG.warn("bean server is null, skip reporting");
-      return;
-    }
-    try {
-      _beanServer.unregisterMBean(name);
-    } catch (Exception e1) {
-      // Swallow silently
-    }
-
-    try {
-      _beanServer.registerMBean(bean, name);
-    } catch (Exception e) {
-      LOG.warn("Could not register MBean", e);
-    }
+  /**
+   * Build participant bean name
+   * @param participantName
+   * @return participant bean name
+   */
+  protected String getParticipantBeanName(String participantName) {
+    return String.format("%s=%s", PARTICIPANT_KEY, participantName);
   }
 
   public void shutDown() {
-    if (_messageMonitor != null) {  // is participant
-      try {
-        ObjectName name = getObjectName(_messageMonitor.getParticipantBeanName());
-        if (_beanServer.isRegistered(name)) {
-          _beanServer.unregisterMBean(name);
-        }
-      } catch (Exception e) {
-        LOG.warn("fail to unregister " + _messageMonitor.getParticipantBeanName(), e);
-      }
-    }
     if (_messageLatencyMonitor != null) {
       _messageLatencyMonitor.unregister();
+    }
+    if (_messageMonitor != null) {
+      _messageMonitor.unregister();
     }
     for (StateTransitionContext cxt : _monitorMap.keySet()) {
       try {
@@ -168,16 +159,15 @@ public class ParticipantStatusMonitor {
     if (_executorMonitors == null) {
       return;
     }
-    if (! (executor instanceof ThreadPoolExecutor)) {
+    if (!(executor instanceof ThreadPoolExecutor)) {
       return;
     }
 
     try {
-      _executorMonitors.put(type,
-          new ThreadPoolExecutorMonitor(type, (ThreadPoolExecutor) executor));
+      _executorMonitors
+          .put(type, new ThreadPoolExecutorMonitor(type, (ThreadPoolExecutor) executor));
     } catch (JMException e) {
-      LOG.warn(String.format(
-          "Error in creating ThreadPoolExecutorMonitor for type=%s", type), e);
+      LOG.warn(String.format("Error in creating ThreadPoolExecutorMonitor for type=%s", type), e);
     }
   }
 

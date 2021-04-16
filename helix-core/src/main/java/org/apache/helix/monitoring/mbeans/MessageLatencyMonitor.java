@@ -74,7 +74,7 @@ public class MessageLatencyMonitor extends DynamicMBeanProvider {
     attributeList.add(_totalMessageCount);
     attributeList.add(_totalMessageLatency);
     attributeList.add(_messageLatencyGauge);
-    doRegister(attributeList, MBEAN_DESCRIPTION, _domainName, ParticipantMessageMonitor.PARTICIPANT_KEY,
+    doRegister(attributeList, MBEAN_DESCRIPTION, _domainName, ParticipantStatusMonitor.PARTICIPANT_KEY,
         _participantName, "MonitorType", MessageLatencyMonitor.class.getSimpleName());
 
     return this;

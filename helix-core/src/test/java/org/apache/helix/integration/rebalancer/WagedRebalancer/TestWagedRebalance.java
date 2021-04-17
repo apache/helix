@@ -265,6 +265,25 @@ public class TestWagedRebalance extends ZkTestBase {
       // The newly added instances should contain some partitions
       Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
       Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
+
+      // Force FAILED_TO_CALCULATE and ensure that both util functions return no mappings
+      String testCapacityKey = "key";
+      clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 2));
+      clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 1));
+      clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
+      utilResult = HelixUtil
+          .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+      utilResult.values().forEach(
+          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
+              .forEach(entry -> Assert.assertEquals(entry, Collections.emptyMap())));
+
+      utilResult = HelixUtil
+          .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+              liveInstances, idealStates, resourceConfigs);
+      utilResult.values().forEach(
+          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
+              .forEach(entry -> Assert.assertEquals(entry, Collections.emptyMap())));
     } finally {
       // restore the config with async mode
       clusterConfigGlobal =

@@ -48,6 +48,11 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
         ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());
   }
 
+  @Override
+  protected boolean fallbackOnFailedCalculate() {
+    return false;
+  }
+
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
     ReadOnlyAssignmentMetadataStore(String metadataStoreAddress, String clusterName) {
       super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName);

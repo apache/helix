@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -268,29 +269,21 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       _rebalanceFailureCount.increment(1L);
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
-      if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
-          .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE)) {
+      if (failureTypesToPropagate().contains(failureType)) {
         // If the failure is unknown or because of assignment store access failure, throw the
         // rebalance exception.
         throw ex;
       } else {
-        if (failureType.equals(HelixRebalanceException.Type.FAILED_TO_CALCULATE)
-            && !fallbackOnFailedCalculate()) {
-          // return IdealStates without preference lists if configured this way
-          newIdealStates =
-              createIdealStatesWithoutPreferenceLists(clusterData, resourceMap.keySet());
-        } else {
-          // return the previously calculated assignment.
-          LOG.warn(
-              "Returning the last known-good best possible assignment from metadata store due to "
-                  + "rebalance failure of type: {}", failureType);
-          // Note that don't return an assignment based on the current state if there is no previously
-          // calculated result in this fallback logic.
-          Map<String, ResourceAssignment> assignmentRecord =
-              getBestPossibleAssignment(_assignmentMetadataStore, new CurrentStateOutput(),
-                  resourceMap.keySet());
-          newIdealStates = convertResourceAssignment(clusterData, assignmentRecord);
-        }
+        // return the previously calculated assignment.
+        LOG.warn(
+            "Returning the last known-good best possible assignment from metadata store due to "
+                + "rebalance failure of type: {}", failureType);
+        // Note that don't return an assignment based on the current state if there is no previously
+        // calculated result in this fallback logic.
+        Map<String, ResourceAssignment> assignmentRecord =
+            getBestPossibleAssignment(_assignmentMetadataStore, new CurrentStateOutput(),
+                resourceMap.keySet());
+        newIdealStates = convertResourceAssignment(clusterData, assignmentRecord);
       }
     }
 
@@ -401,22 +394,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     return finalIdealStateMap;
   }
 
-  private Map<String, IdealState> createIdealStatesWithoutPreferenceLists(
-      ResourceControllerDataProvider clusterData, Set<String> resources) {
-    // Convert the assignments into IdealState for the following state mapping calculation.
-    Map<String, IdealState> finalIdealStateMap = new HashMap<>();
-    for (String resourceName : resources) {
-      IdealState currentIdealState = clusterData.getIdealState(resourceName);
-      IdealState newIdealState = new IdealState(resourceName);
-      newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
-      finalIdealStateMap.put(resourceName, newIdealState);
-    }
-    return finalIdealStateMap;
-  }
-
-  protected boolean fallbackOnFailedCalculate() {
-    // By default, fall back to the last-known good result when encountering FAILED_TO_CALCULATE
-    return true;
+  protected List<HelixRebalanceException.Type> failureTypesToPropagate() {
+    // By default, only propagate the following types of HelixRebalanceException
+    return Arrays.asList(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS,
+        HelixRebalanceException.Type.UNKNOWN_FAILURE);
   }
 
   /**

@@ -3,10 +3,8 @@
 name: PR Pre-merge Check
 
 on:
-  pull_request:
-    types: [edited]
-  pull_request_review:
-    types: [submitted]
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   validate_PR:
@@ -20,13 +18,13 @@ jobs:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             const approvalLabel = 'CheckedAndApproved'
-            
+
             const reviews = await github.pulls.listReviews({
               pull_number: context.payload.pull_request.number,
               owner: context.repo.owner,
               repo: context.repo.repo
             })
-            
+
             // Check if any recent APPROVED or CHANGES_REQUESTED reviews.
             var approved = false
             for (const review_info of reviews.data) {
@@ -39,7 +37,7 @@ jobs:
                 approved = false
               }
             }
-            
+
             if (approved) {
               console.log("This PR has been approved.")
               github.issues.addLabels({
@@ -55,7 +53,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo
               })
-              
+
               var approvalLabelExist = false
               for (const label of labels_info.data) {
                 if (label.name == approvalLabel) {

@@ -1,7 +1,7 @@
-# Run full test for any changes that are merged to master branch.
-
-name: Helix Merge CI
+name: Helix CI
 on:
+  pull_request:
+    branches: [ master ]
   push:
     branches: [ master ]
   schedule:
@@ -22,7 +22,6 @@ jobs:
       run: mvn clean install -Dmaven.test.skip.exec=true
     - name: Run All Tests
       run: mvn -q test
-      if: ${{ success() || failure() }}
     - name: Upload to Codecov
+      if: ${{ github.event_name == 'push' }}
       run: bash <(curl -s https://codecov.io/bash)
-      if: ${{ success() || failure() }}

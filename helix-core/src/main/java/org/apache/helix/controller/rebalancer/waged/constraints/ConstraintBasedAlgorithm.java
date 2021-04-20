@@ -42,8 +42,6 @@ import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.Float.compare;
-
 
 /**
  * The algorithm is based on a given set of constraints
@@ -86,7 +84,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     while (!toBeAssignedReplicas.isEmpty()) {
       AssignableReplicaWithScore replicaWithScore =
           getNextAssignableReplica(toBeAssignedReplicas, overallClusterRemainingCapacityMap);
-      toBeAssignedReplicas.remove(replicaWithScore);
       AssignableReplica replica = replicaWithScore.getAssignableReplica();
       Optional<AssignableNode> maybeBestNode =
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
@@ -199,8 +196,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
     private final AssignableReplica _replica;
     private float _score = 0;
-    private boolean _isInBestPossibleAssignment;
-    private boolean _isInBaselineAssignment;
+    private final boolean _isInBestPossibleAssignment;
+    private final boolean _isInBaselineAssignment;
     private final Integer  _replicaHash;
 
     AssignableReplicaWithScore(AssignableReplica replica, ClusterModel clusterModel) {
@@ -217,13 +214,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
       for (Map.Entry<String, Integer> resourceCapacity : _replica.getCapacity().entrySet()) {
-        score = resourceCapacity.getValue() == 0 ? score
-            : ((overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0
-                || resourceCapacity.getValue() > (overallClusterRemainingCapMap
-                .get(resourceCapacity.getKey()))) ? Float.MAX_VALUE
-                : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
-                    .get(resourceCapacity.getKey())));
-        if (compare(score, Float.MAX_VALUE) == 0) {
+        if (resourceCapacity.getValue() == 0) {
+          continue;
+        }
+        score = (overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0
+            || resourceCapacity.getValue() > (overallClusterRemainingCapMap
+            .get(resourceCapacity.getKey()))) ? Float.MAX_VALUE
+            : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
+                .get(resourceCapacity.getKey()));
+        if (Float.compare(score, Float.MAX_VALUE) == 0) {
           break;
         }
       }
@@ -266,7 +265,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
       // 3. Sort according to the replica impact based on the weight.
       // So the greedy algorithm will place the replicas with larger impact first.
-      int result = compare(replica2._score, _score);
+      int result = Float.compare(replica2._score, _score);
       if (result != 0) {
         return result;
       }
@@ -301,6 +300,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         nextAssinableReplica = replica;
       }
     }
+    allReplica.remove(nextAssinableReplica);
     return nextAssinableReplica;
   }
 

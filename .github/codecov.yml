@@ -1,0 +1,3 @@
+ignore:
+  - "helix-core/**/examples" # ignore code examples
+  - "recipes" # ignore recipes code

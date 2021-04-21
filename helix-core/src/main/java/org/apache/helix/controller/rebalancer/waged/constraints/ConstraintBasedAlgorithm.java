@@ -82,9 +82,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             .collect(Collectors.toSet());
 
     while (!toBeAssignedReplicas.isEmpty()) {
-      AssignableReplicaWithScore replicaWithScore =
+      AssignableReplica replica =
           getNextAssignableReplica(toBeAssignedReplicas, overallClusterRemainingCapacityMap);
-      AssignableReplica replica = replicaWithScore.getAssignableReplica();
       Optional<AssignableNode> maybeBestNode =
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
@@ -187,9 +186,9 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
   private void updateOverallClusterRemainingCapacity(
       Map<String, Integer> overallClusterRemainingCapacityMap, AssignableReplica replica) {
     for (Map.Entry<String, Integer> resourceUsage : replica.getCapacity().entrySet()) {
-      Integer newRemainingCapacity =
-          overallClusterRemainingCapacityMap.get(resourceUsage.getKey()) - resourceUsage.getValue();
-      overallClusterRemainingCapacityMap.put(resourceUsage.getKey(), newRemainingCapacity);
+      overallClusterRemainingCapacityMap.put(resourceUsage.getKey(),
+          overallClusterRemainingCapacityMap.get(resourceUsage.getKey()) - resourceUsage
+              .getValue());
     }
   }
 
@@ -289,7 +288,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     }
   }
 
-  private AssignableReplicaWithScore getNextAssignableReplica(
+  private AssignableReplica getNextAssignableReplica(
       Set<AssignableReplicaWithScore> allReplica,
       Map<String, Integer> overallClusterRemainingCapMap) {
     AssignableReplicaWithScore nextAssinableReplica = null;
@@ -301,7 +300,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
     }
     allReplica.remove(nextAssinableReplica);
-    return nextAssinableReplica;
+    return nextAssinableReplica.getAssignableReplica();
   }
 
   /**

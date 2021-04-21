@@ -1,12 +1,10 @@
-name: Helix CI
+name: Helix PR CI
 on:
-  push:
+  pull_request:
     branches: [ master ]
-  schedule:
-    - cron: '0 */12 * * *'
 
 jobs:
-  Merge_PR_CI:
+  PR_CI:
 
     runs-on: ubuntu-latest
 
@@ -20,6 +18,3 @@ jobs:
       run: mvn clean install -Dmaven.test.skip.exec=true
     - name: Run All Tests
       run: mvn -q test
-    - name: Upload to Codecov
-      if: ${{ github.event_name == 'push' }}
-      run: bash <(curl -s https://codecov.io/bash)

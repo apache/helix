@@ -116,7 +116,7 @@ public class TestAssignableInstanceManager {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetAssignableInstanceMap")
   public void testGetTaskAssignResultMap() {
     Map<String, TaskAssignResult> taskAssignResultMap =
         _assignableInstanceManager.getTaskAssignResultMap();
@@ -125,7 +125,7 @@ public class TestAssignableInstanceManager {
     }
   }
 
-  @Test
+  @Test(dependsOnMethods = "testGetTaskAssignResultMap")
   public void testUpdateAssignableInstances() {
     Map<String, LiveInstance> newLiveInstances = new HashMap<>();
     Map<String, InstanceConfig> newInstanceConfigs = new HashMap<>();

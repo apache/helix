@@ -22,6 +22,7 @@ jobs:
       run: mvn -q -fae test
     - name: Print Tests Results
       run: .github/scripts/printTestResult.sh
+      if: ${{ success() || failure() }}
     - name: Upload to Codecov
-      if: ${{ github.event_name == 'push' }}
       run: bash <(curl -s https://codecov.io/bash)
+      if: ${{ github.event_name == 'push' && (success() || failure()) }}

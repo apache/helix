@@ -46,6 +46,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+
 /**
  * This test contains a series of unit tests for ResourceChangeDetector.
  */
@@ -53,10 +54,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
 
   // All possible change types for ResourceChangeDetector except for ClusterConfig
   // since we don't provide the names of changed fields for ClusterConfig
-  private static final ChangeType[] RESOURCE_CHANGE_TYPES = {
-      ChangeType.IDEAL_STATE, ChangeType.INSTANCE_CONFIG, ChangeType.LIVE_INSTANCE,
-      ChangeType.RESOURCE_CONFIG, ChangeType.CLUSTER_CONFIG
-  };
+  private static final ChangeType[] RESOURCE_CHANGE_TYPES =
+      {ChangeType.IDEAL_STATE, ChangeType.INSTANCE_CONFIG, ChangeType.LIVE_INSTANCE, ChangeType.RESOURCE_CONFIG, ChangeType.CLUSTER_CONFIG};
 
   private static final String CLUSTER_NAME = TestHelper.getTestClassName();
   private static final String RESOURCE_NAME = "TestDB";
@@ -138,14 +137,14 @@ public class TestResourceChangeDetector extends ZkTestBase {
         "Not all change types have been detected for ResourceChangeDetector!");
 
     // Check that the right amount of resources show up as added
-    checkDetectionCounts(ChangeType.IDEAL_STATE, NUM_RESOURCES, 0, 0);
+    checkDetectionCounts(_resourceChangeDetector, ChangeType.IDEAL_STATE, NUM_RESOURCES, 0, 0);
 
     // Check that the right amount of instances show up as added
-    checkDetectionCounts(ChangeType.LIVE_INSTANCE, NUM_NODES, 0, 0);
-    checkDetectionCounts(ChangeType.INSTANCE_CONFIG, NUM_NODES, 0, 0);
+    checkDetectionCounts(_resourceChangeDetector, ChangeType.LIVE_INSTANCE, NUM_NODES, 0, 0);
+    checkDetectionCounts(_resourceChangeDetector, ChangeType.INSTANCE_CONFIG, NUM_NODES, 0, 0);
 
     // Check that the right amount of cluster config item show up
-    checkDetectionCounts(ChangeType.CLUSTER_CONFIG, 1, 0, 0);
+    checkDetectionCounts(_resourceChangeDetector, ChangeType.CLUSTER_CONFIG, 1, 0, 0);
   }
 
   /**
@@ -154,8 +153,8 @@ public class TestResourceChangeDetector extends ZkTestBase {
   @Test(dependsOnMethods = "testResourceChangeDetectorInit")
   public void testAddResource() {
     // Create an IS and ResourceConfig
-    _gSetupTool.getClusterManagementTool().addResource(CLUSTER_NAME, NEW_RESOURCE_NAME,
-        NUM_PARTITIONS, STATE_MODEL);
+    _gSetupTool.getClusterManagementTool()
+        .addResource(CLUSTER_NAME, NEW_RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL);
     ResourceConfig resourceConfig = new ResourceConfig(NEW_RESOURCE_NAME);
     _dataAccessor.setProperty(_keyBuilder.resourceConfig(NEW_RESOURCE_NAME), resourceConfig);
     // Manually notify dataProvider
@@ -172,9 +171,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.IDEAL_STATE || type == ChangeType.RESOURCE_CONFIG) {
-        checkDetectionCounts(type, 1, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 1, 0, 0);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
     // Check that detector gives the right item
@@ -202,9 +201,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.RESOURCE_CONFIG) {
-        checkDetectionCounts(type, 0, 1, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 1, 0);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
     Assert.assertTrue(_resourceChangeDetector.getChangesByType(ChangeType.RESOURCE_CONFIG)
@@ -230,9 +229,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.IDEAL_STATE || type == ChangeType.RESOURCE_CONFIG) {
-        checkDetectionCounts(type, 0, 0, 1);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 1);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
   }
@@ -252,9 +251,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.LIVE_INSTANCE) {
-        checkDetectionCounts(type, 0, 0, 1);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 1);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
 
@@ -269,9 +268,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.LIVE_INSTANCE) {
-        checkDetectionCounts(type, 1, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 1, 0, 0);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
   }
@@ -300,9 +299,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.LIVE_INSTANCE || type == ChangeType.INSTANCE_CONFIG) {
-        checkDetectionCounts(type, 0, 0, 1);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 1);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
 
@@ -330,9 +329,9 @@ public class TestResourceChangeDetector extends ZkTestBase {
     // Check the counts for other types
     for (ChangeType type : RESOURCE_CHANGE_TYPES) {
       if (type == ChangeType.CLUSTER_CONFIG) {
-        checkDetectionCounts(type, 0, 1, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 1, 0);
       } else {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
   }
@@ -351,7 +350,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
       Assert.assertEquals(_resourceChangeDetector.getChangeTypes().size(), 0);
       // Check the counts for all the other types
       for (ChangeType type : RESOURCE_CHANGE_TYPES) {
-        checkDetectionCounts(type, 0, 0, 0);
+        checkDetectionCounts(_resourceChangeDetector, type, 0, 0, 0);
       }
     }
   }
@@ -392,10 +391,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
     changeDetector.updateSnapshots(_dataProvider);
     Assert.assertEquals(changeDetector.getChangeTypes(),
         Collections.singleton(ChangeType.IDEAL_STATE));
-    Assert.assertEquals(
-        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
+    checkDetectionCounts(changeDetector, ChangeType.IDEAL_STATE, 0, 0, 0);
 
     // 2. Modify an instance "enabled" state
     String instanceName = _participants[0].getInstanceName();
@@ -410,10 +406,7 @@ public class TestResourceChangeDetector extends ZkTestBase {
       changeDetector.updateSnapshots(_dataProvider);
       Assert.assertEquals(changeDetector.getChangeTypes(),
           Collections.singleton(ChangeType.INSTANCE_CONFIG));
-      Assert.assertEquals(
-          changeDetector.getAdditionsByType(ChangeType.INSTANCE_CONFIG).size() + changeDetector
-              .getChangesByType(ChangeType.INSTANCE_CONFIG).size() + changeDetector
-              .getRemovalsByType(ChangeType.INSTANCE_CONFIG).size(), 0);
+      checkDetectionCounts(changeDetector, ChangeType.INSTANCE_CONFIG, 0, 0, 0);
     } finally {
       // remove newly added resource/ideastate
       _gSetupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, resourceName);
@@ -429,11 +422,10 @@ public class TestResourceChangeDetector extends ZkTestBase {
         new StrictMatchExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
             .setDeactivatedNodeAwareness(true)
             .setResources(new HashSet<>(_dataAccessor.getChildNames(_keyBuilder.idealStates())))
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
     try {
       Assert.assertTrue(_clusterVerifier.verify());
-    } finally{
+    } finally {
       _clusterVerifier.close();
     }
     // Initialize a new detector with the existing data
@@ -441,30 +433,17 @@ public class TestResourceChangeDetector extends ZkTestBase {
     _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
     _dataProvider.refresh(_dataAccessor);
     changeDetector.updateSnapshots(_dataProvider);
-    Assert.assertEquals(
-        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 1);
+    checkDetectionCounts(changeDetector, ChangeType.IDEAL_STATE, 1, 0, 0);
 
     // Update the detector with old data, since nothing changed, the result shall be empty.
-    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
-    _dataProvider.refresh(_dataAccessor);
     changeDetector.updateSnapshots(_dataProvider);
-    Assert.assertEquals(
-        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 0);
+    checkDetectionCounts(changeDetector, ChangeType.IDEAL_STATE, 0, 0, 0);
 
     // Reset the snapshots
     changeDetector.resetSnapshots();
     // After reset, all the data in the data provider will be treated as new changes
-    _dataProvider.notifyDataChange(ChangeType.IDEAL_STATE);
-    _dataProvider.refresh(_dataAccessor);
     changeDetector.updateSnapshots(_dataProvider);
-    Assert.assertEquals(
-        changeDetector.getAdditionsByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getChangesByType(ChangeType.IDEAL_STATE).size() + changeDetector
-            .getRemovalsByType(ChangeType.IDEAL_STATE).size(), 1);
+    checkDetectionCounts(changeDetector, ChangeType.IDEAL_STATE, 1, 0, 0);
   }
 
   /**
@@ -484,10 +463,10 @@ public class TestResourceChangeDetector extends ZkTestBase {
    * @param changes
    * @param deletions
    */
-  private void checkDetectionCounts(ChangeType changeType, int additions, int changes,
-      int deletions) {
-    Assert.assertEquals(_resourceChangeDetector.getAdditionsByType(changeType).size(), additions);
-    Assert.assertEquals(_resourceChangeDetector.getChangesByType(changeType).size(), changes);
-    Assert.assertEquals(_resourceChangeDetector.getRemovalsByType(changeType).size(), deletions);
+  private void checkDetectionCounts(ChangeDetector changeDetector, ChangeType changeType,
+      int additions, int changes, int deletions) {
+    Assert.assertEquals(changeDetector.getAdditionsByType(changeType).size(), additions);
+    Assert.assertEquals(changeDetector.getChangesByType(changeType).size(), changes);
+    Assert.assertEquals(changeDetector.getRemovalsByType(changeType).size(), deletions);
   }
 }

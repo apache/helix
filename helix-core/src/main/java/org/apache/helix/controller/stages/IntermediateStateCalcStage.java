@@ -798,21 +798,29 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  private RebalanceType getRebalanceTypePerMessage(Map<String, Integer> requiredStates, Message message,
+  /**
+   * Determine the message rebalance type with message and current states.
+   * @param desiredStates         Ideally how may states we needed for guarantee the health of replica
+   * @param message               The message to be determined what is the rebalance type
+   * @param derivedCurrentStates  Derived from current states with previous messages not be throttled.
+   * @return                      Rebalance type. Recovery or load.
+   */
+  private RebalanceType getRebalanceTypePerMessage(Map<String, Integer> desiredStates, Message message,
       Map<String, String> derivedCurrentStates) {
-    Map<String, Integer> requiredStatesSnapshot = new HashMap<>(requiredStates);
+    Map<String, Integer> requiredStatesSnapshot = new HashMap<>(desiredStates);
     // Looping existing current states to see whether current states fulfilled all the required states.
     for (String state : derivedCurrentStates.values()) {
       if (requiredStatesSnapshot.containsKey(state)) {
-        requiredStatesSnapshot.put(state, requiredStatesSnapshot.get(state) - 1);
-        if (requiredStatesSnapshot.get(state) == 0) {
+        if (requiredStatesSnapshot.get(state) == 1) {
           requiredStatesSnapshot.remove(state);
+        } else {
+          requiredStatesSnapshot.put(state, requiredStatesSnapshot.get(state) - 1);
         }
       }
     }
 
-    // If the message is trying to bring the required state remaining in the map, it is recovery rebalance.
-    // Otherwise it is load rebalance.
+    // If the message contains any "required" state changes, then it is considered recovery rebalance.
+    // Otherwise, it is load balance.
     return requiredStatesSnapshot.containsKey(message.getToState()) ? RebalanceType.RECOVERY_BALANCE
         : RebalanceType.LOAD_BALANCE;
   }
@@ -835,16 +843,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     LinkedHashMap<String, Integer> expectedStateCountMap =
         stateModelDefinition.getStateCountMap(activeList.size(), requiredNumReplica); // StateModelDefinition's counts
 
-    Map<String, Integer> requiredStates = new HashMap<>();
-    for (String state : stateModelDefinition.getStatesPriorityList()) {
-      if (requiredNumReplica <= 0) {
-        break;
-      }
-
-      requiredStates.put(state, Math.min(requiredNumReplica, expectedStateCountMap.get(state)));
-      requiredNumReplica -= requiredStates.get(state);
-    }
-    return requiredStates;
+    return expectedStateCountMap;
   }
 
   /**
@@ -943,10 +942,15 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       //Compare rules:
       //     1. Higher target state has higher priority.
       //     2. If target state is same, range it as preference list order.
-      if (m1.getToState().equals(m2.getToState())) {
+      //     3. Sort by the name of targeted instances just for deterministic ordering.
+      if (m1.getToState().equals(m2.getToState()) && _preferenceInstanceMap.containsKey(m1.getTgtName())
+          && _preferenceInstanceMap.containsKey(m2.getTgtName())) {
         return _preferenceInstanceMap.get(m1.getTgtName()).compareTo(_preferenceInstanceMap.get(m2.getTgtName()));
       }
-      return _statePriorityMap.get(m1.getToState()).compareTo(_statePriorityMap.get(m2.getToState()));
+      if (!m1.getToState().equals(m2.getToState())) {
+        return _statePriorityMap.get(m1.getToState()).compareTo(_statePriorityMap.get(m2.getToState()));
+      }
+      return m1.getTgtName().compareTo(m2.getTgtName());
     }
   }
 

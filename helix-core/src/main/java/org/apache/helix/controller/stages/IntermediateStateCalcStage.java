@@ -807,21 +807,21 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private RebalanceType getRebalanceTypePerMessage(Map<String, Integer> desiredStates, Message message,
       Map<String, String> derivedCurrentStates) {
-    Map<String, Integer> requiredStatesSnapshot = new HashMap<>(desiredStates);
+    Map<String, Integer> desiredStatesSnapshot = new HashMap<>(desiredStates);
     // Looping existing current states to see whether current states fulfilled all the required states.
     for (String state : derivedCurrentStates.values()) {
-      if (requiredStatesSnapshot.containsKey(state)) {
-        if (requiredStatesSnapshot.get(state) == 1) {
-          requiredStatesSnapshot.remove(state);
+      if (desiredStatesSnapshot.containsKey(state)) {
+        if (desiredStatesSnapshot.get(state) == 1) {
+          desiredStatesSnapshot.remove(state);
         } else {
-          requiredStatesSnapshot.put(state, requiredStatesSnapshot.get(state) - 1);
+          desiredStatesSnapshot.put(state, desiredStatesSnapshot.get(state) - 1);
         }
       }
     }
 
     // If the message contains any "required" state changes, then it is considered recovery rebalance.
     // Otherwise, it is load balance.
-    return requiredStatesSnapshot.containsKey(message.getToState()) ? RebalanceType.RECOVERY_BALANCE
+    return desiredStatesSnapshot.containsKey(message.getToState()) ? RebalanceType.RECOVERY_BALANCE
         : RebalanceType.LOAD_BALANCE;
   }
 
@@ -835,13 +835,13 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     int requiredNumReplica = idealState.getMinActiveReplicas() == -1
         ? idealState.getReplicaCount(preferenceList.size())
         : idealState.getMinActiveReplicas();
-    Set<String> activeList = new HashSet<>(preferenceList);
-    activeList.retainAll(resourceControllerDataProvider.getEnabledLiveInstances());
 
-    // For each state, check that this partition currently has the required number of that state as
-    // required by StateModelDefinition.
-    LinkedHashMap<String, Integer> expectedStateCountMap =
-        stateModelDefinition.getStateCountMap(activeList.size(), requiredNumReplica); // StateModelDefinition's counts
+    // Generate a state mapping, state -> required numbers based on the live and enabled instances for this partition
+    // preference list
+    LinkedHashMap<String, Integer> expectedStateCountMap = stateModelDefinition.getStateCountMap(
+        (int) preferenceList.stream()
+            .filter(i -> resourceControllerDataProvider.getEnabledLiveInstances().contains(i))
+            .count(), requiredNumReplica); // StateModelDefinition's counts
 
     return expectedStateCountMap;
   }
@@ -939,7 +939,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     @Override
     public int compare(Message m1, Message m2) {
-      //Compare rules:
+      //  Compare rules:
       //     1. Higher target state has higher priority.
       //     2. If target state is same, range it as preference list order.
       //     3. Sort by the name of targeted instances just for deterministic ordering.

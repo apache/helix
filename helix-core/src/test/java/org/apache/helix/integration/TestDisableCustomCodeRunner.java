@@ -31,9 +31,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -45,7 +42,9 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
-import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -133,26 +132,9 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     final String customCodeRunnerResource =
         customCodeRunners.get("localhost_12918").getResourceName();
-    ExternalView extView = accessor.getProperty(keyBuilder.externalView(customCodeRunnerResource));
-    Map<String, String> instanceStates = extView.getStateMap(customCodeRunnerResource + "_0");
-    String leader = null;
-    for (String instance : instanceStates.keySet()) {
-      String state = instanceStates.get(instance);
-      if ("LEADER".equals(state)) {
-        leader = instance;
-        break;
-      }
-    }
-    Assert.assertNotNull(leader);
-    for (String instance : callbacks.keySet()) {
-      DummyCallback callback = callbacks.get(instance);
-      if (instance.equals(leader)) {
-        Assert.assertTrue(callback.isInitTypeInvoked());
-      } else {
-        Assert.assertFalse(callback.isInitTypeInvoked());
-      }
-      callback.reset();
-    }
+
+    String leader =
+        verifyCustomCodeInvoked(callbacks, accessor, keyBuilder, customCodeRunnerResource);
 
     // Disable custom-code runner resource
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
@@ -207,6 +189,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       if (instance.equals(leader)) {
         Assert.assertTrue(callback.isFinalizeTypeInvoked());
       }
+      callback.reset();
     }
 
     // Remove fake instance
@@ -217,26 +200,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     Assert.assertTrue(verifier.verifyByPolling());
 
     // Verify that custom-invoke is invoked again
-    extView = accessor.getProperty(keyBuilder.externalView(customCodeRunnerResource));
-    instanceStates = extView.getStateMap(customCodeRunnerResource + "_0");
-    leader = null;
-    for (String instance : instanceStates.keySet()) {
-      String state = instanceStates.get(instance);
-      if ("LEADER".equals(state)) {
-        leader = instance;
-        break;
-      }
-    }
-    Assert.assertNotNull(leader);
-    for (String instance : callbacks.keySet()) {
-      DummyCallback callback = callbacks.get(instance);
-      if (instance.equals(leader)) {
-        Assert.assertTrue(callback.isInitTypeInvoked());
-      } else {
-        Assert.assertFalse(callback.isInitTypeInvoked());
-      }
-      callback.reset();
-    }
+    leader = verifyCustomCodeInvoked(callbacks, accessor, keyBuilder, customCodeRunnerResource);
 
     // Add a fake instance should invoke custom-code runner
     accessor.setProperty(keyBuilder.liveInstance(fakeInstanceName), fakeInstance);
@@ -259,5 +223,30 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     deleteLiveInstances(clusterName);
     deleteCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  private String verifyCustomCodeInvoked(Map<String, DummyCallback> callbacks,
+      HelixDataAccessor accessor, PropertyKey.Builder keyBuilder, String customCodeRunnerResource) {
+    ExternalView extView = accessor.getProperty(keyBuilder.externalView(customCodeRunnerResource));
+    Map<String, String> instanceStates = extView.getStateMap(customCodeRunnerResource + "_0");
+    String leader = null;
+    for (String instance : instanceStates.keySet()) {
+      String state = instanceStates.get(instance);
+      if ("LEADER".equals(state)) {
+        leader = instance;
+        break;
+      }
+    }
+    Assert.assertNotNull(leader);
+    for (String instance : callbacks.keySet()) {
+      DummyCallback callback = callbacks.get(instance);
+      if (instance.equals(leader)) {
+        Assert.assertTrue(callback.isInitTypeInvoked() && !callback.isFinalizeTypeInvoked());
+      } else {
+        Assert.assertTrue(!callback.isInitTypeInvoked() || callback.isFinalizeTypeInvoked());
+      }
+      callback.reset();
+    }
+    return leader;
   }
 }

@@ -36,11 +36,15 @@ public class CORSFilter implements ContainerRequestFilter, ContainerResponseFilt
     if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
       Response.ResponseBuilder builder = Response.ok();
 
+      // NOTE: Allow whichever HTTP Methods requested in the incoming request because the cluster
+      // administrator must be able to trigger such operations
+      // Helix REST uses GET, PUT, DELETE, POST
       String requestMethods = request.getHeaderString("Access-Control-Request-Method");
       if (requestMethods != null) {
         builder.header("Access-Control-Allow-Methods", requestMethods);
       }
 
+      // NOTE: All headers must be allowed for preflight
       String allowHeaders = request.getHeaderString("Access-Control-Request-Headers");
       if (allowHeaders != null) {
         builder.header("Access-Control-Allow-Headers", allowHeaders);

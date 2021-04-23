@@ -56,6 +56,7 @@ public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
 
   private static final String REST_DOMAIN = "org.apache.helix.rest";
+  private static final String CORS_ENABLED = "cors.enabled";
 
   // TODO: consider moving the following static context to ServerContext or any other place
   public static SSLContext REST_SERVER_SSL_CONTEXT;
@@ -164,7 +165,10 @@ public class HelixRestServer {
     }
     cfg.property(ContextPropertyKeys.METADATA.name(), namespace);
 
-    cfg.register(new CORSFilter());
+    if (Boolean.getBoolean(CORS_ENABLED)) {
+      // NOTE: CORS is disabled by default unless otherwise specified in System Properties.
+      cfg.register(new CORSFilter());
+    }
     cfg.register(new AuditLogFilter(_auditLoggers));
     return cfg;
   }

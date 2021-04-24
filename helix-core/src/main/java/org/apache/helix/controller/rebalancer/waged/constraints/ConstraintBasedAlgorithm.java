@@ -42,6 +42,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * The algorithm is based on a given set of constraints
  * - HardConstraint: Approve or deny the assignment given its condition, any assignment cannot
@@ -68,23 +69,38 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     List<AssignableNode> nodes = new ArrayList<>(clusterModel.getAssignableNodes().values());
     Set<String> busyInstances =
         getBusyInstances(clusterModel.getContext().getBestPossibleAssignment().values());
-    // Sort the replicas so the input is stable for the greedy algorithm.
-    // For the other algorithm implementation, this sorting could be unnecessary.
-    for (AssignableReplica replica : getOrderedAssignableReplica(clusterModel)) {
+
+    // Compute overall utilization of the cluster. Capacity dimension -> total remaining capacity
+    Map<String, Integer> overallClusterRemainingCapacityMap =
+        computeOverallClusterRemainingCapacity(nodes);
+
+    // Create a wrapper for each AssignableReplica.
+    Set<AssignableReplicaWithScore> toBeAssignedReplicas =
+        clusterModel.getAssignableReplicaMap().values().stream()
+            .flatMap(replicas -> replicas.stream())
+            .map(replica -> new AssignableReplicaWithScore(replica, clusterModel))
+            .collect(Collectors.toSet());
+
+    while (!toBeAssignedReplicas.isEmpty()) {
+      AssignableReplica replica =
+          getNextAssignableReplica(toBeAssignedReplicas, overallClusterRemainingCapacityMap);
       Optional<AssignableNode> maybeBestNode =
           getNodeWithHighestPoints(replica, nodes, clusterModel.getContext(), busyInstances,
               optimalAssignment);
       // stop immediately if any replica cannot find best assignable node
-      if (optimalAssignment.hasAnyFailure()) {
-        String errorMessage = String
-            .format("Unable to find any available candidate node for partition %s; Fail reasons: %s",
+      if (!maybeBestNode.isPresent() || optimalAssignment.hasAnyFailure()) {
+        String errorMessage = String.format(
+            "Unable to find any available candidate node for partition %s; Fail reasons: %s",
             replica.getPartitionName(), optimalAssignment.getFailures());
         throw new HelixRebalanceException(errorMessage,
             HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
-      maybeBestNode.ifPresent(node -> clusterModel
+      AssignableNode bestNode = maybeBestNode.get();
+      // Assign the replica and update the cluster model.
+      clusterModel
           .assign(replica.getResourceName(), replica.getPartitionName(), replica.getReplicaState(),
-              node.getInstanceName()));
+              bestNode.getInstanceName());
+      updateOverallClusterRemainingCapacity(overallClusterRemainingCapacityMap, replica);
     }
     optimalAssignment.updateAssignments(clusterModel);
     return optimalAssignment;
@@ -152,69 +168,139 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  private List<AssignableReplica> getOrderedAssignableReplica(ClusterModel clusterModel) {
-    Map<String, Set<AssignableReplica>> replicasByResource = clusterModel.getAssignableReplicaMap();
-    List<AssignableReplica> orderedAssignableReplicas =
-        replicasByResource.values().stream().flatMap(replicas -> replicas.stream())
-            .collect(Collectors.toList());
-
-    Map<String, ResourceAssignment> bestPossibleAssignment =
-        clusterModel.getContext().getBestPossibleAssignment();
-    Map<String, ResourceAssignment> baselineAssignment =
-        clusterModel.getContext().getBaselineAssignment();
-
-    Map<String, Integer> replicaHashCodeMap = orderedAssignableReplicas.parallelStream().collect(
-        Collectors.toMap(AssignableReplica::toString,
-            replica -> Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet()),
-            (hash1, hash2) -> hash2));
-
-    // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
-    // 2. Sort according to the state priority. Note that prioritizing the top state is required.
-    // Or the greedy algorithm will unnecessarily shuffle the states between replicas.
-    // 3. Sort according to the resource/partition name.
-    orderedAssignableReplicas.sort((replica1, replica2) -> {
-      String resourceName1 = replica1.getResourceName();
-      String resourceName2 = replica2.getResourceName();
-      if (bestPossibleAssignment.containsKey(resourceName1) == bestPossibleAssignment
-          .containsKey(resourceName2)) {
-        if (baselineAssignment.containsKey(resourceName1) == baselineAssignment
-            .containsKey(resourceName2)) {
-          // If both assignment states have/not have the resource assignment the same,
-          // compare for additional dimensions.
-          int statePriority1 = replica1.getStatePriority();
-          int statePriority2 = replica2.getStatePriority();
-          if (statePriority1 == statePriority2) {
-            // If state priorities are the same, try to randomize the replicas order. Otherwise,
-            // the same replicas might always be moved in each rebalancing. This is because their
-            // placement calculating will always happen at the critical moment while the cluster is
-            // almost close to the expected utilization.
-            //
-            // Note that to ensure the algorithm is deterministic with the same inputs, do not use
-            // Random functions here. Use hashcode based on the cluster topology information to get
-            // a controlled randomized order is good enough.
-            Integer replicaHash1 = replicaHashCodeMap.get(replica1.toString());
-            Integer replicaHash2 = replicaHashCodeMap.get(replica2.toString());
-            if (!replicaHash1.equals(replicaHash2)) {
-              return replicaHash1.compareTo(replicaHash2);
-            } else {
-              // In case of hash collision, return order according to the name.
-              return replica1.toString().compareTo(replica2.toString());
-            }
-          } else {
-            // Note we shall prioritize the replica with a higher state priority,
-            // the smaller priority number means higher priority.
-            return statePriority1 - statePriority2;
-          }
-        } else {
-          // If the baseline assignment contains the assignment, prioritize the replica.
-          return baselineAssignment.containsKey(resourceName1) ? -1 : 1;
-        }
-      } else {
-        // If the best possible assignment contains the assignment, prioritize the replica.
-        return bestPossibleAssignment.containsKey(resourceName1) ? -1 : 1;
+  private Map<String, Integer> computeOverallClusterRemainingCapacity(List<AssignableNode> nodes) {
+    Map<String, Integer> utilizationMap = new HashMap<>();
+    for (AssignableNode node : nodes) {
+      for (String capacityKey : node.getMaxCapacity().keySet()) {
+        utilizationMap.compute(capacityKey,
+            (k, v) -> v == null ? node.getRemainingCapacity().get(capacityKey)
+                : v + node.getRemainingCapacity().get(capacityKey));
       }
-    });
-    return orderedAssignableReplicas;
+    }
+    return utilizationMap;
+  }
+
+  /**
+   * Update the overallClusterUtilMap with newly placed replica
+   */
+  private void updateOverallClusterRemainingCapacity(
+      Map<String, Integer> overallClusterRemainingCapacityMap, AssignableReplica replica) {
+    for (Map.Entry<String, Integer> resourceUsage : replica.getCapacity().entrySet()) {
+      overallClusterRemainingCapacityMap.put(resourceUsage.getKey(),
+          overallClusterRemainingCapacityMap.get(resourceUsage.getKey()) - resourceUsage
+              .getValue());
+    }
+  }
+
+  private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
+    private final AssignableReplica _replica;
+    private float _score = 0;
+    private final boolean _isInBestPossibleAssignment;
+    private final boolean _isInBaselineAssignment;
+    private final Integer  _replicaHash;
+
+    AssignableReplicaWithScore(AssignableReplica replica, ClusterModel clusterModel) {
+      _replica = replica;
+      _isInBestPossibleAssignment = clusterModel.getContext().getBestPossibleAssignment()
+          .containsKey(replica.getResourceName());
+      _isInBaselineAssignment =
+          clusterModel.getContext().getBaselineAssignment().containsKey(replica.getResourceName());
+      _replicaHash = Objects.hash(replica.toString(), clusterModel.getAssignableNodes().keySet());
+    }
+
+    public void computeScore(Map<String, Integer> overallClusterRemainingCapMap) {
+      float score = 0;
+      // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
+      // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
+      for (Map.Entry<String, Integer> resourceCapacity : _replica.getCapacity().entrySet()) {
+        if (resourceCapacity.getValue() == 0) {
+          continue;
+        }
+        score = (overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0
+            || resourceCapacity.getValue() > (overallClusterRemainingCapMap
+            .get(resourceCapacity.getKey()))) ? Float.MAX_VALUE
+            : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
+                .get(resourceCapacity.getKey()));
+        if (Float.compare(score, Float.MAX_VALUE) == 0) {
+          break;
+        }
+      }
+      _score = score;
+    }
+
+    public AssignableReplica getAssignableReplica() {
+      return _replica;
+    }
+
+
+    @Override
+    public String toString() {
+      return _replica.toString();
+    }
+
+    @Override
+    public int compareTo(AssignableReplicaWithScore replica2) {
+      // 1. Sort according if the assignment exists in the best possible and/or baseline assignment
+      if (_isInBestPossibleAssignment != replica2._isInBestPossibleAssignment) {
+        // If the best possible assignment contains only one replica's assignment,
+        // prioritize the replica.
+        return _isInBestPossibleAssignment ? -1 : 1;
+      }
+
+      if (_isInBaselineAssignment != replica2._isInBaselineAssignment) {
+        // If the baseline assignment contains only one replica's assignment, prioritize the replica.
+        return _isInBaselineAssignment ? -1 : 1;
+      }
+
+      // 2. Sort according to the state priority. Or the greedy algorithm will unnecessarily shuffle
+      // the states between replicas.
+      int statePriority1 = _replica.getStatePriority();
+      int statePriority2 = replica2._replica.getStatePriority();
+      if (statePriority1 != statePriority2) {
+        // Note we shall prioritize the replica with a higher state priority,
+        // the smaller priority number means higher priority.
+        return statePriority1 - statePriority2;
+      }
+
+      // 3. Sort according to the replica impact based on the weight.
+      // So the greedy algorithm will place the replicas with larger impact first.
+      int result = Float.compare(replica2._score, _score);
+      if (result != 0) {
+        return result;
+      }
+
+      // 4. Sort according to the resource/partition name.
+      // If none of the above conditions is making a difference, try to randomize the replicas
+      // order.
+      // Otherwise, the same replicas might always be moved in each rebalancing. This is because
+      // their placement calculating will always happen at the critical moment while the cluster is
+      // almost close to the expected utilization.
+      //
+      // Note that to ensure the algorithm is deterministic with the same inputs, do not use
+      // Random functions here. Use hashcode based on the cluster topology information to get
+      // a controlled randomized order is good enough.
+      if (!_replicaHash.equals(replica2._replicaHash)) {
+        return _replicaHash.compareTo(replica2._replicaHash);
+      } else {
+        // In case of hash collision, return order according to the name.
+        return _replica.toString().compareTo(replica2.toString());
+      }
+    }
+  }
+
+  private AssignableReplica getNextAssignableReplica(
+      Set<AssignableReplicaWithScore> allReplica,
+      Map<String, Integer> overallClusterRemainingCapMap) {
+    AssignableReplicaWithScore nextAssinableReplica = null;
+    // Compare every replica with current candidate, update candidate if needed
+    for (AssignableReplicaWithScore replica : allReplica) {
+      replica.computeScore(overallClusterRemainingCapMap);
+      if (nextAssinableReplica == null || replica.compareTo(nextAssinableReplica) < 0) {
+        nextAssinableReplica = replica;
+      }
+    }
+    allReplica.remove(nextAssinableReplica);
+    return nextAssinableReplica.getAssignableReplica();
   }
 
   /**

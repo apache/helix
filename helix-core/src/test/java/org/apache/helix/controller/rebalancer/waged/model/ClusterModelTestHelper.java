@@ -48,7 +48,7 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
 
   public ClusterModel getMultiNodeClusterModel() throws IOException {
     initialize();
-    ResourceControllerDataProvider testCache = setupClusterDataCache();
+    ResourceControllerDataProvider testCache = setupClusterDataCacheForNearFullUtil();
     InstanceConfig testInstanceConfig1 = createMockInstanceConfig(TEST_INSTANCE_ID_1);
     InstanceConfig testInstanceConfig2 = createMockInstanceConfig(TEST_INSTANCE_ID_2);
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();

@@ -83,4 +83,19 @@ public class TestConstraintBasedAlgorithm {
               .containsKey(ClusterModelTestHelper.TEST_INSTANCE_ID_1));
         }));
   }
+
+  // Add capacity related hard/soft constrain to test sorting algorithm in ConstraintBasedAlgorithm.
+  @Test
+  public void testSortingByResourceCapacity() throws IOException, HelixRebalanceException {
+    HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
+    SoftConstraint soft1 = new MaxCapacityUsageInstanceConstraint();
+    SoftConstraint soft2 = new InstancePartitionsCountConstraint();
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(nodeCapacityConstraint),
+            ImmutableMap.of(soft1, 1f, soft2, 1f));
+    ClusterModel clusterModel = new ClusterModelTestHelper().getMultiNodeClusterModel();
+    OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
+
+    Assert.assertFalse(optimalAssignment.hasAnyFailure());
+  }
 }

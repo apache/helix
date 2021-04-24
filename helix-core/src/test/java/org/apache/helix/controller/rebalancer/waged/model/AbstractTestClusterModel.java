@@ -164,6 +164,7 @@ public abstract class AbstractTestClusterModel {
     testResourceConfigResource1.setPartitionCapacityMap(
         Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource1));
     when(testCache.getResourceConfig("Resource1")).thenReturn(testResourceConfigResource1);
+
     Map<String, Integer> capacityDataMapResource2 = new HashMap<>();
     capacityDataMapResource2.put("item1", 5);
     capacityDataMapResource2.put("item2", 10);
@@ -182,6 +183,47 @@ public abstract class AbstractTestClusterModel {
     }
 
     return testCache;
+  }
+
+  // Add another resource. When compute, the two smaller resources' Master partition should be
+  // assigned to one instance and the relatively larger one's Master partition should be assigned to
+  // another.
+  // The sorting algorithm in ConstraintBasedAlgorithm should garnette these 2 smaller resources
+  // are placed after the larger one.
+  // This is the only way to accommodate all 6 partitions.
+  protected ResourceControllerDataProvider setupClusterDataCacheForNearFullUtil() throws IOException {
+    _resourceNames.add("Resource3");
+    _partitionNames.add("Partition5");
+    _partitionNames.add("Partition6");
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+
+    CurrentState testCurrentStateResource3 = Mockito.mock(CurrentState.class);
+    Map<String, String> partitionStateMap3 = new HashMap<>();
+    partitionStateMap3.put(_partitionNames.get(4), "MASTER");
+    partitionStateMap3.put(_partitionNames.get(5), "SLAVE");
+    when(testCurrentStateResource3.getResourceName()).thenReturn(_resourceNames.get(2));
+    when(testCurrentStateResource3.getPartitionStateMap()).thenReturn(partitionStateMap3);
+    when(testCurrentStateResource3.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(testCurrentStateResource3.getState(_partitionNames.get(4))).thenReturn("MASTER");
+    when(testCurrentStateResource3.getState(_partitionNames.get(5))).thenReturn("SLAVE");
+    when(testCurrentStateResource3.getSessionId()).thenReturn(_sessionId);
+
+    Map<String, CurrentState> currentStatemap = testCache.getCurrentState(_testInstanceId, _sessionId);
+    currentStatemap.put(_resourceNames.get(2), testCurrentStateResource3);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId)).thenReturn(currentStatemap);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId, false)).thenReturn(currentStatemap);
+
+    Map<String, Integer> capacityDataMapResource3 = new HashMap<>();
+    capacityDataMapResource3.put("item1", 9);
+    capacityDataMapResource3.put("item2", 17);
+    ResourceConfig testResourceConfigResource3 = new ResourceConfig("Resource3");
+    testResourceConfigResource3.setPartitionCapacityMap(
+        Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource3));
+    when(testCache.getResourceConfig("Resource3")).thenReturn(testResourceConfigResource3);
+    Map<String, ResourceConfig> configMap = testCache.getResourceConfigMap();
+    configMap.put("Resource3", testResourceConfigResource3);
+    when(testCache.getResourceConfigMap()).thenReturn(configMap);
+    return  testCache;
   }
 
   /**

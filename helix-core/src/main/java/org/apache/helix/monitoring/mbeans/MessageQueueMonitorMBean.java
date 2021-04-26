@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.mbeans;
 
 import org.apache.helix.monitoring.SensorNameProvider;
 
+@Deprecated
 public interface MessageQueueMonitorMBean extends SensorNameProvider {
   /**
    * Get the message queue size

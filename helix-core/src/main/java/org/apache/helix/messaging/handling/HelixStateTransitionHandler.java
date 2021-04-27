@@ -318,60 +318,60 @@ public class HelixStateTransitionHandler extends MessageHandler {
     NotificationContext context = _notificationContext;
     Message message = _message;
 
-    synchronized (_stateModel) {
-      HelixTaskResult taskResult = new HelixTaskResult();
-      HelixManager manager = context.getManager();
+    HelixTaskResult taskResult = new HelixTaskResult();
+    HelixManager manager = context.getManager();
 
-      _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
-          "Message handling task begin execute", manager);
-      message.setExecuteStartTimeStamp(System.currentTimeMillis());
+    _statusUpdateUtil
+        .logInfo(message, HelixStateTransitionHandler.class, "Message handling task begin execute",
+            manager);
+    message.setExecuteStartTimeStamp(System.currentTimeMillis());
 
-      try {
-        preHandleMessage();
-        invoke(manager, context, taskResult, message);
-      } catch (HelixDuplicatedStateTransitionException e) {
-        // Duplicated state transition problem is fine
-        taskResult.setSuccess(true);
-        taskResult.setMessage(e.toString());
-        taskResult.setInfo(e.getMessage());
-      } catch (HelixStateMismatchException e) {
-        // Simply log error and return from here if State mismatch.
-        // The current state of the state model is intact.
+    try {
+      preHandleMessage();
+      invoke(manager, context, taskResult, message);
+    } catch (HelixDuplicatedStateTransitionException e) {
+      // Duplicated state transition problem is fine
+      taskResult.setSuccess(true);
+      taskResult.setMessage(e.toString());
+      taskResult.setInfo(e.getMessage());
+    } catch (HelixStateMismatchException e) {
+      // Simply log error and return from here if State mismatch.
+      // The current state of the state model is intact.
+      taskResult.setSuccess(false);
+      taskResult.setMessage(e.toString());
+      taskResult.setException(e);
+    } catch (Exception e) {
+      String errorMessage =
+          "Exception while executing a state transition task " + message.getPartitionName();
+      logger.error(errorMessage, e);
+      if (e.getCause() != null && e.getCause() instanceof InterruptedException) {
+        e = (InterruptedException) e.getCause();
+      }
+
+      if (e instanceof HelixRollbackException || (e.getCause() != null && e
+          .getCause() instanceof HelixRollbackException)) {
+        // TODO : Support cancel to any state
+        logger.info(
+            "Rollback happened of state transition on resource \"" + _message.getResourceName()
+                + "\" partition \"" + _message.getPartitionName() + "\" from \"" + _message
+                .getFromState() + "\" to \"" + _message.getToState() + "\"");
+        taskResult.setCancelled(true);
+      } else {
+        _statusUpdateUtil
+            .logError(message, HelixStateTransitionHandler.class, e, errorMessage, manager);
         taskResult.setSuccess(false);
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
-      } catch (Exception e) {
-        String errorMessage =
-            "Exception while executing a state transition task " + message.getPartitionName();
-        logger.error(errorMessage, e);
-        if (e.getCause() != null && e.getCause() instanceof InterruptedException) {
-          e = (InterruptedException) e.getCause();
-        }
-
-        if (e instanceof HelixRollbackException
-            || (e.getCause() != null && e.getCause() instanceof HelixRollbackException)) {
-          // TODO : Support cancel to any state
-          logger.info("Rollback happened of state transition on resource \""
-              + _message.getResourceName() + "\" partition \"" + _message.getPartitionName()
-              + "\" from \"" + _message.getFromState() + "\" to \"" + _message.getToState() + "\"");
-          taskResult.setCancelled(true);
-        } else {
-          _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e, errorMessage,
-              manager);
-          taskResult.setSuccess(false);
-          taskResult.setMessage(e.toString());
-          taskResult.setException(e);
-          taskResult.setInterrupted(e instanceof InterruptedException);
-        }
+        taskResult.setInterrupted(e instanceof InterruptedException);
       }
-
-      taskResult.setCompleteTime(System.currentTimeMillis());
-      // add task result to context for postHandling
-      context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
-      postHandleMessage();
-
-      return taskResult;
     }
+
+    taskResult.setCompleteTime(System.currentTimeMillis());
+    // add task result to context for postHandling
+    context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
+    postHandleMessage();
+
+    return taskResult;
   }
 
   private void invoke(HelixManager manager, NotificationContext context, HelixTaskResult taskResult,

@@ -1962,8 +1962,10 @@ public class ZkClient implements Watcher {
       });
     } catch (RuntimeException e) {
       // Process callback to release caller from waiting
-      cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,
-          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      int rc =
+          (e instanceof ZkSessionMismatchedException) ? ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE
+              : ZkAsyncCallbacks.UNKNOWN_RET_CODE;
+      cb.processResult(rc, path, new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       throw e;
     }
   }
@@ -2000,8 +2002,10 @@ public class ZkClient implements Watcher {
       });
     } catch (RuntimeException e) {
       // Process callback to release caller from waiting
-      cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,
-          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      int rc =
+          (e instanceof ZkSessionMismatchedException) ? ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE
+              : ZkAsyncCallbacks.UNKNOWN_RET_CODE;
+      cb.processResult(rc, path, new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       throw e;
     }
   }

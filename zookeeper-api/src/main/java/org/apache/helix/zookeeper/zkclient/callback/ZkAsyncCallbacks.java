@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 public class ZkAsyncCallbacks {
   private static Logger LOG = LoggerFactory.getLogger(ZkAsyncCallbacks.class);
   public static final int UNKNOWN_RET_CODE = 255;
+  public static final int ZK_SESSION_MISMATCHED_CODE = 127;
 
   public static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
     public byte[] _data;
@@ -289,7 +290,11 @@ public class ZkAsyncCallbacks {
           return false;
         }
       } catch (ClassCastException | NullPointerException ex) {
-        LOG.error("Failed to handle unknown return code {}. Skip retrying.", rc, ex);
+        if(rc == ZK_SESSION_MISMATCHED_CODE) {
+          LOG.error("Actual session ID doesn't match with expected session ID. Skip retrying.");
+        } else {
+          LOG.error("Failed to handle unknown return code {}. Skip retrying.", rc, ex);
+        }
         return false;
       }
     }

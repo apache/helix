@@ -20,26 +20,33 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.List;
+import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MessageQueueMonitor implements MessageQueueMonitorMBean {
+public class MessageQueueMonitor extends DynamicMBeanProvider {
+  private static final String MBEAN_DESCRIPTION = "Message Queue Monitor";
   private static final Logger LOG = LoggerFactory.getLogger(MessageQueueMonitor.class);
 
   private final String _clusterName;
   private final String _instanceName;
   private final MBeanServer _beanServer;
-  private long _messageQueueBacklog;
+  private SimpleDynamicMetric<Long> _messageQueueBacklog;
 
   public MessageQueueMonitor(String clusterName, String instanceName) {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
-    _messageQueueBacklog = 0;
+    _messageQueueBacklog = new SimpleDynamicMetric("MessageQueueBacklog", 0L);
   }
 
   /**
@@ -47,12 +54,7 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
    * @param size the message queue size
    */
   public void setMessageQueueBacklog(long size) {
-    _messageQueueBacklog = size;
-  }
-
-  @Override
-  public long getMessageQueueBacklog() {
-    return _messageQueueBacklog;
+    _messageQueueBacklog.updateValue(size);
   }
 
   /**
@@ -60,7 +62,7 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
    */
   public void init() {
     try {
-      register(this, getObjectName(getBeanName()));
+      register();
     } catch (Exception e) {
       LOG.error("Fail to register MessageQueueMonitor", e);
     }
@@ -70,9 +72,9 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
    * Remove this bean from the server
    */
   public void reset() {
-    _messageQueueBacklog = 0;
+    _messageQueueBacklog.updateValue(0L);
     try {
-      unregister(getObjectName(getBeanName()));
+      unregister();
     } catch (Exception e) {
       LOG.error("Fail to register MessageQueueMonitor", e);
     }
@@ -83,32 +85,17 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
     return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "." + _clusterName;
   }
 
-  private void register(Object bean, ObjectName name) {
-    try {
-      if (_beanServer.isRegistered(name)) {
-        _beanServer.unregisterMBean(name);
-      }
-    } catch (Exception e) {
-      // OK
-    }
-
-    try {
-      LOG.info("Register MBean: " + name);
-      _beanServer.registerMBean(bean, name);
-    } catch (Exception e) {
-      LOG.warn("Could not register MBean: " + name, e);
-    }
-  }
-
-  private void unregister(ObjectName name) {
-    try {
-      if (_beanServer.isRegistered(name)) {
-        LOG.info("Unregistering " + name.toString());
-        _beanServer.unregisterMBean(name);
-      }
-    } catch (Exception e) {
-      LOG.warn("Could not unregister MBean: " + name, e);
-    }
+  /**
+   * This method registers the dynamic metrics.
+   * @return
+   * @throws JMException
+   */
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_messageQueueBacklog);
+    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(getBeanName()));
+    return this;
   }
 
   private String getClusterBeanName() {

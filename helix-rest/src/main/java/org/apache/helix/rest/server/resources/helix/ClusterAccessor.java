@@ -397,38 +397,6 @@ public class ClusterAccessor extends AbstractHelixResource {
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
-  @Path("{clusterId}/partitionAssignment")
-  public Response getPartitionAssignment(@PathParam("clusterId") String clusterId, String content) {
-    return OK();
-
-    // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
-    // as a REASON String
-    /*
-     Map<String, Object>customFieldsMap = null;
-    try {
-      // Try to parse content
-      customFieldsMap =
-          OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, Object>>() {
-          });
-      // content is given as a KV mapping. Nullify content
-      content = null;
-
-      for (Map.Entry<String, Object> entry : customFieldsMap.entrySet()) {
-        String key = entry.getKey();
-        switch (key) {
-          case "InstanceChange":
-           System.out.println("value is map" + (entry.getValue() instanceof HashMap));
-        }
-      }
-    } catch (Exception e) {
-      return badRequest("Invalid input: Input can but be parsed into a KV map.");
-    }
-    return OK();*/
-  }
-
-  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
-  @Timed(name = HttpConstants.WRITE_REQUEST)
-  @POST
   @Path("{clusterId}/customized-state-config")
   public Response updateCustomizedStateConfig(@PathParam("clusterId") String clusterId,
       @QueryParam("command") String commandStr, @QueryParam("type") String type) {

@@ -24,8 +24,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixAdmin;
@@ -138,42 +136,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
       throw err.exception;
     }
 
-    // Reset the REQUESTED_STATE property if it exists.
-    try {
-      String instance = _manager.getInstanceName();
-      String sessionId = _message.getTgtSessionId();
-      String resource = _message.getResourceName();
-      ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(_message.getBucketSize());
-      PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
-          .taskCurrentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName))
-          : accessor.keyBuilder()
-              .currentState(instance, sessionId, resource, bucketizer.getBucketName(partitionName));
-      ZNRecord rec = new ZNRecord(resource);
-      Map<String, String> map = new TreeMap<String, String>();
-      map.put(CurrentState.CurrentStateProperty.REQUESTED_STATE.name(), null);
-      rec.getMapFields().put(partitionName, map);
-      ZNRecordDelta delta = new ZNRecordDelta(rec, ZNRecordDelta.MergeOperation.SUBTRACT);
-      List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
-      deltaList.add(delta);
-      CurrentState currStateUpdate = new CurrentState(resource);
-      currStateUpdate.setDeltaList(deltaList);
-
-      // Update the ZK current state of the node
-      if (!accessor.updateProperty(key, currStateUpdate)) {
-        logger.error("Fails to persist current state back to ZK for resource " + resource
-            + " partition: " + partitionName);
-      }
-    } catch (Exception e) {
-      logger.error("Error when removing " + CurrentState.CurrentStateProperty.REQUESTED_STATE.name()
-          + " from current state.", e);
-      StateTransitionError error =
-          new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
-      _stateModel.rollbackOnError(_message, _notificationContext, error);
-      _statusUpdateUtil.logError(
-          _message, HelixStateTransitionHandler.class, e, "Error when removing "
-              + CurrentState.CurrentStateProperty.REQUESTED_STATE.name() + " from current state.",
-          _manager);
-    }
   }
 
   void postHandleMessage() {
@@ -233,7 +195,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
         _stateModelFactory.removeStateModel(resource, partitionKey);
       } else {
         // if the partition is not to be dropped, update _stateModel to the TO_STATE
-        _stateModel.updateState(toState);
+        if (_stateModel.getCurrentState().equals(_message.getFromState())) {
+          _stateModel.updateState(toState);
+        }
       }
     } else if (taskResult.isCancelled()) {
       // Cancelled message does not need current state update
@@ -267,24 +231,31 @@ public class HelixStateTransitionHandler extends MessageHandler {
     }
 
     try {
-      // Update the ZK current state of the node
-      PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
-          .taskCurrentState(instanceName, sessionId, resource,
-              bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
-          .currentState(instanceName, sessionId, resource, bucketizer.getBucketName(partitionKey));
-      if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
-        // normal message
-        if (!accessor.updateProperty(key, _currentStateDelta)) {
-          throw new HelixException("Fails to persist current state back to ZK for resource "
-              + resource + " partition: " + _message.getPartitionName());
+        // Update the ZK current state of the node
+        if (!_stateModel.getCurrentState().equals(_currentStateDelta.getState(partitionKey))
+            && !_currentStateDelta.getState(partitionKey)
+            .equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+          return;
         }
-      } else {
-        // sub-message of a batch message
-        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
-            (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext
-                .get(MapKey.CURRENT_STATE_UPDATE.toString());
-        csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
-      }
+        PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
+            .taskCurrentState(instanceName, sessionId, resource,
+                bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
+            .currentState(instanceName, sessionId, resource,
+                bucketizer.getBucketName(partitionKey));
+        if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
+          // normal message
+          if (!accessor.updateProperty(key, _currentStateDelta)) {
+            throw new HelixException(
+                "Fails to persist current state back to ZK for resource " + resource
+                    + " partition: " + _message.getPartitionName());
+          }
+        } else {
+          // sub-message of a batch message
+          ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
+              (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext
+                  .get(MapKey.CURRENT_STATE_UPDATE.toString());
+          csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
+        }
     } catch (Exception e) {
       logger.error("Error when updating current-state ", e);
       StateTransitionError error =
@@ -347,12 +318,12 @@ public class HelixStateTransitionHandler extends MessageHandler {
         taskResult.setInterrupted(e instanceof InterruptedException);
       }
     }
-
     taskResult.setCompleteTime(System.currentTimeMillis());
     // add task result to context for postHandling
     context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
-    postHandleMessage();
-
+    synchronized (_stateModel) {
+      postHandleMessage();
+    }
     return taskResult;
   }
 
@@ -375,7 +346,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
           "Instance %s, partition %s received state transition from %s to %s on session %s, message id: %s",
           message.getTgtName(), message.getPartitionName(), message.getFromState(),
           message.getToState(), message.getTgtSessionId(), message.getMsgId()));
-
       if (_cancelled) {
         throw new HelixRollbackException(String.format(
             "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled, message id: %s",

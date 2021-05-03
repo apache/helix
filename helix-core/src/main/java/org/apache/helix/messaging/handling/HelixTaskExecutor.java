@@ -844,7 +844,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         // skip the following operations for the no-op messages.
         continue;
       }
-
       NotificationContext msgWorkingContext = changeContext.clone();
       MessageHandler msgHandler = null;
       try {

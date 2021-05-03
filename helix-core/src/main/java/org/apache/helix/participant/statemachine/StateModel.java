@@ -39,8 +39,8 @@ public abstract class StateModel {
 
   // @transition(from='from', to='to')
   public void defaultTransitionHandler() {
-    logger
-        .error("Default default handler. The idea is to invoke this if no transition method is found. Yet to be implemented");
+    logger.error(
+        "Default default handler. The idea is to invoke this if no transition method is found. Yet to be implemented");
   }
 
   public boolean updateState(String newState) {

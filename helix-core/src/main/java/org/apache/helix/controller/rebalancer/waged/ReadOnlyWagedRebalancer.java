@@ -19,7 +19,6 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,9 +52,9 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
   @Override
   protected List<HelixRebalanceException.Type> failureTypesToPropagate() {
     // Also propagate FAILED_TO_CALCULATE for ReadOnlyWagedRebalancer
-    return Arrays.asList(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS,
-        HelixRebalanceException.Type.UNKNOWN_FAILURE,
-        HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+    List<HelixRebalanceException.Type> failureTypes = super.failureTypesToPropagate();
+    failureTypes.add(HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+    return failureTypes;
   }
 
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {

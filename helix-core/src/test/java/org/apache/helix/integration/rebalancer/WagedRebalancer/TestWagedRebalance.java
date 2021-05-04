@@ -31,6 +31,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -271,19 +272,23 @@ public class TestWagedRebalance extends ZkTestBase {
       clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 2));
       clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 1));
       clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
-      utilResult = HelixUtil
-          .getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
-              liveInstances, idealStates, resourceConfigs);
-      utilResult.values().forEach(
-          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
-              .forEach(entry -> Assert.assertEquals(entry, Collections.emptyMap())));
+      try {
+        HelixUtil.getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+        Assert.fail("Expected HelixException for calculaation failure");
+      } catch (HelixException e) {
+        Assert.assertEquals(e.getMessage(),
+            "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+      }
 
-      utilResult = HelixUtil
-          .getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
-              liveInstances, idealStates, resourceConfigs);
-      utilResult.values().forEach(
-          resourceAssignment -> resourceAssignment.getRecord().getMapFields().values()
-              .forEach(entry -> Assert.assertEquals(entry, Collections.emptyMap())));
+      try {
+        HelixUtil.getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+        Assert.fail("Expected HelixException for calculaation failure");
+      } catch (HelixException e) {
+        Assert.assertEquals(e.getMessage(),
+            "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+      }
     } finally {
       // restore the config with async mode
       clusterConfigGlobal =

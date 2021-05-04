@@ -81,22 +81,22 @@ public class TaskRunner implements Runnable {
 
       switch (_result.getStatus()) {
       case COMPLETED:
-        requestStateTransition(TaskPartitionState.COMPLETED);
+        updateCurrentState(TaskPartitionState.COMPLETED);
         break;
       case CANCELED:
         if (_timeout) {
-          requestStateTransition(TaskPartitionState.TIMED_OUT);
+          updateCurrentState(TaskPartitionState.TIMED_OUT);
         }
         // Else the state transition to CANCELED was initiated by the controller.
         break;
       case ERROR:
-        requestStateTransition(TaskPartitionState.TASK_ERROR);
+        updateCurrentState(TaskPartitionState.TASK_ERROR);
         break;
       case FAILED:
-        requestStateTransition(TaskPartitionState.TASK_ERROR);
+        updateCurrentState(TaskPartitionState.TASK_ERROR);
         break;
       case FATAL_FAILED:
-        requestStateTransition(TaskPartitionState.TASK_ABORTED);
+        updateCurrentState(TaskPartitionState.TASK_ABORTED);
         break;
       default:
         throw new AssertionError("Unknown task result type: " + _result.getStatus().name());
@@ -105,7 +105,7 @@ public class TaskRunner implements Runnable {
       LOG.error("Problem running the task, report task as FAILED.", e);
       _result =
           new TaskResult(Status.FAILED, "Exception happened in running task: " + e.getMessage());
-      requestStateTransition(TaskPartitionState.TASK_ERROR);
+      updateCurrentState(TaskPartitionState.TASK_ERROR);
     } finally {
       synchronized (_doneSync) {
         _done = true;
@@ -182,9 +182,9 @@ public class TaskRunner implements Runnable {
    * Requests the controller for a state transition.
    * @param state The state transition that is being requested.
    */
-  private void requestStateTransition(TaskPartitionState state) {
+  private void updateCurrentState(TaskPartitionState state) {
     synchronized (_stateModel) {
-      if (setCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
+      if (setZKCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
           _taskPartition, state)) {
         _stateModel.updateState(state.name());
       } else {
@@ -206,7 +206,7 @@ public class TaskRunner implements Runnable {
    * @param state     the requested state
    * @return true if the request was persisted, false otherwise
    */
-  private boolean setCurrentState(HelixDataAccessor accessor, String instance,
+  private boolean setZKCurrentState(HelixDataAccessor accessor, String instance,
       String sessionId, String resource, String partition, TaskPartitionState state) {
     LOG.debug(
         String.format("Updating current state %s for partition %s.", state, partition));

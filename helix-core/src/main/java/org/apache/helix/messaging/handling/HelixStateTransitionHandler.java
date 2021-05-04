@@ -263,11 +263,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
         _stateModel.rollbackOnError(_message, _notificationContext, error);
         _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
-
-        // if we have errors transit from ERROR state, disable the partition
-        if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
-          disablePartition();
-        }
       }
     }
 
@@ -298,19 +293,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, e,
           "Error when update current-state ", _manager);
     }
-  }
-
-  void disablePartition() {
-    String instanceName = _manager.getInstanceName();
-    String resourceName = _message.getResourceName();
-    String partitionName = _message.getPartitionName();
-    String clusterName = _manager.getClusterName();
-    HelixAdmin admin = _manager.getClusterManagmentTool();
-    admin.enablePartition(false, clusterName, instanceName, resourceName,
-        Arrays.asList(partitionName));
-    logger.info("error in transit from ERROR to " + _message.getToState() + " for partition: "
-        + partitionName + ". disable it on " + instanceName);
-
   }
 
   @Override
@@ -443,11 +425,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
         CurrentState currentStateDelta = new CurrentState(resourceName);
         currentStateDelta.setState(partition, HelixDefinedState.ERROR.toString());
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
-
-        // if transit from ERROR state, disable the partition
-        if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
-          disablePartition();
-        }
 
         PropertyKey currentStateKey =
             _isTaskMessage && !_isTaskCurrentStatePathDisabled ? keyBuilder

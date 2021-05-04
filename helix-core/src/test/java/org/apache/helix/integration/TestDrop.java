@@ -273,11 +273,6 @@ public class TestDrop extends ZkTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig("localhost_12918"));
-    List<String> disabledPartitions = config.getDisabledPartitions();
-    // System.out.println("disabledPartitions: " + disabledPartitions);
-    Assert.assertEquals(disabledPartitions.size(), 1, "TestDB0_4 should be disabled");
-    Assert.assertEquals(disabledPartitions.get(0), "TestDB0_4");
 
     // ExternalView should have TestDB0_4->localhost_12918_>ERROR
     Thread.sleep(250L);

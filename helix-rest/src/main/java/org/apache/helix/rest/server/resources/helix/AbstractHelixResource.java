@@ -86,6 +86,11 @@ public class AbstractHelixResource extends AbstractResource {
     return ZNRECORD_READER.readValue(data);
   }
 
+  protected String getZkAddress(){
+    ServerContext serverContext = getServerContext();
+    return serverContext.getZkAddr();
+  }
+
   private ServerContext getServerContext() {
     return (ServerContext) _application.getProperties()
         .get(ContextPropertyKeys.SERVER_CONTEXT.name());

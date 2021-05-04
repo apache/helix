@@ -200,6 +200,10 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return (ZkClient) getRealmAwareZkClient();
   }
 
+  public String getZkAddr(){
+    return _zkAddr;
+  }
+
   public HelixAdmin getHelixAdmin() {
     if (_zkHelixAdmin == null) {
       synchronized (this) {

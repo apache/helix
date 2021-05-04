@@ -299,7 +299,7 @@ public class ZkAsyncCallbacks {
           return false;
         }
       } catch (ClassCastException | NullPointerException ex) {
-          LOG.error("Failed to handle unknown return code {}. Skip retrying.", rc, ex);
+        LOG.error("Failed to handle unknown return code {}. Skip retrying.", rc, ex);
         return false;
       }
     }

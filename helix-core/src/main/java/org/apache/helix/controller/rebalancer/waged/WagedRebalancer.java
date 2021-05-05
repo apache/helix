@@ -91,6 +91,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private static final RebalanceAlgorithm DEFAULT_REBALANCE_ALGORITHM =
       ConstraintBasedAlgorithmFactory
           .getInstance(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+  // These failure types should be propagated to caller of computeNewIdealStates()
+  private static final List<HelixRebalanceException.Type> FAILURE_TYPES_TO_PROPAGATE = Collections
+      .unmodifiableList(Arrays.asList(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS,
+          HelixRebalanceException.Type.UNKNOWN_FAILURE));
 
   // To calculate the baseline asynchronously
   private final ExecutorService _baselineCalculateExecutor;
@@ -395,9 +399,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   }
 
   protected List<HelixRebalanceException.Type> failureTypesToPropagate() {
-    // By default, only propagate the following types of HelixRebalanceException
-    return Arrays.asList(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS,
-        HelixRebalanceException.Type.UNKNOWN_FAILURE);
+    return FAILURE_TYPES_TO_PROPAGATE;
   }
 
   /**

@@ -1960,6 +1960,11 @@ public class ZkClient implements Watcher {
                 });
         return null;
       });
+    } catch (ZkSessionMismatchedException e) {
+      // Process callback to release caller from waiting
+      cb.processResult(ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE, path,
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      throw e;
     } catch (RuntimeException e) {
       // Process callback to release caller from waiting
       cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,
@@ -1998,6 +2003,11 @@ public class ZkClient implements Watcher {
             });
         return null;
       });
+    } catch (ZkSessionMismatchedException e) {
+      // Process callback to release caller from waiting
+      cb.processResult(ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE, path,
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+      throw e;
     } catch (RuntimeException e) {
       // Process callback to release caller from waiting
       cb.processResult(ZkAsyncCallbacks.UNKNOWN_RET_CODE, path,

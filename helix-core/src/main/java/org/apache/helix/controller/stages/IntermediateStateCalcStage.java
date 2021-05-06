@@ -454,8 +454,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     String resourceName = resource.getResourceName();
     // check and charge pending transitions
     for (Partition partition : resource.getPartitions()) {
-      // Custom mode does not apply recovery/load rebalance since user can define different number of replicas for
-      // different partitions.
+      // To clarify that custom mode does not apply recovery/load rebalance since user can define different number of
+      // replicas for different partitions. Actually, the custom will stopped from resource level checks if this resource
+      // is not FULL_AUTO, we will return best possible state and do nothing.
       Map<String, Integer> requiredStates =
           getRequiredStates(resourceName, cache, preferenceLists.get(partition.getPartitionName()));
       // Maps instance to its current state

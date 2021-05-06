@@ -19,9 +19,12 @@ package org.apache.helix.controller.rebalancer.waged;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
@@ -46,6 +49,15 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
     super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddress, clusterName),
         ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());
+  }
+
+  @Override
+  protected List<HelixRebalanceException.Type> failureTypesToPropagate() {
+    // Also propagate FAILED_TO_CALCULATE for ReadOnlyWagedRebalancer
+    List<HelixRebalanceException.Type> failureTypes =
+        new ArrayList<>(super.failureTypesToPropagate());
+    failureTypes.add(HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+    return failureTypes;
   }
 
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {

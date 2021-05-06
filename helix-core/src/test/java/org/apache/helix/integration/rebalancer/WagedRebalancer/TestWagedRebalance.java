@@ -31,6 +31,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
@@ -275,6 +276,29 @@ public class TestWagedRebalance extends ZkTestBase {
       // The newly added instances should contain some partitions
       Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_0));
       Assert.assertTrue(instancesWithAssignmentsImmediate.contains(instance_1));
+
+      // Force FAILED_TO_CALCULATE and ensure that both util functions return no mappings
+      String testCapacityKey = "key";
+      clusterConfig.setDefaultPartitionWeightMap(Collections.singletonMap(testCapacityKey, 2));
+      clusterConfig.setDefaultInstanceCapacityMap(Collections.singletonMap(testCapacityKey, 1));
+      clusterConfig.setInstanceCapacityKeys(Collections.singletonList(testCapacityKey));
+      try {
+        HelixUtil.getTargetAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+        Assert.fail("Expected HelixException for calculaation failure");
+      } catch (HelixException e) {
+        Assert.assertEquals(e.getMessage(),
+            "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+      }
+
+      try {
+        HelixUtil.getImmediateAssignmentForWagedFullAuto(ZK_ADDR, clusterConfig, instanceConfigs,
+            liveInstances, idealStates, resourceConfigs);
+        Assert.fail("Expected HelixException for calculaation failure");
+      } catch (HelixException e) {
+        Assert.assertEquals(e.getMessage(),
+            "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
+      }
     } finally {
       // restore the config with async mode
       clusterConfigGlobal =

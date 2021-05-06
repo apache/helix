@@ -296,7 +296,8 @@ public final class HelixUtil {
     // Convert the resulting BestPossibleStateOutput to Map<String, ResourceAssignment>
     Map<String, ResourceAssignment> result = new HashMap<>();
     BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
-    if (output == null) {
+    if (output == null || (output.getPreferenceLists() == null && output.getResourceStatesMap()
+        .isEmpty())) {
       throw new HelixException(
           "getIdealAssignmentForWagedFullAuto(): Calculation failed: Failed to compute BestPossibleState!");
     }

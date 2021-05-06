@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.waged;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,6 +91,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
   private static final RebalanceAlgorithm DEFAULT_REBALANCE_ALGORITHM =
       ConstraintBasedAlgorithmFactory
           .getInstance(ClusterConfig.DEFAULT_GLOBAL_REBALANCE_PREFERENCE);
+  // These failure types should be propagated to caller of computeNewIdealStates()
+  private static final List<HelixRebalanceException.Type> FAILURE_TYPES_TO_PROPAGATE = Collections
+      .unmodifiableList(Arrays.asList(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS,
+          HelixRebalanceException.Type.UNKNOWN_FAILURE));
 
   // To calculate the baseline asynchronously
   private final ExecutorService _baselineCalculateExecutor;
@@ -268,12 +273,12 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       _rebalanceFailureCount.increment(1L);
 
       HelixRebalanceException.Type failureType = ex.getFailureType();
-      if (failureType.equals(HelixRebalanceException.Type.INVALID_REBALANCER_STATUS) || failureType
-          .equals(HelixRebalanceException.Type.UNKNOWN_FAILURE)) {
+      if (failureTypesToPropagate().contains(failureType)) {
         // If the failure is unknown or because of assignment store access failure, throw the
         // rebalance exception.
         throw ex;
-      } else { // return the previously calculated assignment.
+      } else {
+        // return the previously calculated assignment.
         LOG.warn(
             "Returning the last known-good best possible assignment from metadata store due to "
                 + "rebalance failure of type: {}", failureType);
@@ -391,6 +396,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       }
     }
     return finalIdealStateMap;
+  }
+
+  protected List<HelixRebalanceException.Type> failureTypesToPropagate() {
+    return FAILURE_TYPES_TO_PROPAGATE;
   }
 
   /**

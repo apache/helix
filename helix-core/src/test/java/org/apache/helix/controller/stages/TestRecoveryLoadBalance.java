@@ -57,7 +57,10 @@ public class TestRecoveryLoadBalance extends BaseStageTest {
   private final String STATE_MODEL = "statemodel";
   private ClusterConfig _clusterConfig;
 
-  @Test(dataProvider = "recoveryLoadBalanceInput")
+  // Disable the test since recovery rebalance is not able to block load rebalance.
+  // TODO: if we decide to support that by replica level, we will have a different config for that and this test can be
+  // reable then.
+  @Test(dataProvider = "recoveryLoadBalanceInput", enabled = false)
   public void testRecoveryAndLoadBalance(String stateModelDef,
       int errorOrRecoveryPartitionThresholdForLoadBalance,
       Map<String, Map<String, Map<String, String>>> stateMapping, int minActiveReplicas, int loadBalanceThrottle) {

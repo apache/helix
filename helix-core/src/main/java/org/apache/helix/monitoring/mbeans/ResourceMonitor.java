@@ -60,10 +60,18 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _externalViewIdealStateDiff;
   private SimpleDynamicMetric<Long> _numLessMinActiveReplicaPartitions;
   private SimpleDynamicMetric<Long> _numLessReplicaPartitions;
+  @Deprecated
   private SimpleDynamicMetric<Long> _numPendingRecoveryRebalancePartitions;
+  @Deprecated
   private SimpleDynamicMetric<Long> _numPendingLoadRebalancePartitions;
+  @Deprecated
   private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledPartitions;
+  @Deprecated
   private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledPartitions;
+  private SimpleDynamicMetric<Long> _numPendingRecoveryRebalanceReplicas;
+  private SimpleDynamicMetric<Long> _numPendingLoadRebalanceReplicas;
+  private SimpleDynamicMetric<Long> _numRecoveryRebalanceThrottledReplicas;
+  private SimpleDynamicMetric<Long> _numLoadRebalanceThrottledReplicas;
   private SimpleDynamicMetric<Long> _numPendingStateTransitions;
 
   // Counters
@@ -110,14 +118,24 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     _dynamicCapacityMetricsMap = new ConcurrentHashMap<>();
 
     _externalViewIdealStateDiff = new SimpleDynamicMetric("DifferenceWithIdealStateGauge", 0L);
+    _numPendingRecoveryRebalancePartitions =
+        new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0L);
     _numLoadRebalanceThrottledPartitions =
         new SimpleDynamicMetric("LoadRebalanceThrottledPartitionGauge", 0L);
     _numRecoveryRebalanceThrottledPartitions =
         new SimpleDynamicMetric("RecoveryRebalanceThrottledPartitionGauge", 0L);
     _numPendingLoadRebalancePartitions =
         new SimpleDynamicMetric("PendingLoadRebalancePartitionGauge", 0L);
-    _numPendingRecoveryRebalancePartitions =
-        new SimpleDynamicMetric("PendingRecoveryRebalancePartitionGauge", 0L);
+    _numPendingRecoveryRebalanceReplicas =
+        new SimpleDynamicMetric("PendingRecoveryRebalanceReplicaGauge", 0L);
+    _numLoadRebalanceThrottledReplicas =
+        new SimpleDynamicMetric("LoadRebalanceThrottledReplicaGauge", 0L);
+    _numRecoveryRebalanceThrottledReplicas =
+        new SimpleDynamicMetric("RecoveryRebalanceThrottledReplicaGauge", 0L);
+    _numPendingLoadRebalanceReplicas =
+        new SimpleDynamicMetric("PendingLoadRebalanceReplicaGauge", 0L);
+    _numPendingRecoveryRebalanceReplicas =
+        new SimpleDynamicMetric("PendingRecoveryRebalanceReplicaGauge", 0L);
     _numLessReplicaPartitions = new SimpleDynamicMetric("MissingReplicaPartitionGauge", 0L);
     _numLessMinActiveReplicaPartitions =
         new SimpleDynamicMetric("MissingMinActiveReplicaPartitionGauge", 0L);
@@ -370,10 +388,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
   public void updateRebalancerStats(long numPendingRecoveryRebalancePartitions,
       long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
       long numLoadRebalanceThrottledPartitions) {
-    _numPendingRecoveryRebalancePartitions.updateValue(numPendingRecoveryRebalancePartitions);
-    _numPendingLoadRebalancePartitions.updateValue(numPendingLoadRebalancePartitions);
-    _numRecoveryRebalanceThrottledPartitions.updateValue(numRecoveryRebalanceThrottledPartitions);
-    _numLoadRebalanceThrottledPartitions.updateValue(numLoadRebalanceThrottledPartitions);
+    _numPendingRecoveryRebalanceReplicas.updateValue(numPendingRecoveryRebalancePartitions);
+    _numPendingLoadRebalanceReplicas.updateValue(numPendingLoadRebalancePartitions);
+    _numRecoveryRebalanceThrottledReplicas.updateValue(numRecoveryRebalanceThrottledPartitions);
+    _numLoadRebalanceThrottledReplicas.updateValue(numLoadRebalanceThrottledPartitions);
   }
 
   /**
@@ -422,20 +440,40 @@ public class ResourceMonitor extends DynamicMBeanProvider {
     return _numLessReplicaPartitions.getValue();
   }
 
+  @Deprecated
   public long getPendingRecoveryRebalancePartitionGauge() {
     return _numPendingRecoveryRebalancePartitions.getValue();
   }
 
+  @Deprecated
   public long getPendingLoadRebalancePartitionGauge() {
     return _numPendingLoadRebalancePartitions.getValue();
   }
 
+  @Deprecated
   public long getRecoveryRebalanceThrottledPartitionGauge() {
     return _numRecoveryRebalanceThrottledPartitions.getValue();
   }
 
+  @Deprecated
   public long getLoadRebalanceThrottledPartitionGauge() {
     return _numLoadRebalanceThrottledPartitions.getValue();
+  }
+
+  public long getNumPendingRecoveryRebalanceReplicas() {
+    return _numPendingRecoveryRebalanceReplicas.getValue();
+  }
+
+  public long getNumPendingLoadRebalanceReplicas() {
+    return _numPendingLoadRebalanceReplicas.getValue();
+  }
+
+  public long getNumRecoveryRebalanceThrottledReplicas() {
+    return _numRecoveryRebalanceThrottledReplicas.getValue();
+  }
+
+  public long getNumLoadRebalanceThrottledReplicas() {
+    return _numLoadRebalanceThrottledReplicas.getValue();
   }
 
   public long getNumPendingStateTransitionGauge() {
@@ -465,6 +503,10 @@ public class ResourceMonitor extends DynamicMBeanProvider {
         _numPendingLoadRebalancePartitions,
         _numRecoveryRebalanceThrottledPartitions,
         _numLoadRebalanceThrottledPartitions,
+        _numPendingRecoveryRebalanceReplicas,
+        _numPendingLoadRebalanceReplicas,
+        _numRecoveryRebalanceThrottledReplicas,
+        _numLoadRebalanceThrottledReplicas,
         _externalViewIdealStateDiff,
         _successfulTopStateHandoffDurationCounter,
         _successTopStateHandoffCounter,

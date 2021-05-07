@@ -60,6 +60,10 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
     return failureTypes;
   }
 
+  public void updateChangeDetectorSnapshots(ResourceControllerDataProvider dataProvider) {
+    getChangeDetector().updateSnapshots(dataProvider);
+  }
+
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
     ReadOnlyAssignmentMetadataStore(String metadataStoreAddress, String clusterName) {
       super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName);

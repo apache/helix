@@ -250,6 +250,10 @@ public final class HelixUtil {
           new ResourceControllerDataProvider(globalSyncClusterConfig.getClusterName());
       dataProvider.requireFullRefresh();
       dataProvider.refresh(helixDataAccessor);
+      // first prepare waged rebalancer with a snapshot, so that it can react on the difference
+      // between the current status and the overwritten status
+      readOnlyWagedRebalancer.updateChangeDetectorSnapshots(dataProvider);
+
       dataProvider.setClusterConfig(globalSyncClusterConfig);
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()
           .collect(Collectors.toMap(InstanceConfig::getInstanceName, Function.identity())));

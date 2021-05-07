@@ -331,8 +331,8 @@
 
   <repositories>
     <repository>
-      <id>mvnrepository.com</id>
-      <url>https://mvnrepository.com</url>
+      <id>restlet.talend.com</id>
+      <url>https://maven.restlet.talend.com</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -341,8 +341,8 @@
       </snapshots>
     </repository>
     <repository>
-      <id>restlet.org</id>
-      <url>http://maven.restlet.org</url>
+      <id>mvnrepository.com</id>
+      <url>https://mvnrepository.com</url>
       <releases>
         <enabled>true</enabled>
       </releases>

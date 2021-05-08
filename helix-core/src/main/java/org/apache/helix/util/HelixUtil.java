@@ -253,6 +253,8 @@ public final class HelixUtil {
       // first prepare waged rebalancer with a snapshot, so that it can react on the difference
       // between the current status and the overwritten status
       readOnlyWagedRebalancer.updateChangeDetectorSnapshots(dataProvider);
+      dataProvider.requireFullRefresh();
+      dataProvider.refresh(helixDataAccessor);
 
       dataProvider.setClusterConfig(globalSyncClusterConfig);
       dataProvider.setInstanceConfigMap(instanceConfigs.stream()

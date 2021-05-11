@@ -46,12 +46,14 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -390,13 +392,15 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     root.put(Properties.id.name(), instanceName);
     ArrayNode resourcesNode = root.putArray(PerInstanceProperties.resources.name());
 
-    List<String> sessionIds = accessor.getChildNames(accessor.keyBuilder().sessions(instanceName));
-    if (sessionIds == null || sessionIds.size() == 0) {
+    List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+    if (!liveInstances.contains(instanceName)) {
       return null;
     }
+    LiveInstance liveInstance =
+        accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
 
-    // Only get resource list from current session id
-    String currentSessionId = sessionIds.get(0);
+    // get the current session id
+    String currentSessionId = liveInstance.getEphemeralOwner();
 
     List<String> resources =
         accessor.getChildNames(accessor.keyBuilder().currentStates(instanceName, currentSessionId));
@@ -416,13 +420,15 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName,
       @PathParam("resourceName") String resourceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
-    List<String> sessionIds = accessor.getChildNames(accessor.keyBuilder().sessions(instanceName));
-    if (sessionIds == null || sessionIds.size() == 0) {
+    List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
+    if (!liveInstances.contains(instanceName)) {
       return notFound();
     }
+    LiveInstance liveInstance =
+        accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
 
-    // Only get resource list from current session id
-    String currentSessionId = sessionIds.get(0);
+    // get the current session id
+    String currentSessionId = liveInstance.getEphemeralOwner();
     CurrentState resourceCurrentState = accessor.getProperty(
         accessor.keyBuilder().currentState(instanceName, currentSessionId, resourceName));
     if (resourceCurrentState == null) {

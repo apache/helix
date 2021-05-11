@@ -31,7 +31,9 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
@@ -520,6 +522,25 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .expectedReturnStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testValidateDeltaInstanceConfigForUpdate")
+  public void testGetResourcesOnInstance() throws JsonProcessingException, InterruptedException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources")
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME).get(this);
+    JsonNode node = OBJECT_MAPPER.readTree(body);
+    ArrayNode arrayOfResource =
+        (ArrayNode) node.get(PerInstanceAccessor.PerInstanceProperties.resources.name());
+    Assert.assertTrue(arrayOfResource.size() != 0);
+    System.out.println(arrayOfResource);
+    String dbNameString= arrayOfResource.get(0).toString();
+    String dbName = dbNameString.substring(1,dbNameString.length()-1);
+    System.out.println(dbName);
+    // The below calls should successfully return
+    body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources/{}")
+        .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME, dbName).get(this);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

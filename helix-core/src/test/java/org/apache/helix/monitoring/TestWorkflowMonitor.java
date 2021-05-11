@@ -45,7 +45,7 @@ public class TestWorkflowMonitor {
   @Test
   public void testRun() throws Exception {
     WorkflowMonitor wm = new WorkflowMonitor(TEST_CLUSTER_NAME, TEST_WORKFLOW_TYPE);
-    registerMbean(wm, getObjectName());
+    wm.register();
     Set<ObjectInstance> existingInstances = beanServer.queryMBeans(
         new ObjectName(MonitorDomainNames.ClusterStatus.name() + ":" + TEST_WORKFLOW_MBEAN_NAME),
         null);

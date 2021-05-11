@@ -534,10 +534,8 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     ArrayNode arrayOfResource =
         (ArrayNode) node.get(PerInstanceAccessor.PerInstanceProperties.resources.name());
     Assert.assertTrue(arrayOfResource.size() != 0);
-    System.out.println(arrayOfResource);
     String dbNameString= arrayOfResource.get(0).toString();
     String dbName = dbNameString.substring(1,dbNameString.length()-1);
-    System.out.println(dbName);
     // The below calls should successfully return
     body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/resources/{}")
         .isBodyReturnExpected(true).format(CLUSTER_NAME, INSTANCE_NAME, dbName).get(this);

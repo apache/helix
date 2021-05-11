@@ -86,8 +86,9 @@ public class WorkflowMonitor extends DynamicMBeanProvider {
       incrementSimpleDynamicMetric(_successfulWorkflowCount, 1);
 
       // Only record latency larger than 0 and succeeded workflows
-      _maximumWorkflowLatencyGauge
-          .updateValue(Math.max(_maximumWorkflowLatencyGauge.getValue(), latency));
+      incrementSimpleDynamicMetric(_maximumWorkflowLatencyGauge,
+          _maximumWorkflowLatencyGauge.getValue() > latency ? 0
+              : latency - _maximumWorkflowLatencyGauge.getValue());
       incrementSimpleDynamicMetric(_totalWorkflowLatencyCount, latency > 0 ? latency : 0);
     }
   }

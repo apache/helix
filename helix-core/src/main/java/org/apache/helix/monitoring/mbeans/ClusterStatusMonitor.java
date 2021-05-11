@@ -491,7 +491,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       try {
         registerPerInstanceResources(monitorsToRegister);
-      } catch (Exception e) {
+      } catch (JMException e) {
         LOG.error("Fail to register per-instance resource with MBean server: " + toRegister, e);
       }
       // Update existing beans
@@ -710,7 +710,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         WorkflowMonitor monitor = new WorkflowMonitor(_clusterName, workflowType);
         try {
           monitor.register();
-        } catch (Exception e) {
+        } catch (JMException e) {
           LOG.error("Failed to register object for workflow type : " + workflowType, e);
         }
         _perTypeWorkflowMonitorMap.put(workflowType, monitor);

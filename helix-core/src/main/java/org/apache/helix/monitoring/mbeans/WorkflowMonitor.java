@@ -113,11 +113,11 @@ public class WorkflowMonitor extends DynamicMBeanProvider {
    */
   public void updateWorkflowGauges(TaskState current) {
     if (current == null || current.equals(TaskState.NOT_STARTED)) {
-      incrementSimpleDynamicMetric(_queuedWorkflowGauge, 1);
+      incrementSimpleDynamicMetric(_queuedWorkflowGauge);
     } else if (current.equals(TaskState.IN_PROGRESS)) {
-      incrementSimpleDynamicMetric(_runningWorkflowGauge, 1);
+      incrementSimpleDynamicMetric(_runningWorkflowGauge);
     } else if (current.equals(TaskState.FAILED)) {
-      incrementSimpleDynamicMetric(_failedWorkflowGauge, 1);
+      incrementSimpleDynamicMetric(_failedWorkflowGauge);
     }
     incrementSimpleDynamicMetric(_existingWorkflowGauge);
   }
@@ -159,26 +159,13 @@ public class WorkflowMonitor extends DynamicMBeanProvider {
     attributeList.add(_totalWorkflowLatencyCount);
     attributeList.add(_maximumWorkflowLatencyGauge);
     attributeList.add(_lastResetTime);
-    String workflowBeanName = getWorkflowBeanName(_workflowType);
-    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(workflowBeanName));
+    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(_workflowType));
     return this;
   }
 
-  private ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), name));
-  }
-
-  /**
-   * Build workflow per type bean name
-   * "cluster={clusterName},workflowType={workflowType},
-   * @param workflowType The workflow type
-   * @return per workflow type bean name
-   */
-  private String getWorkflowBeanName(String workflowType) {
-    return String.format("%s, %s=%s", clusterBeanName(), WORKFLOW_TYPE_DN_KEY, workflowType);
-  }
-
-  private String clusterBeanName() {
-    return String.format("%s=%s", CLUSTER_DN_KEY, _clusterName);
+  private ObjectName getObjectName(String workflowType) throws MalformedObjectNameException {
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), String
+        .format("%s, %s=%s", String.format("%s=%s", CLUSTER_DN_KEY, _clusterName),
+            WORKFLOW_TYPE_DN_KEY, workflowType)));
   }
 }

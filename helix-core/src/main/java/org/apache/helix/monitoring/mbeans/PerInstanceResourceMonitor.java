@@ -118,10 +118,6 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
     return _resourceName;
   }
 
-  public String getBeanName() {
-    return _clusterName + " " + _participantName + " " + _resourceName;
-  }
-
   /**
    * Update per-instance resource bean
    * @param stateMap partition->state
@@ -153,8 +149,7 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
   public DynamicMBeanProvider register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_partitions);
-    String beanName = getPerInstanceResourceBeanName(_participantName, _resourceName);
-    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(beanName));
+    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(_participantName, _resourceName));
     return this;
   }
 
@@ -174,7 +169,9 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
     return String.format("%s=%s", "cluster", _clusterName);
   }
 
-  private ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), name));
+  private ObjectName getObjectName(String instanceName, String resourceName)
+      throws MalformedObjectNameException {
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), String
+        .format("%s,%s", clusterBeanName(), new BeanName(instanceName, resourceName).toString())));
   }
 }

@@ -786,6 +786,10 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
     return _metricCollector;
   }
 
+  protected ResourceChangeDetector getChangeDetector() {
+    return _changeDetector;
+  }
+
   @Override
   protected void finalize()
       throws Throwable {

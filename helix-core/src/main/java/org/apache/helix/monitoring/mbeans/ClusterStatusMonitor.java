@@ -896,7 +896,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       throws MalformedObjectNameException {
     synchronized (_perInstanceResourceMonitorMap) {
       for (PerInstanceResourceMonitor.BeanName beanName : beanNames) {
-        _perInstanceResourceMonitorMap.get(beanName).unregister();
+        if (_perInstanceResourceMonitorMap.get(beanName) != null) {
+          _perInstanceResourceMonitorMap.get(beanName).unregister();
+        }
       }
       _perInstanceResourceMonitorMap.keySet().removeAll(beanNames);
     }

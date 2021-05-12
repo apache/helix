@@ -153,17 +153,6 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
     return this;
   }
 
-  /**
-   * Build per-instance resource bean name:
-   * "cluster={clusterName},instanceName={instanceName},resourceName={resourceName}"
-   * @param instanceName
-   * @param resourceName
-   * @return per-instance resource bean name
-   */
-  private String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
-    return String
-        .format("%s,%s", clusterBeanName(), new BeanName(instanceName, resourceName).toString());
-  }
 
   private String clusterBeanName() {
     return String.format("%s=%s", "cluster", _clusterName);

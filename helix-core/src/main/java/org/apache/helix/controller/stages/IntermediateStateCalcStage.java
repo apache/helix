@@ -323,7 +323,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // for the new one. This is for backward-compatibility
     int threshold = 1; // Default threshold for ErrorOrRecoveryPartitionThresholdForLoadBalance
     // Keep the error count as partition level. This logic only applies to downward state transition determination
-    int partitionCount = (int) currentStateOutput.getCurrentStateMap(resourceName)
+    int numPartitionsWithErrorReplica = (int) currentStateOutput.getCurrentStateMap(resourceName)
         .values()
         .stream()
         .filter(i -> i.values().contains(HelixDefinedState.ERROR.name()))
@@ -340,9 +340,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     // Perform regular load balance only if the number of partitions in recovery and in error is
     // less than the threshold. Otherwise, only allow downward-transition load balance
-    boolean onlyDownwardLoadBalance = partitionCount > threshold;
+    boolean onlyDownwardLoadBalance = numPartitionsWithErrorReplica > threshold;
 
-    chargePendingTransition(resource, currentStateOutput, throttleController, cache, preferenceLists, stateModelDef, intermediatePartitionStateMap);
+    chargePendingTransition(resource, currentStateOutput, throttleController, cache, preferenceLists, stateModelDef,
+        intermediatePartitionStateMap);
 
     // Sort partitions in case of urgent partition need to take the quota first.
     List<Partition> partitions = new ArrayList<>(resource.getPartitions());

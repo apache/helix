@@ -154,6 +154,7 @@ public class ParticipantManager {
     // should not be created by an expired zk session.
     createLiveInstance();
     carryOverPreviousCurrentState();
+    removePreviousTaskCurrentStates();
 
     /**
      * setup message listener
@@ -362,6 +363,7 @@ public class ParticipantManager {
         }
 
         // If the the current state is related to tasks, there is no need to carry it over to new session.
+        // Note: this check is not necessary due to TaskCurrentStates, but keep it for backwards compatibility
         if (stateModelDefRef.equals(TaskConstants.STATE_MODEL_NAME)) {
           continue;
         }
@@ -419,8 +421,12 @@ public class ParticipantManager {
       LOG.info("Removing current states from previous sessions. path: " + path);
       _zkclient.deleteRecursively(path);
     }
+  }
 
-    // Remove all previous task current state sessions
+  /**
+   * Remove all previous task current state sessions
+   */
+  private void removePreviousTaskCurrentStates() {
     for (String session : _dataAccessor
         .getChildNames(_keyBuilder.taskCurrentStateSessions(_instanceName))) {
       if (session.equals(_sessionId)) {

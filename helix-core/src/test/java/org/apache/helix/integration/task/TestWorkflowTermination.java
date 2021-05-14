@@ -91,12 +91,11 @@ public class TestWorkflowTermination extends TaskTestBase {
     long cleanUpTime = System.currentTimeMillis();
     Assert.assertTrue(cleanUpTime - finishTime >= workflowExpiry);
 
-
     ObjectName objectName = getWorkflowMBeanObjectName(workflowName);
     Assert.assertEquals((long) beanServer.getAttribute(objectName, "SuccessfulWorkflowCount"), 1);
     Assert
         .assertTrue((long) beanServer.getAttribute(objectName, "MaximumWorkflowLatencyGauge") > 0);
-    Assert.assertTrue((long) beanServer.getAttribute(objectName, "WorkflowLatencyCount") > 0);
+    Assert.assertTrue((long) beanServer.getAttribute(objectName, "TotalWorkflowLatencyCount") > 0);
 
   }
 

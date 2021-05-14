@@ -64,7 +64,6 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   public static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
   static final String MESSAGE_QUEUE_DN_KEY = "messageQueue";
-  static final String WORKFLOW_TYPE_DN_KEY = "workflowType";
   static final String JOB_TYPE_DN_KEY = "jobType";
   static final String DEFAULT_WORKFLOW_JOB_TYPE = "DEFAULT";
   public static final String DEFAULT_TAG = "DEFAULT";
@@ -459,7 +458,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         for (String instance : instanceStateMap.keySet()) {
           String state = instanceStateMap.get(instance);
           PerInstanceResourceMonitor.BeanName beanName =
-              new PerInstanceResourceMonitor.BeanName(instance, resource);
+              new PerInstanceResourceMonitor.BeanName(_clusterName, instance, resource);
           if (!beanMap.containsKey(beanName)) {
             beanMap.put(beanName, new HashMap<Partition, String>());
           }
@@ -492,7 +491,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       try {
         registerPerInstanceResources(monitorsToRegister);
-      } catch (MalformedObjectNameException e) {
+      } catch (JMException e) {
         LOG.error("Fail to register per-instance resource with MBean server: " + toRegister, e);
       }
       // Update existing beans
@@ -710,8 +709,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       if (!_perTypeWorkflowMonitorMap.containsKey(workflowType)) {
         WorkflowMonitor monitor = new WorkflowMonitor(_clusterName, workflowType);
         try {
-          registerWorkflow(monitor);
-        } catch (MalformedObjectNameException e) {
+          monitor.register();
+        } catch (JMException e) {
           LOG.error("Failed to register object for workflow type : " + workflowType, e);
         }
         _perTypeWorkflowMonitorMap.put(workflowType, monitor);
@@ -874,15 +873,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   private void registerPerInstanceResources(Collection<PerInstanceResourceMonitor> monitors)
-      throws MalformedObjectNameException {
+      throws JMException {
     synchronized (_perInstanceResourceMonitorMap) {
       for (PerInstanceResourceMonitor monitor : monitors) {
         String instanceName = monitor.getInstanceName();
         String resourceName = monitor.getResourceName();
-        String beanName = getPerInstanceResourceBeanName(instanceName, resourceName);
-        register(monitor, getObjectName(beanName));
+        monitor.register();
         _perInstanceResourceMonitorMap
-            .put(new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
+            .put(new PerInstanceResourceMonitor.BeanName(_clusterName, instanceName, resourceName),
+                monitor);
       }
     }
   }
@@ -898,26 +897,21 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       throws MalformedObjectNameException {
     synchronized (_perInstanceResourceMonitorMap) {
       for (PerInstanceResourceMonitor.BeanName beanName : beanNames) {
-        unregister(getObjectName(
-            getPerInstanceResourceBeanName(beanName.instanceName(), beanName.resourceName())));
+        if (_perInstanceResourceMonitorMap.get(beanName) != null) {
+          _perInstanceResourceMonitorMap.get(beanName).unregister();
+        }
       }
       _perInstanceResourceMonitorMap.keySet().removeAll(beanNames);
     }
   }
 
-  private void registerWorkflow(WorkflowMonitor workflowMonitor)
-      throws MalformedObjectNameException {
-    String workflowBeanName = getWorkflowBeanName(workflowMonitor.getWorkflowType());
-    register(workflowMonitor, getObjectName(workflowBeanName));
-  }
-
-  private void unregisterAllWorkflowsMonitor() throws MalformedObjectNameException {
+  private void unregisterAllWorkflowsMonitor() {
     synchronized (_perTypeWorkflowMonitorMap) {
       Iterator<Map.Entry<String, WorkflowMonitor>> workflowIter =
           _perTypeWorkflowMonitorMap.entrySet().iterator();
       while (workflowIter.hasNext()) {
         Map.Entry<String, WorkflowMonitor> workflowEntry = workflowIter.next();
-        unregister(getObjectName(getWorkflowBeanName(workflowEntry.getKey())));
+        workflowEntry.getValue().unregister();
         workflowIter.remove();
       }
     }
@@ -969,18 +963,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @return per-instance resource bean name
    */
   protected String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
-    return String.format("%s,%s", clusterBeanName(),
-        new PerInstanceResourceMonitor.BeanName(instanceName, resourceName).toString());
-  }
-
-  /**
-   * Build workflow per type bean name
-   * "cluster={clusterName},workflowType={workflowType},
-   * @param workflowType The workflow type
-   * @return per workflow type bean name
-   */
-  protected String getWorkflowBeanName(String workflowType) {
-    return String.format("%s, %s=%s", clusterBeanName(), WORKFLOW_TYPE_DN_KEY, workflowType);
+    return new PerInstanceResourceMonitor.BeanName(_clusterName, instanceName, resourceName)
+        .toString();
   }
 
   /**

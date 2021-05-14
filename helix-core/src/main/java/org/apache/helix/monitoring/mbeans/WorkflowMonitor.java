@@ -19,86 +19,55 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.management.JMException;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.apache.helix.task.TaskState;
 
-public class WorkflowMonitor implements WorkflowMonitorMBean {
+import static org.apache.helix.monitoring.mbeans.ClusterStatusMonitor.CLUSTER_DN_KEY;
+
+public class WorkflowMonitor extends DynamicMBeanProvider {
+  private static final String MBEAN_DESCRIPTION = "Workflow Monitor";
   private static final String WORKFLOW_KEY = "Workflow";
+  static final String WORKFLOW_TYPE_DN_KEY = "workflowType";
   private static final long DEFAULT_RESET_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
   private String _clusterName;
   private String _workflowType;
 
-  private long _successfulWorkflowCount;
-  private long _failedWorkflowCount;
-  private long _failedWorkflowGauge;
-  private long _existingWorkflowGauge;
-  private long _queuedWorkflowGauge;
-  private long _runningWorkflowGauge;
-  private long _totalWorkflowLatencyCount;
-  private long _maximumWorkflowLatencyGauge;
-  private long _lastResetTime;
-
+  private SimpleDynamicMetric<Long> _successfulWorkflowCount;
+  private SimpleDynamicMetric<Long> _failedWorkflowCount;
+  private SimpleDynamicMetric<Long> _failedWorkflowGauge;
+  private SimpleDynamicMetric<Long> _existingWorkflowGauge;
+  private SimpleDynamicMetric<Long> _queuedWorkflowGauge;
+  private SimpleDynamicMetric<Long> _runningWorkflowGauge;
+  private SimpleDynamicMetric<Long> _totalWorkflowLatencyCount;
+  private SimpleDynamicMetric<Long> _maximumWorkflowLatencyGauge;
+  private SimpleDynamicMetric<Long> _lastResetTime;
 
   public WorkflowMonitor(String clusterName, String workflowType) {
     _clusterName = clusterName;
     _workflowType = workflowType;
-    _successfulWorkflowCount = 0L;
-    _failedWorkflowCount = 0L;
-    _failedWorkflowGauge = 0L;
-    _existingWorkflowGauge = 0L;
-    _queuedWorkflowGauge = 0L;
-    _runningWorkflowGauge = 0L;
-    _totalWorkflowLatencyCount = 0L;
-    _maximumWorkflowLatencyGauge = 0L;
-    _lastResetTime = System.currentTimeMillis();
+    _successfulWorkflowCount = new SimpleDynamicMetric("SuccessfulWorkflowCount", 0L);
+    _failedWorkflowCount = new SimpleDynamicMetric("FailedWorkflowCount", 0L);
+    _failedWorkflowGauge = new SimpleDynamicMetric("FailedWorkflowGauge", 0L);
+    _existingWorkflowGauge = new SimpleDynamicMetric("ExistingWorkflowGauge", 0L);
+    _queuedWorkflowGauge = new SimpleDynamicMetric("QueuedWorkflowGauge", 0L);
+    _runningWorkflowGauge = new SimpleDynamicMetric("RunningWorkflowGauge", 0L);
+    _totalWorkflowLatencyCount = new SimpleDynamicMetric("TotalWorkflowLatencyCount", 0L);
+    _maximumWorkflowLatencyGauge = new SimpleDynamicMetric("MaximumWorkflowLatencyGauge", 0L);
+    _lastResetTime = new SimpleDynamicMetric("LastResetTime", System.currentTimeMillis());
   }
 
   @Override
-  public long getSuccessfulWorkflowCount() {
-    return _successfulWorkflowCount;
-  }
-
-  @Override
-  public long getFailedWorkflowCount() {
-    return _failedWorkflowCount;
-  }
-
-  @Override
-  public long getFailedWorkflowGauge() {
-    return _failedWorkflowGauge;
-  }
-
-  @Override
-  public long getExistingWorkflowGauge() {
-    return _existingWorkflowGauge;
-  }
-
-  @Override
-  public long getQueuedWorkflowGauge() {
-    return _queuedWorkflowGauge;
-  }
-
-  @Override
-  public long getRunningWorkflowGauge() {
-    return _runningWorkflowGauge;
-  }
-
-  @Override
-  public long getWorkflowLatencyCount() {
-    return _totalWorkflowLatencyCount;
-  }
-
-  @Override
-  public long getMaximumWorkflowLatencyGauge() {
-    return _maximumWorkflowLatencyGauge;
-  }
-
-  @Override public String getSensorName() {
+  public String getSensorName() {
     return String.format("%s.%s.%s", _clusterName, WORKFLOW_KEY, _workflowType);
-  }
-
-  public String getWorkflowType() {
-    return _workflowType;
   }
 
   /**
@@ -112,13 +81,15 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
 
   public void updateWorkflowCounters(TaskState to, long latency) {
     if (to.equals(TaskState.FAILED)) {
-      _failedWorkflowCount++;
+      incrementSimpleDynamicMetric(_failedWorkflowCount, 1);
     } else if (to.equals(TaskState.COMPLETED)) {
-      _successfulWorkflowCount++;
+      incrementSimpleDynamicMetric(_successfulWorkflowCount, 1);
 
       // Only record latency larger than 0 and succeeded workflows
-      _maximumWorkflowLatencyGauge = Math.max(_maximumWorkflowLatencyGauge, latency);
-      _totalWorkflowLatencyCount += latency > 0 ? latency : 0;
+      incrementSimpleDynamicMetric(_maximumWorkflowLatencyGauge,
+          _maximumWorkflowLatencyGauge.getValue() > latency ? 0
+              : latency - _maximumWorkflowLatencyGauge.getValue());
+      incrementSimpleDynamicMetric(_totalWorkflowLatencyCount, latency > 0 ? latency : 0);
     }
   }
 
@@ -126,13 +97,13 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
    * Reset gauges
    */
   public void resetGauges() {
-    _failedWorkflowGauge = 0L;
-    _existingWorkflowGauge = 0L;
-    _runningWorkflowGauge = 0L;
-    _queuedWorkflowGauge = 0L;
-    if (_lastResetTime + DEFAULT_RESET_INTERVAL_MS < System.currentTimeMillis()) {
-      _lastResetTime = System.currentTimeMillis();
-      _maximumWorkflowLatencyGauge = 0;
+    _failedWorkflowGauge.updateValue(0L);
+    _existingWorkflowGauge.updateValue(0L);
+    _runningWorkflowGauge.updateValue(0L);
+    _queuedWorkflowGauge.updateValue(0L);
+    if (_lastResetTime.getValue() + DEFAULT_RESET_INTERVAL_MS < System.currentTimeMillis()) {
+      _lastResetTime.updateValue(System.currentTimeMillis());
+      _maximumWorkflowLatencyGauge.updateValue(0L);
     }
   }
 
@@ -142,12 +113,59 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
    */
   public void updateWorkflowGauges(TaskState current) {
     if (current == null || current.equals(TaskState.NOT_STARTED)) {
-      _queuedWorkflowGauge++;
+      incrementSimpleDynamicMetric(_queuedWorkflowGauge);
     } else if (current.equals(TaskState.IN_PROGRESS)) {
-      _runningWorkflowGauge++;
+      incrementSimpleDynamicMetric(_runningWorkflowGauge);
     } else if (current.equals(TaskState.FAILED)) {
-      _failedWorkflowGauge++;
+      incrementSimpleDynamicMetric(_failedWorkflowGauge);
     }
-    _existingWorkflowGauge++;
+    incrementSimpleDynamicMetric(_existingWorkflowGauge);
+  }
+
+  // All the get functions are for testing purpose only.
+  public long getSuccessfulWorkflowCount() {
+    return _successfulWorkflowCount.getValue();
+  }
+
+  public long getFailedWorkflowCount() {
+    return _failedWorkflowCount.getValue();
+  }
+
+  public long getFailedWorkflowGauge() {
+    return _failedWorkflowGauge.getValue();
+  }
+
+  public long getExistingWorkflowGauge() {
+    return _existingWorkflowGauge.getValue();
+  }
+
+  public long getQueuedWorkflowGauge() {
+    return _queuedWorkflowGauge.getValue();
+  }
+
+  public long getRunningWorkflowGauge() {
+    return _runningWorkflowGauge.getValue();
+  }
+
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_successfulWorkflowCount);
+    attributeList.add(_failedWorkflowCount);
+    attributeList.add(_failedWorkflowGauge);
+    attributeList.add(_existingWorkflowGauge);
+    attributeList.add(_queuedWorkflowGauge);
+    attributeList.add(_runningWorkflowGauge);
+    attributeList.add(_totalWorkflowLatencyCount);
+    attributeList.add(_maximumWorkflowLatencyGauge);
+    attributeList.add(_lastResetTime);
+    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(_workflowType));
+    return this;
+  }
+
+  private ObjectName getObjectName(String workflowType) throws MalformedObjectNameException {
+    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), String
+        .format("%s, %s=%s", String.format("%s=%s", CLUSTER_DN_KEY, _clusterName),
+            WORKFLOW_TYPE_DN_KEY, workflowType)));
   }
 }

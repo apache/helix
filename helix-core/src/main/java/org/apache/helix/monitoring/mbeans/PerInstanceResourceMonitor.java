@@ -19,10 +19,14 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.management.JMException;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -30,17 +34,28 @@ import com.google.common.collect.Lists;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
+import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBean {
+public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
+  private static final Logger LOG = LoggerFactory.getLogger(PerInstanceResourceMonitor.class);
+  private static final String MBEAN_DESCRIPTION = "Per Instance Resource Monitor";
+
   public static class BeanName {
     private final String _instanceName;
     private final String _resourceName;
+    private final String _clusterName;
 
-    public BeanName(String instanceName, String resourceName) {
-      if (instanceName == null || resourceName == null) {
-        throw new NullPointerException("Illegal beanName. instanceName: " + instanceName
-            + ", resourceName: " + resourceName);
+    public BeanName(String clusterName, String instanceName, String resourceName) {
+      if (clusterName == null || instanceName == null || resourceName == null) {
+        throw new NullPointerException(
+            "Illegal beanName. clusterName: " + clusterName + ", instanceName: " + instanceName
+                + ", resourceName: " + resourceName);
       }
+      _clusterName = clusterName;
       _instanceName = instanceName;
       _resourceName = resourceName;
     }
@@ -53,6 +68,17 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
       return _resourceName;
     }
 
+    public ObjectName objectName() {
+      try {
+        return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(),
+            new BeanName(_clusterName, _instanceName, _resourceName).toString()));
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Failed to create object name for cluster: {}, instance: {}, resource: {}.",
+            _clusterName, _instanceName, _resourceName);
+      }
+      return null;
+    }
+
     @Override
     public boolean equals(Object obj) {
       if (obj == null || !(obj instanceof BeanName)) {
@@ -60,7 +86,8 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
       }
 
       BeanName that = (BeanName) obj;
-      return _instanceName.equals(that._instanceName) && _resourceName.equals(that._resourceName);
+      return _clusterName.equals(that._clusterName) && _instanceName.equals(that._instanceName)
+          && _resourceName.equals(that._resourceName);
     }
 
     @Override
@@ -70,8 +97,9 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
 
     @Override
     public String toString() {
-      return String.format("%s=%s,%s=%s", ClusterStatusMonitor.INSTANCE_DN_KEY, _instanceName,
-          ClusterStatusMonitor.RESOURCE_DN_KEY, _resourceName);
+      return String.format("%s=%s,%s=%s,%s=%s", ClusterStatusMonitor.CLUSTER_DN_KEY, _clusterName,
+          ClusterStatusMonitor.INSTANCE_DN_KEY, _instanceName, ClusterStatusMonitor.RESOURCE_DN_KEY,
+          _resourceName);
     }
   }
 
@@ -79,14 +107,15 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
   private List<String> _tags;
   private final String _participantName;
   private final String _resourceName;
-  private long _partitions;
+  private SimpleDynamicMetric<Long> _partitions;
 
-  public PerInstanceResourceMonitor(String clusterName, String participantName, String resourceName) {
+  public PerInstanceResourceMonitor(String clusterName, String participantName,
+      String resourceName) {
     _clusterName = clusterName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     _participantName = participantName;
     _resourceName = resourceName;
-    _partitions = 0;
+    _partitions = new SimpleDynamicMetric("PartitionGauge", 0L);
   }
 
   @Override
@@ -98,11 +127,6 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
 
   private String serializedTags() {
     return Joiner.on('|').skipNulls().join(_tags).toString();
-  }
-
-  @Override
-  public long getPartitionGauge() {
-    return _partitions;
   }
 
   public String getInstanceName() {
@@ -131,13 +155,21 @@ public class PerInstanceResourceMonitor implements PerInstanceResourceMonitorMBe
     int cnt = 0;
     for (String state : stateMap.values()) {
       // Skip DROPPED and initial state (e.g. OFFLINE)
-      if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.name())
-          || state.equalsIgnoreCase(stateModelDef.getInitialState())) {
+      if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.name()) || state
+          .equalsIgnoreCase(stateModelDef.getInitialState())) {
         continue;
       }
       cnt++;
     }
-    _partitions = cnt;
+    _partitions.updateValue(Long.valueOf(cnt));
   }
 
+  @Override
+  public DynamicMBeanProvider register() throws JMException {
+    List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
+    attributeList.add(_partitions);
+    doRegister(attributeList, MBEAN_DESCRIPTION,
+        new BeanName(_clusterName, _participantName, _resourceName).objectName());
+    return this;
+  }
 }

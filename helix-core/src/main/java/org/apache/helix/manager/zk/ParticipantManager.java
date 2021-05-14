@@ -418,7 +418,16 @@ public class ParticipantManager {
       String path = _keyBuilder.currentStates(_instanceName, session).getPath();
       LOG.info("Removing current states from previous sessions. path: " + path);
       _zkclient.deleteRecursively(path);
-      path = _keyBuilder.taskCurrentStates(_instanceName, session).getPath();
+    }
+
+    // Remove all previous task current state sessions
+    for (String session : _dataAccessor
+        .getChildNames(_keyBuilder.taskCurrentStateSessions(_instanceName))) {
+      if (session.equals(_sessionId)) {
+        continue;
+      }
+
+      String path = _keyBuilder.taskCurrentStates(_instanceName, session).getPath();
       LOG.info("Removing task current states from previous sessions. path: " + path);
       _zkclient.deleteRecursively(path);
     }

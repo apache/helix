@@ -487,6 +487,16 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with {@link CurrentState} of an instance. This key is for
+     * TaskCurrentState specifically.
+     * @param instanceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey taskCurrentStateSessions(String instanceName) {
+      return new PropertyKey(TASKCURRENTSTATES, CurrentState.class, _clusterName, instanceName);
+    }
+
+    /**
      * Get a property key associated with {@link CurrentState} of an instance and session. This key
      * is for TaskCurrentState specifically.
      * @param instanceName

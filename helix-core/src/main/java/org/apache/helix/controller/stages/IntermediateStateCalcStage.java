@@ -308,6 +308,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     // This require a deep copy of current state map because some of the states will be overwritten by applying
     // messages to it.
+    // TODO: We may need to optimize it to be async compute for intermediate state output.
     PartitionStateMap intermediatePartitionStateMap =
         new PartitionStateMap(resourceName, currentStateOutput.getCurrentStateMap(resourceName));
 
@@ -350,16 +351,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     Collections.sort(partitions, new PartitionPriorityComparator(bestPossiblePartitionStateMap.getStateMap(),
         currentStateOutput.getCurrentStateMap(resourceName), stateModelDef.getTopState()));
     for (Partition partition : partitions) {
+      List<Message> messagesToThrottle = new ArrayList<>(resourceMessageMap.get(partition));
+      if (messagesToThrottle == null || messagesToThrottle.isEmpty()) {
+        continue;
+      }
+
       Map<String, String> derivedCurrentStateMap = currentStateOutput.getCurrentStateMap(resourceName, partition)
           .entrySet()
           .stream()
           .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
       List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
       Map<String, Integer> requiredState = getRequiredStates(resourceName, cache, preferenceList);
-      List<Message> messagesToThrottle = new ArrayList<>(resourceMessageMap.get(partition));
-      if (messagesToThrottle == null || messagesToThrottle.isEmpty()) {
-        continue;
-      }
       Collections.sort(messagesToThrottle,
           new MessagePriorityComparator(preferenceList, stateModelDef.getStatePriorityMap()));
       for (Message message : messagesToThrottle) {

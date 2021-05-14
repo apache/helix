@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.stream.Collectors;
 import org.apache.helix.model.Partition;
 
 /**
@@ -40,17 +41,11 @@ public class PartitionStateMap {
   }
 
   // Deep copy of the partitionStateMap is a safer way.
-  public PartitionStateMap(String resourceName,
-      Map<Partition, Map<String, String>> partitionStateMap) {
+  public PartitionStateMap(String resourceName, Map<Partition, Map<String, String>> partitionStateMap) {
     _resourceName = resourceName;
-    _stateMap = new HashMap<>();
-    for (Partition partition : partitionStateMap.keySet()) {
-      Map<String, String> map = new HashMap<>();
-      for (Map.Entry<String, String> entry : partitionStateMap.get(partition).entrySet()) {
-        map.put(entry.getKey(), entry.getValue());
-      }
-      _stateMap.put(partition, map);
-    }
+    _stateMap = partitionStateMap.entrySet()
+        .stream()
+        .collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<>(e.getValue())));
   }
 
   public Set<Partition> partitionSet() {

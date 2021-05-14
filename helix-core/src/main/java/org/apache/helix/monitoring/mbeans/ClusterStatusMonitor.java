@@ -458,7 +458,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         for (String instance : instanceStateMap.keySet()) {
           String state = instanceStateMap.get(instance);
           PerInstanceResourceMonitor.BeanName beanName =
-              new PerInstanceResourceMonitor.BeanName(instance, resource);
+              new PerInstanceResourceMonitor.BeanName(_clusterName, instance, resource);
           if (!beanMap.containsKey(beanName)) {
             beanMap.put(beanName, new HashMap<Partition, String>());
           }
@@ -880,7 +880,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         String resourceName = monitor.getResourceName();
         monitor.register();
         _perInstanceResourceMonitorMap
-            .put(new PerInstanceResourceMonitor.BeanName(instanceName, resourceName), monitor);
+            .put(new PerInstanceResourceMonitor.BeanName(_clusterName, instanceName, resourceName),
+                monitor);
       }
     }
   }
@@ -962,8 +963,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @return per-instance resource bean name
    */
   protected String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
-    return String.format("%s,%s", clusterBeanName(),
-        new PerInstanceResourceMonitor.BeanName(instanceName, resourceName).toString());
+    return new PerInstanceResourceMonitor.BeanName(_clusterName, instanceName, resourceName)
+        .toString();
   }
 
   /**

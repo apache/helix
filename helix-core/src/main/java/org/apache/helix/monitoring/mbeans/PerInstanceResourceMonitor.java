@@ -37,19 +37,25 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMBeanProvider;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
+  private static final Logger LOG = LoggerFactory.getLogger(PerInstanceResourceMonitor.class);
   private static final String MBEAN_DESCRIPTION = "Per Instance Resource Monitor";
 
   public static class BeanName {
     private final String _instanceName;
     private final String _resourceName;
+    private final String _clusterName;
 
-    public BeanName(String instanceName, String resourceName) {
-      if (instanceName == null || resourceName == null) {
+    public BeanName(String clusterName, String instanceName, String resourceName) {
+      if (clusterName == null || instanceName == null || resourceName == null) {
         throw new NullPointerException(
-            "Illegal beanName. instanceName: " + instanceName + ", resourceName: " + resourceName);
+            "Illegal beanName. clusterName: " + clusterName + ", instanceName: " + instanceName
+                + ", resourceName: " + resourceName);
       }
+      _clusterName = clusterName;
       _instanceName = instanceName;
       _resourceName = resourceName;
     }
@@ -62,6 +68,17 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
       return _resourceName;
     }
 
+    public ObjectName objectName() {
+      try {
+        return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(),
+            new BeanName(_clusterName, _instanceName, _resourceName).toString()));
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Failed to create object name for cluster: {}, instance: {}, resource: {}.",
+            _clusterName, _instanceName, _resourceName);
+      }
+      return null;
+    }
+
     @Override
     public boolean equals(Object obj) {
       if (obj == null || !(obj instanceof BeanName)) {
@@ -69,7 +86,8 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
       }
 
       BeanName that = (BeanName) obj;
-      return _instanceName.equals(that._instanceName) && _resourceName.equals(that._resourceName);
+      return _clusterName.equals(that._clusterName) && _instanceName.equals(that._instanceName)
+          && _resourceName.equals(that._resourceName);
     }
 
     @Override
@@ -79,8 +97,9 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
 
     @Override
     public String toString() {
-      return String.format("%s=%s,%s=%s", ClusterStatusMonitor.INSTANCE_DN_KEY, _instanceName,
-          ClusterStatusMonitor.RESOURCE_DN_KEY, _resourceName);
+      return String.format("%s=%s,%s=%s,%s=%s", ClusterStatusMonitor.CLUSTER_DN_KEY, _clusterName,
+          ClusterStatusMonitor.INSTANCE_DN_KEY, _instanceName, ClusterStatusMonitor.RESOURCE_DN_KEY,
+          _resourceName);
     }
   }
 
@@ -149,18 +168,8 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
   public DynamicMBeanProvider register() throws JMException {
     List<DynamicMetric<?, ?>> attributeList = new ArrayList<>();
     attributeList.add(_partitions);
-    doRegister(attributeList, MBEAN_DESCRIPTION, getObjectName(_participantName, _resourceName));
+    doRegister(attributeList, MBEAN_DESCRIPTION,
+        new BeanName(_clusterName, _participantName, _resourceName).objectName());
     return this;
-  }
-
-
-  private String clusterBeanName() {
-    return String.format("%s=%s", "cluster", _clusterName);
-  }
-
-  private ObjectName getObjectName(String instanceName, String resourceName)
-      throws MalformedObjectNameException {
-    return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(), String
-        .format("%s,%s", clusterBeanName(), new BeanName(instanceName, resourceName).toString())));
   }
 }

@@ -28,7 +28,11 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 public class PauseSignal extends HelixProperty {
 
   public enum PauseSignalProperty {
-    REASON
+    REASON,
+    PAUSE_CLUSTER,
+    FROM_HOST,
+    CANCEL_PENDING_ST,
+    TRIGGER_TIME
   }
 
   /**
@@ -62,5 +66,35 @@ public class PauseSignal extends HelixProperty {
   @Override
   public boolean isValid() {
     return true;
+  }
+
+  public void setPauseCluster(String pause) {
+    _record.setSimpleField(PauseSignalProperty.PAUSE_CLUSTER.name(), pause);
+  }
+
+  public String getPauseCluster() {
+    return _record.getSimpleField(PauseSignalProperty.PAUSE_CLUSTER.name());
+  }
+  public void setFromHost(String host) {
+    _record.setSimpleField(PauseSignalProperty.FROM_HOST.name(), host);
+  }
+
+  public String getFromHost() {
+    return _record.getSimpleField(PauseSignalProperty.FROM_HOST.name());
+  }
+
+  public void setCancelPendingST(boolean cancel) {
+    _record.setBooleanField(PauseSignalProperty.CANCEL_PENDING_ST.name(), cancel);
+  }
+
+  public boolean getCancelPendingST() {
+    return _record.getBooleanField(PauseSignalProperty.CANCEL_PENDING_ST.name(), false);
+  }
+  public void setTriggerTime(String time) {
+    _record.setSimpleField(PauseSignalProperty.TRIGGER_TIME.name(), time);
+  }
+
+  public String getTriggerTime() {
+    return _record.getSimpleField(PauseSignalProperty.TRIGGER_TIME.name());
   }
 }

@@ -44,6 +44,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.status.ClusterPauseStatus;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -323,6 +324,21 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public boolean isInMaintenanceMode(String clusterName) {
     return false;
+  }
+
+  @Override
+  public void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
+
+  }
+
+  @Override
+  public ClusterPauseStatus getClusterPauseStatus(String clusterName) {
+    return null;
+  }
+
+  @Override
+  public void disableClusterPauseMode(String clusterName) {
+
   }
 
   @Override public void resetPartition(String clusterName, String instanceName, String resourceName,

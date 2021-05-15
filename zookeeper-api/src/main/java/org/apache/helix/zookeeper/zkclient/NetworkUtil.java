@@ -120,7 +120,7 @@ public class NetworkUtil {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (final UnknownHostException e) {
-            throw new RuntimeException("unable to retrieve localhost name");
+            return "UNKNOWN";
         }
     }
 }

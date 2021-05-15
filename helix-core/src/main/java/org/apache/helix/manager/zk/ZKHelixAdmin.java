@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,9 +52,8 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.api.exceptions.HelixPauseExitsException;
 import org.apache.helix.api.topology.ClusterTopology;
-import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
-import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -80,6 +80,7 @@ import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.status.ClusterPauseStatus;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -93,6 +94,7 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
@@ -495,6 +497,67 @@ public class ZKHelixAdmin implements HelixAdmin {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getBaseDataAccessor()
         .exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
+    logger.info("Enable cluster pause mode for cluster: {}. Cancel pending ST: {}. Reason: {}.",
+        clusterName, cancelPendingST, reason);
+
+    PauseSignal pauseSignal = new PauseSignal("pause");
+    pauseSignal.setPauseCluster(Boolean.toString(true));
+    pauseSignal.setCancelPendingST(cancelPendingST);
+    pauseSignal.setFromHost(NetworkUtil.getLocalhostName());
+    pauseSignal.setTriggerTime(Instant.now().toString());
+    if (reason != null && !reason.isEmpty()) {
+      pauseSignal.setReason(reason);
+    }
+
+    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseDataAccessor);
+
+    if (baseDataAccessor.exists(accessor.keyBuilder().pause().getPath(), AccessOption.PERSISTENT)) {
+      throw new HelixPauseExitsException(clusterName + " pause signal already exits");
+    }
+
+    if (!accessor.createPause(pauseSignal)) {
+      throw new HelixException("Failed to create pause signal");
+    }
+  }
+
+  @Override
+  public void disableClusterPauseMode(String clusterName) {
+    logger.info("Disable cluster pause mode for cluster: {}", clusterName);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    PropertyKey pausePropertyKey = accessor.keyBuilder().pause();
+    PauseSignal pauseSignal = accessor.getProperty(pausePropertyKey);
+    if (pauseSignal == null) {
+      throw new HelixException(
+          "Pause signal does not exist. Cluster pause mode is not enabled for cluster "
+              + clusterName);
+    }
+    if (pauseSignal.getPauseCluster() == null) {
+      throw new HelixException("Cluster pause mode was NOT enabled for cluster: " + clusterName);
+    }
+    if (!Boolean.parseBoolean(pauseSignal.getPauseCluster())) {
+      logger.info("Cluster {} pause mode has been disabled before.", clusterName);
+      return;
+    }
+
+    // Disable cluster pause mode.
+    pauseSignal.setPauseCluster(Boolean.toString(false));
+    pauseSignal.setFromHost(NetworkUtil.getLocalhostName());
+    pauseSignal.setTriggerTime(Instant.now().toString());
+    if (!accessor.updateProperty(pausePropertyKey, pauseSignal)) {
+      throw new HelixException("Failed to disable cluster pause mode for cluster: " + clusterName);
+    }
+  }
+
+  @Override
+  public ClusterPauseStatus getClusterPauseStatus(String clusterName) {
+    // TODO: implement logic
+    return null;
   }
 
   @Override

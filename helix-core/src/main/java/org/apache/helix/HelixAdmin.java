@@ -27,6 +27,7 @@ import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.status.ClusterPauseStatus;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
@@ -366,6 +367,41 @@ public interface HelixAdmin {
    * @return true if in maintenance mode, false otherwise
    */
   boolean isInMaintenanceMode(String clusterName);
+
+  /**
+   * Puts a cluster into pause mode, which will pause controller and participants.
+   * This can be used to retain the cluster state. When this method returns, it means
+   * the pause signal has been successfully sent, but it does not mean the cluster has
+   * fully entered pause mode. Because the cluster can take some time to finish the pause and
+   * process possible pending state transitions if necessary.
+   * <p>
+   * To check the cluster pause status, call {@link #getClusterPauseStatus(String)}.
+   *
+   * @param clusterName Participant cluster name.
+   * @param cancelPendingST whether or not cancel the pending state transitions for participants.
+   * @param reason The reason to put the cluster into pause mode.
+   */
+  void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason);
+
+  /**
+   * Gets cluster pause status {@link ClusterPauseStatus}.
+   *
+   * @param clusterName cluster name.
+   * @return {@link ClusterPauseStatus}
+   */
+  ClusterPauseStatus getClusterPauseStatus(String clusterName);
+
+  /**
+   * Gets a cluster out of pause mode. When this method returns, it means
+   * the resume signal has been successfully sent, but it does not mean the cluster has
+   * fully exited pause mode.
+   * <p>
+   * To check whether the cluster has fully exited pause mode, call
+   * {@link #getClusterPauseStatus(String)}.
+   *
+   * @param clusterName Cluster name.
+   */
+  void disableClusterPauseMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

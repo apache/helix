@@ -308,9 +308,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     // This require a deep copy of current state map because some of the states will be overwritten by applying
     // messages to it.
-    // TODO: We may need to optimize it to be async compute for intermediate state output.
-    PartitionStateMap intermediatePartitionStateMap =
-        new PartitionStateMap(resourceName, currentStateOutput.getCurrentStateMap(resourceName));
 
     Set<Partition> partitionsWithErrorStateReplica = new HashSet<>();
     Set<String> messagesForRecovery = new HashSet<>();
@@ -343,8 +340,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // less than the threshold. Otherwise, only allow downward-transition load balance
     boolean onlyDownwardLoadBalance = numPartitionsWithErrorReplica > threshold;
 
-    chargePendingTransition(resource, currentStateOutput, throttleController, cache, preferenceLists, stateModelDef,
-        intermediatePartitionStateMap);
+    chargePendingTransition(resource, currentStateOutput, throttleController, cache, preferenceLists, stateModelDef);
 
     // Sort partitions in case of urgent partition need to take the quota first.
     List<Partition> partitions = new ArrayList<>(resource.getPartitions());
@@ -370,12 +366,12 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         // Number of states required by StateModelDefinition are not satisfied, need recovery
         if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
           messagesForRecovery.add(message.getId());
-          recoveryRebalance(resource, partition, throttleController, message, intermediatePartitionStateMap, cache,
-              messagesThrottledForRecovery, resourceMessageMap);
+          recoveryRebalance(resource, partition, throttleController, message, cache, messagesThrottledForRecovery,
+              resourceMessageMap);
         } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)) {
           messagesForLoad.add(message.getId());
-          loadRebalance(resource, partition, throttleController, message, intermediatePartitionStateMap, cache,
-              onlyDownwardLoadBalance, stateModelDef, messagesThrottledForLoad, resourceMessageMap);
+          loadRebalance(resource, partition, throttleController, message, cache, onlyDownwardLoadBalance, stateModelDef,
+              messagesThrottledForLoad, resourceMessageMap);
         }
 
         // Apply the message to temporary current state map
@@ -385,6 +381,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         }
       }
     }
+    // TODO: We may need to optimize it to be async compute for intermediate state output.
+    PartitionStateMap intermediatePartitionStateMap =
+        new PartitionStateMap(resourceName, currentStateOutput.getCurrentStateMap(resourceName));
+    computeIntermediateMap(intermediatePartitionStateMap, currentStateOutput.getPendingMessageMap(resourceName),
+        resourceMessageMap);
 
     if (!messagesForRecovery.isEmpty()) {
       LogUtil.logInfo(logger, _eventId, String.format(
@@ -446,8 +447,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private void chargePendingTransition(Resource resource, CurrentStateOutput currentStateOutput,
       StateTransitionThrottleController throttleController, ResourceControllerDataProvider cache,
-      Map<String, List<String>> preferenceLists, StateModelDefinition stateModelDefinition,
-      PartitionStateMap intermediatePartitionStateMap) {
+      Map<String, List<String>> preferenceLists, StateModelDefinition stateModelDefinition) {
     String resourceName = resource.getResourceName();
     // check and charge pending transitions
     for (Partition partition : resource.getPartitions()) {
@@ -475,7 +475,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           throttleController.chargeResource(rebalanceType, resourceName);
           throttleController.chargeCluster(rebalanceType);
         }
-        intermediatePartitionStateMap.setState(partition, message.getTgtName(), message.getToState());
       }
     }
   }
@@ -486,7 +485,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param resource                      the resource to throttle
    * @param throttleController            throttle controller object
    * @param messageToThrottle             the message to be throttled
-   * @param intermediatePartitionStateMap output result for this stage that intermediate state map
    * @param cache                         cache object for computational metadata from external storage
    * @param messagesThrottled             messages that have already been throttled
    * @param resourceMessageMap            the map for all messages from MessageSelectStage. Remove the message
@@ -494,10 +492,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private void recoveryRebalance(Resource resource, Partition partition,
       StateTransitionThrottleController throttleController, Message messageToThrottle,
-      PartitionStateMap intermediatePartitionStateMap, ResourceControllerDataProvider cache,
-      Set<String> messagesThrottled, Map<Partition, List<Message>> resourceMessageMap) {
+      ResourceControllerDataProvider cache, Set<String> messagesThrottled,
+      Map<Partition, List<Message>> resourceMessageMap) {
     throttleStateTransitionsForReplica(throttleController, resource.getResourceName(), partition, messageToThrottle,
-        messagesThrottled, intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE, cache, resourceMessageMap);
+        messagesThrottled, RebalanceType.RECOVERY_BALANCE, cache, resourceMessageMap);
   }
 
   /**
@@ -506,7 +504,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param resource                      the resource to throttle
    * @param throttleController            throttle controller object
    * @param messageToThrottle             the message to be throttle
-   * @param intermediatePartitionStateMap output result for this stage that intermediate state map
    * @param cache                         cache object for computational metadata from external storage
    * @param onlyDownwardLoadBalance       does allow only downward load balance
    * @param stateModelDefinition          state model definition of this resource
@@ -516,16 +513,15 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private void loadRebalance(Resource resource, Partition partition,
       StateTransitionThrottleController throttleController, Message messageToThrottle,
-      PartitionStateMap intermediatePartitionStateMap, ResourceControllerDataProvider cache,
+       ResourceControllerDataProvider cache,
       boolean onlyDownwardLoadBalance, StateModelDefinition stateModelDefinition, Set<String> messagesThrottled,
       Map<Partition, List<Message>> resourceMessageMap) {
     if (onlyDownwardLoadBalance && isLoadBalanceDownwardStateTransition(messageToThrottle, stateModelDefinition)) {
       // Remove the message already allowed for downward state transitions.
-      intermediatePartitionStateMap.setState(partition, messageToThrottle.getTgtName(), messageToThrottle.getToState());
       return;
     }
     throttleStateTransitionsForReplica(throttleController, resource.getResourceName(), partition, messageToThrottle,
-        messagesThrottled, intermediatePartitionStateMap, RebalanceType.LOAD_BALANCE, cache, resourceMessageMap);
+        messagesThrottled, RebalanceType.LOAD_BALANCE, cache, resourceMessageMap);
   }
 
   /**
@@ -537,8 +533,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    * @param messageToThrottle                 the message to be throttled
    * @param messagesThrottled                 the cumulative set of messages that have been throttled already. These
    *                                          messages represent the replicas of this partition that have been throttled.
-   * @param intermediatePartitionStateMap     the cumulative partition-state mapping as a result of the throttling step
-   *                                          of IntermediateStateCalcStage
    * @param rebalanceType                     the rebalance type to charge quota
    * @param cache                             cached cluster metadata required by the throttle controller
    * @param resourceMessageMap                the map for all messages from MessageSelectStage. Remove the message
@@ -546,8 +540,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    */
   private void throttleStateTransitionsForReplica(StateTransitionThrottleController throttleController,
       String resourceName, Partition partition, Message messageToThrottle, Set<String> messagesThrottled,
-      PartitionStateMap intermediatePartitionStateMap, RebalanceType rebalanceType,
-      ResourceControllerDataProvider cache, Map<Partition, List<Message>> resourceMessageMap) {
+      RebalanceType rebalanceType, ResourceControllerDataProvider cache,
+      Map<Partition, List<Message>> resourceMessageMap) {
     boolean hasReachedThrottlingLimit = false;
     if (throttleController.shouldThrottleForResource(rebalanceType, resourceName)) {
       hasReachedThrottlingLimit = true;
@@ -575,7 +569,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (!hasReachedThrottlingLimit) {
       throttleController.chargeCluster(rebalanceType);
       throttleController.chargeResource(rebalanceType, resourceName);
-      intermediatePartitionStateMap.setState(partition, messageToThrottle.getTgtName(), messageToThrottle.getToState());
     } else {
       // Intermediate Map is based on current state
       // Remove the message from MessageSelection result if it has been throttled since the message will be dispatched
@@ -887,6 +880,26 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         }
       }
       return matchedState;
+    }
+  }
+
+  /**
+   * Generate the IntermediateStateMap from pending messages + message generated.
+   */
+  private void computeIntermediateMap(PartitionStateMap intermediateStateMap,
+      Map<Partition, Map<String, Message>> pendingMessageMap, Map<Partition, List<Message>> resourceMessageMap) {
+    for (Map.Entry<Partition, Map<String, Message>> entry : pendingMessageMap.entrySet()) {
+      entry.getValue()
+          .entrySet()
+          .stream()
+          .forEach(
+              e -> intermediateStateMap.setState(entry.getKey(), e.getValue().getTgtName(), e.getValue().getToState()));
+    }
+
+    for (Map.Entry<Partition, List<Message>> entry : resourceMessageMap.entrySet()) {
+      entry.getValue()
+          .stream()
+          .forEach(e -> intermediateStateMap.setState(entry.getKey(), e.getTgtName(), e.getToState()));
     }
   }
 

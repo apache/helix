@@ -54,6 +54,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.exceptions.HelixConflictException;
 import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
@@ -62,6 +63,7 @@ import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ClusterStatus;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
@@ -81,7 +83,6 @@ import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -521,6 +522,15 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
+  @Override
+  public ClusterManagementMode getClusterManagementMode(String clusterName) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    ClusterStatus status = accessor.getProperty(accessor.keyBuilder().clusterStatus());
+    return status == null ? null
+        : new ClusterManagementMode(status.getManagementMode(), status.getManagementModeStatus());
+  }
+
   private void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
     String hostname = NetworkUtil.getLocalhostName();
     logger.info(
@@ -532,9 +542,6 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     if (baseDataAccessor.exists(accessor.keyBuilder().pause().getPath(), AccessOption.PERSISTENT)) {
       throw new HelixConflictException(clusterName + " pause signal already exists");
-    }
-    if (baseDataAccessor.exists(accessor.keyBuilder().maintenance().getPath(), AccessOption.PERSISTENT)) {
-      throw new HelixConflictException(clusterName + " maintenance signal already exists");
     }
 
     // check whether cancellation is enabled

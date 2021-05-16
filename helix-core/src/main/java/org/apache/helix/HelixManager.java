@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
@@ -36,6 +37,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceDataChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
@@ -46,6 +48,7 @@ import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
@@ -128,6 +131,15 @@ public interface HelixManager {
    * @param listener
    */
   void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception;
+
+  /**
+   * @see LiveInstanceDataChangeListener#onLiveInstanceDataChange(LiveInstance, NotificationContext)
+   * @param listener {@link LiveInstanceDataChangeListener}
+   */
+  default void addLiveInstanceDataChangeListener(LiveInstanceDataChangeListener listener,
+      String instanceName) {
+    throw new NotImplementedException("Not implemented");
+  }
 
   /**
    * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
@@ -241,8 +253,7 @@ public interface HelixManager {
   }
 
   /**
-
-   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
+   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */

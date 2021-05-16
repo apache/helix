@@ -21,15 +21,19 @@ package org.apache.helix;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceDataChangeListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceConfig;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -274,5 +278,30 @@ public class TestListenerCallback extends ZkUnitTestBase {
     Assert.assertTrue(result,
         "Should get resourceConfig callback invoked since we add resourceConfig");
     Assert.assertEquals(listener._configSize, 0, "Resource Config size does not match");
+  }
+
+  @Test
+  public void testLiveInstanceDataChangeListener() {
+    // start 1 participant
+    String instanceName = "localhost_" + 12918;
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
+    participant.syncStart();
+
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    LiveInstance liveInstance =
+        accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
+    AtomicBoolean liveInstanceDataChangeNotified = new AtomicBoolean(false);
+
+    // add live instance data change listener and update live instance
+    LiveInstanceDataChangeListener listener =
+        (liveInstanceChanged, notificationContext) -> liveInstanceDataChangeNotified.set(true);
+    _manager.addLiveInstanceDataChangeListener(listener, instanceName);
+    accessor.updateProperty(accessor.keyBuilder().liveInstance(instanceName), liveInstance);
+
+    Assert.assertTrue(liveInstanceDataChangeNotified.get());
+
+    _manager.removeListener(accessor.keyBuilder().liveInstance(instanceName), listener);
+    participant.syncStop();
   }
 }

@@ -26,6 +26,7 @@ enum Type {
   CLUSTER,
   INSTANCE,
   CONTROLLER,
+  LIVEINSTANCE,
   RESOURCE,
   TASK,
   REST
@@ -59,6 +60,8 @@ public enum PropertyType {
   HEALTHREPORT(Type.INSTANCE, true, false, false, false, false, true),
   CUSTOMIZEDSTATES(Type.INSTANCE, true, false, false, true, true),
 
+  // LIVEINSTANCE PROPERTIES
+  LIVEINSTANCE(Type.LIVEINSTANCE, false, false, false, true),
 
   // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),

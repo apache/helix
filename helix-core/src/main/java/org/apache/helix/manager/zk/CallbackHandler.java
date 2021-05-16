@@ -57,6 +57,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceDataChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
@@ -98,6 +99,7 @@ import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
 import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
 import static org.apache.helix.HelixConstants.ChangeType.INSTANCE_CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
+import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE_DATA;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.RESOURCE_CONFIG;
@@ -267,6 +269,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         break;
       case CONTROLLER:
         listenerClass = ControllerChangeListener.class;
+        break;
+      case LIVE_INSTANCE_DATA:
+        listenerClass = LiveInstanceDataChangeListener.class;
+        break;
+      default:
+        logger.warn("Unexpected change type {} in callback {}", _changeType, _uid);
+        break;
     }
 
     Method callbackMethod = listenerClass.getMethods()[0];
@@ -461,6 +470,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       } else if (_changeType == CONTROLLER) {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         controllerChangelistener.onControllerChange(changeContext);
+      } else if (_changeType == LIVE_INSTANCE_DATA) {
+        LiveInstance liveInstance = (_preFetchEnabled ? _accessor.getProperty(_propertyKey) : null);
+        ((LiveInstanceDataChangeListener) _listener)
+            .onLiveInstanceDataChange(liveInstance, changeContext);
       } else {
         logger.warn("Callbackhandler {}, Unknown change type: {}", _uid, _changeType);
       }

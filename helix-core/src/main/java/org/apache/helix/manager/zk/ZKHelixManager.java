@@ -67,6 +67,7 @@ import org.apache.helix.api.listeners.ExternalViewChangeListener;
 import org.apache.helix.api.listeners.IdealStateChangeListener;
 import org.apache.helix.api.listeners.InstanceConfigChangeListener;
 import org.apache.helix.api.listeners.LiveInstanceChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceDataChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
@@ -451,6 +452,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
     addListener(listener, new Builder(_clusterName).liveInstances(), ChangeType.LIVE_INSTANCE,
         new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Override
+  public void addLiveInstanceDataChangeListener(LiveInstanceDataChangeListener listener,
+      String instanceName) {
+    addListener(listener, new Builder(_clusterName).liveInstance(instanceName),
+        ChangeType.LIVE_INSTANCE_DATA, new EventType[]{EventType.NodeDataChanged});
   }
 
   @Deprecated

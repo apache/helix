@@ -19,7 +19,6 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,6 +48,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.LiveInstanceDataChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
 import org.apache.helix.api.listeners.CustomizedStateChangeListener;
@@ -129,13 +129,19 @@ import static org.apache.helix.HelixConstants.ChangeType;
  * 4. select the messages that can be sent, needs messages and state model constraints <br>
  * 5. send messages
  */
-public class GenericHelixController implements IdealStateChangeListener, LiveInstanceChangeListener,
-                                               MessageListener, CurrentStateChangeListener,
+public class GenericHelixController implements IdealStateChangeListener,
+                                               LiveInstanceChangeListener,
+                                               MessageListener,
+                                               CurrentStateChangeListener,
                                                TaskCurrentStateChangeListener,
                                                CustomizedStateRootChangeListener,
                                                CustomizedStateChangeListener,
-    CustomizedStateConfigChangeListener, ControllerChangeListener,
-    InstanceConfigChangeListener, ResourceConfigChangeListener, ClusterConfigChangeListener {
+                                               CustomizedStateConfigChangeListener,
+                                               ControllerChangeListener,
+                                               InstanceConfigChangeListener,
+                                               ResourceConfigChangeListener,
+                                               ClusterConfigChangeListener,
+                                               LiveInstanceDataChangeListener {
   private static final Logger logger =
       LoggerFactory.getLogger(GenericHelixController.class.getName());
 
@@ -1183,6 +1189,18 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         Collections.<String, Object>emptyMap());
     logger
         .info("END: GenericClusterController.onClusterConfigChange() for cluster " + _clusterName);
+  }
+
+  @Override
+  @PreFetch(enabled = false)
+  public void onLiveInstanceDataChange(LiveInstance liveInstance, NotificationContext context) {
+    logger.info("START: GenericClusterController.onLiveInstanceDataChange() for cluster {}",
+        _clusterName);
+    // Selectively refresh live instances cache.
+    notifyCaches(context, ChangeType.LIVE_INSTANCE);
+    pushToEventQueues(ClusterEventType.LiveInstanceChange, context, Collections.emptyMap());
+    logger.info("END: GenericClusterController.onLiveInstanceDataChange() for cluster {}",
+        _clusterName);
   }
 
   private void notifyCaches(NotificationContext context, ChangeType changeType) {

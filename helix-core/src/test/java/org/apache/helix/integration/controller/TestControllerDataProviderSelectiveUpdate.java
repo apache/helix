@@ -150,4 +150,31 @@ public class TestControllerDataProviderSelectiveUpdate extends ZkStandAloneCMTes
     // 2 Resource Config Changes
     Assert.assertEquals(accessor.getReadCount(PropertyType.CONFIGS), 2);
   }
+
+  @Test
+  public void testClusterPauseSignalUpdate() {
+    MockZkHelixDataAccessor accessor =
+        new MockZkHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
+
+    ResourceControllerDataProvider cache =
+        new ResourceControllerDataProvider("CLUSTER_" + TestHelper.getTestClassName());
+    accessor.clearReadCounters();
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, false);
+    cache.refresh(accessor);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.PAUSE), 1);
+
+    accessor.clearReadCounters();
+    cache.refresh(accessor);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.PAUSE), 0);
+
+    cache.notifyDataChange(HelixConstants.ChangeType.CLUSTER_PAUSE);
+    cache.refresh(accessor);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.PAUSE), 1);
+
+    accessor.clearReadCounters();
+    _gSetupTool.getClusterManagementTool().enableCluster(CLUSTER_NAME, true);
+    cache.notifyDataChange(HelixConstants.ChangeType.CLUSTER_PAUSE);
+    cache.refresh(accessor);
+    Assert.assertEquals(accessor.getReadCount(PropertyType.PAUSE), 1);
+  }
 }

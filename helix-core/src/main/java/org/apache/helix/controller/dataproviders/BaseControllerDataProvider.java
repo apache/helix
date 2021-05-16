@@ -57,6 +57,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
@@ -86,6 +87,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private ClusterConfig _clusterConfig;
 
   private boolean _updateInstanceOfflineTime = true;
+  private PauseSignal _pauseSignal;
   private MaintenanceSignal _maintenanceSignal;
   private boolean _isMaintenanceModeEnabled;
   private boolean _hasMaintenanceSignalChanged;
@@ -300,6 +302,18 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
+  private void refreshClusterPauseSignal(final HelixDataAccessor accessor,
+      Set<HelixConstants.ChangeType> refreshedType) {
+    if (!_propertyDataChangedMap.get(HelixConstants.ChangeType.CLUSTER_PAUSE).getAndSet(false)) {
+      return;
+    }
+    _pauseSignal = accessor.getProperty(accessor.keyBuilder().pause());
+    refreshedType.add(HelixConstants.ChangeType.CLUSTER_PAUSE);
+    LogUtil.logInfo(logger, getClusterEventId(), String
+        .format("Reloaded %s for cluster %s, %s pipeline",
+            HelixConstants.ChangeType.CLUSTER_PAUSE.name(), _clusterName, getPipelineName()));
+  }
+
   private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;
@@ -373,6 +387,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshResourceConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
+    refreshClusterPauseSignal(accessor, refreshedTypes);
     updateMaintenanceInfo(accessor);
     timeoutNodesDuringMaintenance(accessor, _clusterConfig, _isMaintenanceModeEnabled);
 
@@ -966,6 +981,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public MaintenanceSignal getMaintenanceSignal() {
     return _maintenanceSignal;
+  }
+
+  public PauseSignal getPauseSignal() {
+    return _pauseSignal;
   }
 
   protected StringBuilder genCacheContentStringBuilder() {

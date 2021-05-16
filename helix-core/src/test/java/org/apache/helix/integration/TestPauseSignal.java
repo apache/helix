@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -73,21 +74,20 @@ public class TestPauseSignal extends ZkTestBase {
     Assert.assertTrue(result);
 
     // pause the cluster and make sure pause is persistent
-    final HelixDataAccessor tmpAccessor =
+    final HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
 
     String cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " false";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
 
-    tmpAccessor.setProperty(tmpAccessor.keyBuilder().pause(), new PauseSignal("pause"));
+    accessor.setProperty(accessor.keyBuilder().pause(), new PauseSignal("pause"));
 
     // wait for controller to be signaled by pause
     Thread.sleep(1000);
 
     // add a new resource group
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
-    setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
+    _gSetupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
+    _gSetupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     // make sure TestDB1 external view is empty
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 1000, clusterName, "TestDB1",
@@ -95,9 +95,17 @@ public class TestPauseSignal extends ZkTestBase {
             "localhost_12921", "localhost_12922"),
         ZK_ADDR);
 
-    // resume controller
-    final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
+    PauseSignal pause = accessor.getProperty(accessor.keyBuilder().pause());
+    AtomicBoolean clusterPauseChangeNotified = new AtomicBoolean(false);
+    // add pause change listener and update pause signal
+    controller.addClusterPauseChangeListener((pauseSignal, notificationContext) -> {
+      clusterPauseChangeNotified.set(true);
+    });
+    accessor.updateProperty(accessor.keyBuilder().pause(), pause);
+
+    // Cluster pause change is correctly notified
+    Assert.assertTrue(
+        TestHelper.verify(() -> clusterPauseChangeNotified.get(), TestHelper.WAIT_DURATION));
 
     cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " true";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,26 +19,18 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  TaskCurrentStateChange,
-  CustomizedStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  CustomizeStateConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  CustomizedViewChange,
-  TargetExternalViewChange,
-  ClusterPause,
-  Resume,
-  PeriodicalRebalance,
-  OnDemandRebalance,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.PauseSignal;
+
+/**
+ * Interface to implement to listen for changes to cluster pause signal.
+ */
+public interface ClusterPauseChangeListener {
+  /**
+   * Invoked when cluster pause changes
+   *
+   * @param pauseSignal
+   * @param context
+   */
+  void onClusterPauseChange(PauseSignal pauseSignal, NotificationContext context);
 }

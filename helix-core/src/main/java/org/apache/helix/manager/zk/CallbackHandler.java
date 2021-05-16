@@ -45,6 +45,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.exceptions.HelixMetaDataAccessException;
 import org.apache.helix.api.listeners.BatchMode;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ClusterPauseChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -72,6 +73,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
@@ -86,6 +88,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.helix.HelixConstants.ChangeType.CLUSTER_CONFIG;
+import static org.apache.helix.HelixConstants.ChangeType.CLUSTER_PAUSE;
 import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
 import static org.apache.helix.HelixConstants.ChangeType.CONTROLLER;
 import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
@@ -267,6 +270,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         break;
       case CONTROLLER:
         listenerClass = ControllerChangeListener.class;
+        break;
+      case CLUSTER_PAUSE:
+        listenerClass = ClusterPauseChangeListener.class;
+        break;
+      default:
+        logger.warn("Unexpected change type {} in callback {}", _changeType, _uid);
+        break;
     }
 
     Method callbackMethod = listenerClass.getMethods()[0];
@@ -461,6 +471,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
       } else if (_changeType == CONTROLLER) {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         controllerChangelistener.onControllerChange(changeContext);
+      } else if (_changeType == CLUSTER_PAUSE) {
+        PauseSignal pauseSignal = (_preFetchEnabled ? _accessor.getProperty(_propertyKey) : null);
+        ((ClusterPauseChangeListener) _listener).onClusterPauseChange(pauseSignal, changeContext);
       } else {
         logger.warn("Callbackhandler {}, Unknown change type: {}", _uid, _changeType);
       }

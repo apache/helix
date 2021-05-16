@@ -44,7 +44,8 @@ public interface HelixConstants {
     TARGET_EXTERNAL_VIEW (PropertyType.TARGETEXTERNALVIEW),
     CONTROLLER (PropertyType.CONTROLLER),
     MESSAGES_CONTROLLER (PropertyType.MESSAGES_CONTROLLER),
-    HEALTH (PropertyType.HEALTHREPORT);
+    HEALTH (PropertyType.HEALTHREPORT),
+    CLUSTER_PAUSE (PropertyType.PAUSE);
     // @formatter:on
 
     private final PropertyType _propertyType;

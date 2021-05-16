@@ -55,6 +55,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ClusterPauseChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -564,6 +565,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void addControllerMessageListener(MessageListener listener) {
     addListener(listener, new Builder(_clusterName).controllerMessages(),
         ChangeType.MESSAGES_CONTROLLER, new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Override
+  public void addClusterPauseChangeListener(ClusterPauseChangeListener listener) {
+    addListener(listener, new Builder(_clusterName).pause(), ChangeType.CLUSTER_PAUSE,
+        new EventType[]{EventType.NodeDataChanged});
   }
 
   @Deprecated

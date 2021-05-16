@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
+import org.apache.helix.api.listeners.ClusterPauseChangeListener;
 import org.apache.helix.api.listeners.ConfigChangeListener;
 import org.apache.helix.api.listeners.ControllerChangeListener;
 import org.apache.helix.api.listeners.CurrentStateChangeListener;
@@ -241,8 +243,7 @@ public interface HelixManager {
   }
 
   /**
-
-   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, NotificationContext)
+   * @see CustomizedStateRootChangeListener#onCustomizedStateRootChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
@@ -306,6 +307,15 @@ public interface HelixManager {
    * @param listener
    */
   void addControllerMessageListener(MessageListener listener);
+
+  /**
+   * Adds cluster pause change listener
+   *
+   * @param listener {@link ClusterPauseChangeListener}
+   */
+  default void addClusterPauseChangeListener(ClusterPauseChangeListener listener) {
+    throw new NotImplementedException("Not implemented!");
+  }
 
   /**
    * Add message listener for controller

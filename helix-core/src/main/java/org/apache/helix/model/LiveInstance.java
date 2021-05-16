@@ -42,18 +42,8 @@ public class LiveInstance extends HelixProperty {
     RESOURCE_CAPACITY,
     CURRENT_TASK_THREAD_POOL_SIZE,
 
-    /** Represents {@link LiveInstanceStatus} */
+    /** Represents the status of live instance, eg. PAUSED */
     STATUS
-  }
-
-  /**
-   * Represents status of a live instance, eg. PAUSED.
-   */
-  public enum LiveInstanceStatus {
-    NORMAL,
-    PAUSED,
-    ENTERING_PAUSE,
-    EXITING_PAUSE
   }
 
   /**
@@ -64,6 +54,8 @@ public class LiveInstance extends HelixProperty {
   }
 
   private static final Logger _logger = LoggerFactory.getLogger(LiveInstance.class.getName());
+
+  public static final String PAUSED_STATUS = "PAUSED";
 
   /**
    * Instantiate with an instance identifier
@@ -145,7 +137,6 @@ public class LiveInstance extends HelixProperty {
 
   /**
    * Gets the live instance's status.
-   *
    */
   public String getStatus() {
     return _record.getSimpleField(LiveInstanceProperty.STATUS.name());
@@ -154,10 +145,10 @@ public class LiveInstance extends HelixProperty {
   /**
    * Sets the status in simple field.
    *
-   * @param status status value {@link LiveInstanceStatus}
+   * @param status status value
    */
-  public void setStatus(LiveInstanceStatus status) {
-    _record.setSimpleField(LiveInstanceProperty.STATUS.name(), status.name());
+  public void setStatus(String status) {
+    _record.setSimpleField(LiveInstanceProperty.STATUS.name(), status);
   }
 
   /**

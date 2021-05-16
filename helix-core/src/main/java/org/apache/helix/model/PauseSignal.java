@@ -26,13 +26,18 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
  * Represent a pause in the cluster
  */
 public class PauseSignal extends HelixProperty {
+  private static final String DEFAULT_PAUSE_ID = "pause";
 
   public enum PauseSignalProperty {
     REASON,
-    PAUSE_CLUSTER,
+    CLUSTER_PAUSE,
     FROM_HOST,
     CANCEL_PENDING_ST,
     TRIGGER_TIME
+  }
+
+  public PauseSignal() {
+    this(DEFAULT_PAUSE_ID);
   }
 
   /**
@@ -69,12 +74,13 @@ public class PauseSignal extends HelixProperty {
   }
 
   public void setPauseCluster(String pause) {
-    _record.setSimpleField(PauseSignalProperty.PAUSE_CLUSTER.name(), pause);
+    _record.setSimpleField(PauseSignalProperty.CLUSTER_PAUSE.name(), pause);
   }
 
   public String getPauseCluster() {
-    return _record.getSimpleField(PauseSignalProperty.PAUSE_CLUSTER.name());
+    return _record.getSimpleField(PauseSignalProperty.CLUSTER_PAUSE.name());
   }
+
   public void setFromHost(String host) {
     _record.setSimpleField(PauseSignalProperty.FROM_HOST.name(), host);
   }
@@ -90,6 +96,7 @@ public class PauseSignal extends HelixProperty {
   public boolean getCancelPendingST() {
     return _record.getBooleanField(PauseSignalProperty.CANCEL_PENDING_ST.name(), false);
   }
+
   public void setTriggerTime(String time) {
     _record.setSimpleField(PauseSignalProperty.TRIGGER_TIME.name(), time);
   }

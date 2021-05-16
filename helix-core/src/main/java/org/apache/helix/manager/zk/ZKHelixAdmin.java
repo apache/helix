@@ -52,7 +52,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
-import org.apache.helix.api.exceptions.HelixPauseExitsException;
+import org.apache.helix.api.exceptions.HelixConflictException;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
@@ -80,7 +80,8 @@ import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.status.ClusterPauseStatus;
+import org.apache.helix.model.management.ClusterManagementMode;
+import org.apache.helix.model.management.ClusterManagementModeRequest;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -500,62 +501,72 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
-  public void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
-    logger.info("Enable cluster pause mode for cluster: {}. Cancel pending ST: {}. Reason: {}.",
-        clusterName, cancelPendingST, reason);
+  public void setClusterManagementMode(ClusterManagementModeRequest request) {
+    ClusterManagementMode.Type mode = request.getMode();
+    String clusterName = request.getClusterName();
+    String reason = request.getReason();
 
-    PauseSignal pauseSignal = new PauseSignal("pause");
-    pauseSignal.setPauseCluster(Boolean.toString(true));
-    pauseSignal.setCancelPendingST(cancelPendingST);
-    pauseSignal.setFromHost(NetworkUtil.getLocalhostName());
-    pauseSignal.setTriggerTime(Instant.now().toString());
-    if (reason != null && !reason.isEmpty()) {
-      pauseSignal.setReason(reason);
+    // TODO: support other modes
+    switch (mode) {
+      case CLUSTER_PAUSE:
+        enableClusterPauseMode(clusterName, request.isCancelPendingST(), reason);
+        break;
+      case NORMAL:
+        // If from other modes, should check what mode it is in and call the api accordingly.
+        // If we put all mode config in one znode, one generic method is good enough.
+        disableClusterPauseMode(clusterName);
+        break;
+      default:
+        throw new IllegalArgumentException("ClusterManagementMode " + mode + " not supported");
     }
+  }
+
+  private void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
+    String hostname = NetworkUtil.getLocalhostName();
+    logger.info(
+        "Enable cluster pause mode for cluster: {}. CancelPendingST: {}. Reason: {}. From Host: {}",
+        clusterName, cancelPendingST, reason, hostname);
 
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseDataAccessor);
 
     if (baseDataAccessor.exists(accessor.keyBuilder().pause().getPath(), AccessOption.PERSISTENT)) {
-      throw new HelixPauseExitsException(clusterName + " pause signal already exits");
+      throw new HelixConflictException(clusterName + " pause signal already exits");
+    }
+    if (baseDataAccessor.exists(accessor.keyBuilder().maintenance().getPath(), AccessOption.PERSISTENT)) {
+      throw new HelixConflictException(clusterName + " maintenance signal already exits");
     }
 
+    PauseSignal pauseSignal = new PauseSignal();
+    pauseSignal.setPauseCluster(Boolean.toString(true));
+    pauseSignal.setCancelPendingST(cancelPendingST);
+    pauseSignal.setFromHost(hostname);
+    pauseSignal.setTriggerTime(Instant.now().toString());
+    if (reason != null && !reason.isEmpty()) {
+      pauseSignal.setReason(reason);
+    }
     if (!accessor.createPause(pauseSignal)) {
       throw new HelixException("Failed to create pause signal");
     }
   }
 
-  @Override
-  public void disableClusterPauseMode(String clusterName) {
+  private void disableClusterPauseMode(String clusterName) {
     logger.info("Disable cluster pause mode for cluster: {}", clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
     PropertyKey pausePropertyKey = accessor.keyBuilder().pause();
     PauseSignal pauseSignal = accessor.getProperty(pausePropertyKey);
-    if (pauseSignal == null) {
-      throw new HelixException(
-          "Pause signal does not exist. Cluster pause mode is not enabled for cluster "
-              + clusterName);
-    }
-    if (pauseSignal.getPauseCluster() == null) {
-      throw new HelixException("Cluster pause mode was NOT enabled for cluster: " + clusterName);
-    }
-    if (!Boolean.parseBoolean(pauseSignal.getPauseCluster())) {
-      logger.info("Cluster {} pause mode has been disabled before.", clusterName);
-      return;
+    if (pauseSignal == null || pauseSignal.getPauseCluster() == null) {
+      throw new HelixException("Cluster pause mode is not enabled for cluster " + clusterName);
     }
 
-    // Disable cluster pause mode.
-    pauseSignal.setPauseCluster(Boolean.toString(false));
-    pauseSignal.setFromHost(NetworkUtil.getLocalhostName());
-    pauseSignal.setTriggerTime(Instant.now().toString());
-    if (!accessor.updateProperty(pausePropertyKey, pauseSignal)) {
+    if (!accessor.removeProperty(pausePropertyKey)) {
       throw new HelixException("Failed to disable cluster pause mode for cluster: " + clusterName);
     }
   }
 
   @Override
-  public ClusterPauseStatus getClusterPauseStatus(String clusterName) {
+  public ClusterManagementMode getClusterManagementMode(String clusterName) {
     // TODO: implement logic
     return null;
   }

@@ -1,4 +1,4 @@
-package org.apache.helix.model.status;
+package org.apache.helix.api.exceptions;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +19,15 @@ package org.apache.helix.model.status;
  * under the License.
  */
 
-public class ClusterPauseStatus {
-  // TODO: implement
+import org.apache.helix.HelixException;
+
+/**
+ * Occurs when a conflict with a previous successful write is detected. This generally occurs when
+ * a write request is conflicted with the existing data. Eg. if a cluster is already in cluster
+ * pause mode, a request of enabling maintenance mode is a conflict.
+ */
+public class HelixConflictException extends HelixException {
+  public HelixConflictException(String message) {
+    super(message);
+  }
 }

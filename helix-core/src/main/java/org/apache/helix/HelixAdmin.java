@@ -27,7 +27,6 @@ import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.status.ClusterPauseStatus;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
@@ -38,6 +37,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.management.ClusterManagementMode;
+import org.apache.helix.model.management.ClusterManagementModeRequest;
 
 /*
  * Helix cluster management
@@ -369,39 +370,25 @@ public interface HelixAdmin {
   boolean isInMaintenanceMode(String clusterName);
 
   /**
-   * Puts a cluster into pause mode, which will pause controller and participants.
-   * This can be used to retain the cluster state. When this method returns, it means
-   * the pause signal has been successfully sent, but it does not mean the cluster has
-   * fully entered pause mode. Because the cluster can take some time to finish the pause and
-   * process possible pending state transitions if necessary.
+   * Requests to put a cluster into a management mode
+   * {@link org.apache.helix.model.management.ClusterManagementMode.Type}. When this method returns,
+   * it means the signal has been successfully sent, but it does not mean the cluster has
+   * fully entered the mode. Because the cluster can take some time to complete the request.
    * <p>
-   * To check the cluster pause status, call {@link #getClusterPauseStatus(String)}.
+   * To check the cluster management mode status, call {@link #getClusterManagementMode(String)}.
    *
-   * @param clusterName Participant cluster name.
-   * @param cancelPendingST whether or not cancel the pending state transitions for participants.
-   * @param reason The reason to put the cluster into pause mode.
+   * @param request request to set the cluster management mode. {@link ClusterManagementModeRequest}
    */
-  void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason);
+  void setClusterManagementMode(ClusterManagementModeRequest request);
 
   /**
-   * Gets cluster pause status {@link ClusterPauseStatus}.
+   * Gets cluster management status {@link ClusterManagementMode}: what mode the cluster is and
+   * whether the cluster has fully reached to that mode.
    *
    * @param clusterName cluster name.
-   * @return {@link ClusterPauseStatus}
+   * @return {@link ClusterManagementMode}
    */
-  ClusterPauseStatus getClusterPauseStatus(String clusterName);
-
-  /**
-   * Gets a cluster out of pause mode. When this method returns, it means
-   * the resume signal has been successfully sent, but it does not mean the cluster has
-   * fully exited pause mode.
-   * <p>
-   * To check whether the cluster has fully exited pause mode, call
-   * {@link #getClusterPauseStatus(String)}.
-   *
-   * @param clusterName Cluster name.
-   */
-  void disableClusterPauseMode(String clusterName);
+  ClusterManagementMode getClusterManagementMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

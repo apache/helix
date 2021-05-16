@@ -71,7 +71,8 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.model.status.ClusterPauseStatus;
+import org.apache.helix.model.management.ClusterManagementMode;
+import org.apache.helix.model.management.ClusterManagementModeRequest;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -1081,7 +1082,12 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     _gSetupTool.activateCluster(clusterName, controller.getClusterName(), true);
 
     try {
-      _gSetupTool.getClusterManagementTool().enableClusterPauseMode(clusterName, false, methodName);
+      ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
+          .withClusterName(clusterName)
+          .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+          .withReason(methodName)
+          .build();
+      _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
       HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
       PauseSignal pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
 
@@ -1093,12 +1099,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       Assert.assertEquals(pauseSignal.getReason(), methodName);
 
       // Disable pause mode
-      _gSetupTool.getClusterManagementTool().disableClusterPauseMode(clusterName);
+      request = ClusterManagementModeRequest.newBuilder()
+          .withClusterName(clusterName)
+          .withMode(ClusterManagementMode.Type.NORMAL)
+          .build();
+      _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
       pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
 
-      // Verify pause signal is correctly updated.
-      Assert.assertNotNull(pauseSignal);
-      Assert.assertEquals(pauseSignal.getPauseCluster(), Boolean.toString(false));
+      // Verify pause signal has been deleted.
+      Assert.assertNull(pauseSignal);
     } finally {
       _gSetupTool.activateCluster(clusterName, controller.getClusterName(), false);
       controller.syncStop();

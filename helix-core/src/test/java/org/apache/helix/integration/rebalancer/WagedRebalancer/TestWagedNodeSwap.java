@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
@@ -46,6 +47,7 @@ import org.testng.annotations.Test;
 
 public class TestWagedNodeSwap extends ZkTestBase {
   final int NUM_NODE = 6;
+  final int NUM_ZONE = 3;
   protected static final int START_PORT = 12918;
   protected static final int _PARTITIONS = 20;
 
@@ -87,7 +89,7 @@ public class TestWagedNodeSwap extends ZkTestBase {
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-      String zone = "zone-" + i % 3;
+      String zone = "zone-" + i % NUM_ZONE;
       String domain = String.format("zone=%s,instance=%s", zone, storageNodeName);
 
       InstanceConfig instanceConfig =
@@ -122,10 +124,9 @@ public class TestWagedNodeSwap extends ZkTestBase {
       _allDBs.add(db);
     }
 
-    _clusterVerifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-            .build();
+    _clusterVerifier = new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+        .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).setResources(_allDBs)
+        .build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
   }
 
@@ -147,8 +148,11 @@ public class TestWagedNodeSwap extends ZkTestBase {
     }
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
 
+    // Randomize the test by selecting random node
+    Random ran = new Random(System.currentTimeMillis());
+
     // 1. disable an old node
-    MockParticipantManager oldParticipant = _participants.get(0);
+    MockParticipantManager oldParticipant = _participants.get(ran.nextInt(_participants.size()));
     String oldParticipantName = oldParticipant.getInstanceName();
     final InstanceConfig instanceConfig =
         _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, oldParticipantName);
@@ -216,13 +220,17 @@ public class TestWagedNodeSwap extends ZkTestBase {
     }
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
 
+    // Randomize the test by selecting random zone
+    Random ran = new Random(System.currentTimeMillis());
+    String randZoneStr = "zone-" + ran.nextInt(NUM_ZONE);
+
     // 1. disable a whole fault zone
     Map<String, InstanceConfig> removedInstanceConfigMap = new HashMap<>();
     for (MockParticipantManager participant : _participants) {
       String instanceName = participant.getInstanceName();
       InstanceConfig instanceConfig =
           _gSetupTool.getClusterManagementTool().getInstanceConfig(CLUSTER_NAME, instanceName);
-      if (instanceConfig.getDomainAsMap().get("zone").equals("zone-0")) {
+      if (instanceConfig.getDomainAsMap().get("zone").equals(randZoneStr)) {
         instanceConfig.setInstanceEnabled(false);
         _gSetupTool.getClusterManagementTool()
             .setInstanceConfig(CLUSTER_NAME, instanceName, instanceConfig);
@@ -254,7 +262,7 @@ public class TestWagedNodeSwap extends ZkTestBase {
       newInstanceNames.add(newParticipantName);
       _gSetupTool.addInstanceToCluster(CLUSTER_NAME, newParticipantName);
       InstanceConfig newConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, newParticipantName);
-      String domain = String.format("zone=zone-0,instance=%s", newParticipantName);
+      String domain = String.format("zone=" + randZoneStr + ",instance=%s", newParticipantName);
       newConfig.setDomain(domain);
       _gSetupTool.getClusterManagementTool()
           .setInstanceConfig(CLUSTER_NAME, newParticipantName, newConfig);

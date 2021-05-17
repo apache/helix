@@ -44,7 +44,7 @@ Helix is a generic cluster management framework used for automatic management of
 
 1. Automatic assignment of resource/partition to nodes
 2. Node failure detection and recovery
-3. Dynamic addition of Resources 
+3. Dynamic addition of resources
 4. Dynamic addition of nodes to the cluster
 5. Pluggable distributed state machine to manage the state of a resource via state transitions
-6. Automatic load balancing and throttling of transitions 
+6. Automatic load balancing and throttling of transitions

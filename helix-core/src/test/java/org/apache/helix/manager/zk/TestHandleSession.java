@@ -27,6 +27,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
@@ -42,6 +43,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.impl.client.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -185,6 +187,47 @@ public class TestHandleSession extends ZkTestBase {
 
     manager.disconnect();
     TestHelper.dropCluster(clusterName, _gZkClient);
+  }
+
+  @Test (dependsOnMethods = "testAcquireLeadershipOnNewSession")
+  public void testRemoveOldSession() throws Exception {
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = _className + "_" + methodName;
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
+    String testInstanceName = "localhost_12918";
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, clusterName, testInstanceName);
+    participant.syncStart();
+
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+    String testCurrentStateSessionId = "testCurrentStateSessionId";
+    _baseAccessor
+        .create(keyBuilder.sessions(testInstanceName).toString() + "/" + testCurrentStateSessionId,
+            new ZNRecord(testCurrentStateSessionId), AccessOption.PERSISTENT);
+    String testTaskCurrentStateSessionId = "testTaskCurrentStateSessionId";
+    _baseAccessor.create(keyBuilder.taskCurrentStateSessions(testInstanceName).toString() + "/"
+            + testTaskCurrentStateSessionId, new ZNRecord(testTaskCurrentStateSessionId),
+        AccessOption.PERSISTENT);
+
+    ZkTestHelper.expireSession(participant.getZkClient());
+    // Ensure that the test sessions are removed
+    Assert.assertEquals(_gZkClient.getChildren(keyBuilder.sessions(testInstanceName).toString()),
+        Collections.emptyList());
+    Assert.assertEquals(
+        _gZkClient.getChildren(keyBuilder.taskCurrentStateSessions(testInstanceName).toString()),
+        Collections.emptyList());
+
+    participant.syncStop();
+    deleteCluster(clusterName);
   }
 
   /*

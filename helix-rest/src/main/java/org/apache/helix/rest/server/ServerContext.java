@@ -200,7 +200,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return (ZkClient) getRealmAwareZkClient();
   }
 
-  public String getZkAddr(){
+  public String getZkAddr() {
     return _zkAddr;
   }
 

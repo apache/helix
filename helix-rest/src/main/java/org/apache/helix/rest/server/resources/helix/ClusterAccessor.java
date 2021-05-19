@@ -20,7 +20,6 @@ package org.apache.helix.rest.server.resources.helix;
  */
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -320,84 +319,6 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
     return JSONRepresentation(config.getRecord());
   }
-
-
-  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
-  @Timed(name = HttpConstants.WRITE_REQUEST)
-  @POST
-  @Path("{clusterId}/partitionAssignment")
-  public Response getPartitionAssignment(@PathParam("clusterId") String clusterId, String content) {
-    // Try to parse the content string. If parseable, use it as a KV mapping. Otherwise, treat it
-    // as a REASON String
-
-    Map<String, Map<String,Object>>customFieldsMap = null;
-    List<String> resources = new ArrayList<>();
-    Map<String, String> nodeSwap = new HashMap<>(); // old instance -> new instance
-    List<String> liveInstances = new ArrayList<>();
-    try {
-      // Try to parse content
-      customFieldsMap =
-          OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, Map<String,Object>>>() {
-          });
-      // content is given as a KV mapping. Nullify content
-      content = null;
-      LOG.info("map:  " + customFieldsMap);
-
-      for (Map.Entry<String, Map<String,Object>> entry : customFieldsMap.entrySet()) {
-        String key = entry.getKey();
-        switch (key) {
-          case "InstanceChange":
-            for (Map.Entry<String, Object> instanceChange : entry.getValue().entrySet()) {
-              String instanceChangeKey = instanceChange.getKey();
-              if (instanceChangeKey.equals("AddInstances") && (instanceChange.getValue() instanceof List)) {
-                liveInstances.addAll((List<String>) instanceChange.getValue());
-              } else if (instanceChangeKey.equals("SwapInstances") && (instanceChange.getValue() instanceof Map)) {
-                for (Map.Entry<String, String> swapPair : ((Map<String, String>) instanceChange.getValue()).entrySet()) {
-                  nodeSwap.put(swapPair.getKey(), swapPair.getValue());
-                }
-              } else {
-                  return badRequest("Unsupported command {}." + instanceChangeKey);
-              }
-            }
-            break;
-          case "Options":
-            for (Map.Entry<String, Object> option : entry.getValue().entrySet()) {
-              String optionKey = option.getKey();
-              if (optionKey.equals("ResourceFilter") && (option.getValue() instanceof List)) {
-                resources.addAll((List<String>) option.getValue());
-              } else {
-                return badRequest("Unsupported command {}." + option);
-              }
-            }
-            break;
-          default:
-            return badRequest("Unsupported command {}." + key);
-        }
-      }
-    } catch (Exception e) {
-      return badRequest("Invalid input: Input can but be parsed into a KV map." + e.getMessage());
-    }
-
-    LOG.info("resources: " + resources);
-    LOG.info("nodeSwap: " + nodeSwap);
-    LOG.info("liveInstances: " + liveInstances);
-
-    // query rebalancer tool for different resources
-    // cluster level
-    ClusterConfig clusterConfig;
-    String zkAddress = getZkAddress();
-    ConfigAccessor cfgAccessor = getConfigAccessor();
-    HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-
-    // read all resources from ZK if resource Filter is empty
-    if (resources.isEmpty()) {
-
-
-    }
-
-    return OK();
-  }
-
 
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)

@@ -524,6 +524,11 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected void post(String uri, Map<String, String> queryParams, Entity entity,
       int expectedReturnStatus) {
+    post(uri, queryParams, entity,expectedReturnStatus, false);
+  }
+
+  protected String post(String uri, Map<String, String> queryParams, Entity entity,
+      int expectedReturnStatus, boolean  expectBodyReturned) {
     WebTarget webTarget = target(uri);
     if (queryParams != null) {
       for (Map.Entry<String, String> entry : queryParams.entrySet()) {
@@ -532,6 +537,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
     Response response = webTarget.request().post(entity);
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+    return response.readEntity(String.class);
   }
 
   protected void delete(String uri, int expectedReturnStatus) {

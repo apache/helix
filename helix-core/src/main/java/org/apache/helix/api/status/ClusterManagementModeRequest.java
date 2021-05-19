@@ -1,4 +1,4 @@
-package org.apache.helix.model.management;
+package org.apache.helix.api.status;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -84,7 +84,7 @@ public class ClusterManagementModeRequest {
      * @param cancelPendingST whether or not cancel pending ST for CLUSTER_PAUSE mode.
      * @return {@link Builder}
      */
-    public Builder cancelPendingST(boolean cancelPendingST) {
+    public Builder withCancelPendingST(boolean cancelPendingST) {
       this.cancelPendingST = cancelPendingST;
       return this;
     }

@@ -45,6 +45,8 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.exceptions.HelixConflictException;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -71,8 +73,7 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.model.management.ClusterManagementMode;
-import org.apache.helix.model.management.ClusterManagementModeRequest;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -1082,6 +1083,21 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     _gSetupTool.activateCluster(clusterName, controller.getClusterName(), true);
 
     try {
+      // Should not create pause with pending cancel ST enabled because cancellation is not enabled
+      try {
+        ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
+            .withClusterName(clusterName)
+            .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+            .withCancelPendingST(true)
+            .withReason(methodName)
+            .build();
+        _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
+        Assert.fail("Should not create pause with pending cancel ST enabled because "
+            + "cancellation is not enabled");
+      } catch (HelixConflictException e) {
+        Assert.assertTrue(e.getMessage().startsWith("State transition cancellation not enabled"));
+      }
+
       ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
           .withClusterName(clusterName)
           .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
@@ -1093,7 +1109,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
       // Verify pause signal is correctly written
       Assert.assertNotNull(pauseSignal);
-      Assert.assertEquals(pauseSignal.getPauseCluster(), Boolean.toString(true));
+      Assert.assertTrue(pauseSignal.isClusterPause());
       Assert.assertFalse(pauseSignal.getCancelPendingST());
       Assert.assertEquals(pauseSignal.getFromHost(), NetworkUtil.getLocalhostName());
       Assert.assertEquals(pauseSignal.getReason(), methodName);

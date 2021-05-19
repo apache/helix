@@ -37,8 +37,8 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.management.ClusterManagementMode;
-import org.apache.helix.model.management.ClusterManagementModeRequest;
+import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 
 /*
  * Helix cluster management
@@ -371,7 +371,7 @@ public interface HelixAdmin {
 
   /**
    * Requests to put a cluster into a management mode
-   * {@link org.apache.helix.model.management.ClusterManagementMode.Type}. When this method returns,
+   * {@link ClusterManagementMode.Type}. When this method returns,
    * it means the signal has been successfully sent, but it does not mean the cluster has
    * fully entered the mode. Because the cluster can take some time to complete the request.
    * <p>
@@ -380,15 +380,6 @@ public interface HelixAdmin {
    * @param request request to set the cluster management mode. {@link ClusterManagementModeRequest}
    */
   void setClusterManagementMode(ClusterManagementModeRequest request);
-
-  /**
-   * Gets cluster management status {@link ClusterManagementMode}: what mode the cluster is and
-   * whether the cluster has fully reached to that mode.
-   *
-   * @param clusterName cluster name.
-   * @return {@link ClusterManagementMode}
-   */
-  ClusterManagementMode getClusterManagementMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

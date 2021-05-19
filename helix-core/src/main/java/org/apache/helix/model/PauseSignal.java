@@ -19,6 +19,8 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.time.Instant;
+
 import org.apache.helix.HelixProperty;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
@@ -73,12 +75,12 @@ public class PauseSignal extends HelixProperty {
     return true;
   }
 
-  public void setPauseCluster(String pause) {
-    _record.setSimpleField(PauseSignalProperty.CLUSTER_PAUSE.name(), pause);
+  public void setClusterPause(boolean pause) {
+    _record.setBooleanField(PauseSignalProperty.CLUSTER_PAUSE.name(), pause);
   }
 
-  public String getPauseCluster() {
-    return _record.getSimpleField(PauseSignalProperty.CLUSTER_PAUSE.name());
+  public boolean isClusterPause() {
+    return _record.getBooleanField(PauseSignalProperty.CLUSTER_PAUSE.name(), false);
   }
 
   public void setFromHost(String host) {
@@ -97,11 +99,8 @@ public class PauseSignal extends HelixProperty {
     return _record.getBooleanField(PauseSignalProperty.CANCEL_PENDING_ST.name(), false);
   }
 
-  public void setTriggerTime(String time) {
-    _record.setSimpleField(PauseSignalProperty.TRIGGER_TIME.name(), time);
-  }
-
-  public String getTriggerTime() {
-    return _record.getSimpleField(PauseSignalProperty.TRIGGER_TIME.name());
+  public void setTriggerTime(long time) {
+    _record.setSimpleField(PauseSignalProperty.TRIGGER_TIME.name(),
+        Instant.ofEpochMilli(time).toString());
   }
 }

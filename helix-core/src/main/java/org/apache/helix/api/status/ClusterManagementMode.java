@@ -1,4 +1,4 @@
-package org.apache.helix.model.management;
+package org.apache.helix.api.status;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

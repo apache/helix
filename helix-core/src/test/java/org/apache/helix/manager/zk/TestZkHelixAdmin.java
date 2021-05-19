@@ -45,10 +45,13 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.exceptions.HelixConflictException;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
@@ -65,15 +68,18 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -1059,5 +1065,69 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     tool.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  /*
+   * Tests 2 APIs: enable and disable cluster pause mode.
+   */
+  @Test
+  public void testEnableDisableClusterPauseMode() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    _gSetupTool.setupTestCluster(clusterName);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
+    _gSetupTool.activateCluster(clusterName, controller.getClusterName(), true);
+
+    try {
+      // Should not create pause with pending cancel ST enabled because cancellation is not enabled
+      try {
+        ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
+            .withClusterName(clusterName)
+            .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+            .withCancelPendingST(true)
+            .withReason(methodName)
+            .build();
+        _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
+        Assert.fail("Should not create pause with pending cancel ST enabled because "
+            + "cancellation is not enabled");
+      } catch (HelixConflictException e) {
+        Assert.assertTrue(e.getMessage().startsWith("State transition cancellation not enabled"));
+      }
+
+      ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
+          .withClusterName(clusterName)
+          .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+          .withReason(methodName)
+          .build();
+      _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
+      HelixDataAccessor dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+      PauseSignal pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
+
+      // Verify pause signal is correctly written
+      Assert.assertNotNull(pauseSignal);
+      Assert.assertTrue(pauseSignal.isClusterPause());
+      Assert.assertFalse(pauseSignal.getCancelPendingST());
+      Assert.assertEquals(pauseSignal.getFromHost(), NetworkUtil.getLocalhostName());
+      Assert.assertEquals(pauseSignal.getReason(), methodName);
+
+      // Disable pause mode
+      request = ClusterManagementModeRequest.newBuilder()
+          .withClusterName(clusterName)
+          .withMode(ClusterManagementMode.Type.NORMAL)
+          .build();
+      _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
+      pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
+
+      // Verify pause signal has been deleted.
+      Assert.assertNull(pauseSignal);
+    } finally {
+      _gSetupTool.activateCluster(clusterName, controller.getClusterName(), false);
+      controller.syncStop();
+      _gSetupTool.deleteCluster(clusterName);
+    }
   }
 }

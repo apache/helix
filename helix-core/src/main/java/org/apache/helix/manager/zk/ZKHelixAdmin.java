@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,9 +52,9 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.SystemPropertyKeys;
+import org.apache.helix.api.exceptions.HelixConflictException;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.topology.ClusterTopology;
-import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
-import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -80,6 +81,7 @@ import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
@@ -93,6 +95,7 @@ import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.routing.RoutingDataManager;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
+import org.apache.helix.zookeeper.zkclient.NetworkUtil;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.KeeperException;
@@ -495,6 +498,79 @@ public class ZKHelixAdmin implements HelixAdmin {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getBaseDataAccessor()
         .exists(keyBuilder.maintenance().getPath(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public void setClusterManagementMode(ClusterManagementModeRequest request) {
+    ClusterManagementMode.Type mode = request.getMode();
+    String clusterName = request.getClusterName();
+    String reason = request.getReason();
+
+    // TODO: support other modes
+    switch (mode) {
+      case CLUSTER_PAUSE:
+        enableClusterPauseMode(clusterName, request.isCancelPendingST(), reason);
+        break;
+      case NORMAL:
+        // If from other modes, should check what mode it is in and call the api accordingly.
+        // If we put all mode config in one znode, one generic method is good enough.
+        disableClusterPauseMode(clusterName);
+        break;
+      default:
+        throw new IllegalArgumentException("ClusterManagementMode " + mode + " is not supported");
+    }
+  }
+
+  private void enableClusterPauseMode(String clusterName, boolean cancelPendingST, String reason) {
+    String hostname = NetworkUtil.getLocalhostName();
+    logger.info(
+        "Enable cluster pause mode for cluster: {}. CancelPendingST: {}. Reason: {}. From Host: {}",
+        clusterName, cancelPendingST, reason, hostname);
+
+    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(_zkClient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseDataAccessor);
+
+    if (baseDataAccessor.exists(accessor.keyBuilder().pause().getPath(), AccessOption.PERSISTENT)) {
+      throw new HelixConflictException(clusterName + " pause signal already exists");
+    }
+    if (baseDataAccessor.exists(accessor.keyBuilder().maintenance().getPath(), AccessOption.PERSISTENT)) {
+      throw new HelixConflictException(clusterName + " maintenance signal already exists");
+    }
+
+    // check whether cancellation is enabled
+    ClusterConfig config = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    if (cancelPendingST && !config.isStateTransitionCancelEnabled()) {
+      throw new HelixConflictException(
+          "State transition cancellation not enabled in " + clusterName);
+    }
+
+    PauseSignal pauseSignal = new PauseSignal();
+    pauseSignal.setClusterPause(true);
+    pauseSignal.setCancelPendingST(cancelPendingST);
+    pauseSignal.setFromHost(hostname);
+    pauseSignal.setTriggerTime(Instant.now().toEpochMilli());
+    if (reason != null && !reason.isEmpty()) {
+      pauseSignal.setReason(reason);
+    }
+    // TODO: merge management status signal into one znode to avoid race condition
+    if (!accessor.createPause(pauseSignal)) {
+      throw new HelixException("Failed to create pause signal");
+    }
+  }
+
+  private void disableClusterPauseMode(String clusterName) {
+    logger.info("Disable cluster pause mode for cluster: {}", clusterName);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_zkClient));
+    PropertyKey pausePropertyKey = accessor.keyBuilder().pause();
+    PauseSignal pauseSignal = accessor.getProperty(pausePropertyKey);
+    if (pauseSignal == null || !pauseSignal.isClusterPause()) {
+      throw new HelixException("Cluster pause mode is not enabled for cluster " + clusterName);
+    }
+
+    if (!accessor.removeProperty(pausePropertyKey)) {
+      throw new HelixException("Failed to disable cluster pause mode for cluster: " + clusterName);
+    }
   }
 
   @Override

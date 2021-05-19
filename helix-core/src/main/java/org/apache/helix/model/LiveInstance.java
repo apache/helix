@@ -40,7 +40,17 @@ public class LiveInstance extends HelixProperty {
     LIVE_INSTANCE,
     ZKPROPERTYTRANSFERURL,
     RESOURCE_CAPACITY,
-    CURRENT_TASK_THREAD_POOL_SIZE
+    CURRENT_TASK_THREAD_POOL_SIZE,
+
+    /** Represents the status of live instance, eg. PAUSED */
+    STATUS
+  }
+
+  /**
+   * Saved values for the {@link LiveInstanceProperty#STATUS} field
+   */
+  public enum LiveInstanceStatus {
+    PAUSED
   }
 
   /**
@@ -128,6 +138,22 @@ public class LiveInstance extends HelixProperty {
    */
   public void setHelixVersion(String helixVersion) {
     _record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), helixVersion);
+  }
+
+  /**
+   * Gets the live instance's status. Returns null if the status field is not set.
+   */
+  public LiveInstanceStatus getStatus() {
+    return _record.getEnumField(LiveInstanceProperty.STATUS.name(), LiveInstanceStatus.class, null);
+  }
+
+  /**
+   * Sets the status in simple field.
+   *
+   * @param status status value
+   */
+  public void setStatus(LiveInstanceStatus status) {
+    _record.setEnumField(LiveInstanceProperty.STATUS.name(), status);
   }
 
   /**

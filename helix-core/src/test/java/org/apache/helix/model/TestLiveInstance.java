@@ -146,4 +146,12 @@ public class TestLiveInstance extends ZkUnitTestBase {
 
     Assert.assertEquals(testLiveInstance.getCurrentTaskThreadPoolSize(), 100);
   }
+
+  @Test
+  public void testLiveInstanceStatus() {
+    LiveInstance testLiveInstance = new LiveInstance("testLiveInstanceStatus");
+    Assert.assertNull(testLiveInstance.getStatus());
+    testLiveInstance.setStatus(LiveInstance.LiveInstanceStatus.PAUSED);
+    Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.PAUSED);
+  }
 }

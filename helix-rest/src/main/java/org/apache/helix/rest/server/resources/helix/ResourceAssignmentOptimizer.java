@@ -90,7 +90,7 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   public Response computePotentialAssignment(@PathParam("clusterId") String clusterId,
-      String content){
+      String content) {
 
     InputFields inputFields;
     ClusterState clusterState;
@@ -110,16 +110,14 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
     } catch (JsonProcessingException e) {
       return badRequest("Invalid input: Input can but be parsed into a KV map." + e.getMessage());
     } catch (OutOfMemoryError e) {
-      LOG.error("OutOfMemoryError while calling AssignmentResult" + Arrays
-          .toString(e.getStackTrace()));
+      LOG.error(
+          "OutOfMemoryError while calling AssignmentResult" + Arrays.toString(e.getStackTrace()));
       return badRequest(
           "Response size is too large to serialize. Please query by resources or instance filter");
     } catch (Exception e) {
       LOG.error("Failed to compute partition assignment:" + Arrays.toString(e.getStackTrace()));
       return badRequest("Failed to compute partition assignment: " + e);
     }
-
-
   }
 
   private InputFields readInput(String content)

@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -89,7 +90,7 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
   public Response computePotentialAssignment(@PathParam("clusterId") String clusterId,
-      String content) {
+      String content){
 
     InputFields inputFields;
     ClusterState clusterState;
@@ -109,11 +110,16 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
     } catch (JsonProcessingException e) {
       return badRequest("Invalid input: Input can but be parsed into a KV map." + e.getMessage());
     } catch (OutOfMemoryError e) {
+      LOG.error("OutOfMemoryError while calling AssignmentResult" + Arrays
+          .toString(e.getStackTrace()));
       return badRequest(
           "Response size is too large to serialize. Please query by resources or instance filter");
     } catch (Exception e) {
+      LOG.error("Failed to compute partition assignment:" + Arrays.toString(e.getStackTrace()));
       return badRequest("Failed to compute partition assignment: " + e);
     }
+
+
   }
 
   private InputFields readInput(String content)
@@ -273,8 +279,10 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
       }
     }
 
-    computeWagedAssignmentResult(wagedResourceIdealState, inputFields, clusterState, clusterId,
-        result);
+    if (!wagedResourceIdealState.isEmpty()) {
+      computeWagedAssignmentResult(wagedResourceIdealState, inputFields, clusterState, clusterId,
+          result);
+    }
 
     return result;
   }
@@ -315,23 +323,25 @@ public class ResourceAssignmentOptimizer extends AbstractHelixResource {
       Map<String, Map<String, String>> partitionAssignments, String resource,
       AssignmentResult result) {
 
-    for (Iterator<Map.Entry<String, Map<String, String>>> partitionAssignmentIt =
-        partitionAssignments.entrySet().iterator(); partitionAssignmentIt.hasNext(); ) {
-      Map.Entry<String, Map<String, String>> partitionAssignment = partitionAssignmentIt.next();
-      Map<String, String> instanceStates = partitionAssignment.getValue();
-      Map<String, String> tempInstanceState = new HashMap<>();
-      // Add new pairs to tempInstanceState
-      instanceStates.entrySet().stream()
-          .filter(entry -> inputFields.nodeSwap.containsKey(entry.getKey())).forEach(
-          entry -> tempInstanceState
-              .put(inputFields.nodeSwap.get(entry.getKey()), entry.getValue()));
-      instanceStates.putAll(tempInstanceState);
-      // Only keep instance in instanceFilter
-      instanceStates.entrySet().removeIf(e ->
-          (!inputFields.instanceFilter.isEmpty() && !inputFields.instanceFilter
-              .contains(e.getKey())) || inputFields.nodeSwap.containsKey(e.getKey()));
-      if (instanceStates.isEmpty()) {
-        partitionAssignmentIt.remove();
+    if (!inputFields.nodeSwap.isEmpty() || !inputFields.instanceFilter.isEmpty()) {
+      for (Iterator<Map.Entry<String, Map<String, String>>> partitionAssignmentIt =
+          partitionAssignments.entrySet().iterator(); partitionAssignmentIt.hasNext(); ) {
+        Map.Entry<String, Map<String, String>> partitionAssignment = partitionAssignmentIt.next();
+        Map<String, String> instanceStates = partitionAssignment.getValue();
+        Map<String, String> tempInstanceState = new HashMap<>();
+        // Add new pairs to tempInstanceState
+        instanceStates.entrySet().stream()
+            .filter(entry -> inputFields.nodeSwap.containsKey(entry.getKey())).forEach(
+            entry -> tempInstanceState
+                .put(inputFields.nodeSwap.get(entry.getKey()), entry.getValue()));
+        instanceStates.putAll(tempInstanceState);
+        // Only keep instance in instanceFilter
+        instanceStates.entrySet().removeIf(e ->
+            (!inputFields.instanceFilter.isEmpty() && !inputFields.instanceFilter
+                .contains(e.getKey())) || inputFields.nodeSwap.containsKey(e.getKey()));
+        if (instanceStates.isEmpty()) {
+          partitionAssignmentIt.remove();
+        }
       }
     }
     result.put(resource, partitionAssignments);

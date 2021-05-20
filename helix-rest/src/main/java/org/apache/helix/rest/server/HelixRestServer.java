@@ -24,10 +24,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
 import com.codahale.metrics.jmx.JmxReporter;
 import org.apache.helix.HelixException;
@@ -178,7 +183,13 @@ public class HelixRestServer {
    */
   private void initMetricRegistry(ResourceConfig cfg, String namespace) {
     MetricRegistry metricRegistry = new MetricRegistry();
-    cfg.register(new InstrumentedResourceMethodApplicationListener(metricRegistry));
+    // Set the sliding time window to be 1 minute for now
+    Supplier<Reservoir> reservoirSupplier = () -> {
+      return new SlidingTimeWindowReservoir(60, TimeUnit.SECONDS);
+    };
+    cfg.register(
+        new InstrumentedResourceMethodApplicationListener(metricRegistry, Clock.defaultClock(),
+            false, reservoirSupplier));
     SharedMetricRegistries.add(namespace, metricRegistry);
 
     // JmxReporter doesn't have an option to specify namespace for each servlet,

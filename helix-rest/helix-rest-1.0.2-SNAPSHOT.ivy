@@ -50,7 +50,7 @@ under the License.
 		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="commons-cli" name="commons-cli" rev="1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="io.dropwizard.metrics" name="metrics-jersey2" rev="4.1.12.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="io.dropwizard.metrics" name="metrics-jmx" rev="4.1.12.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="io.dropwizard.metrics" name="metrics-jersey2" rev="4.1.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="io.dropwizard.metrics" name="metrics-jmx" rev="4.1.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

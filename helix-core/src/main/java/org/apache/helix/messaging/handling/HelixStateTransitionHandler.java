@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -121,9 +120,6 @@ public class HelixStateTransitionHandler extends MessageHandler {
         + _message.getPartitionNames() + " from:" + _message.getFromState() + " to:"
         + _message.getToState() + ", relayedFrom: " + _message.getRelaySrcHost());
 
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    String partitionName = _message.getPartitionName();
-
     // Set start time right before invoke client logic
     _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
 
@@ -142,25 +138,15 @@ public class HelixStateTransitionHandler extends MessageHandler {
     HelixTaskResult taskResult =
         (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
     Exception exception = taskResult.getException();
-
     String partitionKey = _message.getPartitionName();
-    String resource = _message.getResourceName();
-    String sessionId = _message.getTgtSessionId();
-    String instanceName = _manager.getInstanceName();
-
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-
-    int bucketSize = _message.getBucketSize();
-    ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
     // No need to sync on manager, we are cancel executor in expiry session before start executor in
     // new session
     // sessionId might change when we update the state model state.
     // for zk current state it is OK as we have the per-session current state node
     if (!_message.getTgtSessionId().equals(_manager.getSessionId())) {
-      logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
-          + _message.getExecutionSessionId() + " , new session : " + _manager.getSessionId());
+      logger.warn("Session id has changed. Skip postExecutionMessage. Old session " + _message
+          .getExecutionSessionId() + " , new session : " + _manager.getSessionId());
       return;
     }
 
@@ -170,17 +156,14 @@ public class HelixStateTransitionHandler extends MessageHandler {
     _currentStateDelta.setPreviousState(partitionKey, _message.getFromState());
 
     // add host name this state transition is triggered by.
-    if (Message.MessageType.RELAYED_MESSAGE.name().equals(_message.getMsgSubType())) {
-      _currentStateDelta.setTriggerHost(partitionKey, _message.getRelaySrcHost());
-    } else {
-      _currentStateDelta.setTriggerHost(partitionKey, _message.getMsgSrc());
-    }
+    _currentStateDelta.setTriggerHost(partitionKey,
+        Message.MessageType.RELAYED_MESSAGE.name().equals(_message.getMsgSubType()) ?
+            _message.getRelaySrcHost() : _message.getMsgSrc());
 
     if (taskResult.isSuccess()) {
       // String fromState = message.getFromState();
       String toState = _message.getToState();
       _currentStateDelta.setState(partitionKey, toState);
-
       if (toState.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
         // for "OnOfflineToDROPPED" message, we need to remove the resource key record
         // from the current state of the instance because the resource key is dropped.
@@ -189,73 +172,81 @@ public class HelixStateTransitionHandler extends MessageHandler {
         rec.getMapFields().put(partitionKey, null);
         ZNRecordDelta delta = new ZNRecordDelta(rec, MergeOperation.SUBTRACT);
 
-        List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
+        List<ZNRecordDelta> deltaList = new ArrayList<>();
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
-        _stateModelFactory.removeStateModel(resource, partitionKey);
-      } else {
-        // if the partition is not to be dropped, update _stateModel to the TO_STATE
-        if (_stateModel.getCurrentState().equals(_message.getFromState())) {
-          _stateModel.updateState(toState);
-        }
+        _stateModelFactory.removeStateModel(_message.getResourceName(), partitionKey);
       }
-    } else if (taskResult.isCancelled()) {
-      // Cancelled message does not need current state update
-      return;
-    } else {
+      // if the partition is not to be dropped, update _stateModel to the TO_STATE
+      if (_stateModel.getCurrentState().equals(_message.getFromState())) {
+        _stateModel.updateState(toState);
+      }
+    } else if (!taskResult.isCancelled()) {
       if (exception instanceof HelixStateMismatchException) {
         // if fromState mismatch, set current state on zk to stateModel's current state
         logger.warn("Force CurrentState on Zk to be stateModel's CurrentState. partitionKey: "
             + partitionKey + ", currentState: " + _stateModel.getCurrentState() + ", message: "
             + _message);
         _currentStateDelta.setState(partitionKey, _stateModel.getCurrentState());
-      } else {
-        StateTransitionError error =
-            new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
-        if (exception instanceof InterruptedException) {
-          if (_isTimeout) {
-            error = new StateTransitionError(ErrorType.INTERNAL, ErrorCode.TIMEOUT, exception);
-          } else {
-            // State transition interrupted but not caused by timeout. Keep the current
-            // state in this case
-            logger.error(
-                "State transition interrupted but not timeout. Not updating state. Partition : "
-                    + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
-            return;
-          }
-        }
-        _stateModel.rollbackOnError(_message, _notificationContext, error);
-        _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
-        _stateModel.updateState(HelixDefinedState.ERROR.toString());
+        updateZKCurrentState();
+        return;
       }
-    }
+      // Handle timeout interrupt.
+      if ((exception instanceof InterruptedException) && !_isTimeout) {
+        // State transition interrupted but not caused by timeout. Keep the current
+        // state in this case
+        logger.error(
+            "State transition interrupted but not timeout. Not updating state. Partition : "
+                + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
+        return;
+      }
+      // We did early return when Timeout interrupt.
+      StateTransitionError error = new StateTransitionError(ErrorType.INTERNAL,
+          exception instanceof InterruptedException ? ErrorCode.TIMEOUT : ErrorCode.ERROR,
+          exception);
+      _stateModel.rollbackOnError(_message, _notificationContext, error);
+      _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
+      _stateModel.updateState(HelixDefinedState.ERROR.toString());
+    } // NOP if taskResult.isCancelled()
+
+    updateZKCurrentState();
+  }
+
+  // Update the ZK current state of the node
+  private void updateZKCurrentState(){
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    String partitionKey = _message.getPartitionName();
+    String resource = _message.getResourceName();
+    String sessionId = _message.getTgtSessionId();
+    String instanceName = _manager.getInstanceName();
 
     try {
-        // Update the ZK current state of the node
-        if (!_stateModel.getCurrentState().equals(_currentStateDelta.getState(partitionKey))
-            && !_currentStateDelta.getState(partitionKey)
-            .equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
-          return;
+      // We did not update _stateModel for DROPPED state, so it won't match _stateModel.
+      if (!_stateModel.getCurrentState().equals(_currentStateDelta.getState(partitionKey))
+          && !_currentStateDelta.getState(partitionKey)
+          .equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+        return;
+      }
+      int bucketSize = _message.getBucketSize();
+      ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
+      PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
+          .taskCurrentState(instanceName, sessionId, resource,
+              bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
+          .currentState(instanceName, sessionId, resource, bucketizer.getBucketName(partitionKey));
+      if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
+        // normal message
+        if (!accessor.updateProperty(key, _currentStateDelta)) {
+          throw new HelixException(
+              "Fails to persist current state back to ZK for resource " + resource + " partition: "
+                  + _message.getPartitionName());
         }
-        PropertyKey key = _isTaskMessage && !_isTaskCurrentStatePathDisabled ? accessor.keyBuilder()
-            .taskCurrentState(instanceName, sessionId, resource,
-                bucketizer.getBucketName(partitionKey)) : accessor.keyBuilder()
-            .currentState(instanceName, sessionId, resource,
-                bucketizer.getBucketName(partitionKey));
-        if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
-          // normal message
-          if (!accessor.updateProperty(key, _currentStateDelta)) {
-            throw new HelixException(
-                "Fails to persist current state back to ZK for resource " + resource
-                    + " partition: " + _message.getPartitionName());
-          }
-        } else {
-          // sub-message of a batch message
-          ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
-              (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext
-                  .get(MapKey.CURRENT_STATE_UPDATE.toString());
-          csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
-        }
+      } else {
+        // sub-message of a batch message
+        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
+            (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext
+                .get(MapKey.CURRENT_STATE_UPDATE.toString());
+        csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
+      }
     } catch (Exception e) {
       logger.error("Error when updating current-state ", e);
       StateTransitionError error =
@@ -264,6 +255,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
       _statusUpdateUtil.logError(_message, HelixStateTransitionHandler.class, e,
           "Error when update current-state ", _manager);
     }
+
+
   }
 
   @Override

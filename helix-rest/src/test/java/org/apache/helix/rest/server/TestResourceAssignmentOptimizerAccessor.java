@@ -40,7 +40,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
-public class TestResourceAssignmentOptimizer extends AbstractTestClass {
+public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
   String cluster = "TestCluster_2";
   String instance1 = cluster + "dummyInstance_localhost_12930";

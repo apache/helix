@@ -35,6 +35,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -60,6 +61,17 @@ public class TestResourceAssignmentOptimizer extends AbstractTestClass {
 
     toRemoveInstance = liveInstances.get(0);
     swapOldInstance = liveInstances.get(1);
+
+  }
+
+  @AfterClass
+  public void afterClass() {
+    for (String resource : resources) {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
+      idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
+    }
 
   }
 

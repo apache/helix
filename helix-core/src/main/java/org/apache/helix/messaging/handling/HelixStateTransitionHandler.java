@@ -176,9 +176,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
         _stateModelFactory.removeStateModel(_message.getResourceName(), partitionKey);
-      }
-      // if the partition is not to be dropped, update _stateModel to the TO_STATE
-      if (_stateModel.getCurrentState().equals(_message.getFromState())) {
+      } else if (_stateModel.getCurrentState().equals(_message.getFromState())) {
+        // if the partition is not to be dropped, update _stateModel to the TO_STATE
+        // need this check because TaskRunner may change _stateModel before reach here.
         _stateModel.updateState(toState);
       }
     } else if (!taskResult.isCancelled()) {
@@ -225,6 +225,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
       if (!_stateModel.getCurrentState().equals(_currentStateDelta.getState(partitionKey))
           && !_currentStateDelta.getState(partitionKey)
           .equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+        logger.warn("_stateModel is already updated by TaskRunner. Skip ZK update in StateTransitionHandler");
         return;
       }
       int bucketSize = _message.getBucketSize();

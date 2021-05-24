@@ -220,7 +220,7 @@ public class TaskRunner implements Runnable {
       String prevState = _stateModel.getCurrentState();
       CurrentState currentStateDelta = new CurrentState(resource);
       currentStateDelta.setSessionId(sessionId);
-      currentStateDelta.setStateModelDefRef("Task");
+      currentStateDelta.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
       currentStateDelta.setState(partition, state.name());
       currentStateDelta.setInfo(partition, _result.getInfo());
       currentStateDelta.setPreviousState(partition, prevState);

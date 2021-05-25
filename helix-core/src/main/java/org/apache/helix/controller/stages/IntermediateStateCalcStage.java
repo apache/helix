@@ -467,8 +467,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       for (Message message : pendingMessages) {
         StateTransitionThrottleConfig.RebalanceType rebalanceType =
             getRebalanceTypePerMessage(requiredStates, message, currentStateMap);
-        String currentState = currentStateMap.get(message.getTgtName()) == null ? stateModelDefinition.getInitialState()
-            : currentStateMap.get(message.getTgtName());
+        String currentState = currentStateMap.get(message.getTgtName());
+        if (currentState == null) {
+          currentState = stateModelDefinition.getInitialState();
+        }
         if (!message.getToState().equals(currentState) && message.getFromState().equals(currentState)
             && !cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName())
             .contains(message.getTgtName())) {

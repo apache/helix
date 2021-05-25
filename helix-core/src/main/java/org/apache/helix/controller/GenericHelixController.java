@@ -518,7 +518,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       rebalancePipeline.addStage(new MaintenanceRecoveryStage());
       rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
-      // Move the IntermediateStateCalcStage after message selection
+      // The IntermediateStateCalcStage should be applied after message selection
       // Messages are throttled already removed by IntermediateStateCalcStage in MessageSelection output
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
       rebalancePipeline.addStage(new MessageThrottleStage());

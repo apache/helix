@@ -31,6 +31,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.model.Message;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -275,5 +276,13 @@ public class BaseStageTest {
     }
 
     return resourceMap;
+  }
+
+  protected Message generateMessage(String fromState, String toState, String tgtName) {
+    Message message = new Message(new ZNRecord(UUID.randomUUID().toString()));
+    message.setTgtName(tgtName);
+    message.setFromState(fromState);
+    message.setToState(toState);
+    return message;
   }
 }

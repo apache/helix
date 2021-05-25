@@ -62,6 +62,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    MessageOutput messageSelectOutput = new MessageOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
 
     for (String resource : resourceMap.keySet()) {
@@ -76,11 +77,13 @@ public class TestStateTransitionPriority extends BaseStageTest {
           Collections.singletonList(instanceName));
       bestPossibleStateOutput.setPreferenceLists(resource, partitionMap);
       bestPossibleStateOutput.setState(resource, partition, instanceName, "SLAVE");
+      messageSelectOutput.addMessage(resource, partition, generateMessage("OFFLINE", "SLAVE", instanceName));
       currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
     }
 
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     runStage(event, new ReadClusterDataStage());
 
@@ -108,6 +111,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    MessageOutput messageSelectOutput = new MessageOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
 
     for (String resource : resourceMap.keySet()) {
@@ -121,11 +125,13 @@ public class TestStateTransitionPriority extends BaseStageTest {
       String nextInstanceName = HOSTNAME_PREFIX + (Integer.parseInt(resource.split("_")[1]) + 1);
       partitionMap.put(partition.getPartitionName(), Collections.singletonList(nextInstanceName));
       bestPossibleStateOutput.setPreferenceLists(resource, partitionMap);
-      bestPossibleStateOutput.setState(resource, partition, nextInstanceName, "MASTER");
+      bestPossibleStateOutput.setState(resource, partition, instanceName, "MASTER");
+      bestPossibleStateOutput.setState(resource, partition, nextInstanceName, "SLAVE");
       currentStateOutput.setCurrentState(resource, partition, instanceName, "MASTER");
     }
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
@@ -134,8 +140,10 @@ public class TestStateTransitionPriority extends BaseStageTest {
     // Keep update the current state.
     List<String> resourcePriority = new ArrayList<String>();
     for (int i = 0; i < resourceMap.size(); i++) {
+      event.addAttribute(AttributeName.MESSAGES_SELECTED.name(),
+          generateMessageMapForResource(bestPossibleStateOutput, currentStateOutput, resourcePriority));
       runStage(event, new IntermediateStateCalcStage());
-      updateCurrentStatesForLoadBalance(resourcePriority, currentStateOutput);
+      updateCurrentStatesForLoadBalance(resourcePriority, currentStateOutput, bestPossibleStateOutput);
     }
 
     Assert.assertEquals(resourcePriority, expectedPriority);
@@ -164,7 +172,6 @@ public class TestStateTransitionPriority extends BaseStageTest {
     Resource resource = new Resource(resourceName);
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-
     for (String partitionName : bestPossibleMap.keySet()) {
       Partition partition = new Partition(partitionName);
       bestPossibleStateOutput.setPreferenceList(resourceName, partitionName, preferenceList);
@@ -173,6 +180,7 @@ public class TestStateTransitionPriority extends BaseStageTest {
             bestPossibleMap.get(partitionName).get(instanceName));
         currentStateOutput.setCurrentState(resourceName, partition, instanceName,
             currentStateMap.get(partitionName).get(instanceName));
+
       }
       resource.addPartition(partitionName);
     }
@@ -183,6 +191,8 @@ public class TestStateTransitionPriority extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         Collections.singletonMap(resourceName, resource));
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(),
+        generateMessageMapForPartition(bestPossibleMap, currentStateMap, Collections.emptyList(), resourceName));
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
     event.addAttribute(AttributeName.ControllerDataProvider.name(),
         new ResourceControllerDataProvider());
@@ -191,9 +201,10 @@ public class TestStateTransitionPriority extends BaseStageTest {
     // Keep update the current state.
     List<String> partitionPriority = new ArrayList<String>();
     for (int i = 0; i < bestPossibleMap.size(); i++) {
+      event.addAttribute(AttributeName.MESSAGES_SELECTED.name(),
+          generateMessageMapForPartition(bestPossibleMap, currentStateMap, partitionPriority, resourceName));
       runStage(event, new IntermediateStateCalcStage());
-      updateCurrentStateForPartitionLevelPriority(partitionPriority, currentStateOutput,
-          resourceName, bestPossibleMap);
+      updateCurrentStateForPartitionLevelPriority(partitionPriority, currentStateOutput, resourceName, bestPossibleMap);
     }
 
     Assert.assertEquals(partitionPriority, expectedPriority);
@@ -287,23 +298,50 @@ public class TestStateTransitionPriority extends BaseStageTest {
     }
   }
 
-  private void updateCurrentStatesForLoadBalance(List<String> resourcePriority,
-      CurrentStateOutput currentStateOutput) {
-    IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-    for (PartitionStateMap partitionStateMap : output.getResourceStatesMap().values()) {
-      String resourceName = partitionStateMap.getResourceName();
+  private void updateCurrentStatesForLoadBalance(List<String> resourcePriority, CurrentStateOutput currentStateOutput,
+      BestPossibleStateOutput bestPossibleStateOutput) {
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    for (String resourceName : bestPossibleStateOutput.getResourceStatesMap().keySet()) {
       Partition partition = new Partition(resourceName + "_0");
-      String oldInstance = HOSTNAME_PREFIX + resourceName.split("_")[1];
-      String expectedInstance =
-          HOSTNAME_PREFIX + (Integer.parseInt(resourceName.split("_")[1]) + 1);
-      if (partitionStateMap.getPartitionMap(partition).containsKey(expectedInstance)
-          && !resourcePriority.contains(resourceName)) {
-        currentStateOutput.getCurrentStateMap(resourceName, partition).remove(oldInstance);
-        updateCurrentOutput(resourcePriority, currentStateOutput, resourceName, partition,
-            expectedInstance, "MASTER");
+      if (output.getResourceMessageMap(resourceName).get(partition) != null
+          && output.getResourceMessageMap(resourceName).get(partition).size() > 0) {
+        String nextInstanceName = HOSTNAME_PREFIX + (Integer.parseInt(resourceName.split("_")[1]) + 1);
+        currentStateOutput.setCurrentState(resourceName, partition, nextInstanceName, "SLAVE");
+        resourcePriority.add(resourceName);
         break;
       }
     }
+  }
+
+  private MessageOutput generateMessageMapForResource(BestPossibleStateOutput bestPossibleStateOutput,
+      CurrentStateOutput currentStateOutput, List<String> resourcePrirority) {
+    MessageOutput messageSelectOutput = new MessageOutput();
+    for (String resource : bestPossibleStateOutput.getResourceStatesMap().keySet()) {
+      if (!resourcePrirority.contains(resource) && !bestPossibleStateOutput.getPartitionStateMap(resource)
+          .getStateMap()
+          .equals(currentStateOutput.getCurrentStateMap(resource))) {
+        messageSelectOutput.addMessage(resource, new Partition(resource + "_0"),
+            generateMessage("OFFLINE", "SLAVE", (HOSTNAME_PREFIX + (Integer.parseInt(resource.split("_")[1]) + 1))));
+      }
+    }
+    return messageSelectOutput;
+  }
+
+  private MessageOutput generateMessageMapForPartition(Map<String, Map<String, String>> bestPossibleMap,
+      Map<String, Map<String, String>> currentStateMap, List<String> partitionPriority, String resourceName) {
+    MessageOutput messageSelectOutput = new MessageOutput();
+    for (String partitionName : bestPossibleMap.keySet()) {
+      for (String instanceName : bestPossibleMap.get(partitionName).keySet()) {
+        if (!partitionPriority.contains(partitionName) && !bestPossibleMap.get(partitionName)
+            .get(instanceName)
+            .equals(currentStateMap.get(partitionName).get(instanceName))) {
+          messageSelectOutput.addMessage(resourceName, new Partition(partitionName),
+              generateMessage(currentStateMap.get(partitionName).get(instanceName),
+                  bestPossibleMap.get(partitionName).get(instanceName), instanceName));
+        }
+      }
+    }
+    return messageSelectOutput;
   }
 
   private void updateCurrentOutput(List<String> resourcePriority,
@@ -317,19 +355,14 @@ public class TestStateTransitionPriority extends BaseStageTest {
   private void updateCurrentStateForPartitionLevelPriority(List<String> partitionPriority,
       CurrentStateOutput currentStateOutput, String resourceName,
       Map<String, Map<String, String>> bestPossibleMap) {
-    IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
-    PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
-    for (Partition partition : partitionStateMap.getStateMap().keySet()) {
-      Map<String, String> instanceStateMap = bestPossibleMap.get(partition.getPartitionName());
-      if (partitionStateMap.getPartitionMap(partition).equals(instanceStateMap)
-          && !partitionPriority.contains(partition.getPartitionName())) {
-        partitionPriority.add(partition.getPartitionName());
-        for (String instanceName : instanceStateMap.keySet()) {
-          currentStateOutput.setCurrentState(resourceName, partition, instanceName,
-              instanceStateMap.get(instanceName));
-        }
-        break;
+    MessageOutput output = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    output.getResourceMessageMap(resourceName).entrySet().stream().filter(e -> e.getValue().size() > 0).forEach(e -> {
+        partitionPriority.add(e.getKey().toString());
+
+      for (String instanceName : bestPossibleMap.get(e.getKey().toString()).keySet()) {
+        currentStateOutput.setCurrentState(resourceName, e.getKey(), instanceName,
+            bestPossibleMap.get(e.getKey().toString()).get(instanceName));
       }
-    }
+    });
   }
 }

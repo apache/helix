@@ -100,9 +100,9 @@ public class TestP2PMessages extends BaseStageTest {
     _fullPipeline.addStage(new ResourceComputationStage());
     _fullPipeline.addStage(new CurrentStateComputationStage());
     _fullPipeline.addStage(new BestPossibleStateCalcStage());
-    _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new ResourceMessageGenerationPhase());
     _fullPipeline.addStage(new MessageSelectionStage());
+    _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new MessageThrottleStage());
     _fullPipeline.addStage(new ResourceMessageDispatchStage());
 

@@ -87,14 +87,15 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _fullPipeline = new Pipeline("FullPipeline");
     _fullPipeline.addStage(new ReadClusterDataStage());
     _fullPipeline.addStage(new BestPossibleStateCalcStage());
-    _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new ResourceMessageGenerationPhase());
     _fullPipeline.addStage(new MessageSelectionStage());
+    _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new MessageThrottleStage());
 
     _messagePipeline = new Pipeline("MessagePipeline");
     _messagePipeline.addStage(new ResourceMessageGenerationPhase());
     _messagePipeline.addStage(new MessageSelectionStage());
+    _messagePipeline.addStage(new IntermediateStateCalcStage());
     _messagePipeline.addStage(new MessageThrottleStage());
 
 
@@ -126,7 +127,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
     _fullPipeline.handle(event);
 
-    _bestpossibleState = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    _bestpossibleState = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
     MessageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -217,7 +218,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
 
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 
@@ -273,7 +274,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     instanceStateMap.put(thirdMaster, "MASTER");
     _bestpossibleState.setState(_db, _partition, instanceStateMap);
 
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 
@@ -290,7 +291,7 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     currentStateOutput.setPendingMessage(_db, _partition, secondMaster, relayMessage);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), _bestpossibleState);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), _bestpossibleState);
 
     _messagePipeline.handle(event);
 

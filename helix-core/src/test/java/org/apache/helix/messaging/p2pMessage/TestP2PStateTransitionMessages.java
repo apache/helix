@@ -199,9 +199,9 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
     pipeline = new Pipeline("test");
-    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());
 
     pipeline.handle(event);
@@ -223,9 +223,9 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
 
 
     pipeline = new Pipeline("test");
-    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());
 
     pipeline.handle(event);
@@ -359,9 +359,9 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Pipeline pipeline = new Pipeline("test");
     pipeline.addStage(new ReadClusterDataStage());
     pipeline.addStage(new BestPossibleStateCalcStage());
-    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new ResourceMessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
+    pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());
 
     return pipeline;

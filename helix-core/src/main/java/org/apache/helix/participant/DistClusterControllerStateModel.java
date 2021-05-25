@@ -19,6 +19,7 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -32,20 +33,18 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@StateModelInfo(initialState = "OFFLINE", states = {
-    "LEADER", "STANDBY"
-})
+
+@StateModelInfo(initialState = "OFFLINE", states = {"LEADER", "STANDBY"})
 public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyStateModel {
   private static Logger logger = LoggerFactory.getLogger(DistClusterControllerStateModel.class);
-  protected HelixManager _controller = null;
+  protected Optional<HelixManager> _controllerOpt = Optional.empty();
   private final Set<Pipeline.Type> _enabledPipelineTypes;
 
   public DistClusterControllerStateModel(String zkAddr) {
     this(zkAddr, Sets.newHashSet(Pipeline.Type.DEFAULT, Pipeline.Type.TASK));
   }
 
-  public DistClusterControllerStateModel(String zkAddr,
-      Set<Pipeline.Type> enabledPipelineTypes) {
+  public DistClusterControllerStateModel(String zkAddr, Set<Pipeline.Type> enabledPipelineTypes) {
     super(zkAddr);
     _enabledPipelineTypes = enabledPipelineTypes;
   }
@@ -63,19 +62,20 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
 
     logger.info(controllerName + " becoming leader from standby for " + clusterName);
 
-    if (_controller == null) {
-      _controller =
-          HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
-              InstanceType.CONTROLLER, _zkAddr);
-      _controller.setEnabledControlPipelineTypes(_enabledPipelineTypes);
-      _controller.connect();
-      _controller.startTimerTasks();
-      logStateTransition("STANDBY", "LEADER", clusterName, controllerName);
-    } else {
-      logger.error("controller already exists:" + _controller.getInstanceName() + " for "
-          + clusterName);
+    synchronized (_controllerOpt) {
+      if (!_controllerOpt.isPresent()) {
+        HelixManager newController = HelixManagerFactory
+            .getZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
+        newController.setEnabledControlPipelineTypes(_enabledPipelineTypes);
+        newController.connect();
+        newController.startTimerTasks();
+        _controllerOpt = Optional.of(newController);
+        logStateTransition("STANDBY", "LEADER", clusterName, controllerName);
+      } else {
+        logger.error("controller already exists:" + _controllerOpt.get().getInstanceName() + " for "
+            + clusterName);
+      }
     }
-
   }
 
   @Override
@@ -85,7 +85,7 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
 
     logger.info(controllerName + " becoming standby from leader for " + clusterName);
 
-    if (_controller != null) {
+    if (_controllerOpt.isPresent()) {
       reset();
       logStateTransition("LEADER", "STANDBY", clusterName, controllerName);
     } else {
@@ -112,10 +112,11 @@ public class DistClusterControllerStateModel extends AbstractHelixLeaderStandbyS
 
   @Override
   public void reset() {
-    if (_controller != null) {
-      _controller.disconnect();
-      _controller = null;
+    synchronized (_controllerOpt) {
+      if (_controllerOpt.isPresent()) {
+        _controllerOpt.get().disconnect();
+        _controllerOpt = Optional.empty();
+      }
     }
-
   }
 }

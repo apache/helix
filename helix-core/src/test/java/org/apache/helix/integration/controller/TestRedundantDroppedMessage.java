@@ -30,10 +30,10 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.task.TaskSynchronizedTestBase;
@@ -77,7 +77,7 @@ public class TestRedundantDroppedMessage extends TaskSynchronizedTestBase {
     runStage(event, new CurrentStateComputationStage());
     runStage(event, new BestPossibleStateCalcStage());
     Assert.assertEquals(cache.getCachedIdealMapping().size(), 1);
-    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageGenerationPhase());
     runStage(event, new MessageSelectionStage());
     runStage(event, new IntermediateStateCalcStage());
 

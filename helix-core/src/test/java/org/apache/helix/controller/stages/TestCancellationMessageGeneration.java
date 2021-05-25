@@ -100,15 +100,16 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
 
     // set up resource state map
-    ResourcesStateMap resourcesStateMap = new ResourcesStateMap();
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     PartitionStateMap partitionStateMap = new PartitionStateMap(TEST_RESOURCE);
     Map<Partition, Map<String, String>> stateMap = partitionStateMap.getStateMap();
     Map<String, String> instanceStateMap = new HashMap<>();
     instanceStateMap.put(TEST_INSTANCE, HelixDefinedState.DROPPED.name());
     stateMap.put(partition, instanceStateMap);
-    resourcesStateMap.setState(TEST_RESOURCE, partition, instanceStateMap);
+    bestPossibleStateOutput.setState(TEST_RESOURCE, partition, instanceStateMap);
 
-    processEvent(event, resourcesStateMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    process(event);
     MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
     Assert.assertEquals(output.getMessages(TEST_RESOURCE, partition).size(), 1);
   }
@@ -194,16 +195,17 @@ public class TestCancellationMessageGeneration extends MessageGenerationPhase {
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(), resourceMap);
 
     // set up resource state map
-    ResourcesStateMap resourcesStateMap = new ResourcesStateMap();
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     PartitionStateMap partitionStateMap = new PartitionStateMap(TEST_RESOURCE);
     Map<Partition, Map<String, String>> stateMap = partitionStateMap.getStateMap();
     Map<String, String> instanceStateMap = new HashMap<>();
     instanceStateMap.put(TEST_INSTANCE, currentState);
     stateMap.put(partition, instanceStateMap);
-    resourcesStateMap.setState(TEST_RESOURCE, partition, instanceStateMap);
+    bestPossibleStateOutput.setState(TEST_RESOURCE, partition, instanceStateMap);
 
     // Process the event
-    processEvent(event, resourcesStateMap);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    process(event);
     MessageOutput output = event.getAttribute(AttributeName.MESSAGES_ALL.name());
 
     return output.getMessages(TEST_RESOURCE, partition);

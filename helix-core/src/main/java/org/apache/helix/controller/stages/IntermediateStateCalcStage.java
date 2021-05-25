@@ -582,73 +582,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   }
 
   /**
-   * For a partition, given its preferenceList, bestPossibleState, and currentState, determine which
-   * type of rebalance is needed to model IdealState's states defined by the state model definition.
-   * @return RebalanceType needed to bring the replicas to idea states
-   *         RECOVERY_BALANCE - not all required states (replicas) are available through all
-   *         replicas, or the partition is disabled
-   *         NONE - current state matches the ideal state
-   *         LOAD_BALANCE - although all replicas required exist, Helix needs to optimize the
-   *         allocation
-   */
-  private RebalanceType getRebalanceType(ResourceControllerDataProvider cache,
-      Map<String, String> bestPossibleMap, List<String> preferenceList,
-      StateModelDefinition stateModelDef, Map<String, String> currentStateMap,
-      IdealState idealState, String partitionName) {
-    if (preferenceList == null) {
-      preferenceList = Collections.emptyList();
-    }
-
-    // If there is a minimum active replica number specified in IS, we should respect it.
-    // TODO: We should implement the per replica level throttling with generated message
-    // Issue: https://github.com/apache/helix/issues/343
-    int replica = idealState.getMinActiveReplicas() == -1
-        ? idealState.getReplicaCount(preferenceList.size())
-        : idealState.getMinActiveReplicas();
-    Set<String> activeList = new HashSet<>(preferenceList);
-    activeList.retainAll(cache.getEnabledLiveInstances());
-
-    // For each state, check that this partition currently has the required number of that state as
-    // required by StateModelDefinition.
-    LinkedHashMap<String, Integer> expectedStateCountMap =
-        stateModelDef.getStateCountMap(activeList.size(), replica); // StateModelDefinition's counts
-    // Current counts without disabled partitions or disabled instances
-    Map<String, String> currentStateMapWithoutDisabled = new HashMap<>(currentStateMap);
-    currentStateMapWithoutDisabled.keySet().removeAll(
-        cache.getDisabledInstancesForPartition(idealState.getResourceName(), partitionName));
-    Map<String, Integer> currentStateCounts =
-        StateModelDefinition.getStateCounts(currentStateMapWithoutDisabled);
-
-    // Go through each state and compare counts
-    for (String state : expectedStateCountMap.keySet()) {
-      Integer expectedCount = expectedStateCountMap.get(state);
-      Integer currentCount = currentStateCounts.get(state);
-      expectedCount = expectedCount == null ? 0 : expectedCount;
-      currentCount = currentCount == null ? 0 : currentCount;
-
-      // If counts do not match up, this partition requires recovery
-      if (currentCount < expectedCount) {
-        // Recovery is not needed in cases where this partition just started, was dropped, or is in
-        // error
-        if (!state.equals(HelixDefinedState.DROPPED.name())
-            && !state.equals(HelixDefinedState.ERROR.name())
-            && !state.equals(stateModelDef.getInitialState())) {
-          return RebalanceType.RECOVERY_BALANCE;
-        }
-      }
-    }
-    // No recovery needed, all expected replicas exist
-    // Check if this partition is actually in the BestPossibleState
-    if (currentStateMap.equals(bestPossibleMap)) {
-      return RebalanceType.NONE; // No further action required
-    } else {
-      return RebalanceType.LOAD_BALANCE; // Required state counts are satisfied, but in order to
-      // achieve BestPossibleState, load balance may be required
-      // to shift replicas around
-    }
-  }
-
-  /**
    * Determine the message rebalance type with message and current states.
    * @param desiredStates         Ideally how may states we needed for guarantee the health of replica
    * @param message               The message to be determined what is the rebalance type
@@ -912,32 +845,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           intermediateStateMap.getStateMap().get(entry.getKey()).remove(e.getTgtName());
         }
       });
-    }
-  }
-
-  /**
-   * Handle a partition with a pending message so that the partition will not be double-charged or double-assigned during recovery and load balance.
-   * @param partition
-   * @param partitionsNeedRecovery
-   * @param partitionsNeedLoadbalance
-   * @param rebalanceType
-   */
-  private void handlePendingStateTransitionsForThrottling(Partition partition,
-      Set<Partition> partitionsNeedRecovery, Set<Partition> partitionsNeedLoadbalance,
-      RebalanceType rebalanceType, PartitionStateMap bestPossiblePartitionStateMap,
-      PartitionStateMap intermediatePartitionStateMap) {
-    // Pass the best possible state directly into intermediatePartitionStateMap
-    // This is safe to do so because we already have a pending transition for this partition, implying that the assignment has been made in previous pipeline
-    intermediatePartitionStateMap
-        .setState(partition, bestPossiblePartitionStateMap.getPartitionMap(partition));
-    // Remove the partition's name from the set of partition (names) that need to be charged and assigned to prevent double-processing
-    switch (rebalanceType) {
-    case RECOVERY_BALANCE:
-      partitionsNeedRecovery.remove(partition);
-      break;
-    case LOAD_BALANCE:
-      partitionsNeedLoadbalance.remove(partition);
-      break;
     }
   }
 }

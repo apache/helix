@@ -31,6 +31,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BaseStageTest;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -166,11 +167,11 @@ public class TestP2PWithStateCancellationMessage extends BaseStageTest {
     currentStateOutput.setCurrentState(RESOURCE_NAME, new Partition("1"), "localhost_2", "MASTER");
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
-    IntermediateStateOutput intermediateStateOutput = new IntermediateStateOutput();
-    intermediateStateOutput.setState(RESOURCE_NAME, new Partition("0"), "localhost_1", "SLAVE");
-    intermediateStateOutput.setState(RESOURCE_NAME, new Partition("0"), "localhost_2", "MASTER");
-    intermediateStateOutput.setState(RESOURCE_NAME, new Partition("1"), "localhost_2", "MASTER");
-    event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), intermediateStateOutput);
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    bestPossibleStateOutput.setState(RESOURCE_NAME, new Partition("0"), "localhost_1", "SLAVE");
+    bestPossibleStateOutput.setState(RESOURCE_NAME, new Partition("0"), "localhost_2", "MASTER");
+    bestPossibleStateOutput.setState(RESOURCE_NAME, new Partition("1"), "localhost_2", "MASTER");
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
     return event;
   }

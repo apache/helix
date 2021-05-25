@@ -13,7 +13,9 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -77,14 +79,17 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
+    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageSelectionStage());
     runStage(event, new IntermediateStateCalcStage());
 
     ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor resourceMonitor = clusterStatusMonitor.getResourceMonitor(resource);
 
-    Assert.assertEquals(resourceMonitor.getPendingRecoveryRebalancePartitionGauge(), numPartition);
-    Assert.assertEquals(resourceMonitor.getRecoveryRebalanceThrottledPartitionGauge(),
-        numPartition - maxPending);
+    Assert.assertEquals(resourceMonitor.getNumPendingRecoveryRebalanceReplicas(),
+        numPartition * numReplica - resourceMonitor.getNumPendingLoadRebalanceReplicas());
+    Assert.assertEquals(resourceMonitor.getNumRecoveryRebalanceThrottledReplicas(),
+        numPartition * numReplica - resourceMonitor.getNumPendingLoadRebalanceReplicas() - maxPending);
 
     System.out
         .println("END testRecoveryRebalanceMetrics at " + new Date(System.currentTimeMillis()));
@@ -135,15 +140,16 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
+    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageSelectionStage());
     runStage(event, new IntermediateStateCalcStage());
 
     ClusterStatusMonitor clusterStatusMonitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ResourceMonitor resourceMonitor = clusterStatusMonitor.getResourceMonitor(resource);
 
-    long numPendingLoadBalance = resourceMonitor.getPendingLoadRebalancePartitionGauge();
+    long numPendingLoadBalance = resourceMonitor.getNumPendingLoadRebalanceReplicas();
     Assert.assertTrue(numPendingLoadBalance > 0);
-    Assert.assertEquals(resourceMonitor.getLoadRebalanceThrottledPartitionGauge(),
-        numPendingLoadBalance - maxPending);
+    Assert.assertEquals(resourceMonitor.getNumLoadRebalanceThrottledReplicas(), numPendingLoadBalance - maxPending);
 
     System.out
         .println("END testLoadBalanceMetrics at " + new Date(System.currentTimeMillis()));

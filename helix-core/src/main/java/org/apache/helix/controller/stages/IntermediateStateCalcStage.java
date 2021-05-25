@@ -51,6 +51,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
+import org.apache.helix.participant.statemachine.StateModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -347,11 +348,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     Collections.sort(partitions, new PartitionPriorityComparator(bestPossiblePartitionStateMap.getStateMap(),
         currentStateOutput.getCurrentStateMap(resourceName), stateModelDef.getTopState()));
     for (Partition partition : partitions) {
-      List<Message> messagesToThrottle = new ArrayList<>(resourceMessageMap.get(partition));
-      if (messagesToThrottle == null || messagesToThrottle.isEmpty()) {
+      if (resourceMessageMap.get(partition) == null || resourceMessageMap.get(partition).isEmpty()) {
         continue;
       }
-
+      List<Message> messagesToThrottle = new ArrayList<>(resourceMessageMap.get(partition));
       Map<String, String> derivedCurrentStateMap = currentStateOutput.getCurrentStateMap(resourceName, partition)
           .entrySet()
           .stream()
@@ -468,6 +468,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         StateTransitionThrottleConfig.RebalanceType rebalanceType =
             getRebalanceTypePerMessage(requiredStates, message, currentStateMap);
         String currentState = currentStateMap.get(message.getTgtName());
+        if (currentState == null) {
+          currentState = stateModelDefinition.getInitialState();
+        }
         if (!message.getToState().equals(currentState) && message.getFromState().equals(currentState)
             && !cache.getDisabledInstancesForPartition(resourceName, partition.getPartitionName())
             .contains(message.getTgtName())) {
@@ -833,7 +836,10 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       // Higher priority for the partition with fewer replicas with states matching with IdealState
       int idealStateMatched1 = getIdealStateMatched(p1);
       int idealStateMatched2 = getIdealStateMatched(p2);
-      return Integer.compare(idealStateMatched1, idealStateMatched2);
+      if (idealStateMatched1 != idealStateMatched2) {
+        return Integer.compare(idealStateMatched1, idealStateMatched2);
+      }
+      return p1.getPartitionName().compareTo(p2.getPartitionName());
     }
 
     private int getMissTopStateIndex(Partition partition) {
@@ -889,17 +895,23 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   private void computeIntermediateMap(PartitionStateMap intermediateStateMap,
       Map<Partition, Map<String, Message>> pendingMessageMap, Map<Partition, List<Message>> resourceMessageMap) {
     for (Map.Entry<Partition, Map<String, Message>> entry : pendingMessageMap.entrySet()) {
-      entry.getValue()
-          .entrySet()
-          .stream()
-          .forEach(
-              e -> intermediateStateMap.setState(entry.getKey(), e.getValue().getTgtName(), e.getValue().getToState()));
+      entry.getValue().entrySet().stream().forEach(e -> {
+        if (!e.getValue().getToState().equals(HelixDefinedState.DROPPED.name())) {
+          intermediateStateMap.setState(entry.getKey(), e.getValue().getTgtName(), e.getValue().getToState());
+        } else {
+          intermediateStateMap.getStateMap().get(entry.getKey()).remove(e.getValue().getTgtName());
+        }
+      });
     }
 
     for (Map.Entry<Partition, List<Message>> entry : resourceMessageMap.entrySet()) {
-      entry.getValue()
-          .stream()
-          .forEach(e -> intermediateStateMap.setState(entry.getKey(), e.getTgtName(), e.getToState()));
+      entry.getValue().stream().forEach(e -> {
+        if (!e.getToState().equals(HelixDefinedState.DROPPED.name())) {
+          intermediateStateMap.setState(entry.getKey(), e.getTgtName(), e.getToState());
+        } else {
+          intermediateStateMap.getStateMap().get(entry.getKey()).remove(e.getTgtName());
+        }
+      });
     }
   }
 

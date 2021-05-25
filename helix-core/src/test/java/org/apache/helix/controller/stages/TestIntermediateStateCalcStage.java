@@ -51,15 +51,14 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     }
 
     preSetup(resources, nReplica, nReplica);
-    event.addAttribute(AttributeName.RESOURCES.name(),
-        getResourceMap(resources, nPartition, "OnlineOffline"));
+    event.addAttribute(AttributeName.RESOURCES.name(), getResourceMap(resources, nPartition, "OnlineOffline"));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         getResourceMap(resources, nPartition, "OnlineOffline"));
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-
+    MessageOutput messageSelectOutput = new MessageOutput();
     IntermediateStateOutput expectedResult = new IntermediateStateOutput();
 
     _clusterConfig.setErrorOrRecoveryPartitionThresholdForLoadBalance(1);
@@ -79,11 +78,11 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
             // Regular recovery balance
             currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
             // add blocked state transition messages
-            Message pendingMessage = new Message("customType", "001");
-            pendingMessage.setToState("ONLINE");
+            Message pendingMessage = generateMessage("OFFLINE", "ONLINE", instanceName);
             currentStateOutput.setPendingMessage(resource, partition, instanceName, pendingMessage);
 
             bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+
             // should be recovered:
             expectedResult.setState(resource, partition, instanceName, "ONLINE");
           } else if (resource.endsWith("1")) {
@@ -91,6 +90,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
             currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
             currentStateOutput.setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
             bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+            messageSelectOutput.addMessage(resource, partition,
+                generateMessage("OFFLINE", "DROPPED", instanceName + "-1"));
             // should be recovered:
             expectedResult.setState(resource, partition, instanceName, "ONLINE");
           } else if (resource.endsWith("2")) {
@@ -110,14 +111,16 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
                 expectedResult.setState(resource, partition, instanceName, "ERROR");
               } else {
                 currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
+                messageSelectOutput.addMessage(resource, partition, generateMessage("OFFLINE", "ONLINE", instanceName));
                 // Recovery balance
                 expectedResult.setState(resource, partition, instanceName, "ONLINE");
               }
             } else {
               currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
-              currentStateOutput
-                  .setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
+              currentStateOutput.setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
               // load balance is throttled, so keep all current states
+              messageSelectOutput.addMessage(resource, partition,
+                  generateMessage("OFFLINE", "DROPPED", instanceName + "-1"));
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
               // The following must be removed because now downward state transitions are allowed
               // expectedResult.setState(resource, partition, instanceName + "-1", "OFFLINE");
@@ -129,16 +132,18 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               // This partition requires recovery
               currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
               bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+              messageSelectOutput.addMessage(resource, partition, generateMessage("OFFLINE", "ONLINE", instanceName));
               // After recovery, it should be back ONLINE
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
             } else {
               // Other partitions require dropping of replicas
               currentStateOutput.setCurrentState(resource, partition, instanceName, "ONLINE");
-              currentStateOutput
-                  .setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
+              currentStateOutput.setCurrentState(resource, partition, instanceName + "-1", "OFFLINE");
               // BestPossibleState dictates that we only need one ONLINE replica
               bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
               bestPossibleStateOutput.setState(resource, partition, instanceName + "-1", "DROPPED");
+              messageSelectOutput.addMessage(resource, partition,
+                  generateMessage("OFFLINE", "DROPPED", instanceName + "-1"));
               // So instanceName-1 will NOT be expected to show up in expectedResult
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
               expectedResult.setState(resource, partition, instanceName + "-1", "DROPPED");
@@ -150,6 +155,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               // Set up a partition requiring recovery
               currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
               bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+              messageSelectOutput.addMessage(resource, partition, generateMessage("OFFLINE", "ONLINE", instanceName));
               // After recovery, it should be back ONLINE
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
             } else {
@@ -157,6 +163,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
               // Check that load balance (bringing up a new node) did not take place
               bestPossibleStateOutput.setState(resource, partition, instanceName + "-1", "ONLINE");
+              messageSelectOutput.addMessage(resource, partition,
+                  generateMessage("OFFLINE", "ONLINE", instanceName + "-1"));
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
             }
           }
@@ -166,9 +174,9 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     }
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(),
-        new ResourceControllerDataProvider());
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
     runStage(event, new IntermediateStateCalcStage());
 
@@ -177,7 +185,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare
       // anything.
-      Assert.assertTrue(output.getPartitionStateMap(resource).getStateMap()
+      Assert.assertTrue(output.getPartitionStateMap(resource)
+          .getStateMap()
           .equals(expectedResult.getPartitionStateMap(resource).getStateMap()));
     }
   }
@@ -195,14 +204,13 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     }
 
     preSetup(resources, nReplica, nReplica);
-    event.addAttribute(AttributeName.RESOURCES.name(),
-        getResourceMap(resources, nPartition,
-            "OnlineOffline"));
+    event.addAttribute(AttributeName.RESOURCES.name(), getResourceMap(resources, nPartition, "OnlineOffline"));
     event.addAttribute(AttributeName.RESOURCES_TO_REBALANCE.name(),
         getResourceMap(resources, nPartition, "OnlineOffline"));
 
     // Initialize best possible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    MessageOutput messageSelectOutput = new MessageOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     IntermediateStateOutput expectedResult = new IntermediateStateOutput();
 
@@ -225,6 +233,7 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
               // Set up a partition requiring recovery
               currentStateOutput.setCurrentState(resource, partition, instanceName, "OFFLINE");
               bestPossibleStateOutput.setState(resource, partition, instanceName, "ONLINE");
+              messageSelectOutput.addMessage(resource, partition, generateMessage("OFFLINE", "ONLINE", instanceName));
               // After recovery, it should be back ONLINE
               expectedResult.setState(resource, partition, instanceName, "ONLINE");
             } else {
@@ -236,6 +245,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
               // This partition to bring up a replica (load balance will happen)
               bestPossibleStateOutput.setState(resource, partition, instanceName + "-1", "ONLINE");
+              messageSelectOutput.addMessage(resource, partition,
+                  generateMessage("OFFLINE", "ONLINE", instanceName + "-1"));
               expectedResult.setState(resource, partition, instanceName + "-1", "ONLINE");
             }
           }
@@ -246,8 +257,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
-    event.addAttribute(AttributeName.ControllerDataProvider.name(),
-        new ResourceControllerDataProvider());
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), messageSelectOutput);
+    event.addAttribute(AttributeName.ControllerDataProvider.name(), new ResourceControllerDataProvider());
     runStage(event, new ReadClusterDataStage());
     runStage(event, new IntermediateStateCalcStage());
 
@@ -256,7 +267,8 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
     for (String resource : resources) {
       // Note Assert.assertEquals won't work. If "actual" is an empty map, it won't compare
       // anything.
-      Assert.assertEquals(output.getPartitionStateMap(resource).getStateMap(), expectedResult.getPartitionStateMap(resource).getStateMap());
+      Assert.assertEquals(output.getPartitionStateMap(resource).getStateMap(),
+          expectedResult.getPartitionStateMap(resource).getStateMap());
     }
   }
 
@@ -268,13 +280,11 @@ public class TestIntermediateStateCalcStage extends BaseStageTest {
 
     // Set up cluster configs
     _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
-    _clusterConfig.setStateTransitionThrottleConfigs(ImmutableList
-        .of(new StateTransitionThrottleConfig(
-                StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-                StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 3),
-            new StateTransitionThrottleConfig(
-                StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-                StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 3)));
+    _clusterConfig.setStateTransitionThrottleConfigs(ImmutableList.of(
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 3),
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 3)));
     setClusterConfig(_clusterConfig);
   }
 }

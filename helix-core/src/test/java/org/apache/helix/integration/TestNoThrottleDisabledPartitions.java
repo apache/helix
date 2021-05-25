@@ -69,9 +69,9 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     setupEnvironment(participantCount);
 
     // Set the throttling only for load balance
-    setThrottleConfigForLoadBalance();
+    setThrottleConfigForLoadBalance(1);
 
-    // Disable instance 0 so that it will cause a partition to do a recovery balance
+    // Disable instance 0 so that it will cause a partition to do a load balance
     PropertyKey key = _accessor.keyBuilder().instanceConfig(_participants[0].getInstanceName());
     InstanceConfig instanceConfig = _accessor.getProperty(key);
     instanceConfig.setInstanceEnabled(false);
@@ -261,7 +261,7 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
   public void testNoThrottleOnDisabledPartition() throws Exception {
     int participantCount = 3;
     setupEnvironment(participantCount);
-    setThrottleConfig();
+    setThrottleConfig(3); // Convert partition to replica mapping should be 1 -> 3
 
     // Disable a partition so that it will not be subject to throttling
     String partitionName = _resourceName + "0_0";
@@ -292,8 +292,9 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     controller.syncStart();
     Thread.sleep(500L);
 
+    // The throttle quota will be consumed by first partition with all
     for (MockParticipantManager participantManager : _participants) {
-      Assert.assertTrue(verifyTwoMessages(participantManager));
+      Assert.assertTrue(verifySingleMessage(participantManager));
     }
 
     // clean up the cluster
@@ -339,11 +340,14 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     controller.syncStop();
   }
 
+  private void setThrottleConfig() {
+    setThrottleConfig(1);
+  }
   /**
    * Set all throttle configs at 1 so that we could test by observing the number of ongoing
    * transitions.
    */
-  private void setThrottleConfig() {
+  private void setThrottleConfig(int maxReplicas) {
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
 
     ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
@@ -353,27 +357,31 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     // Add throttling at cluster-level
     throttleConfigs.add(new StateTransitionThrottleConfig(
         StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
-        StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+        StateTransitionThrottleConfig.ThrottleScope.CLUSTER, maxReplicas));
     throttleConfigs.add(
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, maxReplicas));
     throttleConfigs
         .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
-            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1));
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, maxReplicas));
 
     // Add throttling at instance level
     throttleConfigs
         .add(new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
-            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 1));
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, maxReplicas));
 
     clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
     _accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
   }
 
+  private void setThrottleConfigForLoadBalance() {
+    setThrottleConfigForLoadBalance(0);
+  }
+
   /**
    * Set throttle limits only for load balance so that none of them would happen.
    */
-  private void setThrottleConfigForLoadBalance() {
+  private void setThrottleConfigForLoadBalance(int maxReplicas) {
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
 
     ClusterConfig clusterConfig = _accessor.getProperty(_accessor.keyBuilder().clusterConfig());
@@ -383,12 +391,12 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
     // Add throttling at cluster-level
     throttleConfigs.add(
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 0));
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, maxReplicas));
 
     // Add throttling at instance level
     throttleConfigs.add(
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 0));
+            StateTransitionThrottleConfig.ThrottleScope.INSTANCE, maxReplicas));
 
     clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
     _accessor.setProperty(keyBuilder.clusterConfig(), clusterConfig);
@@ -481,15 +489,15 @@ public class TestNoThrottleDisabledPartitions extends ZkTestBase {
   }
 
   /**
-   * Ensure that there are 2 messages for a given Participant.
+   * Ensure that there are 1 messages for a given Participant.
    * @param participant
    * @return
    */
-  private boolean verifyTwoMessages(final MockParticipantManager participant) {
+  private boolean verifySingleMessage(final MockParticipantManager participant) {
     PropertyKey key = _accessor.keyBuilder().messages(participant.getInstanceName());
     List<String> messageNames = _accessor.getChildNames(key);
     if (messageNames != null) {
-      return messageNames.size() == 2;
+      return messageNames.size() == 1;
     }
     return false;
   }

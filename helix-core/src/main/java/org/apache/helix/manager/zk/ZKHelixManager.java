@@ -743,7 +743,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
       _baseDataAccessor = createBaseDataAccessor();
 
-      _dataAccessor = new ZKHelixDataAccessor(_clusterName, _instanceType, _baseDataAccessor);
+      _dataAccessor = new ZKHelixDataAccessor(_clusterName, _baseDataAccessor);
       _configAccessor = new ConfigAccessor(_zkclient);
 
       if (_instanceType == InstanceType.CONTROLLER

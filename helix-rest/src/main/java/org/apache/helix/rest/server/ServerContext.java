@@ -29,7 +29,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.InstanceType;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -255,7 +254,7 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
           ZkBaseDataAccessor<ZNRecord> baseDataAccessor =
               new ZkBaseDataAccessor<>(getRealmAwareZkClient());
           _helixDataAccessorPool.put(clusterName,
-              new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor));
+              new ZKHelixDataAccessor(clusterName, baseDataAccessor));
         }
         dataAccessor = _helixDataAccessorPool.get(clusterName);
       }

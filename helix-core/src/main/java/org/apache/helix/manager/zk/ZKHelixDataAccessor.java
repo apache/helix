@@ -30,7 +30,6 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.GroupCommit;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
@@ -55,19 +54,13 @@ import org.slf4j.LoggerFactory;
 public class ZKHelixDataAccessor implements HelixDataAccessor {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  final InstanceType _instanceType;
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
 
-  public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
-    this(clusterName, null, baseDataAccessor);
-  }
-
-  public ZKHelixDataAccessor(String clusterName, InstanceType instanceType,
+  public ZKHelixDataAccessor(String clusterName,
       BaseDataAccessor<ZNRecord> baseDataAccessor) {
     _clusterName = clusterName;
-    _instanceType = instanceType;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
@@ -75,7 +68,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   /* Copy constructor */
   public ZKHelixDataAccessor(ZKHelixDataAccessor dataAccessor) {
     _clusterName = dataAccessor._clusterName;
-    _instanceType = dataAccessor._instanceType;
     _baseDataAccessor = dataAccessor._baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }

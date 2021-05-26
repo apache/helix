@@ -38,10 +38,10 @@
       [draggable]="false"
       [canAutoResize]="false">
       <ng-template let-row="row" ngx-datatable-cell-template>
-        <mat-icon *ngIf="row.healthy" class="status-healthy">lens</mat-icon>
-        <mat-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" matTooltip="The instance is offline.">lens</mat-icon>
-        <mat-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" matTooltip="The instance is disabled.">lens</mat-icon>
-        <mat-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" matTooltip="The instance is offline and disabled.">lens</mat-icon>
+        <mat-icon *ngIf="row.healthy" class="status-healthy">check_circle</mat-icon>
+        <mat-icon *ngIf="!row.healthy && row.enabled" class="status-not-healthy" matTooltip="The instance is offline.">cancel</mat-icon>
+        <mat-icon *ngIf="!row.healthy && row.liveInstance" class="status-not-healthy" matTooltip="The instance is disabled.">cancel</mat-icon>
+        <mat-icon *ngIf="!row.healthy && !row.enabled && !row.liveInstance" class="status-not-healthy" matTooltip="The instance is offline and disabled.">cancel</mat-icon>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column name="Name">

@@ -305,7 +305,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
   }
 
   @Test
-  public void testDanglingCallbackHanlderFix() throws Exception {
+  public void testDanglingCallbackHandler() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -379,6 +379,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // clean up
     controller.syncStop();
     rp.shutdown();
+
+    Assert.assertTrue(rpManager.getHandlers().isEmpty(),
+        "HelixManager should not have any callback handlers after shutting down RoutingTableProvider");
+
     rpManager.syncStop();
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
@@ -474,6 +478,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
       participants[i].syncStop();
     }
     rp.shutdown();
+
+    Assert.assertTrue(rpManager.getHandlers().isEmpty(),
+        "HelixManager should not have any callback handlers after shutting down RoutingTableProvider");
+
     rpManager.syncStop();
     TestHelper.dropCluster(clusterName, _gZkClient);
 

@@ -27,6 +27,7 @@ do
       printf "[info] $testResultPath: $line\n"
     elif [[ $line == *'<<< FAILURE!' ]]; then
       printf "##[error] Test failed: $line\n"
+      echo $line >> ./FailingTest.out
     fi
   done < $testResultPath
 done

@@ -5,9 +5,9 @@
 }
 
 .status-healthy {
-  color: mat-color(mat-palette($mat-green));
+  color: mat-color(mat-palette($mat-cyan));
 }
 
 .status-not-healthy {
-  color: mat-color(mat-palette($mat-red));
+  color: mat-color(mat-palette($mat-grey, 900, 900, 900));
 }

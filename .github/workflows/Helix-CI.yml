@@ -20,9 +20,90 @@ jobs:
       run: mvn clean install -Dmaven.test.skip.exec=true
     - name: Run All Tests
       run: mvn -q -fae test
-    - name: Print Tests Results
-      run: .github/scripts/printTestResult.sh
-      if: ${{ success() || failure() }}
     - name: Upload to Codecov
       run: bash <(curl -s https://codecov.io/bash)
       if: ${{ github.event_name == 'push' && (success() || failure()) }}
+    - name: Print Tests Results
+      run: .github/scripts/printTestResult.sh
+      if: ${{ success() || failure() }}
+    - name: Report Tests Results
+      uses: actions/github-script@v4
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+          const readline = require('readline');
+
+          const failureReportPath = './FailingTest.out'
+          // 1. Search for any test failures
+          if (!fs.existsSync(failureReportPath)) {
+            console.log('No test failure report found.')
+            return
+          }
+
+          var response = await github.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: ['FailedTestTracking'],
+            state: ['all']
+          })
+          const existingIssues = response.data.filter((data) => !data.pull_request)
+
+          const lineReader = readline.createInterface({
+            input: fs.createReadStream('./FailingTest.out')
+          });
+          const failingTests = []
+          for await (const line of lineReader) {
+            failingTests.push(line)
+          }
+
+          for (failingTest of failingTests) {
+            // 2. Creating issues for the failing tests
+            console.log('Failing test identified:\n' + failingTest)
+            if (failingTest) {
+              const testInfo = failingTest.split(' ')[0]
+              const issueTitle = '[Failed CI Test] ' + testInfo
+              if (issueTitle) {
+                console.log('Adding comment to issue: ' + issueTitle)
+                var issue = null
+                // 2.1. Check existing test issues, create new ones for the failing tests if not exist.
+                for (existingIssue of existingIssues) {
+                  if (existingIssue.title == issueTitle) {
+                    issue = existingIssue
+                    break
+                  }
+                }
+                if (!issue) {
+                  console.log('Creating issue: ' + issueTitle)
+                  response = await github.issues.create({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    labels: ['FailedTestTracking'],
+                    title: issueTitle,
+                    body: 'This issue is created for tracking unstable test: ' + testInfo
+                  });
+                  issue = response.data
+                } else {
+                  // 2.2. Reopen the tickets if needed.
+                  if (issue.state != 'open') {
+                    console.log('Reopen issue: ' + issueTitle)
+                    await github.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      state: 'open'
+                    });
+                  }
+                }
+                // 2.3. Adding the most recent failure to the ticket.
+                console.log('Add comment to issue: ' + issueTitle)
+                github.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: 'This test fails in: ' + context.payload.repository.url + '/actions/runs/' + context.runId
+                });
+              }
+            }
+          }
+      if: ${{ success() || failure() }}

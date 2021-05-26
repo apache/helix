@@ -13,9 +13,9 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -79,7 +79,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
-    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageGenerationPhase());
     runStage(event, new MessageSelectionStage());
     runStage(event, new IntermediateStateCalcStage());
 
@@ -140,7 +140,7 @@ public class TestRebalancerMetrics extends BaseStageTest {
     setupThrottleConfig(cache.getClusterConfig(),
         StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, maxPending);
     runStage(event, new BestPossibleStateCalcStage());
-    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageGenerationPhase());
     runStage(event, new MessageSelectionStage());
     runStage(event, new IntermediateStateCalcStage());
 

@@ -33,11 +33,11 @@ import org.apache.helix.controller.stages.BaseStageTest;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -87,13 +87,13 @@ public class TestP2PMessagesAvoidDuplicatedMessage extends BaseStageTest {
     _fullPipeline = new Pipeline("FullPipeline");
     _fullPipeline.addStage(new ReadClusterDataStage());
     _fullPipeline.addStage(new BestPossibleStateCalcStage());
-    _fullPipeline.addStage(new ResourceMessageGenerationPhase());
+    _fullPipeline.addStage(new MessageGenerationPhase());
     _fullPipeline.addStage(new MessageSelectionStage());
     _fullPipeline.addStage(new IntermediateStateCalcStage());
     _fullPipeline.addStage(new MessageThrottleStage());
 
     _messagePipeline = new Pipeline("MessagePipeline");
-    _messagePipeline.addStage(new ResourceMessageGenerationPhase());
+    _messagePipeline.addStage(new MessageGenerationPhase());
     _messagePipeline.addStage(new MessageSelectionStage());
     _messagePipeline.addStage(new IntermediateStateCalcStage());
     _messagePipeline.addStage(new MessageThrottleStage());

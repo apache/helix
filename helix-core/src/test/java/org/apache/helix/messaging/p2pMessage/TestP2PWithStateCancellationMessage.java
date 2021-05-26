@@ -35,9 +35,8 @@ import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.IntermediateStateOutput;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageOutput;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ClusterConfig;
@@ -61,7 +60,7 @@ public class TestP2PWithStateCancellationMessage extends BaseStageTest {
   @Test
   public void testP2PWithStateCancellationMessage() {
     ClusterEvent event = generateClusterEvent();
-    runStage(event, new ResourceMessageGenerationPhase());
+    runStage(event, new MessageGenerationPhase());
     MessageOutput messageOutput = event.getAttribute(AttributeName.MESSAGES_ALL.name());
     // No message should be sent for partition 0
     Assert.assertEquals(messageOutput.getMessages(RESOURCE_NAME, new Partition("0")).size(), 0);

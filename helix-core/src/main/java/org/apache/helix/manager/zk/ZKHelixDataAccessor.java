@@ -58,8 +58,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
 
-  public ZKHelixDataAccessor(String clusterName,
-      BaseDataAccessor<ZNRecord> baseDataAccessor) {
+  public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);

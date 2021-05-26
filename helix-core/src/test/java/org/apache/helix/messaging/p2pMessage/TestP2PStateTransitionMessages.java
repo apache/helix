@@ -33,11 +33,11 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageOutput;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -199,7 +199,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
     pipeline = new Pipeline("test");
-    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
     pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());
@@ -223,7 +223,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
 
 
     pipeline = new Pipeline("test");
-    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
     pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());
@@ -246,7 +246,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     pipeline = new Pipeline("test");
-    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
     pipeline.addStage(new MessageThrottleStage());
 
@@ -359,7 +359,7 @@ public class TestP2PStateTransitionMessages extends BaseStageTest {
     Pipeline pipeline = new Pipeline("test");
     pipeline.addStage(new ReadClusterDataStage());
     pipeline.addStage(new BestPossibleStateCalcStage());
-    pipeline.addStage(new ResourceMessageGenerationPhase());
+    pipeline.addStage(new MessageGenerationPhase());
     pipeline.addStage(new MessageSelectionStage());
     pipeline.addStage(new IntermediateStateCalcStage());
     pipeline.addStage(new MessageThrottleStage());

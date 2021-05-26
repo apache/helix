@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Compares the currentState, pendingState with IdealState and generate messages
  */
-public abstract class MessageGenerationPhase extends AbstractBaseStage {
+public class MessageGenerationPhase extends AbstractBaseStage {
   private final static String NO_DESIRED_STATE = "NoDesiredState";
 
   // If we see there is any invalid pending message leaving on host, i.e. message
@@ -75,8 +75,10 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
-  protected void processEvent(ClusterEvent event, ResourcesStateMap resourcesStateMap)
-      throws Exception {
+  @Override
+  public void process(ClusterEvent event) throws Exception {
+    BestPossibleStateOutput bestPossibleStateOutput =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     _eventId = event.getEventId();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     BaseControllerDataProvider cache = event.getAttribute(AttributeName.ControllerDataProvider.name());
@@ -86,9 +88,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
     Map<String, Map<String, Message>> messagesToCleanUp = new HashMap<>();
     if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
-        || resourcesStateMap == null) {
+        || bestPossibleStateOutput == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|INTERMEDIATE_STATE");
+          + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|BESTPOSSIBLE_STATE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
@@ -101,7 +103,7 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
 
     for (Resource resource : resourceMap.values()) {
       try {
-        generateMessage(resource, cache, resourcesStateMap, currentStateOutput, manager,
+        generateMessage(resource, cache, bestPossibleStateOutput, currentStateOutput, manager,
             sessionIdMap, event.getEventType(), output, messagesToCleanUp);
       } catch (HelixException ex) {
         LogUtil.logError(logger, _eventId,

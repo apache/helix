@@ -19,7 +19,6 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -82,6 +81,7 @@ import org.apache.helix.controller.stages.CustomizedViewAggregationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MaintenanceRecoveryStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
@@ -92,9 +92,7 @@ import org.apache.helix.controller.stages.TargetExteralViewCalcStage;
 import org.apache.helix.controller.stages.TaskGarbageCollectionStage;
 import org.apache.helix.controller.stages.TopStateHandoffReportStage;
 import org.apache.helix.controller.stages.resource.ResourceMessageDispatchStage;
-import org.apache.helix.controller.stages.resource.ResourceMessageGenerationPhase;
 import org.apache.helix.controller.stages.task.TaskMessageDispatchStage;
-import org.apache.helix.controller.stages.task.TaskMessageGenerationPhase;
 import org.apache.helix.controller.stages.task.TaskPersistDataStage;
 import org.apache.helix.controller.stages.task.TaskSchedulingStage;
 import org.apache.helix.model.ClusterConfig;
@@ -516,7 +514,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       // Need to add MaintenanceRecoveryStage here because MAX_PARTITIONS_PER_INSTANCE check could
       // only occur after IntermediateStateCalcStage calculation
       rebalancePipeline.addStage(new MaintenanceRecoveryStage());
-      rebalancePipeline.addStage(new ResourceMessageGenerationPhase());
+      rebalancePipeline.addStage(new MessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
       // The IntermediateStateCalcStage should be applied after message selection
       // Messages are throttled already removed by IntermediateStateCalcStage in MessageSelection output
@@ -598,7 +596,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       rebalancePipeline.addStage(new TaskSchedulingStage());
       rebalancePipeline.addStage(new TaskPersistDataStage());
       rebalancePipeline.addStage(new TaskGarbageCollectionStage());
-      rebalancePipeline.addStage(new TaskMessageGenerationPhase());
+      rebalancePipeline.addStage(new MessageGenerationPhase());
       rebalancePipeline.addStage(new TaskMessageDispatchStage());
 
       // backward compatibility check

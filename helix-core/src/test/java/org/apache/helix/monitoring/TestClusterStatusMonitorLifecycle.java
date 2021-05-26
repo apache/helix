@@ -288,16 +288,13 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     cleanupControllers();
     // Check if any MBeans leftover.
     // Note that MessageQueueStatus is not bound with controller only. So it will still exist.
-    final QueryExp exp2 = Query.and(
-        Query.not(Query.match(Query.attr("SensorName"), Query.value("MessageQueueStatus.*"))),
-        exp1);
+    final QueryExp exp2 = Query
+        .and(Query.not(Query.match(Query.attr("SensorName"), Query.value("MessageQueueStatus.*"))),
+            exp1);
 
-    // Note, the _asyncTasksThreadPool shutting down logic in GenericHelixController is best effort
-    // there is not guarantee that all threads in the pool is gone. Mossstly they will, but not always.
-    // see https://github.com/apache/helix/issues/1280
     boolean result = TestHelper.verify(() -> ManagementFactory.getPlatformMBeanServer()
         .queryMBeans(new ObjectName("ClusterStatus:*"), exp2).isEmpty(), TestHelper.WAIT_DURATION);
-    Assert.assertTrue(result,
-        "A small chance this may fail due to _asyncThread pool in controller may not shutdown in time. Please check issue 1280 to verify if this is the case.");
+    Assert.assertTrue(result, "Remaining MBeans: " + ManagementFactory.getPlatformMBeanServer()
+        .queryMBeans(new ObjectName("ClusterStatus:*"), exp2).toString());
   }
 }

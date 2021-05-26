@@ -1,0 +1,281 @@
+{
+  "stateModel": "OnlineOffline",
+  "minActiveReplica": "2",
+  "numReplica": "3",
+  "testCases": [
+    {
+      "description": "With pending message, still in the quota range, no throttling",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "-1",
+      "instanceThrottleLoad": "2",
+      "instanceThrottleRecovery": "-1",
+      "partitionNames": ["partition_0", "partition_1"],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "pendingMessages": {
+        "partition_1": {
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      }
+    },
+    {
+      "description": "With pending message, only on message allow per instance. Messages to 12915 should be throttled",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "-1",
+      "instanceThrottleLoad": "1",
+      "instanceThrottleRecovery": "-1",
+      "partitionNames": ["partition_0", "partition_1"],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "pendingMessages": {
+        "partition_1": {
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      }
+    },
+    {
+      "description": "Throttle happens at resource level with limit 1 and there is a topology change",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "2",
+      "instanceThrottleLoad": "10",
+      "instanceThrottleRecovery": "-1",
+      "partitionNames": ["partition_0", "partition_1"],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "OFFLINE",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE",
+          "localhost_12916": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "pendingMessages": {
+        "partition_1": {
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE",
+          "localhost_12916": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      }
+    },
+    {
+      "description": "Without pending message, for different priority of partitions, throttle results are different",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "2",
+      "instanceThrottleLoad": "10",
+      "instanceThrottleRecovery": "-1",
+      "partitionNames": ["partition_0", "partition_1"],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "OFFLINE",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE",
+          "localhost_12916": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE"
+        }
+      },
+      "pendingMessages": {
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "ONLINE",
+          "localhost_12916": "ONLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "ONLINE",
+          "localhost_12914": "ONLINE",
+          "localhost_12915": "OFFLINE"
+        }
+      }
+    }
+  ]
+}

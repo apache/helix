@@ -184,10 +184,9 @@ public class TaskRunner implements Runnable {
    */
   private void updateCurrentState(TaskPartitionState state) {
     synchronized (_stateModel) {
-      if (setZKCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
+      _stateModel.updateState(state.name());
+      if (!setZKCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
           _taskPartition, state)) {
-        _stateModel.updateState(state.name());
-      } else {
         LOG.error(String.format(
             "Failed to set the requested state to %s for instance %s, session id %s, task partition %s.",
             state, _instance, _sessionId, _taskPartition));

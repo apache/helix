@@ -23,16 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.helix.HelixRebalanceException;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.waged.constraints.ConstraintBasedAlgorithmFactory;
-import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 
 
@@ -45,9 +41,9 @@ import org.apache.helix.model.ResourceAssignment;
  * This class is to be used in the cluster verifiers, tests, or util methods.
  */
 public class ReadOnlyWagedRebalancer extends WagedRebalancer {
-  public ReadOnlyWagedRebalancer(String metadataStoreAddress, String clusterName,
+  public ReadOnlyWagedRebalancer(ZkBucketDataAccessor zkBucketDataAccessor, String clusterName,
       Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-    super(new ReadOnlyAssignmentMetadataStore(metadataStoreAddress, clusterName),
+    super(new ReadOnlyAssignmentMetadataStore(zkBucketDataAccessor, clusterName),
         ConstraintBasedAlgorithmFactory.getInstance(preferences), Optional.empty());
   }
 
@@ -65,8 +61,9 @@ public class ReadOnlyWagedRebalancer extends WagedRebalancer {
   }
 
   private static class ReadOnlyAssignmentMetadataStore extends AssignmentMetadataStore {
-    ReadOnlyAssignmentMetadataStore(String metadataStoreAddress, String clusterName) {
-      super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName);
+
+    ReadOnlyAssignmentMetadataStore(ZkBucketDataAccessor zkBucketDataAccessor, String clusterName) {
+      super(zkBucketDataAccessor, clusterName);
     }
 
     @Override

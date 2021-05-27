@@ -51,6 +51,7 @@ import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -58,7 +59,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -188,7 +188,33 @@ public final class HelixUtil {
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
-    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
+    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
+    Map<String, ResourceAssignment> result =
+        getAssignmentForWagedFullAutoImpl(new ZkBucketDataAccessor(metadataStoreAddress),
+            baseDataAccessor, clusterConfig, instanceConfigs, liveInstances, idealStates,
+            resourceConfigs, false);
+    baseDataAccessor.close();
+    return result;
+  }
+
+  /**
+   * Returns the expected ideal ResourceAssignments for the given resources in the cluster
+   * calculated using the read-only WAGED rebalancer. The returned result is based on preference
+   * lists, which is the target stable assignment.
+   * @param zkBucketDataAccessor
+   * @param baseDataAccessor
+   * @param clusterConfig
+   * @param instanceConfigs
+   * @param liveInstances
+   * @param idealStates
+   * @param resourceConfigs
+   * @return
+   */
+  public static Map<String, ResourceAssignment> getTargetAssignmentForWagedFullAuto(
+      ZkBucketDataAccessor zkBucketDataAccessor, BaseDataAccessor<ZNRecord> baseDataAccessor,
+      ClusterConfig clusterConfig, List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
+    return getAssignmentForWagedFullAutoImpl(zkBucketDataAccessor, baseDataAccessor, clusterConfig,
         instanceConfigs, liveInstances, idealStates, resourceConfigs, true);
   }
 
@@ -210,8 +236,13 @@ public final class HelixUtil {
       String metadataStoreAddress, ClusterConfig clusterConfig,
       List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs) {
-    return getAssignmentForWagedFullAutoImpl(metadataStoreAddress, clusterConfig,
-        instanceConfigs, liveInstances, idealStates, resourceConfigs, false);
+    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
+    Map<String, ResourceAssignment> result =
+        getAssignmentForWagedFullAutoImpl(new ZkBucketDataAccessor(metadataStoreAddress),
+            baseDataAccessor, clusterConfig, instanceConfigs, liveInstances, idealStates,
+            resourceConfigs, false);
+    baseDataAccessor.close();
+    return result;
   }
 
   /*
@@ -220,9 +251,10 @@ public final class HelixUtil {
    * preference lists.
    */
   private static Map<String, ResourceAssignment> getAssignmentForWagedFullAutoImpl(
-      String metadataStoreAddress, ClusterConfig clusterConfig,
-      List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      ZkBucketDataAccessor zkBucketDataAccessor, BaseDataAccessor<ZNRecord> baseDataAccessor,
+      ClusterConfig clusterConfig, List<InstanceConfig> instanceConfigs, List<String> liveInstances,
       List<IdealState> idealStates, List<ResourceConfig> resourceConfigs, boolean usePrefLists) {
+
     // Copy the cluster config and make globalRebalance happen synchronously
     // Otherwise, globalRebalance may not complete and this util might end up returning
     // an empty assignment.
@@ -230,13 +262,12 @@ public final class HelixUtil {
     globalSyncClusterConfig.setGlobalRebalanceAsyncMode(false);
 
     // Prepare a data accessor for a dataProvider (cache) refresh
-    BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(metadataStoreAddress);
     HelixDataAccessor helixDataAccessor =
         new ZKHelixDataAccessor(globalSyncClusterConfig.getClusterName(), baseDataAccessor);
 
     // Create an instance of read-only WAGED rebalancer
     ReadOnlyWagedRebalancer readOnlyWagedRebalancer =
-        new ReadOnlyWagedRebalancer(metadataStoreAddress, globalSyncClusterConfig.getClusterName(),
+        new ReadOnlyWagedRebalancer(zkBucketDataAccessor, globalSyncClusterConfig.getClusterName(),
             globalSyncClusterConfig.getGlobalRebalancePreference());
 
     // Use a dummy event to run the required stages for BestPossibleState calculation
@@ -295,7 +326,6 @@ public final class HelixUtil {
       LOG.error("getIdealAssignmentForWagedFullAuto(): Failed to compute ResourceAssignments!", e);
     } finally {
       // Close all ZK connections
-      baseDataAccessor.close();
       readOnlyWagedRebalancer.close();
     }
 
@@ -317,9 +347,9 @@ public final class HelixUtil {
       for (String partitionName : idealState.getPartitionSet()) {
         Partition partition = new Partition(partitionName);
         if (usePrefLists) {
-          resourceAssignment.addReplicaMap(partition, computeIdealMapping(
-              output.getPreferenceList(resourceName, partitionName),
-              stateModelDefinition, new HashSet<>(liveInstances)));
+          resourceAssignment.addReplicaMap(partition,
+              computeIdealMapping(output.getPreferenceList(resourceName, partitionName),
+                  stateModelDefinition, new HashSet<>(liveInstances)));
         } else {
           resourceAssignment.addReplicaMap(partition, partitionStateMap.getPartitionMap(partition));
         }

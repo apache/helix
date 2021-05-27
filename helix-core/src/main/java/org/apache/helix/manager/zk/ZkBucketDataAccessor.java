@@ -83,25 +83,7 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    * @param versionTTLms in ms
    */
   public ZkBucketDataAccessor(String zkAddr, int bucketSize, long versionTTLms) {
-    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
-      LOG.warn(
-          "ZkBucketDataAccessor: either multi-zk enabled or zkAddr is null - "
-              + "starting ZkBucketDataAccessor in multi-zk mode!");
-      try {
-        // Create realm-aware ZkClient.
-        RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
-        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
-            new RealmAwareZkClient.RealmAwareZkClientConfig();
-        _zkClient = new FederatedZkClient(connectionConfig, clientConfig);
-      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
-        throw new HelixException("Not able to connect on realm-aware mode", e);
-      }
-    } else {
-      _zkClient = DedicatedZkClientFactory.getInstance()
-          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
-    }
-
+    _zkClient = createRealmAwareZkClient(zkAddr);
     _zkClient.setZkSerializer(new ZkSerializer() {
       @Override
       public byte[] serialize(Object data) throws ZkMarshallingError {
@@ -128,6 +110,28 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
    */
   public ZkBucketDataAccessor(String zkAddr) {
     this(zkAddr, DEFAULT_BUCKET_SIZE, DEFAULT_VERSION_TTL);
+  }
+
+  private static RealmAwareZkClient createRealmAwareZkClient(String zkAddr) {
+    RealmAwareZkClient zkClient;
+    if (Boolean.getBoolean(SystemPropertyKeys.MULTI_ZK_ENABLED) || zkAddr == null) {
+      LOG.warn("ZkBucketDataAccessor: either multi-zk enabled or zkAddr is null - "
+          + "starting ZkBucketDataAccessor in multi-zk mode!");
+      try {
+        // Create realm-aware ZkClient.
+        RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
+            new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder().build();
+        RealmAwareZkClient.RealmAwareZkClientConfig clientConfig =
+            new RealmAwareZkClient.RealmAwareZkClientConfig();
+        zkClient = new FederatedZkClient(connectionConfig, clientConfig);
+      } catch (IllegalArgumentException | InvalidRoutingDataException e) {
+        throw new HelixException("Not able to connect on realm-aware mode", e);
+      }
+    } else {
+      zkClient = DedicatedZkClientFactory.getInstance()
+          .buildZkClient(new HelixZkClient.ZkConnectionConfig(zkAddr));
+    }
+    return zkClient;
   }
 
   @Override

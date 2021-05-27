@@ -33,6 +33,11 @@ jobs:
         script: |
           const fs = require('fs');
           const readline = require('readline');
+          
+          var run_url = 'Unknown URL. Run ID is ' + context.runId
+          if (process.env.GITHUB_SERVER_URL && process.env.GITHUB_SERVER_URL && process.env.GITHUB_SERVER_URL ) {
+            run_url = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
+          }
 
           const failureReportPath = './FailingTest.out'
           // 1. Search for any test failures
@@ -101,7 +106,7 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: issue.number,
-                  body: 'This test fails in: ' + context.payload.repository.url + '/actions/runs/' + context.runId
+                  body: 'This test fails in: ' + run_url
                 });
               }
             }

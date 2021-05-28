@@ -19,7 +19,6 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,6 +63,7 @@ import org.apache.helix.api.listeners.TaskCurrentStateChangeListener;
 import org.apache.helix.common.ClusterEventBlockingQueue;
 import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
+import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.dataproviders.WorkflowControllerDataProvider;
 import org.apache.helix.controller.pipeline.AsyncWorkerType;
@@ -82,6 +82,7 @@ import org.apache.helix.controller.stages.CustomizedViewAggregationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MaintenanceRecoveryStage;
+import org.apache.helix.controller.stages.ManagementModeStage;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
@@ -143,6 +144,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private static final int ASYNC_TASKS_THREADPOOL_SIZE = 10;
   private final PipelineRegistry _registry;
   private final PipelineRegistry _taskRegistry;
+  private final PipelineRegistry _managementModeRegistry;
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
@@ -165,6 +167,9 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private final ClusterEventBlockingQueue _taskEventQueue;
   private final ClusterEventProcessor _taskEventThread;
 
+  private final ClusterEventBlockingQueue _managementModeEventQueue;
+  private final ClusterEventProcessor _managementModeEventThread;
+
   private final Map<AsyncWorkerType, DedupEventProcessor<String, Runnable>> _asyncFIFOWorkerPool;
 
   private long _continuousRebalanceFailureCount = 0;
@@ -177,6 +182,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   private boolean _paused;
   private boolean _inMaintenanceMode;
+  private boolean _runningManagementPipeline;
 
   /**
    * The executors that can periodically run the rebalancing pipeline. A
@@ -199,6 +205,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   private final ResourceControllerDataProvider _resourceControlDataProvider;
   private final WorkflowControllerDataProvider _workflowControlDataProvider;
+  private final ManagementControllerDataProvider _managementControllerDataProvider;
   private final ScheduledExecutorService _asyncTasksThreadPool;
 
   /**
@@ -282,18 +289,24 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   public GenericHelixController() {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
-        createTaskRegistry(Pipeline.Type.TASK.name()));
+        createTaskRegistry(Pipeline.Type.TASK.name()),
+        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()));
   }
 
   public GenericHelixController(String clusterName) {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
-        createTaskRegistry(Pipeline.Type.TASK.name()), clusterName,
+        createTaskRegistry(Pipeline.Type.TASK.name()),
+        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()),
+        clusterName,
         Sets.newHashSet(Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
   }
 
-  public GenericHelixController(String clusterName, Set<Pipeline.Type> enabledPipelins) {
+  public GenericHelixController(String clusterName, Set<Pipeline.Type> enabledPipelines) {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
-        createTaskRegistry(Pipeline.Type.TASK.name()), clusterName, enabledPipelins);
+        createTaskRegistry(Pipeline.Type.TASK.name()),
+        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()),
+        clusterName,
+        enabledPipelines);
   }
 
   class RebalanceTask extends TimerTask {
@@ -628,18 +641,46 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
   }
 
+  private static PipelineRegistry createManagementModeRegistry(String pipelineName) {
+    logger.info("Creating management mode registry");
+    synchronized (GenericHelixController.class) {
+      // cluster data cache refresh
+      Pipeline dataRefresh = new Pipeline(pipelineName);
+      dataRefresh.addStage(new ReadClusterDataStage());
+
+      // cluster management mode process
+      Pipeline managementMode = new Pipeline(pipelineName);
+      managementMode.addStage(new ManagementModeStage());
+
+      PipelineRegistry registry = new PipelineRegistry();
+      Arrays.asList(
+          ClusterEventType.ControllerChange,
+          ClusterEventType.LiveInstanceChange,
+          ClusterEventType.MessageChange,
+          ClusterEventType.OnDemandRebalance,
+          ClusterEventType.PeriodicalRebalance,
+          ClusterEventType.Resume
+      ).forEach(type -> registry.register(type, dataRefresh, managementMode));
+
+      return registry;
+    }
+  }
+
   // TODO: refactor the constructor as providing both registry but only enabling one looks confusing
-  public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry) {
-    this(registry, taskRegistry, null, Sets.newHashSet(
-        Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
+  public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
+      PipelineRegistry managementModeRegistry) {
+    this(registry, taskRegistry, managementModeRegistry, null, Sets.newHashSet(
+        Pipeline.Type.TASK, Pipeline.Type.DEFAULT, Pipeline.Type.MANAGEMENT_MODE));
   }
 
   private GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
-      final String clusterName, Set<Pipeline.Type> enabledPipelineTypes) {
+      PipelineRegistry managementModeRegistry, final String clusterName,
+      Set<Pipeline.Type> enabledPipelineTypes) {
     _paused = false;
     _enabledPipelineTypes = enabledPipelineTypes;
     _registry = registry;
     _taskRegistry = taskRegistry;
+    _managementModeRegistry = managementModeRegistry;
     _lastSeenInstances = new AtomicReference<>();
     _lastSeenSessions = new AtomicReference<>();
     _lastSeenCustomizedStateTypesMapRef = new AtomicReference<>();
@@ -686,6 +727,21 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _workflowControlDataProvider = null;
       _taskEventQueue = null;
       _taskEventThread = null;
+    }
+
+    if (_enabledPipelineTypes.contains(Pipeline.Type.MANAGEMENT_MODE)) {
+      logger.info("Initializing {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
+      _managementControllerDataProvider =
+          new ManagementControllerDataProvider(clusterName, Pipeline.Type.MANAGEMENT_MODE.name());
+      _managementModeEventQueue = new ClusterEventBlockingQueue();
+      _managementModeEventThread = new ClusterEventProcessor(_managementControllerDataProvider,
+          _managementModeEventQueue, Pipeline.Type.MANAGEMENT_MODE.name() + "-" + clusterName);
+      initPipeline(_managementModeEventThread, _managementControllerDataProvider);
+      logger.info("Initialized {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
+    } else {
+      _managementControllerDataProvider = null;
+      _managementModeEventQueue = null;
+      _managementModeEventThread = null;
     }
 
     addController(this);
@@ -775,12 +831,38 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     _helixManager = manager;
 
+    // Prepare ClusterEvent
+    // TODO (harry): this is a temporal workaround - after controller is separated we should not
+    // have this instanceof clauses
+    List<Pipeline> pipelines;
+    boolean isTaskFrameworkPipeline = false;
+    Pipeline.Type pipelineType;
+
+    if (dataProvider instanceof ResourceControllerDataProvider) {
+      pipelineType = Pipeline.Type.DEFAULT;
+      pipelines = _registry
+          .getPipelinesForEvent(event.getEventType());
+    } else if (dataProvider instanceof WorkflowControllerDataProvider) {
+      pipelineType = Pipeline.Type.TASK;
+      pipelines = _taskRegistry.getPipelinesForEvent(event.getEventType());
+      isTaskFrameworkPipeline = true;
+    } else if (dataProvider instanceof ManagementControllerDataProvider) {
+      pipelineType = Pipeline.Type.MANAGEMENT_MODE;
+      pipelines = _managementModeRegistry.getPipelinesForEvent(event.getEventType());
+    } else {
+      logger.warn(String
+          .format("No %s pipeline to run for event: %s::%s", dataProvider.getPipelineName(),
+              event.getEventType(), event.getEventId()));
+      return;
+    }
+
     // TODO If init controller with paused = true, it may not take effect immediately
     // _paused is default false. If any events come before controllerChangeEvent, the controller
     // will be excuting in un-paused mode. Which might not be the config in ZK.
-    if (_paused) {
-      logger.info("Cluster " + manager.getClusterName() + " is paused. Ignoring the event:" + event
-          .getEventType());
+    if (!dataProvider.shouldRunPipeline() || (!Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType)
+        && _runningManagementPipeline)) {
+      logger.info("Controller for cluster {} is paused. Ignoring the event: {}",
+          manager.getClusterName(), event.getEventType());
       return;
     }
 
@@ -807,26 +889,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
     dataProvider.setClusterEventId(event.getEventId());
     event.addAttribute(AttributeName.LastRebalanceFinishTimeStamp.name(), _lastPipelineEndTimestamp);
-
-    // Prepare ClusterEvent
-    // TODO (harry): this is a temporal workaround - after controller is separated we should not
-    // have this instanceof clauses
-    List<Pipeline> pipelines;
-    boolean isTaskFrameworkPipeline = false;
-
-    if (dataProvider instanceof ResourceControllerDataProvider) {
-      pipelines = _registry
-          .getPipelinesForEvent(event.getEventType());
-    } else if (dataProvider instanceof WorkflowControllerDataProvider) {
-      pipelines = _taskRegistry
-          .getPipelinesForEvent(event.getEventType());
-      isTaskFrameworkPipeline = true;
-    } else {
-      logger.warn(String
-          .format("No %s pipeline to run for event: %s::%s", dataProvider.getPipelineName(),
-              event.getEventType(), event.getEventId()));
-      return;
-    }
     event.addAttribute(AttributeName.ControllerDataProvider.name(), dataProvider);
 
     logger.info("START: Invoking {} controller pipeline for cluster: {}. Event type: {}, ID: {}. "
@@ -1211,6 +1273,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     if (_workflowControlDataProvider != null) {
       _workflowControlDataProvider.requireFullRefresh();
     }
+
+    if (_managementControllerDataProvider != null) {
+      _managementControllerDataProvider.requireFullRefresh();
+    }
   }
 
   private void pushToEventQueues(ClusterEventType eventType, NotificationContext changeContext,
@@ -1227,6 +1293,18 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     for (Map.Entry<String, Object> attr : eventAttributes.entrySet()) {
       event.addAttribute(attr.getKey(), attr.getValue());
     }
+
+    // Go to management mode pipeline for each controller change event.
+    if (ClusterEventType.ControllerChange.equals(eventType)
+        || _managementControllerDataProvider.shouldRunPipeline()
+        || !_resourceControlDataProvider.shouldRunPipeline()) {
+      _runningManagementPipeline = true;
+      event.setEventId(uid + "_" + Pipeline.Type.MANAGEMENT_MODE.name());
+      enqueueEvent(_managementModeEventQueue, event);
+      return;
+    }
+
+    _runningManagementPipeline = false;
     enqueueEvent(_eventQueue, event);
     enqueueEvent(_taskEventQueue,
         event.clone(String.format("%s_%s", uid, Pipeline.Type.TASK.name())));
@@ -1258,22 +1336,13 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     if (controllerIsLeader) {
-      HelixManager manager = changeContext.getManager();
-      HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-
-      PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
-      MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
-      boolean prevPaused = _paused;
-      boolean prevInMaintenanceMode = _inMaintenanceMode;
-      _paused = updateControllerState(pauseSignal, _paused);
-      _inMaintenanceMode = updateControllerState(maintenanceSignal, _inMaintenanceMode);
-      triggerResumeEvent(changeContext, prevPaused, prevInMaintenanceMode);
-
+      handleManagementModeSignal(changeContext);
       enableClusterStatusMonitor(true);
+      // TODO: Need to better process pause value for exiting cluster freeze mode
       _clusterStatusMonitor.setEnabled(!_paused);
       _clusterStatusMonitor.setPaused(_paused);
       _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
+      pushToEventQueues(ClusterEventType.ControllerChange, changeContext, Collections.emptyMap());
     } else {
       enableClusterStatusMonitor(false);
       // Note that onControllerChange is executed in parallel with the event processing thread. It
@@ -1287,11 +1356,21 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
   }
 
-  /**
-   * Go through the list of liveinstances in the cluster, and add currentstateChange listener and
-   * Message listeners to them if they are newly added. For current state change, the observation is
-   * tied to the session id of each live instance.
-   */
+  private void handleManagementModeSignal(NotificationContext changeContext) {
+    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+
+    PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
+    MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
+    _paused = updateControllerState(pauseSignal, _paused);
+    _inMaintenanceMode = updateControllerState(maintenanceSignal, _inMaintenanceMode);
+  }
+
+    /**
+     * Go through the list of liveinstances in the cluster, and add currentstateChange listener and
+     * Message listeners to them if they are newly added. For current state change, the observation is
+     * tied to the session id of each live instance.
+     */
   protected void checkLiveInstancesObservation(List<LiveInstance> liveInstances,
       NotificationContext changeContext) {
 

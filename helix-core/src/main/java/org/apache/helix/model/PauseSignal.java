@@ -83,6 +83,10 @@ public class PauseSignal extends HelixProperty {
     return _record.getBooleanField(PauseSignalProperty.CLUSTER_PAUSE.name(), false);
   }
 
+  public boolean hasClusterPauseField() {
+    return _record.getSimpleField(PauseSignalProperty.CLUSTER_PAUSE.name()) != null;
+  }
+
   public void setFromHost(String host) {
     _record.setSimpleField(PauseSignalProperty.FROM_HOST.name(), host);
   }

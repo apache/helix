@@ -57,6 +57,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
@@ -86,10 +87,16 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private ClusterConfig _clusterConfig;
 
   private boolean _updateInstanceOfflineTime = true;
-  private MaintenanceSignal _maintenanceSignal;
-  private boolean _isMaintenanceModeEnabled;
+  PauseSignal _pauseSignal;
+  MaintenanceSignal _maintenanceSignal;
+  boolean _isControllerPaused;
+  boolean _inControllerPauseMode;
+  boolean _isMaintenanceModeEnabled;
   private boolean _hasMaintenanceSignalChanged;
   private ExecutorService _asyncTasksThreadPool;
+
+  // Whether any enabled live instance is still in non-normal status, eg. frozen status.
+  boolean _hasNonNormalEnabledLiveInstance;
 
   // A map recording what data has changed
   protected Map<HelixConstants.ChangeType, AtomicBoolean> _propertyDataChangedMap;
@@ -300,9 +307,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
+  private void refreshManagementModeSignals(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    _pauseSignal = accessor.getProperty(accessor.keyBuilder().pause());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;
+    _isControllerPaused = (_pauseSignal != null);
+    _inControllerPauseMode = (_pauseSignal != null && !_pauseSignal.hasClusterPauseField());
     // The following flag is to guarantee that there's only one update per pineline run because we
     // check for whether maintenance recovery could happen twice every pipeline
     _hasMaintenanceSignalChanged = false;
@@ -312,6 +322,12 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       _timedOutInstanceDuringMaintenance.clear();
       _liveInstanceExcludeTimedOutForMaintenance.clear();
     }
+  }
+
+  private void checkNonNormalEnabledLiveInstance() {
+    Map<String, LiveInstance> liveInstanceMap = getLiveInstances();
+    _hasNonNormalEnabledLiveInstance = getEnabledLiveInstances().stream()
+        .noneMatch(instance -> liveInstanceMap.get(instance).getStatus() != null);
   }
 
   private void timeoutNodesDuringMaintenance(final HelixDataAccessor accessor, ClusterConfig clusterConfig, boolean isMaintenanceModeEnabled) {
@@ -373,7 +389,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshResourceConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
-    updateMaintenanceInfo(accessor);
+    refreshManagementModeSignals(accessor);
     timeoutNodesDuringMaintenance(accessor, _clusterConfig, _isMaintenanceModeEnabled);
 
     // TODO: once controller gets split, only one controller should update offline instance history
@@ -390,6 +406,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
     updateIdealRuleMap(getClusterConfig());
     updateDisabledInstances(getInstanceConfigMap().values(), getClusterConfig());
+
+    // Check if there is any enabled live instance not in NORMAL status
+    checkNonNormalEnabledLiveInstance();
 
     return refreshedTypes;
   }
@@ -988,5 +1007,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   @Override
   public String toString() {
     return genCacheContentStringBuilder().toString();
+  }
+
+  public boolean shouldRunPipeline() {
+    return !(_isMaintenanceModeEnabled || _isControllerPaused || _hasNonNormalEnabledLiveInstance);
   }
 }

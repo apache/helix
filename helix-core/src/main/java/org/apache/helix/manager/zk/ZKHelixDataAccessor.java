@@ -30,6 +30,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.GroupCommit;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
@@ -62,6 +63,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
+  }
+
+  @Deprecated
+  public ZKHelixDataAccessor(String clusterName, InstanceType instanceType,
+      BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    this(clusterName, baseDataAccessor);
+
   }
 
   /* Copy constructor */

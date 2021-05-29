@@ -252,8 +252,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
             .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
           rebalanceStrategy = AutoRebalanceStrategy.class.getName();
         }
-        partitionAssignments = new TreeMap<>(
-            HelixUtil.getIdealAssignmentForFullAuto(clusterState.clusterConfig, clusterState.instanceConfigs,
+        partitionAssignments = new TreeMap<>(HelixUtil
+            .getIdealAssignmentForFullAuto(clusterState.clusterConfig, clusterState.instanceConfigs,
                 clusterState.instances, idealState, new ArrayList<>(idealState.getPartitionSet()),
                 rebalanceStrategy));
         instanceSwapAndFilter(inputFields, partitionAssignments, resource, result);
@@ -272,11 +272,11 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           if (!preferenceLists.get(partitionName).isEmpty() && preferenceLists.get(partitionName)
               .get(0)
               .equalsIgnoreCase(ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.name())) {
-            partitionAssignments.put(partitionName,
-                HelixUtil.computeIdealMapping(clusterState.instances, stateModelDef, liveInstances));
+            partitionAssignments.put(partitionName, HelixUtil
+                .computeIdealMapping(clusterState.instances, stateModelDef, liveInstances));
           } else {
-            partitionAssignments.put(partitionName,
-                HelixUtil.computeIdealMapping(preferenceLists.get(partitionName), stateModelDef,
+            partitionAssignments.put(partitionName, HelixUtil
+                .computeIdealMapping(preferenceLists.get(partitionName), stateModelDef,
                     liveInstances));
           }
         }

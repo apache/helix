@@ -114,10 +114,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     } catch (InvalidParameterException ex) {
       return badRequest(ex.getMessage());
     } catch (JsonProcessingException e) {
-      return badRequest("Invalid input: Input can but be parsed into a KV map." + e.getMessage());
+      return badRequest("Invalid input: Input can not be parsed into a KV map." + e.getMessage());
     } catch (OutOfMemoryError e) {
-      LOG.error(
-          "OutOfMemoryError while calling AssignmentResult" + Arrays.toString(e.getStackTrace()));
+      LOG.error("OutOfMemoryError while calling partitionAssignment" + Arrays
+          .toString(e.getStackTrace()));
       return badRequest(
           "Response size is too large to serialize. Please query by resources or instance filter");
     } catch (Exception e) {
@@ -170,7 +170,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
               inputMap.instanceFilter.addAll((List<String>) option.getValue());
             } else {
               throw new InvalidParameterException(
-                  "Unsupported command for invalid format for Options : " + option);
+                  "Unsupported command or invalid format for Options : " + option);
             }
           }
           break;
@@ -245,13 +245,14 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
         continue;
       }
       // Use getIdealAssignmentForFullAuto for FULL_AUTO resource.
+      Map<String, Map<String, String>> partitionAssignments;
       if (idealState.getRebalanceMode() == IdealState.RebalanceMode.FULL_AUTO) {
         String rebalanceStrategy = idealState.getRebalanceStrategy();
         if (rebalanceStrategy == null || rebalanceStrategy
             .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
           rebalanceStrategy = AutoRebalanceStrategy.class.getName();
         }
-        Map<String, Map<String, String>> partitionAssignments = new TreeMap<>(
+        partitionAssignments = new TreeMap<>(
             HelixUtil.getIdealAssignmentForFullAuto(clusterState.clusterConfig, clusterState.instanceConfigs,
                 clusterState.instances, idealState, new ArrayList<>(idealState.getPartitionSet()),
                 rebalanceStrategy));
@@ -259,7 +260,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
         // Use computeIdealMapping for SEMI_AUTO resource.
         Map<String, List<String>> preferenceLists = idealState.getPreferenceLists();
-        Map<String, Map<String, String>> partitionAssignments = new TreeMap<>();
+        partitionAssignments = new TreeMap<>();
         HashSet<String> liveInstances = new HashSet<>(clusterState.instances);
         List<String> disabledInstance =
             clusterState.instanceConfigs.stream().filter(enabled -> !enabled.getInstanceEnabled())

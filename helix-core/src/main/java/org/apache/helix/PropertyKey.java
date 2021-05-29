@@ -25,10 +25,11 @@ import java.util.Objects;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterStatus;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedState;
+import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.CustomizedView;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
@@ -56,10 +57,10 @@ import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
 import static org.apache.helix.PropertyType.CUSTOMIZEDSTATES;
+import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.ERRORS;
 import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
-import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
 import static org.apache.helix.PropertyType.INSTANCE_HISTORY;
@@ -71,6 +72,7 @@ import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.RESTCONFIGS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
+import static org.apache.helix.PropertyType.STATUS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 import static org.apache.helix.PropertyType.TARGETEXTERNALVIEW;
@@ -241,6 +243,13 @@ public class PropertyKey {
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
     }
 
+    /**
+     * Get a property key associated with this cluster status
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey clusterStatus() {
+      return new PropertyKey(STATUS, ClusterStatus.class, _clusterName);
+    }
 
     /**
      * Get a property key associated with this Cloud configuration

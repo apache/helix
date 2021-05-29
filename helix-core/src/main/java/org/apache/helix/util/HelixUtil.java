@@ -33,6 +33,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -58,7 +59,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -150,6 +150,18 @@ public final class HelixUtil {
       keyValueMap.put(key, value);
     }
     return keyValueMap;
+  }
+
+  /**
+   * Performs conversion from a map string into a map. The string was converted by map's toString().
+   *
+   * @param mapAsString A string that is converted by map's toString() method.
+   *                    Example: "{k1=v1, k2=v2}"
+   * @return Map<String, String>
+   */
+  public static Map<String, String> stringToMap(String mapAsString) {
+    return Splitter.on(", ").withKeyValueSeparator('=')
+        .split(mapAsString.substring(1, mapAsString.length() - 1));
   }
 
   /**

@@ -48,6 +48,7 @@ public enum PropertyType {
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),
+  STATUS(Type.CLUSTER, true, false, true),
 
   // INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),

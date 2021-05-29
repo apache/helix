@@ -22,7 +22,9 @@ package org.apache.helix.model;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +33,7 @@ import java.util.TimeZone;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 
@@ -57,6 +60,12 @@ public class ControllerHistory extends HelixProperty {
 
   }
 
+  private enum ManagementModeConfigKey {
+    MANAGEMENT_MODE_HISTORY,
+    MODE,
+    STATUS
+  }
+
   private enum OperationType {
     // The following are options for OPERATION_TYPE in MaintenanceConfigKey
     ENTER,
@@ -65,7 +74,8 @@ public class ControllerHistory extends HelixProperty {
 
   public enum HistoryType {
     CONTROLLER_LEADERSHIP,
-    MAINTENANCE
+    MAINTENANCE,
+    MANAGEMENT_MODE
   }
 
   public ControllerHistory(String id) {
@@ -134,6 +144,52 @@ public class ControllerHistory extends HelixProperty {
     }
 
     return historyList;
+  }
+
+  /**
+   * Gets the management mode history.
+   *
+   * @return List of history json strings.
+   */
+  public List<String> getManagementModeHistory() {
+    List<String> history =
+        _record.getListField(ManagementModeConfigKey.MANAGEMENT_MODE_HISTORY.name());
+    return history == null ? Collections.emptyList() : history;
+  }
+
+  /**
+   * Updates management mode and status history to controller history in FIFO order.
+   *
+   * @param controller controller name
+   * @param mode cluster management mode {@link ClusterManagementMode}
+   * @param fromHost the hostname that creates the management mode signal
+   * @param time time in millis
+   * @param reason reason to put the cluster in management mode
+   * @return updated history znrecord
+   */
+  public ZNRecord updateManagementModeHistory(String controller, ClusterManagementMode mode,
+      String fromHost, long time, String reason) {
+    List<String> historyList = getManagementModeHistory();
+    if (historyList.isEmpty()) {
+      historyList = new ArrayList<>();
+      _record.setListField(ManagementModeConfigKey.MANAGEMENT_MODE_HISTORY.name(), historyList);
+    }
+
+    if (historyList.size() >= HISTORY_SIZE) {
+      historyList = historyList.subList(historyList.size() - HISTORY_SIZE + 1, historyList.size());
+    }
+
+    Map<String, String> historyEntry = new HashMap<>();
+    historyEntry.put(ConfigProperty.CONTROLLER.name(), controller);
+    historyEntry.put(ConfigProperty.TIME.name(), Instant.ofEpochMilli(time).toString());
+    historyEntry.put(ManagementModeConfigKey.MODE.name(), mode.getMode().name());
+    historyEntry.put(ManagementModeConfigKey.STATUS.name(), mode.getStatus().name());
+    historyEntry.put(PauseSignal.PauseSignalProperty.FROM_HOST.name(), fromHost);
+    historyEntry.put(PauseSignal.PauseSignalProperty.REASON.name(), reason);
+    historyList.add(historyEntry.toString());
+    _record.setListField(ManagementModeConfigKey.MANAGEMENT_MODE_HISTORY.name(), historyList);
+
+    return _record;
   }
 
   /**

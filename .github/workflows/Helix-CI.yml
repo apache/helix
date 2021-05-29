@@ -22,7 +22,7 @@ jobs:
       run: mvn -q -fae test
     - name: Upload to Codecov
       run: bash <(curl -s https://codecov.io/bash)
-      if: ${{ github.event_name == 'push' && (success() || failure()) }}
+      if: ${{ github.repository == 'apache/helix' && github.event_name == 'push' && (success() || failure()) }}
     - name: Print Tests Results
       run: .github/scripts/printTestResult.sh
       if: ${{ success() || failure() }}
@@ -35,7 +35,7 @@ jobs:
           const readline = require('readline');
           
           var run_url = 'Unknown URL. Run ID is ' + context.runId
-          if (process.env.GITHUB_SERVER_URL && process.env.GITHUB_SERVER_URL && process.env.GITHUB_SERVER_URL ) {
+          if (process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID ) {
             run_url = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
           }
 
@@ -111,4 +111,4 @@ jobs:
               }
             }
           }
-      if: ${{ success() || failure() }}
+      if: ${{ github.repository == 'apache/helix' && (success() || failure()) }}

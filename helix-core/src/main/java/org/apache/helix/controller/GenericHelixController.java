@@ -19,7 +19,6 @@ package org.apache.helix.controller;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -104,9 +103,7 @@ import org.apache.helix.model.CustomizedStateConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterEventMonitor;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
@@ -170,13 +167,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private long _continuousRebalanceFailureCount = 0;
   private long _continuousResourceRebalanceFailureCount = 0;
   private long _continuousTaskRebalanceFailureCount = 0;
-
-  /**
-   * The _paused flag is checked by function handleEvent(), while if the flag is set handleEvent()
-   * will be no-op. Other event handling logic keeps the same when the flag is set.
-   */
-  private boolean _paused;
-  private boolean _inMaintenanceMode;
 
   /**
    * The executors that can periodically run the rebalancing pipeline. A
@@ -1258,22 +1248,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     if (controllerIsLeader) {
-      HelixManager manager = changeContext.getManager();
-      HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-
-      PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
-      MaintenanceSignal maintenanceSignal = accessor.getProperty(keyBuilder.maintenance());
-      boolean prevPaused = _paused;
-      boolean prevInMaintenanceMode = _inMaintenanceMode;
-      _paused = updateControllerState(pauseSignal, _paused);
-      _inMaintenanceMode = updateControllerState(maintenanceSignal, _inMaintenanceMode);
-      triggerResumeEvent(changeContext, prevPaused, prevInMaintenanceMode);
-
       enableClusterStatusMonitor(true);
-      _clusterStatusMonitor.setEnabled(!_paused);
-      _clusterStatusMonitor.setPaused(_paused);
-      _clusterStatusMonitor.setMaintenance(_inMaintenanceMode);
+      pushToEventQueues(ClusterEventType.ManagementModePipeline, changeContext, Collections.emptyMap());
     } else {
       enableClusterStatusMonitor(false);
       // Note that onControllerChange is executed in parallel with the event processing thread. It
@@ -1460,41 +1436,6 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         thread.interrupt();
         thread.join(EVENT_THREAD_JOIN_TIMEOUT);
       }
-    }
-  }
-
-  private boolean updateControllerState(PauseSignal signal, boolean statusFlag) {
-    if (signal != null) {
-      if (!statusFlag) {
-        statusFlag = true;
-        // This log is recorded for the first time entering PAUSE/MAINTENANCE mode
-        logger.info(String.format("controller is now %s",
-            (signal instanceof MaintenanceSignal) ? "in maintenance mode" : "paused"));
-      }
-    } else {
-      statusFlag = false;
-    }
-    return statusFlag;
-  }
-
-  /**
-   * Trigger a Resume Event if the cluster is back to activated.
-   * @param changeContext
-   * @param prevPaused the previous paused status.
-   * @param prevInMaintenanceMode the previous in maintenance mode status.
-   */
-  private void triggerResumeEvent(NotificationContext changeContext, boolean prevPaused,
-      boolean prevInMaintenanceMode) {
-    /**
-     * WARNING: the logic here is tricky.
-     * 1. Only resume if not paused. So if the Maintenance mode is removed but the cluster is still
-     * paused, the resume event should not be sent.
-     * 2. Only send resume event if the status is changed back to active. So we don't send multiple
-     * event unnecessarily.
-     */
-    if (!_paused && (prevPaused || (prevInMaintenanceMode && !_inMaintenanceMode))) {
-      pushToEventQueues(ClusterEventType.Resume, changeContext, Collections.EMPTY_MAP);
-      logger.info("controller is now resumed from paused/maintenance state");
     }
   }
 

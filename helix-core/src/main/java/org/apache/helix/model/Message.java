@@ -59,6 +59,7 @@ public class Message extends HelixProperty {
     NO_OP,
     PARTICIPANT_ERROR_REPORT,
     PARTICIPANT_SESSION_CHANGE,
+    PARTICIPANT_STATUS_CHANGE,
     CHAINED_MESSAGE, // this is a message subtype
     RELAYED_MESSAGE
   }
@@ -81,6 +82,7 @@ public class Message extends HelixProperty {
     RESOURCE_TAG,
     FROM_STATE,
     TO_STATE,
+    TO_STATUS,
     STATE_MODEL_DEF,
     CREATE_TIMESTAMP,
     COMPLETION_DUE_TIMESTAMP,
@@ -413,6 +415,19 @@ public class Message extends HelixProperty {
    */
   public String getToState() {
     return _record.getSimpleField(Attributes.TO_STATE.toString());
+  }
+
+  public void setToStatus(LiveInstance.LiveInstanceStatus status) {
+    _record.setEnumField(Attributes.TO_STATUS.name(), status);
+  }
+
+  /**
+   * Get the {@link Attributes#TO_STATUS} for {@link MessageType#PARTICIPANT_STATUS_CHANGE} messages
+   * @return status name, or null for other message types
+   */
+  public LiveInstance.LiveInstanceStatus getToStatus() {
+    return _record
+        .getEnumField(Attributes.TO_STATUS.name(), LiveInstance.LiveInstanceStatus.class, null);
   }
 
   /**

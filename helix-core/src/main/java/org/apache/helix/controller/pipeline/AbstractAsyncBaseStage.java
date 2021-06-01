@@ -38,19 +38,19 @@ public abstract class AbstractAsyncBaseStage extends AbstractBaseStage {
       throw new StageException("No async worker found for " + taskType);
     }
 
-    worker.queueEvent(taskType, new Runnable() {
-      @Override
-      public void run() {
-        long startTimestamp = System.currentTimeMillis();
-        logger.info("START AsyncProcess: {}", taskType);
-        try {
-          execute(event);
-        } catch (Exception e) {
-          logger.error("Failed to process {} asynchronously", taskType, e);
-        }
-        long endTimestamp = System.currentTimeMillis();
-        logger.info("END AsyncProcess: {}, took {} ms", taskType, endTimestamp - startTimestamp);
+    worker.queueEvent(taskType, () -> {
+      long startTimestamp = System.currentTimeMillis();
+      logger.info("START AsyncProcess: {}", taskType);
+      try {
+        execute(event);
+      } catch (InterruptedException e) {
+        logger.warn("Process {} has been interrupted", taskType, e);
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        logger.error("Failed to process {} asynchronously", taskType, e);
       }
+      long endTimestamp = System.currentTimeMillis();
+      logger.info("END AsyncProcess: {}, took {} ms", taskType, endTimestamp - startTimestamp);
     });
     logger.info("Submitted asynchronous {} task to worker", taskType);
   }

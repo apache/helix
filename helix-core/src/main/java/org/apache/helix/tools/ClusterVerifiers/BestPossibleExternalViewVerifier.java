@@ -43,6 +43,7 @@ import org.apache.helix.controller.stages.ClusterEventType;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -463,7 +464,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   private class DryrunWagedRebalancer extends org.apache.helix.controller.rebalancer.waged.ReadOnlyWagedRebalancer {
     public DryrunWagedRebalancer(String metadataStoreAddress, String clusterName,
         Map<ClusterConfig.GlobalRebalancePreferenceKey, Integer> preferences) {
-      super(metadataStoreAddress, clusterName, preferences);
+      super(new ZkBucketDataAccessor(metadataStoreAddress), clusterName, preferences);
     }
 
     @Override

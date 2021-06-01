@@ -25,6 +25,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.rest.server.resources.AbstractResource;
@@ -81,14 +82,13 @@ public class AbstractHelixResource extends AbstractResource {
     return getServerContext().getByteArrayZkBaseDataAccessor();
   }
 
+  protected ZkBucketDataAccessor getZkBucketDataAccessor() {
+    return getServerContext().getZkBucketDataAccessor();
+  }
+
   protected static ZNRecord toZNRecord(String data)
       throws IOException {
     return ZNRECORD_READER.readValue(data);
-  }
-
-  protected String getZkAddress() {
-    ServerContext serverContext = getServerContext();
-    return serverContext.getZkAddr();
   }
 
   private ServerContext getServerContext() {

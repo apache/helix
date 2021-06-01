@@ -33,6 +33,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkBucketDataAccessor;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.task.TaskDriver;
@@ -76,6 +77,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
+  // ZkBucketDataAccessor for  ReadonlyWagedRebalancer
+  private volatile ZkBucketDataAccessor _zkBucketDataAccessor;
 
   /**
    * Multi-ZK support
@@ -200,10 +203,6 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return (ZkClient) getRealmAwareZkClient();
   }
 
-  public String getZkAddr() {
-    return _zkAddr;
-  }
-
   public HelixAdmin getHelixAdmin() {
     if (_zkHelixAdmin == null) {
       synchronized (this) {
@@ -280,6 +279,18 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     }
     return _byteArrayZkBaseDataAccessor;
   }
+
+  public ZkBucketDataAccessor getZkBucketDataAccessor() {
+    if (_zkBucketDataAccessor == null) {
+      synchronized (this) {
+        if (_zkBucketDataAccessor == null) {
+          _zkBucketDataAccessor = new ZkBucketDataAccessor(_zkAddr);
+        }
+      }
+    }
+    return _zkBucketDataAccessor;
+  }
+
 
   public void close() {
     if (_zkClient != null) {
@@ -396,6 +407,10 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
         if (_byteArrayZkBaseDataAccessor != null) {
           _byteArrayZkBaseDataAccessor.close();
           _byteArrayZkBaseDataAccessor = null;
+        }
+        if (_zkBucketDataAccessor != null) {
+          _zkBucketDataAccessor.close();
+          _zkBucketDataAccessor = null;
         }
         _helixDataAccessorPool.clear();
         _taskDriverPool.clear();

@@ -42,10 +42,10 @@ import org.testng.annotations.Test;
 
 public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
-  String cluster = "TestCluster_2";
+  String cluster = "TestCluster_3";
   String instance1 = cluster + "dummyInstance_localhost_12930";
   String swapNewInstance = "swapNewInstance";
-  String urlBase = "clusters/TestCluster_2/partitionAssignment/";
+  String urlBase = "clusters/TestCluster_3/partitionAssignment/";
   String swapOldInstance, toRemoveInstance;
   HelixDataAccessor helixDataAccessor;
   List<String> resources;
@@ -132,7 +132,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testComputePartitionAssignment")
   public void testComputePartitionAssignmentWaged() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
@@ -189,7 +189,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test
+  @Test(dependsOnMethods = "testComputePartitionAssignmentWaged")
   public void testComputePartitionAssignmentNegativeInput() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 

@@ -44,6 +44,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -297,7 +298,6 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       AssignmentResult result) {
 
     // Use getTargetAssignmentForWagedFullAuto for Waged resources.
-    String zkAddress = getZkAddress();
     ConfigAccessor cfgAccessor = getConfigAccessor();
     List<ResourceConfig> wagedResourceConfigs = new ArrayList<>();
     for (IdealState idealState : wagedResourceIdealState) {
@@ -306,10 +306,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     }
 
     Map<String, ResourceAssignment> wagedAssignmentResult;
-    wagedAssignmentResult =
-        HelixUtil.getTargetAssignmentForWagedFullAuto(zkAddress, clusterState.clusterConfig,
-            clusterState.instanceConfigs, clusterState.instances, wagedResourceIdealState,
-            wagedResourceConfigs);
+    wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(getZkBucketDataAccessor(),
+        new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterState.clusterConfig,
+        clusterState.instanceConfigs, clusterState.instances, wagedResourceIdealState,
+        wagedResourceConfigs);
 
     // Convert ResourceAssignment to plain map.
     for (Map.Entry<String, ResourceAssignment> wagedAssignment : wagedAssignmentResult.entrySet()) {

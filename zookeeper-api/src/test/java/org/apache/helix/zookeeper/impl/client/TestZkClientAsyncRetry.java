@@ -42,7 +42,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks.UNKNOWN_RET_CODE;
 import static org.apache.zookeeper.KeeperException.Code.CONNECTIONLOSS;
 
 /**
@@ -143,7 +142,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
         }
         ZkAsyncCallbacks.CreateCallbackHandler createCallback =
             new ZkAsyncCallbacks.CreateCallbackHandler();
-        Assert.assertEquals(createCallback.getRc(), UNKNOWN_RET_CODE);
+        Assert.assertEquals(createCallback.getRc(), KeeperException.Code.APIERROR.intValue());
         testZkClient.setAsyncCallRC(code.intValue());
         if (code == CONNECTIONLOSS || code == KeeperException.Code.SESSIONEXPIRED
             || code == KeeperException.Code.SESSIONMOVED) {
@@ -190,7 +189,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 1. Test async set retry
       ZkAsyncCallbacks.SetDataCallbackHandler setCallback =
           new ZkAsyncCallbacks.SetDataCallbackHandler();
-      Assert.assertEquals(setCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(setCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       tmpRecord.setSimpleField("test", "data");
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
@@ -214,7 +213,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 2. Test async delete
       ZkAsyncCallbacks.DeleteCallbackHandler deleteCallback =
           new ZkAsyncCallbacks.DeleteCallbackHandler();
-      Assert.assertEquals(deleteCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
       // Async delete will be pending due to the mock error rc is retryable.
@@ -254,7 +253,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 1. Test async create retry
       ZkAsyncCallbacks.CreateCallbackHandler createCallback =
           new ZkAsyncCallbacks.CreateCallbackHandler();
-      Assert.assertEquals(createCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       tmpRecord.setSimpleField("test", "data");
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
@@ -280,7 +279,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 1. Test async set retry
       ZkAsyncCallbacks.SetDataCallbackHandler setCallback =
           new ZkAsyncCallbacks.SetDataCallbackHandler();
-      Assert.assertEquals(setCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(setCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       tmpRecord.setSimpleField("test", "data");
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
@@ -317,7 +316,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 1. Test async exist check
       ZkAsyncCallbacks.ExistsCallbackHandler existsCallback =
           new ZkAsyncCallbacks.ExistsCallbackHandler();
-      Assert.assertEquals(existsCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
       // Async exist check will be pending due to the mock error rc is retryable.
@@ -339,7 +338,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // 2. Test async get
       ZkAsyncCallbacks.GetDataCallbackHandler getCallback =
           new ZkAsyncCallbacks.GetDataCallbackHandler();
-      Assert.assertEquals(getCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(getCallback.getRc(), KeeperException.Code.APIERROR.intValue());
 
       testZkClient.setAsyncCallRC(CONNECTIONLOSS.intValue());
       // Async get will be pending due to the mock error rc is retryable.
@@ -423,7 +422,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Test asyncGet failure
       ZkAsyncCallbacks.GetDataCallbackHandler getCallback =
           new ZkAsyncCallbacks.GetDataCallbackHandler();
-      Assert.assertEquals(getCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(getCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       // asyncGet should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncGetData(NODE_PATH, getCallback);
@@ -445,7 +444,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Test asyncExists failure
       ZkAsyncCallbacks.ExistsCallbackHandler existsCallback =
           new ZkAsyncCallbacks.ExistsCallbackHandler();
-      Assert.assertEquals(existsCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(existsCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       // asyncExists should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncExists(NODE_PATH, existsCallback);
@@ -467,7 +466,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Test asyncSet failure
       ZkAsyncCallbacks.SetDataCallbackHandler setCallback =
           new ZkAsyncCallbacks.SetDataCallbackHandler();
-      Assert.assertEquals(setCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(setCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       // asyncSet should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncSetData(NODE_PATH, tmpRecord, -1, setCallback);
@@ -481,7 +480,7 @@ public class TestZkClientAsyncRetry extends ZkTestBase {
       // Test asyncDelete failure
       ZkAsyncCallbacks.DeleteCallbackHandler deleteCallback =
           new ZkAsyncCallbacks.DeleteCallbackHandler();
-      Assert.assertEquals(deleteCallback.getRc(), UNKNOWN_RET_CODE);
+      Assert.assertEquals(deleteCallback.getRc(), KeeperException.Code.APIERROR.intValue());
       // asyncDelete should fail because the return code is APIERROR
       testZkClient.setAsyncCallRC(KeeperException.Code.APIERROR.intValue());
       testZkClient.asyncDelete(NODE_PATH, deleteCallback);

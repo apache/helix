@@ -61,7 +61,6 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
     toRemoveInstance = liveInstances.get(0);
     swapOldInstance = liveInstances.get(1);
-
   }
 
   @AfterClass
@@ -72,7 +71,6 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
       idealState.setRebalanceMode(IdealState.RebalanceMode.SEMI_AUTO);
       _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
     }
-
   }
 
   @Test

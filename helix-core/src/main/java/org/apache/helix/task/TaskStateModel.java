@@ -327,7 +327,7 @@ public class TaskStateModel extends StateModel {
     // Submit the task for execution
     _taskRunner =
         new TaskRunner(task, msg.getResourceName(), taskPartition, msg.getTgtName(), _manager,
-            msg.getTgtSessionId());
+            msg.getTgtSessionId(), this);
     _taskExecutor.submit(_taskRunner);
     _taskRunner.waitTillStarted();
 

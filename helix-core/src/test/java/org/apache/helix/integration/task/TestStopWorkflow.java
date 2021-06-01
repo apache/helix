@@ -323,7 +323,7 @@ public class TestStopWorkflow extends TaskTestBase {
         e.printStackTrace();
       }
 
-      return new TaskResult(TaskResult.Status.COMPLETED, "");
+      return new TaskResult(TaskResult.Status.CANCELED, "");
     }
 
     @Override

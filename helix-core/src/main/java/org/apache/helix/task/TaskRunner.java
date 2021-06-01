@@ -52,16 +52,18 @@ public class TaskRunner implements Runnable {
   private volatile boolean _timeout = false;
   // If true, indicates that the task has finished.
   private volatile boolean _done = false;
+  private TaskStateModel _stateModel;
 
 
   public TaskRunner(Task task, String taskName, String taskPartition, String instance,
-      HelixManager manager, String sessionId) {
+      HelixManager manager, String sessionId, TaskStateModel stateModel) {
     _task = task;
     _taskName = taskName;
     _taskPartition = taskPartition;
     _instance = instance;
     _manager = manager;
     _sessionId = sessionId;
+    _stateModel = stateModel;
   }
 
   @Override
@@ -79,22 +81,22 @@ public class TaskRunner implements Runnable {
 
       switch (_result.getStatus()) {
       case COMPLETED:
-        requestStateTransition(TaskPartitionState.COMPLETED);
+        updateCurrentState(TaskPartitionState.COMPLETED);
         break;
       case CANCELED:
         if (_timeout) {
-          requestStateTransition(TaskPartitionState.TIMED_OUT);
+          updateCurrentState(TaskPartitionState.TIMED_OUT);
         }
         // Else the state transition to CANCELED was initiated by the controller.
         break;
       case ERROR:
-        requestStateTransition(TaskPartitionState.TASK_ERROR);
+        updateCurrentState(TaskPartitionState.TASK_ERROR);
         break;
       case FAILED:
-        requestStateTransition(TaskPartitionState.TASK_ERROR);
+        updateCurrentState(TaskPartitionState.TASK_ERROR);
         break;
       case FATAL_FAILED:
-        requestStateTransition(TaskPartitionState.TASK_ABORTED);
+        updateCurrentState(TaskPartitionState.TASK_ABORTED);
         break;
       default:
         throw new AssertionError("Unknown task result type: " + _result.getStatus().name());
@@ -103,7 +105,7 @@ public class TaskRunner implements Runnable {
       LOG.error("Problem running the task, report task as FAILED.", e);
       _result =
           new TaskResult(Status.FAILED, "Exception happened in running task: " + e.getMessage());
-      requestStateTransition(TaskPartitionState.TASK_ERROR);
+      updateCurrentState(TaskPartitionState.TASK_ERROR);
     } finally {
       synchronized (_doneSync) {
         _done = true;
@@ -180,15 +182,15 @@ public class TaskRunner implements Runnable {
    * Requests the controller for a state transition.
    * @param state The state transition that is being requested.
    */
-  private void requestStateTransition(TaskPartitionState state) {
-    boolean success =
-        setRequestedState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
-            _taskPartition, state);
-    if (!success) {
-      LOG.error(String
-          .format(
-              "Failed to set the requested state to %s for instance %s, session id %s, task partition %s.",
-              state, _instance, _sessionId, _taskPartition));
+  private void updateCurrentState(TaskPartitionState state) {
+    synchronized (_stateModel) {
+      _stateModel.updateState(state.name());
+      if (!setZKCurrentState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
+          _taskPartition, state)) {
+        LOG.error(String.format(
+            "Failed to set the requested state to %s for instance %s, session id %s, task partition %s.",
+            state, _instance, _sessionId, _taskPartition));
+      }
     }
   }
 
@@ -203,23 +205,29 @@ public class TaskRunner implements Runnable {
    * @param state     the requested state
    * @return true if the request was persisted, false otherwise
    */
-  private static boolean setRequestedState(HelixDataAccessor accessor, String instance,
+  private boolean setZKCurrentState(HelixDataAccessor accessor, String instance,
       String sessionId, String resource, String partition, TaskPartitionState state) {
     LOG.debug(
-        String.format("Requesting a state transition to %s for partition %s.", state, partition));
+        String.format("Updating current state %s for partition %s.", state, partition));
     try {
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
       PropertyKey key =
           Boolean.getBoolean(SystemPropertyKeys.TASK_CURRENT_STATE_PATH_DISABLED) ? keyBuilder
               .currentState(instance, sessionId, resource)
               : keyBuilder.taskCurrentState(instance, sessionId, resource);
-      CurrentState currStateDelta = new CurrentState(resource);
-      currStateDelta.setRequestedState(partition, state.name());
 
-      return accessor.updateProperty(key, currStateDelta);
+      String prevState = _stateModel.getCurrentState();
+      CurrentState currentStateDelta = new CurrentState(resource);
+      currentStateDelta.setSessionId(sessionId);
+      currentStateDelta.setStateModelDefRef(TaskConstants.STATE_MODEL_NAME);
+      currentStateDelta.setState(partition, state.name());
+      currentStateDelta.setInfo(partition, _result.getInfo());
+      currentStateDelta.setPreviousState(partition, prevState);
+
+      return accessor.updateProperty(key, currentStateDelta);
     } catch (Exception e) {
       LOG.error(String
-          .format("Error when requesting a state transition to %s for partition %s.", state,
+          .format("Error when updating current state  to %s for partition %s.", state,
               partition), e);
       return false;
     }

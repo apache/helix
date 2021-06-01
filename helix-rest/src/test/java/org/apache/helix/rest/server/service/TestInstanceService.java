@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
@@ -171,7 +170,7 @@ public class TestInstanceService {
         "}";
     BaseDataAccessor<ZNRecord> mockAccessor = mock(ZkBaseDataAccessor.class);
     ZKHelixDataAccessor zkHelixDataAccessor =
-        new ZKHelixDataAccessor(TEST_CLUSTER, InstanceType.ADMINISTRATOR, mockAccessor);
+        new ZKHelixDataAccessor(TEST_CLUSTER, mockAccessor);
     ZNRecord successPartitionReport = new ZNRecord(HelixDataAccessorWrapper.PARTITION_HEALTH_KEY);
 
     // Instance level check passed
@@ -234,7 +233,7 @@ public class TestInstanceService {
     String siblingInstance = "instance0.linkedin.com_1236";
     BaseDataAccessor<ZNRecord> mockAccessor = mock(ZkBaseDataAccessor.class);
     ZKHelixDataAccessor zkHelixDataAccessor =
-        new ZKHelixDataAccessor(TEST_CLUSTER, InstanceType.ADMINISTRATOR, mockAccessor);
+        new ZKHelixDataAccessor(TEST_CLUSTER, mockAccessor);
 
     when(mockAccessor.getChildNames(zkHelixDataAccessor.keyBuilder().liveInstances().getPath(), 2))
         .thenReturn(Arrays.asList(TEST_INSTANCE, siblingInstance));

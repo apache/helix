@@ -29,7 +29,6 @@ import java.util.Set;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
@@ -272,7 +271,7 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
 
     // shutdown participants, keep only two left
     HelixDataAccessor helixDataAccessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, InstanceType.PARTICIPANT, _baseAccessor);
+        new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     for (int i = 2; i < _participants.size(); i++) {
       MockParticipantManager p = _participants.get(i);
       p.syncStop();

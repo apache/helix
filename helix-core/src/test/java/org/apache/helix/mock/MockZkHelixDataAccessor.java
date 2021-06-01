@@ -34,7 +34,7 @@ public class MockZkHelixDataAccessor extends ZKHelixDataAccessor {
   Map<PropertyType, Integer> _readPathCounters = new HashMap<>();
 
   public MockZkHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
-    super(clusterName, null, baseDataAccessor);
+    super(clusterName, baseDataAccessor);
   }
 
   @Deprecated

@@ -55,27 +55,26 @@ import org.slf4j.LoggerFactory;
 public class ZKHelixDataAccessor implements HelixDataAccessor {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  final InstanceType _instanceType;
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
 
   public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
-    this(clusterName, null, baseDataAccessor);
-  }
-
-  public ZKHelixDataAccessor(String clusterName, InstanceType instanceType,
-      BaseDataAccessor<ZNRecord> baseDataAccessor) {
     _clusterName = clusterName;
-    _instanceType = instanceType;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
+  }
+
+  @Deprecated
+  public ZKHelixDataAccessor(String clusterName, InstanceType instanceType,
+      BaseDataAccessor<ZNRecord> baseDataAccessor) {
+    this(clusterName, baseDataAccessor);
+
   }
 
   /* Copy constructor */
   public ZKHelixDataAccessor(ZKHelixDataAccessor dataAccessor) {
     _clusterName = dataAccessor._clusterName;
-    _instanceType = dataAccessor._instanceType;
     _baseDataAccessor = dataAccessor._baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }

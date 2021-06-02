@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -37,8 +38,9 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
@@ -71,6 +73,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Set<String> resourceFilter = new HashSet<>();
   }
 
+  // TODO: We could add a data cache here to avoid read latency.
   private static class ClusterState {
     List<InstanceConfig> instanceConfigs = new ArrayList<>();
     ClusterConfig clusterConfig;
@@ -92,6 +95,29 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   public static final String OPTIONS = "Options";
   public static final String OPTIONS_INSTANCE_FLT = "InstanceFilter";
   public static final String OPTIONS_RESOURCE_FLT = "ResourceFilter";
+
+  private static class InputJsonContent {
+    @JsonProperty(INSTANCE_CHANGE)
+    InstanceChangeMap instanceChangeMap;
+    @JsonProperty(OPTIONS)
+    OptionsMap optionsMap;
+  }
+
+  private static class InstanceChangeMap {
+    @JsonProperty(INSTANCE_CHANGE_ADD_INSTANCES)
+    List<String> addInstances;
+    @JsonProperty(INSTANCE_CHANGE_REMOVE_INSTANCES)
+    List<String> removeInstances;
+    @JsonProperty(INSTANCE_CHANGE_SWAP_INSTANCES)
+    Map<String, String> swapInstances;
+  }
+
+  private static class OptionsMap {
+    @JsonProperty(OPTIONS_INSTANCE_FLT)
+    Set<String> instanceFilter;
+    @JsonProperty(OPTIONS_RESOURCE_FLT)
+    Set<String> resourceFilter;
+  }
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
@@ -130,57 +156,26 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   private InputFields readInput(String content)
       throws InvalidParameterException, JsonProcessingException {
 
-    Map<String, Map<String, Object>> customFieldsMap;
-    InputFields inputMap = new InputFields();
-    customFieldsMap =
-        OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, Map<String, Object>>>() {
-        });
+    ObjectMapper objectMapper = new ObjectMapper();
+    InputJsonContent inputJsonContent = objectMapper.readValue(content, InputJsonContent.class);
+    InputFields inputFields = new InputFields();
 
-    // Content is given as a KV mapping.
-    for (Map.Entry<String, Map<String, Object>> entry : customFieldsMap.entrySet()) {
-      String key = entry.getKey();
-      switch (key) {
-        case INSTANCE_CHANGE:
-          for (Map.Entry<String, Object> instanceChange : entry.getValue().entrySet()) {
-            String instanceChangeKey = instanceChange.getKey();
-            if (instanceChangeKey.equals(INSTANCE_CHANGE_ADD_INSTANCES) && (instanceChange
-                .getValue() instanceof List)) {
-              inputMap.newInstances.addAll((List<String>) instanceChange.getValue());
-            } else if (instanceChangeKey.equals(INSTANCE_CHANGE_REMOVE_INSTANCES) && (instanceChange
-                .getValue() instanceof List)) {
-              inputMap.instancesToRemove.addAll((List<String>) instanceChange.getValue());
-            } else if (instanceChangeKey.equals(INSTANCE_CHANGE_SWAP_INSTANCES) && (instanceChange
-                .getValue() instanceof Map)) {
-              for (Map.Entry<String, String> swapPair : ((Map<String, String>) instanceChange
-                  .getValue()).entrySet()) {
-                inputMap.nodeSwap.put(swapPair.getKey(), swapPair.getValue());
-              }
-            } else {
-              throw new InvalidParameterException(
-                  "Unsupported command or invalid format for InstanceChange : "
-                      + instanceChangeKey);
-            }
-          }
-          break;
-        case OPTIONS:
-          for (Map.Entry<String, Object> option : entry.getValue().entrySet()) {
-            String optionKey = option.getKey();
-            if (optionKey.equals(OPTIONS_RESOURCE_FLT) && (option.getValue() instanceof List)) {
-              inputMap.resourceFilter.addAll((List<String>) option.getValue());
-            } else if (optionKey.equals(OPTIONS_INSTANCE_FLT) && (option.getValue() instanceof List)) {
-              inputMap.instanceFilter.addAll((List<String>) option.getValue());
-            } else {
-              throw new InvalidParameterException(
-                  "Unsupported command or invalid format for Options : " + option);
-            }
-          }
-          break;
-        default:
-          throw new InvalidParameterException(
-              "Unsupported command for partitionAssignment : " + key);
-      }
+    if (inputJsonContent.instanceChangeMap != null) {
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.addInstances)
+          .ifPresent(inputFields.newInstances::addAll);
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.removeInstances)
+          .ifPresent(inputFields.instancesToRemove::addAll);
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.swapInstances)
+          .ifPresent(inputFields.nodeSwap::putAll);
     }
-    return inputMap;
+    if (inputJsonContent.optionsMap != null) {
+      Optional.ofNullable(inputJsonContent.optionsMap.resourceFilter)
+          .ifPresent(inputFields.resourceFilter::addAll);
+      Optional.ofNullable(inputJsonContent.optionsMap.instanceFilter)
+          .ifPresent(inputFields.instanceFilter::addAll);
+    }
+
+    return inputFields;
   }
 
   private ClusterState readClusterStateAndValidateInput(String clusterId, InputFields inputFields)

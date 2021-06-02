@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.SystemPropertyKeys;
@@ -134,7 +135,7 @@ public class TaskRunner implements Runnable {
   }
 
   /**
-   * Waits uninterruptibly until the task has started.
+   * Waits until the task has started.
    */
   public void waitTillStarted() {
     synchronized (_startedSync) {
@@ -142,7 +143,7 @@ public class TaskRunner implements Runnable {
         try {
           _startedSync.wait();
         } catch (InterruptedException e) {
-          LOG.warn(
+          throw new HelixException(
               String.format("Interrupted while waiting for task %s to start.", _taskPartition), e);
         }
       }
@@ -150,7 +151,7 @@ public class TaskRunner implements Runnable {
   }
 
   /**
-   * Waits uninterruptibly until the task has finished, either normally or due to an
+   * Waits until the task has finished, either normally or due to an
    * error/cancellation..
    */
   public TaskResult waitTillDone() {
@@ -159,7 +160,7 @@ public class TaskRunner implements Runnable {
         try {
           _doneSync.wait();
         } catch (InterruptedException e) {
-          LOG.warn(
+          throw new HelixException(
               String.format("Interrupted while waiting for task %s to complete.", _taskPartition),
               e);
         }

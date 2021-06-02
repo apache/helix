@@ -767,7 +767,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         }
       }
     } catch (InterruptedException e) {
-      LOG.error("Current thread is interrupted when starting ZkCacheEventThread. ", e);
+      // The InterruptedException may come from lockInterruptibly().
+      // If it fails to get the lock, throw exception so none of the initialization will be done.
+      throw new HelixException("Current thread is interrupted when acquiring lock. ", e);
     } finally {
       _eventLock.unlock();
     }
@@ -815,7 +817,6 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     }
 
     LOG.debug("Stop ZkCacheEventThread...done");
-
   }
 
   @Override

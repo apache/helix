@@ -244,6 +244,7 @@ public class ZkAsyncCallbacks {
         }
       } catch (InterruptedException e) {
         LOG.error("Interrupted waiting for success", e);
+        return false;
       }
       return true;
     }

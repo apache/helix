@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.helix.model.ClusterStatus;
 import org.apache.helix.model.ControllerHistory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CustomizedView;
@@ -53,6 +54,7 @@ import static org.apache.helix.PropertyType.MAINTENANCE;
 import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
+import static org.apache.helix.PropertyType.STATUS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.TASKCURRENTSTATES;
 import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
@@ -82,6 +84,7 @@ public class PropertyPathBuilder {
     typeToClassMapping.put(HISTORY, ControllerHistory.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
     typeToClassMapping.put(MAINTENANCE, MaintenanceSignal.class);
+    typeToClassMapping.put(STATUS, ClusterStatus.class);
     // TODO: Below must handle the case for future versions of Task Framework with a different path
     // structure
     typeToClassMapping.put(WORKFLOWCONTEXT, WorkflowContext.class);
@@ -102,6 +105,7 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.CUSTOMIZEDVIEW, 1, "/{clusterName}/CUSTOMIZEDVIEW");
     addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}");
     addEntry(PropertyType.CUSTOMIZEDVIEW, 3, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}/{resourceName}");
+    addEntry(STATUS, 1, "/{clusterName}/STATUS");
 
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,
@@ -467,5 +471,9 @@ public class PropertyPathBuilder {
 
   public static String maintenance(String clusterName) {
     return String.format("/%s/CONTROLLER/MAINTENANCE", clusterName);
+  }
+
+  public static String clusterStatus(String clusterName) {
+    return String.format("/%s/STATUS/CLUSTER/%s", clusterName, clusterName);
   }
 }

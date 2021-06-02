@@ -887,7 +887,7 @@ public class TestRawZkClient extends ZkTestBase {
 
       // Ensure the async callback is cancelled because of the exception
       Assert.assertTrue(createCallback.waitForSuccess(), "Callback operation should be done");
-      Assert.assertEquals(createCallback.getRc(), ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE);
+      Assert.assertEquals(createCallback.getRc(), KeeperException.Code.APIERROR.intValue());
     }
 
     Assert.assertFalse(zkClient.exists(path));
@@ -915,7 +915,7 @@ public class TestRawZkClient extends ZkTestBase {
 
       // Ensure the async callback is cancelled because of the exception
       Assert.assertTrue(setDataCallback.waitForSuccess(), "Callback operation should be done");
-      Assert.assertEquals(setDataCallback.getRc(), ZkAsyncCallbacks.ZK_SESSION_MISMATCHED_CODE);
+      Assert.assertEquals(setDataCallback.getRc(), KeeperException.Code.APIERROR.intValue());
     }
 
     TestHelper.verify(() -> zkClient.delete(path), TestHelper.WAIT_DURATION);

@@ -35,13 +35,6 @@ import org.slf4j.LoggerFactory;
 
 public class ZkAsyncCallbacks {
   private static Logger LOG = LoggerFactory.getLogger(ZkAsyncCallbacks.class);
-  public static final int UNKNOWN_RET_CODE = 255;
-
-  // Whenever there's a mismatch between the expected Zookeeper session ID and the actual
-  // Zookeeper session ID for the async operation, the ZkClient which performs the async
-  // operation passes this return code to the async callback indicate that it has caught
-  // a ZkSessionMismatchedException.
-  public static final int ZK_SESSION_MISMATCHED_CODE = 127;
 
   public static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
     public byte[] _data;
@@ -182,7 +175,7 @@ public class ZkAsyncCallbacks {
    */
   public static abstract class DefaultCallback implements CancellableZkAsyncCallback {
     AtomicBoolean _isOperationDone = new AtomicBoolean(false);
-    int _rc = UNKNOWN_RET_CODE;
+    int _rc = KeeperException.Code.APIERROR.intValue();
 
     public void callback(int rc, String path, Object ctx) {
       if (rc != 0 && LOG.isDebugEnabled()) {
@@ -282,10 +275,6 @@ public class ZkAsyncCallbacks {
      * @return true if the error is transient and the operation may succeed when being retried.
      */
     protected boolean needRetry(int rc) {
-      if (rc == ZK_SESSION_MISMATCHED_CODE) {
-        LOG.error("Actual session ID doesn't match with expected session ID. Skip retrying.");
-        return false;
-      }
       try {
         switch (Code.get(rc)) {
         /** Connection to the server has been lost */

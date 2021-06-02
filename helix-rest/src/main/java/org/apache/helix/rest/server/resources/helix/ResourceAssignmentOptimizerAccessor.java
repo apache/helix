@@ -301,7 +301,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     }
 
     Map<String, ResourceAssignment> wagedAssignmentResult;
-    wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(getZkBucketDataAccessor(),
+    wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(createZkBucketDataAccessor(),
         new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterState.clusterConfig,
         clusterState.instanceConfigs, clusterState.instances, wagedResourceIdealState,
         wagedResourceConfigs);

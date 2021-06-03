@@ -501,7 +501,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       return badRequest("Input is not a valid ZNRecord!");
     }
 
-    if (!record.getId().equals(clusterId)) {
+    if (!clusterId.equals(record.getId())) {
       return badRequest("ID does not match the cluster name in input!");
     }
 

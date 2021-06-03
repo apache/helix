@@ -422,6 +422,11 @@ public class ResourceAccessor extends AbstractHelixResource {
       _logger.error("Failed to deserialize user's input " + content + ", Exception: " + e);
       return badRequest("Input is not a valid ZNRecord!");
     }
+
+    if (!resourceName.equals(record.getId())) {
+      return badRequest("ID does not match the resourceName name in input!");
+    }
+
     ResourceConfig resourceConfig = new ResourceConfig(record);
     ConfigAccessor configAccessor = getConfigAccessor();
     try {

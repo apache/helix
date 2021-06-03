@@ -88,34 +88,26 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     }
   }
 
-  public static final String INSTANCE_CHANGE = "InstanceChange";
-  public static final String INSTANCE_CHANGE_ADD_INSTANCES = "AddInstances";
-  public static final String INSTANCE_CHANGE_REMOVE_INSTANCES = "RemoveInstances";
-  public static final String INSTANCE_CHANGE_SWAP_INSTANCES = "SwapInstances";
-  public static final String OPTIONS = "Options";
-  public static final String OPTIONS_INSTANCE_FLT = "InstanceFilter";
-  public static final String OPTIONS_RESOURCE_FLT = "ResourceFilter";
-
   private static class InputJsonContent {
-    @JsonProperty(INSTANCE_CHANGE)
+    @JsonProperty("InstanceChange")
     InstanceChangeMap instanceChangeMap;
-    @JsonProperty(OPTIONS)
+    @JsonProperty("Options")
     OptionsMap optionsMap;
   }
 
   private static class InstanceChangeMap {
-    @JsonProperty(INSTANCE_CHANGE_ADD_INSTANCES)
+    @JsonProperty("AddInstances")
     List<String> addInstances;
-    @JsonProperty(INSTANCE_CHANGE_REMOVE_INSTANCES)
+    @JsonProperty("RemoveInstances")
     List<String> removeInstances;
-    @JsonProperty(INSTANCE_CHANGE_SWAP_INSTANCES)
+    @JsonProperty("SwapInstances")
     Map<String, String> swapInstances;
   }
 
   private static class OptionsMap {
-    @JsonProperty(OPTIONS_INSTANCE_FLT)
+    @JsonProperty("InstanceFilter")
     Set<String> instanceFilter;
-    @JsonProperty(OPTIONS_RESOURCE_FLT)
+    @JsonProperty("ResourceFilter")
     Set<String> resourceFilter;
   }
 
@@ -301,7 +293,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     }
 
     Map<String, ResourceAssignment> wagedAssignmentResult;
-    wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(createZkBucketDataAccessor(),
+    wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(getZkBucketDataAccessor(),
         new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterState.clusterConfig,
         clusterState.instanceConfigs, clusterState.instances, wagedResourceIdealState,
         wagedResourceConfigs);

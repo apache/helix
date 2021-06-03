@@ -77,6 +77,8 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
   private final Map<String, HelixDataAccessor> _helixDataAccessorPool;
   // 1 Cluster name will correspond to 1 task driver
   private final Map<String, TaskDriver> _taskDriverPool;
+  // Create ZkBucketDataAccessor for ReadOnlyWagedRebalancer.
+  private volatile ZkBucketDataAccessor _zkBucketDataAccessor;
 
   /**
    * Multi-ZK support
@@ -278,14 +280,17 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
     return _byteArrayZkBaseDataAccessor;
   }
 
-  // Create ZkBucketDataAccessor for ReadOnlyWagedRebalancer.
-  // It can not be returned since the ZkBucketDataAccessor will be disconnected when
-  // AssignmentMetadataStore is closed.
-  public ZkBucketDataAccessor createZkBucketDataAccessor() {
+  public ZkBucketDataAccessor getZkBucketDataAccessor() {
     // ZkBucketDataAccessor constructor will handle realmZK case (when _zkAddr is null)
-    return new ZkBucketDataAccessor(_zkAddr);
+    if (_zkBucketDataAccessor == null) {
+      synchronized (this) {
+        if (_zkBucketDataAccessor == null) {
+          _zkBucketDataAccessor = new ZkBucketDataAccessor(_zkAddr);
+        }
+      }
+    }
+    return _zkBucketDataAccessor;
   }
-
 
   public void close() {
     if (_zkClient != null) {
@@ -402,6 +407,10 @@ public class ServerContext implements IZkDataListener, IZkChildListener, IZkStat
         if (_byteArrayZkBaseDataAccessor != null) {
           _byteArrayZkBaseDataAccessor.close();
           _byteArrayZkBaseDataAccessor = null;
+        }
+        if (_zkBucketDataAccessor != null) {
+          _zkBucketDataAccessor.close();
+          _zkBucketDataAccessor = null;
         }
         _helixDataAccessorPool.clear();
         _taskDriverPool.clear();

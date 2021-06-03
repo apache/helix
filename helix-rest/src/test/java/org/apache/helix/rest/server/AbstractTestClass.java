@@ -537,7 +537,6 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
     Response response = webTarget.request().post(entity);
     String result = response.readEntity(String.class);
-    System.out.println(result);
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
     return result;
   }

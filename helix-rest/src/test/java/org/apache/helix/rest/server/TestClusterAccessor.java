@@ -1314,7 +1314,6 @@ public class TestClusterAccessor extends AbstractTestClass {
   private void validateAuditLogSize(int expected) {
     Assert.assertEquals(_auditLogger.getAuditLogs().size(), expected,
         "AuditLog:" + _auditLogger.getAuditLogs().toString());
-
   }
 
   private ClusterConfig createClusterConfig(String cluster) {

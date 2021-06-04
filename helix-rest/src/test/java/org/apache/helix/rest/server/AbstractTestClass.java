@@ -161,6 +161,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
   }
 
+
   @Override
   protected Application configure() {
     // Configure server context

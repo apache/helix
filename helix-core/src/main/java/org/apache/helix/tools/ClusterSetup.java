@@ -1097,8 +1097,9 @@ public class ClusterSetup {
             .withLongOpt(removeConstraint)
             .withDescription("Remove a constraint associated with given id").create();
 
-    Option setCloudConfigOption = OptionBuilder.withLongOpt(setCloudConfig)
-        .withDescription("Set the Cloud Configuration of the cluster").create();
+    Option setCloudConfigOption = OptionBuilder.withLongOpt(setCloudConfig).withDescription(
+        "Set the Cloud Configuration of the cluster. Example:\n sh helix-admin.sh --zkSvr ZookeeperServerAddress --setCloudConfig ClusterName '{\"simpleFields\" : {\"CLOUD_ENABLED\" : \"true\",\"CLOUD_PROVIDER\": \"AZURE\"}}'")
+        .create();
     setCloudConfigOption.setArgs(2);
     setCloudConfigOption.setRequired(false);
     setCloudConfigOption.setArgName("clusterName CloudConfigurationManifest");

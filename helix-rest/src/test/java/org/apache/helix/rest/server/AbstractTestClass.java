@@ -316,7 +316,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   }
 
   protected void setupHelixResources() {
-    _clusters = createClusters(3);
+    _clusters = createClusters(4);
     _gSetupTool.addCluster(_superCluster, true);
     _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
     _clusters.add(_superCluster);
@@ -524,6 +524,11 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected void post(String uri, Map<String, String> queryParams, Entity entity,
       int expectedReturnStatus) {
+    post(uri, queryParams, entity,expectedReturnStatus, false);
+  }
+
+  protected String post(String uri, Map<String, String> queryParams, Entity entity,
+      int expectedReturnStatus, boolean  expectBodyReturned) {
     WebTarget webTarget = target(uri);
     if (queryParams != null) {
       for (Map.Entry<String, String> entry : queryParams.entrySet()) {
@@ -531,7 +536,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       }
     }
     Response response = webTarget.request().post(entity);
+    String result = response.readEntity(String.class);
     Assert.assertEquals(response.getStatus(), expectedReturnStatus);
+    return result;
   }
 
   protected void delete(String uri, int expectedReturnStatus) {

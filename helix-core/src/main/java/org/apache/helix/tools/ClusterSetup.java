@@ -27,6 +27,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -72,6 +74,7 @@ import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.apache.helix.zookeeper.impl.client.FederatedZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.introspect.CodehausJacksonIntrospector;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +141,11 @@ public class ClusterSetup {
   public static final String setConfig = "setConfig";
   public static final String removeConfig = "removeConfig";
 
+  // set/remove cloud configs
+  public static final String setCloudConfig = "setCloudConfig";
+  public static final String removeCloudConfig = "removeCloudConfig";
+
+
   // get/set/remove constraints
   public static final String getConstraints = "getConstraints";
   public static final String setConstraint = "setConstraint";
@@ -150,6 +158,10 @@ public class ClusterSetup {
   // ZkClient
   private final boolean _usesExternalZkClient;
   private final HelixAdmin _admin;
+
+  protected static ObjectReader ZNRECORD_READER = new ObjectMapper()
+      .setAnnotationIntrospector(new CodehausJacksonIntrospector())
+      .readerFor(ZNRecord.class);
 
   @Deprecated
   public ClusterSetup(String zkServerAddress) {
@@ -624,6 +636,33 @@ public class ClusterSetup {
   }
 
   /**
+   * set cloud configs
+   * @param clusterName
+   * @param cloudConfigManifest
+   */
+  public void setCloudConfig(String clusterName, String cloudConfigManifest) {
+    ZNRecord record;
+    try {
+      record = ZNRECORD_READER.readValue(cloudConfigManifest);
+    } catch (IOException e) {
+      _logger
+          .error("Failed to deserialize user's input " + cloudConfigManifest + ", Exception: " + e);
+      throw new IllegalArgumentException("Failed to deserialize user's input ");
+    }
+
+    CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+    _admin.addCloudConfig(clusterName, cloudConfig);
+  }
+
+  /**
+   * remove cloud configs
+   * @param clusterName
+   */
+  public void removeCloudConfig(String clusterName) {
+    _admin.removeCloudConfig(clusterName);
+  }
+
+  /**
    * get configs
    * @param type config-scope-type, e.g. CLUSTER, RESOURCE, etc.
    * @param scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
@@ -1058,6 +1097,19 @@ public class ClusterSetup {
             .withLongOpt(removeConstraint)
             .withDescription("Remove a constraint associated with given id").create();
 
+    Option setCloudConfigOption = OptionBuilder.withLongOpt(setCloudConfig).withDescription(
+        "Set the Cloud Configuration of the cluster. Example:\n sh helix-admin.sh --zkSvr ZookeeperServerAddress --setCloudConfig ClusterName '{\"simpleFields\" : {\"CLOUD_ENABLED\" : \"true\",\"CLOUD_PROVIDER\": \"AZURE\"}}'")
+        .create();
+    setCloudConfigOption.setArgs(2);
+    setCloudConfigOption.setRequired(false);
+    setCloudConfigOption.setArgName("clusterName CloudConfigurationManifest");
+
+    Option removeCloudConfigOption = OptionBuilder.withLongOpt(removeCloudConfig)
+        .withDescription("Remove the Cloud Configuration of the cluster").create();
+    removeCloudConfigOption.setArgs(1);
+    removeCloudConfigOption.setRequired(false);
+    removeCloudConfigOption.setArgName("clusterName");
+
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
     group.addOption(rebalanceOption);
@@ -1107,6 +1159,10 @@ public class ClusterSetup {
     group.addOption(setConstraintOption);
     group.addOption(getConstraintsOption);
     group.addOption(removeConstraintOption);
+
+    // set/remove cloud configs
+    group.addOption(setCloudConfigOption);
+    group.addOption(removeCloudConfigOption);
 
     group.addOption(addInstanceTagOption);
     group.addOption(removeInstanceTagOption);
@@ -1570,6 +1626,15 @@ public class ClusterSetup {
       String propertyKey = cmd.getOptionValues(removeResourceProperty)[2];
 
       setupTool.removeResourceProperty(clusterName, resourceName, propertyKey);
+      return 0;
+    } else if (cmd.hasOption(setCloudConfig)) {
+      String clusterName = cmd.getOptionValues(setCloudConfig)[0];
+      String cloudConfigManifest = cmd.getOptionValues(setCloudConfig)[1];
+      setupTool.setCloudConfig(clusterName, cloudConfigManifest);
+      return 0;
+    } else if (cmd.hasOption(removeCloudConfig)) {
+      String clusterName = cmd.getOptionValues(removeCloudConfig)[0];
+      setupTool.removeCloudConfig(clusterName);
       return 0;
     }
     return 0;

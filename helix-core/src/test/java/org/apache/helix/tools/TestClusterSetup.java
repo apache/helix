@@ -552,4 +552,34 @@ public class TestClusterSetup extends ZkUnitTestBase {
     Assert.assertNull(cloudConfigFromZk.getCloudInfoProcessorName());
     Assert.assertEquals(cloudConfigFromZk.getCloudProvider(), CloudProvider.AZURE.name());
   }
+
+  @Test(dependsOnMethods = "testAddClusterAzureProvider")
+  public void testSetRemoveCloudConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    // Create Cluster without cloud config
+    _clusterSetup.addCluster(clusterName, false);
+
+    // Read CloudConfig from Zookeeper and check the content
+    ConfigAccessor _configAccessor = new ConfigAccessor(ZK_ADDR);
+    CloudConfig cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNull(cloudConfigFromZk);
+
+    String cloudConfigManifest =
+        "{\"simpleFields\" : {\"CLOUD_ENABLED\" : \"true\",\"CLOUD_PROVIDER\": \"AZURE\"}}\"";
+    _clusterSetup.setCloudConfig(clusterName, cloudConfigManifest);
+
+    // Read cloud config from ZK and make sure the fields are accurate
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNotNull(cloudConfigFromZk);
+    Assert.assertEquals(CloudProvider.AZURE.name(), cloudConfigFromZk.getCloudProvider());
+    Assert.assertTrue(cloudConfigFromZk.isCloudEnabled());
+
+    // Remove cloud config and make sure it has been removed
+    _clusterSetup.removeCloudConfig(clusterName);
+    cloudConfigFromZk = _configAccessor.getCloudConfig(clusterName);
+    Assert.assertNull(cloudConfigFromZk);
+  }
 }

@@ -92,7 +92,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(clusters, _clusters,
         "clusters from response: " + clusters + " vs clusters actually: " + _clusters);
 
-    Assert.assertEquals(_auditLogger.getAuditLogs().size(), 1);
+    validateAuditLogSize(1);
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
     validateAuditLog(auditLog, HTTPMethods.GET.name(), "clusters",
         Response.Status.OK.getStatusCode(), body);
@@ -345,7 +345,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // verify the cluster has been deleted.
     Assert.assertFalse(_baseAccessor.exists("/" + cluster, 0));
-    Assert.assertEquals(_auditLogger.getAuditLogs().size(), 3);
+    validateAuditLogSize(3);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -370,7 +370,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // verify the cluster is paused.
     Assert.assertFalse(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
-    Assert.assertEquals(_auditLogger.getAuditLogs().size(), 2);
+    validateAuditLogSize(2);
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
@@ -1305,10 +1305,16 @@ public class TestClusterAccessor extends AbstractTestClass {
     post("clusters/" + cluster + "/configs", ImmutableMap.of("command", command.name()), entity,
         Response.Status.OK.getStatusCode());
 
-    Assert.assertEquals(_auditLogger.getAuditLogs().size(), 1);
+    validateAuditLogSize(1);
     AuditLog auditLog = _auditLogger.getAuditLogs().get(0);
     validateAuditLog(auditLog, HTTPMethods.POST.name(), "clusters/" + cluster + "/configs",
         Response.Status.OK.getStatusCode(), null);
+  }
+
+  private void validateAuditLogSize(int expected) {
+    Assert.assertEquals(_auditLogger.getAuditLogs().size(), expected,
+        "AuditLog:" + _auditLogger.getAuditLogs().toString());
+
   }
 
   private ClusterConfig createClusterConfig(String cluster) {

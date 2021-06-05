@@ -35,7 +35,8 @@ public class Pipeline {
 
   public enum Type {
     DEFAULT,
-    TASK
+    TASK,
+    MANAGEMENT_MODE
   }
 
   public Pipeline() {

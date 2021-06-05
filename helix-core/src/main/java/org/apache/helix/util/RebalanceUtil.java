@@ -145,6 +145,26 @@ public class RebalanceUtil {
     return result;
   }
 
+  /**
+   * Whether or not witch controller to run management mode pipeline.
+   *
+   * @param clusterName target cluster name
+   * @param turnOn turn on/off management mode pipeline
+   */
+  public static void setRunManagementModePipeline(String clusterName, boolean turnOn) {
+    GenericHelixController leaderController =
+        GenericHelixController.getLeaderController(clusterName);
+    if (leaderController != null) {
+      LOG.info("Switching management mode pipeline for cluster={}, turnOn={}", clusterName,
+          turnOn);
+      leaderController.setRunManagementModePipeline(turnOn);
+    } else {
+      LOG.error(
+          "Failed to switch management mode pipeline. Controller for cluster {} does not exist",
+          clusterName);
+    }
+  }
+
   public static void scheduleOnDemandPipeline(String clusterName, long delay) {
     scheduleOnDemandPipeline(clusterName, delay, true);
   }

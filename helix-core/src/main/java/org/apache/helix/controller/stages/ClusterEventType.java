@@ -37,6 +37,7 @@ public enum ClusterEventType {
   Resume,
   PeriodicalRebalance,
   OnDemandRebalance,
+  ControllerChange,
   RetryRebalance,
   StateVerifier,
   Unknown

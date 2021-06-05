@@ -21,10 +21,15 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Checks the cluster status whether the cluster is in management mode.
+ */
 public class ManagementModeStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(ManagementModeStage.class);
 
@@ -34,11 +39,10 @@ public class ManagementModeStage extends AbstractBaseStage {
     String clusterName = event.getClusterName();
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
-    if (!cache.shouldRunManagementPipeline()) {
+    if (!HelixUtil.inManagementMode(cache)) {
       LOG.info("Exiting management mode pipeline for cluster {}", clusterName);
-      RebalanceUtil.setRunManagementModePipeline(clusterName, false);
-      RebalanceUtil.scheduleOnDemandPipeline(clusterName, 0L);
-      return;
+      RebalanceUtil.enableManagementMode(clusterName, false);
+      throw new StageException("Exiting management mode pipeline for cluster " + clusterName);
     }
   }
 }

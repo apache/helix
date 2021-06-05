@@ -28,6 +28,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +45,9 @@ public class ResourceValidationStage extends AbstractBaseStage {
     }
 
     // Check if cluster is still in management mode. Eg. there exists any frozen live instance.
-    if (!cache.shouldRunManagementPipeline()) {
+    if (HelixUtil.inManagementMode(cache)) {
       // Trigger an immediate management mode pipeline.
-      RebalanceUtil.setRunManagementModePipeline(event.getClusterName(), true);
-      RebalanceUtil.scheduleOnDemandPipeline(event.getClusterName(), 0L);
+      RebalanceUtil.enableManagementMode(event.getClusterName(), true);
       throw new StageException("Pipeline should not be run because cluster is in management mode");
     }
 

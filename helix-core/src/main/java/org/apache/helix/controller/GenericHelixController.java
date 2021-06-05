@@ -168,7 +168,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   private final ClusterEventProcessor _taskEventThread;
 
   // Controller will switch to run management mode pipeline when set to true.
-  private boolean _runManagementModePipeline;
+  private boolean _inManagementMode;
   private final ClusterEventBlockingQueue _managementModeEventQueue;
   private final ClusterEventProcessor _managementModeEventThread;
 
@@ -290,28 +290,26 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
    */
   public GenericHelixController() {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
-        createTaskRegistry(Pipeline.Type.TASK.name()),
-        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()));
+        createTaskRegistry(Pipeline.Type.TASK.name()));
   }
 
   public GenericHelixController(String clusterName) {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
         createTaskRegistry(Pipeline.Type.TASK.name()),
-        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()),
-        clusterName,
+        createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()), clusterName,
         Sets.newHashSet(Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
   }
 
-  public GenericHelixController(String clusterName, Set<Pipeline.Type> enabledPipelines) {
+  public GenericHelixController(String clusterName, Set<Pipeline.Type> enabledPipelins) {
     this(createDefaultRegistry(Pipeline.Type.DEFAULT.name()),
         createTaskRegistry(Pipeline.Type.TASK.name()),
         createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()),
         clusterName,
-        enabledPipelines);
+        enabledPipelins);
   }
 
-  public void setRunManagementModePipeline(boolean turnOn) {
-    _runManagementModePipeline = turnOn;
+  public void setInManagementMode(boolean enabled) {
+    _inManagementMode = enabled;
   }
 
   class RebalanceTask extends TimerTask {
@@ -583,6 +581,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       registry
           .register(ClusterEventType.OnDemandRebalance, dataRefresh, autoExitMaintenancePipeline,
               dataPreprocess, externalViewPipeline, rebalancePipeline);
+      registry.register(ClusterEventType.ControllerChange, dataRefresh, autoExitMaintenancePipeline,
+          dataPreprocess, externalViewPipeline, rebalancePipeline);
       // TODO: We now include rebalance pipeline in customized state change for correctness.
       // However, it is not efficient, and we should improve this by splitting the pipeline or
       // controller roles to multiple hosts.
@@ -642,6 +642,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           rebalancePipeline);
       registry.register(ClusterEventType.OnDemandRebalance, dataRefresh, dataPreprocess,
           rebalancePipeline);
+      registry.register(ClusterEventType.ControllerChange, dataRefresh, dataPreprocess,
+          rebalancePipeline);
       return registry;
     }
   }
@@ -659,6 +661,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
 
       PipelineRegistry registry = new PipelineRegistry();
       Arrays.asList(
+          ClusterEventType.ControllerChange,
           ClusterEventType.LiveInstanceChange,
           ClusterEventType.MessageChange,
           ClusterEventType.OnDemandRebalance,
@@ -670,10 +673,9 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
   }
 
   // TODO: refactor the constructor as providing both registry but only enabling one looks confusing
-  public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
-      PipelineRegistry managementModeRegistry) {
-    this(registry, taskRegistry, managementModeRegistry, null, Sets.newHashSet(
-        Pipeline.Type.TASK, Pipeline.Type.DEFAULT, Pipeline.Type.MANAGEMENT_MODE));
+  public GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry) {
+    this(registry, taskRegistry, createManagementModeRegistry(Pipeline.Type.MANAGEMENT_MODE.name()),
+        null, Sets.newHashSet(Pipeline.Type.TASK, Pipeline.Type.DEFAULT));
   }
 
   private GenericHelixController(PipelineRegistry registry, PipelineRegistry taskRegistry,
@@ -732,20 +734,15 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _taskEventThread = null;
     }
 
-    if (_enabledPipelineTypes.contains(Pipeline.Type.MANAGEMENT_MODE)) {
-      logger.info("Initializing {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
-      _managementControllerDataProvider =
-          new ManagementControllerDataProvider(clusterName, Pipeline.Type.MANAGEMENT_MODE.name());
-      _managementModeEventQueue = new ClusterEventBlockingQueue();
-      _managementModeEventThread = new ClusterEventProcessor(_managementControllerDataProvider,
-          _managementModeEventQueue, Pipeline.Type.MANAGEMENT_MODE.name() + "-" + clusterName);
-      initPipeline(_managementModeEventThread, _managementControllerDataProvider);
-      logger.info("Initialized {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
-    } else {
-      _managementControllerDataProvider = null;
-      _managementModeEventQueue = null;
-      _managementModeEventThread = null;
-    }
+    logger.info("Initializing {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
+    _managementControllerDataProvider =
+        new ManagementControllerDataProvider(clusterName, Pipeline.Type.MANAGEMENT_MODE.name());
+    _managementModeEventQueue = new ClusterEventBlockingQueue();
+    _managementModeEventThread =
+        new ClusterEventProcessor(_managementControllerDataProvider, _managementModeEventQueue,
+            Pipeline.Type.MANAGEMENT_MODE.name() + "-" + clusterName);
+    initPipeline(_managementModeEventThread, _managementControllerDataProvider);
+    logger.info("Initialized {} pipeline", Pipeline.Type.MANAGEMENT_MODE.name());
 
     addController(this);
   }
@@ -858,10 +855,12 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       return;
     }
 
-    // Default/task pipelines should not run while management mode pipeline is enabled to run
-    if (_runManagementModePipeline && !Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType)) {
-      logger.info("Controller for cluster {} is in management mode pipeline. Ignoring the event: {}",
-          manager.getClusterName(), event.getEventType());
+    // Should not run management mode and default/task pipelines at the same time.
+    if ((_inManagementMode && !Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType))
+        || (!_inManagementMode && Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType))) {
+      logger.info("Should not run management mode and default/task pipelines at the same time. "
+              + "cluster={}, inManagementMode={}, pipelineType={}. Ignoring the event: {}",
+          manager.getClusterName(), _inManagementMode, pipelineType, event.getEventType());
       return;
     }
 
@@ -1262,6 +1261,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     if (_workflowControlDataProvider != null) {
       _workflowControlDataProvider.notifyDataChange(type, path);
     }
+
+    if (_managementControllerDataProvider != null) {
+      _managementControllerDataProvider.notifyDataChange(type, path);
+    }
   }
 
   private void requestDataProvidersFullRefresh() {
@@ -1294,7 +1297,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     // Management mode event will force management mode pipeline.
-    if (_runManagementModePipeline) {
+    if (_inManagementMode) {
       event.setEventId(uid + "_" + Pipeline.Type.MANAGEMENT_MODE.name());
       enqueueEvent(_managementModeEventQueue, event);
       return;
@@ -1343,9 +1346,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       _inMaintenanceMode = updateControllerState(maintenanceSignal, _inMaintenanceMode);
       // TODO: remove triggerResumeEvent when moving pause/maintenance to management pipeline
       if (!triggerResumeEvent(changeContext, prevPaused, prevInMaintenanceMode)) {
-        _runManagementModePipeline = true;
-        pushToEventQueues(ClusterEventType.OnDemandRebalance, changeContext,
-            Collections.emptyMap());
+        pushToEventQueues(ClusterEventType.ControllerChange, changeContext, Collections.emptyMap());
       }
 
       enableClusterStatusMonitor(true);

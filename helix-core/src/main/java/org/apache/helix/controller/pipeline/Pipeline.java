@@ -36,6 +36,12 @@ public class Pipeline {
   public enum Type {
     DEFAULT,
     TASK,
+
+    /**
+     * A pipeline used to manage the cluster when it is in admin management mode:
+     * cluster freeze mode, controller pause mode, etc. Used by Helix internally,
+     * not meant to be used for Helix external users.
+     */
     MANAGEMENT_MODE
   }
 

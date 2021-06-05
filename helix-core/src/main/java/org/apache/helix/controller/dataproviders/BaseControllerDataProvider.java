@@ -968,17 +968,6 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     return _maintenanceSignal;
   }
 
-  /**
-   * Whether the pipeline should run. If the management mode pipeline is running,
-   * the resource/task pipelines should not be run. Vice versa.
-   *
-   * @return true if the pipeline should run; otherwise, false
-   */
-  public boolean shouldRunManagementPipeline() {
-    // TODO: implement in next PR
-    return false;
-  }
-
   protected StringBuilder genCacheContentStringBuilder() {
     StringBuilder sb = new StringBuilder();
     sb.append(String.format("liveInstaceMap: %s", _liveInstanceCache.getPropertyMap())).append("\n");

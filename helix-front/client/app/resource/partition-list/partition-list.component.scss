@@ -5,11 +5,11 @@ div.message {
 }
 
 .status-ready {
-  color: mat-color(mat-palette($mat-green));
+  color: mat-color(mat-palette($mat-blue));
 }
 
 .status-not-ready {
-  color: mat-color(mat-palette($mat-orange), darker);
+  color: mat-color(mat-palette($mat-grey, 900, 900, 900), darker);
 }
 
 .footer {

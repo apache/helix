@@ -49,7 +49,8 @@
       [draggable]="false"
       [canAutoResize]="false">
       <ng-template let-value="value" ngx-datatable-cell-template>
-        <mat-icon [ngClass]="value ? 'status-ready' : 'status-not-ready'">lens</mat-icon>
+        <mat-icon *ngIf="value" [ngClass]="'status-ready'">check_circle</mat-icon>
+        <mat-icon *ngIf="!value" [ngClass]="'status-not-ready'">error</mat-icon>
       </ng-template>
     </ngx-datatable-column>
     <ngx-datatable-column name="Name"></ngx-datatable-column>

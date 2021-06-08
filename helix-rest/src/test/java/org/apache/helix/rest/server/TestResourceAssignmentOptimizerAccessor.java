@@ -127,6 +127,32 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Assert.assertEquals(resourceAssignments3.size(), 2);
     Assert.assertTrue(resourceAssignments3.containsKey(resources.get(0)));
     Assert.assertTrue(resourceAssignments3.containsKey(resources.get(1)));
+
+    // Test Option CurrentState format
+    // Test AddInstances, RemoveInstances and SwapInstances
+    String payload4 = "{\"InstanceChange\" : { \"AddInstances\" : [\"" + instance1
+        + "\"], \"RemoveInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
+        + swapOldInstance + "\" : \"" + swapNewInstance
+        + "\"} }, \"Options\" : { \"ReturnFormat\" : \"CurrentStateFormat\" , \"ResourceFilter\" : [\""
+        + resources.get(0) + "\" , \"" + resources.get(1) + "\"]} } ";
+    String body4 = post(urlBase, null, Entity.entity(payload4, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode(), true);
+    Map<String, Map<String, Map<String, String>>> resourceAssignments4 = OBJECT_MAPPER
+        .readValue(body4, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+        });
+    // Validate outer map key is instance
+    Set<String> resource4 = new HashSet<>();
+    resourceAssignments4.forEach((k, v)  -> v.forEach((kk, vv) -> resource4.add(kk)));
+    Assert.assertTrue(resource4.contains(resources.get(0)));
+    Assert.assertTrue(resource4.contains(resources.get(1)));
+
+    // First inner map key is resource
+    Assert.assertTrue(resourceAssignments4.containsKey(instance1));
+    Assert.assertTrue(resourceAssignments4.containsKey(swapNewInstance));
+    Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(0)));
+    Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(1)));
+
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

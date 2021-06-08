@@ -71,6 +71,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Map<String, String> nodeSwap = new HashMap<>(); // old instance -> new instance.
     Set<String> instanceFilter = new HashSet<>();
     Set<String> resourceFilter = new HashSet<>();
+    String returnFormat = IDEAL_STATE_FORMAT;
   }
 
   // TODO: We could add a data cache here to avoid read latency.
@@ -81,7 +82,9 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     List<String> instances;        // cluster LiveInstance + addInstances - instancesToRemove.
   }
 
-  // Result format: Map of resource -> partition -> instance -> state.
+  // Result format. User can choose from IdealState or CurrentState format,
+  // IdealState format   : Map of resource -> partition -> instance -> state.  (default)
+  // CurrentState format : Map of instance -> resource -> partition -> state.
   private static class AssignmentResult extends HashMap<String, Map<String, Map<String, String>>> {
     public AssignmentResult() {
       super();
@@ -104,11 +107,16 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Map<String, String> swapInstances;
   }
 
+  private static final String IDEAL_STATE_FORMAT = "IdealStateFormat";
+  private static final String CURRENT_STATE_FORMAT = "CurrentStateFormat";
+
   private static class OptionsMap {
     @JsonProperty("InstanceFilter")
     Set<String> instanceFilter;
     @JsonProperty("ResourceFilter")
     Set<String> resourceFilter;
+    @JsonProperty("ReturnFormat")
+    String returnFormat;
   }
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
@@ -165,6 +173,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           .ifPresent(inputFields.resourceFilter::addAll);
       Optional.ofNullable(inputJsonContent.optionsMap.instanceFilter)
           .ifPresent(inputFields.instanceFilter::addAll);
+      inputFields.returnFormat =
+          Optional.ofNullable(inputJsonContent.optionsMap.returnFormat).orElse(IDEAL_STATE_FORMAT);
     }
 
     return inputFields;
@@ -208,6 +218,13 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       clusterState.instanceConfigs.add(config);
     }
     clusterState.clusterConfig = cfgAccessor.getClusterConfig(clusterId);
+
+    if (!inputFields.returnFormat.equals(CURRENT_STATE_FORMAT) &&
+        !inputFields.returnFormat.equals(IDEAL_STATE_FORMAT)) {
+      throw new InvalidParameterException(
+          "Invalid input: Options.ReturnFormat [" + inputFields.returnFormat + "] is invalid.");
+    }
+
     return clusterState;
   }
 
@@ -277,7 +294,26 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           result);
     }
 
-    return result;
+    if (inputFields.returnFormat.equals(CURRENT_STATE_FORMAT)) {
+      return changeToCurrentStateFormat(result);
+    } else {
+      return result;
+    }
+  }
+
+  // IdealState format   : Map of resource -> partition -> instance -> state.  (default)
+  // CurrentState format : Map of instance -> resource -> partition -> state.
+  private AssignmentResult changeToCurrentStateFormat(AssignmentResult idealStateFormatResult) {
+    AssignmentResult currentStateFormatResult = new AssignmentResult();
+
+    idealStateFormatResult.forEach((resourceKey, partitionMap) -> partitionMap.forEach(
+        (partitionKey, instanceMap) -> instanceMap.forEach(
+            (instanceKey, instanceState) -> currentStateFormatResult
+                .computeIfAbsent(instanceKey, x -> new HashMap<>())
+                .computeIfAbsent(resourceKey, y -> new HashMap<>())
+                .put(partitionKey, instanceState))));
+
+    return currentStateFormatResult;
   }
 
   private void computeWagedAssignmentResult(List<IdealState> wagedResourceIdealState,

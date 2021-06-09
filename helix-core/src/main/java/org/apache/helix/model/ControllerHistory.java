@@ -22,7 +22,9 @@ package org.apache.helix.model;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -30,9 +32,10 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
-
 
 /**
  * The history of instances that have served as the leader controller
@@ -57,6 +60,12 @@ public class ControllerHistory extends HelixProperty {
 
   }
 
+  private enum ManagementModeConfigKey {
+    MANAGEMENT_MODE_HISTORY,
+    MODE,
+    STATUS
+  }
+
   private enum OperationType {
     // The following are options for OPERATION_TYPE in MaintenanceConfigKey
     ENTER,
@@ -65,7 +74,8 @@ public class ControllerHistory extends HelixProperty {
 
   public enum HistoryType {
     CONTROLLER_LEADERSHIP,
-    MAINTENANCE
+    MAINTENANCE,
+    MANAGEMENT_MODE
   }
 
   public ControllerHistory(String id) {
@@ -96,17 +106,6 @@ public class ControllerHistory extends HelixProperty {
     list.add(instanceName);
     // TODO: remove above in future when we confirmed no one consumes it */
 
-    List<String> historyList = _record.getListField(ConfigProperty.HISTORY.name());
-    if (historyList == null) {
-      historyList = new ArrayList<>();
-      _record.setListField(ConfigProperty.HISTORY.name(), historyList);
-    }
-
-    // Keep only the last HISTORY_SIZE entries
-    while (historyList.size() >= HISTORY_SIZE) {
-      historyList.remove(0);
-    }
-
     Map<String, String> historyEntry = new HashMap<>();
 
     long currentTime = System.currentTimeMillis();
@@ -119,8 +118,7 @@ public class ControllerHistory extends HelixProperty {
     historyEntry.put(ConfigProperty.DATE.name(), dateTime);
     historyEntry.put(ConfigProperty.VERSION.name(), version);
 
-    historyList.add(historyEntry.toString());
-    return _record;
+    return populateHistoryEntries(HistoryType.CONTROLLER_LEADERSHIP, historyEntry.toString());
   }
 
   /**
@@ -137,6 +135,40 @@ public class ControllerHistory extends HelixProperty {
   }
 
   /**
+   * Gets the management mode history.
+   *
+   * @return List of history strings.
+   */
+  public List<String> getManagementModeHistory() {
+    List<String> history =
+        _record.getListField(ManagementModeConfigKey.MANAGEMENT_MODE_HISTORY.name());
+    return history == null ? Collections.emptyList() : history;
+  }
+
+  /**
+   * Updates management mode and status history to controller history in FIFO order.
+   *
+   * @param controller controller name
+   * @param mode cluster management mode {@link ClusterManagementMode}
+   * @param fromHost the hostname that creates the management mode signal
+   * @param time time in millis
+   * @param reason reason to put the cluster in management mode
+   * @return updated history znrecord
+   */
+  public ZNRecord updateManagementModeHistory(String controller, ClusterManagementMode mode,
+      String fromHost, long time, String reason) {
+    Map<String, String> historyEntry = new HashMap<>();
+    historyEntry.put(ConfigProperty.CONTROLLER.name(), controller);
+    historyEntry.put(ConfigProperty.TIME.name(), Instant.ofEpochMilli(time).toString());
+    historyEntry.put(ManagementModeConfigKey.MODE.name(), mode.getMode().name());
+    historyEntry.put(ManagementModeConfigKey.STATUS.name(), mode.getStatus().name());
+    historyEntry.put(PauseSignal.PauseSignalProperty.FROM_HOST.name(), fromHost);
+    historyEntry.put(PauseSignal.PauseSignalProperty.REASON.name(), reason);
+
+    return populateHistoryEntries(HistoryType.MANAGEMENT_MODE, historyEntry.toString());
+  }
+
+  /**
    * Record up to MAINTENANCE_HISTORY_SIZE number of changes to MaintenanceSignal in FIFO order.
    * @param enabled
    * @param reason
@@ -148,18 +180,6 @@ public class ControllerHistory extends HelixProperty {
   public ZNRecord updateMaintenanceHistory(boolean enabled, String reason, long currentTime,
       MaintenanceSignal.AutoTriggerReason internalReason, Map<String, String> customFields,
       MaintenanceSignal.TriggeringEntity triggeringEntity) throws IOException {
-    List<String> maintenanceHistoryList =
-        _record.getListField(MaintenanceConfigKey.MAINTENANCE_HISTORY.name());
-    if (maintenanceHistoryList == null) {
-      maintenanceHistoryList = new ArrayList<>();
-      _record.setListField(MaintenanceConfigKey.MAINTENANCE_HISTORY.name(), maintenanceHistoryList);
-    }
-
-    // Keep only the last MAINTENANCE_HISTORY_SIZE entries
-    while (maintenanceHistoryList.size() >= MAINTENANCE_HISTORY_SIZE) {
-      maintenanceHistoryList.remove(0);
-    }
-
     DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH:" + "mm:ss");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(currentTime));
@@ -189,7 +209,43 @@ public class ControllerHistory extends HelixProperty {
         }
       }
     }
-    maintenanceHistoryList.add(new ObjectMapper().writeValueAsString(maintenanceEntry));
+
+    return populateHistoryEntries(HistoryType.MAINTENANCE,
+        new ObjectMapper().writeValueAsString(maintenanceEntry));
+  }
+
+  private ZNRecord populateHistoryEntries(HistoryType type, String entry) {
+    String configKey;
+    int historySize;
+    switch (type) {
+      case CONTROLLER_LEADERSHIP:
+        configKey = ConfigProperty.HISTORY.name();
+        historySize = HISTORY_SIZE;
+        break;
+      case MAINTENANCE:
+        configKey = MaintenanceConfigKey.MAINTENANCE_HISTORY.name();
+        historySize = MAINTENANCE_HISTORY_SIZE;
+        break;
+      case MANAGEMENT_MODE:
+        configKey = ManagementModeConfigKey.MANAGEMENT_MODE_HISTORY.name();
+        historySize = HISTORY_SIZE;
+        break;
+      default:
+        throw new HelixException("Unknown history type " + type.name());
+    }
+
+    List<String> historyList = _record.getListField(configKey);
+    if (historyList == null) {
+      historyList = new ArrayList<>();
+      _record.setListField(configKey, historyList);
+    }
+
+    while (historyList.size() >= historySize) {
+      historyList.remove(0);
+    }
+
+    historyList.add(entry);
+
     return _record;
   }
 

@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -56,5 +57,7 @@ public class TestPropertyPathBuilder {
     actual = PropertyPathBuilder.controllerMessage("test_cluster");
     AssertJUnit.assertEquals(actual, "/test_cluster/CONTROLLER/MESSAGES");
 
+    actual = PropertyPathBuilder.clusterStatus("test_cluster");
+    Assert.assertEquals(actual, "/test_cluster/STATUS/CLUSTER/test_cluster");
   }
 }

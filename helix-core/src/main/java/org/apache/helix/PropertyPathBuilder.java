@@ -42,22 +42,6 @@ import org.apache.helix.task.WorkflowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.helix.PropertyType.CONFIGS;
-import static org.apache.helix.PropertyType.CURRENTSTATES;
-import static org.apache.helix.PropertyType.CUSTOMIZEDVIEW;
-import static org.apache.helix.PropertyType.EXTERNALVIEW;
-import static org.apache.helix.PropertyType.HISTORY;
-import static org.apache.helix.PropertyType.IDEALSTATES;
-import static org.apache.helix.PropertyType.LIVEINSTANCES;
-import static org.apache.helix.PropertyType.MAINTENANCE;
-import static org.apache.helix.PropertyType.MESSAGES;
-import static org.apache.helix.PropertyType.PAUSE;
-import static org.apache.helix.PropertyType.STATEMODELDEFS;
-import static org.apache.helix.PropertyType.STATUSUPDATES;
-import static org.apache.helix.PropertyType.TASKCURRENTSTATES;
-import static org.apache.helix.PropertyType.WORKFLOWCONTEXT;
-
-
 /**
  * Utility mapping properties to their Zookeeper locations
  */
@@ -70,21 +54,21 @@ public class PropertyPathBuilder {
   static final Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping =
       new HashMap<PropertyType, Class<? extends HelixProperty>>();
   static {
-    typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
-    typeToClassMapping.put(IDEALSTATES, IdealState.class);
-    typeToClassMapping.put(CONFIGS, InstanceConfig.class);
-    typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
-    typeToClassMapping.put(CUSTOMIZEDVIEW, CustomizedView.class);
-    typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
-    typeToClassMapping.put(MESSAGES, Message.class);
-    typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
-    typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
-    typeToClassMapping.put(HISTORY, ControllerHistory.class);
-    typeToClassMapping.put(PAUSE, PauseSignal.class);
-    typeToClassMapping.put(MAINTENANCE, MaintenanceSignal.class);
+    typeToClassMapping.put(PropertyType.LIVEINSTANCES, LiveInstance.class);
+    typeToClassMapping.put(PropertyType.IDEALSTATES, IdealState.class);
+    typeToClassMapping.put(PropertyType.CONFIGS, InstanceConfig.class);
+    typeToClassMapping.put(PropertyType.EXTERNALVIEW, ExternalView.class);
+    typeToClassMapping.put(PropertyType.CUSTOMIZEDVIEW, CustomizedView.class);
+    typeToClassMapping.put(PropertyType.STATEMODELDEFS, StateModelDefinition.class);
+    typeToClassMapping.put(PropertyType.MESSAGES, Message.class);
+    typeToClassMapping.put(PropertyType.CURRENTSTATES, CurrentState.class);
+    typeToClassMapping.put(PropertyType.STATUSUPDATES, StatusUpdate.class);
+    typeToClassMapping.put(PropertyType.HISTORY, ControllerHistory.class);
+    typeToClassMapping.put(PropertyType.PAUSE, PauseSignal.class);
+    typeToClassMapping.put(PropertyType.MAINTENANCE, MaintenanceSignal.class);
     // TODO: Below must handle the case for future versions of Task Framework with a different path
     // structure
-    typeToClassMapping.put(WORKFLOWCONTEXT, WorkflowContext.class);
+    typeToClassMapping.put(PropertyType.WORKFLOWCONTEXT, WorkflowContext.class);
 
     // @formatter:off
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
@@ -126,13 +110,13 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.CURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
-    addEntry(TASKCURRENTSTATES, 2,
+    addEntry(PropertyType.TASKCURRENTSTATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES");
-    addEntry(TASKCURRENTSTATES, 3,
+    addEntry(PropertyType.TASKCURRENTSTATES, 3,
         "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}");
-    addEntry(TASKCURRENTSTATES, 4,
+    addEntry(PropertyType.TASKCURRENTSTATES, 4,
         "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}/{resourceName}");
-    addEntry(TASKCURRENTSTATES, 5,
+    addEntry(PropertyType.TASKCURRENTSTATES, 5,
         "/{clusterName}/INSTANCES/{instanceName}/TASKCURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
     addEntry(PropertyType.CUSTOMIZEDSTATES, 2,
         "/{clusterName}/INSTANCES/{instanceName}/CUSTOMIZEDSTATES");

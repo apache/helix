@@ -71,7 +71,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Map<String, String> nodeSwap = new HashMap<>(); // old instance -> new instance.
     Set<String> instanceFilter = new HashSet<>();
     Set<String> resourceFilter = new HashSet<>();
-    String returnFormat = IDEAL_STATE_FORMAT;
+    String returnFormat = AssignmentFormat.IdealStateFormat.name();
   }
 
   // TODO: We could add a data cache here to avoid read latency.
@@ -107,8 +107,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Map<String, String> swapInstances;
   }
 
-  private static final String IDEAL_STATE_FORMAT = "IdealStateFormat";
-  private static final String CURRENT_STATE_FORMAT = "CurrentStateFormat";
+  private enum AssignmentFormat{
+    IdealStateFormat,
+    CurrentStateFormat
+  }
 
   private static class OptionsMap {
     @JsonProperty("InstanceFilter")
@@ -173,8 +175,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           .ifPresent(inputFields.resourceFilter::addAll);
       Optional.ofNullable(inputJsonContent.optionsMap.instanceFilter)
           .ifPresent(inputFields.instanceFilter::addAll);
-      inputFields.returnFormat =
-          Optional.ofNullable(inputJsonContent.optionsMap.returnFormat).orElse(IDEAL_STATE_FORMAT);
+      inputFields.returnFormat = Optional.ofNullable(inputJsonContent.optionsMap.returnFormat)
+          .orElse(AssignmentFormat.IdealStateFormat.name());
     }
 
     return inputFields;
@@ -219,8 +221,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     }
     clusterState.clusterConfig = cfgAccessor.getClusterConfig(clusterId);
 
-    if (!inputFields.returnFormat.equals(CURRENT_STATE_FORMAT) &&
-        !inputFields.returnFormat.equals(IDEAL_STATE_FORMAT)) {
+    if (!inputFields.returnFormat.equals(AssignmentFormat.CurrentStateFormat.name()) &&
+        !inputFields.returnFormat.equals(AssignmentFormat.IdealStateFormat.name())) {
       throw new InvalidParameterException(
           "Invalid input: Options.ReturnFormat [" + inputFields.returnFormat + "] is invalid.");
     }
@@ -294,7 +296,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
           result);
     }
 
-    if (inputFields.returnFormat.equals(CURRENT_STATE_FORMAT)) {
+    if (inputFields.returnFormat.equals(AssignmentFormat.CurrentStateFormat.name())) {
       return changeToCurrentStateFormat(result);
     } else {
       return result;

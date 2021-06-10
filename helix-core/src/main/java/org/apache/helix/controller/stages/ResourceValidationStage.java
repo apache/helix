@@ -28,6 +28,8 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +43,14 @@ public class ResourceValidationStage extends AbstractBaseStage {
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
     }
+
+    // Check if cluster is still in management mode. Eg. there exists any frozen live instance.
+    if (HelixUtil.inManagementMode(cache)) {
+      // Trigger an immediate management mode pipeline.
+      RebalanceUtil.enableManagementMode(event.getClusterName(), true);
+      throw new StageException("Pipeline should not be run because cluster is in management mode");
+    }
+
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     if (resourceMap == null) {
       throw new StageException("Resources must be computed prior to validation!");

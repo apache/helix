@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.controller.dataproviders;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,26 +19,9 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum ClusterEventType {
-  IdealStateChange,
-  CurrentStateChange,
-  TaskCurrentStateChange,
-  CustomizedStateChange,
-  ConfigChange,
-  ClusterConfigChange,
-  ResourceConfigChange,
-  InstanceConfigChange,
-  CustomizeStateConfigChange,
-  LiveInstanceChange,
-  MessageChange,
-  ExternalViewChange,
-  CustomizedViewChange,
-  TargetExternalViewChange,
-  Resume,
-  PeriodicalRebalance,
-  OnDemandRebalance,
-  ControllerChange,
-  RetryRebalance,
-  StateVerifier,
-  Unknown
+public class ManagementControllerDataProvider extends BaseControllerDataProvider {
+  // TODO: implement this class to only refresh required event types
+  public ManagementControllerDataProvider(String clusterName, String name) {
+    super(clusterName, name);
+  }
 }

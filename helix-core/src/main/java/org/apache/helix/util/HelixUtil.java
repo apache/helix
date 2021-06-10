@@ -38,6 +38,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -546,5 +547,16 @@ public final class HelixUtil {
     instanceConfig.setPort(port);
     instanceConfig.setInstanceEnabled(true);
     return instanceConfig;
+  }
+
+  /**
+   * Checks whether or not the cluster is in management mode.
+   *
+   * @param cache
+   * @return
+   */
+  public static boolean inManagementMode(BaseControllerDataProvider cache) {
+    // TODO: implement the logic. Parameters can also change
+    return true;
   }
 }

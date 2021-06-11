@@ -38,7 +38,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.common.PartitionStateMap;
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -59,6 +58,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -519,13 +519,20 @@ public final class HelixUtil {
   }
 
   /**
-   * Checks whether or not the cluster is in management mode.
+   * Checks whether or not the cluster is in management mode. It checks pause signal
+   * and live instances: whether any live instance is not in normal status, eg. frozen.
    *
-   * @param cache
-   * @return
+   * @param pauseSignal pause signal
+   * @param liveInstanceMap map of live instances
+   * @param enabledLiveInstances set of enabled live instance names. They should be all included
+   *                             in the liveInstanceMap.
+   * @return true if cluster is in management mode; otherwise, false
    */
-  public static boolean inManagementMode(BaseControllerDataProvider cache) {
-    // TODO: implement the logic. Parameters can also change
-    return true;
+  public static boolean inManagementMode(PauseSignal pauseSignal,
+      Map<String, LiveInstance> liveInstanceMap, Set<String> enabledLiveInstances) {
+    // Check pause signal and abnormal live instances (eg. in freeze mode)
+    // TODO: should check maintenance signal when moving maintenance to management pipeline
+    return pauseSignal != null || enabledLiveInstances.stream()
+        .anyMatch(instance -> liveInstanceMap.get(instance).getStatus() != null);
   }
 }

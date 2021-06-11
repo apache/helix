@@ -57,6 +57,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
@@ -87,6 +88,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   private boolean _updateInstanceOfflineTime = true;
   private MaintenanceSignal _maintenanceSignal;
+  private PauseSignal _pauseSignal;
   private boolean _isMaintenanceModeEnabled;
   private boolean _hasMaintenanceSignalChanged;
   private ExecutorService _asyncTasksThreadPool;
@@ -300,8 +302,9 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     }
   }
 
-  private void updateMaintenanceInfo(final HelixDataAccessor accessor) {
+  private void refreshManagementSignals(final HelixDataAccessor accessor) {
     _maintenanceSignal = accessor.getProperty(accessor.keyBuilder().maintenance());
+    _pauseSignal = accessor.getProperty(accessor.keyBuilder().pause());
     _isMaintenanceModeEnabled = _maintenanceSignal != null;
     // The following flag is to guarantee that there's only one update per pineline run because we
     // check for whether maintenance recovery could happen twice every pipeline
@@ -373,7 +376,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     refreshResourceConfig(accessor, refreshedTypes);
     _stateModelDefinitionCache.refresh(accessor);
     _clusterConstraintsCache.refresh(accessor);
-    updateMaintenanceInfo(accessor);
+    refreshManagementSignals(accessor);
     timeoutNodesDuringMaintenance(accessor, _clusterConfig, _isMaintenanceModeEnabled);
 
     // TODO: once controller gets split, only one controller should update offline instance history
@@ -966,6 +969,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
   public MaintenanceSignal getMaintenanceSignal() {
     return _maintenanceSignal;
+  }
+
+  public PauseSignal getPauseSignal() {
+    return _pauseSignal;
   }
 
   protected StringBuilder genCacheContentStringBuilder() {

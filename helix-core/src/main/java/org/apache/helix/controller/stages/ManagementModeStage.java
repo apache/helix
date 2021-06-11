@@ -19,9 +19,11 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
@@ -36,13 +38,30 @@ public class ManagementModeStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     // TODO: implement the stage
+    _eventId = event.getEventId();
     String clusterName = event.getClusterName();
+    ClusterStatusMonitor clusterStatusMonitor =
+        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
-    if (!HelixUtil.inManagementMode(cache)) {
-      LOG.info("Exiting management mode pipeline for cluster {}", clusterName);
+
+    checkInManagementMode(clusterStatusMonitor, clusterName, cache);
+  }
+
+  private void checkInManagementMode(ClusterStatusMonitor clusterStatusMonitor,
+      String clusterName, ManagementControllerDataProvider cache) throws StageException {
+    // Should exit management mode
+    if (!HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
+        cache.getEnabledLiveInstances())) {
+      LogUtil.logInfo(LOG, _eventId, "Exiting management mode pipeline for cluster " + clusterName);
+      clusterStatusMonitor.setEnabled(true);
+      clusterStatusMonitor.setPaused(false);
       RebalanceUtil.enableManagementMode(clusterName, false);
       throw new StageException("Exiting management mode pipeline for cluster " + clusterName);
     }
+
+    // Cluster is paused/frozen.
+    clusterStatusMonitor.setEnabled(false);
+    clusterStatusMonitor.setPaused(true);
   }
 }

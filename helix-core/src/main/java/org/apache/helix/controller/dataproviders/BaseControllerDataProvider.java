@@ -625,6 +625,16 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   }
 
   /**
+   * Gets all messages for each instance.
+   *
+   * @return Map of {instanceName -> Collection of Message}.
+   */
+  public Map<String, Collection<Message>> getAllInstancesMessages() {
+    return getAllInstances().stream().collect(
+        Collectors.toMap(instance -> instance, instance -> getMessages(instance).values()));
+  }
+
+  /**
    * This function is supposed to be only used by testing purpose for safety. For "get" usage,
    * please use getStaleMessagesByInstance.
    */

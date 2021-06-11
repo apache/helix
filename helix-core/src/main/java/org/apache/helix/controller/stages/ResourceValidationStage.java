@@ -90,16 +90,14 @@ public class ResourceValidationStage extends AbstractBaseStage {
   private void processManagementMode(ClusterEvent event, BaseControllerDataProvider cache)
       throws StageException {
     // Set cluster status monitor for maintenance mode
-    if (ClusterEventType.ControllerChange.equals(event.getEventType())) {
-      ClusterStatusMonitor monitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
-      if (monitor != null) {
-        monitor.setMaintenance(cache.isMaintenanceModeEnabled());
-      }
+    ClusterStatusMonitor monitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    if (monitor != null) {
+      monitor.setMaintenance(cache.isMaintenanceModeEnabled());
     }
 
     // Check if cluster is still in management mode. Eg. there exists any frozen live instance.
     if (HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
-        cache.getEnabledLiveInstances())) {
+        cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
       // Trigger an immediate management mode pipeline.
       LogUtil.logInfo(LOG, _eventId,
           "Enabling management mode pipeline for cluster " + event.getClusterName());

@@ -21,6 +21,7 @@ package org.apache.helix.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -519,20 +520,33 @@ public final class HelixUtil {
   }
 
   /**
-   * Checks whether or not the cluster is in management mode. It checks pause signal
-   * and live instances: whether any live instance is not in normal status, eg. frozen.
+   * Checks whether or not the cluster is in management mode. It checks:
+   * - pause signal
+   * - live instances: whether any live instance is not in normal status, eg. frozen.
+   * - messages: whether live instance has a participant status change message
    *
    * @param pauseSignal pause signal
    * @param liveInstanceMap map of live instances
    * @param enabledLiveInstances set of enabled live instance names. They should be all included
    *                             in the liveInstanceMap.
+   * @param instancesMessages a map of all instances' messages.
    * @return true if cluster is in management mode; otherwise, false
    */
   public static boolean inManagementMode(PauseSignal pauseSignal,
-      Map<String, LiveInstance> liveInstanceMap, Set<String> enabledLiveInstances) {
+      Map<String, LiveInstance> liveInstanceMap, Set<String> enabledLiveInstances,
+      Map<String, Collection<Message>> instancesMessages) {
     // Check pause signal and abnormal live instances (eg. in freeze mode)
     // TODO: should check maintenance signal when moving maintenance to management pipeline
-    return pauseSignal != null || enabledLiveInstances.stream()
-        .anyMatch(instance -> liveInstanceMap.get(instance).getStatus() != null);
+    return pauseSignal != null || enabledLiveInstances.stream().anyMatch(
+        instance -> isInstanceInManagementMode(instance, liveInstanceMap, instancesMessages));
+  }
+
+  private static boolean isInstanceInManagementMode(String instance,
+      Map<String, LiveInstance> liveInstanceMap,
+      Map<String, Collection<Message>> instancesMessages) {
+    // Check live instance status and participant status change message
+    return LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
+        || (instancesMessages.getOrDefault(instance, Collections.emptyList()).stream()
+        .anyMatch(Message::isParticipantStatusChangeType));
   }
 }

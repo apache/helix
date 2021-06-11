@@ -827,18 +827,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     // have this instanceof clauses
     List<Pipeline> pipelines;
     boolean isTaskFrameworkPipeline = false;
-    Pipeline.Type pipelineType;
+    boolean isManagementPipeline = false;
 
     if (dataProvider instanceof ResourceControllerDataProvider) {
       pipelines = _registry.getPipelinesForEvent(event.getEventType());
-      pipelineType = Pipeline.Type.DEFAULT;
     } else if (dataProvider instanceof WorkflowControllerDataProvider) {
       pipelines = _taskRegistry.getPipelinesForEvent(event.getEventType());
       isTaskFrameworkPipeline = true;
-      pipelineType = Pipeline.Type.TASK;
     } else if (dataProvider instanceof ManagementControllerDataProvider) {
       pipelines = _managementModeRegistry.getPipelinesForEvent(event.getEventType());
-      pipelineType = Pipeline.Type.MANAGEMENT_MODE;
+      isManagementPipeline = true;
     } else {
       logger.warn(String
           .format("No %s pipeline to run for event: %s::%s", dataProvider.getPipelineName(),
@@ -847,11 +845,10 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
     }
 
     // Should not run management mode and default/task pipelines at the same time.
-    if ((_inManagementMode && !Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType))
-        || (!_inManagementMode && Pipeline.Type.MANAGEMENT_MODE.equals(pipelineType))) {
+    if (_inManagementMode != isManagementPipeline) {
       logger.info("Should not run management mode and default/task pipelines at the same time. "
-              + "cluster={}, inManagementMode={}, pipelineType={}. Ignoring the event: {}",
-          manager.getClusterName(), _inManagementMode, pipelineType, event.getEventType());
+              + "cluster={}, inManagementMode={}, isManagementPipeline={}. Ignoring the event: {}",
+          manager.getClusterName(), _inManagementMode, isManagementPipeline, event.getEventType());
       return;
     }
 
@@ -871,6 +868,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           checkRebalancingTimer(manager, Collections.<IdealState>emptyList(), dataProvider.getClusterConfig());
         }
         if (_isMonitoring) {
+          _clusterStatusMonitor.setEnabled(!_inManagementMode);
+          _clusterStatusMonitor.setPaused(_inManagementMode);
           event.addAttribute(AttributeName.clusterStatusMonitor.name(), _clusterStatusMonitor);
         }
       }

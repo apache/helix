@@ -28,6 +28,7 @@ import org.apache.helix.HelixConstants;
  * Data provider for controller management mode pipeline.
  */
 public class ManagementControllerDataProvider extends BaseControllerDataProvider {
+  // Only these types of properties are refreshed for the full refresh request.
   private static final List<HelixConstants.ChangeType> FULL_REFRESH_PROPERTIES =
       Arrays.asList(HelixConstants.ChangeType.LIVE_INSTANCE, HelixConstants.ChangeType.MESSAGE);
 

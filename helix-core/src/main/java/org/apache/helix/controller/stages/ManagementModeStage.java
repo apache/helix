@@ -22,8 +22,6 @@ package org.apache.helix.controller.stages;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
-import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
@@ -40,28 +38,19 @@ public class ManagementModeStage extends AbstractBaseStage {
     // TODO: implement the stage
     _eventId = event.getEventId();
     String clusterName = event.getClusterName();
-    ClusterStatusMonitor clusterStatusMonitor =
-        event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
 
-    checkInManagementMode(clusterStatusMonitor, clusterName, cache);
+    // TODO: move to the last stage of management pipeline
+    checkInManagementMode(clusterName, cache);
   }
 
-  private void checkInManagementMode(ClusterStatusMonitor clusterStatusMonitor,
-      String clusterName, ManagementControllerDataProvider cache) throws StageException {
+  private void checkInManagementMode(String clusterName, ManagementControllerDataProvider cache) {
     // Should exit management mode
     if (!HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
-        cache.getEnabledLiveInstances())) {
+        cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
       LogUtil.logInfo(LOG, _eventId, "Exiting management mode pipeline for cluster " + clusterName);
-      clusterStatusMonitor.setEnabled(true);
-      clusterStatusMonitor.setPaused(false);
       RebalanceUtil.enableManagementMode(clusterName, false);
-      throw new StageException("Exiting management mode pipeline for cluster " + clusterName);
     }
-
-    // Cluster is paused/frozen.
-    clusterStatusMonitor.setEnabled(false);
-    clusterStatusMonitor.setPaused(true);
   }
 }

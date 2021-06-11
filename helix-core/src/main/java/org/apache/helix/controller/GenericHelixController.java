@@ -511,15 +511,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline(pipelineName);
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-      // Need to add MaintenanceRecoveryStage here because MAX_PARTITIONS_PER_INSTANCE check could
-      // only occur after IntermediateStateCalcStage calculation
-      rebalancePipeline.addStage(new MaintenanceRecoveryStage());
       rebalancePipeline.addStage(new MessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
       // The IntermediateStateCalcStage should be applied after message selection
       // Messages are throttled already removed by IntermediateStateCalcStage in MessageSelection output
       rebalancePipeline.addStage(new IntermediateStateCalcStage());
       rebalancePipeline.addStage(new MessageThrottleStage());
+      // Need to add MaintenanceRecoveryStage here because MAX_PARTITIONS_PER_INSTANCE check could
+      // only occur after IntermediateStateCalcStage calculation and MessageThrottleStage. We will have
+      // IntermediateStateCalcStage merged with MessageThrottleStage eventually.
+      rebalancePipeline.addStage(new MaintenanceRecoveryStage());
       rebalancePipeline.addStage(new ResourceMessageDispatchStage());
       rebalancePipeline.addStage(new PersistAssignmentStage());
       rebalancePipeline.addStage(new TargetExteralViewCalcStage());

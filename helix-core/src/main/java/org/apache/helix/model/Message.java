@@ -59,6 +59,7 @@ public class Message extends HelixProperty {
     NO_OP,
     PARTICIPANT_ERROR_REPORT,
     PARTICIPANT_SESSION_CHANGE,
+    PARTICIPANT_STATUS_CHANGE,
     CHAINED_MESSAGE, // this is a message subtype
     RELAYED_MESSAGE
   }
@@ -925,6 +926,10 @@ public class Message extends HelixProperty {
    */
   public boolean isControlerMsg() {
     return getTgtName().equalsIgnoreCase(InstanceType.CONTROLLER.name());
+  }
+
+  public boolean isParticipantStatusChangeType() {
+    return MessageType.PARTICIPANT_STATUS_CHANGE.name().equalsIgnoreCase(getMsgType());
   }
 
   /**

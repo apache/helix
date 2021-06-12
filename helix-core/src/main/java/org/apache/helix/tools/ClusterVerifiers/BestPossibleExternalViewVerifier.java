@@ -415,7 +415,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
    */
   private BestPossibleStateOutput calcBestPossState(ResourceControllerDataProvider cache, Set<String> resources)
       throws Exception {
-    ClusterEvent event = new ClusterEvent(ClusterEventType.StateVerifier);
+    ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.StateVerifier);
     event.addAttribute(AttributeName.ControllerDataProvider.name(), cache);
 
     RebalanceUtil.runStage(event, new ResourceComputationStage());

@@ -19,9 +19,27 @@ package org.apache.helix.controller.dataproviders;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.helix.HelixConstants;
+
+/**
+ * Data provider for controller management mode pipeline.
+ */
 public class ManagementControllerDataProvider extends BaseControllerDataProvider {
-  // TODO: implement this class to only refresh required event types
-  public ManagementControllerDataProvider(String clusterName, String name) {
-    super(clusterName, name);
+  // Only these types of properties are refreshed for the full refresh request.
+  private static final List<HelixConstants.ChangeType> FULL_REFRESH_PROPERTIES =
+      Arrays.asList(HelixConstants.ChangeType.LIVE_INSTANCE, HelixConstants.ChangeType.MESSAGE);
+
+  public ManagementControllerDataProvider(String clusterName, String pipelineName) {
+    super(clusterName, pipelineName);
+  }
+
+  @Override
+  public void requireFullRefresh() {
+    for (HelixConstants.ChangeType type : FULL_REFRESH_PROPERTIES) {
+      _propertyDataChangedMap.get(type).set(true);
+    }
   }
 }

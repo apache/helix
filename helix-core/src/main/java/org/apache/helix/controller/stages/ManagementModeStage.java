@@ -19,9 +19,9 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
-import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
@@ -36,13 +36,21 @@ public class ManagementModeStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     // TODO: implement the stage
+    _eventId = event.getEventId();
     String clusterName = event.getClusterName();
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
-    if (!HelixUtil.inManagementMode(cache)) {
-      LOG.info("Exiting management mode pipeline for cluster {}", clusterName);
+
+    // TODO: move to the last stage of management pipeline
+    checkInManagementMode(clusterName, cache);
+  }
+
+  private void checkInManagementMode(String clusterName, ManagementControllerDataProvider cache) {
+    // Should exit management mode
+    if (!HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
+        cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
+      LogUtil.logInfo(LOG, _eventId, "Exiting management mode pipeline for cluster " + clusterName);
       RebalanceUtil.enableManagementMode(clusterName, false);
-      throw new StageException("Exiting management mode pipeline for cluster " + clusterName);
     }
   }
 }

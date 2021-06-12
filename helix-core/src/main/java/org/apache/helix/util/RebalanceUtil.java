@@ -159,8 +159,8 @@ public class RebalanceUtil {
           enabled);
       leaderController.setInManagementMode(enabled);
     } else {
-      LOG.error("Failed to switch management mode pipeline, enabled={}. "
-          + "Controller for cluster {} does not exist", clusterName, enabled);
+      throw new HelixException(String.format("Failed to switch management mode pipeline, "
+          + "enabled=%s. Controller for cluster %s does not exist", enabled, clusterName));
     }
 
     // Triggers an event to immediately run the pipeline

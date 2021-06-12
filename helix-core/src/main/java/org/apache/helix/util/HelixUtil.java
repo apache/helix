@@ -21,6 +21,7 @@ package org.apache.helix.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +39,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyType;
 import org.apache.helix.controller.common.PartitionStateMap;
-import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.dataproviders.ResourceControllerDataProvider;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
@@ -60,6 +60,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -550,13 +551,33 @@ public final class HelixUtil {
   }
 
   /**
-   * Checks whether or not the cluster is in management mode.
+   * Checks whether or not the cluster is in management mode. It checks:
+   * - pause signal
+   * - live instances: whether any live instance is not in normal status, eg. frozen.
+   * - messages: whether live instance has a participant status change message
    *
-   * @param cache
-   * @return
+   * @param pauseSignal pause signal
+   * @param liveInstanceMap map of live instances
+   * @param enabledLiveInstances set of enabled live instance names. They should be all included
+   *                             in the liveInstanceMap.
+   * @param instancesMessages a map of all instances' messages.
+   * @return true if cluster is in management mode; otherwise, false
    */
-  public static boolean inManagementMode(BaseControllerDataProvider cache) {
-    // TODO: implement the logic. Parameters can also change
-    return true;
+  public static boolean inManagementMode(PauseSignal pauseSignal,
+      Map<String, LiveInstance> liveInstanceMap, Set<String> enabledLiveInstances,
+      Map<String, Collection<Message>> instancesMessages) {
+    // Check pause signal and abnormal live instances (eg. in freeze mode)
+    // TODO: should check maintenance signal when moving maintenance to management pipeline
+    return pauseSignal != null || enabledLiveInstances.stream().anyMatch(
+        instance -> isInstanceInManagementMode(instance, liveInstanceMap, instancesMessages));
+  }
+
+  private static boolean isInstanceInManagementMode(String instance,
+      Map<String, LiveInstance> liveInstanceMap,
+      Map<String, Collection<Message>> instancesMessages) {
+    // Check live instance status and participant status change message
+    return LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
+        || (instancesMessages.getOrDefault(instance, Collections.emptyList()).stream()
+        .anyMatch(Message::isParticipantStatusChangeType));
   }
 }

@@ -28,6 +28,7 @@ import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.slf4j.Logger;
@@ -44,12 +45,7 @@ public class ResourceValidationStage extends AbstractBaseStage {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
     }
 
-    // Check if cluster is still in management mode. Eg. there exists any frozen live instance.
-    if (HelixUtil.inManagementMode(cache)) {
-      // Trigger an immediate management mode pipeline.
-      RebalanceUtil.enableManagementMode(event.getClusterName(), true);
-      throw new StageException("Pipeline should not be run because cluster is in management mode");
-    }
+    processManagementMode(event, cache);
 
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     if (resourceMap == null) {
@@ -88,6 +84,27 @@ public class ResourceValidationStage extends AbstractBaseStage {
                 + ", but it is not on the cluster!");
         resourceMap.remove(resourceName);
       }
+    }
+  }
+
+  private void processManagementMode(ClusterEvent event, BaseControllerDataProvider cache)
+      throws StageException {
+    // Set cluster status monitor for maintenance mode
+    ClusterStatusMonitor monitor = event.getAttribute(AttributeName.clusterStatusMonitor.name());
+    if (monitor != null) {
+      monitor.setMaintenance(cache.isMaintenanceModeEnabled());
+    }
+
+    // Check if cluster is still in management mode. Eg. there exists any frozen live instance.
+    if (HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
+        cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
+      // Trigger an immediate management mode pipeline.
+      LogUtil.logInfo(LOG, _eventId,
+          "Enabling management mode pipeline for cluster " + event.getClusterName());
+      RebalanceUtil.enableManagementMode(event.getClusterName(), true);
+      throw new StageException(
+          "Pipeline should not be run because cluster " + event.getClusterName()
+              + "is in management mode");
     }
   }
 

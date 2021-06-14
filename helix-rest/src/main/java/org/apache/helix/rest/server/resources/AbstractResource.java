@@ -131,7 +131,6 @@ public class AbstractResource {
   }
 
   protected Response OKWithHeader(Object entity, String headerName, Object headerValue) {
-
     return Response.ok(entity).header(headerName, headerValue).build();
   }
 

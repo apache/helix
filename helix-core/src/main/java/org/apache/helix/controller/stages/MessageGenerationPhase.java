@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -45,8 +44,6 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Message.MessageState;
-import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
@@ -212,10 +209,12 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
         if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
           if (shouldCreateSTCancellation(pendingMessage, desiredState,
               stateModelDef.getInitialState())) {
-            message = MessageUtil.createStateTransitionCancellationMessage(manager, resource,
-                partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-                stateModelDef.getId(), pendingMessage.getFromState(), pendingMessage.getToState(),
-                null, cancellationMessage, isCancellationEnabled, currentState);
+            message = MessageUtil
+                .createStateTransitionCancellationMessage(manager.getInstanceName(),
+                    manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+                    sessionIdMap.get(instanceName), stateModelDef.getId(),
+                    pendingMessage.getFromState(), pendingMessage.getToState(), null,
+                    cancellationMessage, isCancellationEnabled, currentState);
           }
         } else {
           if (nextState == null) {
@@ -234,9 +233,9 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
           } else {
             // Create new state transition message
             message = MessageUtil
-                .createStateTransitionMessage(manager, resource, partition.getPartitionName(),
-                    instanceName, currentState, nextState, sessionIdMap.get(instanceName),
-                    stateModelDef.getId());
+                .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
+                    resource, partition.getPartitionName(), instanceName, currentState, nextState,
+                    sessionIdMap.get(instanceName), stateModelDef.getId());
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
@@ -329,10 +328,10 @@ public abstract class MessageGenerationPhase extends AbstractBaseStage {
                 + instanceName + ", pendingState: " + pendingState + ", currentState: "
                 + currentState + ", nextState: " + nextState + ", isRelay: " + pendingMessage.isRelayMessage());
 
-        message = MessageUtil.createStateTransitionCancellationMessage(manager, resource,
-            partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-            stateModelDef.getId(), pendingMessage.getFromState(), pendingState, nextState,
-            cancellationMessage, isCancellationEnabled, currentState);
+        message = MessageUtil.createStateTransitionCancellationMessage(manager.getInstanceName(),
+            manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+            sessionIdMap.get(instanceName), stateModelDef.getId(), pendingMessage.getFromState(),
+            pendingState, nextState, cancellationMessage, isCancellationEnabled, currentState);
       }
     }
     return message;

@@ -21,7 +21,6 @@ package org.apache.helix.util;
 
 import java.util.UUID;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Resource;
@@ -37,10 +36,11 @@ public class MessageUtil {
   // TODO: Make the message retry count configurable through the Cluster Config or IdealStates.
   public final static int DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT = 3;
 
-  public static Message createStateTransitionCancellationMessage(HelixManager manager,
-      Resource resource, String partitionName, String instanceName, String sessionId,
-      String stateModelDefName, String fromState, String toState, String nextState,
-      Message cancellationMessage, boolean isCancellationEnabled, String currentState) {
+  public static Message createStateTransitionCancellationMessage(String srcInstanceName,
+      String srcSessionId, Resource resource, String partitionName, String instanceName,
+      String sessionId, String stateModelDefName, String fromState, String toState,
+      String nextState, Message cancellationMessage, boolean isCancellationEnabled,
+      String currentState) {
     if (isCancellationEnabled && cancellationMessage == null) {
       LOG.info("Create cancellation message of the state transition for {}.{} on {}, "
               + "currentState: {}, nextState: {},  toState: {}", resource.getResourceName(),
@@ -48,9 +48,9 @@ public class MessageUtil {
           toState);
 
       Message message =
-          createStateTransitionMessage(Message.MessageType.STATE_TRANSITION_CANCELLATION, manager,
-              resource, partitionName, instanceName, currentState, nextState, sessionId,
-              stateModelDefName);
+          createStateTransitionMessage(Message.MessageType.STATE_TRANSITION_CANCELLATION,
+              srcInstanceName, srcSessionId, resource, partitionName, instanceName, currentState,
+              nextState, sessionId, stateModelDefName);
 
       message.setFromState(fromState);
       message.setToState(toState);
@@ -60,12 +60,13 @@ public class MessageUtil {
     return null;
   }
 
-  public static Message createStateTransitionMessage(HelixManager manager, Resource resource,
-      String partitionName, String instanceName, String currentState, String nextState,
-      String sessionId, String stateModelDefName) {
+  public static Message createStateTransitionMessage(String srcInstanceName, String srcSessionId,
+      Resource resource, String partitionName, String instanceName, String currentState,
+      String nextState, String tgtSessionId, String stateModelDefName) {
     Message message =
-        createStateTransitionMessage(Message.MessageType.STATE_TRANSITION, manager, resource,
-            partitionName, instanceName, currentState, nextState, sessionId, stateModelDefName);
+        createStateTransitionMessage(Message.MessageType.STATE_TRANSITION, srcInstanceName,
+            srcSessionId, resource, partitionName, instanceName, currentState, nextState, tgtSessionId,
+            stateModelDefName);
 
     // Set the retry count for state transition messages.
     // TODO: make the retry count configurable in ClusterConfig or IdealState
@@ -87,43 +88,46 @@ public class MessageUtil {
    *
    * @param currentState current status of the live instance
    * @param nextState next status that will be changed to
-   * @param manager Helix manager
-   * @param instanceName target instance name
-   * @param sessionId target instance session id
+   * @param srcInstanceName source instance name
+   * @param srcSessionId session id for the source instance
+   * @param tgtInstanceName target instance name
+   * @param tgtSessionId target instance session id
    * @return participant status change message
    */
   public static Message createStatusChangeMessage(LiveInstance.LiveInstanceStatus currentState,
-      LiveInstance.LiveInstanceStatus nextState, HelixManager manager, String instanceName,
-      String sessionId) {
-    return createBasicMessage(Message.MessageType.PARTICIPANT_STATUS_CHANGE, manager, instanceName,
-        currentState.toString(), nextState.name(), sessionId);
+      LiveInstance.LiveInstanceStatus nextState, String srcInstanceName, String srcSessionId,
+      String tgtInstanceName, String tgtSessionId) {
+    return createBasicMessage(Message.MessageType.PARTICIPANT_STATUS_CHANGE, srcInstanceName,
+        srcSessionId, tgtInstanceName, tgtSessionId, currentState.name(), nextState.name());
   }
 
   /* Creates a message that that has the least required fields. */
-  private static Message createBasicMessage(Message.MessageType messageType, HelixManager manager,
-      String instanceName, String currentState, String nextState, String sessionId) {
+  private static Message createBasicMessage(Message.MessageType messageType, String srcInstanceName,
+      String srcSessionId, String tgtInstanceName, String tgtSessionId, String currentState,
+      String nextState) {
     String uuid = UUID.randomUUID().toString();
-    String managerSessionId = manager.getSessionId();
 
     Message message = new Message(messageType, uuid);
-    message.setSrcName(manager.getInstanceName());
-    message.setTgtName(instanceName);
+    message.setSrcName(srcInstanceName);
+    message.setTgtName(tgtInstanceName);
     message.setMsgState(Message.MessageState.NEW);
     message.setFromState(currentState);
     message.setToState(nextState);
-    message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(managerSessionId);
-    message.setExpectedSessionId(managerSessionId);
+    message.setTgtSessionId(tgtSessionId);
+    message.setSrcSessionId(srcSessionId);
+    message.setExpectedSessionId(srcSessionId);
 
     return message;
   }
 
   /* Creates state transition or state transition cancellation message */
   private static Message createStateTransitionMessage(Message.MessageType messageType,
-      HelixManager manager, Resource resource, String partitionName, String instanceName,
-      String currentState, String nextState, String sessionId, String stateModelDefName) {
+      String srcInstanceName, String srcSessionId, Resource resource, String partitionName,
+      String instanceName, String currentState, String nextState, String tgtSessionId,
+      String stateModelDefName) {
     Message message =
-        createBasicMessage(messageType, manager, instanceName, currentState, nextState, sessionId);
+        createBasicMessage(messageType, srcInstanceName, srcSessionId, instanceName, tgtSessionId,
+            currentState, nextState);
     message.setPartitionName(partitionName);
     message.setStateModelDef(stateModelDefName);
     message.setResourceName(resource.getResourceName());

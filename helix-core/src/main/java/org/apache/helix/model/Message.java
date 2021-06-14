@@ -82,6 +82,7 @@ public class Message extends HelixProperty {
     RESOURCE_TAG,
     FROM_STATE,
     TO_STATE,
+    TO_STATUS,
     STATE_MODEL_DEF,
     CREATE_TIMESTAMP,
     COMPLETION_DUE_TIMESTAMP,
@@ -414,6 +415,10 @@ public class Message extends HelixProperty {
    */
   public String getToState() {
     return _record.getSimpleField(Attributes.TO_STATE.toString());
+  }
+
+  public void setToStatus(LiveInstance.LiveInstanceStatus status) {
+    _record.setEnumField(Attributes.TO_STATUS.name(), status);
   }
 
   /**

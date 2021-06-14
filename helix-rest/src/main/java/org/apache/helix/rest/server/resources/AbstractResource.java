@@ -130,6 +130,11 @@ public class AbstractResource {
     return Response.ok().build();
   }
 
+  protected Response OKWithHeader(Object entity, String headerName, Object headerValue) {
+
+    return Response.ok(entity).header(headerName, headerValue).build();
+  }
+
   protected Response created() {
     return Response.status(Response.Status.CREATED).build();
   }
@@ -154,6 +159,16 @@ public class AbstractResource {
     try {
       String jsonStr = toJson(entity);
       return OK(jsonStr);
+    } catch (IOException e) {
+      _logger.error("Failed to convert " + entity + " to JSON response", e);
+      return serverError();
+    }
+  }
+
+  protected Response JSONRepresentation(Object entity, String headerName, Object headerValue) {
+    try {
+      String jsonStr = toJson(entity);
+      return OKWithHeader(jsonStr, headerName, headerValue);
     } catch (IOException e) {
       _logger.error("Failed to convert " + entity + " to JSON response", e);
       return serverError();

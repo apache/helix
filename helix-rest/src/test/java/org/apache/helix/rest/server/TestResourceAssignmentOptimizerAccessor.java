@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,6 +35,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.rest.server.resources.helix.ResourceAssignmentOptimizerAccessor;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -90,23 +92,32 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     String payload = "{\"InstanceChange\" : { \"AddInstances\" : [\"" + instance1
         + "\"], \"RemoveInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
         + swapOldInstance + "\" : \"" + swapNewInstance + "\"} }}  ";
-    String body = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
+    Response response = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true);
     Map<String, Map<String, Map<String, String>>> resourceAssignments = OBJECT_MAPPER
-        .readValue(body, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
-        });
+        .readValue(response.readEntity(String.class),
+            new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
+            });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
     Assert.assertTrue(hostSet.contains(instance1));
     Assert.assertTrue(hostSet.contains(swapNewInstance));
     Assert.assertFalse(hostSet.contains(liveInstances.get(0)));
     Assert.assertFalse(hostSet.contains(liveInstances.get(1)));
+    // Validate header
+    MultivaluedMap<String, Object> headers = response.getHeaders();
+    Assert.assertTrue(headers.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
+    Assert.assertFalse(
+        headers.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
+    Assert.assertEquals(headers.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).get(0),
+        "{instanceFilter=[], resourceFilter=[], returnFormat=IdealStateFormat}");
 
-    // Test partitionAssignment host filter
+    // Test partitionAssignment InstanceFilter
     String payload2 = "{\"Options\" : { \"InstanceFilter\" : [\"" + liveInstances.get(0) + "\" , \""
         + liveInstances.get(1) + "\"] }}  ";
-    String body2 = post(urlBase, null, Entity.entity(payload2, MediaType.APPLICATION_JSON_TYPE),
+    Response response2 = post(urlBase, null, Entity.entity(payload2, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true);
+    String body2 = response2.readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments2 = OBJECT_MAPPER
         .readValue(body2, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
@@ -115,43 +126,93 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Assert.assertEquals(hostSet2.size(), 2);
     Assert.assertTrue(hostSet2.contains(liveInstances.get(0)));
     Assert.assertTrue(hostSet2.contains(liveInstances.get(1)));
+    // Validate header
+    MultivaluedMap<String, Object> headers2 = response2.getHeaders();
+    Assert
+        .assertTrue(headers2.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
+    List partitionAssignmentMetadata2 =
+        headers2.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
+    Assert.assertFalse(
+        headers2.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
+    Assert.assertTrue(
+        partitionAssignmentMetadata2.get(0).equals(
+            "{instanceFilter=[" + liveInstances.get(0) + ", " + liveInstances.get(1)
+            + "], resourceFilter=[], returnFormat=IdealStateFormat}") ||
+        partitionAssignmentMetadata2.get(0).equals(
+            "{instanceFilter=[" + liveInstances.get(1) + ", " + liveInstances.get(0)
+                + "], resourceFilter=[], returnFormat=IdealStateFormat}"),
+        partitionAssignmentMetadata2.get(0).toString());
 
+    // Test partitionAssignment ResourceFilter
     String payload3 =
         "{\"Options\" : { \"ResourceFilter\" : [\"" + resources.get(0) + "\" , \"" + resources
             .get(1) + "\"] }}  ";
-    String body3 = post(urlBase, null, Entity.entity(payload3, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode(), true);
+    Response response3 =
+        post(urlBase, null, Entity.entity(payload3, MediaType.APPLICATION_JSON_TYPE),
+            Response.Status.OK.getStatusCode(), true);
+    String body3 = response3.readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments3 = OBJECT_MAPPER
         .readValue(body3, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
     Assert.assertEquals(resourceAssignments3.size(), 2);
     Assert.assertTrue(resourceAssignments3.containsKey(resources.get(0)));
     Assert.assertTrue(resourceAssignments3.containsKey(resources.get(1)));
+    // Validate header
+    MultivaluedMap<String, Object> headers3 = response3.getHeaders();
+    Assert
+        .assertTrue(headers3.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
+    List partitionAssignmentMetadata3 =
+        headers3.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
+    Assert.assertFalse(
+        headers3.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
+    Assert.assertTrue(
+        partitionAssignmentMetadata3.get(0).equals(
+            "{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)
+                + "], returnFormat=IdealStateFormat}") ||
+        partitionAssignmentMetadata3.get(0).equals(
+                "{instanceFilter=[], resourceFilter=[" + resources.get(1) + ", " + resources.get(0)
+                    + "], returnFormat=IdealStateFormat}"),
+        partitionAssignmentMetadata3.get(0).toString());
 
-    // Test Option CurrentState format
-    // Test AddInstances, RemoveInstances and SwapInstances
+    // Test Option CurrentState format with AddInstances, RemoveInstances and SwapInstances
     String payload4 = "{\"InstanceChange\" : { \"AddInstances\" : [\"" + instance1
         + "\"], \"RemoveInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
         + swapOldInstance + "\" : \"" + swapNewInstance
         + "\"} }, \"Options\" : { \"ReturnFormat\" : \"CurrentStateFormat\" , \"ResourceFilter\" : [\""
         + resources.get(0) + "\" , \"" + resources.get(1) + "\"]} } ";
-    String body4 = post(urlBase, null, Entity.entity(payload4, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode(), true);
+    Response response4 =
+        post(urlBase, null, Entity.entity(payload4, MediaType.APPLICATION_JSON_TYPE),
+            Response.Status.OK.getStatusCode(), true);
+    String body4 = response4.readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments4 = OBJECT_MAPPER
         .readValue(body4, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
     // Validate outer map key is instance
     Set<String> resource4 = new HashSet<>();
-    resourceAssignments4.forEach((k, v)  -> v.forEach((kk, vv) -> resource4.add(kk)));
+    resourceAssignments4.forEach((k, v) -> v.forEach((kk, vv) -> resource4.add(kk)));
     Assert.assertTrue(resource4.contains(resources.get(0)));
     Assert.assertTrue(resource4.contains(resources.get(1)));
-
     // First inner map key is resource
     Assert.assertTrue(resourceAssignments4.containsKey(instance1));
     Assert.assertTrue(resourceAssignments4.containsKey(swapNewInstance));
     Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(0)));
     Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(1)));
-
+    // Validate header
+    MultivaluedMap<String, Object> headers4 = response4.getHeaders();
+    Assert
+        .assertTrue(headers4.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
+    List partitionAssignmentMetadata4 =
+        headers4.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY);
+    Assert.assertFalse(
+        headers4.get(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY).isEmpty());
+    Assert.assertTrue(
+        partitionAssignmentMetadata4.get(0).equals(
+            "{instanceFilter=[], resourceFilter=[" + resources.get(0) + ", " + resources.get(1)
+                + "], returnFormat=CurrentStateFormat}") ||
+        partitionAssignmentMetadata4.get(0).equals(
+                "{instanceFilter=[], resourceFilter=[" + resources.get(1) + ", " + resources.get(0)
+                    + "], returnFormat=CurrentStateFormat}"),
+        partitionAssignmentMetadata4.get(0).toString());
 
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
@@ -174,7 +235,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         + "\"], \"RemoveInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
         + swapOldInstance + "\" : \"" + swapNewInstance + "\"} }}  ";
     String body = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode(), true);
+        Response.Status.OK.getStatusCode(), true).readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments = OBJECT_MAPPER
         .readValue(body, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
@@ -189,7 +250,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     String payload2 = "{\"Options\" : { \"InstanceFilter\" : [\"" + liveInstances.get(0) + "\" , \""
         + liveInstances.get(1) + "\"] }}  ";
     String body2 = post(urlBase, null, Entity.entity(payload2, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode(), true);
+        Response.Status.OK.getStatusCode(), true).readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments2 = OBJECT_MAPPER
         .readValue(body2, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
@@ -203,7 +264,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         "{\"Options\" : { \"ResourceFilter\" : [\"" + resources.get(0) + "\" , \"" + resources
             .get(1) + "\"] }}  ";
     String body3 = post(urlBase, null, Entity.entity(payload3, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.OK.getStatusCode(), true);
+        Response.Status.OK.getStatusCode(), true).readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments3 = OBJECT_MAPPER
         .readValue(body3, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });

@@ -37,6 +37,7 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.util.MessageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -122,7 +123,7 @@ public class TestStateTransitionAppFailureHandling extends ZkStandAloneCMTestBas
       // Check if the factory has tried enough times before fail the message.
       Assert.assertEquals(retryCountUntilSucceed - retryFactoryMap.get(instanceName)
           .getRemainingRetryCountUntilSucceed(), instanceMessages.size()
-          * MessageGenerationPhase.DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT);
+          * MessageUtil.DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT);
     }
 
     // Verify that the partition is not initialized.
@@ -146,7 +147,7 @@ public class TestStateTransitionAppFailureHandling extends ZkStandAloneCMTestBas
     // Make the mock StateModelFactory return handler before last retry. So it will successfully
     // finish handler initialization.
     int retryCountUntilSucceed =
-        MessageGenerationPhase.DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT - 1;
+        MessageUtil.DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT - 1;
     Map<String, RetryStateModelFactory> retryFactoryMap = resetParticipants(retryCountUntilSucceed);
 
     _gSetupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);

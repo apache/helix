@@ -65,8 +65,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       org.apache.helix.rest.server.resources.helix.ResourceAssignmentOptimizerAccessor.class
           .getName());
 
-  private static String RESPONSE_HEADER_KEY = "Setting";
-  private static String[] RESPONSE_HEADER_FIELDS =
+  public static String RESPONSE_HEADER_KEY = "Setting";
+  public static String[] RESPONSE_HEADER_FIELDS =
       new String[]{"instanceFilter", "resourceFilter", "returnFormat"};
 
   private static class InputFields {
@@ -376,7 +376,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   }
 
   private Map<String,Object> buildResponseHeaders(InputFields inputFields) {
-    Map<String,Object> headers= new HashMap<>();
+    Map<String, Object> headers= new HashMap<>();
     headers.put(RESPONSE_HEADER_FIELDS[0], inputFields.instanceFilter);
     headers.put(RESPONSE_HEADER_FIELDS[1], inputFields.resourceFilter);
     headers.put(RESPONSE_HEADER_FIELDS[2], inputFields.returnFormat.name());

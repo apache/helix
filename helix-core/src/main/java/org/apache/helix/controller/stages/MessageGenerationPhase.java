@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -45,13 +44,12 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Message.MessageState;
-import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.MessageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +68,6 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       .getSystemPropertyAsLong(SystemPropertyKeys.CONTROLLER_MESSAGE_PURGE_DELAY, 60 * 1000);
   private final static String PENDING_MESSAGE = "pending message";
   private final static String STALE_MESSAGE = "stale message";
-  // TODO: Make the message retry count configurable through the Cluster Config or IdealStates.
-  public final static int DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT = 3;
 
   private static Logger logger = LoggerFactory.getLogger(MessageGenerationPhase.class);
 
@@ -215,10 +211,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         if (desiredState.equals(NO_DESIRED_STATE) || desiredState.equalsIgnoreCase(currentState)) {
           if (shouldCreateSTCancellation(pendingMessage, desiredState,
               stateModelDef.getInitialState())) {
-            message = createStateTransitionCancellationMessage(manager, resource,
-                partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-                stateModelDef.getId(), pendingMessage.getFromState(), pendingMessage.getToState(),
-                null, cancellationMessage, isCancellationEnabled, currentState);
+            message = MessageUtil
+                .createStateTransitionCancellationMessage(manager.getInstanceName(),
+                    manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+                    sessionIdMap.get(instanceName), stateModelDef.getId(),
+                    pendingMessage.getFromState(), pendingMessage.getToState(), null,
+                    cancellationMessage, isCancellationEnabled, currentState);
           }
         } else {
           if (nextState == null) {
@@ -236,9 +234,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     cancellationMessage, isCancellationEnabled);
           } else {
             // Create new state transition message
-            message = createStateTransitionMessage(manager, resource, partition.getPartitionName(),
-                instanceName, currentState, nextState, sessionIdMap.get(instanceName),
-                stateModelDef.getId());
+            message = MessageUtil
+                .createStateTransitionMessage(manager.getInstanceName(), manager.getSessionId(),
+                    resource, partition.getPartitionName(), instanceName, currentState, nextState,
+                    sessionIdMap.get(instanceName), stateModelDef.getId());
 
             if (logger.isDebugEnabled()) {
               LogUtil.logDebug(logger, _eventId, String.format(
@@ -331,10 +330,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                 + instanceName + ", pendingState: " + pendingState + ", currentState: "
                 + currentState + ", nextState: " + nextState + ", isRelay: " + pendingMessage.isRelayMessage());
 
-        message = createStateTransitionCancellationMessage(manager, resource,
-            partition.getPartitionName(), instanceName, sessionIdMap.get(instanceName),
-            stateModelDef.getId(), pendingMessage.getFromState(), pendingState, nextState,
-            cancellationMessage, isCancellationEnabled, currentState);
+        message = MessageUtil.createStateTransitionCancellationMessage(manager.getInstanceName(),
+            manager.getSessionId(), resource, partition.getPartitionName(), instanceName,
+            sessionIdMap.get(instanceName), stateModelDef.getId(), pendingMessage.getFromState(),
+            pendingState, nextState, cancellationMessage, isCancellationEnabled, currentState);
       }
     }
     return message;
@@ -415,72 +414,6 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       // the message is invalid and can be safely deleted immediately.
       return !currentState.equalsIgnoreCase(pendingMsg.getFromState());
     }
-  }
-
-  private Message createStateTransitionMessage(HelixManager manager, Resource resource,
-      String partitionName, String instanceName, String currentState, String nextState,
-      String sessionId, String stateModelDefName) {
-    String uuid = UUID.randomUUID().toString();
-    String managerSessionId = manager.getSessionId();
-    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
-    message.setSrcName(manager.getInstanceName());
-    message.setTgtName(instanceName);
-    message.setMsgState(MessageState.NEW);
-    message.setPartitionName(partitionName);
-    message.setResourceName(resource.getResourceName());
-    message.setFromState(currentState);
-    message.setToState(nextState);
-    message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(managerSessionId);
-    message.setExpectedSessionId(managerSessionId);
-    message.setStateModelDef(stateModelDefName);
-    message.setStateModelFactoryName(resource.getStateModelFactoryname());
-    message.setBucketSize(resource.getBucketSize());
-    // Set the retry count for state transition messages.
-    // TODO: make the retry count configurable in ClusterConfig or IdealState
-    message.setRetryCount(DEFAULT_STATE_TRANSITION_MESSAGE_RETRY_COUNT);
-
-    if (resource.getResourceGroupName() != null) {
-      message.setResourceGroupName(resource.getResourceGroupName());
-    }
-    if (resource.getResourceTag() != null) {
-      message.setResourceTag(resource.getResourceTag());
-    }
-
-    return message;
-  }
-
-  private Message createStateTransitionCancellationMessage(HelixManager manager, Resource resource,
-      String partitionName, String instanceName, String sessionId, String stateModelDefName,
-      String fromState, String toState, String nextState, Message cancellationMessage,
-      boolean isCancellationEnabled, String currentState) {
-
-    if (isCancellationEnabled && cancellationMessage == null) {
-      logger.info("Event {} : Send cancellation message of the state transition for {}.{} on {}, "
-              + "currentState: {}, nextState: {},  toState: {}",
-          _eventId, resource.getResourceName(), partitionName, instanceName,
-          currentState, nextState == null ? "N/A" : nextState, toState);
-
-      String uuid = UUID.randomUUID().toString();
-      String managerSessionId = manager.getSessionId();
-      Message message = new Message(MessageType.STATE_TRANSITION_CANCELLATION, uuid);
-      message.setSrcName(manager.getInstanceName());
-      message.setTgtName(instanceName);
-      message.setMsgState(MessageState.NEW);
-      message.setPartitionName(partitionName);
-      message.setResourceName(resource.getResourceName());
-      message.setFromState(fromState);
-      message.setToState(toState);
-      message.setTgtSessionId(sessionId);
-      message.setSrcSessionId(managerSessionId);
-      message.setExpectedSessionId(managerSessionId);
-      message.setStateModelDef(stateModelDefName);
-      message.setStateModelFactoryName(resource.getStateModelFactoryname());
-      message.setBucketSize(resource.getBucketSize());
-      return message;
-    }
-
-    return null;
   }
 
   private int getTimeOut(ClusterConfig clusterConfig, ResourceConfig resourceConfig,

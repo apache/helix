@@ -19,8 +19,14 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.LogUtil;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Resource;
@@ -135,5 +141,46 @@ public class MessageUtil {
     message.setBucketSize(resource.getBucketSize());
 
     return message;
+  }
+
+  public static List<Message> sendMessages(HelixDataAccessor accessor, List<Message> messages,
+      String eventId) {
+    if (messages.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    java.util.List<Message> messagesSent = new ArrayList<>();
+    List<PropertyKey> keys = new ArrayList<>(messages.size());
+
+    for (Message message : messages) {
+      LogUtil.logInfo(LOG, eventId,
+          "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
+              + message.getResourceName() + "." + message.getPartitionName() + "|" + message
+              .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
+              .getToState() + ", relayMessages: " + message.getRelayMessages().size());
+
+      if (message.hasRelayMessages()) {
+        for (Message msg : message.getRelayMessages().values()) {
+          LogUtil.logInfo(LOG, eventId,
+              "Sending Relay Message " + msg.getMsgId() + " to " + msg.getTgtName() + " transit "
+                  + msg.getResourceName() + "." + msg.getPartitionName() + "|" + msg
+                  .getPartitionNames() + " from:" + msg.getFromState() + " to:" + msg.getToState()
+                  + ", relayFrom: " + msg.getRelaySrcHost() + ", attached to message: " + message
+                  .getMsgId());
+        }
+      }
+      keys.add(accessor.keyBuilder().message(message.getTgtName(), message.getId()));
+    }
+
+    boolean[] results = accessor.createChildren(keys, messages);
+    for (int i = 0; i < results.length; i++) {
+      if (!results[i]) {
+        LogUtil.logError(LOG, eventId, "Failed to send message: " + keys.get(i));
+      } else {
+        messagesSent.add(messages.get(i));
+      }
+    }
+
+    return messagesSent;
   }
 }

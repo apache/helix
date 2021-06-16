@@ -30,7 +30,6 @@ import java.util.Optional;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
@@ -42,6 +41,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.util.MessageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +93,7 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
       }
     }
 
-    List<Message> messagesSent = sendMessages(dataAccessor, outputMessages);
+    List<Message> messagesSent = MessageUtil.sendMessages(dataAccessor, outputMessages, _eventId);
 
     // TODO: Need also count messages from task rebalancer
     if (!(cache instanceof WorkflowControllerDataProvider)) {
@@ -150,49 +150,5 @@ public abstract class MessageDispatchStage extends AbstractBaseStage {
     }
 
     return outputMessages;
-  }
-
-  // return the messages actually sent
-  protected List<Message> sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
-    List<Message> messageSent = new ArrayList<>();
-    if (messages == null || messages.isEmpty()) {
-      return messageSent;
-    }
-
-    Builder keyBuilder = dataAccessor.keyBuilder();
-
-    List<PropertyKey> keys = new ArrayList<PropertyKey>();
-    for (Message message : messages) {
-      LogUtil.logInfo(
-          logger, _eventId,
-          "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
-              + message.getResourceName() + "." + message.getPartitionName() + "|" + message
-              .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
-              .getToState() + ", relayMessages: " + message.getRelayMessages().size());
-
-      if (message.hasRelayMessages()) {
-        for (Message msg : message.getRelayMessages().values()) {
-          LogUtil.logInfo(logger, _eventId,
-              "Sending Relay Message " + msg.getMsgId() + " to " + msg.getTgtName() + " transit "
-                  + msg.getResourceName() + "." + msg.getPartitionName() + "|" + msg
-                  .getPartitionNames() + " from:" + msg.getFromState() + " to:" + msg.getToState()
-                  + ", relayFrom: " + msg.getRelaySrcHost() + ", attached to message: " + message
-                  .getMsgId());
-        }
-      }
-
-      keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
-    }
-
-    boolean[] results = dataAccessor.createChildren(keys, new ArrayList<>(messages));
-    for (int i = 0; i < results.length; i++) {
-      if (!results[i]) {
-        LogUtil.logError(logger, _eventId, "Failed to send message: " + keys.get(i));
-      } else {
-        messageSent.add(messages.get(i));
-      }
-    }
-
-    return messageSent;
   }
 }

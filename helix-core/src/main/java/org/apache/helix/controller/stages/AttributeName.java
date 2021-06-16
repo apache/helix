@@ -45,6 +45,9 @@ public enum AttributeName {
   /** This is the cluster manager's session id when event is received. */
   EVENT_SESSION,
 
+  /** Represents cluster's management mode status. Used only in management mode pipeline */
+  MANAGEMENT_MODE,
+
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.
   TO_BE_PURGED_WORKFLOWS,
   // This attribute should only be used in TaskGarbageCollectionStage, misuse could cause race conditions.

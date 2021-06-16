@@ -82,6 +82,7 @@ import org.apache.helix.controller.stages.CustomizedViewAggregationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MaintenanceRecoveryStage;
+import org.apache.helix.controller.stages.ManagementModeMessagingStage;
 import org.apache.helix.controller.stages.ManagementModeStage;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
@@ -649,6 +650,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       // cluster management mode process
       Pipeline managementMode = new Pipeline(pipelineName);
       managementMode.addStage(new ManagementModeStage());
+      managementMode.addStage(new ManagementModeMessagingStage());
 
       PipelineRegistry registry = new PipelineRegistry();
       Arrays.asList(

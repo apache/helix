@@ -22,6 +22,7 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Represents the cluster status. It can have fields for
@@ -30,6 +31,10 @@ import org.apache.helix.api.status.ClusterManagementMode;
 public class ClusterStatus extends HelixProperty {
   public ClusterStatus() {
     super(PropertyType.STATUS.name());
+  }
+
+  public ClusterStatus(ZNRecord record) {
+    super(record);
   }
 
   public enum ClusterStatusProperty {

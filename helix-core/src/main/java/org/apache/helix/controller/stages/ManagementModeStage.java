@@ -19,11 +19,32 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyType;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterStatus;
+import org.apache.helix.model.ControllerHistory;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.LiveInstance.LiveInstanceStatus;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +59,22 @@ public class ManagementModeStage extends AbstractBaseStage {
     // TODO: implement the stage
     _eventId = event.getEventId();
     String clusterName = event.getClusterName();
+    HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
+    if (manager == null) {
+      throw new StageException("HelixManager attribute value is null");
+    }
+
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
+
+    ClusterManagementMode managementMode =
+        checkClusterFreezeStatus(cache.getEnabledLiveInstances(), cache.getLiveInstances(),
+            cache.getAllInstancesMessages(), cache.getPauseSignal());
+
+    recordManagementModeStatus(managementMode, accessor);
+    recordManagementModeHistory(managementMode, cache.getPauseSignal(), manager.getInstanceName(),
+        accessor);
 
     // TODO: move to the last stage of management pipeline
     checkInManagementMode(clusterName, cache);
@@ -51,6 +86,89 @@ public class ManagementModeStage extends AbstractBaseStage {
         cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
       LogUtil.logInfo(LOG, _eventId, "Exiting management mode pipeline for cluster " + clusterName);
       RebalanceUtil.enableManagementMode(clusterName, false);
+    }
+  }
+
+  // Checks cluster freeze, controller pause mode and status.
+  private ClusterManagementMode checkClusterFreezeStatus(
+      Set<String> enabledLiveInstances,
+      Map<String, LiveInstance> liveInstanceMap,
+      Map<String, Collection<Message>> allInstanceMessages,
+      PauseSignal pauseSignal) {
+    ClusterManagementMode.Type type;
+    ClusterManagementMode.Status status = ClusterManagementMode.Status.COMPLETED;
+    if (pauseSignal == null) {
+      // TODO: Should check maintenance mode after it's moved to management pipeline.
+      type = ClusterManagementMode.Type.NORMAL;
+      if (HelixUtil.inManagementMode(pauseSignal, liveInstanceMap, enabledLiveInstances,
+          allInstanceMessages)) {
+        status = ClusterManagementMode.Status.IN_PROGRESS;
+      }
+    } else if (pauseSignal.isClusterPause()) {
+      type = ClusterManagementMode.Type.CLUSTER_PAUSE;
+      if (!instancesFullyFrozen(enabledLiveInstances, liveInstanceMap, allInstanceMessages)) {
+        status = ClusterManagementMode.Status.IN_PROGRESS;
+      }
+    } else {
+      type = ClusterManagementMode.Type.CONTROLLER_PAUSE;
+    }
+
+    return new ClusterManagementMode(type, status);
+  }
+
+  private boolean instancesFullyFrozen(Set<String> enabledLiveInstances,
+      Map<String, LiveInstance> liveInstanceMap,
+      Map<String, Collection<Message>> allInstanceMessages) {
+    // 1. All live instances are frozen
+    // 2. No pending participant status change message.
+    return enabledLiveInstances.stream().noneMatch(
+        instance -> !LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
+            || hasPendingMessage(
+            allInstanceMessages.getOrDefault(instance, Collections.emptyList()),
+            MessageType.PARTICIPANT_STATUS_CHANGE));
+  }
+
+  private boolean hasPendingMessage(Collection<Message> messages, MessageType type) {
+    return messages.stream().anyMatch(message -> type.name().equals(message.getMsgType()));
+  }
+
+  private void recordManagementModeStatus(ClusterManagementMode mode, HelixDataAccessor accessor) {
+    // update cluster status
+    PropertyKey statusPropertyKey = accessor.keyBuilder().clusterStatus();
+    ClusterStatus clusterStatus = accessor.getProperty(statusPropertyKey);
+    if (clusterStatus == null) {
+      clusterStatus = new ClusterStatus();
+    }
+    if (!mode.getMode().equals(clusterStatus.getManagementMode())
+        || !mode.getStatus().equals(clusterStatus.getManagementModeStatus())) {
+      // status is different, need to write to metastore
+      clusterStatus.setManagementMode(mode.getMode());
+      clusterStatus.setManagementModeStatus(mode.getStatus());
+      if (!accessor.updateProperty(statusPropertyKey, clusterStatus)) {
+        LOG.error("Failed to update cluster status {}", clusterStatus);
+      }
+    }
+  }
+
+  private void recordManagementModeHistory(ClusterManagementMode mode, PauseSignal pauseSignal,
+      String controllerName, HelixDataAccessor accessor) {
+    // Only record completed status
+    if (!ClusterManagementMode.Status.COMPLETED.equals(mode.getStatus())) {
+      return;
+    }
+
+    // Record a management mode history in controller history
+    String path = accessor.keyBuilder().controllerLeaderHistory().getPath();
+    if (!accessor.getBaseDataAccessor().update(path, oldRecord -> {
+      if (oldRecord == null) {
+        oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
+      }
+      String fromHost = (pauseSignal == null ? null : pauseSignal.getFromHost());
+      String reason = (pauseSignal == null ? null : pauseSignal.getReason());
+      return new ControllerHistory(oldRecord).updateManagementModeHistory(controllerName, mode,
+          fromHost, Instant.now().toEpochMilli(), reason);
+    }, AccessOption.PERSISTENT)) {
+      LOG.error("Failed to write management mode history to ZK!");
     }
   }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.helix.HelixConstants;
@@ -146,18 +147,29 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   @Override
   public void reset() {
-    logger.info("Resetting HelixStateMachineEngine");
+    loopStateModelFactories(stateModel -> {
+      stateModel.reset();
+      String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+      stateModel.updateState(initialState);
+    }, "reset");
+  }
+
+  @Override
+  public void sync() {
+    loopStateModelFactories(StateModel::syncState, "syncState");
+  }
+
+  private void loopStateModelFactories(Consumer<StateModel> consumer, String method) {
+    logger.info("{} HelixStateMachineEngine", method);
     for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
         .values()) {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {
         for (String resourceName : stateModelFactory.getResourceSet()) {
           for (String partitionKey : stateModelFactory.getPartitionSet(resourceName)) {
-            logger.info("Resetting {}::{}", resourceName, partitionKey);
+            logger.info("{} {}::{}", method, resourceName, partitionKey);
             StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
             if (stateModel != null) {
-              stateModel.reset();
-              String initialState = _stateModelParser.getInitialState(stateModel.getClass());
-              stateModel.updateState(initialState);
+              consumer.accept(stateModel);
               // TODO probably should update the state on ZK. Shi confirm what needs
               // to be done here.
             } else {
@@ -170,15 +182,14 @@ public class HelixStateMachineEngine implements StateMachineEngine {
               // We may need to add more processing here to make sure things are being set to
               // initialState. Otherwise, there might be inconsistencies that might cause partitions
               // to be stuck in some state (because reset() would be a NOP here)
-              logger.warn(
-                  "Failed to reset due to StateModel being null! Resource: {}, Partition: {}",
-                  resourceName, partitionKey);
+              logger.warn("Failed to {} due to StateModel being null! Resource: {}, Partition: {}",
+                  method, resourceName, partitionKey);
             }
           }
         }
       }
     }
-    logger.info("Successfully reset HelixStateMachineEngine");
+    logger.info("Successfully {} HelixStateMachineEngine", method);
   }
 
   @Override

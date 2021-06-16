@@ -37,4 +37,8 @@ public interface MessageHandlerFactory {
   String getMessageType();
 
   void reset();
+
+  default void sync() {
+    throw new UnsupportedOperationException("Not implemented");
+  }
 }

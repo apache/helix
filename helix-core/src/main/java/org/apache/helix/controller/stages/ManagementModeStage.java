@@ -21,7 +21,6 @@ package org.apache.helix.controller.stages;
 
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,7 +71,7 @@ public class ManagementModeStage extends AbstractBaseStage {
         checkClusterFreezeStatus(cache.getEnabledLiveInstances(), cache.getLiveInstances(),
             cache.getAllInstancesMessages(), cache.getPauseSignal());
 
-    recordManagementModeStatus(managementMode, accessor);
+    recordClusterStatus(managementMode, accessor);
     recordManagementModeHistory(managementMode, cache.getPauseSignal(), manager.getInstanceName(),
         accessor);
 
@@ -123,16 +122,16 @@ public class ManagementModeStage extends AbstractBaseStage {
     // 2. No pending participant status change message.
     return enabledLiveInstances.stream().noneMatch(
         instance -> !LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
-            || hasPendingMessage(
-            allInstanceMessages.getOrDefault(instance, Collections.emptyList()),
+            || hasPendingMessage(allInstanceMessages.get(instance),
             MessageType.PARTICIPANT_STATUS_CHANGE));
   }
 
   private boolean hasPendingMessage(Collection<Message> messages, MessageType type) {
-    return messages.stream().anyMatch(message -> type.name().equals(message.getMsgType()));
+    return messages != null && messages.stream()
+        .anyMatch(message -> type.name().equals(message.getMsgType()));
   }
 
-  private void recordManagementModeStatus(ClusterManagementMode mode, HelixDataAccessor accessor) {
+  private void recordClusterStatus(ClusterManagementMode mode, HelixDataAccessor accessor) {
     // update cluster status
     PropertyKey statusPropertyKey = accessor.keyBuilder().clusterStatus();
     ClusterStatus clusterStatus = accessor.getProperty(statusPropertyKey);
@@ -141,7 +140,7 @@ public class ManagementModeStage extends AbstractBaseStage {
     }
     if (!mode.getMode().equals(clusterStatus.getManagementMode())
         || !mode.getStatus().equals(clusterStatus.getManagementModeStatus())) {
-      // status is different, need to write to metastore
+      // Only update status when it's different with metadata store
       clusterStatus.setManagementMode(mode.getMode());
       clusterStatus.setManagementModeStatus(mode.getStatus());
       if (!accessor.updateProperty(statusPropertyKey, clusterStatus)) {
@@ -159,14 +158,17 @@ public class ManagementModeStage extends AbstractBaseStage {
 
     // Record a management mode history in controller history
     String path = accessor.keyBuilder().controllerLeaderHistory().getPath();
+    long timestamp = Instant.now().toEpochMilli();
+    String fromHost = (pauseSignal == null ? null : pauseSignal.getFromHost());
+    String reason = (pauseSignal == null ? null : pauseSignal.getReason());
+
+    // Need the updater to avoid race condition with controller/maintenance history updates.
     if (!accessor.getBaseDataAccessor().update(path, oldRecord -> {
       if (oldRecord == null) {
         oldRecord = new ZNRecord(PropertyType.HISTORY.toString());
       }
-      String fromHost = (pauseSignal == null ? null : pauseSignal.getFromHost());
-      String reason = (pauseSignal == null ? null : pauseSignal.getReason());
-      return new ControllerHistory(oldRecord).updateManagementModeHistory(controllerName, mode,
-          fromHost, Instant.now().toEpochMilli(), reason);
+      return new ControllerHistory(oldRecord)
+          .updateManagementModeHistory(controllerName, mode, fromHost, timestamp, reason);
     }, AccessOption.PERSISTENT)) {
       LOG.error("Failed to write management mode history to ZK!");
     }

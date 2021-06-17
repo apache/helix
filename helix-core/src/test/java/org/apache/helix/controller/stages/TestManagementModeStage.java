@@ -19,9 +19,13 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
+
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
@@ -31,6 +35,7 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterStatus;
+import org.apache.helix.model.LiveInstance;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -59,7 +64,7 @@ public class TestManagementModeStage extends ZkTestBase {
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
     setupIdealState(_clusterName, new int[]{0, 1}, new String[]{"TestDB"}, 1, 2);
-    setupLiveInstances(_clusterName, new int[]{0, 1});
+    List<LiveInstance> liveInstances = setupLiveInstances(_clusterName, new int[]{0, 1});
     setupStateModel(_clusterName);
 
     ClusterEvent event = new ClusterEvent(_clusterName, ClusterEventType.Unknown);
@@ -79,10 +84,22 @@ public class TestManagementModeStage extends ZkTestBase {
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
     runPipeline(event, dataRefresh, false);
-    new ManagementModeStage().process(event);
+    ManagementModeStage managementModeStage = new ManagementModeStage();
+    managementModeStage.process(event);
 
+    // In frozen mode
     ClusterStatus clusterStatus = _accessor.getProperty(_accessor.keyBuilder().clusterStatus());
     Assert.assertEquals(clusterStatus.getManagementMode(), ClusterManagementMode.Type.CLUSTER_PAUSE);
+
+
+    // Mark a live instance to be pause state
+    LiveInstance liveInstance = liveInstances.get(0);
+    liveInstance.setStatus(LiveInstance.LiveInstanceStatus.PAUSED);
+    PropertyKey liveInstanceKey =
+        _accessor.keyBuilder().liveInstance(liveInstance.getInstanceName());
+    _accessor.updateProperty(liveInstanceKey, liveInstance);
+    // Require cache refresh
+    cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
 
     // Unfreeze cluster
     request = ClusterManagementModeRequest.newBuilder()
@@ -92,15 +109,34 @@ public class TestManagementModeStage extends ZkTestBase {
         .build();
     _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
     runPipeline(event, dataRefresh, false);
+    managementModeStage.process(event);
+    clusterStatus = _accessor.getProperty(_accessor.keyBuilder().clusterStatus());
 
+    Assert.assertEquals(clusterStatus.getManagementMode(), ClusterManagementMode.Type.NORMAL);
+    // In progress because a live instance is still frozen
+    Assert.assertEquals(clusterStatus.getManagementModeStatus(),
+        ClusterManagementMode.Status.IN_PROGRESS);
+
+    // remove froze status to mark the live instance to be normal status
+    liveInstance = _accessor.getProperty(liveInstanceKey);
+    liveInstance.getRecord().getSimpleFields()
+        .remove(LiveInstance.LiveInstanceProperty.STATUS.name());
+    _accessor.setProperty(liveInstanceKey, liveInstance);
+    // Require cache refresh
+    cache.notifyDataChange(HelixConstants.ChangeType.LIVE_INSTANCE);
+    runPipeline(event, dataRefresh, false);
     try {
-      new ManagementModeStage().process(event);
+      managementModeStage.process(event);
     } catch (HelixException expected) {
+      // It's expected because controller does not set for cluster.
       Assert.assertTrue(expected.getMessage()
           .startsWith("Failed to switch management mode pipeline, enabled=false"));
     }
-
     clusterStatus = _accessor.getProperty(_accessor.keyBuilder().clusterStatus());
+
+    // Fully existed frozen mode
     Assert.assertEquals(clusterStatus.getManagementMode(), ClusterManagementMode.Type.NORMAL);
+    Assert.assertEquals(clusterStatus.getManagementModeStatus(),
+        ClusterManagementMode.Status.COMPLETED);
   }
 }

@@ -248,7 +248,7 @@ public class PropertyKey {
      */
     public PropertyKey clusterStatus() {
       return new PropertyKey(PropertyType.STATUS, ConfigScopeProperty.CLUSTER, ClusterStatus.class,
-          _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
+          _clusterName, ConfigScopeProperty.CLUSTER.name(), _clusterName);
     }
 
     /**

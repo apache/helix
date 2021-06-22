@@ -82,7 +82,10 @@ import org.apache.helix.controller.stages.CustomizedViewAggregationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.IntermediateStateCalcStage;
 import org.apache.helix.controller.stages.MaintenanceRecoveryStage;
+import org.apache.helix.controller.stages.ManagementMessageDispatchStage;
+import org.apache.helix.controller.stages.ManagementMessageGenerationPhase;
 import org.apache.helix.controller.stages.ManagementModeStage;
+import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
@@ -647,9 +650,16 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       Pipeline dataRefresh = new Pipeline(pipelineName);
       dataRefresh.addStage(new ReadClusterDataStage());
 
+      // data pre-process pipeline
+      Pipeline dataPreprocess = new Pipeline(pipelineName);
+      dataPreprocess.addStage(new ResourceComputationStage());
+      dataPreprocess.addStage(new CurrentStateComputationStage());
+
       // cluster management mode process
       Pipeline managementMode = new Pipeline(pipelineName);
       managementMode.addStage(new ManagementModeStage());
+      managementMode.addStage(new ManagementMessageGenerationPhase());
+      managementMode.addStage(new ManagementMessageDispatchStage());
 
       PipelineRegistry registry = new PipelineRegistry();
       Arrays.asList(
@@ -658,7 +668,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
           ClusterEventType.MessageChange,
           ClusterEventType.OnDemandRebalance,
           ClusterEventType.PeriodicalRebalance
-      ).forEach(type -> registry.register(type, dataRefresh, managementMode));
+      ).forEach(type -> registry.register(type, dataRefresh, dataPreprocess, managementMode));
 
       return registry;
     }

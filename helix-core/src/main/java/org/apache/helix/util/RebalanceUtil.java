@@ -20,6 +20,7 @@ package org.apache.helix.util;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -30,8 +31,11 @@ import org.apache.helix.HelixException;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,6 +193,29 @@ public class RebalanceUtil {
       LOG.error("Failed to issue a pipeline. Controller for cluster {} does not exist.",
           clusterName);
     }
+  }
+
+  /**
+   * Build best possible state out by copying the state map from current state output.
+   * It'll be used for generating pending ST cancellation messages.
+   *
+   * @param resourceNames collection of resource names
+   * @param currentStateOutput Current state output {@link CurrentStateOutput}
+   * @return {@link BestPossibleStateOutput}
+   */
+  public static BestPossibleStateOutput buildBestPossibleState(Collection<String> resourceNames,
+      CurrentStateOutput currentStateOutput) {
+    BestPossibleStateOutput output = new BestPossibleStateOutput();
+
+    for (String resource : resourceNames) {
+      Map<Partition, Map<String, String>> currentStateMap =
+          currentStateOutput.getCurrentStateMap(resource);
+      if (currentStateMap != null) {
+        output.setState(resource, currentStateMap);
+      }
+    }
+
+    return output;
   }
 
   /**

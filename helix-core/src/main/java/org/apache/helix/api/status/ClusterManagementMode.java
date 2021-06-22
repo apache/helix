@@ -67,4 +67,8 @@ public class ClusterManagementMode {
     public Type getMode() {
         return mode;
     }
+
+    public boolean isFullyInNormalMode() {
+        return Type.NORMAL.equals(mode) && Status.COMPLETED.equals(status);
+    }
 }

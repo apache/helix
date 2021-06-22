@@ -162,8 +162,12 @@ public class ControllerHistory extends HelixProperty {
     historyEntry.put(ConfigProperty.TIME.name(), Instant.ofEpochMilli(time).toString());
     historyEntry.put(ManagementModeConfigKey.MODE.name(), mode.getMode().name());
     historyEntry.put(ManagementModeConfigKey.STATUS.name(), mode.getStatus().name());
-    historyEntry.put(PauseSignal.PauseSignalProperty.FROM_HOST.name(), fromHost);
-    historyEntry.put(PauseSignal.PauseSignalProperty.REASON.name(), reason);
+    if (fromHost != null) {
+      historyEntry.put(PauseSignal.PauseSignalProperty.FROM_HOST.name(), fromHost);
+    }
+    if (reason != null) {
+      historyEntry.put(PauseSignal.PauseSignalProperty.REASON.name(), reason);
+    }
 
     return populateHistoryEntries(HistoryType.MANAGEMENT_MODE, historyEntry.toString());
   }

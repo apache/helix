@@ -247,7 +247,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey clusterStatus() {
-      return new PropertyKey(PropertyType.STATUS, ClusterStatus.class, _clusterName);
+      return new PropertyKey(PropertyType.STATUS, ClusterStatus.class, _clusterName, _clusterName);
     }
 
     /**

@@ -89,6 +89,7 @@ public class PropertyPathBuilder {
     addEntry(PropertyType.CUSTOMIZEDVIEW, 2, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}");
     addEntry(PropertyType.CUSTOMIZEDVIEW, 3, "/{clusterName}/CUSTOMIZEDVIEW/{customizedStateType}/{resourceName}");
     addEntry(PropertyType.STATUS, 1, "/{clusterName}/STATUS");
+    addEntry(PropertyType.STATUS, 2, "/{clusterName}/STATUS/{clusterName}");
 
     addEntry(PropertyType.TARGETEXTERNALVIEW, 1, "/{clusterName}/TARGETEXTERNALVIEW");
     addEntry(PropertyType.TARGETEXTERNALVIEW, 2,

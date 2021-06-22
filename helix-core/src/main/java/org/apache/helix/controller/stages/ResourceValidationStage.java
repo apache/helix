@@ -103,6 +103,7 @@ public class ResourceValidationStage extends AbstractBaseStage {
       LogUtil.logInfo(LOG, _eventId,
           "Enabling management mode pipeline for cluster " + event.getClusterName());
       RebalanceUtil.enableManagementMode(event.getClusterName(), true);
+      // TODO: redesign to terminate and switch pipeline more peacefully
       throw new PipelineSwitchException(
           "Pipeline should not be run because cluster " + event.getClusterName()
               + " is in management mode");

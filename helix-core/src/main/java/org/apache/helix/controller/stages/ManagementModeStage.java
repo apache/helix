@@ -138,8 +138,22 @@ public class ManagementModeStage extends AbstractBaseStage {
     if (clusterStatus == null) {
       clusterStatus = new ClusterStatus();
     }
-    if (!mode.getMode().equals(clusterStatus.getManagementMode())
-        || !mode.getStatus().equals(clusterStatus.getManagementModeStatus())) {
+
+    ClusterManagementMode.Type recordedType = clusterStatus.getManagementMode();
+    ClusterManagementMode.Status recordedStatus = clusterStatus.getManagementModeStatus();
+
+    // If there is any pending message sent by users, status could be computed as in progress.
+    // Skip recording status change to avoid confusion after cluster is already fully frozen.
+    if (ClusterManagementMode.Type.CLUSTER_PAUSE.equals(recordedType)
+        && ClusterManagementMode.Status.COMPLETED.equals(recordedStatus)
+        && ClusterManagementMode.Type.CLUSTER_PAUSE.equals(mode.getMode())
+        && ClusterManagementMode.Status.IN_PROGRESS.equals(mode.getStatus())) {
+      LOG.info("Skip recording status mode={}, status={}, because cluster is fully frozen",
+          mode.getMode(), mode.getStatus());
+      return;
+    }
+
+    if (!mode.getMode().equals(recordedType) || !mode.getStatus().equals(recordedStatus)) {
       // Only update status when it's different with metadata store
       clusterStatus.setManagementMode(mode.getMode());
       clusterStatus.setManagementModeStatus(mode.getStatus());

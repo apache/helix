@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.BaseControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.controller.pipeline.PipelineSwitchException;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
@@ -102,9 +103,10 @@ public class ResourceValidationStage extends AbstractBaseStage {
       LogUtil.logInfo(LOG, _eventId,
           "Enabling management mode pipeline for cluster " + event.getClusterName());
       RebalanceUtil.enableManagementMode(event.getClusterName(), true);
-      throw new StageException(
+      // TODO: redesign to terminate and switch pipeline more peacefully
+      throw new PipelineSwitchException(
           "Pipeline should not be run because cluster " + event.getClusterName()
-              + "is in management mode");
+              + " is in management mode");
     }
   }
 

@@ -83,6 +83,8 @@ public class TestManagementModeStage extends ZkTestBase {
 
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
+    dataRefresh.addStage(new ResourceComputationStage());
+    dataRefresh.addStage(new CurrentStateComputationStage());
     runPipeline(event, dataRefresh, false);
     ManagementModeStage managementModeStage = new ManagementModeStage();
     managementModeStage.process(event);

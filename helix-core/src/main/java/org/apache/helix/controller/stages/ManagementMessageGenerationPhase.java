@@ -67,63 +67,53 @@ public class ManagementMessageGenerationPhase extends MessageGenerationPhase {
       super.process(event);
     }
 
+    MessageOutput messageOutput =
+        event.getAttributeWithDefault(AttributeName.MESSAGES_ALL.name(), new MessageOutput());
     // Is participant status change still in progress? Create messages
     if (!ClusterManagementMode.Status.COMPLETED.equals(managementMode.getStatus())) {
       LogUtil.logInfo(LOG, _eventId, "Generating messages as cluster " + clusterName
           + " is still in progress to change participant status");
-      List<Message> messages =
-          generateStatusChangeMessages(managementMode.getMode(), cache.getEnabledLiveInstances(),
-              cache.getLiveInstances(), cache.getAllInstancesMessages(), manager.getInstanceName(),
-              manager.getSessionId());
-      MessageOutput messageOutput =
-          event.getAttributeWithDefault(AttributeName.MESSAGES_ALL.name(), new MessageOutput());
+      List<Message> messages = generateStatusChangeMessages(managementMode,
+          cache.getEnabledLiveInstances(), cache.getLiveInstances(),
+          cache.getAllInstancesMessages(), manager.getInstanceName(), manager.getSessionId());
       messageOutput.addStatusChangeMessages(messages);
-      event.addAttribute(AttributeName.MESSAGES_ALL.name(), messageOutput);
     }
+
+    event.addAttribute(AttributeName.MESSAGES_ALL.name(), messageOutput);
   }
 
-  private List<Message> generateStatusChangeMessages(ClusterManagementMode.Type managementMode,
+  private List<Message> generateStatusChangeMessages(ClusterManagementMode managementMode,
       Set<String> enabledLiveInstances, Map<String, LiveInstance> liveInstanceMap,
       Map<String, Collection<Message>> allInstanceMessages, String managerInstance,
       String managerSessionId) {
-    List<Message> messagesToSend = new ArrayList<>();
+    List<Message> messagesGenerated = new ArrayList<>();
 
-    LiveInstanceStatus fromStatus = null;
-    LiveInstanceStatus toStatus = null;
-    if (ClusterManagementMode.Type.CLUSTER_PAUSE.equals(managementMode)) {
-      fromStatus = LiveInstanceStatus.NORMAL;
-      toStatus = LiveInstanceStatus.PAUSED;
-    } else if (ClusterManagementMode.Type.NORMAL.equals(managementMode)) {
-      fromStatus = LiveInstanceStatus.PAUSED;
-      toStatus = LiveInstanceStatus.NORMAL;
-    }
+    LiveInstanceStatus desiredStatus = managementMode.getDesiredParticipantStatus();
 
-    // Check status and pending status change messages for all enabled live instances
+    // Check status and pending status change messages for all enabled live instances.
     // Send freeze/unfreeze messages if necessary
     for (String instanceName : enabledLiveInstances) {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
-      Collection<Message> messages = allInstanceMessages.get(instanceName);
+      Collection<Message> pendingMessages = allInstanceMessages.get(instanceName);
       String sessionId = liveInstance.getEphemeralOwner();
+      LiveInstanceStatus currentStatus = liveInstance.getStatus();
 
-      if (needStatusChangeMessage(messages, liveInstance.getStatus(), fromStatus, toStatus)) {
-        Message statusChangeMessage = MessageUtil.createStatusChangeMessage(fromStatus, toStatus,
-            managerInstance, managerSessionId, instanceName, sessionId);
-        messagesToSend.add(statusChangeMessage);
+      if (needStatusChangeMessage(pendingMessages, currentStatus, desiredStatus)) {
+        Message statusChangeMessage = MessageUtil.createStatusChangeMessage(currentStatus,
+            desiredStatus, managerInstance, managerSessionId, instanceName, sessionId);
+        messagesGenerated.add(statusChangeMessage);
       }
     }
 
-    return messagesToSend;
+    return messagesGenerated;
   }
 
   private boolean needStatusChangeMessage(Collection<Message> messages,
-      LiveInstanceStatus currentStatus, LiveInstanceStatus fromStatus,
-      LiveInstanceStatus toStatus) {
-    if (fromStatus == null || toStatus == null || currentStatus == toStatus) {
-      return false;
-    }
-    // Is participant change status message not sent?
-    return messages.stream().noneMatch(
-        message -> message.isParticipantStatusChangeType() && toStatus.name()
+      LiveInstanceStatus currentStatus, LiveInstanceStatus desiredStatus) {
+    // 1. current status is not equal to desired status
+    // 2. participant change status message is not sent
+    return currentStatus != desiredStatus && messages.stream().noneMatch(
+        message -> message.isParticipantStatusChangeType() && desiredStatus.name()
             .equals(message.getToState()));
   }
 }

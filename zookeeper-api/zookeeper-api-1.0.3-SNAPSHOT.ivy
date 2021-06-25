@@ -20,7 +20,7 @@ under the License.
 <ivy-module version="1.0">
 	<info organisation="org.apache.helix"
 		module="zookeeper-api"
-		revision="1.0.2-SNAPSHOT"
+		revision="1.0.3-SNAPSHOT"
 		status="integration"
 		publication="20170128141623"
 	/>

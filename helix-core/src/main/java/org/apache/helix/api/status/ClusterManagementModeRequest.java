@@ -19,11 +19,14 @@ package org.apache.helix.api.status;
  * under the License.
  */
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.google.common.base.Preconditions;
 
 /**
  * Represents a request to set the cluster management mode {@link ClusterManagementMode}
  */
+@JsonDeserialize(builder = ClusterManagementModeRequest.Builder.class)
 public class ClusterManagementModeRequest {
   private final ClusterManagementMode.Type _mode;
   private final String _clusterName;
@@ -57,6 +60,7 @@ public class ClusterManagementModeRequest {
     return new Builder();
   }
 
+  @JsonPOJOBuilder(buildMethodName = "buildFromJson")
   public static final class Builder {
     private ClusterManagementMode.Type mode;
     private String clusterName;
@@ -92,6 +96,12 @@ public class ClusterManagementModeRequest {
     public ClusterManagementModeRequest build() {
       validate();
       return new ClusterManagementModeRequest(this);
+    }
+
+    // Used by Json deserializer
+    private ClusterManagementModeRequest buildFromJson() {
+      Preconditions.checkNotNull(mode, "Mode not set");
+      return new ClusterManagementModeRequest((this));
     }
 
     private void validate() {

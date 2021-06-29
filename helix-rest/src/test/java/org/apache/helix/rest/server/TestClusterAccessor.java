@@ -36,16 +36,20 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.sun.research.ws.wadl.HTTPMethods;
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CustomizedStateConfig;
@@ -54,6 +58,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.MaintenanceSignal;
+import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.server.auditlog.AuditLog;
@@ -1283,6 +1288,71 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(listTypesFromZk.get(0), "mockType2");
     Assert.assertFalse(listTypesFromZk.contains("mockType1"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test
+  public void testClusterFreezeMode() throws Exception {
+    String cluster = _clusters.iterator().next();
+    HelixDataAccessor dataAccessor =
+        new ZKHelixDataAccessor(cluster, new ZkBaseDataAccessor<>(_gZkClient));
+    // Pause not existed
+    Assert.assertNull(dataAccessor.getProperty(dataAccessor.keyBuilder().pause()));
+
+    String endpoint = "clusters/" + cluster + "/management-mode";
+
+    // Set cluster pause mode
+    ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
+        .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+        .withClusterName(cluster)
+        .build();
+    String payload = OBJECT_MAPPER.writeValueAsString(request);
+    post(endpoint, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    PauseSignal pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
+    Assert.assertNotNull(pauseSignal);
+    Assert.assertTrue(pauseSignal.isClusterPause());
+    Assert.assertFalse(pauseSignal.getCancelPendingST());
+
+    // Wait until cluster status is persisted
+    TestHelper.verify(() -> dataAccessor.getBaseDataAccessor()
+            .exists(dataAccessor.keyBuilder().clusterStatus().getPath(), AccessOption.PERSISTENT),
+        TestHelper.WAIT_DURATION);
+
+    // Verify get cluster status
+    String body = get(endpoint, null, Response.Status.OK.getStatusCode(), true);
+    ClusterManagementMode mode =
+        OBJECT_MAPPER.readerFor(ClusterManagementMode.class).readValue(body);
+    Assert.assertEquals(mode.getMode(), ClusterManagementMode.Type.CLUSTER_PAUSE);
+    // Depending on timing, it could IN_PROGRESS or COMPLETED.
+    // It's just to verify the rest response format is correct
+    Assert.assertTrue(ClusterManagementMode.Status.IN_PROGRESS.equals(mode.getStatus())
+        || ClusterManagementMode.Status.COMPLETED.equals(mode.getStatus()));
+
+    body = get(endpoint, ImmutableMap.of("showDetails", "true"), Response.Status.OK.getStatusCode(),
+        true);
+    Map<String, Object> responseMap = OBJECT_MAPPER.readerFor(Map.class).readValue(body);
+    Map<String, Object> detailsMap = (Map<String, Object>) responseMap.get("details");
+
+    Assert.assertEquals(responseMap.get("cluster"), cluster);
+    Assert.assertEquals(responseMap.get("mode"), mode.getMode().name());
+    Assert.assertEquals(responseMap.get("status"), mode.getStatus().name());
+    Assert.assertTrue(responseMap.containsKey("details"));
+    Assert.assertTrue(detailsMap.containsKey("cluster"));
+    Assert.assertTrue(detailsMap.containsKey("liveInstances"));
+
+    // set normal mode
+    request = ClusterManagementModeRequest.newBuilder()
+        .withMode(ClusterManagementMode.Type.NORMAL)
+        .withClusterName(cluster)
+        .build();
+    payload = OBJECT_MAPPER.writeValueAsString(request);
+    post(endpoint, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    // Pause signal is deleted
+    pauseSignal = dataAccessor.getProperty(dataAccessor.keyBuilder().pause());
+    Assert.assertNull(pauseSignal);
   }
 
   private ClusterConfig getClusterConfigFromRest(String cluster) throws IOException {

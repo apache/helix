@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
@@ -37,8 +39,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.api.status.ClusterManagementMode;
-import org.apache.helix.api.status.ClusterManagementModeRequest;
 
 /*
  * Helix cluster management
@@ -380,6 +380,15 @@ public interface HelixAdmin {
    * @param request request to set the cluster management mode. {@link ClusterManagementModeRequest}
    */
   void setClusterManagementMode(ClusterManagementModeRequest request);
+
+  /**
+   * Gets cluster management status {@link ClusterManagementMode}: what mode the cluster is and
+   * whether the cluster has fully reached to that mode.
+   *
+   * @param clusterName cluster name
+   * @return {@link ClusterManagementMode}
+   */
+  ClusterManagementMode getClusterManagementMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

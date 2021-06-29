@@ -22,8 +22,10 @@ package org.apache.helix.rest.server.resources.helix;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -36,17 +38,22 @@ import javax.ws.rs.core.Response;
 
 import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.api.exceptions.HelixConflictException;
+import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
@@ -66,6 +73,7 @@ import org.apache.helix.rest.server.service.ClusterServiceImpl;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -295,6 +303,113 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
 
     return OK();
+  }
+
+  @ResponseMetered(name = HttpConstants.READ_REQUEST)
+  @Timed(name = HttpConstants.READ_REQUEST)
+  @GET
+  @Path("{clusterId}/management-mode")
+  public Response getClusterManagementMode(@PathParam("clusterId") String clusterId,
+      @QueryParam("showDetails") boolean showDetails) {
+    ClusterManagementMode mode = getHelixAdmin().getClusterManagementMode(clusterId);
+    if (mode == null) {
+      return notFound("Cluster " + clusterId + " is not in management mode");
+    }
+
+    Map<String, Object> responseMap = new HashMap<>();
+    responseMap.put("cluster", clusterId);
+    responseMap.put("mode", mode.getMode());
+    responseMap.put("status", mode.getStatus());
+    if (showDetails) {
+      // To show details, query participants that are in progress to management mode.
+      responseMap.put("details", getManagementModeDetails(clusterId, mode));
+    }
+
+    return JSONRepresentation(responseMap);
+  }
+
+  private Map<String, Object> getManagementModeDetails(String clusterId,
+      ClusterManagementMode mode) {
+    Map<String, Object> details = new HashMap<>();
+    Map<String, Object> participantDetails = new HashMap<>();
+    ClusterManagementMode.Status status = mode.getStatus();
+    details.put("cluster", ImmutableMap.of("cluster", clusterId, "status", status.name()));
+
+    boolean hasPendingST = false;
+    Set<String> liveInstancesInProgress = new HashSet<>();
+
+    if (ClusterManagementMode.Status.IN_PROGRESS.equals(status)) {
+      HelixDataAccessor accessor = getDataAccssor(clusterId);
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+      List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
+      BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
+
+      if (ClusterManagementMode.Type.CLUSTER_PAUSE.equals(mode.getMode())) {
+        // Entering cluster freeze mode, check live instance freeze status and pending ST
+        for (LiveInstance liveInstance : liveInstances) {
+          String instanceName = liveInstance.getInstanceName();
+          if (!LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstance.getStatus())) {
+            liveInstancesInProgress.add(instanceName);
+          }
+          Stat stat = baseAccessor
+              .getStat(keyBuilder.messages(instanceName).getPath(), AccessOption.PERSISTENT);
+          if (stat.getNumChildren() > 0) {
+            hasPendingST = true;
+            liveInstancesInProgress.add(instanceName);
+          }
+        }
+      } else if (ClusterManagementMode.Type.NORMAL.equals(mode.getMode())) {
+        // Exiting freeze mode, check live instance unfreeze status
+        for (LiveInstance liveInstance : liveInstances) {
+          if (LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstance.getStatus())) {
+            liveInstancesInProgress.add(liveInstance.getInstanceName());
+          }
+        }
+      }
+    }
+
+    participantDetails.put("status", status.name());
+    participantDetails.put("liveInstancesInProgress", liveInstancesInProgress);
+    if (ClusterManagementMode.Type.CLUSTER_PAUSE.equals(mode.getMode())) {
+      // Add pending ST result for cluster freeze mode
+      participantDetails.put("hasPendingStateTransition", hasPendingST);
+    }
+
+    details.put(ClusterProperties.liveInstances.name(), participantDetails);
+    return details;
+  }
+
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
+  @POST
+  @Path("{clusterId}/management-mode")
+  public Response updateClusterManagementMode(@PathParam("clusterId") String clusterId,
+      @DefaultValue("{}") String content) {
+    ClusterManagementModeRequest request;
+    try {
+      request = OBJECT_MAPPER.readerFor(ClusterManagementModeRequest.class).readValue(content);
+    } catch (JsonProcessingException e) {
+      LOG.warn("Failed to parse json string: {}", content, e);
+      return badRequest("Invalid payload json body: " + content);
+    }
+
+    // Need to add cluster name
+    request = ClusterManagementModeRequest.newBuilder()
+        .withClusterName(clusterId)
+        .withMode(request.getMode())
+        .withCancelPendingST(request.isCancelPendingST())
+        .withReason(request.getReason())
+        .build();
+
+    try {
+      getHelixAdmin().setClusterManagementMode(request);
+    } catch (HelixConflictException e) {
+      return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+    } catch (HelixException e) {
+      return serverError(e.getMessage());
+    }
+
+    return JSONRepresentation(ImmutableMap.of("acknowledged", true));
   }
 
   @ResponseMetered(name = HttpConstants.READ_REQUEST)

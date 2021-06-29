@@ -388,9 +388,7 @@ public interface HelixAdmin {
    * @param clusterName cluster name
    * @return {@link ClusterManagementMode}
    */
-  default ClusterManagementMode getClusterManagementMode(String clusterName) {
-    throw new UnsupportedOperationException("Not implemented");
-  }
+  ClusterManagementMode getClusterManagementMode(String clusterName);
 
   /**
    * Reset a list of partitions in error state for an instance

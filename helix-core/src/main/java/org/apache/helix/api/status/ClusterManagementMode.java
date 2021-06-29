@@ -55,6 +55,12 @@ public class ClusterManagementMode {
     private final Type mode;
     private final Status status;
 
+    // Default constructor for json deserialization
+    private ClusterManagementMode() {
+        mode = null;
+        status = null;
+    }
+
     public ClusterManagementMode(Type mode, Status status) {
         this.mode = mode;
         this.status = status;

@@ -30,6 +30,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
@@ -329,6 +330,11 @@ public class MockHelixAdmin implements HelixAdmin {
   @Override
   public void setClusterManagementMode(ClusterManagementModeRequest request) {
 
+  }
+
+  @Override
+  public ClusterManagementMode getClusterManagementMode(String clusterName) {
+    return null;
   }
 
   @Override public void resetPartition(String clusterName, String instanceName, String resourceName,

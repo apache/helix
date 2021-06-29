@@ -40,7 +40,9 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceStatus;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.Partition;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.Resource;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -66,6 +68,14 @@ public class ManagementModeStage extends AbstractBaseStage {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ManagementControllerDataProvider cache =
         event.getAttribute(AttributeName.ControllerDataProvider.name());
+    CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
+    final Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES_TO_REBALANCE.name());
+
+    final BestPossibleStateOutput bestPossibleStateOutput =
+        RebalanceUtil.buildBestPossibleState(resourceMap.keySet(), currentStateOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
     ClusterManagementMode managementMode =
         checkClusterFreezeStatus(cache.getEnabledLiveInstances(), cache.getLiveInstances(),
@@ -75,17 +85,7 @@ public class ManagementModeStage extends AbstractBaseStage {
     recordManagementModeHistory(managementMode, cache.getPauseSignal(), manager.getInstanceName(),
         accessor);
 
-    // TODO: move to the last stage of management pipeline
-    checkInManagementMode(clusterName, cache);
-  }
-
-  private void checkInManagementMode(String clusterName, ManagementControllerDataProvider cache) {
-    // Should exit management mode
-    if (!HelixUtil.inManagementMode(cache.getPauseSignal(), cache.getLiveInstances(),
-        cache.getEnabledLiveInstances(), cache.getAllInstancesMessages())) {
-      LogUtil.logInfo(LOG, _eventId, "Exiting management mode pipeline for cluster " + clusterName);
-      RebalanceUtil.enableManagementMode(clusterName, false);
-    }
+    event.addAttribute(AttributeName.CLUSTER_STATUS.name(), managementMode);
   }
 
   // Checks cluster freeze, controller pause mode and status.

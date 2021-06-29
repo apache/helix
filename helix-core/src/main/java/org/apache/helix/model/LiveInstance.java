@@ -50,7 +50,8 @@ public class LiveInstance extends HelixProperty {
    * Saved values for the {@link LiveInstanceProperty#STATUS} field
    */
   public enum LiveInstanceStatus {
-    PAUSED
+    PAUSED,
+    NORMAL
   }
 
   /**

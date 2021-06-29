@@ -19,6 +19,8 @@ package org.apache.helix.api.status;
  * under the License.
  */
 
+import org.apache.helix.model.LiveInstance;
+
 /**
  * Represents the management mode of the cluster:
  * 1. what type of mode it targets to be;
@@ -72,5 +74,27 @@ public class ClusterManagementMode {
 
     public Type getMode() {
         return mode;
+    }
+
+    public boolean isFullyInNormalMode() {
+        return Type.NORMAL.equals(mode) && Status.COMPLETED.equals(status);
+    }
+
+    /**
+     * Gets the desired live instance status for this management mode.
+     *
+     * @return The desired {@link org.apache.helix.model.LiveInstance.LiveInstanceStatus}.
+     * If participants status is not expected to change for the management mode, null is returned.
+     */
+    public LiveInstance.LiveInstanceStatus getDesiredParticipantStatus() {
+        switch (mode) {
+            case CLUSTER_PAUSE:
+                return LiveInstance.LiveInstanceStatus.PAUSED;
+            case NORMAL:
+                return LiveInstance.LiveInstanceStatus.NORMAL;
+            default:
+                // Other modes don't need to change participant status
+                return null;
+        }
     }
 }

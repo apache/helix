@@ -30,10 +30,11 @@ import org.apache.helix.model.Partition;
 
 public class MessageOutput {
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
+  private final List<Message> _statusChangeMessages;
 
   public MessageOutput() {
     _messagesMap = new HashMap<>();
-
+    _statusChangeMessages = new ArrayList<>();
   }
 
   public void addMessage(String resourceName, Partition partition, Message message) {
@@ -56,6 +57,10 @@ public class MessageOutput {
     _messagesMap.get(resourceName).put(partition, messages);
   }
 
+  public void addStatusChangeMessages(List<Message> messages) {
+    _statusChangeMessages.addAll(messages);
+  }
+
   public List<Message> getMessages(String resourceName, Partition resource) {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
     if (map != null && map.get(resource) != null) {
@@ -66,6 +71,10 @@ public class MessageOutput {
 
   public Map<Partition, List<Message>> getResourceMessageMap(String resourceName) {
     return _messagesMap.getOrDefault(resourceName, Collections.emptyMap());
+  }
+
+  public List<Message> getStatusChangeMessages() {
+    return _statusChangeMessages;
   }
 
   @Override

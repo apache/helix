@@ -147,26 +147,29 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   @Override
   public void reset() {
+    logger.info("Resetting HelixStateMachineEngine");
     loopStateModelFactories(stateModel -> {
       stateModel.reset();
       String initialState = _stateModelParser.getInitialState(stateModel.getClass());
       stateModel.updateState(initialState);
-    }, "reset");
+    });
+    logger.info("Successfully reset HelixStateMachineEngine");
   }
 
   @Override
   public void sync() {
-    loopStateModelFactories(StateModel::syncState, "syncState");
+    logger.info("Syncing HelixStateMachineEngine");
+    loopStateModelFactories(StateModel::syncState);
+    logger.info("Successfully synced HelixStateMachineEngine");
   }
 
-  private void loopStateModelFactories(Consumer<StateModel> consumer, String method) {
-    logger.info("{} HelixStateMachineEngine", method);
+  private void loopStateModelFactories(Consumer<StateModel> consumer) {
     for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
         .values()) {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {
         for (String resourceName : stateModelFactory.getResourceSet()) {
           for (String partitionKey : stateModelFactory.getPartitionSet(resourceName)) {
-            logger.info("{} {}::{}", method, resourceName, partitionKey);
+            logger.info("Operating on {}::{}", resourceName, partitionKey);
             StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
             if (stateModel != null) {
               consumer.accept(stateModel);
@@ -182,14 +185,13 @@ public class HelixStateMachineEngine implements StateMachineEngine {
               // We may need to add more processing here to make sure things are being set to
               // initialState. Otherwise, there might be inconsistencies that might cause partitions
               // to be stuck in some state (because reset() would be a NOP here)
-              logger.warn("Failed to {} due to StateModel being null! Resource: {}, Partition: {}",
-                  method, resourceName, partitionKey);
+              logger.warn("Failed operation due to StateModel being null! Resource: {}, Partition: {}",
+                  resourceName, partitionKey);
             }
           }
         }
       }
     }
-    logger.info("Successfully {} HelixStateMachineEngine", method);
   }
 
   @Override

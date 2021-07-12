@@ -159,7 +159,7 @@ public class ParticipantManager {
     // should not be created by an expired zk session.
     createLiveInstance();
     if (shouldCarryOver()) {
-      carryOverPreviousCurrentState(_dataAccessor, _keyBuilder, _instanceName, _sessionId,
+      carryOverPreviousCurrentState(_dataAccessor, _instanceName, _sessionId,
           _manager.getStateMachineEngine(), true);
     }
     removePreviousTaskCurrentStates();
@@ -171,15 +171,12 @@ public class ParticipantManager {
   }
 
   private boolean shouldCarryOver() {
-    if (_liveInstanceInfoProvider == null) {
+    if (_liveInstanceInfoProvider == null
+        || _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo() == null) {
       return true;
     }
-    ZNRecord additionalLiveInstanceInfo = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo();
-    String status = null;
-    if (additionalLiveInstanceInfo != null) {
-      status = additionalLiveInstanceInfo
-          .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name());
-    }
+    String status = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo()
+        .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name());
     // If frozen, no carry-over
     return !LiveInstance.LiveInstanceStatus.PAUSED.name().equals(status);
   }
@@ -362,9 +359,9 @@ public class ParticipantManager {
    * set to initial state for current session only when state doesn't exist in current session
    */
   public static synchronized void carryOverPreviousCurrentState(HelixDataAccessor dataAccessor,
-      PropertyKey.Builder keyBuilder, String instanceName, String sessionId,
-      StateMachineEngine stateMachineEngine, boolean setToInitState) {
-
+      String instanceName, String sessionId, StateMachineEngine stateMachineEngine,
+      boolean setToInitState) {
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
     List<String> sessions = dataAccessor.getChildNames(keyBuilder.sessions(instanceName));
 
     for (String session : sessions) {
@@ -378,7 +375,7 @@ public class ParticipantManager {
 
       for (CurrentState lastCurState : lastCurStates) {
         LOG.info("Carrying over old session: " + session + ", resource: " + lastCurState.getId()
-            + " to current session: " + sessionId);
+            + " to current session: " + sessionId + ", setToInitState: " + setToInitState);
         String stateModelDefRef = lastCurState.getStateModelDefRef();
         if (stateModelDefRef == null) {
           LOG.error(
@@ -407,7 +404,9 @@ public class ParticipantManager {
           lastCurState.getPartitionStateMap().keySet().forEach(partition -> {
             StateModel stateModel =
                 stateModelFactory.getStateModel(lastCurState.getResourceName(), partition);
-            partitionExpectedStateMap.put(partition, stateModel.getCurrentState());
+            if (stateModel != null) {
+              partitionExpectedStateMap.put(partition, stateModel.getCurrentState());
+            }
           });
         }
 

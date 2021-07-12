@@ -635,6 +635,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   private void syncFactoryState() {
+    LOG.info("Start to sync factory state");
     // Lock on the registry to avoid race condition when concurrently calling sync() and reset()
     synchronized (_hdlrFtyRegistry) {
       for (Map.Entry<String, MsgHandlerFactoryRegistryItem> entry : _hdlrFtyRegistry.entrySet()) {
@@ -1338,48 +1339,51 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private void changeParticipantStatus(String instanceName,
       LiveInstance.LiveInstanceStatus toStatus, HelixManager manager) {
     if (toStatus == null) {
+      LOG.warn("To status is null! Skip participant status change.");
       return;
     }
+
+    LOG.info("Changing participant {} status to {} from {}", instanceName, toStatus,
+        _liveInstanceStatus);
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     String sessionId = manager.getSessionId();
     String path = accessor.keyBuilder().liveInstance(instanceName).getPath();
+    boolean success = false;
 
     switch (toStatus) {
       case PAUSED:
-        // Entering freeze mode, update live instance status
-        boolean success = accessor.getBaseDataAccessor().update(path, record -> {
+        _freezeSessionId = sessionId;
+        _liveInstanceStatus = toStatus;
+        // Entering freeze mode, update live instance status.
+        // If the update fails, another new freeze message will be sent by controller.
+        success = accessor.getBaseDataAccessor().update(path, record -> {
           record.setEnumField(LiveInstance.LiveInstanceProperty.STATUS.name(), toStatus);
           return record;
         }, AccessOption.EPHEMERAL);
-        if (success) {
-          _freezeSessionId = sessionId;
-          _liveInstanceStatus = toStatus;
-        }
         break;
       case NORMAL:
         // Exiting freeze mode
-        // session changed, should call state model syncState()
+        // session changed, should call state model sync
         if (_freezeSessionId != null && !_freezeSessionId.equals(sessionId)) {
           syncFactoryState();
-          PropertyKey.Builder keyBuilder = new PropertyKey.Builder(manager.getClusterName());
-          ParticipantManager
-              .carryOverPreviousCurrentState(accessor, keyBuilder, instanceName, sessionId,
-                  manager.getStateMachineEngine(), false);
+          ParticipantManager.carryOverPreviousCurrentState(accessor, instanceName, sessionId,
+              manager.getStateMachineEngine(), false);
         }
+        _freezeSessionId = null;
+        _liveInstanceStatus = null;
         success = accessor.getBaseDataAccessor().update(path, record -> {
           // Remove the status field for backwards compatibility
           record.getSimpleFields().remove(LiveInstance.LiveInstanceProperty.STATUS.name());
           return record;
         }, AccessOption.EPHEMERAL);
-        if (success) {
-          _freezeSessionId = null;
-          _liveInstanceStatus = null;
-        }
         break;
       default:
         LOG.warn("To status {} is not supported", toStatus);
         break;
-      }
+    }
+
+    LOG.info("Changed participant {} status to {}. FreezeSessionId={}, update success={}",
+        instanceName, _liveInstanceStatus, _freezeSessionId, success);
   }
 
   private String getStateTransitionType(String prefix, String fromState, String toState) {

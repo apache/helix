@@ -35,17 +35,17 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
  */
 class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
   final String _curSessionId;
-  final Map<String, String> _initStateMap;
+  final Map<String, String> _expectedStateMap;
   final CurrentState _lastCurState;
 
-  public CurStateCarryOverUpdater(String curSessionId, Map<String, String> initStateMap,
+  public CurStateCarryOverUpdater(String curSessionId, Map<String, String> expectedStateMap,
       CurrentState lastCurState) {
     if (curSessionId == null || lastCurState == null) {
       throw new IllegalArgumentException(
           "missing curSessionId|lastCurState for carry-over");
     }
     _curSessionId = curSessionId;
-    _initStateMap = initStateMap;
+    _expectedStateMap = expectedStateMap;
     _lastCurState = lastCurState;
   }
 
@@ -64,7 +64,7 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
     for (String partitionName : _lastCurState.getPartitionStateMap().keySet()) {
         // carry-over only when current-state does not exist for regular Helix resource partitions
         if (curState.getState(partitionName) == null) {
-          curState.setState(partitionName, _initStateMap.get(partitionName));
+          curState.setState(partitionName, _expectedStateMap.get(partitionName));
         }
     }
     return curState.getRecord();

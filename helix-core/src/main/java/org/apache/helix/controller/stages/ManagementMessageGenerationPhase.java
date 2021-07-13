@@ -96,7 +96,9 @@ public class ManagementMessageGenerationPhase extends MessageGenerationPhase {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       Collection<Message> pendingMessages = allInstanceMessages.get(instanceName);
       String sessionId = liveInstance.getEphemeralOwner();
-      LiveInstanceStatus currentStatus = liveInstance.getStatus();
+      LiveInstanceStatus liveInstanceStatus = liveInstance.getStatus();
+      LiveInstanceStatus currentStatus = (liveInstanceStatus == null
+          ? LiveInstanceStatus.NORMAL : liveInstanceStatus);
 
       if (needStatusChangeMessage(pendingMessages, currentStatus, desiredStatus)) {
         Message statusChangeMessage = MessageUtil.createStatusChangeMessage(currentStatus,

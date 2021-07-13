@@ -131,7 +131,10 @@ public class AbstractResource {
   }
 
   protected Response OKWithHeader(Object entity, String headerName, Object headerValue) {
-    return Response.ok(entity).header(headerName, headerValue).build();
+    if (headerName == null || headerName.length()==0)
+      return OK(entity);
+    else
+      return Response.ok(entity).header(headerName, headerValue).build();
   }
 
   protected Response created() {
@@ -155,15 +158,13 @@ public class AbstractResource {
   }
 
   protected Response JSONRepresentation(Object entity) {
-    try {
-      String jsonStr = toJson(entity);
-      return OK(jsonStr);
-    } catch (IOException e) {
-      _logger.error("Failed to convert " + entity + " to JSON response", e);
-      return serverError();
-    }
+    return JSONRepresentation(entity, null, null);
   }
 
+  /**
+   * Any metadata about the response could be conveyed through the entity headers.
+   * More details can be found at 'REST-API-Design-Rulebook' -- Ch4 Metadata Design
+   */
   protected Response JSONRepresentation(Object entity, String headerName, Object headerValue) {
     try {
       String jsonStr = toJson(entity);

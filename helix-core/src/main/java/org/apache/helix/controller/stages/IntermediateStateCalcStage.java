@@ -300,8 +300,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     LogUtil.logDebug(logger, _eventId, String.format("Processing resource: %s", resourceName));
 
     // Throttling is applied only on FULL-AUTO mode and if the resource message map is empty, no throttling needed.
-    if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO.equals(
-        idealState.getRebalanceMode()) || resourceMessageMap.isEmpty()) {
+    // TODO: The potential optimization to make the logic computation async and report the metric for recovery/load
+    // rebalance.
+    if (!IdealState.RebalanceMode.FULL_AUTO.equals(idealState.getRebalanceMode()) || resourceMessageMap.isEmpty()) {
       return bestPossiblePartitionStateMap;
     }
 

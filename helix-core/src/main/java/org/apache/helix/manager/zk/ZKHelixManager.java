@@ -1317,6 +1317,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     LOG.info("Handle new session, instance: {}, type: {}, session id: {}.", _instanceName,
         _instanceType,  sessionId);
 
+    // Will only create live instance
+    LiveInstance.LiveInstanceStatus liveInstanceStatus =
+        _messagingService.getExecutor().getLiveInstanceStatus();
+    if (LiveInstance.LiveInstanceStatus.PAUSED
+        .equals(liveInstanceStatus)) {
+      handleNewSessionInManagementMode(sessionId, liveInstanceStatus);
+      return;
+    }
+
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session
      * disconnect if fail to cleanup
@@ -1343,13 +1352,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     switch (_instanceType) {
     case PARTICIPANT:
-      handleNewSessionAsParticipant(sessionId);
+      handleNewSessionAsParticipant(sessionId, _liveInstanceInfoProvider);
       break;
     case CONTROLLER:
       handleNewSessionAsController();
       break;
     case CONTROLLER_PARTICIPANT:
-      handleNewSessionAsParticipant(sessionId);
+      handleNewSessionAsParticipant(sessionId, _liveInstanceInfoProvider);
       handleNewSessionAsController();
       break;
     case ADMINISTRATOR:
@@ -1376,12 +1385,25 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
-  void handleNewSessionAsParticipant(final String sessionId) throws Exception {
+  private void handleNewSessionInManagementMode(String sessionId,
+      LiveInstance.LiveInstanceStatus liveInstanceStatus) throws Exception {
+    LOG.info("Skip reset because instance is in {} status", LiveInstance.LiveInstanceStatus.PAUSED);
+    if (!InstanceType.PARTICIPANT.equals(_instanceType)
+        && !InstanceType.CONTROLLER_PARTICIPANT.equals(_instanceType)) {
+      return;
+    }
+    // Add STATUS to info provider so the new live instance will have STATUS field
+    handleNewSessionAsParticipant(sessionId,
+        new LiveInstanceStatusInfoProvider(liveInstanceStatus));
+  }
+
+  void handleNewSessionAsParticipant(final String sessionId, LiveInstanceInfoProvider provider)
+      throws Exception {
     if (_participantManager != null) {
       _participantManager.reset();
     }
     _participantManager =
-        new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
+        new ParticipantManager(this, _zkclient, _sessionTimeout, provider,
             _preConnectCallbacks, sessionId, _helixManagerProperty);
     _participantManager.handleNewSession();
   }
@@ -1534,5 +1556,22 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       zkConnectionInfo = _zkAddress;
     }
     return zkConnectionInfo;
+  }
+
+  /*
+   * Provides live instance status as additional live instance info in the info provider.
+   */
+  private static class LiveInstanceStatusInfoProvider implements LiveInstanceInfoProvider {
+    private final ZNRecord _record;
+
+    public LiveInstanceStatusInfoProvider(LiveInstance.LiveInstanceStatus status) {
+      _record = new ZNRecord("STATUS_PROVIDER");
+      _record.setEnumField(LiveInstance.LiveInstanceProperty.STATUS.name(), status);
+    }
+
+    @Override
+    public ZNRecord getAdditionalLiveInstanceInfo() {
+      return _record;
+    }
   }
 }

@@ -187,6 +187,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _timer = new Timer("HelixTaskExecutor_Timer", true);
 
     _isShuttingDown = false;
+    _liveInstanceStatus = LiveInstanceStatus.NORMAL;
 
     startMonitorThread();
   }
@@ -1370,7 +1371,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               manager.getStateMachineEngine(), false);
         }
         _freezeSessionId = null;
-        _liveInstanceStatus = null;
+        _liveInstanceStatus = toStatus;
         success = accessor.getBaseDataAccessor().update(path, record -> {
           // Remove the status field for backwards compatibility
           record.getSimpleFields().remove(LiveInstance.LiveInstanceProperty.STATUS.name());

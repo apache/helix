@@ -509,7 +509,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // TODO: support other modes
     switch (mode) {
-      case CLUSTER_PAUSE:
+      case CLUSTER_FREEZE:
         enableClusterPauseMode(clusterName, request.isCancelPendingST(), reason);
         break;
       case NORMAL:

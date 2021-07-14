@@ -1302,7 +1302,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Set cluster pause mode
     ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
-        .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+        .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
         .withClusterName(cluster)
         .build();
     String payload = OBJECT_MAPPER.writeValueAsString(request);
@@ -1321,22 +1321,23 @@ public class TestClusterAccessor extends AbstractTestClass {
 
     // Verify get cluster status
     String body = get(endpoint, null, Response.Status.OK.getStatusCode(), true);
-    ClusterManagementMode mode =
-        OBJECT_MAPPER.readerFor(ClusterManagementMode.class).readValue(body);
-    Assert.assertEquals(mode.getMode(), ClusterManagementMode.Type.CLUSTER_PAUSE);
+    Map<String, Object> responseMap = OBJECT_MAPPER.readerFor(Map.class).readValue(body);
+    Assert.assertEquals(responseMap.get("mode"), ClusterManagementMode.Type.CLUSTER_FREEZE.name());
     // Depending on timing, it could IN_PROGRESS or COMPLETED.
     // It's just to verify the rest response format is correct
-    Assert.assertTrue(ClusterManagementMode.Status.IN_PROGRESS.equals(mode.getStatus())
-        || ClusterManagementMode.Status.COMPLETED.equals(mode.getStatus()));
+    String status = (String) responseMap.get("status");
+    Assert.assertTrue(ClusterManagementMode.Status.IN_PROGRESS.name().equals(status)
+        || ClusterManagementMode.Status.COMPLETED.name().equals(status));
 
     body = get(endpoint, ImmutableMap.of("showDetails", "true"), Response.Status.OK.getStatusCode(),
         true);
-    Map<String, Object> responseMap = OBJECT_MAPPER.readerFor(Map.class).readValue(body);
+    responseMap = OBJECT_MAPPER.readerFor(Map.class).readValue(body);
     Map<String, Object> detailsMap = (Map<String, Object>) responseMap.get("details");
+    status = (String) responseMap.get("status");
 
     Assert.assertEquals(responseMap.get("cluster"), cluster);
-    Assert.assertEquals(responseMap.get("mode"), mode.getMode().name());
-    Assert.assertEquals(responseMap.get("status"), mode.getStatus().name());
+    Assert.assertEquals(responseMap.get("mode"), ClusterManagementMode.Type.CLUSTER_FREEZE.name());
+    Assert.assertEquals(responseMap.get("status"), status);
     Assert.assertTrue(responseMap.containsKey("details"));
     Assert.assertTrue(detailsMap.containsKey("cluster"));
     Assert.assertTrue(detailsMap.containsKey("liveInstances"));

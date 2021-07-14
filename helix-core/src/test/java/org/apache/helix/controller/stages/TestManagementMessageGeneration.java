@@ -128,7 +128,7 @@ public class TestManagementMessageGeneration extends ManagementMessageGeneration
         RebalanceUtil.buildBestPossibleState(resourceMap.keySet(), currentStateOutput);
 
     // Process the event
-    ClusterManagementMode mode = new ClusterManagementMode(ClusterManagementMode.Type.CLUSTER_PAUSE,
+    ClusterManagementMode mode = new ClusterManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE,
         ClusterManagementMode.Status.IN_PROGRESS);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
     event.addAttribute(AttributeName.CLUSTER_STATUS.name(), mode);

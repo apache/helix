@@ -63,6 +63,13 @@ public abstract class StateModel {
   }
 
   /**
+   * Called when cluster is recovering from freeze mode if session changed during freeze mode.
+   */
+  public void syncState() {
+    logger.warn("Default syncState method invoked without any operation.");
+  }
+
+  /**
    * Called when the state model is reset
    */
   public void reset() {

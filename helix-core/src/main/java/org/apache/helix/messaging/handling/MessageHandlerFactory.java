@@ -21,6 +21,8 @@ package org.apache.helix.messaging.handling;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Deprecated
 public interface MessageHandlerFactory {
@@ -37,4 +39,12 @@ public interface MessageHandlerFactory {
   String getMessageType();
 
   void reset();
+
+  default void sync() {
+    LogHolder.LOG.warn("Invoked default sync() without any operation");
+  }
+}
+
+final class LogHolder {
+  static final Logger LOG = LoggerFactory.getLogger(MessageHandlerFactory.class);
 }

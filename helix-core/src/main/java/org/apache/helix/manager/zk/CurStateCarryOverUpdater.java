@@ -19,10 +19,10 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import java.util.Map;
+
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.task.TaskConstants;
-import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 
 
@@ -35,16 +35,17 @@ import org.apache.helix.zookeeper.zkclient.DataUpdater;
  */
 class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
   final String _curSessionId;
-  final String _initState;
+  final Map<String, String> _expectedStateMap;
   final CurrentState _lastCurState;
 
-  public CurStateCarryOverUpdater(String curSessionId, String initState, CurrentState lastCurState) {
-    if (curSessionId == null || initState == null || lastCurState == null) {
+  public CurStateCarryOverUpdater(String curSessionId, Map<String, String> expectedStateMap,
+      CurrentState lastCurState) {
+    if (curSessionId == null || lastCurState == null) {
       throw new IllegalArgumentException(
-          "missing curSessionId|initState|lastCurState for carry-over");
+          "missing curSessionId|lastCurState for carry-over");
     }
     _curSessionId = curSessionId;
-    _initState = initState;
+    _expectedStateMap = expectedStateMap;
     _lastCurState = lastCurState;
   }
 
@@ -63,7 +64,7 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
     for (String partitionName : _lastCurState.getPartitionStateMap().keySet()) {
         // carry-over only when current-state does not exist for regular Helix resource partitions
         if (curState.getState(partitionName) == null) {
-          curState.setState(partitionName, _initState);
+          curState.setState(partitionName, _expectedStateMap.get(partitionName));
         }
     }
     return curState.getRecord();

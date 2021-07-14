@@ -23,6 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixCloudProperty;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperty;
@@ -52,12 +54,15 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecordBucketizer;
+import org.apache.helix.zookeeper.exception.ZkClientException;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkSessionMismatchedException;
@@ -153,13 +158,27 @@ public class ParticipantManager {
     // Live instance creation also checks if the expected session is valid or not. Live instance
     // should not be created by an expired zk session.
     createLiveInstance();
-    carryOverPreviousCurrentState();
+    if (shouldCarryOver()) {
+      carryOverPreviousCurrentState(_dataAccessor, _instanceName, _sessionId,
+          _manager.getStateMachineEngine(), true);
+    }
     removePreviousTaskCurrentStates();
 
     /**
      * setup message listener
      */
     setupMsgHandler();
+  }
+
+  private boolean shouldCarryOver() {
+    if (_liveInstanceInfoProvider == null
+        || _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo() == null) {
+      return true;
+    }
+    String status = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo()
+        .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name());
+    // If frozen, no carry-over
+    return !LiveInstance.LiveInstanceStatus.PAUSED.name().equals(status);
   }
 
   private void joinCluster() {
@@ -339,21 +358,24 @@ public class ParticipantManager {
    * carry over current-states from last sessions
    * set to initial state for current session only when state doesn't exist in current session
    */
-  private void carryOverPreviousCurrentState() {
-    List<String> sessions = _dataAccessor.getChildNames(_keyBuilder.sessions(_instanceName));
+  public static synchronized void carryOverPreviousCurrentState(HelixDataAccessor dataAccessor,
+      String instanceName, String sessionId, StateMachineEngine stateMachineEngine,
+      boolean setToInitState) {
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
+    List<String> sessions = dataAccessor.getChildNames(keyBuilder.sessions(instanceName));
 
     for (String session : sessions) {
-      if (session.equals(_sessionId)) {
+      if (session.equals(sessionId)) {
         continue;
       }
 
       // Ignore if any current states in the previous folder cannot be read.
       List<CurrentState> lastCurStates =
-          _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session), false);
+          dataAccessor.getChildValues(keyBuilder.currentStates(instanceName, session), false);
 
       for (CurrentState lastCurState : lastCurStates) {
         LOG.info("Carrying over old session: " + session + ", resource: " + lastCurState.getId()
-            + " to current session: " + _sessionId);
+            + " to current session: " + sessionId + ", setToInitState: " + setToInitState);
         String stateModelDefRef = lastCurState.getStateModelDefRef();
         if (stateModelDefRef == null) {
           LOG.error(
@@ -368,21 +390,37 @@ public class ParticipantManager {
           continue;
         }
 
-        StateModelDefinition stateModel =
-            _dataAccessor.getProperty(_keyBuilder.stateModelDef(stateModelDefRef));
+        StateModelDefinition stateModelDef =
+            dataAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
+        String initState = stateModelDef.getInitialState();
+        Map<String, String> partitionExpectedStateMap = new HashMap<>();
+        if (setToInitState) {
+          lastCurState.getPartitionStateMap().keySet()
+              .forEach(partition -> partitionExpectedStateMap.put(partition, initState));
+        } else {
+          String factoryName = lastCurState.getStateModelFactoryName();
+          StateModelFactory<? extends StateModel> stateModelFactory =
+              stateMachineEngine.getStateModelFactory(stateModelDefRef, factoryName);
+          lastCurState.getPartitionStateMap().keySet().forEach(partition -> {
+            StateModel stateModel =
+                stateModelFactory.getStateModel(lastCurState.getResourceName(), partition);
+            if (stateModel != null) {
+              partitionExpectedStateMap.put(partition, stateModel.getCurrentState());
+            }
+          });
+        }
 
-        BaseDataAccessor<ZNRecord> baseAccessor = _dataAccessor.getBaseDataAccessor();
+        BaseDataAccessor<ZNRecord> baseAccessor = dataAccessor.getBaseDataAccessor();
         String curStatePath =
-            _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
+            keyBuilder.currentState(instanceName, sessionId, lastCurState.getResourceName())
                 .getPath();
 
-        String initState = stateModel.getInitialState();
         if (lastCurState.getBucketSize() > 0) {
           // update parent node
           ZNRecord metaRecord = new ZNRecord(lastCurState.getId());
           metaRecord.setSimpleFields(lastCurState.getRecord().getSimpleFields());
           DataUpdater<ZNRecord> metaRecordUpdater =
-              new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(metaRecord));
+              new CurStateCarryOverUpdater(sessionId, partitionExpectedStateMap, new CurrentState(metaRecord));
           boolean success =
               baseAccessor.update(curStatePath, metaRecordUpdater, AccessOption.PERSISTENT);
           if (success) {
@@ -394,7 +432,7 @@ public class ParticipantManager {
             List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
             for (String bucketName : map.keySet()) {
               paths.add(curStatePath + "/" + bucketName);
-              updaters.add(new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(map
+              updaters.add(new CurStateCarryOverUpdater(sessionId, partitionExpectedStateMap, new CurrentState(map
                   .get(bucketName))));
             }
 
@@ -402,8 +440,8 @@ public class ParticipantManager {
           }
 
         } else {
-          _dataAccessor.getBaseDataAccessor().update(curStatePath,
-              new CurStateCarryOverUpdater(_sessionId, initState, lastCurState),
+          dataAccessor.getBaseDataAccessor().update(curStatePath,
+              new CurStateCarryOverUpdater(sessionId, partitionExpectedStateMap, lastCurState),
               AccessOption.PERSISTENT);
         }
       }
@@ -413,13 +451,16 @@ public class ParticipantManager {
      * remove previous current state parent nodes
      */
     for (String session : sessions) {
-      if (session.equals(_sessionId)) {
+      if (session.equals(sessionId)) {
         continue;
       }
 
-      String path = _keyBuilder.currentStates(_instanceName, session).getPath();
-      LOG.info("Removing current states from previous sessions. path: " + path);
-      _zkclient.deleteRecursively(path);
+      PropertyKey currentStatesProperty = keyBuilder.currentStates(instanceName, session);
+      String path = currentStatesProperty.getPath();
+      LOG.info("Removing current states from previous sessions. path: {}", path);
+      if (!dataAccessor.removeProperty(currentStatesProperty)) {
+        throw new ZkClientException("Failed to delete " + path);
+      }
     }
   }
 

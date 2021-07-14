@@ -56,10 +56,12 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.manager.zk.ParticipantManager;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.LiveInstance.LiveInstanceStatus;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -127,6 +129,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private MessageQueueMonitor _messageQueueMonitor;
   private GenericHelixController _controller;
   private Long _lastSessionSyncTime;
+  private String _freezeSessionId;
+  private LiveInstanceStatus _liveInstanceStatus;
   private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
   private static final String SESSION_SYNC = "SESSION-SYNC";
   /**
@@ -630,6 +634,24 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + ", pool: " + pool);
   }
 
+  private void syncFactoryState() {
+    LOG.info("Start to sync factory state");
+    // Lock on the registry to avoid race condition when concurrently calling sync() and reset()
+    synchronized (_hdlrFtyRegistry) {
+      for (Map.Entry<String, MsgHandlerFactoryRegistryItem> entry : _hdlrFtyRegistry.entrySet()) {
+        MsgHandlerFactoryRegistryItem item = entry.getValue();
+        if (item.factory() != null) {
+          try {
+            item.factory().sync();
+          } catch (Exception ex) {
+            LOG.error("Failed to syncState the factory {} of message type {}.", item.factory(),
+                entry.getKey(), ex);
+          }
+        }
+      }
+    }
+  }
+
   void reset() {
     LOG.info("Reset HelixTaskExecutor");
 
@@ -637,22 +659,24 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       _messageQueueMonitor.reset();
     }
 
-    for (String msgType : _hdlrFtyRegistry.keySet()) {
-      // don't un-register factories, just shutdown all executors
-      ExecutorService pool = _executorMap.remove(msgType);
-      _monitor.removeExecutorMonitor(msgType);
-      if (pool != null) {
-        LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
-        shutdownAndAwaitTermination(pool);
-      }
+    synchronized (_hdlrFtyRegistry) {
+      for (String msgType : _hdlrFtyRegistry.keySet()) {
+        // don't un-register factories, just shutdown all executors
+        ExecutorService pool = _executorMap.remove(msgType);
+        _monitor.removeExecutorMonitor(msgType);
+        if (pool != null) {
+          LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
+          shutdownAndAwaitTermination(pool);
+        }
 
-      MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-      if (item.factory() != null) {
-        try {
-          item.factory().reset();
-        } catch (Exception ex) {
-          LOG.error("Failed to reset the factory {} of message type {}.", item.factory().toString(),
-              msgType, ex);
+        MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
+        if (item.factory() != null) {
+          try {
+            item.factory().reset();
+          } catch (Exception ex) {
+            LOG.error("Failed to reset the factory {} of message type {}.", item.factory().toString(),
+                msgType, ex);
+          }
         }
       }
     }
@@ -1068,6 +1092,13 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         }
       }
 
+      if (MessageType.PARTICIPANT_STATUS_CHANGE.name().equals(message.getMsgType())) {
+        LiveInstanceStatus toStatus = LiveInstanceStatus.valueOf(message.getToState());
+        changeParticipantStatus(instanceName, toStatus, manager);
+        reportAndRemoveMessage(message, accessor, instanceName, ProcessedMessageState.COMPLETED);
+        return true;
+      }
+
       _monitor.reportReceivedMessage(message);
     } catch (Exception e) {
       LOG.error("Failed to process the message {}. Deleting the message from ZK. Exception: {}",
@@ -1305,6 +1336,56 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     return String.format("%s_%s", resourceName, partitionName);
   }
 
+  private void changeParticipantStatus(String instanceName,
+      LiveInstance.LiveInstanceStatus toStatus, HelixManager manager) {
+    if (toStatus == null) {
+      LOG.warn("To status is null! Skip participant status change.");
+      return;
+    }
+
+    LOG.info("Changing participant {} status to {} from {}", instanceName, toStatus,
+        _liveInstanceStatus);
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    String sessionId = manager.getSessionId();
+    String path = accessor.keyBuilder().liveInstance(instanceName).getPath();
+    boolean success = false;
+
+    switch (toStatus) {
+      case PAUSED:
+        _freezeSessionId = sessionId;
+        _liveInstanceStatus = toStatus;
+        // Entering freeze mode, update live instance status.
+        // If the update fails, another new freeze message will be sent by controller.
+        success = accessor.getBaseDataAccessor().update(path, record -> {
+          record.setEnumField(LiveInstance.LiveInstanceProperty.STATUS.name(), toStatus);
+          return record;
+        }, AccessOption.EPHEMERAL);
+        break;
+      case NORMAL:
+        // Exiting freeze mode
+        // session changed, should call state model sync
+        if (_freezeSessionId != null && !_freezeSessionId.equals(sessionId)) {
+          syncFactoryState();
+          ParticipantManager.carryOverPreviousCurrentState(accessor, instanceName, sessionId,
+              manager.getStateMachineEngine(), false);
+        }
+        _freezeSessionId = null;
+        _liveInstanceStatus = null;
+        success = accessor.getBaseDataAccessor().update(path, record -> {
+          // Remove the status field for backwards compatibility
+          record.getSimpleFields().remove(LiveInstance.LiveInstanceProperty.STATUS.name());
+          return record;
+        }, AccessOption.EPHEMERAL);
+        break;
+      default:
+        LOG.warn("To status {} is not supported", toStatus);
+        break;
+    }
+
+    LOG.info("Changed participant {} status to {}. FreezeSessionId={}, update success={}",
+        instanceName, _liveInstanceStatus, _freezeSessionId, success);
+  }
+
   private String getStateTransitionType(String prefix, String fromState, String toState) {
     if (prefix == null || fromState == null || toState == null) {
       return null;
@@ -1314,6 +1395,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private String getPerResourceStateTransitionPoolName(String resourceName) {
     return MessageType.STATE_TRANSITION.name() + "." + resourceName;
+  }
+
+  public LiveInstanceStatus getLiveInstanceStatus() {
+    return _liveInstanceStatus;
   }
 
   private void removeMessageFromZK(HelixDataAccessor accessor, Message message,

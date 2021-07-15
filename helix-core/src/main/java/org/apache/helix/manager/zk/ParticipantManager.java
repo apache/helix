@@ -178,7 +178,7 @@ public class ParticipantManager {
     String status = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo()
         .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name());
     // If frozen, no carry-over
-    return !LiveInstance.LiveInstanceStatus.PAUSED.name().equals(status);
+    return !LiveInstance.LiveInstanceStatus.FROZEN.name().equals(status);
   }
 
   private void joinCluster() {

@@ -96,7 +96,7 @@ public class TestManagementModeStage extends ZkTestBase {
 
     // Mark a live instance to be pause state
     LiveInstance liveInstance = liveInstances.get(0);
-    liveInstance.setStatus(LiveInstance.LiveInstanceStatus.PAUSED);
+    liveInstance.setStatus(LiveInstance.LiveInstanceStatus.FROZEN);
     PropertyKey liveInstanceKey =
         _accessor.keyBuilder().liveInstance(liveInstance.getInstanceName());
     _accessor.updateProperty(liveInstanceKey, liveInstance);

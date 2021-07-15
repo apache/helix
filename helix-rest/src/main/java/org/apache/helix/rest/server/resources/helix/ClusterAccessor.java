@@ -348,7 +348,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         // Entering cluster freeze mode, check live instance freeze status and pending ST
         for (LiveInstance liveInstance : liveInstances) {
           String instanceName = liveInstance.getInstanceName();
-          if (!LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstance.getStatus())) {
+          if (!LiveInstance.LiveInstanceStatus.FROZEN.equals(liveInstance.getStatus())) {
             liveInstancesInProgress.add(instanceName);
           }
           Stat stat = baseAccessor
@@ -361,7 +361,7 @@ public class ClusterAccessor extends AbstractHelixResource {
       } else if (ClusterManagementMode.Type.NORMAL.equals(mode.getMode())) {
         // Exiting freeze mode, check live instance unfreeze status
         for (LiveInstance liveInstance : liveInstances) {
-          if (LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstance.getStatus())) {
+          if (LiveInstance.LiveInstanceStatus.FROZEN.equals(liveInstance.getStatus())) {
             liveInstancesInProgress.add(liveInstance.getInstanceName());
           }
         }

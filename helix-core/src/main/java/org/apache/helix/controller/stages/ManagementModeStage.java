@@ -119,7 +119,7 @@ public class ManagementModeStage extends AbstractBaseStage {
     // 1. All live instances are frozen
     // 2. No pending participant status change message.
     return enabledLiveInstances.stream().noneMatch(
-        instance -> !LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
+        instance -> !LiveInstanceStatus.FROZEN.equals(liveInstanceMap.get(instance).getStatus())
             || hasPendingMessage(allInstanceMessages.get(instance),
             MessageType.PARTICIPANT_STATUS_CHANGE));
   }

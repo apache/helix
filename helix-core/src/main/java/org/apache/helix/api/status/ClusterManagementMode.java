@@ -89,7 +89,7 @@ public class ClusterManagementMode {
     public LiveInstance.LiveInstanceStatus getDesiredParticipantStatus() {
         switch (mode) {
             case CLUSTER_FREEZE:
-                return LiveInstance.LiveInstanceStatus.PAUSED;
+                return LiveInstance.LiveInstanceStatus.FROZEN;
             case NORMAL:
                 return LiveInstance.LiveInstanceStatus.NORMAL;
             default:

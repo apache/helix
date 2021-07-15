@@ -1352,7 +1352,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     boolean success = false;
 
     switch (toStatus) {
-      case PAUSED:
+      case FROZEN:
         _freezeSessionId = sessionId;
         _liveInstanceStatus = toStatus;
         // Entering freeze mode, update live instance status.

@@ -153,7 +153,7 @@ public class TestLiveInstance extends ZkUnitTestBase {
     Assert.assertNull(testLiveInstance.getRecord()
         .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name()));
     Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.NORMAL);
-    testLiveInstance.setStatus(LiveInstance.LiveInstanceStatus.PAUSED);
-    Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.PAUSED);
+    testLiveInstance.setStatus(LiveInstance.LiveInstanceStatus.FROZEN);
+    Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.FROZEN);
   }
 }

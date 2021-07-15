@@ -199,7 +199,7 @@ public class TestParticipantFreeze extends ZkTestBase {
 
     // New live instance ephemeral node with FROZEN status
     Assert.assertFalse(_originSession.equals(liveInstance.getEphemeralOwner()));
-    Assert.assertEquals(liveInstance.getStatus(), LiveInstance.LiveInstanceStatus.PAUSED);
+    Assert.assertEquals(liveInstance.getStatus(), LiveInstance.LiveInstanceStatus.FROZEN);
 
     // New session path does not exist since no current state carry over for the current session.
     Assert.assertFalse(
@@ -212,7 +212,7 @@ public class TestParticipantFreeze extends ZkTestBase {
   @Test(dependsOnMethods = "testHandleNewSessionWhenFrozen")
   public void testUnfreezeParticipant() throws Exception {
     Message unfreezeMessage = MessageUtil
-        .createStatusChangeMessage(LiveInstance.LiveInstanceStatus.PAUSED,
+        .createStatusChangeMessage(LiveInstance.LiveInstanceStatus.FROZEN,
             LiveInstance.LiveInstanceStatus.NORMAL, _manager.getInstanceName(),
             _manager.getSessionId(), _instanceName, _participants[0].getSessionId());
     List<PropertyKey> keys = Collections
@@ -275,7 +275,7 @@ public class TestParticipantFreeze extends ZkTestBase {
   private void freezeParticipant(MockParticipantManager participant) throws Exception {
     Message freezeMessage = MessageUtil
         .createStatusChangeMessage(LiveInstance.LiveInstanceStatus.NORMAL,
-            LiveInstance.LiveInstanceStatus.PAUSED, _manager.getInstanceName(),
+            LiveInstance.LiveInstanceStatus.FROZEN, _manager.getInstanceName(),
             _manager.getSessionId(), participant.getInstanceName(), participant.getSessionId());
 
     List<PropertyKey> keys = Collections
@@ -285,7 +285,7 @@ public class TestParticipantFreeze extends ZkTestBase {
     Assert.assertTrue(success[0]);
 
     // Live instance status is frozen in both memory and zk
-    verifyLiveInstanceStatus(participant, LiveInstance.LiveInstanceStatus.PAUSED);
+    verifyLiveInstanceStatus(participant, LiveInstance.LiveInstanceStatus.FROZEN);
     // Freeze message is correctly deleted
     Assert.assertTrue(TestHelper.verify(() -> !_gZkClient.exists(
         _keyBuilder.message(participant.getInstanceName(), freezeMessage.getId()).getPath()),

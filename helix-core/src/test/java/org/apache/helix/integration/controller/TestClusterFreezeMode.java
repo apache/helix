@@ -172,7 +172,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
     latch.countDown();
 
     // Verify live instance status and cluster status
-    verifyLiveInstanceStatus(_participants, LiveInstance.LiveInstanceStatus.PAUSED);
+    verifyLiveInstanceStatus(_participants, LiveInstance.LiveInstanceStatus.FROZEN);
 
     expectedClusterStatus = new ClusterStatus();
     expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE);
@@ -204,7 +204,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
 
     // The new participant/live instance should be frozen by controller
     verifyLiveInstanceStatus(new MockParticipantManager[]{newParticipant},
-        LiveInstance.LiveInstanceStatus.PAUSED);
+        LiveInstance.LiveInstanceStatus.FROZEN);
 
     newParticipant.syncStop();
   }
@@ -236,7 +236,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
     Assert.assertEquals(liveInstance.getEphemeralOwner(), _participants[1].getSessionId());
     // Status is frozen because controller sends a freeze message.
     verifyLiveInstanceStatus(new MockParticipantManager[]{_participants[1]},
-        LiveInstance.LiveInstanceStatus.PAUSED);
+        LiveInstance.LiveInstanceStatus.FROZEN);
 
     // Old session current state is deleted because of current state carry-over
     Assert.assertTrue(TestHelper.verify(

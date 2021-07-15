@@ -1320,7 +1320,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     // Will only create live instance
     LiveInstance.LiveInstanceStatus liveInstanceStatus =
         _messagingService.getExecutor().getLiveInstanceStatus();
-    if (LiveInstance.LiveInstanceStatus.PAUSED
+    if (LiveInstance.LiveInstanceStatus.FROZEN
         .equals(liveInstanceStatus)) {
       handleNewSessionInManagementMode(sessionId, liveInstanceStatus);
       return;
@@ -1387,7 +1387,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   private void handleNewSessionInManagementMode(String sessionId,
       LiveInstance.LiveInstanceStatus liveInstanceStatus) throws Exception {
-    LOG.info("Skip reset because instance is in {} status", LiveInstance.LiveInstanceStatus.PAUSED);
+    LOG.info("Skip reset because instance is in {} status", LiveInstance.LiveInstanceStatus.FROZEN);
     if (!InstanceType.PARTICIPANT.equals(_instanceType)
         && !InstanceType.CONTROLLER_PARTICIPANT.equals(_instanceType)) {
       return;

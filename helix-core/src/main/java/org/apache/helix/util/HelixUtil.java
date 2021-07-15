@@ -576,7 +576,7 @@ public final class HelixUtil {
       Map<String, LiveInstance> liveInstanceMap,
       Map<String, Collection<Message>> instancesMessages) {
     // Check live instance status and participant status change message
-    return LiveInstance.LiveInstanceStatus.PAUSED.equals(liveInstanceMap.get(instance).getStatus())
+    return LiveInstance.LiveInstanceStatus.FROZEN.equals(liveInstanceMap.get(instance).getStatus())
         || (instancesMessages.getOrDefault(instance, Collections.emptyList()).stream()
         .anyMatch(Message::isParticipantStatusChangeType));
   }

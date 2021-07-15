@@ -391,6 +391,10 @@ public class TestRawZkClient extends ZkTestBase {
     Assert.assertTrue((long) beanServer.getAttribute(idealStatename, "WriteTotalLatencyCounter")
         >= origIdealStatesWriteTotalLatencyCounter);
 
+    // Verify the callback baseline count because of the data sync call.
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 1);
+    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 1);
+
     // Test data change count
     final Lock lock = new ReentrantLock();
     final Condition callbackFinish = lock.newCondition();
@@ -415,12 +419,16 @@ public class TestRawZkClient extends ZkTestBase {
       }
     });
     lock.lock();
+
     _zkClient.writeData(TEST_PATH, "Test");
     Assert.assertTrue(callbackFinish.await(10, TimeUnit.SECONDS));
     Assert.assertEquals((long) beanServer.getAttribute(name, "DataChangeEventCounter"), 1);
     Assert.assertEquals((long) beanServer.getAttribute(name, "OutstandingRequestGauge"), 0);
     Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackCounter"), 2);
-    Assert.assertEquals((long) beanServer.getAttribute(name, "TotalCallbackHandledCounter"), 2);
+    // Processing of the event might be slightly delayed.
+    Assert.assertTrue(TestHelper
+        .verify(() -> (long) beanServer.getAttribute(name, "TotalCallbackHandledCounter") == 2,
+            500));
     Assert.assertEquals((long) beanServer.getAttribute(name, "PendingCallbackGauge"), 0);
 
     // Simulate a delayed callback

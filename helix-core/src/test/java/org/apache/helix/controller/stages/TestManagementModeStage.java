@@ -76,7 +76,7 @@ public class TestManagementModeStage extends ZkTestBase {
     // Freeze cluster
     ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
         .withClusterName(_clusterName)
-        .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+        .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
         .withReason("test")
         .build();
     _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
@@ -91,7 +91,7 @@ public class TestManagementModeStage extends ZkTestBase {
 
     // In frozen mode
     ClusterStatus clusterStatus = _accessor.getProperty(_accessor.keyBuilder().clusterStatus());
-    Assert.assertEquals(clusterStatus.getManagementMode(), ClusterManagementMode.Type.CLUSTER_PAUSE);
+    Assert.assertEquals(clusterStatus.getManagementMode(), ClusterManagementMode.Type.CLUSTER_FREEZE);
 
 
     // Mark a live instance to be pause state

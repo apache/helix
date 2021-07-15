@@ -153,7 +153,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
     // Freeze cluster
     ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
         .withClusterName(_clusterName)
-        .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+        .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
         .withReason(methodName)
         .build();
     _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
@@ -164,7 +164,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
 
     // Cluster is in progress to cluster pause because there is a pending state transition message
     ClusterStatus expectedClusterStatus = new ClusterStatus();
-    expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_PAUSE);
+    expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE);
     expectedClusterStatus.setManagementModeStatus(ClusterManagementMode.Status.IN_PROGRESS);
     verifyClusterStatus(expectedClusterStatus);
 
@@ -175,7 +175,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
     verifyLiveInstanceStatus(_participants, LiveInstance.LiveInstanceStatus.PAUSED);
 
     expectedClusterStatus = new ClusterStatus();
-    expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_PAUSE);
+    expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE);
     expectedClusterStatus.setManagementModeStatus(ClusterManagementMode.Status.COMPLETED);
     verifyClusterStatus(expectedClusterStatus);
 
@@ -187,7 +187,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
         return false;
       }
       String lastHistory = managementHistory.get(managementHistory.size() - 1);
-      return lastHistory.contains("MODE=" + ClusterManagementMode.Type.CLUSTER_PAUSE)
+      return lastHistory.contains("MODE=" + ClusterManagementMode.Type.CLUSTER_FREEZE)
           && lastHistory.contains("STATUS=" + ClusterManagementMode.Status.COMPLETED)
           && lastHistory.contains("REASON=" + methodName);
     }, TestHelper.WAIT_DURATION));
@@ -303,7 +303,7 @@ public class TestClusterFreezeMode extends ZkTestBase {
         .build();
     _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
 
-    verifyLiveInstanceStatus(_participants, null);
+    verifyLiveInstanceStatus(_participants, LiveInstance.LiveInstanceStatus.NORMAL);
 
     ClusterStatus expectedClusterStatus = new ClusterStatus();
     expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.NORMAL);

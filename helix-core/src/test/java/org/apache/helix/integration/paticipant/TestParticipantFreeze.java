@@ -117,7 +117,9 @@ public class TestParticipantFreeze extends ZkTestBase {
   @Test
   public void testNormalLiveInstanceStatus() {
     LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(_instanceName));
-    Assert.assertNull(liveInstance.getStatus());
+    Assert.assertEquals(liveInstance.getStatus(), LiveInstance.LiveInstanceStatus.NORMAL);
+    Assert.assertNull(
+        liveInstance.getRecord().getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name()));
   }
 
   @Test(dependsOnMethods = "testNormalLiveInstanceStatus")
@@ -151,7 +153,7 @@ public class TestParticipantFreeze extends ZkTestBase {
     // New live instance ephemeral node
     Assert.assertEquals(liveInstance.getEphemeralOwner(), _participants[1].getSessionId());
     // Status is not frozen because controller is not running, no freeze message sent.
-    verifyLiveInstanceStatus(_participants[1], null);
+    verifyLiveInstanceStatus(_participants[1], LiveInstance.LiveInstanceStatus.NORMAL);
 
     // Old session current state is deleted because of current state carry-over
     Assert.assertTrue(TestHelper.verify(
@@ -221,7 +223,7 @@ public class TestParticipantFreeze extends ZkTestBase {
 
     // Live instance status is NORMAL, but set to null value in both memory and zk.
     // After live instance status is updated, the process is completed.
-    verifyLiveInstanceStatus(_participants[0], null);
+    verifyLiveInstanceStatus(_participants[0], LiveInstance.LiveInstanceStatus.NORMAL);
     // Unfreeze message is correctly deleted
     Assert.assertNull(
         _accessor.getProperty(_keyBuilder.message(_instanceName, unfreezeMessage.getId())));
@@ -242,7 +244,7 @@ public class TestParticipantFreeze extends ZkTestBase {
 
   private void verifyLiveInstanceStatus(MockParticipantManager participant,
       LiveInstance.LiveInstanceStatus status) throws Exception {
-    // Live instance status is frozen in both memory and zk
+    // Verify live instance status in both memory and zk
     Assert.assertTrue(TestHelper.verify(() -> {
       LiveInstance.LiveInstanceStatus inMemoryLiveInstanceStatus =
           ((DefaultMessagingService) participant.getMessagingService()).getExecutor()
@@ -285,7 +287,8 @@ public class TestParticipantFreeze extends ZkTestBase {
     // Live instance status is frozen in both memory and zk
     verifyLiveInstanceStatus(participant, LiveInstance.LiveInstanceStatus.PAUSED);
     // Freeze message is correctly deleted
-    Assert.assertNull(_accessor
-        .getProperty(_keyBuilder.message(participant.getInstanceName(), freezeMessage.getId())));
+    Assert.assertTrue(TestHelper.verify(() -> !_gZkClient.exists(
+        _keyBuilder.message(participant.getInstanceName(), freezeMessage.getId()).getPath()),
+        TestHelper.WAIT_DURATION));
   }
 }

@@ -142,10 +142,12 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Gets the live instance's status. Returns null if the status field is not set.
+   * Gets the live instance's status. Returns {@link LiveInstanceStatus#NORMAL} if the status
+   * field is not set.
    */
   public LiveInstanceStatus getStatus() {
-    return _record.getEnumField(LiveInstanceProperty.STATUS.name(), LiveInstanceStatus.class, null);
+    return _record.getEnumField(LiveInstanceProperty.STATUS.name(), LiveInstanceStatus.class,
+        LiveInstanceStatus.NORMAL);
   }
 
   /**

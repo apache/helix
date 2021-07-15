@@ -30,7 +30,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.status.ClusterManagementMode;
-import org.apache.helix.controller.LogUtil;
 import org.apache.helix.controller.dataproviders.ManagementControllerDataProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -40,7 +39,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceStatus;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.Resource;
 import org.apache.helix.util.HelixUtil;
@@ -104,7 +102,7 @@ public class ManagementModeStage extends AbstractBaseStage {
         status = ClusterManagementMode.Status.IN_PROGRESS;
       }
     } else if (pauseSignal.isClusterPause()) {
-      type = ClusterManagementMode.Type.CLUSTER_PAUSE;
+      type = ClusterManagementMode.Type.CLUSTER_FREEZE;
       if (!instancesFullyFrozen(enabledLiveInstances, liveInstanceMap, allInstanceMessages)) {
         status = ClusterManagementMode.Status.IN_PROGRESS;
       }
@@ -144,9 +142,9 @@ public class ManagementModeStage extends AbstractBaseStage {
 
     // If there is any pending message sent by users, status could be computed as in progress.
     // Skip recording status change to avoid confusion after cluster is already fully frozen.
-    if (ClusterManagementMode.Type.CLUSTER_PAUSE.equals(recordedType)
+    if (ClusterManagementMode.Type.CLUSTER_FREEZE.equals(recordedType)
         && ClusterManagementMode.Status.COMPLETED.equals(recordedStatus)
-        && ClusterManagementMode.Type.CLUSTER_PAUSE.equals(mode.getMode())
+        && ClusterManagementMode.Type.CLUSTER_FREEZE.equals(mode.getMode())
         && ClusterManagementMode.Status.IN_PROGRESS.equals(mode.getStatus())) {
       LOG.info("Skip recording status mode={}, status={}, because cluster is fully frozen",
           mode.getMode(), mode.getStatus());

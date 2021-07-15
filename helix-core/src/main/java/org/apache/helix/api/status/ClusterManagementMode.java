@@ -33,10 +33,10 @@ public class ClusterManagementMode {
         NORMAL,
 
         /**
-         * Puts a cluster into pause mode, which will pause controller and participants.
+         * Puts a cluster into freeze mode, which will freeze controller and participants.
          * This can be used to retain the cluster state.
          */
-        CLUSTER_PAUSE,
+        CLUSTER_FREEZE,
 
         /** Pause controller only, but not participants. */
         CONTROLLER_PAUSE,
@@ -88,7 +88,7 @@ public class ClusterManagementMode {
      */
     public LiveInstance.LiveInstanceStatus getDesiredParticipantStatus() {
         switch (mode) {
-            case CLUSTER_PAUSE:
+            case CLUSTER_FREEZE:
                 return LiveInstance.LiveInstanceStatus.PAUSED;
             case NORMAL:
                 return LiveInstance.LiveInstanceStatus.NORMAL;

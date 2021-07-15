@@ -37,7 +37,7 @@ public class TestControllerHistoryModel {
   public void testManagementModeHistory() {
     ControllerHistory controllerHistory = new ControllerHistory("HISTORY");
     String controller = "controller-0";
-    ClusterManagementMode mode = new ClusterManagementMode(ClusterManagementMode.Type.CLUSTER_PAUSE,
+    ClusterManagementMode mode = new ClusterManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE,
         ClusterManagementMode.Status.COMPLETED);
     long time = System.currentTimeMillis();
     String fromHost = NetworkUtil.getLocalhostName();

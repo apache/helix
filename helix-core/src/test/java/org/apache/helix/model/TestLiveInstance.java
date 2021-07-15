@@ -150,7 +150,9 @@ public class TestLiveInstance extends ZkUnitTestBase {
   @Test
   public void testLiveInstanceStatus() {
     LiveInstance testLiveInstance = new LiveInstance("testLiveInstanceStatus");
-    Assert.assertNull(testLiveInstance.getStatus());
+    Assert.assertNull(testLiveInstance.getRecord()
+        .getSimpleField(LiveInstance.LiveInstanceProperty.STATUS.name()));
+    Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.NORMAL);
     testLiveInstance.setStatus(LiveInstance.LiveInstanceStatus.PAUSED);
     Assert.assertEquals(testLiveInstance.getStatus(), LiveInstance.LiveInstanceStatus.PAUSED);
   }

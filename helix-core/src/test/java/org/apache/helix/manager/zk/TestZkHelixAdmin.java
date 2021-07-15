@@ -1087,7 +1087,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       try {
         ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
             .withClusterName(clusterName)
-            .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+            .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
             .withCancelPendingST(true)
             .withReason(methodName)
             .build();
@@ -1100,7 +1100,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
       ClusterManagementModeRequest request = ClusterManagementModeRequest.newBuilder()
           .withClusterName(clusterName)
-          .withMode(ClusterManagementMode.Type.CLUSTER_PAUSE)
+          .withMode(ClusterManagementMode.Type.CLUSTER_FREEZE)
           .withReason(methodName)
           .build();
       _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);

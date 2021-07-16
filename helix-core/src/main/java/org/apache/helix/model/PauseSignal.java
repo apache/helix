@@ -32,7 +32,7 @@ public class PauseSignal extends HelixProperty {
 
   public enum PauseSignalProperty {
     REASON,
-    CLUSTER_PAUSE,
+    CLUSTER_FREEZE,
     FROM_HOST,
     CANCEL_PENDING_ST,
     TRIGGER_TIME
@@ -76,11 +76,11 @@ public class PauseSignal extends HelixProperty {
   }
 
   public void setClusterPause(boolean pause) {
-    _record.setBooleanField(PauseSignalProperty.CLUSTER_PAUSE.name(), pause);
+    _record.setBooleanField(PauseSignalProperty.CLUSTER_FREEZE.name(), pause);
   }
 
   public boolean isClusterPause() {
-    return _record.getBooleanField(PauseSignalProperty.CLUSTER_PAUSE.name(), false);
+    return _record.getBooleanField(PauseSignalProperty.CLUSTER_FREEZE.name(), false);
   }
 
   public void setFromHost(String host) {

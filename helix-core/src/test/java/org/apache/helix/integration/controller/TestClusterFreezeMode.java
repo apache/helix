@@ -158,11 +158,15 @@ public class TestClusterFreezeMode extends ZkTestBase {
         .build();
     _gSetupTool.getClusterManagementTool().setClusterManagementMode(request);
 
+    // Wait for all live instances are marked as frozen
+    verifyLiveInstanceStatus(_participants, LiveInstance.LiveInstanceStatus.FROZEN);
+
     // Pending ST message exists
     Assert.assertTrue(
         _gZkClient.exists(keyBuilder.message(message.getTgtName(), message.getMsgId()).getPath()));
 
-    // Cluster is in progress to cluster pause because there is a pending state transition message
+    // Even live instance status is marked as frozen, Cluster is in progress to cluster freeze
+    // because there is a pending state transition message
     ClusterStatus expectedClusterStatus = new ClusterStatus();
     expectedClusterStatus.setManagementMode(ClusterManagementMode.Type.CLUSTER_FREEZE);
     expectedClusterStatus.setManagementModeStatus(ClusterManagementMode.Status.IN_PROGRESS);

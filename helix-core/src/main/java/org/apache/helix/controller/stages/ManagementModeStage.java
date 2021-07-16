@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -53,11 +54,17 @@ import org.slf4j.LoggerFactory;
 public class ManagementModeStage extends AbstractBaseStage {
   private static final Logger LOG = LoggerFactory.getLogger(ManagementModeStage.class);
 
+  // Check message types to determine instance is in progress to be frozen
+  private static final Set<String> PENDING_MESSAGE_TYPES = ImmutableSet.of(
+      MessageType.PARTICIPANT_STATUS_CHANGE.name(),
+      MessageType.STATE_TRANSITION.name(),
+      MessageType.STATE_TRANSITION_CANCELLATION.name()
+  );
+
   @Override
   public void process(ClusterEvent event) throws Exception {
     // TODO: implement the stage
     _eventId = event.getEventId();
-    String clusterName = event.getClusterName();
     HelixManager manager = event.getAttribute(AttributeName.helixmanager.name());
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
@@ -120,13 +127,12 @@ public class ManagementModeStage extends AbstractBaseStage {
     // 2. No pending participant status change message.
     return enabledLiveInstances.stream().noneMatch(
         instance -> !LiveInstanceStatus.FROZEN.equals(liveInstanceMap.get(instance).getStatus())
-            || hasPendingMessage(allInstanceMessages.get(instance),
-            MessageType.PARTICIPANT_STATUS_CHANGE));
+            || hasPendingMessage(allInstanceMessages.get(instance)));
   }
 
-  private boolean hasPendingMessage(Collection<Message> messages, MessageType type) {
+  private boolean hasPendingMessage(Collection<Message> messages) {
     return messages != null && messages.stream()
-        .anyMatch(message -> type.name().equals(message.getMsgType()));
+        .anyMatch(message -> PENDING_MESSAGE_TYPES.contains(message.getMsgType()));
   }
 
   private void recordClusterStatus(ClusterManagementMode mode, HelixDataAccessor accessor) {

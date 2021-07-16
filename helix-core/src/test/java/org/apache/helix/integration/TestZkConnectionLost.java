@@ -40,6 +40,7 @@ import org.apache.helix.integration.task.TaskTestUtil;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
@@ -139,13 +140,14 @@ public class TestZkConnectionLost extends TaskTestBase {
 
   @Test
   public void testLostZkConnection() throws Exception {
-    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, "1000");
-    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "1000");
+    System.setProperty(SystemPropertyKeys.ZK_WAIT_CONNECTED_TIMEOUT, "5000");
+    System.setProperty(SystemPropertyKeys.ZK_SESSION_TIMEOUT, "5000");
     try {
       String queueName = TestHelper.getTestMethodName();
       startParticipants(_zkAddr);
-      HelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
-      TestHelper.verify(() -> {
+      HelixDataAccessor accessor =
+          new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkAddr));
+      Assert.assertTrue(TestHelper.verify(() -> {
         List<String> liveInstances = accessor.getChildNames(accessor.keyBuilder().liveInstances());
         for (MockParticipantManager participant : _participants) {
           if (!liveInstances.contains(participant.getInstanceName())
@@ -154,7 +156,7 @@ public class TestZkConnectionLost extends TaskTestBase {
           }
         }
         return true;
-      }, TestHelper.WAIT_DURATION);
+      }, TestHelper.WAIT_DURATION));
 
       // Create a queue
       LOG.info("Starting job-queue: " + queueName);

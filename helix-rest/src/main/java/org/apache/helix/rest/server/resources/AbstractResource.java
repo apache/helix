@@ -131,10 +131,11 @@ public class AbstractResource {
   }
 
   protected Response OKWithHeader(Object entity, String headerName, Object headerValue) {
-    if (headerName == null || headerName.length()==0)
+    if (headerName == null || headerName.length() == 0) {
       return OK(entity);
-    else
+    } else {
       return Response.ok(entity).header(headerName, headerValue).build();
+    }
   }
 
   protected Response created() {

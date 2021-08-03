@@ -65,6 +65,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       org.apache.helix.rest.server.resources.helix.ResourceAssignmentOptimizerAccessor.class
           .getName());
 
+  public static String RESPONSE_HEADER_KEY = "Setting";
+  public static String[] RESPONSE_HEADER_FIELDS =
+      new String[]{"instanceFilter", "resourceFilter", "returnFormat"};
+
   private static class InputFields {
     List<String> newInstances = new ArrayList<>();
     List<String> instancesToRemove = new ArrayList<>();
@@ -140,7 +144,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       result = computeOptimalAssignmentForResources(inputFields, clusterState, clusterId);
       // 4. Serialize result to JSON and return.
       // TODO: We will need to include user input to response header since user may do async call.
-      return JSONRepresentation(result);
+      return JSONRepresentation(result, RESPONSE_HEADER_KEY, buildResponseHeaders(inputFields));
     } catch (InvalidParameterException ex) {
       return badRequest(ex.getMessage());
     } catch (JsonProcessingException e) {
@@ -369,5 +373,13 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       }
     }
     result.put(resource, partitionAssignments);
+  }
+
+  private Map<String,Object> buildResponseHeaders(InputFields inputFields) {
+    Map<String, Object> headers= new HashMap<>();
+    headers.put(RESPONSE_HEADER_FIELDS[0], inputFields.instanceFilter);
+    headers.put(RESPONSE_HEADER_FIELDS[1], inputFields.resourceFilter);
+    headers.put(RESPONSE_HEADER_FIELDS[2], inputFields.returnFormat.name());
+    return headers;
   }
 }

@@ -315,7 +315,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
   }
 
-  protected void setupHelixResources() {
+  protected void setupHelixResources() throws Exception {
     _clusters = createClusters(4);
     _gSetupTool.addCluster(_superCluster, true);
     _gSetupTool.addCluster(TASK_TEST_CLUSTER, true);
@@ -551,7 +551,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   }
 
   private void preSetupForParallelInstancesStoppableTest(String clusterName,
-      List<String> instances) {
+      List<String> instances) throws Exception {
     _gSetupTool.addCluster(clusterName, true);
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(clusterName);
     clusterConfig.setFaultZoneType("helixZoneId");
@@ -579,6 +579,30 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     createResources(clusterName, 1);
     _clusterControllerManagers.add(startController(clusterName));
 
+    // Make sure that cluster config exists
+    boolean isClusterConfigExist = TestHelper.verify(() -> {
+      ClusterConfig stoppableClusterConfig;
+      try {
+        stoppableClusterConfig = _configAccessor.getClusterConfig(clusterName);
+      } catch (Exception e) {
+        return false;
+      }
+      return (stoppableClusterConfig != null);
+    }, TestHelper.WAIT_DURATION);
+    Assert.assertTrue(isClusterConfigExist);
+    // Make sure that instance config exists for the instance0 to instance5
+    for (String instance: instances) {
+      boolean isinstanceConfigExist = TestHelper.verify(() -> {
+        InstanceConfig instanceConfig;
+        try {
+          instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER, instance);
+        } catch (Exception e) {
+          return false;
+        }
+        return (instanceConfig != null);
+      }, TestHelper.WAIT_DURATION);
+      Assert.assertTrue(isinstanceConfigExist);
+    }
     _clusters.add(STOPPABLE_CLUSTER);
     _workflowMap.put(STOPPABLE_CLUSTER, createWorkflows(STOPPABLE_CLUSTER, 3));
   }

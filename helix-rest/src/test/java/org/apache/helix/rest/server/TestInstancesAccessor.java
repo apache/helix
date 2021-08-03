@@ -48,32 +48,6 @@ public class TestInstancesAccessor extends AbstractTestClass {
   @Test
   public void testInstancesStoppable_zoneBased() throws Exception {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    // Make sure that cluster config exists
-    boolean isClusterConfigExist = TestHelper.verify(() -> {
-      ClusterConfig clusterConfig;
-      try {
-        clusterConfig = _configAccessor.getClusterConfig(STOPPABLE_CLUSTER);
-      } catch (Exception e) {
-        return false;
-      }
-      return (clusterConfig != null);
-    }, TestHelper.WAIT_DURATION);
-    Assert.assertTrue(isClusterConfigExist);
-    // Make sure that instance config exists for the instance0 to instance5
-    List<String> existingInstances = new ArrayList<>(Arrays.asList("instance0", "instance1",
-        "instance2", "instance3", "instance4", "instance5"));
-    for (String instance: existingInstances) {
-      boolean isinstanceConfigExist = TestHelper.verify(() -> {
-        InstanceConfig instanceConfig;
-        try {
-          instanceConfig = _configAccessor.getInstanceConfig(STOPPABLE_CLUSTER, instance);
-        } catch (Exception e) {
-          return false;
-        }
-        return (instanceConfig != null);
-      }, TestHelper.WAIT_DURATION);
-      Assert.assertTrue(isinstanceConfigExist);
-    }
     // Select instances with zone based
     String content =
         String.format("{\"%s\":\"%s\",\"%s\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\", \"%s\"]}",

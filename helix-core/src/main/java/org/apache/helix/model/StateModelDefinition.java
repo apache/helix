@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
@@ -293,7 +294,7 @@ public class StateModelDefinition extends HelixProperty {
      * the priority to see STATE constraint has to be given higher preference <br/>
      * Use -1 to indicates states with no constraints, like OFFLINE
      * @param state
-     * @param priority
+     * @param priority lower value means higher priority
      */
     public Builder addState(String state, int priority) {
       statesMap.put(state, priority);
@@ -314,11 +315,11 @@ public class StateModelDefinition extends HelixProperty {
      * is used to order the transitions. Helix tries to maximize the number of
      * transitions that can be fired in parallel without violating the
      * constraint. The transitions are first sorted based on priority and
-     * transitions are selected in a greedy way until the constriants are not
+     * transitions are selected in a greedy way until the constraints are not
      * violated.
      * @param fromState source
      * @param toState destination
-     * @param priority priority, higher value is higher priority
+     * @param priority lower value means higher priority
      * @return Builder
      */
     public Builder addTransition(String fromState, String toState, int priority) {
@@ -376,29 +377,14 @@ public class StateModelDefinition extends HelixProperty {
       ZNRecord record = new ZNRecord(_statemodelName);
 
       // get sorted state priorities by specified values
-      ArrayList<String> statePriorityList = new ArrayList<String>(statesMap.keySet());
-      Comparator<? super String> c1 = new Comparator<String>() {
-
-        @Override
-        public int compare(String o1, String o2) {
-          return statesMap.get(o1).compareTo(statesMap.get(o2));
-        }
-      };
-      Collections.sort(statePriorityList, c1);
+      ArrayList<String> statePriorityList = new ArrayList<>(statesMap.keySet());
+      Collections.sort(statePriorityList, Comparator.comparing(o -> statesMap.get(o)));
 
       // get sorted transition priorities by specified values
-      ArrayList<Transition> transitionList = new ArrayList<Transition>(transitionMap.keySet());
-      Comparator<? super Transition> c2 = new Comparator<Transition>() {
-        @Override
-        public int compare(Transition o1, Transition o2) {
-          return transitionMap.get(o1).compareTo(transitionMap.get(o2));
-        }
-      };
-      Collections.sort(transitionList, c2);
-      List<String> transitionPriorityList = new ArrayList<>(transitionList.size());
-      for (Transition t : transitionList) {
-        transitionPriorityList.add(t.toString());
-      }
+      ArrayList<Transition> transitionList = new ArrayList<>(transitionMap.keySet());
+      Collections.sort(transitionList, Comparator.comparing(o -> transitionMap.get(o)));
+      List<String> transitionPriorityList =
+          transitionList.stream().map(Transition::toString).collect(Collectors.toList());
 
       record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), initialState);
       record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
@@ -417,7 +403,7 @@ public class StateModelDefinition extends HelixProperty {
 
       // state counts
       for (String state : statePriorityList) {
-        HashMap<String, String> metadata = new HashMap<String, String>();
+        HashMap<String, String> metadata = new HashMap<>();
         if (stateConstraintMap.get(state) != null) {
           metadata.put("count", stateConstraintMap.get(state));
         } else {

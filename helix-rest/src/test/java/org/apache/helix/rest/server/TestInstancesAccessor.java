@@ -46,7 +46,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
   private final static String CLUSTER_NAME = "TestCluster_0";
 
   @Test
-  public void testInstancesStoppable_zoneBased() throws Exception {
+  public void testInstancesStoppable_zoneBased() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     // Select instances with zone based
     String content =

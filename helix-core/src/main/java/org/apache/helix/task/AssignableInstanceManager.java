@@ -616,9 +616,11 @@ public class AssignableInstanceManager {
    * @param clusterStatusMonitor
    */
   public void recordAvailableThreadsPerType(ClusterStatusMonitor clusterStatusMonitor) {
-    for (String jobType : _globalThreadBasedQuotaMap.keySet()) {
-      JobMonitor jobMonitor = clusterStatusMonitor.getJobMonitor(jobType);
-      jobMonitor.updateAvailableThreadGauge((long) _globalThreadBasedQuotaMap.get(jobType));
+    if (clusterStatusMonitor != null) {
+      for (String jobType : _globalThreadBasedQuotaMap.keySet()) {
+        JobMonitor jobMonitor = clusterStatusMonitor.getJobMonitor(jobType);
+        jobMonitor.updateAvailableThreadGauge((long) _globalThreadBasedQuotaMap.get(jobType));
+      }
     }
   }
 

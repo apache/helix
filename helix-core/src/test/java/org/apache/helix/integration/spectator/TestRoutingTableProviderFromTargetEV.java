@@ -19,11 +19,11 @@ package org.apache.helix.integration.spectator;
  * under the License.
  */
 
-import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -37,16 +37,22 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.mock.participant.MockDelayMSStateModelFactory;
 import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.MasterSlaveSMD;
+import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
+  private static Logger LOG = LoggerFactory.getLogger(TestRoutingTableProviderFromTargetEV.class);
   private HelixManager _manager;
   private final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   private final int NUM_NODES = 10;
@@ -87,7 +93,6 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
       stateMachine.registerStateModelFactory(MASTER_SLAVE_STATE_MODEL, delayFactory);
       _participants[i].syncStart();
     }
-
     _manager = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
@@ -119,7 +124,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
   }
 
-  @Test
+  @Test (dependsOnMethods = "testTargetExternalViewWithoutEnable")
   public void testExternalViewDoesNotExist() {
     String resourceName = WorkflowGenerator.DEFAULT_TGT_DB + 1;
     RoutingTableProvider externalViewProvider =
@@ -132,7 +137,7 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
     }
   }
 
-  @Test (dependsOnMethods = "testTargetExternalViewWithoutEnable")
+  @Test (dependsOnMethods = "testExternalViewDoesNotExist")
   public void testExternalViewDiffFromTargetExternalView() throws Exception {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.enableTargetExternalView(true);
@@ -146,38 +151,28 @@ public class TestRoutingTableProviderFromTargetEV extends ZkTestBase {
         new RoutingTableProvider(_manager, PropertyType.TARGETEXTERNALVIEW);
 
     try {
-      // ExternalView should not contain any MASTERS
-      // TargetExternalView should contain MASTERS same as the partition number
+      // If there is a pending message. TEV reflect to its target state and EV reflect to its current state.
       Set<InstanceConfig> externalViewMasters =
           externalViewProvider.getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER");
       Assert.assertEquals(externalViewMasters.size(), 0);
-
-      final Set<InstanceConfig> targetExternalViewMasters = new HashSet<>();
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Assert.assertTrue(TestHelper.verify(() -> {
-        targetExternalViewMasters.clear();
-        targetExternalViewMasters.addAll(targetExternalViewProvider
-            .getInstancesForResource(WorkflowGenerator.DEFAULT_TGT_DB, "MASTER"));
-        return targetExternalViewMasters.size() == NUM_NODES;
+        ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(WorkflowGenerator.DEFAULT_TGT_DB));
+        ExternalView tev =
+            accessor.getProperty(accessor.keyBuilder().targetExternalView(WorkflowGenerator.DEFAULT_TGT_DB));
+        AtomicBoolean valid = new AtomicBoolean(true);
+        List<String> instances = accessor.getChildNames(accessor.keyBuilder().instanceConfigs());
+        instances.stream().forEach(i -> {
+          List<Message> messages = accessor.getChildValues(accessor.keyBuilder().messages(i));
+          messages.stream().forEach(m -> {
+            if (!m.getFromState().equals(ev.getStateMap(m.getPartitionName()).get(i)) || !m.getToState()
+                .equals(tev.getStateMap(m.getPartitionName()).get(i))) {
+              valid.set(false);
+            }
+          });
+        });
+        return valid.get();
       }, 3000));
-
-      // TargetExternalView MASTERS mapping should exactly match IdealState MASTERS mapping
-      Map<String, Map<String, String>> stateMap = _gSetupTool.getClusterManagementTool()
-          .getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB).getRecord().getMapFields();
-
-      Set<String> idealMasters = new HashSet<>();
-      Set<String> targetMasters = new HashSet<>();
-      for (Map<String, String> instanceMap : stateMap.values()) {
-        for (String instance : instanceMap.keySet()) {
-          if (instanceMap.get(instance).equals("MASTER")) {
-            idealMasters.add(instance);
-          }
-        }
-      }
-
-      for (InstanceConfig instanceConfig : targetExternalViewMasters) {
-        targetMasters.add(instanceConfig.getInstanceName());
-      }
-      Assert.assertEquals(targetMasters, idealMasters);
     } finally {
       externalViewProvider.shutdown();
       targetExternalViewProvider.shutdown();

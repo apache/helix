@@ -37,8 +37,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.monitoring.mbeans.JobMonitor;
 import org.apache.helix.task.assigner.AssignableInstance;
 import org.apache.helix.task.assigner.TaskAssignResult;
 import org.slf4j.Logger;
@@ -463,6 +461,14 @@ public class AssignableInstanceManager {
   }
 
   /**
+   * Returns a mapping of: jobType -> available threads in all instances for this jobType
+   * @return globalThreadBasedQuotaMap
+   */
+  public Map<String, Integer> getGlobalCapacityMap() {
+    return Collections.unmodifiableMap(_globalThreadBasedQuotaMap);
+  }
+
+  /**
    * Check remained global quota of certain quota type for skipping redundant computation
    * @param quotaType
    * @return
@@ -608,19 +614,6 @@ public class AssignableInstanceManager {
     }
     if (instanceNode.size() > 0) {
       LOG.info("Current quota capacity: {}", instanceNode.toString());
-    }
-  }
-
-  /**
-   * For each JobType, record their total available threads across all instances
-   * @param clusterStatusMonitor
-   */
-  public void recordAvailableThreadsPerType(ClusterStatusMonitor clusterStatusMonitor) {
-    if (clusterStatusMonitor != null) {
-      for (String jobType : _globalThreadBasedQuotaMap.keySet()) {
-        JobMonitor jobMonitor = clusterStatusMonitor.getJobMonitor(jobType);
-        jobMonitor.updateAvailableThreadGauge((long) _globalThreadBasedQuotaMap.get(jobType));
-      }
     }
   }
 

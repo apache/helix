@@ -90,7 +90,10 @@ public class TaskSchedulingStage extends AbstractBaseStage {
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
 
-    cache.getAssignableInstanceManager().recordAvailableThreadsPerType(clusterStatusMonitor);
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.updateAvailableThreadsPerJob(cache.getAssignableInstanceManager()
+          .getGlobalCapacityMap());
+    }
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,

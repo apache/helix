@@ -535,7 +535,7 @@ public class TestClusterStatusMonitor {
     assignableInstanceManager.buildAssignableInstances(clusterConfig, taskDataCache,
         liveInstanceMap, instanceConfigMap);
 
-    assignableInstanceManager.recordAvailableThreadsPerType(monitor);
+    monitor.updateAvailableThreadsPerJob(assignableInstanceManager.getGlobalCapacityMap());
     ObjectName type1ObjectName = monitor.getObjectName(monitor.getJobBeanName("type1"));
     ObjectName type2ObjectName = monitor.getObjectName(monitor.getJobBeanName("type2"));
     Assert.assertTrue(_server.isRegistered(type1ObjectName));
@@ -552,7 +552,7 @@ public class TestClusterStatusMonitor {
     when(taskAssignResult.getQuotaType()).thenReturn("type2");
     assignableInstanceManager.assign("UnknownInstance", taskAssignResult);
 
-    assignableInstanceManager.recordAvailableThreadsPerType(monitor);
+    monitor.updateAvailableThreadsPerJob(assignableInstanceManager.getGlobalCapacityMap());
     Assert.assertEquals(_server.getAttribute(type1ObjectName, "AvailableThreadGauge"), 88L);
     Assert.assertEquals(_server.getAttribute(type2ObjectName, "AvailableThreadGauge"), 29L);
   }

@@ -44,6 +44,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.helix.TestHelper;
+import org.apache.helix.common.caches.TaskDataCache;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.task.AssignableInstanceManager;
+import org.apache.helix.task.assigner.TaskAssignResult;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -56,9 +61,12 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
+
+import static org.mockito.Mockito.when;
 
 
 public class TestClusterStatusMonitor {
@@ -492,6 +500,61 @@ public class TestClusterStatusMonitor {
       Assert.assertFalse(_server.isRegistered(instanceObjectName),
           "Failed to unregister instance monitor for instance: " + instance);
     }
+  }
+
+  @Test
+  public void testRecordAvailableThreadsPerType() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    monitor.active();
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+    Assert.assertTrue(_server.isRegistered(clusterMonitorObjName));
+
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    Map<String, LiveInstance> liveInstanceMap = new HashMap<>();
+    for (int i = 0; i < 3; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+      LiveInstance liveInstance = new LiveInstance(instanceName);
+      InstanceConfig instanceConfig = new InstanceConfig(instanceName);
+      liveInstanceMap.put(instanceName, liveInstance);
+      instanceConfigMap.put(instanceName, instanceConfig);
+    }
+
+    ClusterConfig clusterConfig = new ClusterConfig(clusterName);
+    clusterConfig.resetTaskQuotaRatioMap();
+    clusterConfig.setTaskQuotaRatio("type1", 30);
+    clusterConfig.setTaskQuotaRatio("type2", 10);
+
+    TaskDataCache taskDataCache = Mockito.mock(TaskDataCache.class);
+    when(taskDataCache.getJobConfigMap()).thenReturn(Collections.emptyMap());
+
+    AssignableInstanceManager assignableInstanceManager = new AssignableInstanceManager();
+    assignableInstanceManager.buildAssignableInstances(clusterConfig, taskDataCache,
+        liveInstanceMap, instanceConfigMap);
+
+    monitor.updateAvailableThreadsPerJob(assignableInstanceManager.getGlobalCapacityMap());
+    ObjectName type1ObjectName = monitor.getObjectName(monitor.getJobBeanName("type1"));
+    ObjectName type2ObjectName = monitor.getObjectName(monitor.getJobBeanName("type2"));
+    Assert.assertTrue(_server.isRegistered(type1ObjectName));
+    Assert.assertEquals(_server.getAttribute(type1ObjectName, "AvailableThreadGauge"), 90L);
+    Assert.assertTrue(_server.isRegistered(type2ObjectName));
+    Assert.assertEquals(_server.getAttribute(type2ObjectName, "AvailableThreadGauge"), 30L);
+
+    TaskAssignResult taskAssignResult = Mockito.mock(TaskAssignResult.class);
+    when(taskAssignResult.getQuotaType()).thenReturn("type1");
+    // Use non-existing instance to bypass the actual assignment, but still decrease thread counts
+    assignableInstanceManager.assign("UnknownInstance", taskAssignResult);
+    // Do it twice for type 1
+    assignableInstanceManager.assign("UnknownInstance", taskAssignResult);
+    when(taskAssignResult.getQuotaType()).thenReturn("type2");
+    assignableInstanceManager.assign("UnknownInstance", taskAssignResult);
+
+    monitor.updateAvailableThreadsPerJob(assignableInstanceManager.getGlobalCapacityMap());
+    Assert.assertEquals(_server.getAttribute(type1ObjectName, "AvailableThreadGauge"), 88L);
+    Assert.assertEquals(_server.getAttribute(type2ObjectName, "AvailableThreadGauge"), 29L);
   }
 
   private void verifyCapacityMetrics(ClusterStatusMonitor monitor, Map<String, Double> maxUsageMap,

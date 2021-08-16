@@ -57,6 +57,7 @@ public class JobMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _existingJobGauge;
   private SimpleDynamicMetric<Long> _queuedJobGauge;
   private SimpleDynamicMetric<Long> _runningJobGauge;
+  private SimpleDynamicMetric<Long> _availableThreadGauge;
   @Deprecated // To be removed (replaced by jobLatencyGauge Histogram)
   private SimpleDynamicMetric<Long> _maximumJobLatencyGauge;
   @Deprecated // To be removed (replaced by jobLatencyGauge Histogram)
@@ -81,6 +82,7 @@ public class JobMonitor extends DynamicMBeanProvider {
     _existingJobGauge = new SimpleDynamicMetric("ExistingJobGauge", 0L);
     _queuedJobGauge = new SimpleDynamicMetric("QueuedJobGauge", 0L);
     _runningJobGauge = new SimpleDynamicMetric("RunningJobGauge", 0L);
+    _availableThreadGauge = new SimpleDynamicMetric("AvailableThreadGauge", 0L);
     _maximumJobLatencyGauge = new SimpleDynamicMetric("MaximumJobLatencyGauge", 0L);
     _jobLatencyCount = new SimpleDynamicMetric("JobLatencyCount", 0L);
 
@@ -159,6 +161,14 @@ public class JobMonitor extends DynamicMBeanProvider {
   }
 
   /**
+   * Update the available thread count to the AvailableThreadGauge
+   * @param availableThreads
+   */
+  public void updateAvailableThreadGauge(long availableThreads) {
+    _availableThreadGauge.updateValue(availableThreads);
+  }
+
+  /**
    * Update SubmissionToProcessDelay to its corresponding HistogramDynamicMetric.
    * @param delay
    */
@@ -196,6 +206,7 @@ public class JobMonitor extends DynamicMBeanProvider {
     attributeList.add(_existingJobGauge);
     attributeList.add(_queuedJobGauge);
     attributeList.add(_runningJobGauge);
+    attributeList.add(_availableThreadGauge);
     attributeList.add(_maximumJobLatencyGauge);
     attributeList.add(_jobLatencyCount);
     attributeList.add(_jobLatencyGauge);

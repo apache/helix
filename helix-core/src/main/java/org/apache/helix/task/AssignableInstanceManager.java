@@ -461,6 +461,14 @@ public class AssignableInstanceManager {
   }
 
   /**
+   * Returns a mapping of: jobType -> available threads in all instances for this jobType
+   * @return globalThreadBasedQuotaMap
+   */
+  public Map<String, Integer> getGlobalCapacityMap() {
+    return Collections.unmodifiableMap(_globalThreadBasedQuotaMap);
+  }
+
+  /**
    * Check remained global quota of certain quota type for skipping redundant computation
    * @param quotaType
    * @return

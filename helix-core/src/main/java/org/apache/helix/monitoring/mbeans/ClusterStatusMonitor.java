@@ -757,6 +757,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   /**
+   * For each JobType, report their total available threads across all instances to corresponding
+   * jobMonitors
+   * @param threadCapacityMap
+   */
+  public void updateAvailableThreadsPerJob(Map<String, Integer> threadCapacityMap) {
+    for (String jobType : threadCapacityMap.keySet()) {
+      JobMonitor jobMonitor = getJobMonitor(jobType);
+      jobMonitor.updateAvailableThreadGauge((long) threadCapacityMap.get(jobType));
+    }
+  }
+
+  /**
    * TODO: Separate Workflow/Job Monitors from ClusterStatusMonitor because ClusterStatusMonitor is
    * getting too big.
    * Returns the appropriate JobMonitor for the given type. If it does not exist, create one and

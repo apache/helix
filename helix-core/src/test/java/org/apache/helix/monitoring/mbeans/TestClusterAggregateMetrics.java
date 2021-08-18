@@ -151,17 +151,22 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
             .build();
 
     // Everything should be up and running initially with 5 total partitions
-    updateMetrics();
-    Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
-    Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(WITHOUT_TOPSTATE_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 0L);
+    Map<String, Long> expectedMetricValues = new HashMap<>();
+    expectedMetricValues.put(PARTITION_COUNT, 5L);
+    expectedMetricValues.put(ERROR_PARTITION_COUNT, 0L);
+    expectedMetricValues.put(WITHOUT_TOPSTATE_COUNT, 0L);
+    expectedMetricValues.put(IS_EV_MISMATCH_COUNT, 0L);
+    Assert.assertTrue(verifyMetrics(expectedMetricValues));
 
     // Disable all Participants (instances)
+    _setupTool.getClusterManagementTool()
+        .manuallyEnableMaintenanceMode(CLUSTER_NAME, true, "Test", null);
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
     }
+    _setupTool.getClusterManagementTool()
+        .manuallyEnableMaintenanceMode(CLUSTER_NAME, false, "Test", null);
     // Confirm that the Participants have been disabled
     boolean result = TestHelper.verify(() -> {
       for (int i = 0; i < NUM_PARTICIPANTS; i++) {
@@ -177,11 +182,8 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
-    updateMetrics();
-    Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
-    Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(WITHOUT_TOPSTATE_COUNT), 5L);
-    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 0L);
+    expectedMetricValues.put(WITHOUT_TOPSTATE_COUNT, 5L);
+    Assert.assertTrue(verifyMetrics(expectedMetricValues));
 
     // Re-enable all Participants (instances)
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
@@ -203,11 +205,8 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
-    updateMetrics();
-    Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 5L);
-    Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(WITHOUT_TOPSTATE_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 0L);
+    expectedMetricValues.put(WITHOUT_TOPSTATE_COUNT, 0L);
+    Assert.assertTrue(verifyMetrics(expectedMetricValues));
 
     // Drop the resource and check that all metrics are zero.
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
@@ -219,11 +218,8 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     Assert.assertTrue(result);
     Assert.assertTrue(verifier.verifyByPolling());
 
-    updateMetrics();
-    Assert.assertEquals(_beanValueMap.get(PARTITION_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(ERROR_PARTITION_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(WITHOUT_TOPSTATE_COUNT), 0L);
-    Assert.assertEquals(_beanValueMap.get(IS_EV_MISMATCH_COUNT), 0L);
+    expectedMetricValues.put(PARTITION_COUNT, 0L);
+    Assert.assertTrue(verifyMetrics(expectedMetricValues));
   }
 
   /**
@@ -249,5 +245,11 @@ public class TestClusterAggregateMetrics extends ZkTestBase {
     } catch (Exception e) {
       // update failed
     }
+  }
+
+  private boolean verifyMetrics(Map<String, Long> expectedValues) {
+    updateMetrics();
+    return expectedValues.entrySet().stream()
+        .allMatch(entry -> _beanValueMap.get(entry.getKey()).equals(entry.getValue()));
   }
 }

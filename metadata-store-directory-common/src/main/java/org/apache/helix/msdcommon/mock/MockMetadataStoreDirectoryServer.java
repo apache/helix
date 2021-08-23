@@ -50,6 +50,7 @@ public class MockMetadataStoreDirectoryServer {
       MetadataStoreRoutingConstants.MSDS_GET_ALL_REALMS_ENDPOINT;
   protected static final int NOT_IMPLEMENTED = 501;
   protected static final int OK = 200;
+  protected static final int STOP_WAIT_SEC = 10;
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   protected final String _hostname;
@@ -104,7 +105,7 @@ public class MockMetadataStoreDirectoryServer {
 
   public void stopServer() {
     if (_server != null) {
-      _server.stop(0);
+      _server.stop(STOP_WAIT_SEC);
     }
     _executor.shutdown();
     LOG.info(

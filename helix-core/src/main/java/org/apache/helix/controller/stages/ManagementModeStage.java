@@ -86,9 +86,7 @@ public class ManagementModeStage extends AbstractBaseStage {
         checkClusterFreezeStatus(cache.getEnabledLiveInstances(), cache.getLiveInstances(),
             cache.getAllInstancesMessages(), cache.getPauseSignal());
 
-    recordClusterStatus(managementMode, accessor);
-    recordManagementModeHistory(managementMode, cache.getPauseSignal(), manager.getInstanceName(),
-        accessor);
+    recordClusterStatus(managementMode, cache.getPauseSignal(), manager.getInstanceName(), accessor);
 
     event.addAttribute(AttributeName.CLUSTER_STATUS.name(), managementMode);
   }
@@ -135,7 +133,8 @@ public class ManagementModeStage extends AbstractBaseStage {
         .anyMatch(message -> PENDING_MESSAGE_TYPES.contains(message.getMsgType()));
   }
 
-  private void recordClusterStatus(ClusterManagementMode mode, HelixDataAccessor accessor) {
+  private void recordClusterStatus(ClusterManagementMode mode, PauseSignal pauseSignal,
+      String controllerName, HelixDataAccessor accessor) {
     // update cluster status
     PropertyKey statusPropertyKey = accessor.keyBuilder().clusterStatus();
     ClusterStatus clusterStatus = accessor.getProperty(statusPropertyKey);
@@ -145,6 +144,13 @@ public class ManagementModeStage extends AbstractBaseStage {
 
     ClusterManagementMode.Type recordedType = clusterStatus.getManagementMode();
     ClusterManagementMode.Status recordedStatus = clusterStatus.getManagementModeStatus();
+
+    if (mode.getMode().equals(recordedType) && mode.getStatus().equals(recordedStatus)) {
+      // No need to update status and avoid duplicates when it's the same as metadata store
+      LOG.debug("Skip recording duplicate status mode={}, status={}", mode.getMode(),
+          mode.getStatus());
+      return;
+    }
 
     // If there is any pending message sent by users, status could be computed as in progress.
     // Skip recording status change to avoid confusion after cluster is already fully frozen.
@@ -157,14 +163,14 @@ public class ManagementModeStage extends AbstractBaseStage {
       return;
     }
 
-    if (!mode.getMode().equals(recordedType) || !mode.getStatus().equals(recordedStatus)) {
-      // Only update status when it's different with metadata store
-      clusterStatus.setManagementMode(mode.getMode());
-      clusterStatus.setManagementModeStatus(mode.getStatus());
-      if (!accessor.updateProperty(statusPropertyKey, clusterStatus)) {
-        LOG.error("Failed to update cluster status {}", clusterStatus);
-      }
+    // Update cluster status in metadata store
+    clusterStatus.setManagementMode(mode.getMode());
+    clusterStatus.setManagementModeStatus(mode.getStatus());
+    if (!accessor.updateProperty(statusPropertyKey, clusterStatus)) {
+      LOG.error("Failed to update cluster status {}", clusterStatus);
     }
+
+    recordManagementModeHistory(mode, pauseSignal, controllerName, accessor);
   }
 
   private void recordManagementModeHistory(ClusterManagementMode mode, PauseSignal pauseSignal,

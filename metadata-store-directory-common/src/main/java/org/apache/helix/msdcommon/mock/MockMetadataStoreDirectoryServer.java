@@ -103,7 +103,9 @@ public class MockMetadataStoreDirectoryServer {
   }
 
   public void stopServer() {
-    _server.stop(0);
+    if (_server != null) {
+      _server.stop(0);
+    }
     _executor.shutdown();
     LOG.info(
         "Stopped MockMetadataStoreDirectoryServer at " + _hostname + ":" + _mockServerPort + "!");

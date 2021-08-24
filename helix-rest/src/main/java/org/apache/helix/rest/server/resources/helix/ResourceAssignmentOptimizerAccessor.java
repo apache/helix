@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -198,9 +197,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     // Add existing live instances and new instances from user input to instances list.
     Set<String> liveInstancesSet =
         new HashSet<>(dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()));
-    liveInstancesSet.addAll(
-        inputFields.activatedInstances.stream().filter(s -> !liveInstancesSet.contains(s))
-            .collect(Collectors.toList()));
+    liveInstancesSet.addAll(inputFields.activatedInstances);
     liveInstancesSet.removeAll(inputFields.deactivatedInstances);
 
     Map<String, InstanceConfig> instanceConfigMap =
@@ -296,7 +293,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   }
 
   /*
-  * Return if there are instance exists in more than one lists in InstanceChangeMap
+  * Return if there are instance exists in more than one lists in InstanceChangeMap.
   */
   private void validateNoIntxnInstanceChange(InputFields inputFields) {
     Set<String> tempSet = new HashSet<>();

@@ -220,7 +220,14 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       }
     }
 
-    clusterState.clusterConfig = cfgAccessor.getClusterConfig(clusterId);
+    // We will not consider delayed rebalance. The current implementation of
+    // 'getIdealAssignmentForFullAuto' for ChrushEd resources will not consider delayed rebalancer
+    // but `getImmediateAssignmentForWagedFullAuto` will honor current timestamp and delayed
+    // rebalance window. We are disabling delayed rebalance for now. Could add a cluster option to
+    // honor delayed rebalance window in the future.
+    ClusterConfig clusterConfig = cfgAccessor.getClusterConfig(clusterId);
+    clusterConfig.setDelayRebalaceEnabled(false);
+    clusterState.clusterConfig = clusterConfig;
     clusterState.liveInstances = new ArrayList<>(liveInstancesSet);
     clusterState.instanceConfigs.addAll(instanceConfigMap.values());
     return clusterState;

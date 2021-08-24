@@ -22,8 +22,6 @@ package org.apache.helix.rest.server.resources.helix;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,7 +54,6 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.util.HelixUtil;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +69,8 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       new String[]{"instanceFilter", "resourceFilter", "returnFormat"};
 
   private static class InputFields {
-    List<String> newOnelineInstances = new ArrayList<>();
-    Set<String> newActiveInstances = new HashSet<>(); // active = online + enabled.
-    List<String> instancesToDeactivate = new ArrayList<>();
-    Map<String, String> nodeSwap = new HashMap<>(); // old instance -> new instance.
+    Set<String> activatedInstances = new HashSet<>(); // active = online + enabled.
+    Set<String> deactivatedInstances = new HashSet<>(); // deactive = offline + disabled.
     Set<String> instanceFilter = new HashSet<>();
     Set<String> resourceFilter = new HashSet<>();
     AssignmentFormat returnFormat = AssignmentFormat.IdealStateFormat;
@@ -86,7 +81,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     List<InstanceConfig> instanceConfigs = new ArrayList<>();
     ClusterConfig clusterConfig;
     List<String> resources = new ArrayList<>();
-    List<String> instances;        // cluster LiveInstance + addInstances - instancesToRemove.
+    List<String> liveInstances; // cluster LiveInstance + activatedInstances - deactivatedInstances
   }
 
   // Result format. User can choose from IdealState or CurrentState format,
@@ -106,18 +101,15 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   }
 
   private static class InstanceChangeMap {
-    @JsonProperty("OnlineInstances")
-    List<String> addOnlineInstances;
     @JsonProperty("ActivateInstances")
-    List<String> addAndEnableInstances;
+    List<String> activateInstances;
     @JsonProperty("DeactivateInstances")
-    List<String> removeInstances;
-    @JsonProperty("SwapInstances")
-    Map<String, String> swapInstances;
+    List<String> deactivateInstances;
   }
 
   private enum AssignmentFormat {
-    IdealStateFormat, CurrentStateFormat
+    IdealStateFormat,
+    CurrentStateFormat
   }
 
   private static class OptionsMap {
@@ -172,14 +164,10 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     InputFields inputFields = new InputFields();
 
     if (inputJsonContent.instanceChangeMap != null) {
-      Optional.ofNullable(inputJsonContent.instanceChangeMap.addOnlineInstances)
-          .ifPresent(inputFields.newOnelineInstances::addAll);
-      Optional.ofNullable(inputJsonContent.instanceChangeMap.addAndEnableInstances)
-          .ifPresent(inputFields.newActiveInstances::addAll);
-      Optional.ofNullable(inputJsonContent.instanceChangeMap.removeInstances)
-          .ifPresent(inputFields.instancesToDeactivate::addAll);
-      Optional.ofNullable(inputJsonContent.instanceChangeMap.swapInstances)
-          .ifPresent(inputFields.nodeSwap::putAll);
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.activateInstances)
+          .ifPresent(inputFields.activatedInstances::addAll);
+      Optional.ofNullable(inputJsonContent.instanceChangeMap.deactivateInstances)
+          .ifPresent(inputFields.deactivatedInstances::addAll);
     }
     if (inputJsonContent.optionsMap != null) {
       Optional.ofNullable(inputJsonContent.optionsMap.resourceFilter)
@@ -198,7 +186,12 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
 
     // One instance can only exist in one of the list in InstanceChange.
     // Validate the intersection is empty.
-    validateNoIntxnInstanceChange(inputFields);
+    for (String instance : inputFields.activatedInstances) {
+      if (inputFields.deactivatedInstances.contains(instance)) {
+        LOG.error(
+            "Instance " + instance + " in both ActivateInstances and DeactivateInstances list.");
+      }
+    }
 
     // Add instances to current liveInstances
     ClusterState clusterState = new ClusterState();
@@ -209,69 +202,27 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Set<String> liveInstancesSet =
         new HashSet<>(dataAccessor.getChildNames(dataAccessor.keyBuilder().liveInstances()));
     liveInstancesSet.addAll(
-        inputFields.newOnelineInstances.stream().filter(s -> !liveInstancesSet.contains(s))
+        inputFields.activatedInstances.stream().filter(s -> !liveInstancesSet.contains(s))
             .collect(Collectors.toList()));
-    liveInstancesSet.addAll(
-        inputFields.newActiveInstances.stream().filter(s -> !liveInstancesSet.contains(s))
-            .collect(Collectors.toList()));
-    liveInstancesSet.removeAll(inputFields.instancesToDeactivate);
 
     // Read instance and cluster config.
-    // Throw exception if there is no instanceConfig for newOnline/activate/swappedOut instance.
+    // Throw exception if there is no instanceConfig for activatedInstances instance.
     for (String instance : liveInstancesSet) {
       InstanceConfig config = cfgAccessor.getInstanceConfig(clusterId, instance);
-      // use the config of to-be-swapped out instances to construct the config for new instance
-      if (inputFields.nodeSwap.containsKey(instance)) {
-        ZNRecord newInstandeConfigRecord =
-            new ZNRecord(config.getRecord(), inputFields.nodeSwap.get(instance));
-        newInstandeConfigRecord.setSimpleField("HELIX_HOST", inputFields.nodeSwap.get(instance));
-        config = new InstanceConfig(newInstandeConfigRecord);
+      // override HELIX_ENABLED field.
+      if (inputFields.activatedInstances.contains(instance)) {
         config.setInstanceEnabled(true);
       }
-      // override HELIX_ENABLED field if the instance present in AddAndEnableInstances.
-      if (inputFields.newActiveInstances.contains(instance)) {
-        config.setInstanceEnabled(true);
+      if (inputFields.deactivatedInstances.contains(instance)) {
+        config.setInstanceEnabled(false);
       }
       clusterState.instanceConfigs.add(config);
     }
-
-    for (Map.Entry<String, String> nodeSwapPair : inputFields.nodeSwap.entrySet()) {
-      if (!(liveInstancesSet.remove(nodeSwapPair.getKey()) && liveInstancesSet
-          .add(nodeSwapPair.getValue()))) {
-        throw new InvalidParameterException(
-            "Invalid input: instance [" + nodeSwapPair.getKey() + " -> " + nodeSwapPair.getValue()
-                + "] in RemoveInstances does not exist in cluster.");
-      }
-    }
+    liveInstancesSet.removeAll(inputFields.deactivatedInstances);
 
     clusterState.clusterConfig = cfgAccessor.getClusterConfig(clusterId);
-    clusterState.instances = new ArrayList<>(liveInstancesSet);
+    clusterState.liveInstances = new ArrayList<>(liveInstancesSet);
     return clusterState;
-  }
-
-  private void validateNoIntxnInstanceChange(InputFields inputFields) {
-    Set<String> tempSet = new HashSet<>();
-    List<Collection<String>> inputs = new ArrayList<>();
-    inputs.add(inputFields.newOnelineInstances);
-    inputs.add(inputFields.newActiveInstances);
-    inputs.add(inputFields.instancesToDeactivate);
-    inputs.add(inputFields.nodeSwap.keySet());
-    inputs.sort(Comparator.comparingInt(Collection::size));
-
-    for (int i = 0; i < inputs.size() - 1; ++i) {
-      for (String s : inputs.get(i)) {
-        if (!tempSet.add(s)) {
-          throw new InvalidParameterException("Invalid input: instance [" + s
-              + "] exist in more than one field in InstanceChange.");
-        }
-      }
-    }
-    for (String s : inputs.get(inputs.size() - 1)) {
-      if (tempSet.contains(s)) {
-        throw new InvalidParameterException(
-            "Invalid input: instance [" + s + "] exist in more than one field in InstanceChange.");
-      }
-    }
   }
 
   private AssignmentResult computeOptimalAssignmentForResources(InputFields inputFields,
@@ -305,7 +256,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
         }
         partitionAssignments = new TreeMap<>(HelixUtil
             .getIdealAssignmentForFullAuto(clusterState.clusterConfig, clusterState.instanceConfigs,
-                clusterState.instances, idealState, new ArrayList<>(idealState.getPartitionSet()),
+                clusterState.liveInstances, idealState, new ArrayList<>(idealState.getPartitionSet()),
                 rebalanceStrategy));
         instanceFilter(inputFields, partitionAssignments, resource, result);
       } else if (idealState.getRebalanceMode() == IdealState.RebalanceMode.SEMI_AUTO) {
@@ -355,7 +306,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     Map<String, ResourceAssignment> wagedAssignmentResult;
     wagedAssignmentResult = HelixUtil.getTargetAssignmentForWagedFullAuto(getZkBucketDataAccessor(),
         new ZkBaseDataAccessor<>(getRealmAwareZkClient()), clusterState.clusterConfig,
-        clusterState.instanceConfigs, clusterState.instances, wagedResourceIdealState,
+        clusterState.instanceConfigs, clusterState.liveInstances, wagedResourceIdealState,
         wagedResourceConfigs);
 
     // Convert ResourceAssignment to plain map.
@@ -375,7 +326,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       Map<String, Map<String, String>> partitionAssignments, String resource,
       AssignmentResult result) {
 
-    if (!inputFields.nodeSwap.isEmpty() || !inputFields.instanceFilter.isEmpty()) {
+    if (!inputFields.instanceFilter.isEmpty()) {
       for (Iterator<Map.Entry<String, Map<String, String>>> partitionAssignmentIt =
           partitionAssignments.entrySet().iterator(); partitionAssignmentIt.hasNext(); ) {
         Map.Entry<String, Map<String, String>> partitionAssignment = partitionAssignmentIt.next();
@@ -383,7 +334,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
         // Only keep instance in instanceFilter
         instanceStates.entrySet().removeIf(e ->
             (!inputFields.instanceFilter.isEmpty() && !inputFields.instanceFilter
-                .contains(e.getKey())) || inputFields.nodeSwap.containsKey(e.getKey()));
+                .contains(e.getKey())));
         if (instanceStates.isEmpty()) {
           partitionAssignmentIt.remove();
         }

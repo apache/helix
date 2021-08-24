@@ -47,9 +47,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
   String cluster = "TestCluster_3";
   String instance1 = cluster + "dummyInstance_localhost_12930";
-  String swapNewInstance = "swapNewInstance";
   String urlBase = "clusters/TestCluster_3/partitionAssignment/";
-  String swapOldInstance, toRemoveInstance, disabledInstance;
+  String toDeactivatedInstance, toEnabledInstance;
   HelixDataAccessor helixDataAccessor;
   List<String> resources;
   List<String> liveInstances;
@@ -62,14 +61,13 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     liveInstances =  helixDataAccessor.getChildNames(helixDataAccessor.keyBuilder().liveInstances());
     Assert.assertFalse(resources.isEmpty() || liveInstances.isEmpty());
 
-    toRemoveInstance = liveInstances.get(0);
-    swapOldInstance = liveInstances.get(1);
-    disabledInstance = liveInstances.get(2);
+    toDeactivatedInstance = liveInstances.get(0);
+    toEnabledInstance = liveInstances.get(2);
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(cluster, disabledInstance);
+        .getInstanceConfig(cluster, toEnabledInstance);
     config.setInstanceEnabled(false);
     _gSetupTool.getClusterManagementTool()
-        .setInstanceConfig(cluster, disabledInstance, config);
+        .setInstanceConfig(cluster, toEnabledInstance, config);
 
   }
 
@@ -82,11 +80,10 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
       _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
     }
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
-        .getInstanceConfig(cluster, disabledInstance);
+        .getInstanceConfig(cluster, toEnabledInstance);
     config.setInstanceEnabled(true);
     _gSetupTool.getClusterManagementTool()
-        .setInstanceConfig(cluster, disabledInstance, config);
-    System.out.println("dd");
+        .setInstanceConfig(cluster, toEnabledInstance, config);
 
   }
 
@@ -104,10 +101,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     }
 
     // Test AddInstances, RemoveInstances and SwapInstances
-    String payload = "{\"InstanceChange\" : { \"OnlineInstances\" : [\"" + instance1
-        + "\"], \"ActivateInstances\" : [\"" + disabledInstance + "\"],"
-        + "\"DeactivateInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
-        + swapOldInstance + "\" : \"" + swapNewInstance + "\"} }}  ";
+    String payload = "{\"InstanceChange\" : {  \"ActivateInstances\" : [\"" + toEnabledInstance + "\"],"
+        + "\"DeactivateInstances\" : [ \"" + toDeactivatedInstance + "\"] }}  ";
     Response response = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true);
     Map<String, Map<String, Map<String, String>>> resourceAssignments = OBJECT_MAPPER
@@ -116,11 +111,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
             });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
-    Assert.assertTrue(hostSet.contains(instance1));
-    Assert.assertTrue(hostSet.contains(disabledInstance));
-    Assert.assertTrue(hostSet.contains(swapNewInstance));
-    Assert.assertFalse(hostSet.contains(liveInstances.get(0)));
-    Assert.assertFalse(hostSet.contains(liveInstances.get(1)));
+    Assert.assertTrue(hostSet.contains(toEnabledInstance));
+    Assert.assertFalse(hostSet.contains(toDeactivatedInstance));
     // Validate header
     MultivaluedMap<String, Object> headers = response.getHeaders();
     Assert.assertTrue(headers.containsKey(ResourceAssignmentOptimizerAccessor.RESPONSE_HEADER_KEY));
@@ -192,11 +184,9 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         partitionAssignmentMetadata3.get(0).toString());
 
     // Test Option CurrentState format with AddInstances, RemoveInstances and SwapInstances
-    String payload4 = "{\"InstanceChange\" : { \"OnlineInstances\" : [\"" + instance1
-        + "\"], \"ActivateInstances\" : [\"" + disabledInstance
-        + "\"], \"DeactivateInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
-        + swapOldInstance + "\" : \"" + swapNewInstance
-        + "\"} }, \"Options\" : { \"ReturnFormat\" : \"CurrentStateFormat\" , \"ResourceFilter\" : [\""
+    String payload4 = "{\"InstanceChange\" : { \"ActivateInstances\" : [\"" + toEnabledInstance
+        + "\"], \"DeactivateInstances\" : [ \"" + toDeactivatedInstance + "\"] "
+        + "}, \"Options\" : { \"ReturnFormat\" : \"CurrentStateFormat\" , \"ResourceFilter\" : [\""
         + resources.get(0) + "\" , \"" + resources.get(1) + "\"]} } ";
     Response response4 =
         post(urlBase, null, Entity.entity(payload4, MediaType.APPLICATION_JSON_TYPE),
@@ -205,17 +195,11 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     Map<String, Map<String, Map<String, String>>> resourceAssignments4 = OBJECT_MAPPER
         .readValue(body4, new TypeReference<HashMap<String, Map<String, Map<String, String>>>>() {
         });
-    // Validate outer map key is instance
+    // Validate target resources exist
     Set<String> resource4 = new HashSet<>();
     resourceAssignments4.forEach((k, v) -> v.forEach((kk, vv) -> resource4.add(kk)));
     Assert.assertTrue(resource4.contains(resources.get(0)));
     Assert.assertTrue(resource4.contains(resources.get(1)));
-    // First inner map key is resource
-    Assert.assertTrue(resourceAssignments4.containsKey(instance1));
-    Assert.assertTrue(hostSet.contains(disabledInstance));
-    Assert.assertTrue(resourceAssignments4.containsKey(swapNewInstance));
-    Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(0)));
-    Assert.assertFalse(resourceAssignments4.containsKey(liveInstances.get(1)));
     // Validate header
     MultivaluedMap<String, Object> headers4 = response4.getHeaders();
     Assert
@@ -250,10 +234,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     }
 
     // Test AddInstances, RemoveInstances and SwapInstances
-    String payload = "{\"InstanceChange\" : { \"OnlineInstances\" : [\"" + instance1
-        + "\"], \"ActivateInstances\" : [\"" + disabledInstance
-        + "\"], \"DeactivateInstances\" : [ \"" + toRemoveInstance + "\"], \"SwapInstances\" : {\""
-        + swapOldInstance + "\" : \"" + swapNewInstance + "\"} }}  ";
+    String payload = "{\"InstanceChange\" : {  \"ActivateInstances\" : [\"" + toEnabledInstance
+        + "\"], \"DeactivateInstances\" : [ \"" + toDeactivatedInstance + "\"] }}  ";
     String body = post(urlBase, null, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.OK.getStatusCode(), true).readEntity(String.class);
     Map<String, Map<String, Map<String, String>>> resourceAssignments = OBJECT_MAPPER
@@ -261,11 +243,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
-    Assert.assertTrue(hostSet.contains(instance1));
-    Assert.assertTrue(hostSet.contains(disabledInstance));
-    Assert.assertTrue(hostSet.contains(swapNewInstance));
-    Assert.assertFalse(hostSet.contains(liveInstances.get(0)));
-    Assert.assertFalse(hostSet.contains(liveInstances.get(1)));
+    Assert.assertTrue(hostSet.contains(toEnabledInstance));
+    Assert.assertFalse(hostSet.contains(toDeactivatedInstance));
 
     // Test partitionAssignment host filter
     String payload2 = "{\"Options\" : { \"InstanceFilter\" : [\"" + liveInstances.get(0) + "\" , \""
@@ -300,20 +279,14 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
     // Test negative input
-    String payload4 = "{\"InstanceChange\" : { \"OnlineInstances\" : [\" nonExistInstanceName \"] }} ";
+    String payload4 = "{\"InstanceChange\" : { \"ActivateInstances\" : [\" nonExistInstanceName \"] }} ";
     post(urlBase, null, Entity.entity(payload4, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);
 
     String payload5 =
-        "{\"InstanceChange\" : {  { \"OnlineInstances\" : [\"" + disabledInstance
-            + "\"], \"DeactivateInstances\" : [\"" +  disabledInstance + "\"] }} ";
+        "{\"InstanceChange\" : {  { \"ActivateInstances\" : [\"" + toDeactivatedInstance
+            + "\"], \"DeactivateInstances\" : [\"" +  toDeactivatedInstance + "\"] }} ";
     post(urlBase, null, Entity.entity(payload5, MediaType.APPLICATION_JSON_TYPE),
-        Response.Status.BAD_REQUEST.getStatusCode(), true);
-
-    String payload6 =
-        "{\"InstanceChange\" : { \"SwapInstances\" : {\" nonExistInstanceName \" : \""
-            + disabledInstance +"\"} }} ";
-    post(urlBase, null, Entity.entity(payload6, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);
 
     System.out.println("End test :" + TestHelper.getTestMethodName());

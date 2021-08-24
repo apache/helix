@@ -22,6 +22,8 @@ package org.apache.helix.rest.server.resources.helix;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -186,12 +188,7 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
 
     // One instance can only exist in one of the list in InstanceChange.
     // Validate the intersection is empty.
-    for (String instance : inputFields.activatedInstances) {
-      if (inputFields.deactivatedInstances.contains(instance)) {
-        LOG.error(
-            "Instance " + instance + " in both ActivateInstances and DeactivateInstances list.");
-      }
-    }
+    validateNoIntxnInstanceChange(inputFields);
 
     // Add instances to current liveInstances
     ClusterState clusterState = new ClusterState();
@@ -204,24 +201,31 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     liveInstancesSet.addAll(
         inputFields.activatedInstances.stream().filter(s -> !liveInstancesSet.contains(s))
             .collect(Collectors.toList()));
+    liveInstancesSet.removeAll(inputFields.deactivatedInstances);
+
+    Map<String, InstanceConfig> instanceConfigMap =
+        dataAccessor.getChildValuesMap(dataAccessor.keyBuilder().instanceConfigs(), true);
 
     // Read instance and cluster config.
     // Throw exception if there is no instanceConfig for activatedInstances instance.
-    for (String instance : liveInstancesSet) {
-      InstanceConfig config = cfgAccessor.getInstanceConfig(clusterId, instance);
-      // override HELIX_ENABLED field.
-      if (inputFields.activatedInstances.contains(instance)) {
-        config.setInstanceEnabled(true);
+    for (String instance : inputFields.activatedInstances) {
+      if (instanceConfigMap.containsKey(instance)) {
+        instanceConfigMap.get(instance).setInstanceEnabled(true);
+      } else {
+        throw new InvalidParameterException(
+            "instance: " + instance + "does not have instanceConfig");
       }
-      if (inputFields.deactivatedInstances.contains(instance)) {
-        config.setInstanceEnabled(false);
-      }
-      clusterState.instanceConfigs.add(config);
     }
-    liveInstancesSet.removeAll(inputFields.deactivatedInstances);
+
+    for (String instance : inputFields.deactivatedInstances) {
+      if (instanceConfigMap.containsKey(instance)) {
+        instanceConfigMap.get(instance).setInstanceEnabled(false);
+      }
+    }
 
     clusterState.clusterConfig = cfgAccessor.getClusterConfig(clusterId);
     clusterState.liveInstances = new ArrayList<>(liveInstancesSet);
+    clusterState.instanceConfigs.addAll(instanceConfigMap.values());
     return clusterState;
   }
 
@@ -289,6 +293,32 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
       return currentStateFormatResult;
     }
     return idealStateFormatResult;
+  }
+
+  /*
+  * Return if there are instance exists in more than one lists in InstanceChangeMap
+  */
+  private void validateNoIntxnInstanceChange(InputFields inputFields) {
+    Set<String> tempSet = new HashSet<>();
+    List<Collection<String>> inputs = new ArrayList<>();
+    inputs.add(inputFields.activatedInstances);
+    inputs.add(inputFields.deactivatedInstances);
+    inputs.sort(Comparator.comparingInt(Collection::size));
+
+    for (int i = 0; i < inputs.size() - 1; ++i) {
+      for (String s : inputs.get(i)) {
+        if (!tempSet.add(s)) {
+          throw new InvalidParameterException("Invalid input: instance [" + s
+              + "] exist in more than one field in InstanceChange.");
+        }
+      }
+    }
+    for (String s : inputs.get(inputs.size() - 1)) {
+      if (tempSet.contains(s)) {
+        throw new InvalidParameterException(
+            "Invalid input: instance [" + s + "] exist in more than one field in InstanceChange.");
+      }
+    }
   }
 
   private void computeWagedAssignmentResult(List<IdealState> wagedResourceIdealState,

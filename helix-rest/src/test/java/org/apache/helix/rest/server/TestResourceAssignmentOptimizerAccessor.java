@@ -289,6 +289,12 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     post(urlBase, null, Entity.entity(payload5, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);
 
+    // Currently we do not support maintenance mode
+    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(cluster, true, TestHelper.getTestMethodName());
+    String payload6 = "{}";
+    post(urlBase, null, Entity.entity(payload6, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode(), true);
+
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 }

@@ -246,7 +246,8 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
-    // Assert the
+    // Assert every partition has 2 replicas. Indicating we ignore the delayed rebalance when
+    // recomputing partition assignment.
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> Assert.assertEquals(vv.size(), 2)));
     Assert.assertTrue(hostSet.contains(toEnabledInstance));
     Assert.assertFalse(hostSet.contains(toDeactivatedInstance));

@@ -61,6 +61,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     liveInstances =  helixDataAccessor.getChildNames(helixDataAccessor.keyBuilder().liveInstances());
     Assert.assertFalse(resources.isEmpty() || liveInstances.isEmpty());
 
+    // set up instances, we need too deactivate one instance
     toDeactivatedInstance = liveInstances.get(0);
     toEnabledInstance = liveInstances.get(2);
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
@@ -68,6 +69,16 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     config.setInstanceEnabled(false);
     _gSetupTool.getClusterManagementTool()
         .setInstanceConfig(cluster, toEnabledInstance, config);
+
+    // set all resource to FULL_AUTO
+    for (String resource : resources) {
+      IdealState idealState =
+          _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
+      idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+      idealState.setDelayRebalanceEnabled(true);
+      idealState.setRebalanceDelay(360000);
+      _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
+    }
 
   }
 
@@ -91,15 +102,6 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
   public void testComputePartitionAssignment() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
 
-    // set all resource to FULL_AUTO except one
-    for (int i = 0; i < resources.size() - 1; ++i) {
-      String resource = resources.get(i);
-      IdealState idealState =
-          _gSetupTool.getClusterManagementTool().getResourceIdealState(cluster, resource);
-      idealState.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
-      _gSetupTool.getClusterManagementTool().setResourceIdealState(cluster, resource, idealState);
-    }
-
     // Test AddInstances, RemoveInstances and SwapInstances
     String payload = "{\"InstanceChange\" : {  \"ActivateInstances\" : [\"" + toEnabledInstance + "\"],"
         + "\"DeactivateInstances\" : [ \"" + toDeactivatedInstance + "\"] }}  ";
@@ -111,6 +113,7 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
             });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
+    resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> Assert.assertEquals(vv.size(), 2)));
     Assert.assertTrue(hostSet.contains(toEnabledInstance));
     Assert.assertFalse(hostSet.contains(toDeactivatedInstance));
     // Validate header
@@ -243,6 +246,9 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
         });
     Set<String> hostSet = new HashSet<>();
     resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> hostSet.addAll(vv.keySet())));
+    // Assert every partition has 2 replicas. Indicating we ignore the delayed rebalance when
+    // recomputing partition assignment.
+    resourceAssignments.forEach((k, v) -> v.forEach((kk, vv) -> Assert.assertEquals(vv.size(), 2)));
     Assert.assertTrue(hostSet.contains(toEnabledInstance));
     Assert.assertFalse(hostSet.contains(toDeactivatedInstance));
 

@@ -82,9 +82,9 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
     InstanceConfig config = _gSetupTool.getClusterManagementTool()
         .getInstanceConfig(cluster, toEnabledInstance);
     config.setInstanceEnabled(true);
+    _gSetupTool.getClusterManagementTool().setInstanceConfig(cluster, toEnabledInstance, config);
     _gSetupTool.getClusterManagementTool()
-        .setInstanceConfig(cluster, toEnabledInstance, config);
-
+        .enableMaintenanceMode(cluster, false, TestHelper.getTestMethodName());
   }
 
   @Test
@@ -285,12 +285,13 @@ public class TestResourceAssignmentOptimizerAccessor extends AbstractTestClass {
 
     String payload5 =
         "{\"InstanceChange\" : {  { \"ActivateInstances\" : [\"" + toDeactivatedInstance
-            + "\"], \"DeactivateInstances\" : [\"" +  toDeactivatedInstance + "\"] }} ";
+            + "\"], \"DeactivateInstances\" : [\"" + toDeactivatedInstance + "\"] }} ";
     post(urlBase, null, Entity.entity(payload5, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);
 
     // Currently we do not support maintenance mode
-    _gSetupTool.getClusterManagementTool().enableMaintenanceMode(cluster, true, TestHelper.getTestMethodName());
+    _gSetupTool.getClusterManagementTool()
+        .enableMaintenanceMode(cluster, true, TestHelper.getTestMethodName());
     String payload6 = "{}";
     post(urlBase, null, Entity.entity(payload6, MediaType.APPLICATION_JSON_TYPE),
         Response.Status.BAD_REQUEST.getStatusCode(), true);

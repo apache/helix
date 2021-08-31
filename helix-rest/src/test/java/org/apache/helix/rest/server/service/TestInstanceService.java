@@ -49,6 +49,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyMap;
@@ -265,7 +266,7 @@ public class TestInstanceService {
     verify(_configAccessor, times(1)).getRESTConfig(anyString());
     verify(_customRestClient, times(1)).getInstanceStoppableCheck(anyString(), anyMap());
     verify(_customRestClient, times(2))
-        .getPartitionStoppableCheck(anyString(), anyList(), anyMap());
+        .getPartitionStoppableCheck(anyString(), nullable(List.class), anyMap());
   }
 
   // TODO re-enable the test when partition health checks get decoupled

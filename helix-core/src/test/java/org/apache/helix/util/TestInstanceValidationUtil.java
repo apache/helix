@@ -486,7 +486,7 @@ public class TestInstanceValidationUtil {
     }
   }
 
-  public static class PropertyKeyArgument extends ArgumentMatcher<PropertyKey> {
+  public static class PropertyKeyArgument implements ArgumentMatcher<PropertyKey> {
     private PropertyType propertyType;
 
     public PropertyKeyArgument(PropertyType propertyType) {
@@ -494,9 +494,7 @@ public class TestInstanceValidationUtil {
     }
 
     @Override
-    public boolean matches(Object o) {
-      PropertyKey propertyKey = (PropertyKey) o;
-
+    public boolean matches(PropertyKey propertyKey) {
       return this.propertyType == propertyKey.getType();
     }
   }

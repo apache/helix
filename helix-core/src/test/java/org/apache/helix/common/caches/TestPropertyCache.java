@@ -28,10 +28,13 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.apache.helix.PropertyType.IDEALSTATES;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,12 +68,18 @@ public class TestPropertyCache {
 
   @Test(description = "Unit test for simple cache refresh")
   public void testSimpleCacheRefresh() {
-    @SuppressWarnings("unchecked")
-    PropertyCache<HelixProperty> propertyCache = new PropertyCache<>(MOCK_CONTROL_CONTEXT_PROVIDER,
-        "mock property cache", mock(PropertyCache.PropertyCacheKeyFuncs.class), false);
+    PropertyCache.PropertyCacheKeyFuncs propertyCacheKeyFuncs =
+        mock(PropertyCache.PropertyCacheKeyFuncs.class);
+    // Return a random property key, it does not impact test result.
+    when(propertyCacheKeyFuncs.getRootKey(any(HelixDataAccessor.class)))
+        .thenReturn(new PropertyKey(IDEALSTATES, IdealState.class, "Foobar"));
+
+    PropertyCache<HelixProperty> propertyCache =
+        new PropertyCache<>(MOCK_CONTROL_CONTEXT_PROVIDER, "mock property cache",
+            propertyCacheKeyFuncs, false);
     HelixDataAccessor accessor = mock(HelixDataAccessor.class);
     Map<String, HelixProperty> propertyConfigMap = ImmutableMap.of("id", new HelixProperty("test"));
-    when(accessor.getChildValuesMap(any(PropertyKey.class), any(Boolean.class)))
+    when(accessor.getChildValuesMap(any(PropertyKey.class), anyBoolean()))
         .thenReturn(propertyConfigMap);
 
     propertyCache.refresh(accessor);

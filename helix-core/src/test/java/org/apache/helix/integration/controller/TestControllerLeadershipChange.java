@@ -189,7 +189,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     String resourceName = "testResource";
     int numPartition = 1;
     int numReplica = 1;
-    int simulatedTransitionDelayMs = 100;
     String stateModel = "LeaderStandby";
     ObjectName resourceMBeanObjectName = getResourceMonitorObjectName(clusterName, resourceName);
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
@@ -206,7 +205,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // Create participant
     _gSetupTool.addInstanceToCluster(clusterName, instanceName);
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, clusterName, instanceName, simulatedTransitionDelayMs);
+        new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
     participant.syncStart();
 
     // Create controller, since this is the only controller, it will be the leader
@@ -247,9 +246,6 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     Assert.assertTrue(clusterVerifier.verify());
 
     Thread.sleep(1000);
-
-    // The moment before manager1 regain leadership. The topstateless duration will start counting.
-    long start = System.currentTimeMillis();
     setLeader(manager1);
 
     Assert.assertTrue(manager1.isLeader());
@@ -262,19 +258,12 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     _gSetupTool.rebalanceResource(clusterName, resourceName, numReplica);
 
     Assert.assertTrue(clusterVerifier.verifyByPolling());
-    // The moment that partition top state has been recovered. The topstateless duration stopped counting.
-    long end = System.currentTimeMillis();
 
     // Resource lost top state, and manager1 lost leadership for 2000ms, because manager1 will
     // clean monitoring cache after re-gaining leadership, so max value of hand off duration should
     // not have such a large value
-    long duration = (long) beanServer
-        .getAttribute(resourceMBeanObjectName, "PartitionTopStateHandoffDurationGauge.Max");
-    long controllerOpDuration = end - start;
-    Assert.assertTrue(duration >= simulatedTransitionDelayMs && duration <= controllerOpDuration,
-        String.format(
-            "The recorded TopState-less duration is %d. But the controller operation duration is %d.",
-            duration, controllerOpDuration));
+    Assert.assertTrue((long) beanServer
+        .getAttribute(resourceMBeanObjectName, "PartitionTopStateHandoffDurationGauge.Max") < 500);
 
     participant.syncStop();
     manager1.disconnect();

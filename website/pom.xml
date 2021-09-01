@@ -32,17 +32,6 @@
   <url>http://helix.apache.org</url>
 
   <modules>
-    <module>0.6.1-incubating</module>
-    <module>0.6.2-incubating</module>
-    <module>0.6.3</module>
-    <module>0.6.4</module>
-    <module>0.6.5</module>
-    <module>0.6.6</module>
-    <module>0.6.7</module>
-    <module>0.6.8</module>
-    <module>0.6.9</module>
-    <module>0.7.0-incubating</module>
-    <module>0.7.1</module>
     <module>0.8.0</module>
     <module>0.8.1</module>
     <module>0.8.2</module>
@@ -53,7 +42,6 @@
     <module>0.9.4</module>
     <module>0.9.7</module>
     <module>0.9.8</module>
-    <module>0.9.9</module>
     <module>1.0.0</module>
     <module>1.0.1</module>
     <module>1.0.2</module>

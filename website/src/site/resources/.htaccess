@@ -41,3 +41,4 @@ Redirect /0.9.7-docs/download.html /0.9.7-docs/download.cgi
 Redirect /0.9.8-docs/download.html /0.9.8-docs/download.cgi
 Redirect /1.0.0-docs/download.html /1.0.0-docs/download.cgi
 Redirect /1.0.1-docs/download.html /1.0.1-docs/download.cgi
+Redirect /1.0.2-docs/download.html /1.0.2-docs/download.cgi

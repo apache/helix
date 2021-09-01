@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.mbeans;
 
 import java.lang.management.ManagementFactory;
 import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -84,10 +85,13 @@ public class MBeanRegistrar {
   }
 
   public static void unregister(ObjectName objectName) {
-    if (objectName != null && _beanServer.isRegistered(objectName)) {
+    if (objectName != null) {
       try {
         _beanServer.unregisterMBean(objectName);
         LOG.info("MBean {} has been un-registered.", objectName.getCanonicalName());
+      } catch (InstanceNotFoundException ex) {
+        LOG.warn("MBean {} does not exist. It might have been removed already.",
+            objectName.getCanonicalName());
       } catch (JMException e) {
         LOG.warn("Error in un-registering: " + objectName.getCanonicalName(), e);
       }

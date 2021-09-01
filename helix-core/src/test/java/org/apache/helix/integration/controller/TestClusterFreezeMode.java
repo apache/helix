@@ -172,6 +172,12 @@ public class TestClusterFreezeMode extends ZkTestBase {
     expectedClusterStatus.setManagementModeStatus(ClusterManagementMode.Status.IN_PROGRESS);
     verifyClusterStatus(expectedClusterStatus);
 
+    // Verify management mode history is empty
+    ControllerHistory controllerHistory =
+        _accessor.getProperty(_accessor.keyBuilder().controllerLeaderHistory());
+    List<String> managementHistory = controllerHistory.getManagementModeHistory();
+    Assert.assertTrue(managementHistory.isEmpty());
+
     // Unblock to finish state transition and delete the ST message
     latch.countDown();
 
@@ -185,12 +191,17 @@ public class TestClusterFreezeMode extends ZkTestBase {
 
     // Verify management mode history
     Assert.assertTrue(TestHelper.verify(() -> {
-      ControllerHistory history = _accessor.getProperty(keyBuilder.controllerLeaderHistory());
-      List<String> managementHistory = history.getManagementModeHistory();
-      if (managementHistory == null || managementHistory.isEmpty()) {
+      ControllerHistory tmpControllerHistory =
+          _accessor.getProperty(keyBuilder.controllerLeaderHistory());
+      List<String> tmpManagementHistory = tmpControllerHistory.getManagementModeHistory();
+      if (tmpManagementHistory == null || tmpManagementHistory.isEmpty()) {
         return false;
       }
-      String lastHistory = managementHistory.get(managementHistory.size() - 1);
+      // Should not have duplicate entries
+      if (tmpManagementHistory.size() > 1) {
+        return false;
+      }
+      String lastHistory = tmpManagementHistory.get(0);
       return lastHistory.contains("MODE=" + ClusterManagementMode.Type.CLUSTER_FREEZE)
           && lastHistory.contains("STATUS=" + ClusterManagementMode.Status.COMPLETED)
           && lastHistory.contains("REASON=" + methodName);

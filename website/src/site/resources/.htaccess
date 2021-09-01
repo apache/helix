@@ -18,17 +18,6 @@
 #
 
 Redirect /download.html /download.cgi
-Redirect /0.6.1-incubating-docs/download.html /0.6.1-incubating-docs/download.cgi
-Redirect /0.6.2-incubating-docs/download.html /0.6.2-incubating-docs/download.cgi
-Redirect /0.7.0-incubating-docs/download.html /0.7.0-incubating-docs/download.cgi
-Redirect /0.6.3-docs/download.html /0.6.3-docs/download.cgi
-Redirect /0.6.4-docs/download.html /0.6.4-docs/download.cgi
-Redirect /0.6.5-docs/download.html /0.6.5-docs/download.cgi
-Redirect /0.6.6-docs/download.html /0.6.6-docs/download.cgi
-Redirect /0.6.7-docs/download.html /0.6.7-docs/download.cgi
-Redirect /0.6.8-docs/download.html /0.6.8-docs/download.cgi
-Redirect /0.6.9-docs/download.html /0.6.9-docs/download.cgi
-Redirect /0.7.1-docs/download.html /0.7.1-docs/download.cgi
 Redirect /0.8.0-docs/download.html /0.8.0-docs/download.cgi
 Redirect /0.8.1-docs/download.html /0.8.1-docs/download.cgi
 Redirect /0.8.2-docs/download.html /0.8.2-docs/download.cgi

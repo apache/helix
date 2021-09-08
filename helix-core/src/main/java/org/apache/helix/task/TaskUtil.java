@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -201,6 +202,9 @@ public class TaskUtil {
    */
   protected static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
       String jobResource) {
+    if (jobResource == null) {
+      throw new InvalidParameterException("Null job name is now allowed");
+    }
     ZNRecord r = propertyStore.get(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE), null,
         AccessOption.PERSISTENT);

@@ -203,7 +203,7 @@ public class TaskUtil {
   protected static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
       String jobResource) {
     if (jobResource == null) {
-      throw new InvalidParameterException("job name is null");
+      throw new InvalidParameterException("Null job name is now allowed");
     }
     ZNRecord r = propertyStore.get(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE), null,

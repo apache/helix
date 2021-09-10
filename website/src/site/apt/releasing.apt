@@ -164,7 +164,7 @@ Thanks,
 The Apache Helix Team
 +-------------
 
- [[9]] If the sum of PMC (binding) votes is at least 3, send the following email. Otherwise, repeat the previous step.
+ [[9]] If the sum of PMC/Committer (binding) votes is at least 3, send the following email. Otherwise, repeat the previous step.
 
 +-------------
 Subject: [RESULT][VOTE] Apache Helix [VERSION] Release
@@ -173,19 +173,19 @@ To: dev@helix.apache.org
 Thanks for voting on the [VERSION] release. It has now exceeded 72 hours so I am closing the vote.
 
 Binding +1s:
- [Names of PMC members who +1'd this release]
+ [Names of PMC/Committer members who +1'd this release]
 
 Nonbinding +1s:
  [All other +1s]
 
 Binding 0s:
- [Names of PMC members who 0'd this release]
+ [Names of PMC/Committer members who 0'd this release]
 
 Nonbinding 0s:
  [All other 0s]
 
 Binding -1s:
- [Names of PMC members who -1'd this release]
+ [Names of PMC/Committer members who -1'd this release]
 
 Nonbinding -1s:
  [All other -1s]

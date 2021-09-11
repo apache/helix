@@ -437,7 +437,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // If the state is not found in statePriorityMap, consider it not strictly downward by
     // default because we can't determine whether it is downward
     if (statePriorityMap.containsKey(message.getFromState()) && statePriorityMap.containsKey(message.getToState())
-        && statePriorityMap.get(message.getFromState()) > statePriorityMap.get(message.getToState())) {
+        && statePriorityMap.get(message.getFromState()) < statePriorityMap.get(message.getToState())) {
       return true;
     }
     return false;
@@ -520,8 +520,13 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
        ResourceControllerDataProvider cache,
       boolean onlyDownwardLoadBalance, StateModelDefinition stateModelDefinition, Set<String> messagesThrottled,
       Map<Partition, List<Message>> resourceMessageMap) {
-    if (onlyDownwardLoadBalance && isLoadBalanceDownwardStateTransition(messageToThrottle, stateModelDefinition)) {
-      // Remove the message already allowed for downward state transitions.
+    // TODO: refactor the logic into throttling to let throttling logic to handle only downward including recovery rebalance
+    // If only downward allowed: 1) any non-downward ST messages will be throttled and removed.
+    //                           2) any downward ST messages will respect the throttling.
+    // If not only downward allowed, all ST messages should respect the throttling.
+    if (onlyDownwardLoadBalance && !isLoadBalanceDownwardStateTransition(messageToThrottle, stateModelDefinition)) {
+      resourceMessageMap.get(partition).remove(messageToThrottle);
+      messagesThrottled.add(messageToThrottle.getId());
       return;
     }
     throttleStateTransitionsForReplica(throttleController, resource.getResourceName(), partition, messageToThrottle,

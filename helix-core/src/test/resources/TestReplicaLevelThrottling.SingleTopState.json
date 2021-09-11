@@ -275,6 +275,121 @@
           "localhost_12915": "OFFLINE"
         }
       }
+    },
+    {
+      "description": "Set error threshold, only downward allowed",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "-1",
+      "instanceThrottleLoad": "10",
+      "instanceThrottleRecovery": "-1",
+      "errorThreshold" : "2",
+      "partitionNames": [
+        "partition_0",
+        "partition_1",
+        "partition_2",
+        "partition_3"
+      ],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12916": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12915": "STANDBY"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_2": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_3": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "STANDBY",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY",
+          "localhost_12916": "STANDBY"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_2": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_3": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_2": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_3": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        }
+      },
+      "pendingMessages": {
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY",
+          "localhost_12916": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_2": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_3": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "ERROR",
+          "localhost_12915": "STANDBY"
+        }
+      }
     }
   ]
 }

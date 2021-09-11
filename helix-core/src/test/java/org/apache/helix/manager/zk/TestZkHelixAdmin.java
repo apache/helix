@@ -1058,13 +1058,36 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
         "Instance should still be there");
 
+    // This purge will not remove the instance since the offline duration is not met yet.
+    tool.purgeOfflineInstances(clusterName, 100000L);
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
+        "Instance should still be there");
+
     // This purge will remove the instance as the customized offline duration is met.
     tool.purgeOfflineInstances(clusterName, 10000L);
-    Assert.assertFalse(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
-        "Instance should already be dropped");
+    assertInstanceDropped(keyBuilder, instanceName);
+
+    // Set config again, without instancePath or history
+    _baseAccessor.set(PropertyPathBuilder.instanceConfig(clusterName, instanceName),
+        new ZNRecord(instanceName), 1);
+    tool.purgeOfflineInstances(clusterName, 10000L);
+    assertInstanceDropped(keyBuilder, instanceName);
+
+    // Set message without config, mimicking race condition
+    _baseAccessor.set(PropertyPathBuilder.instanceMessage(clusterName, instanceName, "testId"),
+        new ZNRecord("testId"), 1);
+    tool.purgeOfflineInstances(clusterName, 10000L);
+    assertInstanceDropped(keyBuilder, instanceName);
 
     tool.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  private void assertInstanceDropped(PropertyKey.Builder keyBuilder, String instanceName) {
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
+        "Instance should already be dropped");
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.instance(instanceName).getPath()),
+        "Instance should already be dropped");
   }
 
   /*

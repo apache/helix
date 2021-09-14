@@ -54,6 +54,7 @@ public class TestReplicaLevelThrottling extends BaseStageTest {
   static final String CLUSTER_NAME = "TestCluster";
   static final String RESOURCE_NAME = "TestResource";
   static final String NOT_SET = "-1";
+  static final String DEFAULT_ERROR_THRESHOLD = String.valueOf(Integer.MAX_VALUE);
 
   @Test(dataProvider = "replicaLevelThrottlingInput")
   public void testPerReplicaThrottling(ClusterEvent event, Map<String, Map<String, String>> expectedOutput,
@@ -128,11 +129,17 @@ public class TestReplicaLevelThrottling extends BaseStageTest {
     instanceThrottleRecovery,
     currentStates,
     pendingMessages,
-    expectedOutput
+    expectedOutput,
+    errorThreshold
   }
 
   enum CacheKeys {
-    clusterConfig, stateModelName, stateModelDef, minActiveReplica, numReplica, preferenceList
+    clusterConfig,
+    stateModelName,
+    stateModelDef,
+    minActiveReplica,
+    numReplica,
+    preferenceList
   }
 
   public List<Object[]> loadTestInputs(String fileName) {
@@ -206,8 +213,9 @@ public class TestReplicaLevelThrottling extends BaseStageTest {
         getSingleThrottleEntry(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
             StateTransitionThrottleConfig.ThrottleScope.INSTANCE, Entry.instanceThrottleRecovery.name(),
             throttleConfigs, inMap);
-
         clusterConfig.setStateTransitionThrottleConfigs(throttleConfigs);
+        clusterConfig.setErrorPartitionThresholdForLoadBalance(Integer.parseInt(
+            (String) inMap.getOrDefault(Entry.errorThreshold.name(), DEFAULT_ERROR_THRESHOLD)));
 
         Map<String, Object> cacheMap = new HashMap<>();
         cacheMap.put(CacheKeys.clusterConfig.name(), clusterConfig);

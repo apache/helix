@@ -1292,7 +1292,7 @@ public class TestClusterAccessor extends AbstractTestClass {
 
   @Test
   public void testClusterFreezeMode() throws Exception {
-    String cluster = _clusters.iterator().next();
+    String cluster = "TestCluster_0";
     HelixDataAccessor dataAccessor =
         new ZKHelixDataAccessor(cluster, new ZkBaseDataAccessor<>(_gZkClient));
     // Pause not existed

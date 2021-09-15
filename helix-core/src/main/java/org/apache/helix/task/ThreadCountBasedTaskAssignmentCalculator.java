@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -65,10 +66,26 @@ public class ThreadCountBasedTaskAssignmentCalculator extends TaskAssignmentCalc
       Map<String, IdealState> idealStateMap) {
     Map<String, TaskConfig> taskMap = jobCfg.getTaskConfigMap();
     Map<String, Integer> taskIdMap = jobCtx.getTaskIdPartitionMap();
+    // Check if a gap exists in the context due to previouslys
+    // removed tasks. If yes, the missing pIDs should be considered
+    // for newly added tasks
+    Set<Integer> existingPartitions = jobCtx.getPartitionSet();
+    Set<Integer> missingPartitions = new HashSet<>();
+    if (existingPartitions.size() != 0) {
+      for (int pId = 0; pId < Collections.max(existingPartitions); pId++) {
+        if (!existingPartitions.contains(pId)) {
+          missingPartitions.add(pId);
+        }
+      }
+    }
     for (TaskConfig taskCfg : taskMap.values()) {
       String taskId = taskCfg.getId();
-      int nextPartition = jobCtx.getPartitionSet().size();
       if (!taskIdMap.containsKey(taskId)) {
+        int nextPartition = jobCtx.getPartitionSet().size();
+        if (missingPartitions.size()!=0) {
+          nextPartition = missingPartitions.iterator().next();
+          missingPartitions.remove(nextPartition);
+        }
         jobCtx.setTaskIdForPartition(nextPartition, taskId);
       }
     }

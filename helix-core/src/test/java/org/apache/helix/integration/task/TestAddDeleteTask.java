@@ -610,6 +610,106 @@ public class TestAddDeleteTask extends TaskTestBase {
   }
 
   @Test(dependsOnMethods = "testDeleteTaskAndJobCompleted")
+  public void testDeleteMiddleTaskAndAdd() throws Exception {
+    String workflowName = TestHelper.getTestMethodName();
+    String jobName = "JOB0";
+
+    JobConfig.Builder jobBuilder1 = new JobConfig.Builder().setWorkflow(workflowName)
+        .setNumberOfTasks(1).setNumConcurrentTasksPerInstance(100).setCommand(MockTask.TASK_COMMAND)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.JOB_DELAY, "20000"));
+
+    Workflow.Builder workflowBuilder1 =
+        new Workflow.Builder(workflowName).addJob(jobName, jobBuilder1);
+    _driver.start(workflowBuilder1.build());
+
+    _driver.pollForJobState(workflowName, TaskUtil.getNamespacedJobName(workflowName, jobName),
+        TaskState.IN_PROGRESS);
+
+    // Wait until initial task goes to RUNNING state
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      if (jobContext == null) {
+        return false;
+      }
+      TaskPartitionState state = jobContext.getPartitionState(0);
+      if (state == null) {
+        return false;
+      }
+      return (state == TaskPartitionState.RUNNING);
+    }, TestHelper.WAIT_DURATION));
+
+    // Only one task (initial task) should be included in the job
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (jobContext.getPartitionSet().size() == 1);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add new tasks
+    Map<String, String> taskConfig1 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    Map<String, String> taskConfig2 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    Map<String, String> taskConfig3 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    Map<String, String> taskConfig4 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+
+    TaskConfig task1 = new TaskConfig(null, taskConfig1, null, null);
+    TaskConfig task2 = new TaskConfig(null, taskConfig2, null, null);
+    TaskConfig task3 = new TaskConfig(null, taskConfig3, null, null);
+    TaskConfig task4 = new TaskConfig(null, taskConfig4, null, null);
+
+    _driver.addTask(workflowName, jobName, task1);
+    _driver.addTask(workflowName, jobName, task2);
+    _driver.addTask(workflowName, jobName, task3);
+    _driver.addTask(workflowName, jobName, task4);
+
+    // 5 tasks should be included in the job
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (jobContext.getPartitionSet().size() == 5);
+    }, TestHelper.WAIT_DURATION));
+
+    // All Task should be in RUNNING
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      int runningTasks = 0;
+      for (Integer pId: jobContext.getPartitionSet()) {
+        if (jobContext.getPartitionState(pId) == TaskPartitionState.RUNNING) {
+          runningTasks++;
+        }
+      }
+      return (runningTasks == 5);
+    }, TestHelper.WAIT_DURATION));
+
+    _driver.deleteTask(workflowName, jobName, task3.getId());
+
+    // Since one of the tasks had been delete, we should expect 4 tasks in the context
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (jobContext.getPartitionSet().size() == 4);
+    }, TestHelper.WAIT_DURATION));
+
+    // Add new tasks and make sure the task is being added to context
+    Map<String, String> taskConfig5 =
+        new HashMap<String, String>(ImmutableMap.of(MockTask.JOB_DELAY, "99999999"));
+    TaskConfig task5 = new TaskConfig(null, taskConfig5, null, null);
+    _driver.addTask(workflowName, jobName, task5);
+
+    Assert.assertTrue(TestHelper.verify(() -> {
+      JobContext jobContext =
+          _driver.getJobContext(TaskUtil.getNamespacedJobName(workflowName, jobName));
+      return (jobContext.getPartitionSet().size() == 5);
+    }, TestHelper.WAIT_DURATION));
+    _driver.stop(workflowName);
+  }
+
+  @Test(dependsOnMethods = "testDeleteTaskAndJobCompleted")
   public void testPartitionDropTargetedJob() throws Exception {
     String workflowName = TestHelper.getTestMethodName();
     String jobName = "JOB0";

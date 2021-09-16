@@ -53,32 +53,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Map<String, IdealState> idealStateMap) {
-    Map<String, TaskConfig> taskMap = jobCfg.getTaskConfigMap();
-    Map<String, Integer> taskIdMap = jobCtx.getTaskIdPartitionMap();
-    // Check if a gap exists in the context due to previously
-    // removed tasks. If yes, the missing pIDs should be considered
-    // for newly added tasks
-    Set<Integer> existingPartitions = jobCtx.getPartitionSet();
-    Set<Integer> missingPartitions = new HashSet<>();
-    if (existingPartitions.size() != 0) {
-      for (int pId = 0; pId < Collections.max(existingPartitions); pId++) {
-        if (!existingPartitions.contains(pId)) {
-          missingPartitions.add(pId);
-        }
-      }
-    }
-    for (TaskConfig taskCfg : taskMap.values()) {
-      String taskId = taskCfg.getId();
-      if (!taskIdMap.containsKey(taskId)) {
-        int nextPartition = jobCtx.getPartitionSet().size();
-        if (missingPartitions.size()!=0) {
-          nextPartition = missingPartitions.iterator().next();
-          missingPartitions.remove(nextPartition);
-        }
-        jobCtx.setTaskIdForPartition(nextPartition, taskId);
-      }
-    }
-    return jobCtx.getPartitionSet();
+    return getAllTaskPartitionsDefault(jobCfg, jobCtx);
   }
 
   @Override

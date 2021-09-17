@@ -53,16 +53,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Map<String, IdealState> idealStateMap) {
-    Map<String, TaskConfig> taskMap = jobCfg.getTaskConfigMap();
-    Map<String, Integer> taskIdMap = jobCtx.getTaskIdPartitionMap();
-    for (TaskConfig taskCfg : taskMap.values()) {
-      String taskId = taskCfg.getId();
-      int nextPartition = jobCtx.getPartitionSet().size();
-      if (!taskIdMap.containsKey(taskId)) {
-        jobCtx.setTaskIdForPartition(nextPartition, taskId);
-      }
-    }
-    return jobCtx.getPartitionSet();
+    return getAllTaskPartitionsDefault(jobCfg, jobCtx);
   }
 
   @Override

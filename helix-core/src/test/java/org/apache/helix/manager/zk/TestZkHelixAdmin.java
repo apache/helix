@@ -1067,17 +1067,18 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     tool.purgeOfflineInstances(clusterName, 10000L);
     assertInstanceDropped(keyBuilder, instanceName);
 
-    // Set config again, without instancePath or history
-    _baseAccessor.set(PropertyPathBuilder.instanceConfig(clusterName, instanceName),
-        new ZNRecord(instanceName), 1);
-    tool.purgeOfflineInstances(clusterName, 10000L);
-    assertInstanceDropped(keyBuilder, instanceName);
-
-    // Set message without config, mimicking race condition
+    // Set message without config or history, mimicking race condition
     _baseAccessor.set(PropertyPathBuilder.instanceMessage(clusterName, instanceName, "testId"),
         new ZNRecord("testId"), 1);
     tool.purgeOfflineInstances(clusterName, 10000L);
     assertInstanceDropped(keyBuilder, instanceName);
+
+    // Set config again, without instancePath or history, mimicking new instance joining
+    _baseAccessor.set(PropertyPathBuilder.instanceConfig(clusterName, instanceName),
+        new ZNRecord(instanceName), 1);
+    tool.purgeOfflineInstances(clusterName, 10000L);
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.instanceConfig(instanceName).getPath()),
+        "Instance should still be there");
 
     tool.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

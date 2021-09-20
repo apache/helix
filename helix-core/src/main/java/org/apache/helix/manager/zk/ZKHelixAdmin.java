@@ -288,12 +288,6 @@ public class ZKHelixAdmin implements HelixAdmin {
   private void purgeInstance(String clusterName, String instanceName) {
     logger.info("Purge instance {} from cluster {}.", instanceName, clusterName);
 
-    String liveInstancePath = PropertyPathBuilder.liveInstance(clusterName, instanceName);
-    if (_zkClient.exists(liveInstancePath)) {
-      throw new HelixException(
-          "Node " + instanceName + " is still alive for cluster " + clusterName + ", can't purge.");
-    }
-
     String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
     _zkClient.delete(instanceConfigPath);
     String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
@@ -2209,23 +2203,25 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<String> instancePathNames = accessor.getChildNames(keyBuilder.instances());
     List<String> liveNodes = accessor.getChildNames(keyBuilder.liveInstances());
 
-    Set<String> timeoutOfflineInstanceNames = new HashSet<>();
-    timeoutOfflineInstanceNames.addAll(instanceConfigNames);
-    timeoutOfflineInstanceNames.addAll(instancePathNames);
-    liveNodes.forEach(timeoutOfflineInstanceNames::remove);
-    for (String instanceName : timeoutOfflineInstanceNames) {
+    Set<String> offlineInstanceNames = new HashSet<>(instancePathNames);
+    liveNodes.forEach(offlineInstanceNames::remove);
+    long finalOfflineDuration = offlineDuration;
+    offlineInstanceNames.removeIf(instanceName -> {
       ParticipantHistory participantHistory =
           accessor.getProperty(keyBuilder.participantHistory(instanceName));
-
-      // If participant history is null, a race condition happened and should be cleaned up
-      // Otherwise, if the participant has not been offline for more than the duration, no clean up
-      if (participantHistory != null
-          && (participantHistory.getLastOfflineTime() == ParticipantHistory.ONLINE
-          || System.currentTimeMillis() - participantHistory.getLastOfflineTime()
-          < offlineDuration)) {
-        timeoutOfflineInstanceNames.remove(instanceName);
+      if (participantHistory == null && instanceConfigNames.contains(instanceName)) {
+        // this is likely caused by a new instance joining and should not be purged
+        return true;
       }
-    }
-    return timeoutOfflineInstanceNames;
+      // If participant history is null without config, a race condition happened and should be
+      // cleaned up.
+      // Otherwise, if the participant has not been offline for more than the duration, no clean up
+      return (participantHistory != null && (
+          participantHistory.getLastOfflineTime() == ParticipantHistory.ONLINE
+              || System.currentTimeMillis() - participantHistory.getLastOfflineTime()
+              < finalOfflineDuration));
+    });
+
+    return offlineInstanceNames;
   }
 }

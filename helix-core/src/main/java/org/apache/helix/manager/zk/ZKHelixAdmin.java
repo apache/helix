@@ -231,8 +231,11 @@ public class ZKHelixAdmin implements HelixAdmin {
     // delete config path
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
-
     // delete instance path
+    dropInstancePathRecursively(instancePath, instanceConfig.getInstanceName());
+  }
+
+  private void dropInstancePathRecursively(String instancePath, String instanceName) {
     int retryCnt = 0;
     while (true) {
       try {
@@ -244,12 +247,12 @@ public class ZKHelixAdmin implements HelixAdmin {
           // Racing condition with controller's persisting node history, retryable.
           // We don't need to backoff here as this racing condition only happens once (controller
           // does not repeatedly write instance history)
-          logger.warn("Retrying dropping instance {} with exception {}",
-              instanceConfig.getInstanceName(), e.getCause().getMessage());
+          logger.warn("Retrying dropping instance {} with exception {}", instanceName,
+              e.getCause().getMessage());
           retryCnt++;
         } else {
-          String errorMessage = "Failed to drop instance: " + instanceConfig.getInstanceName()
-              + ". Retry times: " + retryCnt;
+          String errorMessage =
+              "Failed to drop instance: " + instanceName + ". Retry times: " + retryCnt;
           logger.error(errorMessage, e);
           throw new HelixException(errorMessage, e);
         }
@@ -268,20 +271,27 @@ public class ZKHelixAdmin implements HelixAdmin {
    */
   @Override
   public void purgeOfflineInstances(String clusterName, long offlineDuration) {
-    Map<String, InstanceConfig> timeoutOfflineInstances =
-        findTimeoutOfflineInstances(clusterName, offlineDuration);
     List<String> failToPurgeInstances = new ArrayList<>();
-    timeoutOfflineInstances.values().forEach(instance -> {
+    findTimeoutOfflineInstances(clusterName, offlineDuration).forEach(instance -> {
       try {
-        dropInstance(clusterName, instance);
+        purgeInstance(clusterName, instance);
       } catch (HelixException e) {
-        failToPurgeInstances.add(instance.getInstanceName());
+        failToPurgeInstances.add(instance);
       }
     });
     if (failToPurgeInstances.size() > 0) {
       LOG.error("ZKHelixAdmin::purgeOfflineInstances(): failed to drop the following instances: "
           + failToPurgeInstances);
     }
+  }
+
+  private void purgeInstance(String clusterName, String instanceName) {
+    logger.info("Purge instance {} from cluster {}.", instanceName, clusterName);
+
+    String instanceConfigPath = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
+    _zkClient.delete(instanceConfigPath);
+    String instancePath = PropertyPathBuilder.instance(clusterName, instanceName);
+    dropInstancePathRecursively(instancePath, instanceName);
   }
 
   @Override
@@ -2176,36 +2186,42 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
   }
 
-  private Map<String, InstanceConfig> findTimeoutOfflineInstances(String clusterName,
-      long offlineDuration) {
-    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+  private Set<String> findTimeoutOfflineInstances(String clusterName, long offlineDuration) {
     // in case there is no customized timeout value, use the one defined in cluster config
     if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
       offlineDuration =
           _configAccessor.getClusterConfig(clusterName).getOfflineDurationForPurge();
       if (offlineDuration == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET) {
-        return instanceConfigMap;
+        return Collections.emptySet();
       }
     }
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs(), true);
+    List<String> instanceConfigNames = accessor.getChildNames(keyBuilder.instanceConfigs());
+    List<String> instancePathNames = accessor.getChildNames(keyBuilder.instances());
     List<String> liveNodes = accessor.getChildNames(keyBuilder.liveInstances());
-    instanceConfigMap.keySet().removeAll(liveNodes);
 
-    Set<String> toRemoveInstances = new HashSet<>();
-    for (String instanceName : instanceConfigMap.keySet()) {
+    Set<String> offlineInstanceNames = new HashSet<>(instancePathNames);
+    liveNodes.forEach(offlineInstanceNames::remove);
+    long finalOfflineDuration = offlineDuration;
+    offlineInstanceNames.removeIf(instanceName -> {
       ParticipantHistory participantHistory =
           accessor.getProperty(keyBuilder.participantHistory(instanceName));
-      long lastOfflineTime = participantHistory.getLastOfflineTime();
-      if (lastOfflineTime == ClusterConfig.OFFLINE_DURATION_FOR_PURGE_NOT_SET
-          || System.currentTimeMillis() - lastOfflineTime < offlineDuration) {
-        toRemoveInstances.add(instanceName);
+      if (participantHistory == null && instanceConfigNames.contains(instanceName)) {
+        // this is likely caused by a new instance joining and should not be purged
+        return true;
       }
-    }
-    instanceConfigMap.keySet().removeAll(toRemoveInstances);
-    return instanceConfigMap;
+      // If participant history is null without config, a race condition happened and should be
+      // cleaned up.
+      // Otherwise, if the participant has not been offline for more than the duration, no clean up
+      return (participantHistory != null && (
+          participantHistory.getLastOfflineTime() == ParticipantHistory.ONLINE
+              || System.currentTimeMillis() - participantHistory.getLastOfflineTime()
+              < finalOfflineDuration));
+    });
+
+    return offlineInstanceNames;
   }
 }

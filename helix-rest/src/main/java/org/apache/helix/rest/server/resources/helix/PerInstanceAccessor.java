@@ -163,8 +163,21 @@ public class PerInstanceAccessor extends AbstractHelixResource {
             continueOnFailures, getNamespace());
     StoppableCheck stoppableCheck;
     try {
+      JsonNode node = null;
+      if (jsonContent.length() != 0) {
+        node = OBJECT_MAPPER.readTree(jsonContent);
+      }
+      if (node == null) {
+        return badRequest("Invalid input for content : " + jsonContent);
+      }
+
+      String customizedInput = null;
+      if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
+        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
+      }
+
       stoppableCheck =
-          instanceService.getInstanceStoppableCheck(clusterId, instanceName, jsonContent);
+          instanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput);
     } catch (HelixException e) {
       LOG.error("Current cluster: {}, instance: {} has issue with health checks!", clusterId,
           instanceName, e);

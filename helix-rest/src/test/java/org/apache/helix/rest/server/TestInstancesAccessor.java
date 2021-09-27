@@ -95,7 +95,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
         new BestPossibleExternalViewVerifier.Builder(STOPPABLE_CLUSTER).setZkAddr(ZK_ADDR).build();
     Assert.assertTrue(verifier.verifyByPolling());
 
-    Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    Entity entity = Entity.entity("\"{}\"", MediaType.APPLICATION_JSON_TYPE);
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
     JsonNode jsonResult = OBJECT_MAPPER.readTree(response.readEntity(String.class));
@@ -109,7 +109,7 @@ public class TestInstancesAccessor extends AbstractTestClass {
     _configAccessor.setInstanceConfig(STOPPABLE_CLUSTER, instance, instanceConfig);
     Assert.assertTrue(verifier.verifyByPolling());
 
-    entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
+    entity = Entity.entity("\"{}\"", MediaType.APPLICATION_JSON_TYPE);
     response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/stoppable")
         .format(STOPPABLE_CLUSTER, instance).post(this, entity);
     jsonResult = OBJECT_MAPPER.readTree(response.readEntity(String.class));

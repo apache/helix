@@ -169,9 +169,9 @@ public class InstanceValidationUtil {
       return false;
     }
     if (!clusterConfig.isPersistIntermediateAssignment()) {
-      _logger.error(
+      _logger.error(String.format(
           "Cluster config %s is not turned on, which is required for instance stability check.",
-          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString());
+          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString()));
       return false;
     }
     PropertyKey propertyKey = keyBuilder.instanceConfig(instanceName);

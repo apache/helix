@@ -169,9 +169,9 @@ public class InstanceValidationUtil {
       return false;
     }
     if (!clusterConfig.isPersistIntermediateAssignment()) {
-      _logger.error(String.format(
-          "Cluster config %s is not turned on, which is required for instance stability check.",
-          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString()));
+      _logger.error(
+          "Cluster config {} is not turned on, which is required for instance stability check.",
+          ClusterConfig.ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString());
       return false;
     }
     PropertyKey propertyKey = keyBuilder.instanceConfig(instanceName);
@@ -202,7 +202,7 @@ public class InstanceValidationUtil {
         CurrentState currentState = dataAccessor.getProperty(key);
         if (currentState != null
             && currentState.getPartitionStateMap().containsValue(HelixDefinedState.ERROR.name())) {
-          _logger.warn(String.format("The instance %s has error partitions on it.", instanceName));
+          _logger.warn("The instance {} has error partitions on it.", instanceName);
           return true;
         }
       }
@@ -357,8 +357,8 @@ public class InstanceValidationUtil {
       // Get the minActiveReplicas constraint for the resource
       int minActiveReplicas = externalView.getMinActiveReplicas();
       if (minActiveReplicas == -1) {
-        _logger.warn("Resource " + resourceName
-            + " is missing minActiveReplica field. Skip the sibling check");
+        _logger.warn("Resource {} is missing minActiveReplica field. Skip the sibling check",
+            resourceName);
         continue;
       }
       String stateModeDef = externalView.getStateModelDefRef();

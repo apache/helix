@@ -45,7 +45,25 @@ public class ZNRecordUtil {
         .getProperty(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_ENABLED,
             ZNRecord.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_DEFAULT));
 
-    return autoCompressEnabled && serializedLength > getSerializerWriteSizeLimit();
+    return autoCompressEnabled && serializedLength > getSerializerCompressThreshold();
+  }
+
+  /**
+   * Returns the threshold in bytes that ZNRecord serializer should compress a ZNRecord with larger size.
+   * If threshold is configured to be less than or equal to 0, the serializer will always compress ZNRecords as long as
+   * auto-compression is enabled.
+   * If threshold is not configured or the threshold is larger than ZNRecord write size limit, the default value
+   * ZNRecord write size limit will be used instead.
+   */
+  private static int getSerializerCompressThreshold() {
+    Integer autoCompressThreshold =
+        Integer.getInteger(ZkSystemPropertyKeys.ZK_SERIALIZER_ZNRECORD_AUTO_COMPRESS_THRESHOLD_BYTES);
+
+    if (autoCompressThreshold == null || autoCompressThreshold > getSerializerWriteSizeLimit()) {
+      return getSerializerWriteSizeLimit();
+    }
+
+    return autoCompressThreshold;
   }
 
   /**

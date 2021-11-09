@@ -38,9 +38,14 @@ public class MaintenanceManagementInstanceInfo {
     this.messages = new ArrayList<>();
   }
 
-  public MaintenanceManagementInstanceInfo(OperationalStatus status, String newoperationResult) {
+  public MaintenanceManagementInstanceInfo(OperationalStatus status, List<String> messages) {
     this.status = status;
-    this.operationResult = newoperationResult;
+    this.messages = messages;
+  }
+
+  public MaintenanceManagementInstanceInfo(OperationalStatus status, String newOperationResult) {
+    this.status = status;
+    this.operationResult = newOperationResult;
     this.messages = new ArrayList<>();
   }
 

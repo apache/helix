@@ -34,6 +34,7 @@ public class MaintenanceManagementService {
    * User need to implement OperationAbstractClass for customer operation check & execution.
    * It will invoke OperationAbstractClass.operationCheckForTakeSingleInstance and
    * OperationAbstractClass.operationExecForTakeSingleInstance.
+   * The list of check and operation will be executed in the user provided sequence.
    *
    * @param clusterId          The cluster id
    * @param instanceName       The instance name
@@ -56,6 +57,7 @@ public class MaintenanceManagementService {
    * User need to implement OperationAbstractClass for customer operation check & execution.
    * It will invoke OperationAbstractClass.operationCheckForTakeInstances and
    * OperationAbstractClass.operationExecForTakeInstances.
+   * The list of check and operation will be executed in the user provided sequence.
    *
    * @param clusterId          The cluster id
    * @param instances          A list of instances
@@ -79,6 +81,7 @@ public class MaintenanceManagementService {
    * User need to implement OperationAbstractClass for customer operation check & execution.
    * It will invoke OperationAbstractClass.operationCheckForFreeSingleInstance and
    * OperationAbstractClass.operationExecForFreeSingleInstance.
+   * The list of check and operation will be executed in the user provided sequence.
    *
    * @param clusterId          The cluster id
    * @param instanceName       The instance name
@@ -101,6 +104,7 @@ public class MaintenanceManagementService {
    * User need to implement OperationAbstractClass for customer operation check & execution.
    * It will invoke OperationAbstractClass.operationCheckForFreeInstances and
    * OperationAbstractClass.operationExecForFreeInstances.
+   * The list of check and operation will be executed in the user provided sequence.
    *
    * @param clusterId          The cluster id
    * @param instances          A list of instances

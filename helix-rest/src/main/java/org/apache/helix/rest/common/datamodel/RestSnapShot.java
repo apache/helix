@@ -27,8 +27,10 @@ public class RestSnapShot {
    * OperationAbstractClass would need.
    */
 
+
+  // TODO: Next: Add a KV map and get function for the first version in next change.
   // TODO: Define a Enum class for all Helix info types like ExternalView, InstanceConfig etc. An
   // implementation of OperationAbstractClass will need to define what are the types needed.
 
-  // TODO: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
+  // TODO: Future: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
 }

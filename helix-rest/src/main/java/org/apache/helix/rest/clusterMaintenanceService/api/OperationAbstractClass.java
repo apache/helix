@@ -1,4 +1,4 @@
-package org.apache.helix.rest.clusterMaintenanceService;
+package org.apache.helix.rest.clusterMaintenanceService.api;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,6 +22,7 @@ package org.apache.helix.rest.clusterMaintenanceService;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementInstanceInfo;
 import org.apache.helix.rest.common.datamodel.RestSnapShot;
 
 

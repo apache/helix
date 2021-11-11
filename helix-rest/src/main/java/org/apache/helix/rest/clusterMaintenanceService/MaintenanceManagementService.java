@@ -206,9 +206,8 @@ public class MaintenanceManagementService {
 
   private void batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
       Map<String, StoppableCheck> finalStoppableChecks, Map<String, String> customPayLoads) {
-    if (instances.isEmpty() || customPayLoads == null) {
-      // if all instances failed at previous checks or there is no custom check config,
-      // then all following checks are not required.
+    if (instances.isEmpty() ) {
+      // if all instances failed at previous checks, then all following checks are not required.
       return;
     }
     RESTConfig restConfig = _configAccessor.getRESTConfig(clusterId);

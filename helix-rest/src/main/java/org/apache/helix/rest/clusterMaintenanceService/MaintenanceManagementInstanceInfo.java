@@ -26,7 +26,8 @@ import java.util.List;
 public class MaintenanceManagementInstanceInfo {
 
   public enum OperationalStatus {
-    SUCCESS, FAILURE
+    SUCCESS,
+    FAILURE
   }
 
   private String operationResult;

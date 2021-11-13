@@ -100,6 +100,18 @@ public interface InstanceService {
                                              String jsonContent) throws IOException;
 
     /**
+     * Get the current instance stoppable checks
+     *
+     * @param clusterId    The cluster id
+     * @param instanceName The instance name
+     * @param customizedInput  The Map of payload from client side
+     * @return An instance of {@link StoppableCheck} easily convertible to JSON
+     * @throws IOException in case of network failure
+     */
+    StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
+        Map<String, String> customizedInput) throws IOException;
+
+    /**
      * Batch get StoppableCheck results for a list of instances in one cluster
      *
      * @param clusterId   The cluster id
@@ -110,4 +122,16 @@ public interface InstanceService {
      */
     Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
         List<String> instances, String jsonContent) throws IOException;
+
+    /**
+     * Batch get StoppableCheck results for a list of instances in one cluster
+     *
+     * @param clusterId   The cluster id
+     * @param instances   The list of instances
+     * @param customizedInput  The Map of payload from client side
+     * @return A map contains the instance as key and the StoppableCheck as the value
+     * @throws IOException in case of network failure
+     */
+    Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+        List<String> instances, Map<String, String> customizedInput) throws IOException;
 }

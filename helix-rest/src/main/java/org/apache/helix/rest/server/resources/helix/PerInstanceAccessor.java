@@ -157,7 +157,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("continueOnFailures") boolean continueOnFailures) throws IOException {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    InstanceServiceImpl instanceService =
+    InstanceService instanceService =
         new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
             continueOnFailures, getNamespace());
     StoppableCheck stoppableCheck;
@@ -170,10 +170,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         return badRequest("Invalid input for content : " + jsonContent);
       }
 
-      String customizedInput = null;
-      if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
-      }
+      Map<String, String> customizedInput = InstanceServiceImpl.getMapFromJsonNode(
+          node.get(InstancesAccessor.InstancesProperties.customized_values.name()));
 
       stoppableCheck =
           instanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput);

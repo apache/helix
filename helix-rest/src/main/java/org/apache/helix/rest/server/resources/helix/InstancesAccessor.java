@@ -209,10 +209,8 @@ public class InstancesAccessor extends AbstractHelixResource {
               OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
 
       List<String> orderOfZone = null;
-      String customizedInput = null;
-      if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
-      }
+      Map<String, String> customizedInput = InstanceServiceImpl.getMapFromJsonNode(
+          node.get(InstancesAccessor.InstancesProperties.customized_values.name()));
 
       if (node.get(InstancesAccessor.InstancesProperties.zone_order.name()) != null) {
         orderOfZone = OBJECT_MAPPER

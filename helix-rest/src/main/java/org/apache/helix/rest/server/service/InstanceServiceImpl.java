@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -195,13 +196,13 @@ public class InstanceServiceImpl implements InstanceService {
     return finalStoppableChecks;
   }
 
-  protected StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
+  public StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
       Map<String, String> customizedValues) throws IOException {
     return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName),
         customizedValues).get(instanceName);
   }
 
-  protected Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+  public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, Map<String, String> customizedValues) throws IOException {
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check
@@ -357,14 +358,13 @@ public class InstanceServiceImpl implements InstanceService {
     return result;
   }
 
-  public static Map<String, String> getMapFromJsonPayload(String jsonContent) throws IOException {
-    if (jsonContent == null) {
-      return null;
-    }
+  public static Map<String, String> getMapFromJsonNode(JsonNode jsonContent) throws IOException {
     Map<String, String> result = new HashMap<>();
-    JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
-    // parsing the inputs as string key value pairs
-    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
+    if (jsonContent == null) {
+      return result;
+    }
+    result = OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
+    });
     return result;
   }
 

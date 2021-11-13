@@ -108,6 +108,6 @@ public interface InstanceService {
      * @return A map contains the instance as key and the StoppableCheck as the value
      * @throws IOException in case of network failure
      */
-    Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId, List<String> instances, String jsonContent)
-            throws IOException;
+    Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+        List<String> instances, String jsonContent) throws IOException;
 }

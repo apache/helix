@@ -195,6 +195,24 @@ public class InstanceServiceImpl implements InstanceService {
     return finalStoppableChecks;
   }
 
+  protected StoppableCheck getInstanceStoppableCheck(String clusterId, String instanceName,
+      Map<String, String> customizedValues) throws IOException {
+    return batchGetInstancesStoppableChecks(clusterId, ImmutableList.of(instanceName),
+        customizedValues).get(instanceName);
+  }
+
+  protected Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
+      List<String> instances, Map<String, String> customizedValues) throws IOException {
+    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
+    // helix instance check
+    List<String> instancesForCustomInstanceLevelChecks =
+        batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks);
+    // custom check
+    batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
+        finalStoppableChecks, customizedValues);
+    return finalStoppableChecks;
+  }
+
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
       Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks) {
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(Collectors
@@ -333,6 +351,17 @@ public class InstanceServiceImpl implements InstanceService {
     if (jsonContent == null) {
       return result;
     }
+    JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
+    // parsing the inputs as string key value pairs
+    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
+    return result;
+  }
+
+  public static Map<String, String> getMapFromJsonPayload(String jsonContent) throws IOException {
+    if (jsonContent == null) {
+      return null;
+    }
+    Map<String, String> result = new HashMap<>();
     JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
     // parsing the inputs as string key value pairs
     jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));

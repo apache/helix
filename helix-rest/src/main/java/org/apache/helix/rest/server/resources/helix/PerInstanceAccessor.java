@@ -46,7 +46,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -158,7 +157,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("continueOnFailures") boolean continueOnFailures) throws IOException {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    InstanceService instanceService =
+    InstanceServiceImpl instanceService =
         new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
             continueOnFailures, getNamespace());
     StoppableCheck stoppableCheck;

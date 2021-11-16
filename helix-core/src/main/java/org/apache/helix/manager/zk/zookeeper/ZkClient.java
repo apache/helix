@@ -40,6 +40,7 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
+import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.listeners.PreFetch;
 import org.apache.helix.manager.zk.BasicZkSerializer;
@@ -48,6 +49,7 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks;
 import org.apache.helix.manager.zk.zookeeper.ZkEventThread.ZkEvent;
 import org.apache.helix.monitoring.mbeans.ZkClientMonitor;
 import org.apache.helix.util.ExponentialBackoffStrategy;
+import org.apache.helix.util.ZNRecordUtil;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
@@ -80,6 +82,11 @@ public class ZkClient implements Watcher {
   // 100K is specific for helix messages which use UUID, making packet length just below 4 MB.
   // TODO: remove it once we have a better way to exit retry for this case
   private static final int NUM_CHILDREN_LIMIT = 100 * 1000;
+
+  // ZNode write size limit in bytes.
+  // TODO: use ZKConfig#JUTE_MAXBUFFER once bumping up ZK to 3.5.2+
+  private static final int WRITE_SIZE_LIMIT =
+      Integer.getInteger(SystemPropertyKeys.JUTE_MAXBUFFER, ZNRecord.SIZE_LIMIT);
 
   private final IZkConnection _connection;
   private final long _operationRetryTimeoutInMillis;
@@ -179,6 +186,9 @@ public class ZkClient implements Watcher {
     if (zkConnection == null) {
       throw new NullPointerException("Zookeeper connection is null!");
     }
+
+    validateWriteSizeLimitConfig();
+
     _connection = zkConnection;
     _pathBasedZkSerializer = zkSerializer;
     _operationRetryTimeoutInMillis = operationRetryTimeout;
@@ -538,7 +548,7 @@ public class ZkClient implements Watcher {
     long startT = System.currentTimeMillis();
     try {
       final byte[] data = datat == null ? null : serialize(datat, path);
-      checkDataSizeLimit(data);
+      checkDataSizeLimit(path, data);
       String actualPath = retryUntilConnected(new Callable<String>() {
         @Override
         public String call() throws Exception {
@@ -1403,7 +1413,7 @@ public class ZkClient implements Watcher {
     long startT = System.currentTimeMillis();
     try {
       final byte[] data = serialize(datat, path);
-      checkDataSizeLimit(data);
+      checkDataSizeLimit(path, data);
       final Stat stat = (Stat) retryUntilConnected(new Callable<Object>() {
         @Override
         public Object call() throws Exception {
@@ -1506,11 +1516,15 @@ public class ZkClient implements Watcher {
     });
   }
 
-  private void checkDataSizeLimit(byte[] data) {
-    if (data != null && data.length > ZNRecord.SIZE_LIMIT) {
-      LOG.error("Data size larger than 1M, will not write to zk. Data (first 1k): "
-          + new String(data).substring(0, 1024));
-      throw new HelixException("Data size larger than 1M");
+  private void checkDataSizeLimit(String path, byte[] data) {
+    if (data == null) {
+      return;
+    }
+
+    if (data.length > WRITE_SIZE_LIMIT) {
+      throw new HelixException("Data size of path " + path
+          + " is greater than write size limit "
+          + WRITE_SIZE_LIMIT + " bytes");
     }
   }
 
@@ -1803,7 +1817,7 @@ public class ZkClient implements Watcher {
 
     if (stat.getNumChildren() > NUM_CHILDREN_LIMIT) {
       LOG.error("Failed to get children for path {} because of connection loss. "
-              + "Number of children {} exceeds limit {}, aborting retry.", path,
+              + "Number of children {} exceeds limit {}, aborting retry.", path, stat.getNumChildren(),
           stat.getNumChildren(),
           NUM_CHILDREN_LIMIT);
       // MarshallingErrorException could represent transport error: exceeding the
@@ -1813,6 +1827,16 @@ public class ZkClient implements Watcher {
     } else {
       LOG.debug("Number of children {} is less than limit {}, not exiting retry.",
           stat.getNumChildren(), NUM_CHILDREN_LIMIT);
+    }
+  }
+
+  private void validateWriteSizeLimitConfig() {
+    int serializerSize = ZNRecordUtil.getSerializerWriteSizeLimit();
+    LOG.info("ZNRecord serializer write size limit: {}; ZkClient write size limit: {}",
+        serializerSize, WRITE_SIZE_LIMIT);
+    if (serializerSize > WRITE_SIZE_LIMIT) {
+      throw new IllegalStateException("ZNRecord serializer write size limit " + serializerSize
+          + " is greater than ZkClient size limit " + WRITE_SIZE_LIMIT);
     }
   }
 }

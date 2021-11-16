@@ -776,6 +776,14 @@ public class TestHelper {
     return sb.toString();
   }
 
+  public static void resetSystemProperty(String key, String originValue) {
+    if (originValue == null) {
+      System.clearProperty(key);
+    } else {
+      System.setProperty(key, originValue);
+    }
+  }
+
   public static interface Verifier {
     boolean verify() throws Exception;
   }

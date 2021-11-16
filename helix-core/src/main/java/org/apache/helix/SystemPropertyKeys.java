@@ -64,6 +64,10 @@ public class SystemPropertyKeys {
   // Indicate monitoring level of the HelixManager metrics
   public static final String MONITOR_LEVEL = "helixmanager.monitorLevel";
 
+
+  /** System property key for jute.maxbuffer */
+  public static final String JUTE_MAXBUFFER = "jute.maxbuffer";
+
   // CallbackHandler
   public static final String ASYNC_BATCH_MODE_ENABLED = "helix.callbackhandler.isAsyncBatchModeEnabled";
 

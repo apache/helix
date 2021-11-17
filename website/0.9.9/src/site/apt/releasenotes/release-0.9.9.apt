@@ -35,6 +35,14 @@ Release Notes for Apache Helix 0.9.9
 
 * Key Note for Helix Release
 
+  In this release, there are three type of configuration for ZK write limitations:
+
+    * jute.maxbuffer: This used to be consistent with jute maxbuffer set for ZkClient. So if your data size is over this value, write is not allowed.
+
+    * zk.serializer.znrecord.write.size.limit.bytes: If the ZNode size is larger than the value you set (even after compression), the data will NOT be written to ZK at ZNRecorderSerializer level. Default is 1MB
+
+    * zk.serializer.znrecord.auto-compress.threshold.bytes: If the ZNode size is larger than the value you set, compression will be applied for this ZNode.
+
 []
 
 * Detailed Changes
@@ -42,6 +50,8 @@ Release Notes for Apache Helix 0.9.9
 ** Improvements
 
     * Add separate ZK serializer configuration to active ZNRecord compression when size exceeds a threshold. #1901
+
+    * Validate data write size limit in ZkClient #1072
 
 []
 

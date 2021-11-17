@@ -46,7 +46,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -173,7 +172,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
       String customizedInput = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
+        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
       }
 
       stoppableCheck =

@@ -211,7 +211,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       List<String> orderOfZone = null;
       String customizedInput = null;
       if (node.get(InstancesAccessor.InstancesProperties.customized_values.name()) != null) {
-        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).textValue();
+        customizedInput = node.get(InstancesAccessor.InstancesProperties.customized_values.name()).toString();
       }
 
       if (node.get(InstancesAccessor.InstancesProperties.zone_order.name()) != null) {

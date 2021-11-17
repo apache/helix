@@ -318,6 +318,9 @@ public class InstanceServiceImpl implements InstanceService {
 
   private Map<String, String> getCustomPayLoads(String jsonContent) throws IOException {
     Map<String, String> result = new HashMap<>();
+    if (jsonContent == null) {
+      return result;
+    }
     JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
     // parsing the inputs as string key value pairs
     jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));

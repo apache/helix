@@ -578,6 +578,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     if (!hasReachedThrottlingLimit) {
       throttleController.chargeCluster(rebalanceType);
       throttleController.chargeResource(rebalanceType, resourceName);
+      throttleController.chargeInstance(rebalanceType, messageToThrottle.getTgtName());
     } else {
       // Intermediate Map is based on current state
       // Remove the message from MessageSelection result if it has been throttled since the message will be dispatched

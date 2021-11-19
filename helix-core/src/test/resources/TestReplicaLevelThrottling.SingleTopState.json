@@ -72,6 +72,78 @@
       }
     },
     {
+      "description": "No pending message, instance level throttling will only allow 1 ST happening",
+      "clusterThrottleLoad": "-1",
+      "resourceThrottleLoad": "-1",
+      "instanceThrottleLoad": "1",
+      "instanceThrottleRecovery": "-1",
+      "partitionNames": ["partition_0", "partition_1"],
+      "messageOutput": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_1": {
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY",
+          "localhost_12916": "OFFLINE"
+        }
+      },
+      "preferenceList": {
+        "partition_0": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ],
+        "partition_1": [
+          "localhost_12913",
+          "localhost_12914",
+          "localhost_12915"
+        ]
+      },
+      "currentStates": {
+        "partition_0": {
+          "localhost_12913": "STANDBY",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "OFFLINE",
+          "localhost_12915": "OFFLINE",
+          "localhost_12916": "STANDBY"
+        }
+      },
+      "bestPossible": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        }
+      },
+      "pendingMessages": {
+      },
+      "expectedOutput": {
+        "partition_0": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "STANDBY"
+        },
+        "partition_1": {
+          "localhost_12913": "LEADER",
+          "localhost_12914": "STANDBY",
+          "localhost_12915": "OFFLINE",
+          "localhost_12916": "OFFLINE"
+        }
+      }
+    },
+    {
       "description": "With pending message, only on message allow per instance. Messages to 12915 should be throttled",
       "clusterThrottleLoad": "-1",
       "resourceThrottleLoad": "-1",

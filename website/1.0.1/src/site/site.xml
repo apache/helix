@@ -52,7 +52,7 @@
         })();
 
       </script>
-    ]]</head>
+    ]]></head>
 
     <breadcrumbs position="left">
       <item name="Apache Helix" href="http://helix.apache.org/"/>
@@ -99,7 +99,7 @@
         All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
         <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
       </div>
-    ]]</footer>
+    ]]></footer>
 
 
   </body>

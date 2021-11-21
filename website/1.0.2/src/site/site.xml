@@ -38,7 +38,7 @@
 
   <body>
 
-    <head>
+    <head><![CDATA[
       <script type="text/javascript">
 
         var _gaq = _gaq || [];
@@ -52,7 +52,7 @@
         })();
 
       </script>
-    </head>
+    ]]></head>
 
     <breadcrumbs position="left">
       <item name="Apache Helix" href="http://helix.apache.org/"/>
@@ -94,12 +94,12 @@
       <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
     </menu>
 -->
-    <footer>
+    <footer><![CDATA[
       <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
         All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
         <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
       </div>
-    </footer>
+    ]]></footer>
 
 
   </body>

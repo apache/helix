@@ -18,11 +18,6 @@
 #
 
 Redirect /download.html /download.cgi
-Redirect /0.8.0-docs/download.html /0.8.0-docs/download.cgi
-Redirect /0.8.1-docs/download.html /0.8.1-docs/download.cgi
-Redirect /0.8.2-docs/download.html /0.8.2-docs/download.cgi
-Redirect /0.8.3-docs/download.html /0.8.3-docs/download.cgi
-Redirect /0.8.4-docs/download.html /0.8.4-docs/download.cgi
 Redirect /0.9.0-docs/download.html /0.9.0-docs/download.cgi
 Redirect /0.9.1-docs/download.html /0.9.1-docs/download.cgi
 Redirect /0.9.4-docs/download.html /0.9.4-docs/download.cgi

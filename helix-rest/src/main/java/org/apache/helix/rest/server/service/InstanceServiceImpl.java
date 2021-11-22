@@ -21,6 +21,7 @@ package org.apache.helix.rest.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -185,35 +186,48 @@ public class InstanceServiceImpl implements InstanceService {
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent) throws IOException {
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
-    Map<String, Future<StoppableCheck>> helixInstanceChecks =
-        instances.stream().collect(Collectors.toMap(Function.identity(),
-            instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance))));
+    // helix instance check
     List<String> instancesForCustomInstanceLevelChecks =
-        filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
-    if (instancesForCustomInstanceLevelChecks.isEmpty()) {
-      // if all instances failed at helix custom level checks and all checks are not required
-      return finalStoppableChecks;
-    }
+        batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks);
+    // custom check
+    batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
+        finalStoppableChecks, getCustomPayLoads(jsonContent));
+    return finalStoppableChecks;
+  }
 
+  private List<String> batchHelixInstanceStoppableCheck(String clusterId,
+      Collection<String> instances, Map<String, StoppableCheck> finalStoppableChecks) {
+    Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(Collectors
+        .toMap(Function.identity(),
+            instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance))));
+    // finalStoppableChecks only contains instances that does not pass this health check
+    return filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
+  }
+
+  private void batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
+      Map<String, StoppableCheck> finalStoppableChecks, Map<String, String> customPayLoads) {
+    if (instances.isEmpty() ) {
+      // if all instances failed at previous checks, then all following checks are not required.
+      return;
+    }
     RESTConfig restConfig = _configAccessor.getRESTConfig(clusterId);
     if (restConfig == null) {
-      String errorMessage =
-          String.format("The cluster %s hasn't enabled client side health checks yet, "
+      String errorMessage = String.format(
+          "The cluster %s hasn't enabled client side health checks yet, "
               + "thus the stoppable check result is inaccurate", clusterId);
       LOG.error(errorMessage);
       throw new HelixException(errorMessage);
     }
-    Map<String, String> customPayLoads = getCustomPayLoads(jsonContent);
-    Map<String, Future<StoppableCheck>> customInstanceLevelChecks =
-        instancesForCustomInstanceLevelChecks.stream()
-            .collect(Collectors.toMap(Function.identity(),
-                instance -> POOL.submit(() -> performCustomInstanceCheck(clusterId, instance,
-                    restConfig.getBaseUrl(instance), customPayLoads))));
+    Map<String, Future<StoppableCheck>> customInstanceLevelChecks = instances.stream().collect(
+        Collectors.toMap(Function.identity(), instance -> POOL.submit(
+            () -> performCustomInstanceCheck(clusterId, instance, restConfig.getBaseUrl(instance),
+                customPayLoads))));
     List<String> instancesForCustomPartitionLevelChecks =
         filterInstancesForNextCheck(customInstanceLevelChecks, finalStoppableChecks);
     if (!instancesForCustomPartitionLevelChecks.isEmpty()) {
-      Map<String, StoppableCheck> instancePartitionLevelChecks = performPartitionsCheck(
-          instancesForCustomPartitionLevelChecks, restConfig, customPayLoads);
+      Map<String, StoppableCheck> instancePartitionLevelChecks =
+          performPartitionsCheck(instancesForCustomPartitionLevelChecks, restConfig,
+              customPayLoads);
       for (Map.Entry<String, StoppableCheck> instancePartitionStoppableCheckEntry : instancePartitionLevelChecks
           .entrySet()) {
         String instance = instancePartitionStoppableCheckEntry.getKey();
@@ -221,8 +235,6 @@ public class InstanceServiceImpl implements InstanceService {
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
       }
     }
-
-    return finalStoppableChecks;
   }
 
   private void addStoppableCheck(Map<String, StoppableCheck> stoppableChecks, String instance,

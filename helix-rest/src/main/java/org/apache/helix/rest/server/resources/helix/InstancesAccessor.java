@@ -47,14 +47,13 @@ import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.exceptions.HelixHealthException;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
-import org.apache.helix.rest.server.service.InstanceService;
-import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,8 +225,9 @@ public class InstancesAccessor extends AbstractHelixResource {
           result.putArray(InstancesAccessor.InstancesProperties.instance_stoppable_parallel.name());
       ObjectNode failedStoppableInstances = result.putObject(
           InstancesAccessor.InstancesProperties.instance_not_stoppable_with_reasons.name());
-      InstanceService instanceService =
-          new InstanceServiceImpl((ZKHelixDataAccessor) getDataAccssor(clusterId),
+
+      MaintenanceManagementService maintenanceService =
+          new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
               getConfigAccessor(), skipZKRead, continueOnFailures, getNamespace());
       ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
       ClusterTopology clusterTopology = clusterService.getClusterTopology(clusterId);
@@ -235,7 +235,7 @@ public class InstancesAccessor extends AbstractHelixResource {
       case zone_based:
         List<String> zoneBasedInstance =
             getZoneBasedInstances(instances, orderOfZone, clusterTopology.toZoneMapping());
-        Map<String, StoppableCheck> instancesStoppableChecks = instanceService.batchGetInstancesStoppableChecks(
+        Map<String, StoppableCheck> instancesStoppableChecks = maintenanceService.batchGetInstancesStoppableChecks(
             clusterId, zoneBasedInstance, customizedInput);
         for (Map.Entry<String, StoppableCheck> instanceStoppableCheck : instancesStoppableChecks.entrySet()) {
           String instance = instanceStoppableCheck.getKey();

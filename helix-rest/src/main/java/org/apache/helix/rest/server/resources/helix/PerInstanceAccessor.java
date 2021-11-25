@@ -56,11 +56,11 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.rest.clusterMaintenanceService.HealthCheck;
+import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
-import org.apache.helix.rest.server.service.InstanceService;
-import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
@@ -103,11 +103,11 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     case getInstance:
       HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
       // TODO reduce GC by dependency injection
-      InstanceService instanceService =
-          new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
+      MaintenanceManagementService service =
+          new MaintenanceManagementService((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(),
               Boolean.parseBoolean(skipZKRead), getNamespace());
-      InstanceInfo instanceInfo = instanceService.getInstanceInfo(clusterId, instanceName,
-          InstanceService.HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
+      InstanceInfo instanceInfo = service.getInstanceHealthInfo(clusterId, instanceName,
+          HealthCheck.STARTED_AND_HEALTH_CHECK_LIST);
       String instanceInfoString;
       try {
         instanceInfoString = OBJECT_MAPPER.writeValueAsString(instanceInfo);
@@ -157,8 +157,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @QueryParam("skipZKRead") boolean skipZKRead,
       @QueryParam("continueOnFailures") boolean continueOnFailures) throws IOException {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    InstanceService instanceService =
-        new InstanceServiceImpl((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
+    MaintenanceManagementService maintenanceService =
+        new MaintenanceManagementService((ZKHelixDataAccessor) dataAccessor, getConfigAccessor(), skipZKRead,
             continueOnFailures, getNamespace());
     StoppableCheck stoppableCheck;
     try {
@@ -176,7 +176,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       }
 
       stoppableCheck =
-          instanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput);
+          maintenanceService.getInstanceStoppableCheck(clusterId, instanceName, customizedInput);
     } catch (HelixException e) {
       LOG.error("Current cluster: {}, instance: {} has issue with health checks!", clusterId,
           instanceName, e);

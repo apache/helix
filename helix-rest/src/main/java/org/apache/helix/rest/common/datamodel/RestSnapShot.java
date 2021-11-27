@@ -27,6 +27,9 @@ import java.util.Set;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.StateModelDefinition;
 
 /* This Snapshot can extend Snapshot from common/core module
  * once there is more generic snapshot.
@@ -37,38 +40,32 @@ import org.apache.helix.PropertyType;
 // TODO: Future: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
 
 public class RestSnapShot {
-  private final Map<PropertyKey, HelixProperty> _propertyCache;
-  private final Map<PropertyKey, List<String>> _childNodesCache;
+  protected final Map<PropertyKey, HelixProperty> _propertyCache;
+  protected final Map<PropertyKey, List<String>> _childNodesCache;
   private Set<PropertyType> _propertyTypes;
   private String _clusterName;
+  private PropertyKey.Builder _propertyKeyBuilder;
 
   public RestSnapShot(String clusterName) {
     _propertyCache = new HashMap<>();
     _childNodesCache = new HashMap<>();
     _propertyTypes = new HashSet<>();
     _clusterName = clusterName;
+    _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
 
-  public <T extends HelixProperty> T getProperty(PropertyKey key) {
+  private <T extends HelixProperty> T getProperty(PropertyKey key) {
     if (_propertyCache.containsKey(key)) {
       return (T) _propertyCache.get(key);
     }
     return null;
   }
 
-  public List<String> getChildNames(PropertyKey key) {
+  private List<String> getChildNames(PropertyKey key) {
     if (_childNodesCache.containsKey(key)) {
       return _childNodesCache.get(key);
     }
     return null;
-  }
-
-  public void updateProperty(PropertyKey key,  HelixProperty property){
-    _propertyCache.put(key, property);
-  }
-
-  public void updateChildNames(PropertyKey key,  List<String> children){
-    _childNodesCache.put(key, children);
   }
 
   public void addPropertyType(PropertyType propertyType) {
@@ -79,8 +76,19 @@ public class RestSnapShot {
     return _propertyTypes.contains(propertyType);
   }
 
-  public String getClusterName() {
-    return _clusterName;
+  public ExternalView getExternalViewForResource(String resourceName) {
+    return getProperty(_propertyKeyBuilder.stateModelDef(resourceName));
   }
 
+  public List<String> getResourcesNameFromIdealState() {
+    return getChildNames(_propertyKeyBuilder.idealStates());
+  }
+
+  public IdealState getResourceIdealState(String resourceName) {
+    return getProperty(_propertyKeyBuilder.idealStates(resourceName));
+  }
+
+  public StateModelDefinition getStateModelDefinition(String stateModeDef) {
+    return getProperty(_propertyKeyBuilder.stateModelDef(stateModeDef));
+  }
 }

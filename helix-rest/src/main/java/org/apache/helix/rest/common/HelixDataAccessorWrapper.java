@@ -70,8 +70,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
 
   protected String _namespace;
   protected CustomRestClient _restClient;
-
-  private RestSnapShot _restSnapShot;
+  private RestSnapshotWrapper _restSnapShot;
 
   /**
    * @deprecated Because a namespace is required, please use the other constructors.
@@ -94,7 +93,35 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     super(dataAccessor);
     _restClient = customRestClient;
     _namespace = namespace;
-    _restSnapShot = new RestSnapShot(_clusterName);
+    _restSnapShot = new RestSnapshotWrapper(_clusterName);
+  }
+
+  static class RestSnapshotWrapper extends RestSnapShot {
+    public RestSnapshotWrapper(String clusterName) {
+      super(clusterName);
+    }
+
+    public void updateProperty(PropertyKey key, HelixProperty property) {
+      _propertyCache.put(key, property);
+    }
+
+    public void updateChildNames(PropertyKey key, List<String> children) {
+      _childNodesCache.put(key, children);
+    }
+
+    private <T extends HelixProperty> T getProperty(PropertyKey key) {
+      if (_propertyCache.containsKey(key)) {
+        return (T) _propertyCache.get(key);
+      }
+      return null;
+    }
+
+    private List<String> getChildNames(PropertyKey key) {
+      if (_childNodesCache.containsKey(key)) {
+        return _childNodesCache.get(key);
+      }
+      return null;
+    }
   }
 
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
@@ -252,6 +279,12 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     _restSnapShot.addPropertyType(PropertyType.STATEMODELDEFS);
   }
 
+
+  /*
+  * This function populate requested properties to the RestSnapShot object.
+  * Current use case only request IDEALSTATES, EXTERNALVIEW and STATEMODELDEFS.
+  * This function could be override if needed.
+  */
   public void populateCache(List<PropertyType> propertyTypes) {
     for (PropertyType propertyType : propertyTypes) {
       switch (propertyType) {

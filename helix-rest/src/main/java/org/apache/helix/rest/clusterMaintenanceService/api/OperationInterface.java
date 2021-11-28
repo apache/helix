@@ -19,14 +19,22 @@ package org.apache.helix.rest.clusterMaintenanceService.api;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.PropertyType;
 import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementInstanceInfo;
 import org.apache.helix.rest.common.datamodel.RestSnapShot;
 
 
 public interface OperationInterface {
+
+  List<PropertyType> PROPERTY_TYPE_LIST = new ArrayList<>(Arrays
+      .asList(PropertyType.IDEALSTATES, PropertyType.EXTERNALVIEW, PropertyType.STATEMODELDEFS));
+
   // operation check
   MaintenanceManagementInstanceInfo operationCheckForTakeSingleInstance(String instanceName,
       Map<String, String> operationConfig, RestSnapShot sn);

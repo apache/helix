@@ -19,7 +19,6 @@ package org.apache.helix.rest.clusterMaintenanceService;
  * under the License.
  */
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +36,7 @@ import java.util.stream.Collectors;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -55,7 +55,6 @@ import org.apache.helix.rest.common.HelixDataAccessorWrapper;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.service.InstanceService;
-import org.apache.helix.rest.server.service.InstanceServiceImpl;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
 public class MaintenanceManagementService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InstanceServiceImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MaintenanceManagementService.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final ExecutorService POOL = Executors.newCachedThreadPool();
 
@@ -275,7 +274,7 @@ public class MaintenanceManagementService {
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks);
     // custom check
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
-        finalStoppableChecks, getCustomPayLoads(jsonContent));
+        finalStoppableChecks, getMapFromJsonPayload(jsonContent));
     return finalStoppableChecks;
   }
 
@@ -412,14 +411,33 @@ public class MaintenanceManagementService {
     return instanceStoppableChecks;
   }
 
-  private Map<String, String> getCustomPayLoads(String jsonContent) throws IOException {
+  public static Map<String, String> getMapFromJsonPayload(String jsonContent) throws IOException {
     Map<String, String> result = new HashMap<>();
     if (jsonContent == null) {
       return result;
     }
+
     JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
     // parsing the inputs as string key value pairs
     jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
+    return result;
+  }
+
+  public static List<String> getListFromJsonPayload(JsonNode jsonContent) throws IOException {
+    if (jsonContent == null) {
+      return new ArrayList<>();
+    }
+    List<String> result = OBJECT_MAPPER.convertValue(jsonContent, List.class);
+    return result;
+  }
+
+  public static Map<String, String> getMapFromJsonPayload(JsonNode jsonContent) throws IOException {
+    if (jsonContent == null) {
+      return null;
+    }
+    Map<String, String> result =
+        OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
+        });
     return result;
   }
 

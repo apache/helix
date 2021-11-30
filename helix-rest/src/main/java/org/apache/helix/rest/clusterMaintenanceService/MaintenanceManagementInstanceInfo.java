@@ -37,11 +37,13 @@ public class MaintenanceManagementInstanceInfo {
   public MaintenanceManagementInstanceInfo(OperationalStatus status) {
     this.status = status;
     this.messages = new ArrayList<>();
+    this.operationResult = "";
   }
 
   public MaintenanceManagementInstanceInfo(OperationalStatus status, List<String> messages) {
     this.status = status;
     this.messages = messages;
+    this.operationResult = "";
   }
 
   public MaintenanceManagementInstanceInfo(OperationalStatus status, String newOperationResult) {

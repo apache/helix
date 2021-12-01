@@ -310,7 +310,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
         .getListFromJsonPayload(node.get(PerInstanceProperties.health_check_list.name()));
     inputFields.healthCheckConfig = MaintenanceManagementService
         .getMapFromJsonPayload(node.get(PerInstanceProperties.health_check_config.name()));
-    if (inputFields.healthCheckConfig != null) {
+    if (inputFields.healthCheckConfig != null || !inputFields.healthChecks.isEmpty()) {
       inputFields.healthCheckConfig.remove(continueOnFailuresName);
       inputFields.healthCheckConfig.remove(skipZKReadName);
     }

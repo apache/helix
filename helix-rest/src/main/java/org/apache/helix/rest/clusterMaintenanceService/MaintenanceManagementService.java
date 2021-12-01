@@ -416,7 +416,6 @@ public class MaintenanceManagementService {
     if (jsonContent == null) {
       return result;
     }
-
     JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
     // parsing the inputs as string key value pairs
     jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().asText()));
@@ -425,19 +424,18 @@ public class MaintenanceManagementService {
 
   public static List<String> getListFromJsonPayload(JsonNode jsonContent) throws IOException {
     if (jsonContent == null) {
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
-    List<String> result = OBJECT_MAPPER.convertValue(jsonContent, List.class);
-    return result;
+    return OBJECT_MAPPER.convertValue(jsonContent, List.class);
   }
 
   public static Map<String, String> getMapFromJsonPayload(JsonNode jsonContent) throws IOException {
+    Map<String, String> result = new HashMap<>();
     if (jsonContent == null) {
-      return null;
+      return result;
     }
-    Map<String, String> result =
-        OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
-        });
+    result = OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
+    });
     return result;
   }
 

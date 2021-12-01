@@ -66,8 +66,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     String stoppableCheckResult = response.readEntity(String.class);
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(stoppableCheckResult, Map.class);
-    List<String> failedChecks = Arrays.asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT",
-        "HELIX:INSTANCE_NOT_ENABLED", "HELIX:INSTANCE_NOT_STABLE");
+    List<String> failedChecks = Arrays
+        .asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE");
     Map<String, Object> expectedMap =
         ImmutableMap.of("stoppable", false, "failedChecks", failedChecks);
     Assert.assertEquals(actualMap, expectedMap);
@@ -75,6 +76,16 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testIsInstanceStoppable")
+  public void testTakeInstanceNegInput() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+
+    post("clusters/TestCluster_0/instances/instance1/takeInstance", null,
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.BAD_REQUEST.getStatusCode(), true);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testTakeInstanceNegInput")
   public void testGetAllMessages() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String testInstance = CLUSTER_NAME + "localhost_12926"; //Non-live instance
@@ -91,8 +102,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().message(testInstance, messageId), message);
 
-    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages")
-        .isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
+    String body = new JerseyUriRequestBuilder("clusters/{}/instances/{}/messages").isBodyReturnExpected(true).format(CLUSTER_NAME, testInstance).get(this);
     JsonNode node = OBJECT_MAPPER.readTree(body);
     int newMessageCount =
         node.get(PerInstanceAccessor.PerInstanceProperties.total_message_count.name()).intValue();

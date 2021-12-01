@@ -422,21 +422,17 @@ public class MaintenanceManagementService {
     return result;
   }
 
-  public static List<String> getListFromJsonPayload(JsonNode jsonContent) throws IOException {
-    if (jsonContent == null) {
-      return Collections.emptyList();
-    }
-    return OBJECT_MAPPER.convertValue(jsonContent, List.class);
+  public static List<String> getListFromJsonPayload(JsonNode jsonContent)
+      throws IllegalArgumentException {
+    return (jsonContent == null) ? Collections.emptyList()
+        : OBJECT_MAPPER.convertValue(jsonContent, List.class);
   }
 
-  public static Map<String, String> getMapFromJsonPayload(JsonNode jsonContent) throws IOException {
-    Map<String, String> result = new HashMap<>();
-    if (jsonContent == null) {
-      return result;
-    }
-    result = OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
-    });
-    return result;
+  public static Map<String, String> getMapFromJsonPayload(JsonNode jsonContent)
+      throws IllegalArgumentException {
+    return jsonContent == null ? new HashMap<>()
+        : OBJECT_MAPPER.convertValue(jsonContent, new TypeReference<Map<String, String>>() {
+        });
   }
 
   @VisibleForTesting

@@ -220,14 +220,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName){
 
     try {
-      JsonNode node = null;
-      if (jsonContent.length() != 0) {
-        node = OBJECT_MAPPER.readTree(jsonContent);
-      }
-      if (node == null) {
+      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(jsonContent);
+      if (inputFields == null) {
         return badRequest("Invalid input for content : " + jsonContent);
       }
-      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(node);
 
       MaintenanceManagementService maintenanceManagementService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
@@ -265,14 +261,10 @@ public class PerInstanceAccessor extends AbstractHelixResource {
       @PathParam("instanceName") String instanceName){
 
     try {
-      JsonNode node = null;
-      if (jsonContent.length() != 0) {
-        node = OBJECT_MAPPER.readTree(jsonContent);
-      }
-      if (node == null) {
+      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(jsonContent);
+      if (inputFields == null) {
         return badRequest("Invalid input for content : " + jsonContent);
       }
-      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(node);
       if (inputFields.healthChecks.size() != 0) {
         LOG.warn("freeSingleInstance won't perform user passed health check.");
       }
@@ -293,7 +285,14 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
   }
 
-  private MaintenanceOpInputFields readMaintenanceInputFromJson(JsonNode node) throws IOException {
+  private MaintenanceOpInputFields readMaintenanceInputFromJson(String jsonContent) throws IOException {
+    JsonNode node = null;
+    if (jsonContent.length() != 0) {
+      node = OBJECT_MAPPER.readTree(jsonContent);
+    }
+    if (node == null) {
+      return null;
+    }
     MaintenanceOpInputFields inputFields = new MaintenanceOpInputFields();
     String continueOnFailuresName = PerInstanceProperties.continueOnFailures.name();
     String skipZKReadName = PerInstanceProperties.skipZKRead.name();
@@ -320,12 +319,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     inputFields.operationConfig = MaintenanceManagementService
         .getMapFromJsonPayload(node.get(PerInstanceProperties.operation_config.name()));
 
-    LOG.debug("healthChecks: " + (inputFields.healthChecks == null ? "NULL"
-        : inputFields.healthChecks.toString()) + " healthCheckConfig: " + (
-        inputFields.healthCheckConfig == null ? "NULL" : inputFields.healthCheckConfig.toString())
-        + " operations: " + (inputFields.operations == null ? "NULL"
-        : inputFields.operations.toString()) + " operationConfig :" + (
-        inputFields.operationConfig == null ? "NULL" : inputFields.operationConfig.toString()));
+    LOG.debug("Input fields for take/free Instance" + inputFields.toString());
 
     return inputFields;
   }

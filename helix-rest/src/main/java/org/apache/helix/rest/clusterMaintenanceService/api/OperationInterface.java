@@ -26,7 +26,7 @@ import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementInst
 import org.apache.helix.rest.common.datamodel.RestSnapShot;
 
 
-public interface OperationAbstractClass {
+public interface OperationInterface {
   // operation check
   MaintenanceManagementInstanceInfo operationCheckForTakeSingleInstance(String instanceName,
       Map<String, String> operationConfig, RestSnapShot sn);

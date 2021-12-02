@@ -82,7 +82,22 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     total_message_count,
     read_message_count,
     healthreports,
-    instanceTags
+    instanceTags,
+    health_check_list,
+    health_check_config,
+    operation_list,
+    operation_config,
+    continueOnFailures,
+    skipZKRead
+    }
+
+  private static class MaintenanceOpInputFields {
+    List<String> healthChecks = null;
+    Map<String, String> healthCheckConfig = null;
+    List<String> operations = null;
+    Map<String, String> operationConfig = null;
+    boolean continueOnFailures = false;
+    boolean skipZKRead = false;
   }
 
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
@@ -184,6 +199,131 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     }
     return OK(OBJECT_MAPPER.writeValueAsString(stoppableCheck));
   }
+
+  /**
+   * Performs health checks, user designed operation check and execution for take an instance.
+   *
+   * @param jsonContent json payload
+   * @param clusterId cluster id
+   * @param instanceName Instance name to be checked
+   * @return json response representing if queried instance is stoppable
+   * @throws IOException if there is any IO/network error
+   */
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
+  @POST
+  @Path("takeInstance")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response takeSingleInstance(
+      String jsonContent,
+      @PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName){
+
+    try {
+      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(jsonContent);
+      if (inputFields == null) {
+        return badRequest("Invalid input for content : " + jsonContent);
+      }
+
+      MaintenanceManagementService maintenanceManagementService =
+          new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
+              getConfigAccessor(), inputFields.skipZKRead, inputFields.continueOnFailures,
+              getNamespace());
+
+      return JSONRepresentation(maintenanceManagementService
+          .takeInstance(clusterId, instanceName, inputFields.healthChecks,
+              inputFields.healthCheckConfig,
+              inputFields.operations,
+              inputFields.operationConfig, true));
+    } catch (Exception e) {
+      LOG.error("Failed to takeInstances:", e);
+      return badRequest("Failed to takeInstances: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Performs health checks, user designed operation check and execution for free an instance.
+   *
+   * @param jsonContent json payload
+   * @param clusterId cluster id
+   * @param instanceName Instance name to be checked
+   * @return json response representing if queried instance is stoppable
+   * @throws IOException if there is any IO/network error
+   */
+  @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
+  @Timed(name = HttpConstants.WRITE_REQUEST)
+  @POST
+  @Path("freeInstance")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response freeSingleInstance(
+      String jsonContent,
+      @PathParam("clusterId") String clusterId,
+      @PathParam("instanceName") String instanceName){
+
+    try {
+      MaintenanceOpInputFields inputFields = readMaintenanceInputFromJson(jsonContent);
+      if (inputFields == null) {
+        return badRequest("Invalid input for content : " + jsonContent);
+      }
+      if (inputFields.healthChecks.size() != 0) {
+        LOG.warn("freeSingleInstance won't perform user passed health check.");
+      }
+
+      MaintenanceManagementService maintenanceManagementService =
+          new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
+              getConfigAccessor(), inputFields.skipZKRead, inputFields.continueOnFailures,
+              getNamespace());
+
+      return JSONRepresentation(maintenanceManagementService
+          .freeInstance(clusterId, instanceName, inputFields.healthChecks,
+              inputFields.healthCheckConfig,
+              inputFields.operations,
+              inputFields.operationConfig, true));
+    } catch (Exception e) {
+      LOG.error("Failed to takeInstances:", e);
+      return badRequest("Failed to takeInstances: " + e.getMessage());
+    }
+  }
+
+  private MaintenanceOpInputFields readMaintenanceInputFromJson(String jsonContent) throws IOException {
+    JsonNode node = null;
+    if (jsonContent.length() != 0) {
+      node = OBJECT_MAPPER.readTree(jsonContent);
+    }
+    if (node == null) {
+      return null;
+    }
+    MaintenanceOpInputFields inputFields = new MaintenanceOpInputFields();
+    String continueOnFailuresName = PerInstanceProperties.continueOnFailures.name();
+    String skipZKReadName = PerInstanceProperties.skipZKRead.name();
+
+    inputFields.continueOnFailures =
+        inputFields.healthCheckConfig != null && inputFields.healthCheckConfig
+            .containsKey(continueOnFailuresName) && Boolean
+            .parseBoolean(inputFields.healthCheckConfig.get(continueOnFailuresName));
+    inputFields.skipZKRead = inputFields.healthCheckConfig != null && inputFields.healthCheckConfig
+        .containsKey(skipZKReadName) && Boolean
+        .parseBoolean(inputFields.healthCheckConfig.get(skipZKReadName));
+
+    inputFields.healthChecks = MaintenanceManagementService
+        .getListFromJsonPayload(node.get(PerInstanceProperties.health_check_list.name()));
+    inputFields.healthCheckConfig = MaintenanceManagementService
+        .getMapFromJsonPayload(node.get(PerInstanceProperties.health_check_config.name()));
+    if (inputFields.healthCheckConfig != null || !inputFields.healthChecks.isEmpty()) {
+      inputFields.healthCheckConfig.remove(continueOnFailuresName);
+      inputFields.healthCheckConfig.remove(skipZKReadName);
+    }
+
+    inputFields.operations = MaintenanceManagementService
+        .getListFromJsonPayload(node.get(PerInstanceProperties.operation_list.name()));
+    inputFields.operationConfig = MaintenanceManagementService
+        .getMapFromJsonPayload(node.get(PerInstanceProperties.operation_config.name()));
+
+    LOG.debug("Input fields for take/free Instance" + inputFields.toString());
+
+    return inputFields;
+  }
+
 
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)

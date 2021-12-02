@@ -18,18 +18,13 @@ package org.apache.helix.rest.common.datamodel;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.Snapshot;
 
 /* This Snapshot can extend Snapshot from common/core module
  * once there is more generic snapshot.
@@ -39,33 +34,14 @@ import org.apache.helix.model.StateModelDefinition;
 
 // TODO: Future: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
 
-public class RestSnapShot {
-  protected final Map<PropertyKey, HelixProperty> _propertyCache;
-  protected final Map<PropertyKey, List<String>> _childNodesCache;
+public class RestSnapShot extends Snapshot<PropertyKey, HelixProperty> {
+
   private Set<PropertyType> _propertyTypes;
   private String _clusterName;
-  private PropertyKey.Builder _propertyKeyBuilder;
 
   public RestSnapShot(String clusterName) {
-    _propertyCache = new HashMap<>();
-    _childNodesCache = new HashMap<>();
     _propertyTypes = new HashSet<>();
     _clusterName = clusterName;
-    _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
-  }
-
-  private <T extends HelixProperty> T getProperty(PropertyKey key) {
-    if (_propertyCache.containsKey(key)) {
-      return (T) _propertyCache.get(key);
-    }
-    return null;
-  }
-
-  private List<String> getChildNames(PropertyKey key) {
-    if (_childNodesCache.containsKey(key)) {
-      return _childNodesCache.get(key);
-    }
-    return null;
   }
 
   public void addPropertyType(PropertyType propertyType) {
@@ -76,19 +52,14 @@ public class RestSnapShot {
     return _propertyTypes.contains(propertyType);
   }
 
-  public ExternalView getExternalViewForResource(String resourceName) {
-    return getProperty(_propertyKeyBuilder.stateModelDef(resourceName));
+  public <T extends HelixProperty> T getProperty(PropertyKey key) {
+    if (containsKey(key)) {
+      return (T) getValue(key);
+    }
+    return null;
   }
 
-  public List<String> getResourcesNameFromIdealState() {
-    return getChildNames(_propertyKeyBuilder.idealStates());
-  }
-
-  public IdealState getResourceIdealState(String resourceName) {
-    return getProperty(_propertyKeyBuilder.idealStates(resourceName));
-  }
-
-  public StateModelDefinition getStateModelDefinition(String stateModeDef) {
-    return getProperty(_propertyKeyBuilder.stateModelDef(stateModeDef));
+  public String getClusterName() {
+    return _clusterName;
   }
 }

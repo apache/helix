@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.datamodel;
 
 import java.util.HashMap;
 import java.util.Map;

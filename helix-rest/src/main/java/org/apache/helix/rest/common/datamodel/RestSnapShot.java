@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
-import org.apache.helix.Snapshot;
+import org.apache.helix.datamodel.Snapshot;
 
 /* This Snapshot can extend Snapshot from common/core module
  * once there is more generic snapshot.

@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 public class ZKHelixDataAccessor implements HelixDataAccessor {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  private final String _clusterName;
+  protected final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
 

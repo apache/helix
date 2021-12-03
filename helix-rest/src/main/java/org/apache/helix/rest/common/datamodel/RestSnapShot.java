@@ -1,5 +1,4 @@
 package org.apache.helix.rest.common.datamodel;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,18 +18,48 @@ package org.apache.helix.rest.common.datamodel;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyType;
+import org.apache.helix.datamodel.Snapshot;
+
 /* This Snapshot can extend Snapshot from common/core module
  * once there is more generic snapshot.
+ * An Snapshot object should contain all the Helix related info that an implementation of
+ * OperationAbstractClass would need.
  */
-public class RestSnapShot {
-  /* An Snapshot object should contain all the Helix related info that an implementation of
-   * OperationAbstractClass would need.
-   */
 
+// TODO: Future: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
 
-  // TODO: Next: Add a KV map and get function for the first version in next change.
-  // TODO: Define a Enum class for all Helix info types like ExternalView, InstanceConfig etc. An
-  // implementation of OperationAbstractClass will need to define what are the types needed.
+public class RestSnapShot extends Snapshot<PropertyKey, HelixProperty> {
 
-  // TODO: Future: Support hierarchical Snapshot type for other services besides cluster MaintenanceService.
+  private Set<PropertyType> _propertyTypes;
+  private String _clusterName;
+
+  public RestSnapShot(String clusterName) {
+    _propertyTypes = new HashSet<>();
+    _clusterName = clusterName;
+  }
+
+  public void addPropertyType(PropertyType propertyType) {
+    _propertyTypes.add(propertyType);
+  }
+
+  public boolean containsProperty(PropertyType propertyType) {
+    return _propertyTypes.contains(propertyType);
+  }
+
+  public <T extends HelixProperty> T getProperty(PropertyKey key) {
+    if (containsKey(key)) {
+      return (T) getValue(key);
+    }
+    return null;
+  }
+
+  public String getClusterName() {
+    return _clusterName;
+  }
 }

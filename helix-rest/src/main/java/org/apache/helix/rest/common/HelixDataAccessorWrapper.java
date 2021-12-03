@@ -37,10 +37,13 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyType;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.common.datamodel.RestSnapShot;
 import org.apache.helix.rest.server.service.InstanceService;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.slf4j.Logger;
@@ -65,10 +68,10 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
   private static final String CUSTOM_PARTITION_CHECK_HTTP_REQUESTS_DURATION =
       MetricRegistry.name(InstanceService.class, "custom_partition_check_http_requests_duration");
 
-  private final Map<PropertyKey, HelixProperty> _propertyCache = new HashMap<>();
-  private final Map<PropertyKey, List<String>> _batchNameCache = new HashMap<>();
   protected String _namespace;
   protected CustomRestClient _restClient;
+
+  private RestSnapShotSimpleImpl _restSnapShot;
 
   /**
    * @deprecated Because a namespace is required, please use the other constructors.
@@ -91,6 +94,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     super(dataAccessor);
     _restClient = customRestClient;
     _namespace = namespace;
+    _restSnapShot = new RestSnapShotSimpleImpl(_clusterName);
   }
 
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
@@ -103,8 +107,9 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
    * and customized REST API call.
    *
    * @param restConfig        restConfig for the cluster contains customize REST API endpoint
-   * @param customPayLoads    user passed in customized payloads
-   * @param skipZKRead        skip the ZK read if this flag is true
+   * @param customPayLoads    User passed in customized payloads
+   * @param skipZKRead        Query the participant end point directly rather than fetch for
+   *                          partition health from ZK if this flag is true.
    * @return                  A map of instance -> partition -> healthy or not (boolean).
    */
   public Map<String, Map<String, Boolean>> getAllPartitionsHealthOnLiveInstance(
@@ -153,10 +158,10 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
    * API will return nothing.
    *
    * @param instance                instance to query
-   * @param partitionHealthRecord   retrieved partition health data from ZK. Could be emptry if we skip reading from ZK.
+   * @param partitionHealthRecord   Retrieved partition health data from ZK. Could be emptry if we skip reading from ZK.
    * @param restConfig              restConfig for the cluster contains custom API endpoint
-   * @param customPayLoads          user passed in customized payloads
-   * @param requireFullRead         get all the partition status from custom API endpoint if it is true. It should skip
+   * @param customPayLoads          User passed in customized payloads
+   * @param requireFullRead         Get all the partition status from custom API endpoint if it is true. It should skip
    *                                the payload of "PARTITION : list of partition need to be fetch" in REST call.
    * @return                        A map of instance -> partition -> healthy or not (boolean).
    */
@@ -205,25 +210,62 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
     }
   }
 
+  public RestSnapShot getRestSnapShot() {
+    return _restSnapShot;
+  }
+
   @Override
   public <T extends HelixProperty> T getProperty(PropertyKey key) {
-    if (_propertyCache.containsKey(key)) {
-      return (T) _propertyCache.get(key);
+    T property = _restSnapShot.getProperty(key);
+    if (property == null) {
+      property = super.getProperty(key);
+      _restSnapShot.updateValue(key, property);
     }
-    T property = super.getProperty(key);
-    _propertyCache.put(key, property);
+
     return property;
   }
 
   @Override
   public List<String> getChildNames(PropertyKey key) {
-    if (_batchNameCache.containsKey(key)) {
-      return _batchNameCache.get(key);
+    List<String> names = _restSnapShot.getChildNames(key);
+    if (names == null) {
+      names = super.getChildNames(key);
+      _restSnapShot.updateChildNames(key, names);
     }
-
-    List<String> names = super.getChildNames(key);
-    _batchNameCache.put(key, names);
-
     return names;
+  }
+
+  public void fetchIdealStatesExternalViewStateModel() {
+    PropertyKey.Builder propertyKeyBuilder = this.keyBuilder();
+    List<String> resources = getChildNames(propertyKeyBuilder.idealStates());
+
+    for (String resourceName : resources) {
+      getProperty(propertyKeyBuilder.idealStates(resourceName));
+      IdealState externalView = getProperty(propertyKeyBuilder.externalView(resourceName));
+      if (externalView != null) {
+        String stateModeDef = externalView.getStateModelDefRef();
+        getProperty(propertyKeyBuilder.stateModelDef(stateModeDef));
+      }
+    }
+    _restSnapShot.addPropertyType(PropertyType.IDEALSTATES);
+    _restSnapShot.addPropertyType(PropertyType.EXTERNALVIEW);
+    _restSnapShot.addPropertyType(PropertyType.STATEMODELDEFS);
+  }
+
+  public void populateCache(List<PropertyType> propertyTypes) {
+    for (PropertyType propertyType : propertyTypes) {
+      switch (propertyType) {
+        case IDEALSTATES:
+        case EXTERNALVIEW:
+        case STATEMODELDEFS: {
+          if (!_restSnapShot.containsProperty(propertyType)) {
+            fetchIdealStatesExternalViewStateModel();
+          }
+          break;
+        }
+        default:
+          throw new UnsupportedOperationException("type selection is not supported yet!");
+      }
+    }
   }
 }

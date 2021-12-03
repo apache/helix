@@ -23,12 +23,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
@@ -48,11 +46,8 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
-import org.apache.helix.zookeeper.datamodel.ZNRecordDelta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,7 +198,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
       // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which
       // task partitions are finished (COMPLETED or ERROR), update the status update of the original
-      // scheduler message, and then remove the partitions from the ideal state
+      // scheduler message.
       if (idealState != null
           && idealState.getStateModelDefRef().equalsIgnoreCase(
           DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
@@ -215,15 +210,9 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,
       IdealState taskQueueIdealState) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    ZNRecord finishedTasks = new ZNRecord(ev.getResourceName());
 
-    // Place holder for finished partitions
-    Map<String, String> emptyMap = new HashMap<String, String>();
-    List<String> emptyList = new LinkedList<String>();
-
-    Map<String, Integer> controllerMsgIdCountMap = new HashMap<String, Integer>();
-    Map<String, Map<String, String>> controllerMsgUpdates =
-        new HashMap<String, Map<String, String>>();
+    Map<String, Integer> controllerMsgIdCountMap = new HashMap<>();
+    Map<String, Map<String, String>> controllerFinishedMsgs = new HashMap<>();
 
     Builder keyBuilder = accessor.keyBuilder();
 
@@ -232,61 +221,52 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
         if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString()) || taskState
             .equalsIgnoreCase("COMPLETED")) {
           LogUtil.logInfo(LOG, _eventId, taskPartitionName + " finished as " + taskState);
-          finishedTasks.getListFields().put(taskPartitionName, emptyList);
-          finishedTasks.getMapFields().put(taskPartitionName, emptyMap);
 
           // Update original scheduler message status update
-          if (taskQueueIdealState.getRecord().getMapField(taskPartitionName) != null) {
-            String controllerMsgId = taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+          Map<String, String> taskPartitionStatus = taskQueueIdealState.getRecord().getMapField(taskPartitionName);
+          if (taskPartitionStatus != null) {
+            String controllerMsgId = taskPartitionStatus.get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
             if (controllerMsgId != null) {
-              LogUtil.logInfo(LOG, _eventId,
-                  taskPartitionName + " finished with controllerMsg " + controllerMsgId);
-              if (!controllerMsgUpdates.containsKey(controllerMsgId)) {
-                controllerMsgUpdates.put(controllerMsgId, new HashMap<String, String>());
-              }
-              controllerMsgUpdates.get(controllerMsgId).put(taskPartitionName, taskState);
+              LogUtil.logInfo(LOG, _eventId, taskPartitionName + " finished with controllerMsg " + controllerMsgId);
+              controllerFinishedMsgs.computeIfAbsent(controllerMsgId, id -> new HashMap<>())
+                  .put(taskPartitionName, taskState);
             }
           }
         }
       }
     }
+
     // fill the controllerMsgIdCountMap
-    for (String taskId : taskQueueIdealState.getPartitionSet()) {
-      String controllerMsgId =
-          taskQueueIdealState.getRecord().getMapField(taskId)
-              .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+    for (Map<String, String> taskInfo : taskQueueIdealState.getRecord().getMapFields().values()) {
+      String controllerMsgId = taskInfo.get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
       if (controllerMsgId != null) {
-        if (!controllerMsgIdCountMap.containsKey(controllerMsgId)) {
-          controllerMsgIdCountMap.put(controllerMsgId, 0);
-        }
-        controllerMsgIdCountMap.put(controllerMsgId,
-            (controllerMsgIdCountMap.get(controllerMsgId) + 1));
+        controllerMsgIdCountMap.put(controllerMsgId, controllerMsgIdCountMap.getOrDefault(controllerMsgId, 0) + 1);
       }
     }
 
-    if (controllerMsgUpdates.size() > 0) {
-      for (String controllerMsgId : controllerMsgUpdates.keySet()) {
+    if (controllerFinishedMsgs.size() > 0) {
+      for (String controllerMsgId : controllerFinishedMsgs.keySet()) {
         PropertyKey controllerStatusUpdateKey =
             keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), controllerMsgId);
         StatusUpdate controllerStatusUpdate = accessor.getProperty(controllerStatusUpdateKey);
-        for (String taskPartitionName : controllerMsgUpdates.get(controllerMsgId).keySet()) {
-          Map<String, String> result = new HashMap<String, String>();
-          result.put("Result", controllerMsgUpdates.get(controllerMsgId).get(taskPartitionName));
-          controllerStatusUpdate.getRecord().setMapField(
-              "MessageResult "
-                  + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                      .get(Message.Attributes.TGT_NAME.toString())
-                  + " "
-                  + taskPartitionName
-                  + " "
-                  + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                      .get(Message.Attributes.MSG_ID.toString()), result);
-        }
-        // All done for the scheduled tasks that came from controllerMsgId, add summary for it
+
         Integer controllerMsgIdCount = controllerMsgIdCountMap.get(controllerMsgId);
         if (controllerMsgIdCount != null
-            && controllerMsgUpdates.get(controllerMsgId).size() == controllerMsgIdCount.intValue()) {
+            && controllerFinishedMsgs.get(controllerMsgId).size() == controllerMsgIdCount.intValue()) {
+          // All done for the scheduled tasks that came from controllerMsgId, add summary for it
+          for (String taskPartitionName : controllerFinishedMsgs.get(controllerMsgId).keySet()) {
+            Map<String, String> result = new HashMap<>();
+            result.put("Result", controllerFinishedMsgs.get(controllerMsgId).get(taskPartitionName));
+            controllerStatusUpdate.getRecord().setMapField(
+                "MessageResult "
+                    + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
+                    .get(Message.Attributes.TGT_NAME.toString())
+                    + " "
+                    + taskPartitionName
+                    + " "
+                    + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
+                    .get(Message.Attributes.MSG_ID.toString()), result);
+          }
           int finishedTasksNum = 0;
           int completedTasksNum = 0;
           for (String key : controllerStatusUpdate.getRecord().getMapFields().keySet()) {
@@ -300,7 +280,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
               }
             }
           }
-          Map<String, String> summary = new TreeMap<String, String>();
+          Map<String, String> summary = new TreeMap<>();
           summary.put("TotalMessages:", "" + finishedTasksNum);
           summary.put("CompletedMessages", "" + completedTasksNum);
 
@@ -310,18 +290,5 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
         accessor.updateProperty(controllerStatusUpdateKey, controllerStatusUpdate);
       }
     }
-
-    if (finishedTasks.getListFields().size() > 0) {
-      ZNRecordDelta znDelta = new ZNRecordDelta(finishedTasks, ZNRecordDelta.MergeOperation.SUBTRACT);
-      List<ZNRecordDelta> deltaList = new LinkedList<ZNRecordDelta>();
-      deltaList.add(znDelta);
-      IdealState delta = new IdealState(taskQueueIdealState.getResourceName());
-      delta.setDeltaList(deltaList);
-
-      // Remove the finished (COMPLETED or ERROR) tasks from the SCHEDULER_TASK_RESOURCE idealstate
-      keyBuilder = accessor.keyBuilder();
-      accessor.updateProperty(keyBuilder.idealStates(taskQueueIdealState.getResourceName()), delta);
-    }
   }
-
 }

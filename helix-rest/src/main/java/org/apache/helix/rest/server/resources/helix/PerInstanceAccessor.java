@@ -88,7 +88,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     operation_list,
     operation_config,
     continueOnFailures,
-    skipZKRead
+    skipZKRead,
+    performOperation
     }
 
   private static class MaintenanceOpInputFields {
@@ -98,6 +99,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     Map<String, String> operationConfig = null;
     boolean continueOnFailures = false;
     boolean skipZKRead = false;
+    boolean performOperation = true;
   }
 
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
@@ -234,7 +236,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           .takeInstance(clusterId, instanceName, inputFields.healthChecks,
               inputFields.healthCheckConfig,
               inputFields.operations,
-              inputFields.operationConfig, true));
+              inputFields.operationConfig, inputFields.performOperation));
     } catch (Exception e) {
       LOG.error("Failed to takeInstances:", e);
       return badRequest("Failed to takeInstances: " + e.getMessage());
@@ -278,7 +280,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
           .freeInstance(clusterId, instanceName, inputFields.healthChecks,
               inputFields.healthCheckConfig,
               inputFields.operations,
-              inputFields.operationConfig, true));
+              inputFields.operationConfig, inputFields.performOperation));
     } catch (Exception e) {
       LOG.error("Failed to takeInstances:", e);
       return badRequest("Failed to takeInstances: " + e.getMessage());
@@ -296,28 +298,37 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     MaintenanceOpInputFields inputFields = new MaintenanceOpInputFields();
     String continueOnFailuresName = PerInstanceProperties.continueOnFailures.name();
     String skipZKReadName = PerInstanceProperties.skipZKRead.name();
-
-    inputFields.continueOnFailures =
-        inputFields.healthCheckConfig != null && inputFields.healthCheckConfig
-            .containsKey(continueOnFailuresName) && Boolean
-            .parseBoolean(inputFields.healthCheckConfig.get(continueOnFailuresName));
-    inputFields.skipZKRead = inputFields.healthCheckConfig != null && inputFields.healthCheckConfig
-        .containsKey(skipZKReadName) && Boolean
-        .parseBoolean(inputFields.healthCheckConfig.get(skipZKReadName));
+    String performOperation = PerInstanceProperties.performOperation.name();
 
     inputFields.healthChecks = MaintenanceManagementService
         .getListFromJsonPayload(node.get(PerInstanceProperties.health_check_list.name()));
     inputFields.healthCheckConfig = MaintenanceManagementService
         .getMapFromJsonPayload(node.get(PerInstanceProperties.health_check_config.name()));
-    if (inputFields.healthCheckConfig != null || !inputFields.healthChecks.isEmpty()) {
-      inputFields.healthCheckConfig.remove(continueOnFailuresName);
-      inputFields.healthCheckConfig.remove(skipZKReadName);
+
+    if (inputFields.healthCheckConfig != null) {
+      if (inputFields.healthCheckConfig.containsKey(continueOnFailuresName)) {
+        inputFields.continueOnFailures =
+            Boolean.parseBoolean(inputFields.healthCheckConfig.get(continueOnFailuresName));
+        // healthCheckConfig will be passed to customer's health check directly, we need to
+        // remove unrelated kc paris.
+        inputFields.healthCheckConfig.remove(continueOnFailuresName);
+      }
+      if (inputFields.healthCheckConfig.containsKey(skipZKReadName)) {
+        inputFields.skipZKRead =
+            Boolean.parseBoolean(inputFields.healthCheckConfig.get(skipZKReadName));
+        inputFields.healthCheckConfig.remove(skipZKReadName);
+      }
     }
 
     inputFields.operations = MaintenanceManagementService
         .getListFromJsonPayload(node.get(PerInstanceProperties.operation_list.name()));
     inputFields.operationConfig = MaintenanceManagementService
         .getMapFromJsonPayload(node.get(PerInstanceProperties.operation_config.name()));
+    if (inputFields.operationConfig != null && inputFields.operationConfig
+        .containsKey(performOperation) ) {
+      inputFields.performOperation = Boolean
+          .parseBoolean(inputFields.operationConfig.get(performOperation));
+    }
 
     LOG.debug("Input fields for take/free Instance" + inputFields.toString());
 

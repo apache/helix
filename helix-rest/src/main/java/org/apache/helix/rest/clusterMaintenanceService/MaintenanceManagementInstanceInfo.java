@@ -76,7 +76,7 @@ public class MaintenanceManagementInstanceInfo {
     return status.equals(OperationalStatus.SUCCESS);
   }
 
-  public void mergeResultStatus(MaintenanceManagementInstanceInfo info) {
+  public void mergeResult(MaintenanceManagementInstanceInfo info) {
     messages.addAll(info.getMessages());
     status = info.isSuccessful() && isSuccessful() ? OperationalStatus.SUCCESS
         : OperationalStatus.FAILURE;

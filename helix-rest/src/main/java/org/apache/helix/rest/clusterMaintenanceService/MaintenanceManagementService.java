@@ -51,10 +51,13 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
+import org.apache.helix.rest.clusterMaintenanceService.api.OperationInterface;
 import org.apache.helix.rest.common.HelixDataAccessorWrapper;
+import org.apache.helix.rest.common.datamodel.RestSnapShot;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.service.InstanceService;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,8 +125,19 @@ public class MaintenanceManagementService {
    */
   public MaintenanceManagementInstanceInfo takeInstance(String clusterId, String instanceName,
       List<String> healthChecks, Map<String, String> healthCheckConfig, List<String> operations,
-      Map<String, String> operationConfig, boolean performOperation) throws IOException {
-    return null;
+      Map<String, String> operationConfig, boolean performOperation) {
+
+    if ((healthChecks == null || healthChecks.isEmpty()) &&
+        (operations == null || operations.isEmpty())) {
+      MaintenanceManagementInstanceInfo result = new MaintenanceManagementInstanceInfo(
+          MaintenanceManagementInstanceInfo.OperationalStatus.FAILURE);
+      result.addFailureMessage(Collections
+          .singletonList("Invalid input. Please provide at least one health check or operation."));
+      return result;
+    }
+
+    return takeFreeSingleInstanceHelper(clusterId, instanceName, healthChecks, healthCheckConfig,
+        operations, operationConfig, performOperation, true);
   }
 
   /**
@@ -145,8 +159,7 @@ public class MaintenanceManagementService {
    */
   public Map<String, MaintenanceManagementInstanceInfo> takeInstances(String clusterId,
       List<String> instances, List<String> healthChecks, Map<String, String> healthCheckConfig,
-      List<String> operations, Map<String, String> operationConfig, boolean performOperation)
-      throws IOException {
+      List<String> operations, Map<String, String> operationConfig, boolean performOperation) {
     return null;
   }
 
@@ -170,7 +183,9 @@ public class MaintenanceManagementService {
   public MaintenanceManagementInstanceInfo freeInstance(String clusterId, String instanceName,
       List<String> healthChecks, Map<String, String> healthCheckConfig, List<String> operations,
       Map<String, String> operationConfig, boolean performOperation) throws IOException {
-    return null;
+
+    return takeFreeSingleInstanceHelper(clusterId, instanceName, healthChecks, healthCheckConfig,
+        operations, operationConfig, performOperation, false);
   }
 
   /**
@@ -245,6 +260,24 @@ public class MaintenanceManagementService {
     }
 
     return instanceInfoBuilder.build();
+
+  }
+
+  private List<OperationInterface> getAllOperationClasses(List<String> operations) {
+    List<OperationInterface> operationAbstractClassList = new ArrayList<>();
+    for (String operationClassName : operations) {
+      try {
+        LOG.info("Loading class: " + operationClassName);
+        OperationInterface userOperation =
+            (OperationInterface) HelixUtil.loadClass(getClass(), operationClassName)
+                .newInstance();
+        operationAbstractClassList.add(userOperation);
+      } catch (Exception e) {
+        LOG.error("No operation class found for: " + operationClassName + ". message: ", e);
+        throw new HelixException("No operation class found for: " + operationClassName + ". message: ", e);
+      }
+    }
+    return operationAbstractClassList;
   }
 
   /**
@@ -268,14 +301,76 @@ public class MaintenanceManagementService {
 
   public Map<String, StoppableCheck> batchGetInstancesStoppableChecks(String clusterId,
       List<String> instances, String jsonContent) throws IOException {
-    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
     // helix instance check
+    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
+
     List<String> instancesForCustomInstanceLevelChecks =
         batchHelixInstanceStoppableCheck(clusterId, instances, finalStoppableChecks);
-    // custom check
+    // custom check, includes partition check.
     batchCustomInstanceStoppableCheck(clusterId, instancesForCustomInstanceLevelChecks,
         finalStoppableChecks, getMapFromJsonPayload(jsonContent));
     return finalStoppableChecks;
+  }
+
+  private MaintenanceManagementInstanceInfo takeFreeSingleInstanceHelper(String clusterId,
+      String instanceName, List<String> healthChecks, Map<String, String> healthCheckConfig,
+      List<String> operations, Map<String, String> operationConfig, boolean performOperation,
+      boolean isTakeInstance) {
+
+    if (operations == null) {
+      operations = new ArrayList<>();
+    }
+
+    try {
+      MaintenanceManagementInstanceInfo instanceInfo;
+      if (isTakeInstance) {
+        if (healthChecks == null) {
+          healthChecks = new ArrayList<>();
+        }
+        instanceInfo =
+            batchInstanceHealthCheck(clusterId, ImmutableList.of(instanceName), healthChecks,
+                healthCheckConfig).getOrDefault(instanceName, new MaintenanceManagementInstanceInfo(
+                MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS));
+        if (!instanceInfo.isSuccessful()) {
+          return instanceInfo;
+        }
+      } else {
+        // Currently Helix do not have any health check for bring back an instance. We could add a
+        // hook for costume health check before bring back an instance.
+        // Right now we create a success MaintenanceManagementInstanceInfo as check result.
+        instanceInfo = new MaintenanceManagementInstanceInfo(
+            MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS);
+      }
+
+      List<OperationInterface> operationAbstractClassList = getAllOperationClasses(operations);
+      _dataAccessor.populateCache(OperationInterface.PROPERTY_TYPE_LIST);
+      RestSnapShot sp = _dataAccessor.getRestSnapShot();
+      for (OperationInterface operationClass : operationAbstractClassList) {
+        MaintenanceManagementInstanceInfo checkResult = isTakeInstance ? operationClass
+            .operationCheckForTakeSingleInstance(instanceName, operationConfig, sp)
+            : operationClass.operationCheckForFreeSingleInstance(instanceName, operationConfig, sp);
+        if (!checkResult.isSuccessful()) {
+          instanceInfo.mergeResult(checkResult);
+        }
+      }
+      if (instanceInfo.isSuccessful() && performOperation) {
+        for (OperationInterface operationClass : operationAbstractClassList) {
+          MaintenanceManagementInstanceInfo newResult = isTakeInstance ? operationClass
+              .operationExecForTakeSingleInstance(instanceName, operationConfig, sp)
+              : operationClass
+                  .operationExecForFreeSingleInstance(instanceName, operationConfig, sp);
+          instanceInfo.mergeResult(newResult);
+          if (!instanceInfo.isSuccessful()) {
+            break;
+          }
+        }
+      }
+      return instanceInfo;
+    } catch (Exception ex) {
+      return new MaintenanceManagementInstanceInfo(
+          MaintenanceManagementInstanceInfo.OperationalStatus.FAILURE,
+          Collections.singletonList(ex.getMessage()));
+    }
   }
 
   private List<String> batchHelixInstanceStoppableCheck(String clusterId,
@@ -283,15 +378,15 @@ public class MaintenanceManagementService {
     Map<String, Future<StoppableCheck>> helixInstanceChecks = instances.stream().collect(Collectors
         .toMap(Function.identity(),
             instance -> POOL.submit(() -> performHelixOwnInstanceCheck(clusterId, instance))));
-    // finalStoppableChecks only contains instances that does not pass this health check
+    // finalStoppableChecks contains instances that does not pass this health check
     return filterInstancesForNextCheck(helixInstanceChecks, finalStoppableChecks);
   }
 
-  private void batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
+  private List<String> batchCustomInstanceStoppableCheck(String clusterId, List<String> instances,
       Map<String, StoppableCheck> finalStoppableChecks, Map<String, String> customPayLoads) {
-    if (instances.isEmpty() ) {
-      // if all instances failed at previous checks, then all following checks are not required.
-      return;
+    if (instances.isEmpty()) {
+      // if all instances failed at previous checks then all checks are not required
+      return instances;
     }
     RESTConfig restConfig = _configAccessor.getRESTConfig(clusterId);
     if (restConfig == null) {
@@ -318,6 +413,44 @@ public class MaintenanceManagementService {
         addStoppableCheck(finalStoppableChecks, instance, stoppableCheck);
       }
     }
+    instancesForCustomPartitionLevelChecks.removeAll(finalStoppableChecks.keySet());
+    return instancesForCustomPartitionLevelChecks;
+  }
+
+  private Map<String, MaintenanceManagementInstanceInfo> batchInstanceHealthCheck(String clusterId,
+      List<String> instances, List<String> healthChecks, Map<String, String> healthCheckConfig) {
+    List<String> instancesForNext = new ArrayList<>(instances);
+    Map<String, MaintenanceManagementInstanceInfo> instanceInfos = new HashMap<>();
+    Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
+    for (String healthCheck : healthChecks) {
+      if (healthCheck.equals("HelixInstanceStoppableCheck")) {
+        // this is helix own check
+        instancesForNext =
+            batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks);
+      } else if (healthCheck.equals("CostumeInstanceStoppableCheck")) {
+        // custom check, includes custom Instance check and partition check.
+        instancesForNext = batchCustomInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
+            healthCheckConfig);
+      } else {
+        throw new UnsupportedOperationException(healthCheck + " is not supported yet!");
+      }
+    }
+    // assemble result. Returned map is all instances with pass or fail.
+    for (String instance : instances) {
+      MaintenanceManagementInstanceInfo result;
+      if (finalStoppableChecks.containsKey(instance) && !finalStoppableChecks.get(instance)
+          .isStoppable()) {
+        StoppableCheck instanceStoppableCheck = finalStoppableChecks.get(instance);
+        result =
+            new MaintenanceManagementInstanceInfo(MaintenanceManagementInstanceInfo.OperationalStatus.FAILURE);
+        result.addFailureMessage(instanceStoppableCheck.getFailedChecks());
+      } else {
+        result =
+            new MaintenanceManagementInstanceInfo(MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS);
+      }
+      instanceInfos.put(instance, result);
+    }
+    return instanceInfos;
   }
 
   private void addStoppableCheck(Map<String, StoppableCheck> stoppableChecks, String instance,

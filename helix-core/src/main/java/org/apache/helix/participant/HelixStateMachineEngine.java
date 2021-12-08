@@ -295,11 +295,6 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     }
   }
 
-  @Override
-  public String getMessageType() {
-    return MessageType.STATE_TRANSITION.name();
-  }
-
   @Override public List<String> getMessageTypes() {
     return ImmutableList
         .of(MessageType.STATE_TRANSITION.name(), MessageType.STATE_TRANSITION_CANCELLATION.name());

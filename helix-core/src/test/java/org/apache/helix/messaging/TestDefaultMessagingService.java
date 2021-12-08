@@ -154,12 +154,6 @@ public class TestDefaultMessagingService {
       return new TestMessageHandler(message, context);
     }
 
-    @Override
-    public String getMessageType() {
-      // TODO Auto-generated method stub
-      return "TestingMessageHandler";
-    }
-
     @Override public List<String> getMessageTypes() {
       return ImmutableList.of("TestingMessageHandler");
     }
@@ -175,11 +169,6 @@ public class TestDefaultMessagingService {
 
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
-      return null;
-    }
-
-    @Override
-    public String getMessageType() {
       return null;
     }
 

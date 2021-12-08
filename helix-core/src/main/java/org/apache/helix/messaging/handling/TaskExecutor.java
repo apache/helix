@@ -24,62 +24,72 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public interface TaskExecutor {
-  public static final int DEFAULT_PARALLEL_TASKS = 40;
+  int DEFAULT_PARALLEL_TASKS = 40;
 
   /**
-   * register message handler factory this executor can handle
+   * Register MultiType message handler factory that the executor can handle.
+   * @param factory MultiType message handler factory
+   * @param threadPoolSize Threadpool size of the corresponding execute service.
+   * @param resetTimeout Timeout when wait for the execute service to be shutdown.
+   */
+  default void registerMessageHandlerFactory(MultiTypeMessageHandlerFactory factory,
+      int threadPoolSize, int resetTimeout) {
+    throw new UnsupportedOperationException("This method has not been implemented.");
+  }
+
+  /**
+   * Register message handler factory this executor can handle
    * @param type
    * @param factory
    */
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
+  @Deprecated
+  void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
 
   /**
-   * register message handler factory this executor can handle with specified
+   * Register message handler factory this executor can handle with specified
    * thread-pool size
    * @param type
    * @param factory
-   * @param threadpoolSize
+   * @param threadPoolSize
    */
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
+  @Deprecated
+  void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
       int threadPoolSize);
 
   /**
    * schedule a message execution
-   * @param message
-   * @param handler
-   * @param context
+   * @param task
    */
-  public boolean scheduleTask(MessageTask task);
+  boolean scheduleTask(MessageTask task);
 
   /**
    * blocking on scheduling all tasks
    * @param tasks
    */
-  public List<Future<HelixTaskResult>> invokeAllTasks(List<MessageTask> tasks, long timeout,
+  List<Future<HelixTaskResult>> invokeAllTasks(List<MessageTask> tasks, long timeout,
       TimeUnit unit) throws InterruptedException;
 
   /**
    * cancel a message execution
-   * @param message
-   * @param context
+   * @param task
    */
-  public boolean cancelTask(MessageTask task);
+  boolean cancelTask(MessageTask task);
 
   /**
    * cancel the timeout for the given task
    * @param task
    * @return
    */
-  public boolean cancelTimeoutTask(MessageTask task);
+  boolean cancelTimeoutTask(MessageTask task);
 
   /**
    * finish a message execution
-   * @param message
+   * @param task
    */
-  public void finishTask(MessageTask task);
+  void finishTask(MessageTask task);
 
   /**
    * shutdown executor
    */
-  public void shutdown();
+  void shutdown();
 }

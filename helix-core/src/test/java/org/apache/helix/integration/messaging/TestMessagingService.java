@@ -49,11 +49,6 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     }
 
     @Override
-    public String getMessageType() {
-      return "TestExtensibility";
-    }
-
-    @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of("TestExtensibility");
     }

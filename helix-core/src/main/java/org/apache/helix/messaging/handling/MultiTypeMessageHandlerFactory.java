@@ -26,4 +26,15 @@ public interface MultiTypeMessageHandlerFactory extends MessageHandlerFactory {
 
   List<String> getMessageTypes();
 
+  @Override
+  @Deprecated
+  // TODO remove this default implementation for backward compatibility when clean up the legacy code.
+  default String getMessageType() {
+    List<String> types = getMessageTypes();
+    if (types == null || types.isEmpty()) {
+      return null;
+    } else {
+      return types.get(0);
+    }
+  }
 }

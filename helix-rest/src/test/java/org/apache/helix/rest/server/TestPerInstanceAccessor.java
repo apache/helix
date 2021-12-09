@@ -126,7 +126,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance1").post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
     String takeInstanceResult = response.readEntity(String.class);
-    System.out.println("testTakeInstanceNonBlockingCheck: " + takeInstanceResult);
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     List<String> errorMsg = Arrays

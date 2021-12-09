@@ -83,9 +83,9 @@ public class MaintenanceManagementInstanceInfo {
     mergeResultForOperationCheck(info, false);
   }
 
-  public void mergeResultForOperationCheck(MaintenanceManagementInstanceInfo info, boolean continueOnFailure) {
+  public void mergeResultForOperationCheck(MaintenanceManagementInstanceInfo info, boolean nonBlockingFailure) {
     messages.addAll(info.getMessages());
-    status = (info.isSuccessful() || continueOnFailure) && isSuccessful() ? OperationalStatus.SUCCESS
+    status = (info.isSuccessful() || nonBlockingFailure) && isSuccessful() ? OperationalStatus.SUCCESS
         : OperationalStatus.FAILURE;
     if (info.hasOperationResult()) {
       operationResult =

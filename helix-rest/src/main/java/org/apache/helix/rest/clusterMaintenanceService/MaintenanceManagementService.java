@@ -83,7 +83,6 @@ public class MaintenanceManagementService {
   private final CustomRestClient _customRestClient;
   private final String _namespace;
   private final boolean _skipZKRead;
-  //private final boolean _continueOnFailures;
   private final HelixDataAccessorWrapper _dataAccessor;
   private final Set<String> _nonBlockingHealthChecks;
 
@@ -331,13 +330,13 @@ public class MaintenanceManagementService {
     if (operations == null) {
       operations = new ArrayList<>();
     }
+    if (healthChecks == null) {
+      healthChecks = new ArrayList<>();
+    }
 
     try {
       MaintenanceManagementInstanceInfo instanceInfo;
       if (isTakeInstance) {
-        if (healthChecks == null) {
-          healthChecks = new ArrayList<>();
-        }
         instanceInfo =
             batchInstanceHealthCheck(clusterId, ImmutableList.of(instanceName), healthChecks,
                 healthCheckConfig).getOrDefault(instanceName, new MaintenanceManagementInstanceInfo(
@@ -459,7 +458,7 @@ public class MaintenanceManagementService {
         throw new UnsupportedOperationException(healthCheck + " is not supported yet!");
       }
     }
-    // assemble result. Returned map is all instances with pass or fail.
+    // assemble result. Returned map contains all instances with pass or fail status.
     Set<String> clearedInstance = new HashSet<>(instancesForNext);
     for (String instance : instances) {
       MaintenanceManagementInstanceInfo result = new MaintenanceManagementInstanceInfo(
@@ -468,8 +467,9 @@ public class MaintenanceManagementService {
               : MaintenanceManagementInstanceInfo.OperationalStatus.FAILURE);
       if (finalStoppableChecks.containsKey(instance) && !finalStoppableChecks.get(instance)
           .isStoppable()) {
-        // If an non blocking check failed, the we will have a stoopbale check object with
-        // stoopbale = false and the instance is in clearedInstance.
+        // If an non blocking check failed, the we will have a stoppbale check object with
+        // stoppbale = false and the instance is in clearedInstance. We will sign Success state and
+        // a error message.
         result.addMessages(finalStoppableChecks.get(instance).getFailedChecks());
       }
       instanceInfos.put(instance, result);
@@ -514,7 +514,6 @@ public class MaintenanceManagementService {
   }
 
   private boolean isNonBlockingCheck(StoppableCheck stoppableCheck) {
-    // TODO: use start with for custmer check
     if (_nonBlockingHealthChecks.isEmpty()) {
       return false;
     }
@@ -523,12 +522,14 @@ public class MaintenanceManagementService {
     }
     for (String failedCheck : stoppableCheck.getFailedChecks()) {
       if (failedCheck.startsWith("CUSTOM_")) {
-        // failed customed check will have the pattern
+        // failed custom check will have the pattern
         // "CUSTOM_PARTITION_HEALTH_FAILURE:PARTITION_INITIAL_STATE_FAIL:partition_name"
         // we want to keep the first 2 parts as failed test name.
         String[] checks = failedCheck.split(":", 3);
         failedCheck = checks[0] + checks[1];
       }
+      // Helix own health check name wil be in this pattern "HELIX:INSTANCE_NOT_ALIVE",
+      // no need to preprocess.
       if (!_nonBlockingHealthChecks.contains(failedCheck)) {
         return false;
       }
@@ -613,14 +614,12 @@ public class MaintenanceManagementService {
 
   public static List<String> getListFromJsonPayload(JsonNode jsonContent)
       throws IllegalArgumentException {
-    System.out.println("getListFromJsonPayload: " + jsonContent);
     return (jsonContent == null) ? Collections.emptyList()
         : OBJECT_MAPPER.convertValue(jsonContent, List.class);
   }
 
   public static List<String> getListFromJsonPayload(String jsonString)
       throws IllegalArgumentException, JsonProcessingException {
-    System.out.println("getListFromJsonPayload: " + jsonString);
     return (jsonString == null) ? Collections.emptyList()
         : OBJECT_MAPPER.readValue(jsonString, List.class);
   }

@@ -30,10 +30,10 @@ public interface TaskExecutor {
    * Register MultiType message handler factory that the executor can handle.
    * @param factory MultiType message handler factory
    * @param threadPoolSize Threadpool size of the corresponding execute service.
-   * @param resetTimeout Timeout when wait for the execute service to be shutdown.
+   * @param resetTimeoutMs Timeout when wait for the execute service to be shutdown.
    */
   default void registerMessageHandlerFactory(MultiTypeMessageHandlerFactory factory,
-      int threadPoolSize, int resetTimeout) {
+      int threadPoolSize, int resetTimeoutMs) {
     throw new UnsupportedOperationException("This method has not been implemented.");
   }
 

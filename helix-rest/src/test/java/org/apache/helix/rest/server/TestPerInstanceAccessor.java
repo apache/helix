@@ -116,6 +116,28 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
+  @Test(dependsOnMethods = "testTakeInstanceNegInput2")
+  public void testTakeInstanceNonBlockingCheck() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String payload = "{ \"health_check_list\" : [\"HelixInstanceStoppableCheck\"],"
+        + "\"health_check_config\" : { \"client\" : \"espresso\" , "
+        + "\"continueOnFailures\" : [\"HELIX:EMPTY_RESOURCE_ASSIGNMENT\", \"HELIX:INSTANCE_NOT_ENABLED\","
+        + " \"HELIX:INSTANCE_NOT_STABLE\"]} } ";
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
+        .format(STOPPABLE_CLUSTER, "instance1").post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
+    String takeInstanceResult = response.readEntity(String.class);
+    System.out.println("testTakeInstanceNonBlockingCheck: " + takeInstanceResult);
+
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
+    List<String> errorMsg = Arrays
+        .asList("HELIX:EMPTY_RESOURCE_ASSIGNMENT", "HELIX:INSTANCE_NOT_ENABLED",
+            "HELIX:INSTANCE_NOT_STABLE");
+    Map<String, Object> expectedMap =
+        ImmutableMap.of("successful", true, "messages", errorMsg, "operationResult", "");
+    Assert.assertEquals(actualMap, expectedMap);
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
   @Test(dependsOnMethods = "testTakeInstanceHealthCheck")
   public void testTakeInstanceOperationSuccess() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
@@ -168,6 +190,27 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testFreeInstanceOperationSuccess")
+  public void testTakeInstanceOperationCheckFailureNonBlocking() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
+        + "\"operation_config\": {\"instance0\": \"true\", \"instance2\": \"true\", "
+        + "\"instance3\": \"true\", \"instance4\": \"true\", \"instance5\": \"true\", "
+        + "\"continueOnFailures\" : [\"org.apache.helix.rest.server.TestOperationImpl\"]} } ";
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
+        .format(STOPPABLE_CLUSTER, "instance0")
+        .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
+    String takeInstanceResult = response.readEntity(String.class);
+    System.out.println("testTakeInstanceOperationCheckFailureNonBlocking" + takeInstanceResult);
+
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
+    Assert.assertTrue((boolean)actualMap.get("successful"));
+    Assert.assertEquals(actualMap.get("operationResult"), "DummyTakeOperationResult");
+    // The non blocking test should generate msg but won't return failure status
+    Assert.assertFalse(actualMap.get("messages").equals("[]"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailureNonBlocking")
   public void testTakeInstanceCheckOnly() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
@@ -176,7 +219,6 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
         .format(STOPPABLE_CLUSTER, "instance1")
         .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
     String takeInstanceResult = response.readEntity(String.class);
-    System.out.println("testTakeInstanceCheckOnly: "+ takeInstanceResult);
 
     Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
     Assert.assertTrue((boolean)actualMap.get("successful"));

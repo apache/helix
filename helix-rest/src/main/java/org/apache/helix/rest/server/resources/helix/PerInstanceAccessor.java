@@ -21,8 +21,10 @@ package org.apache.helix.rest.server.resources.helix;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -97,7 +99,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     Map<String, String> healthCheckConfig = null;
     List<String> operations = null;
     Map<String, String> operationConfig = null;
-    boolean continueOnFailures = false;
+    Set<String> nonBlockingHelixCheck = new HashSet<>();
     boolean skipZKRead = false;
     boolean performOperation = true;
   }
@@ -229,7 +231,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
       MaintenanceManagementService maintenanceManagementService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), inputFields.skipZKRead, inputFields.continueOnFailures,
+              getConfigAccessor(), inputFields.skipZKRead, inputFields.nonBlockingHelixCheck,
               getNamespace());
 
       return JSONRepresentation(maintenanceManagementService
@@ -273,7 +275,7 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
       MaintenanceManagementService maintenanceManagementService =
           new MaintenanceManagementService((ZKHelixDataAccessor) getDataAccssor(clusterId),
-              getConfigAccessor(), inputFields.skipZKRead, inputFields.continueOnFailures,
+              getConfigAccessor(), inputFields.skipZKRead, inputFields.nonBlockingHelixCheck,
               getNamespace());
 
       return JSONRepresentation(maintenanceManagementService
@@ -307,8 +309,8 @@ public class PerInstanceAccessor extends AbstractHelixResource {
 
     if (inputFields.healthCheckConfig != null) {
       if (inputFields.healthCheckConfig.containsKey(continueOnFailuresName)) {
-        inputFields.continueOnFailures =
-            Boolean.parseBoolean(inputFields.healthCheckConfig.get(continueOnFailuresName));
+        inputFields.nonBlockingHelixCheck = new HashSet<String>(MaintenanceManagementService
+            .getListFromJsonPayload(inputFields.healthCheckConfig.get(continueOnFailuresName)));
         // healthCheckConfig will be passed to customer's health check directly, we need to
         // remove unrelated kc paris.
         inputFields.healthCheckConfig.remove(continueOnFailuresName);
@@ -325,9 +327,9 @@ public class PerInstanceAccessor extends AbstractHelixResource {
     inputFields.operationConfig = MaintenanceManagementService
         .getMapFromJsonPayload(node.get(PerInstanceProperties.operation_config.name()));
     if (inputFields.operationConfig != null && inputFields.operationConfig
-        .containsKey(performOperation) ) {
-      inputFields.performOperation = Boolean
-          .parseBoolean(inputFields.operationConfig.get(performOperation));
+        .containsKey(performOperation)) {
+      inputFields.performOperation =
+          Boolean.parseBoolean(inputFields.operationConfig.get(performOperation));
     }
 
     LOG.debug("Input fields for take/free Instance" + inputFields.toString());

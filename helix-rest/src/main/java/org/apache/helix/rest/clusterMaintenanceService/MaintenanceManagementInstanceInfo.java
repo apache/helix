@@ -68,8 +68,11 @@ public class MaintenanceManagementInstanceInfo {
     operationResult = result;
   }
 
-  public void addFailureMessage(List<String> msg) {
+  public void addMessages(List<String> msg) {
     messages.addAll(msg);
+  }
+  public void addMessage(String meg) {
+    messages.add(meg);
   }
 
   public boolean isSuccessful() {
@@ -77,8 +80,12 @@ public class MaintenanceManagementInstanceInfo {
   }
 
   public void mergeResult(MaintenanceManagementInstanceInfo info) {
+    mergeResultForOperationCheck(info, false);
+  }
+
+  public void mergeResultForOperationCheck(MaintenanceManagementInstanceInfo info, boolean continueOnFailure) {
     messages.addAll(info.getMessages());
-    status = info.isSuccessful() && isSuccessful() ? OperationalStatus.SUCCESS
+    status = (info.isSuccessful() || continueOnFailure) && isSuccessful() ? OperationalStatus.SUCCESS
         : OperationalStatus.FAILURE;
     if (info.hasOperationResult()) {
       operationResult =

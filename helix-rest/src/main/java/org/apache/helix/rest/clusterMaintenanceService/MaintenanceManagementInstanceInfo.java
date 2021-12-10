@@ -80,13 +80,14 @@ public class MaintenanceManagementInstanceInfo {
   }
 
   public void mergeResult(MaintenanceManagementInstanceInfo info) {
-    mergeResultForOperationCheck(info, false);
+    mergeResult(info, false);
   }
 
-  public void mergeResultForOperationCheck(MaintenanceManagementInstanceInfo info, boolean nonBlockingFailure) {
+  public void mergeResult(MaintenanceManagementInstanceInfo info, boolean nonBlockingFailure) {
     messages.addAll(info.getMessages());
-    status = (info.isSuccessful() || nonBlockingFailure) && isSuccessful() ? OperationalStatus.SUCCESS
-        : OperationalStatus.FAILURE;
+    status =
+        (info.isSuccessful() || nonBlockingFailure) && isSuccessful() ? OperationalStatus.SUCCESS
+            : OperationalStatus.FAILURE;
     if (info.hasOperationResult()) {
       operationResult =
           this.hasOperationResult() ? operationResult + "," + info.getOperationResult()

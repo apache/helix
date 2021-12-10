@@ -176,8 +176,9 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   public void testTakeInstanceOperationCheckFailure() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
-        + "\"operation_config\": {\"instance0\": \"true\", \"instance2\": \"true\", "
-        + "\"instance3\": \"true\", \"instance4\": \"true\", \"instance5\": \"true\"} } ";
+        + "\"operation_config\": { \"org.apache.helix.rest.server.TestOperationImpl\" :"
+        + " {\"instance0\": \"true\", \"instance2\": \"true\", "
+        + "\"instance3\": \"true\", \"instance4\": \"true\", \"instance5\": \"true\"}} } ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance0")
         .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
@@ -192,9 +193,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   public void testTakeInstanceOperationCheckFailureNonBlocking() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
-        + "\"operation_config\": {\"instance0\": \"true\", \"instance2\": \"true\", "
-        + "\"instance3\": \"true\", \"instance4\": \"true\", \"instance5\": \"true\", "
-        + "\"continueOnFailures\" : [\"org.apache.helix.rest.server.TestOperationImpl\"]} } ";
+        + "\"operation_config\": { \"org.apache.helix.rest.server.TestOperationImpl\" : "
+        + "{\"instance0\": true, \"instance2\": true, "
+        + "\"instance3\": true, \"instance4\": true, \"instance5\": true, "
+        + "\"continueOnFailures\" : true} } } ";
+
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance0")
         .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
@@ -213,7 +216,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   public void testTakeInstanceCheckOnly() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
-        + "\"operation_config\": {\"performOperation\": \"false\"} } ";
+        + "\"operation_config\": {\"performOperation\": false} } ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance1")
         .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));

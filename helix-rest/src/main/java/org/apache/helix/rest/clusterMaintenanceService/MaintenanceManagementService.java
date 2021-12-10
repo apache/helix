@@ -132,6 +132,8 @@ public class MaintenanceManagementService {
    * @param healthChecks       A list of healthChecks to perform
    * @param healthCheckConfig The input for health Checks
    * @param operations         A list of operation checks or operations to execute
+   *  @param operationConfig    A map of config. Key is the operation name value if a Json
+   *                            representation of a map
    * @param performOperation   If this param is set to false, the function will only do a dry run
    * @return MaintenanceManagementInstanceInfo
    * @throws IOException in case of network failure
@@ -165,6 +167,8 @@ public class MaintenanceManagementService {
    * @param healthChecks       A list of healthChecks to perform
    * @param healthCheckConfig The input for health Checks
    * @param operations         A list of operation checks or operations to execute
+   * @param operationConfig    A map of config. Key is the operation name value if a Json
+   *                           representation of a map.
    * @param performOperation   If this param is set to false, the function will only do a dry run
    * @return A list of MaintenanceManagementInstanceInfo
    * @throws IOException in case of network failure
@@ -189,6 +193,8 @@ public class MaintenanceManagementService {
    * @param healthChecks       A list of healthChecks to perform
    * @param healthCheckConfig The input for health Checks
    * @param operations         A list of operation checks or operations to execute
+   * @param operationConfig    A map of config. Key is the operation name value if a Json
+   *                           representation of a map
    * @param performOperation   If this param is set to false, the function will only do a dry run
    * @return MaintenanceManagementInstanceInfo
    * @throws IOException in case of network failure
@@ -214,6 +220,8 @@ public class MaintenanceManagementService {
    * @param healthChecks       A list of healthChecks to perform
    * @param healthCheckConfig The input for health Checks
    * @param operations         A list of operation checks or operations to execute
+   * @param operationConfig    A map of config. Key is the operation name value if a Json
+   *                           representation of a map
    * @param performOperation   If this param is set to false, the function will only do a dry run
    * @return A list of MaintenanceManagementInstanceInfo
    * @throws IOException in case of network failure
@@ -353,29 +361,47 @@ public class MaintenanceManagementService {
       }
 
       List<OperationInterface> operationAbstractClassList = getAllOperationClasses(operations);
-      Set<String> nonBlockingOperationCheckSet = new HashSet<>(getListFromJsonPayload(
-          operationConfig
-              .get(PerInstanceAccessor.PerInstanceProperties.continueOnFailures.name())));
 
       _dataAccessor.populateCache(OperationInterface.PROPERTY_TYPE_LIST);
       RestSnapShot sp = _dataAccessor.getRestSnapShot();
+      String continueOnFailuresName =
+          PerInstanceAccessor.PerInstanceProperties.continueOnFailures.name();
+      Map<String, Map<String, String>> operationConfigSet = new HashMap<>();
+
+      // perform operation check
       for (OperationInterface operationClass : operationAbstractClassList) {
+        String operationClassName = operationClass.getClass().getName();
+        Map<String, String> singleOperationConfig =
+            (operationConfig == null || !operationConfig.containsKey(operationClassName))
+                ? Collections.emptyMap()
+                : getMapFromJsonPayload(operationConfig.get(operationClassName));
+        operationConfigSet.put(operationClassName, singleOperationConfig);
+        boolean continueOnFailures =
+            singleOperationConfig.containsKey(continueOnFailuresName) && getBooleanFromJsonPayload(
+                singleOperationConfig.get(continueOnFailuresName));
+
         MaintenanceManagementInstanceInfo checkResult = isTakeInstance ? operationClass
-            .operationCheckForTakeSingleInstance(instanceName, operationConfig, sp)
-            : operationClass.operationCheckForFreeSingleInstance(instanceName, operationConfig, sp);
+            .operationCheckForTakeSingleInstance(instanceName, singleOperationConfig, sp)
+            : operationClass
+                .operationCheckForFreeSingleInstance(instanceName, singleOperationConfig, sp);
         if (!checkResult.isSuccessful()) {
-          System.out.println("operationClass.getClass().getName(): " + operationClass.getClass().getName());
-          instanceInfo.mergeResultForOperationCheck(checkResult,
-              nonBlockingOperationCheckSet.contains(operationClass.getClass().getName()));
+          instanceInfo.mergeResult(checkResult, continueOnFailures);
         }
       }
-      if (instanceInfo.isSuccessful() && performOperation) {
-        for (OperationInterface operationClass : operationAbstractClassList) {
+
+      // operation execution
+      for (OperationInterface operationClass : operationAbstractClassList) {
+        if (instanceInfo.isSuccessful() && performOperation) {
+          Map<String, String> singleOperationConfig =
+              operationConfigSet.get(operationClass.getClass().getName());
+          boolean continueOnFailures =
+              singleOperationConfig.containsKey(continueOnFailuresName) && Boolean
+                  .parseBoolean(singleOperationConfig.get(continueOnFailuresName));
           MaintenanceManagementInstanceInfo newResult = isTakeInstance ? operationClass
-              .operationExecForTakeSingleInstance(instanceName, operationConfig, sp)
+              .operationExecForTakeSingleInstance(instanceName, singleOperationConfig, sp)
               : operationClass
-                  .operationExecForFreeSingleInstance(instanceName, operationConfig, sp);
-          instanceInfo.mergeResult(newResult);
+                  .operationExecForFreeSingleInstance(instanceName, singleOperationConfig, sp);
+          instanceInfo.mergeResult(newResult, continueOnFailures);
           if (!instanceInfo.isSuccessful()) {
             break;
           }
@@ -622,6 +648,11 @@ public class MaintenanceManagementService {
       throws IllegalArgumentException, JsonProcessingException {
     return (jsonString == null) ? Collections.emptyList()
         : OBJECT_MAPPER.readValue(jsonString, List.class);
+  }
+
+  public static boolean getBooleanFromJsonPayload(String jsonString)
+      throws IllegalArgumentException, JsonProcessingException {
+    return  OBJECT_MAPPER.readTree(jsonString).asBoolean();
   }
 
   @VisibleForTesting

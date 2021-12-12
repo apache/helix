@@ -132,7 +132,7 @@ public class MaintenanceManagementService {
    * @param healthChecks       A list of healthChecks to perform
    * @param healthCheckConfig The input for health Checks
    * @param operations         A list of operation checks or operations to execute
-   *  @param operationConfig    A map of config. Key is the operation name value if a Json
+   * @param operationConfig    A map of config. Key is the operation name value if a Json
    *                            representation of a map
    * @param performOperation   If this param is set to false, the function will only do a dry run
    * @return MaintenanceManagementInstanceInfo
@@ -292,8 +292,9 @@ public class MaintenanceManagementService {
                 .newInstance();
         operationAbstractClassList.add(userOperation);
       } catch (Exception e) {
-        LOG.error("No operation class found for: " + operationClassName + ". message: ", e);
-        throw new HelixException("No operation class found for: " + operationClassName + ". message: ", e);
+        LOG.error("No operation class found for: {}. message: ", operationClassName, e);
+        throw new HelixException(
+            String.format("No operation class found for: %s. message: %s", operationClassName, e));
       }
     }
     return operationAbstractClassList;
@@ -390,8 +391,8 @@ public class MaintenanceManagementService {
       }
 
       // operation execution
-      for (OperationInterface operationClass : operationAbstractClassList) {
-        if (instanceInfo.isSuccessful() && performOperation) {
+      if (performOperation && instanceInfo.isSuccessful()) {
+        for (OperationInterface operationClass : operationAbstractClassList) {
           Map<String, String> singleOperationConfig =
               operationConfigSet.get(operationClass.getClass().getName());
           boolean continueOnFailures =
@@ -625,7 +626,8 @@ public class MaintenanceManagementService {
     }
     JsonNode jsonNode = OBJECT_MAPPER.readTree(jsonContent);
     // parsing the inputs as string key value pairs
-    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().toString()));
+    jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(),
+        kv.getValue().isValueNode() ? kv.getValue().asText() : kv.getValue().toString()));
     return result;
   }
 
@@ -633,7 +635,8 @@ public class MaintenanceManagementService {
       throws IllegalArgumentException {
     Map<String, String> result = new HashMap<>();
     if (jsonNode != null) {
-      jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(), kv.getValue().toString()));
+      jsonNode.fields().forEachRemaining(kv -> result.put(kv.getKey(),
+          kv.getValue().isValueNode() ? kv.getValue().asText() : kv.getValue().toString()));
     }
     return result;
   }

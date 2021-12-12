@@ -345,20 +345,12 @@ public class MaintenanceManagementService {
 
     try {
       MaintenanceManagementInstanceInfo instanceInfo;
-      if (isTakeInstance) {
-        instanceInfo =
-            batchInstanceHealthCheck(clusterId, ImmutableList.of(instanceName), healthChecks,
-                healthCheckConfig).getOrDefault(instanceName, new MaintenanceManagementInstanceInfo(
-                MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS));
-        if (!instanceInfo.isSuccessful()) {
-          return instanceInfo;
-        }
-      } else {
-        // Currently Helix do not have any health check for bring back an instance. We could add a
-        // hook for costume health check before bring back an instance.
-        // Right now we create a success MaintenanceManagementInstanceInfo as check result.
-        instanceInfo = new MaintenanceManagementInstanceInfo(
-            MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS);
+      instanceInfo =
+          batchInstanceHealthCheck(clusterId, ImmutableList.of(instanceName), healthChecks,
+              healthCheckConfig).getOrDefault(instanceName, new MaintenanceManagementInstanceInfo(
+              MaintenanceManagementInstanceInfo.OperationalStatus.SUCCESS));
+      if (!instanceInfo.isSuccessful()) {
+        return instanceInfo;
       }
 
       List<OperationInterface> operationAbstractClassList = getAllOperationClasses(operations);
@@ -385,9 +377,7 @@ public class MaintenanceManagementService {
             .operationCheckForTakeSingleInstance(instanceName, singleOperationConfig, sp)
             : operationClass
                 .operationCheckForFreeSingleInstance(instanceName, singleOperationConfig, sp);
-        if (!checkResult.isSuccessful()) {
-          instanceInfo.mergeResult(checkResult, continueOnFailures);
-        }
+        instanceInfo.mergeResult(checkResult, continueOnFailures);
       }
 
       // operation execution
@@ -404,6 +394,8 @@ public class MaintenanceManagementService {
                   .operationExecForFreeSingleInstance(instanceName, singleOperationConfig, sp);
           instanceInfo.mergeResult(newResult, continueOnFailures);
           if (!instanceInfo.isSuccessful()) {
+            LOG.warn("Operation failed for {}, skip all following operations.",
+                operationClass.getClass().getName());
             break;
           }
         }
@@ -450,7 +442,7 @@ public class MaintenanceManagementService {
       Map<String, StoppableCheck> instancePartitionLevelChecks =
           performPartitionsCheck(instancesForCustomPartitionLevelChecks, restConfig,
               customPayLoads);
-      List<String> instanceForNextRound = new ArrayList<>();
+      List<String> instancesForFollowingChecks = new ArrayList<>();
       for (Map.Entry<String, StoppableCheck> instancePartitionStoppableCheckEntry : instancePartitionLevelChecks
           .entrySet()) {
         String instance = instancePartitionStoppableCheckEntry.getKey();
@@ -459,10 +451,10 @@ public class MaintenanceManagementService {
         if (stoppableCheck.isStoppable() || isNonBlockingCheck(stoppableCheck)) {
           // instance passed this around of check or mandatory all checks
           // will be checked in the next round
-          instanceForNextRound.add(instance);
+          instancesForFollowingChecks.add(instance);
         }
       }
-      return instanceForNextRound;
+      return instancesForFollowingChecks;
     }
     return instancesForCustomPartitionLevelChecks;
   }

@@ -100,7 +100,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         throw new IllegalArgumentException("Illegal thread pool size: " + threadPoolSize);
       }
 
-      if (resetTimeout <= 0) {
+      if (resetTimeout < 0) {
         throw new IllegalArgumentException("Illegal reset timeout: " + resetTimeout);
       }
 
@@ -249,12 +249,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _monitor.createExecutorMonitor(type, newPool);
         return newPool;
       });
-      LOG.info("Registered message handler factory for type: " + type + ", poolSize: " + threadpoolSize + ", factory: "
-          + factory + ", pool: " + _executorMap.get(type));
+      LOG.info("Registered message handler factory for type: {}, poolSize: {}, factory: {}, pool: {}", type,
+          threadpoolSize, factory, _executorMap.get(type));
     } else {
       LOG.info(
-          "Skip register message handler factory for type: " + type + ", poolSize: " + threadpoolSize + ", factory: "
-              + factory + ", already existing factory: " + prevItem.factory());
+          "Skip register message handler factory for type: {}, poolSize: {}, factory: {}, already existing factory: {}",
+          type, threadpoolSize, factory, prevItem.factory());
     }
   }
 
@@ -608,8 +608,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  private void shutdownAndAwaitTermination(ExecutorService pool, int timeout) {
+  private void shutdownAndAwaitTermination(ExecutorService pool, MsgHandlerFactoryRegistryItem handlerItem) {
     LOG.info("Shutting down pool: " + pool);
+
+    int timeout = handlerItem == null? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : handlerItem.getResetTimeout();
+
     pool.shutdown(); // Disable new tasks from being submitted
     try {
       // Wait a while for existing tasks to terminate
@@ -645,8 +648,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + ", pool: " + pool);
 
     if (pool != null) {
-      int timeout = item == null? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : item.getResetTimeout();
-      shutdownAndAwaitTermination(pool, timeout);
+      shutdownAndAwaitTermination(pool, item);
     }
 
     // reset state-model
@@ -688,12 +690,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       for (String msgType : _hdlrFtyRegistry.keySet()) {
         // don't un-register factories, just shutdown all executors
         MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-        int resetTimeout = item == null ? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : item.getResetTimeout();
         ExecutorService pool = _executorMap.remove(msgType);
         _monitor.removeExecutorMonitor(msgType);
         if (pool != null) {
           LOG.info("Reset executor for msgType: " + msgType + ", pool: " + pool);
-          shutdownAndAwaitTermination(pool, resetTimeout);
+          shutdownAndAwaitTermination(pool, item);
         }
 
         if (item.factory() != null) {

@@ -131,17 +131,12 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
   public MessageHandler createHandler(Message message, NotificationContext context) {
     String type = message.getMsgType();
 
-    if (!type.equals(getMessageType())) {
+    if (!getMessageTypes().contains(type)) {
       throw new HelixException("Unexpected msg type for message " + message.getMsgId() + " type:"
           + message.getMsgType());
     }
 
     return new DefaultSchedulerMessageHandler(message, context, _manager);
-  }
-
-  @Override
-  public String getMessageType() {
-    return MessageType.SCHEDULER_MSG.name();
   }
 
   @Override

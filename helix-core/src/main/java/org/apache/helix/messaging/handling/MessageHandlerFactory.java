@@ -36,6 +36,8 @@ public interface MessageHandlerFactory {
    */
   MessageHandler createHandler(Message message, NotificationContext context);
 
+  @Deprecated
+  // Please update the logic to implement MultiTypeMessageHandlerFactory.getMessageTypes instead.
   String getMessageType();
 
   void reset();

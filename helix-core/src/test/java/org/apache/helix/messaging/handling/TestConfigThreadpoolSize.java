@@ -44,11 +44,6 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
       return null;
     }
 
-    @Override
-    public String getMessageType() {
-      return "TestMsg";
-    }
-
     @Override public List<String> getMessageTypes() {
       return ImmutableList.of("TestMsg");
     }
@@ -66,11 +61,6 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     @Override
     public MessageHandler createHandler(Message message, NotificationContext context) {
       return null;
-    }
-
-    @Override
-    public String getMessageType() {
-      return "TestMsg2";
     }
 
     @Override public List<String> getMessageTypes() {

@@ -80,12 +80,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     public MessageHandler createHandler(Message message, NotificationContext context) {
       return new DummyMessageHandler(message, context, _handledMsgSet);
     }
-
-    @Override
-    public String getMessageType() {
-      return DUMMY_MSG_TYPE;
-    }
-
+    
     @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of(DUMMY_MSG_TYPE);

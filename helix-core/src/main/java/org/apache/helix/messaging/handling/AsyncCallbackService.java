@@ -81,11 +81,6 @@ public class AsyncCallbackService implements MultiTypeMessageHandlerFactory {
   }
 
   @Override
-  public String getMessageType() {
-    return MessageType.TASK_REPLY.name();
-  }
-
-  @Override
   public List<String> getMessageTypes() {
     return ImmutableList.of(MessageType.TASK_REPLY.name());
   }

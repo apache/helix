@@ -89,8 +89,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   class MsgHandlerFactoryRegistryItem {
     private final MessageHandlerFactory _factory;
     private final int _threadPoolSize;
+    private final int _resetTimeout;
 
-    public MsgHandlerFactoryRegistryItem(MessageHandlerFactory factory, int threadPoolSize) {
+    public MsgHandlerFactoryRegistryItem(MessageHandlerFactory factory, int threadPoolSize, int resetTimeout) {
       if (factory == null) {
         throw new NullPointerException("Message handler factory is null");
       }
@@ -99,12 +100,21 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         throw new IllegalArgumentException("Illegal thread pool size: " + threadPoolSize);
       }
 
+      if (resetTimeout < 0) {
+        throw new IllegalArgumentException("Illegal reset timeout: " + resetTimeout);
+      }
+
       _factory = factory;
       _threadPoolSize = threadPoolSize;
+      _resetTimeout = resetTimeout;
     }
 
     int threadPoolSize() {
       return _threadPoolSize;
+    }
+
+    int getResetTimeout() {
+      return _resetTimeout;
     }
 
     MessageHandlerFactory factory() {
@@ -118,7 +128,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
-  public static final int DEFAULT_PARALLEL_TASKS = 40;
+  public static final int DEFAULT_PARALLEL_TASKS = TaskExecutor.DEFAULT_PARALLEL_TASKS;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, MessageTaskInfo> _taskMap;
   private final Object _lock;
@@ -133,6 +143,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private LiveInstanceStatus _liveInstanceStatus;
   private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
   private static final String SESSION_SYNC = "SESSION-SYNC";
+
+  private static final int DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS = 200; // 200 ms
+
   /**
    * Map of MsgType->MsgHandlerFactoryRegistryItem
    */
@@ -193,13 +206,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   @Override
+  public void registerMessageHandlerFactory(MultiTypeMessageHandlerFactory factory,
+      int threadPoolSize, int resetTimeoutMs) {
+    for (String type : factory.getMessageTypes()) {
+      registerMessageHandlerFactory(type, factory, threadPoolSize, resetTimeoutMs);
+    }
+  }
+
+  @Override
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory) {
     registerMessageHandlerFactory(type, factory, DEFAULT_PARALLEL_TASKS);
   }
 
   @Override
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
-      int threadpoolSize) {
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory, int threadpoolSize) {
+    registerMessageHandlerFactory(type, factory, threadpoolSize, DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS);
+  }
+
+  private void registerMessageHandlerFactory(String type, MessageHandlerFactory factory, int threadpoolSize,
+      int resetTimeoutMs) {
     if (factory instanceof MultiTypeMessageHandlerFactory) {
       if (!((MultiTypeMessageHandlerFactory) factory).getMessageTypes().contains(type)) {
         throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
@@ -215,8 +240,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _isShuttingDown = false;
 
-    MsgHandlerFactoryRegistryItem newItem =
-        new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
+    MsgHandlerFactoryRegistryItem newItem = new MsgHandlerFactoryRegistryItem(factory, threadpoolSize, resetTimeoutMs);
     MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
     if (prevItem == null) {
       _executorMap.computeIfAbsent(type, msgType -> {
@@ -225,14 +249,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         _monitor.createExecutorMonitor(type, newPool);
         return newPool;
       });
-      LOG.info(
-          "Registered message handler factory for type: " + type + ", poolSize: " + threadpoolSize
-              + ", factory: " + factory + ", pool: " + _executorMap.get(type));
+      LOG.info("Registered message handler factory for type: {}, poolSize: {}, factory: {}, pool: {}", type,
+          threadpoolSize, factory, _executorMap.get(type));
     } else {
-      LOG.info("Skip register message handler factory for type: " + type + ", poolSize: "
-          + threadpoolSize + ", factory: " + factory + ", already existing factory: " + prevItem
-          .factory());
-      newItem = null;
+      LOG.info(
+          "Skip register message handler factory for type: {}, poolSize: {}, factory: {}, already existing factory: {}",
+          type, threadpoolSize, factory, prevItem.factory());
     }
   }
 
@@ -586,22 +608,26 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
   }
 
-  private void shutdownAndAwaitTermination(ExecutorService pool) {
+  private void shutdownAndAwaitTermination(ExecutorService pool, MsgHandlerFactoryRegistryItem handlerItem) {
     LOG.info("Shutting down pool: " + pool);
+
+    int timeout = handlerItem == null? DEFAULT_MSG_HANDLER_RESET_TIMEOUT_MS : handlerItem.getResetTimeout();
+
     pool.shutdown(); // Disable new tasks from being submitted
     try {
       // Wait a while for existing tasks to terminate
-      if (!pool.awaitTermination(200, TimeUnit.MILLISECONDS)) {
+      if (!pool.awaitTermination(timeout, TimeUnit.MILLISECONDS)) {
         List<Runnable> waitingTasks = pool.shutdownNow(); // Cancel currently executing tasks
-        LOG.info("Tasks that never commenced execution: " + waitingTasks);
+        LOG.info("Tasks that never commenced execution after {}: {}", timeout,
+            waitingTasks);
         // Wait a while for tasks to respond to being cancelled
-        if (!pool.awaitTermination(200, TimeUnit.MILLISECONDS)) {
-          LOG.error("Pool did not fully terminate in 200ms. pool: " + pool);
+        if (!pool.awaitTermination(timeout, TimeUnit.MILLISECONDS)) {
+          LOG.error("Pool did not fully terminate in {} ms. pool: {}", timeout, pool);
         }
       }
     } catch (InterruptedException ie) {
       // (Re-)Cancel if current thread also interrupted
-      LOG.error("Interruped when waiting for shutdown pool: " + pool, ie);
+      LOG.error("Interrupted when waiting for shutdown pool: " + pool, ie);
       pool.shutdownNow();
       // Preserve interrupt status
       Thread.currentThread().interrupt();
@@ -622,7 +648,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + ", pool: " + pool);
 
     if (pool != null) {
-      shutdownAndAwaitTermination(pool);
+      shutdownAndAwaitTermination(pool, item);
     }
 
     // reset state-model
@@ -663,14 +689,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     synchronized (_hdlrFtyRegistry) {
       for (String msgType : _hdlrFtyRegistry.keySet()) {
         // don't un-register factories, just shutdown all executors
+        MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
         ExecutorService pool = _executorMap.remove(msgType);
         _monitor.removeExecutorMonitor(msgType);
         if (pool != null) {
-          LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
-          shutdownAndAwaitTermination(pool);
+          LOG.info("Reset executor for msgType: " + msgType + ", pool: " + pool);
+          shutdownAndAwaitTermination(pool, item);
         }
 
-        MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
         if (item.factory() != null) {
           try {
             item.factory().reset();

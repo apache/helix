@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ImmutableList;
@@ -70,8 +71,18 @@ public class TestHelixTaskExecutor {
   }
 
   class TestMessageHandlerFactory implements MultiTypeMessageHandlerFactory {
+    final int _messageDelay;
     int _handlersCreated = 0;
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<>();
+    ConcurrentSkipListSet<String> _completedMsgIds = new ConcurrentSkipListSet<>();
+
+    TestMessageHandlerFactory(int messageDelay) {
+      _messageDelay = messageDelay;
+    }
+
+    TestMessageHandlerFactory() {
+      _messageDelay = 100;
+    }
 
     class TestMessageHandler extends MessageHandler {
       public TestMessageHandler(Message message, NotificationContext context) {
@@ -82,8 +93,9 @@ public class TestHelixTaskExecutor {
       public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
-        Thread.sleep(100);
+        Thread.sleep(_messageDelay);
         result.setSuccess(true);
+        _completedMsgIds.add(_message.getMsgId());
         return result;
       }
 
@@ -103,11 +115,6 @@ public class TestHelixTaskExecutor {
     }
 
     @Override
-    public String getMessageType() {
-      return "TestingMessageHandler";
-    }
-
-    @Override
     public List<String> getMessageTypes() {
       return Collections.singletonList("TestingMessageHandler");
     }
@@ -120,15 +127,9 @@ public class TestHelixTaskExecutor {
 
   class TestMessageHandlerFactory2 extends TestMessageHandlerFactory {
     @Override
-    public String getMessageType() {
-      return "TestingMessageHandler2";
-    }
-
-    @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of("TestingMessageHandler2");
     }
-
   }
 
   class CancellableHandlerFactory implements MultiTypeMessageHandlerFactory {
@@ -184,11 +185,6 @@ public class TestHelixTaskExecutor {
     public MessageHandler createHandler(Message message, NotificationContext context) {
       _handlersCreated++;
       return new CancellableHandler(message, context);
-    }
-
-    @Override
-    public String getMessageType() {
-      return "Cancellable";
     }
 
     @Override public List<String> getMessageTypes() {
@@ -265,11 +261,6 @@ public class TestHelixTaskExecutor {
         currentStateDelta.setState(message.getPartitionName(), "MASTER");
       }
       return new TestStateTransitionMessageHandler(message, context, currentStateDelta);
-    }
-
-    @Override
-    public String getMessageType() {
-      return _msgType;
     }
 
     @Override
@@ -753,6 +744,58 @@ public class TestHelixTaskExecutor {
       Assert.assertTrue(svc.isShutdown());
     }
     System.out.println("END TestCMTaskExecutor.testShutdown()");
+  }
+
+  @Test(dependsOnMethods = "testShutdown")
+  public void testHandlerResetTimeout() throws Exception {
+    System.out.println("START TestCMTaskExecutor.testHandlerResetTimeout()");
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+
+    int messageDelay = 2 * 1000; // 2 seconds
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory(messageDelay);
+
+    // Execute a message with short reset timeout
+    int shortTimeout = 100; // 100 ms
+    executor.registerMessageHandlerFactory(factory, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, shortTimeout);
+
+    final Message msg = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+    msg.setTgtSessionId("*");
+    msg.setTgtName("Localhost_1123");
+    msg.setSrcName("127.101.1.23_2234");
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    changeContext.setChangeType(HelixConstants.ChangeType.MESSAGE);
+    executor.onMessage("some", Arrays.asList(msg), changeContext);
+    Assert.assertTrue(
+        TestHelper.verify(() -> factory._processedMsgIds.containsKey(msg.getMsgId()), TestHelper.WAIT_DURATION));
+    executor.shutdown();
+    for (ExecutorService svc : executor._executorMap.values()) {
+      Assert.assertTrue(svc.isShutdown());
+    }
+    Assert.assertEquals(factory._completedMsgIds.size(), 0);
+
+    // Execute a message with proper reset timeout, so it will wait enough time until the message is processed.
+    executor = new HelixTaskExecutor();
+    int longTimeout = messageDelay * 2; // 4 seconds
+    executor.registerMessageHandlerFactory(factory, HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, longTimeout);
+
+    final Message msg2 = new Message(factory.getMessageTypes().get(0), UUID.randomUUID().toString());
+    msg2.setTgtSessionId("*");
+    msg2.setTgtName("Localhost_1123");
+    msg2.setSrcName("127.101.1.23_2234");
+    executor.onMessage("some", Arrays.asList(msg2), changeContext);
+
+    Assert.assertTrue(
+        TestHelper.verify(() -> factory._processedMsgIds.containsKey(msg2.getMsgId()), TestHelper.WAIT_DURATION));
+    executor.shutdown();
+    for (ExecutorService svc : executor._executorMap.values()) {
+      Assert.assertTrue(svc.isShutdown());
+    }
+    Assert.assertEquals(factory._completedMsgIds.size(), 1);
+    Assert.assertTrue(factory._completedMsgIds.contains(msg2.getMsgId()));
+
+    System.out.println("END TestCMTaskExecutor.testHandlerResetTimeout()");
   }
 
   @Test()

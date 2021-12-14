@@ -89,11 +89,6 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
 
     @Override
-    public String getMessageType() {
-      return "TestParticipant";
-    }
-
-    @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of("TestParticipant");
     }
@@ -145,11 +140,6 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     synchronized void signal() {
       _latch.countDown();
       _latch = new CountDownLatch(1);
-    }
-
-    @Override
-    public String getMessageType() {
-      return "TestMessagingHandlerLatch";
     }
 
     @Override

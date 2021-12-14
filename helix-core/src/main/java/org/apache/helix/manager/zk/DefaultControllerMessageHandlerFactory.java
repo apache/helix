@@ -39,17 +39,12 @@ public class DefaultControllerMessageHandlerFactory implements MultiTypeMessageH
   public MessageHandler createHandler(Message message, NotificationContext context) {
     String type = message.getMsgType();
 
-    if (!type.equals(getMessageType())) {
+    if (!getMessageTypes().contains(type)) {
       throw new HelixException("Unexpected msg type for message " + message.getMsgId() + " type:"
           + message.getMsgType());
     }
 
     return new DefaultControllerMessageHandler(message, context);
-  }
-
-  @Override
-  public String getMessageType() {
-    return MessageType.CONTROLLER_MSG.name();
   }
 
   @Override

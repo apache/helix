@@ -124,12 +124,6 @@ public class BootstrapProcess {
       return new CustomMessageHandler(message, context);
     }
 
-    @Deprecated
-    @Override
-    public String getMessageType() {
-      return MessageType.USER_DEFINE_MSG.name();
-    }
-
     @Override
     public List<String> getMessageTypes() {
       return ImmutableList.of(MessageType.USER_DEFINE_MSG.name());

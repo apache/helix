@@ -49,19 +49,19 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -r
 
 #Launch dummy process nodes
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"
 
 
 #Launch the cluster manager
-$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 exit 0
 sleep 6
@@ -70,7 +70,7 @@ sleep 6
 
 #verify cluster state
 verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 $SCRIPT_DIR/cm_driver.py -c dummy-process -o stop
 

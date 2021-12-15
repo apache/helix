@@ -38,7 +38,7 @@ import org.apache.zookeeper.server.ZooKeeperServer;
 
 public class ZkServer {
 
-    private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
+    private static Logger LOG = LoggerFactory.getLogger(ZkServer.class);
 
     public static final int DEFAULT_PORT = 2181;
     public static final int DEFAULT_TICK_TIME = 5000;

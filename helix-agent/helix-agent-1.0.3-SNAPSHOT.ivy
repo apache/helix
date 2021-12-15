@@ -88,8 +88,8 @@ under the License.
     <dependency org="org.slf4j" name="slf4j-api" rev="1.7.32" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-api" ext="jar"/>
     </dependency>
-    <dependency org="org.apache.logging.log4j" name="log4j-to-slf4j" rev="2.16.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
-        <artifact name="log4j-to-slf4j" ext="jar"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.16.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+        <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
 		<override org="org.mockito" module="mockito-all" matcher="exact" rev="1.9.5"/>
 		<override org="org.apache.helix" module="helix-core" matcher="exact" rev="1.0.3-SNAPSHOT"/>

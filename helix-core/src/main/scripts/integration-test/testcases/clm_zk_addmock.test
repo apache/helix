@@ -68,7 +68,7 @@ sleep 6
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop
 
 #verify cluster state
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j2.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 $SCRIPT_DIR/cm_driver.py -c mock-storage -o stop
 

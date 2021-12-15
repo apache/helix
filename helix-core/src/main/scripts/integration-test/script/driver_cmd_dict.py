@@ -63,7 +63,7 @@ cmd_ret_pattern={    # the pattern when the call is considered return successful
 direct_java_call_option_mapping={
    "dump_file":"-f "
    ,"value_file":"--value.dump.file="
-   #,"log4j_file":"-Dlog4j.configuration=file://"   # this is only for cluster manager
+   #,"log4j_file":"-Dlog4j2.configuration=file://"   # this is only for cluster manager
    #,"log4j_file":"--log_props="
    ,"config":"--container_props="
    ,"consumer_event_pattern":"event_pattern"
@@ -93,7 +93,7 @@ direct_java_call_jvm_args={
    ,"jvm_min_heap_size":["-Xms","100m"]
    ,"jvm_gc_log":["-Xloggc:",""]
    ,"jvm_args":["",""]
-   ,"log4j_file":["-Dlog4j.configuration=file://",""]   # this is only for cluster manager
+   ,"log4j_file":["-Dlog4j2.configuration=file://",""]   # this is only for cluster manager
 }
 direct_java_call_jvm_args_ordered=[
    "jvm_direct_memory_size"

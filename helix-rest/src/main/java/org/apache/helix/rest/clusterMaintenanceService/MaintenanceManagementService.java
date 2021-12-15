@@ -464,6 +464,9 @@ public class MaintenanceManagementService {
     List<String> instancesForNext = new ArrayList<>(instances);
     Map<String, MaintenanceManagementInstanceInfo> instanceInfos = new HashMap<>();
     Map<String, StoppableCheck> finalStoppableChecks = new HashMap<>();
+    // TODO: Right now user can only choose from HelixInstanceStoppableCheck and
+    // CostumeInstanceStoppableCheck. We should add finer grain check groups to choose from
+    // i.e. HELIX:INSTANCE_NOT_ENABLED, CUSTOM_PARTITION_HEALTH_FAILURE:PARTITION_INITIAL_STATE_FAIL etc.
     for (String healthCheck : healthChecks) {
       if (healthCheck.equals("HelixInstanceStoppableCheck")) {
         // this is helix own check

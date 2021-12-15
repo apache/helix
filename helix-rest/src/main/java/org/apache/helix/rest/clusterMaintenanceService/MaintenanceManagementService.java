@@ -472,7 +472,7 @@ public class MaintenanceManagementService {
         // this is helix own check
         instancesForNext =
             batchHelixInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks);
-      } else if (healthCheck.equals("CostumeInstanceStoppableCheck")) {
+      } else if (healthCheck.equals("CustomInstanceStoppableCheck")) {
         // custom check, includes custom Instance check and partition check.
         instancesForNext = batchCustomInstanceStoppableCheck(clusterId, instancesForNext, finalStoppableChecks,
             healthCheckConfig);

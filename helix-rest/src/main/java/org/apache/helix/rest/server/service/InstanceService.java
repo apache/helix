@@ -28,8 +28,6 @@ import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 
 public interface InstanceService {
-
-
     /**
      * Get the overall status of the instance
      *
@@ -38,7 +36,7 @@ public interface InstanceService {
      * @return An instance of {@link InstanceInfo} easily convertible to JSON
      */
     InstanceInfo getInstanceInfo(String clusterId, String instanceName,
-                                 List<HealthCheck> healthChecks);
+        List<HealthCheck> healthChecks);
 
     /**
      * Get the current instance stoppable checks

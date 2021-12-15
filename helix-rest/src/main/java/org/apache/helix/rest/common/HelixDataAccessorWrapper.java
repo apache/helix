@@ -39,7 +39,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.RESTConfig;
 import org.apache.helix.rest.client.CustomRestClient;
 import org.apache.helix.rest.client.CustomRestClientFactory;
@@ -241,7 +241,7 @@ public class HelixDataAccessorWrapper extends ZKHelixDataAccessor {
 
     for (String resourceName : resources) {
       getProperty(propertyKeyBuilder.idealStates(resourceName));
-      IdealState externalView = getProperty(propertyKeyBuilder.externalView(resourceName));
+      ExternalView externalView = getProperty(propertyKeyBuilder.externalView(resourceName));
       if (externalView != null) {
         String stateModeDef = externalView.getStateModelDefRef();
         getProperty(propertyKeyBuilder.stateModelDef(stateModeDef));

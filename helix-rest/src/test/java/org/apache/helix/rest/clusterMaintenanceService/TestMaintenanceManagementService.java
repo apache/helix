@@ -18,12 +18,15 @@ package org.apache.helix.rest.clusterMaintenanceService;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.apache.helix.AccessOption;
@@ -46,6 +49,7 @@ import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
@@ -77,12 +81,22 @@ public class TestMaintenanceManagementService {
   }
 
   class MockMaintenanceManagementService extends MaintenanceManagementService {
+
     public MockMaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
         ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
-        boolean continueOnFailures, String namespace) {
-      super(dataAccessor, configAccessor, customRestClient, skipZKRead, continueOnFailures,
+        boolean continueOnFailure, String namespace) {
+      super(dataAccessor, configAccessor, customRestClient, skipZKRead,
+          continueOnFailure ? Collections.singleton(ALL_HEALTH_CHECK_NONBLOCK)
+              : Collections.emptySet(), namespace);
+    }
+
+    public MockMaintenanceManagementService(ZKHelixDataAccessor dataAccessor,
+        ConfigAccessor configAccessor, CustomRestClient customRestClient, boolean skipZKRead,
+        Set<String> nonBlockingHealthChecks, String namespace) {
+      super(dataAccessor, configAccessor, customRestClient, skipZKRead, nonBlockingHealthChecks,
           namespace);
     }
+
     @Override
     protected Map<String, Boolean> getInstanceHealthStatus(String clusterId, String instanceName,
         List<HealthCheck> healthChecks) {

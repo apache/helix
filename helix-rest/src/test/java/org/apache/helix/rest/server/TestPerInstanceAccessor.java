@@ -100,7 +100,7 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   @Test(dependsOnMethods = "testTakeInstanceNegInput2")
   public void testTakeInstanceHealthCheck() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
-    String payload = "{ \"health_check_list\" : [\"HelixInstanceStoppableCheck\", \"CostumeInstanceStoppableCheck\"],"
+    String payload = "{ \"health_check_list\" : [\"HelixInstanceStoppableCheck\", \"CustomInstanceStoppableCheck\"],"
         + "\"health_check_config\" : { \"client\" : \"espresso\" }} ";
     Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
         .format(STOPPABLE_CLUSTER, "instance1").post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));

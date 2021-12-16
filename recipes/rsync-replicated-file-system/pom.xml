@@ -35,7 +35,7 @@
       org.apache.helix*,
       org.slf4j*;version="[1.7,2)",
       org.apache.logging.log4j*;version="[2.16,3)",
-      org/apache/logging/slf4j*;version="[2.16,3)",
+      org.apache.logging.slf4j*;version="[2.16,3)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.filestore*;version="${project.version};-noimport:=true</osgi.export>
@@ -90,7 +90,8 @@
             <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
             <assembleDirectory>${project.build.directory}/${project.artifactId}-pkg</assembleDirectory>
             <!-- Extra JVM arguments that will be included in the bin scripts -->
-            <extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
+            <!-- -D flag is a failsafe to address https://nvd.nist.gov/vuln/detail/CVE-2021-44228 -->
+            <extraJvmArguments>-Xms512m -Xmx512m -Dlog4j2.formatMsgNoLookups=true</extraJvmArguments>
             <!-- Generate bin scripts for windows and unix pr default -->
             <platforms>
               <platform>windows</platform>

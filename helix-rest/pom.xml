@@ -36,7 +36,7 @@
       org.restlet*,
       org.slf4j*;version="[1.7,2)",
       org.apache.logging.log4j*;version="[2.16,3)",
-      org/apache/logging/slf4j*;version="[2.16,3)",
+      org.apache.logging.slf4j*;version="[2.16,3)",
       org.apache.zookeeper*;version="[3.4,13)",
       org.apache.commons.io*;version="[1.4,2)",
       *
@@ -160,6 +160,12 @@
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.32</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <resources>
@@ -175,6 +181,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
         <configuration>
+          <!-- Extra JVM arguments that will be included in the bin scripts -->
+          <!-- -D flag is a failsafe to address https://nvd.nist.gov/vuln/detail/CVE-2021-44228 -->
+          <extraJvmArguments>-Dlog4j2.formatMsgNoLookups=true</extraJvmArguments>
           <platforms>
             <platform>windows</platform>
             <platform>unix</platform>

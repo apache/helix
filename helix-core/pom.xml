@@ -40,7 +40,7 @@
       org.apache.jute*;resolution:=optional,
       org.slf4j*;version="[1.7,2)",
       org.apache.logging.log4j*;version="[2.16,3)",
-      org/apache/logging/slf4j*;version="[2.16,3)",
+      org.apache.logging.slf4j*;version="[2.16,3)",
       *
     </osgi.import>
     <osgi.ignore>
@@ -63,6 +63,11 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-to-slf4j</artifactId>
+      <version>2.16.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
       <version>2.16.0</version>
     </dependency>
     <dependency>
@@ -141,6 +146,12 @@
       <artifactId>jaxb-api</artifactId>
       <version>2.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.32</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <resources>
@@ -171,7 +182,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
         <configuration>
-          <extraJvmArguments>-Dlog4j.configuration=file://"$BASEDIR"/conf/log4j.properties</extraJvmArguments>
+          <!-- Extra JVM arguments that will be included in the bin scripts -->
+          <!-- -D flag is a failsafe to address https://nvd.nist.gov/vuln/detail/CVE-2021-44228 -->
+          <extraJvmArguments>-Dlog4j2.formatMsgNoLookups=true -Dlog4j.configuration=file://"$BASEDIR"/conf/log4j.properties</extraJvmArguments>
           <programs>
             <program>
               <mainClass>org.apache.helix.controller.HelixControllerMain</mainClass>

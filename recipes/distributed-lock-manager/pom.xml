@@ -35,6 +35,7 @@
       org.apache.helix*,
       org.slf4j*;version="[1.7,2)",
       org.apache.logging.log4j*;version="[2.16,3)",
+      org/apache/logging/slf4j*;version="[2.16,3)",
       *
     </osgi.import>
     <osgi.export>org.apache.helix.lockmanager*;version="${project.version};-noimport:=true</osgi.export>

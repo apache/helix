@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -31,13 +33,12 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.zookeeper.zkclient.serialize.BasicZkSerializer;
 import org.apache.helix.zookeeper.zkclient.serialize.SerializableSerializer;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.NIOServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
 
 public class ZkServer {
 
-    private final static Logger LOG = Logger.getLogger(ZkServer.class);
+    private static Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
     public static final int DEFAULT_PORT = 2181;
     public static final int DEFAULT_TICK_TIME = 5000;

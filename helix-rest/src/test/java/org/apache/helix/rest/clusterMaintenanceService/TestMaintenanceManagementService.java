@@ -236,7 +236,7 @@ public class TestMaintenanceManagementService {
     stoppableCheck = instanceServiceWithoutReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertFalse(stoppableCheck.isStoppable());
 
-       // Test take instance with same setting.
+    // Test take instance with same setting.
     MaintenanceManagementInstanceInfo instanceInfo =
         instanceServiceWithoutReadZK.takeInstance(TEST_CLUSTER, TEST_INSTANCE, Collections.singletonList("CustomInstanceStoppableCheck"),
             MaintenanceManagementService.getMapFromJsonPayload(jsonContent), Collections.singletonList("org.apache.helix.rest.server.TestOperationImpl"),
@@ -244,7 +244,7 @@ public class TestMaintenanceManagementService {
     Assert.assertFalse(instanceInfo.isSuccessful());
     Assert.assertEquals(instanceInfo.getMessages().get(0), "CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION:PARTITION_0");
 
-    // Even ZK data is valid. Skip ZK read should fail the test.
+    // Operation should finish even with check failed.
     MockMaintenanceManagementService instanceServiceSkipFailure =
         new MockMaintenanceManagementService(zkHelixDataAccessor, _configAccessor, _customRestClient, true,
             ImmutableSet.of("CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION"), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);

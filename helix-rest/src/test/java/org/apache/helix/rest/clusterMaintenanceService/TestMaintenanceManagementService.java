@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
@@ -103,6 +104,7 @@ public class TestMaintenanceManagementService {
       return Collections.emptyMap();
     }
   }
+
 
   @Test
   public void testGetInstanceStoppableCheckWhenHelixOwnCheckFail() throws IOException {
@@ -233,8 +235,28 @@ public class TestMaintenanceManagementService {
             false, HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     stoppableCheck = instanceServiceWithoutReadZK.getInstanceStoppableCheck(TEST_CLUSTER, TEST_INSTANCE, jsonContent);
     Assert.assertFalse(stoppableCheck.isStoppable());
+
+    // Test take instance with same setting.
+    MaintenanceManagementInstanceInfo instanceInfo =
+        instanceServiceWithoutReadZK.takeInstance(TEST_CLUSTER, TEST_INSTANCE, Collections.singletonList("CustomInstanceStoppableCheck"),
+            MaintenanceManagementService.getMapFromJsonPayload(jsonContent), Collections.singletonList("org.apache.helix.rest.server.TestOperationImpl"),
+            Collections.EMPTY_MAP, true);
+    Assert.assertFalse(instanceInfo.isSuccessful());
+    Assert.assertEquals(instanceInfo.getMessages().get(0), "CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION:PARTITION_0");
+
+    // Operation should finish even with check failed.
+    MockMaintenanceManagementService instanceServiceSkipFailure =
+        new MockMaintenanceManagementService(zkHelixDataAccessor, _configAccessor, _customRestClient, true,
+            ImmutableSet.of("CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION"), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+    MaintenanceManagementInstanceInfo instanceInfo2 =
+        instanceServiceSkipFailure.takeInstance(TEST_CLUSTER, TEST_INSTANCE, Collections.singletonList("CustomInstanceStoppableCheck"),
+            MaintenanceManagementService.getMapFromJsonPayload(jsonContent), Collections.singletonList("org.apache.helix.rest.server.TestOperationImpl"),
+            Collections.EMPTY_MAP, true);
+    Assert.assertTrue(instanceInfo2.isSuccessful());
+    Assert.assertEquals(instanceInfo2.getOperationResult(), "DummyTakeOperationResult");
   }
-  /*
+
+    /*
    * Tests stoppable check api when all checks query is enabled. After helix own check fails,
    * the subsequent checks should be performed.
    */

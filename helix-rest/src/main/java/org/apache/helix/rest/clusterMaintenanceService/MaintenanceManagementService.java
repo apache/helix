@@ -548,9 +548,9 @@ public class MaintenanceManagementService {
         // "CUSTOM_PARTITION_HEALTH_FAILURE:PARTITION_INITIAL_STATE_FAIL:partition_name"
         // we want to keep the first 2 parts as failed test name.
         String[] checks = failedCheck.split(":", 3);
-        failedCheck = checks[0] + checks[1];
+        failedCheck = checks[0] + ":" + checks[1];
       }
-      // Helix own health check name wil be in this pattern "HELIX:INSTANCE_NOT_ALIVE",
+      // Helix own health check name will be in this pattern "HELIX:INSTANCE_NOT_ALIVE",
       // no need to preprocess.
       if (!_nonBlockingHealthChecks.contains(failedCheck)) {
         return false;

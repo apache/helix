@@ -21,7 +21,7 @@
 # this is the file to be included by dds_driver.py for product (e.g., espresso) specific setting
 #
 possible_ivy_dir=[os.path.join(os.environ["HOME"],".m2/repository"),os.path.join(os.environ["HOME"],".gradle/cache"),os.path.join(os.environ["HOME"],".ivy2/lin-cache/ivy-cache"),os.path.join(os.environ["HOME"],".ivy2/lin-cache"),"/ivy/.ivy2/ivy-cache","/ivy/.ivy2", os.path.join(os.environ["VIEW_ROOT"],"build/ivy2/cache")]
-zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar:IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar:IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
 
 # espresso use -2
 kill_cmd_template="jps | grep %s | cut -f1 -d\\  | xargs kill -2"
@@ -142,7 +142,7 @@ cmd_direct_call={
       ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
-      ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+      ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
@@ -162,7 +162,7 @@ cmd_direct_call={
       ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
-      ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+      ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
@@ -183,7 +183,7 @@ cmd_direct_call={
       ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
-      ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+      ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
@@ -206,7 +206,7 @@ cmd_direct_call={
       ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
-      ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+      ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
       ,"IVY_DIR/org/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
@@ -229,7 +229,7 @@ cmd_direct_call={
       ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
-      ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+      ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
       ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar"
       ,"IVY_DIR/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar"
@@ -245,7 +245,7 @@ cmd_direct_call={
    {
     "class_path":[
       "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-     ,"IVY_DIR/log4j/log4j/2.16.0/log4j-2.16.0.jar"
+     ,"IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
      ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files

@@ -856,7 +856,7 @@ def zookeeper_setup(oper):
     log4j_file=os.path.join(get_view_root(),"integration-test/config/zookeeper-log4j2file.properties")
     dbg_print("zookeeper_classpath = %s" % zookeeper_classpath)
     if not "zookeeper_classpath" in globals():
-      zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/2.17.0/log4j-2.17.0.jar"
+      zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/2.17.1/log4j-2.17.1.jar"
     if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
     if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
     run_cmd_add_option("", "config", options.config, check_exist=True)      #  just add the jvm args

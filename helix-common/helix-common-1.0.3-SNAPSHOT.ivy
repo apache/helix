@@ -40,7 +40,7 @@ under the License.
 	  <dependency org="org.slf4j" name="slf4j-api" rev="1.7.32" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-api" ext="jar"/>
     </dependency>
-    <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.17.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+    <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.17.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
     <dependency org="org.yaml" name="snakeyaml" rev="1.12" conf="compile->compile(default);runtime->runtime(default);default->default"/>

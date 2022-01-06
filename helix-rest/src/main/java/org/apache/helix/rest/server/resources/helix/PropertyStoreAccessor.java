@@ -73,19 +73,24 @@ public class PropertyStoreAccessor extends AbstractHelixResource {
     }
     final String recordPath = PropertyPathBuilder.propertyStore(clusterId) + path;
     BaseDataAccessor<byte[]> propertyStoreDataAccessor = getByteArrayDataAccessor();
-    if (propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
-      byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
-      ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
-      // The ZNRecordSerializer returns null when exception occurs in deserialization method
-      if (znRecord == null) {
-        ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
-        jsonNode.put(CONTENT_KEY, new String(bytes));
-        return JSONRepresentation(jsonNode);
-      }
-      return JSONRepresentation(znRecord);
-    } else {
+    if (!propertyStoreDataAccessor.exists(recordPath, AccessOption.PERSISTENT)) {
       throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-          .entity(String.format("The property store path %s doesn't exist", recordPath)).build());
+          .entity(String.format("The property store path %s doesn't exist", recordPath))
+          .build());
+    }
+    byte[] bytes = propertyStoreDataAccessor.get(recordPath, null, AccessOption.PERSISTENT);
+    if (bytes == null) {
+      throw new WebApplicationException(Response.status(Response.Status.NO_CONTENT).build());
+    }
+    ZNRecord znRecord = (ZNRecord) ZN_RECORD_SERIALIZER.deserialize(bytes);
+    // The ZNRecordSerializer returns null when exception occurs in deserialization method
+    if (znRecord == null) {
+      // If the zk node cannot be deserialized, return the content directly.
+      ObjectNode jsonNode = OBJECT_MAPPER.createObjectNode();
+      jsonNode.put(CONTENT_KEY, new String(bytes));
+      return JSONRepresentation(jsonNode);
+    } else {
+      return JSONRepresentation(znRecord);
     }
   }
 

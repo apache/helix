@@ -49,6 +49,8 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
   private static final ZNRecord TEST_ZNRECORD = new ZNRecord("TestContent");
   private static final String CUSTOM_PATH =
       PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/NonZnRecord";
+  private static final String EMPTY_PATH =
+      PropertyPathBuilder.propertyStore(TEST_CLUSTER) + "/EmptyNode";
   private static final String TEST_CONTENT = "TestContent";
   private static final String CONTENT_KEY = "content";
 
@@ -71,6 +73,7 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     Assert
         .assertTrue(_customDataAccessor.create(CUSTOM_PATH, TEST_CONTENT, AccessOption.PERSISTENT));
     Assert.assertTrue(_baseAccessor.create(ZNRECORD_PATH, TEST_ZNRECORD, AccessOption.PERSISTENT));
+    Assert.assertTrue(_baseAccessor.create(EMPTY_PATH, null, AccessOption.EPHEMERAL));
   }
 
   @AfterClass
@@ -78,6 +81,13 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
     if (_customDataAccessor != null) {
       _customDataAccessor.close();
     }
+  }
+
+  @Test
+  public void testGetPropertyStoreWithEmptyContent() {
+    String data = new JerseyUriRequestBuilder("clusters/{}/propertyStore/EmptyNode").format(TEST_CLUSTER)
+            .expectedReturnStatusCode(Response.Status.NO_CONTENT.getStatusCode()).get(this);
+    Assert.assertTrue(data.isEmpty());
   }
 
   @Test
@@ -91,9 +101,9 @@ public class TestPropertyStoreAccessor extends AbstractTestClass {
 
   @Test
   public void testGetPropertyStoreWithTestStringData() throws IOException {
-    String actual =
-        new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
-            .isBodyReturnExpected(true).get(this);
+    String actual = new JerseyUriRequestBuilder("clusters/{}/propertyStore/NonZnRecord").format(TEST_CLUSTER)
+        .isBodyReturnExpected(true)
+        .get(this);
     JsonNode jsonNode = OBJECT_MAPPER.readTree(actual);
     String payLoad = jsonNode.get(CONTENT_KEY).textValue();
 

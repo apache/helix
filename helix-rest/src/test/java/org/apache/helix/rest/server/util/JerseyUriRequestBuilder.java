@@ -94,13 +94,15 @@ public class JerseyUriRequestBuilder {
 
     Assert.assertEquals(response.getStatus(), _expectedStatusCode);
 
-    // NOT_FOUND will throw text based html
-    if (_expectedStatusCode != Response.Status.NOT_FOUND.getStatusCode()
-        && _expectedStatusCode != Response.Status.BAD_REQUEST.getStatusCode()) {
-      Assert.assertEquals(response.getMediaType().getType(), "application");
-    } else {
-      Assert.assertEquals(response.getMediaType().getType(), "text");
-    }
+    if (_expectedStatusCode != Response.Status.NO_CONTENT.getStatusCode()) {
+      // NOT_FOUND will throw text based html
+      if (_expectedStatusCode != Response.Status.NOT_FOUND.getStatusCode()
+          && _expectedStatusCode != Response.Status.BAD_REQUEST.getStatusCode()) {
+        Assert.assertEquals(response.getMediaType().getType(), "application");
+      } else {
+        Assert.assertEquals(response.getMediaType().getType(), "text");
+      }
+    } // else, NO_CONTENT should not return any content, so no need to check the type.
 
     String body = response.readEntity(String.class);
     if (_isBodyReturnExpected) {

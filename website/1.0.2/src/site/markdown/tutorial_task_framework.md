@@ -23,15 +23,15 @@ under the License.
 
 ## [Helix Tutorial](./Tutorial.html): Task Framework
 
-Task framework, in Helix, provides executable task scheduling and workflow management. In Helix, three layers of task abstraction have been offered to user for defining their logics of dependencies. The graph shows the relationships between three layers. Workflow can contain multiple jobs. One job can depend on other one. Multiple tasks, including same task different partition and different task different partition, can be added in one job.
+Task framework, in Helix, provides an executable task scheduling and workflow management. In Helix, three layers of task abstraction have been offered to user for defining their logics of dependencies. The graph shows the relationships between three layers. Workflow can contain multiple jobs. One job can depend on other one. Multiple tasks, including same task different partition and different task different partition, can be added in one job.
 Task framework not only can abstract three layers task logics but also helps doing task assignment and rebalancing. User can create a workflow (or a job queue) at first beginning. Then jobs can be added into workflow. Those jobs contain the executable tasks implemented by user. Once workflow is completed, Helix will schedule the works based on the condition user provided.
 
 ![Task Framework flow chart](./images/TaskFrameworkLayers.png)
 
 ### Key Concepts
-* Task is the basic unit in Helix task framework. It can represents the a single runnable logics that user prefer to execute for each partition (distributed units).
+* Task is the basic unit in Helix task framework. It represents a single runnable logics that user prefer to execute for each partition (distributed units).
 * Job defines one time operation across all the partitions. It contains multiple Tasks and configuration of tasks, such as how many tasks, timeout per task and so on.
-* Workflow is directed acyclic graph represents the relationships and running orders of Jobs. In addition, a workflow can also provide customized configuration, for example, Job dependencies.
+* Workflow is a directed acyclic graph that represents the relationships and running orders of Jobs. In addition, a workflow can also provide customized configuration, for example, Job dependencies.
 * JobQueue is another type of Workflow. Different from normal one, JobQueue is not terminated until user kill it. Also JobQueue can keep accepting newly coming jobs.
 
 ### Implement Your Task
@@ -71,8 +71,7 @@ For these four fields:
 
 #### Share Content Across Tasks and Jobs
 
-Task framework also provides a feature that user can store the key-value data per task, job and workflow. The content stored at workflow layer can shared by different jobs belong to this workflow. Similarly content persisted at job layer can shared by different tasks nested in this job. Currently, user can extend the abstract class [UserContentStore](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/UserContentStore.java) and use two methods putUserContent and getUserContent. It will similar to hash map put and get method except a Scope.  The Scope will define which layer this key-value pair to be persisted.
-
+Task framework also provides a feature that user can store the key-value data per task, job and workflow. The content stored at workflow layer can shared by different jobs belong to this workflow. Similarly, content persisted at job layer can shared by different tasks nested in this job. Currently, user can extend the abstract class [UserContentStore](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/UserContentStore.java) and use two methods putUserContent and getUserContent. It's similar to HashMap put and get method except for the additional param Scope.  The Scope defines which layer this key-value pair to be persisted.
 ```
 public class MyTask extends UserContentStore implements Task {
   @Override
@@ -99,7 +98,7 @@ TaskResult run() {
 
 #### Task Retry and Abort
 
-Helix provides retry logics to users. User can specify the how many times allowed to tolerant failure of tasks under a job. It is a method will be introduced in Following Job Section. Another choice offered to user that if user thinks a task is very critical and do not want to do the retry once it is failed, user can return a TaskResult stated above with FATAL_FAILED status. Then Helix will not do the retry for that task.
+Helix provides retry logics to users. User can specify the number of task failures to allow under a job. It is a method will be introduced in Following Job Section. Another choice offered to user that if user thinks a task is very critical and do not want to do the retry once it is failed, user can return a TaskResult stated above with FATAL_FAILED status. Then Helix will not do the retry for that task.
 
 ```
 return new TaskResult(TaskResult.Status.FATAL_FAILED, "DO NOT WANT TO RETRY, ERROR MESSAGE");
@@ -194,7 +193,7 @@ taskDriver.delete(myWorkflow);
 
 #### Add a Job
 
-WARNING: Job can only be added to WorkflowConfig.Builder. Once WorkflowConfig built, no job can be added! For creating a Job, please refering following section (Create a Job)
+WARNING: Job can only be added to WorkflowConfig.Builder. Once WorkflowConfig is built, no job can be added! For creating a Job, please refer to the following section (Create a Job)
 
 ```
 myWorkflowBuilder.addJob("JobName", jobConfigBuilder);
@@ -202,7 +201,7 @@ myWorkflowBuilder.addJob("JobName", jobConfigBuilder);
 
 #### Add a Job dependency
 
-Jobs can have dependencies. If one job2 depends job1, job2 will not be scheduled until job1 finished.
+Jobs can have dependencies. If one job2 depends on job1, job2 will not be scheduled until job1 finished.
 
 ```
 myWorkflowBuilder.addParentChildDependency(ParentJobName, ChildJobName);
@@ -224,7 +223,7 @@ myWorkflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(
 | _setExpiry(long v, TimeUnit unit)_ | Set the expiration time for this workflow. |
 | _setFailureThreshold(int failureThreshold)_ | Set the failure threshold for this workflow, once job failures reach this number, the workflow will be failed. |
 | _setWorkflowType(String workflowType)_ | Set the user defined workflowType for this workflow. |
-| _setTerminable(boolean isTerminable)_ | Set the whether this workflow is terminable or not. |
+| _setTerminable(boolean isTerminable)_ | Specify whether this workflow is terminable or not. |
 | _setCapacity(int capacity)_ | Set the number of jobs that workflow can hold before reject further jobs. Only used when workflow is not terminable. |
 | _setTargetState(TargetState v)_ | Set the final state of this workflow. |
 
@@ -255,7 +254,7 @@ jobQueueBuilder.enqueueJob("JobName", jobConfigBuilder);
 
 ####Delete Job from Queue
 
-Helix allowed user to delete a job from existing queue. We offers delete API in TaskDriver to do this. Delete job from queue and this queue has to be stopped. Then user can resume the job once delete success.
+Helix allowed user to delete a job from existing queue. We offer delete API in TaskDriver to do this. The queue has to be stopped in order for a job to be deleted. User can resume the queue once deletion succeeds.
 
 ```
 taskDriver.stop("QueueName");

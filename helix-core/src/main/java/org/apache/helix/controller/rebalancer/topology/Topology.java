@@ -148,8 +148,8 @@ public class Topology {
 
     List<Node> children = root.getChildren();
     if (children != null) {
-      for (int i = 0; i < children.size(); i++) {
-        Node newChild = cloneTree(children.get(i), newNodeWeight, failedNodes);
+      for (Node child : children) {
+        Node newChild = cloneTree(child, newNodeWeight, failedNodes);
         newChild.setParent(root);
         newRoot.addChild(newChild);
       }
@@ -166,7 +166,7 @@ public class Topology {
     root.setType(Types.ROOT.name());
 
     // TODO: Currently we add disabled instance to the topology tree. Since they are not considered
-    // TODO: in relabalnce, maybe we should skip adding them to the tree for consistence.
+    // TODO: in rebalance, maybe we should skip adding them to the tree for consistence.
     for (String instanceName : _allInstances) {
       InstanceConfig insConfig = _instanceConfigMap.get(instanceName);
       try {

@@ -119,8 +119,8 @@ import static org.apache.helix.HelixConstants.ChangeType;
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
  * It does this by listening to changes in cluster state and scheduling new tasks to get cluster
- * state to best possible ideal state. Every instance of this class can control can control only one
- * cluster Get all the partitions use IdealState, CurrentState and Messages <br>
+ * state to the best possible ideal state. Every instance of this class can control only one cluster.
+ * Get all the partitions use IdealState, CurrentState and Messages <br>
  * foreach partition <br>
  * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
  * 2. compute best possible state (instance,state) pair. This needs previous step data and state

@@ -190,7 +190,8 @@ public class ConfigResource extends ServerResource {
   /**
    * set or remove configs depends on "command" field of jsonParameters in POST body
    * @param entity
-   * @param scopeStr
+   * @param type
+   * @param scopeArgs
    * @throws Exception
    */
   void setConfigs(Representation entity, ConfigScopeProperty type, String scopeArgs)

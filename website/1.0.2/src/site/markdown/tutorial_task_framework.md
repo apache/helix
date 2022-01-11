@@ -23,13 +23,13 @@ under the License.
 
 ## [Helix Tutorial](./Tutorial.html): Task Framework
 
-Task framework, in Helix, provides an executable task scheduling and workflow management. In Helix, three layers of task abstraction have been offered to user for defining their logics of dependencies. The graph shows the relationships between three layers. Workflow can contain multiple jobs. One job can depend on other one. Multiple tasks, including same task different partition and different task different partition, can be added in one job.
+Task framework, in Helix, provides executable task scheduling and workflow management. In Helix, three layers of task abstraction have been offered to user for defining their logics of dependencies. The graph shows the relationships between three layers. Workflow can contain multiple jobs. One job can depend on other one. Multiple tasks, including same task different partition and different task different partition, can be added in one job.
 Task framework not only can abstract three layers task logics but also helps doing task assignment and rebalancing. User can create a workflow (or a job queue) at first beginning. Then jobs can be added into workflow. Those jobs contain the executable tasks implemented by user. Once workflow is completed, Helix will schedule the works based on the condition user provided.
 
 ![Task Framework flow chart](./images/TaskFrameworkLayers.png)
 
 ### Key Concepts
-* Task is the basic unit in Helix task framework. It represents a single runnable logics that user prefer to execute for each partition (distributed units).
+* Task is the smallest unit of work in Helix Task Framework. It represents a single runnable logics that user prefer to execute for each partition (distributed units).
 * Job defines one time operation across all the partitions. It contains multiple Tasks and configuration of tasks, such as how many tasks, timeout per task and so on.
 * Workflow is a directed acyclic graph that represents the relationships and running orders of Jobs. In addition, a workflow can also provide customized configuration, for example, Job dependencies.
 * JobQueue is another type of Workflow. Different from normal one, JobQueue is not terminated until user kill it. Also JobQueue can keep accepting newly coming jobs.

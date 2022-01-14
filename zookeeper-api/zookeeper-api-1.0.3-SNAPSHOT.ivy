@@ -37,11 +37,11 @@ under the License.
 		<artifact name="zookeeper-api" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-	  <dependency org="org.slf4j" name="slf4j-api" rev="1.7.25" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+	  <dependency org="org.slf4j" name="slf4j-api" rev="1.7.32" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="slf4j-api" ext="jar"/>
     </dependency>
-    <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
-        <artifact name="slf4j-log4j12" ext="jar"/>
+    <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.17.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+        <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.13" conf="compile->compile(default);runtime->runtime(default);default->default"/>
 		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>

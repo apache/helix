@@ -20,12 +20,6 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-  </dependencies>
 
   <parent>
     <groupId>org.apache</groupId>
@@ -467,12 +461,22 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.25</version>
+        <version>1.7.32</version>
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>1.7.14</version>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>2.17.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>2.17.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j-impl</artifactId>
+        <version>2.17.1</version>
       </dependency>
       <dependency>
         <groupId>org.restlet.jse</groupId>
@@ -562,7 +566,8 @@
             <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
             <assembleDirectory>${project.build.directory}/${project.artifactId}-pkg</assembleDirectory>
             <!-- Extra JVM arguments that will be included in the bin scripts -->
-            <extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
+            <!-- -D flag is a failsafe to address https://nvd.nist.gov/vuln/detail/CVE-2021-44228 -->
+            <extraJvmArguments>-Xms512m -Xmx512m -Dlog4j2.formatMsgNoLookups=true</extraJvmArguments>
             <!-- Generate bin scripts for windows and unix pr default -->
             <platforms>
               <platform>windows</platform>

@@ -67,7 +67,11 @@ public class ZkBucketDataAccessor implements BucketDataAccessor, AutoCloseable {
   // Note that newScheduledThreadPool(1) may not work. newSingleThreadScheduledExecutor guarantees
   // sequential execution, which is what we want for implementing TTL & GC here
   private static final ScheduledExecutorService GC_THREAD =
-      Executors.newSingleThreadScheduledExecutor();
+      Executors.newSingleThreadScheduledExecutor((runnable) -> {
+        Thread thread = new Thread(runnable, "ZkBucketDataAccessorGcThread");
+        thread.setDaemon(true);
+        return thread;
+      });
 
   private final int _bucketSize;
   private final long _versionTTLms;

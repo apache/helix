@@ -19,25 +19,25 @@ package org.apache.helix.zookeeper.introspect;
  * under the License.
  */
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties.Value;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.PropertyName;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Typing;
+import com.fasterxml.jackson.databind.annotation.NoClass;
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
 import com.fasterxml.jackson.databind.introspect.NopAnnotationIntrospector;
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.map.annotate.NoClass;
 
 /**
  * This introspector works with jackson 1 annotations used in
@@ -244,7 +244,7 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   public Object findSerializer(Annotated a) {
     JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
     if (serializeAnnotation != null) {
-      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.using();
+      Class<? extends JsonSerializer> serClass = serializeAnnotation.using();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }
@@ -256,7 +256,7 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   public Object findKeySerializer(Annotated a) {
     JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
     if (serializeAnnotation != null) {
-      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.keyUsing();
+      Class<? extends JsonSerializer> serClass = serializeAnnotation.keyUsing();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }
@@ -268,7 +268,7 @@ public class CodehausJacksonIntrospector extends NopAnnotationIntrospector {
   public Object findContentSerializer(Annotated a) {
     JsonSerialize serializeAnnotation = a.getAnnotation(JsonSerialize.class);
     if (serializeAnnotation != null) {
-      Class<? extends JsonSerializer<?>> serClass = serializeAnnotation.contentUsing();
+      Class<? extends JsonSerializer> serClass = serializeAnnotation.contentUsing();
       if (serClass != JsonSerializer.None.class) {
         return serClass;
       }

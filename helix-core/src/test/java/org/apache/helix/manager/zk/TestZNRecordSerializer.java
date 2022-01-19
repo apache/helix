@@ -32,14 +32,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.zkclient.serialize.ZkSerializer;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -318,10 +319,9 @@ public class TestZNRecordSerializer {
     }
 
     public byte[] serialize(Object data) {
-      SerializationConfig serializationConfig = mapper.getSerializationConfig();
-      serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-      serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-      serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+      mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+      mapper.enable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS);
       StringWriter sw = new StringWriter();
 
       try {
@@ -341,12 +341,9 @@ public class TestZNRecordSerializer {
 
       try {
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-
-        DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
-        deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-        deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
-        deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-
+        mapper.enable(MapperFeature.AUTO_DETECT_FIELDS);
+        mapper.enable(MapperFeature.AUTO_DETECT_SETTERS);
+        mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         return mapper.readValue(bais, _clazz);
       } catch (Exception e) {
         LOG.error("Error during deserialization of bytes: " + new String(bytes), e);

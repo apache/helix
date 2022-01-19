@@ -19,7 +19,7 @@ package org.apache.helix.zookeeper.datamodel;
  * under the License.
  */
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A class represents a session aware ZNRecord: the ZNRecord should be written to zk by

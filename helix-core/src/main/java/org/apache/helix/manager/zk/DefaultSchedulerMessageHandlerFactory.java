@@ -90,7 +90,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
       String key = "MessageResult " + message.getMsgSrc() + " " + UUID.randomUUID();
       _resultSummaryMap.put(key, message.getResultMap());
 
-      if (this.isDone()) {
+      if (isDone()) {
         _logger.info("Scheduler msg " + _originalMessage.getMsgId() + " completed");
         _statusUpdateUtil.logInfo(_originalMessage, SchedulerAsyncCallback.class,
             "Scheduler task completed", _manager);
@@ -100,23 +100,18 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
 
     private void addSummary(Map<String, Map<String, String>> _resultSummaryMap,
         Message originalMessage, HelixManager manager, boolean timeOut) {
-      Map<String, String> summary = new TreeMap<String, String>();
+      Map<String, String> summary = new TreeMap<>();
       summary.put("TotalMessages:", "" + _resultSummaryMap.size());
       summary.put("Timeout", "" + timeOut);
       _resultSummaryMap.put("Summary", summary);
 
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-      ZNRecord statusUpdate =
-          accessor.getProperty(
-              keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
-                  originalMessage.getMsgId())).getRecord();
-
-      statusUpdate.getMapFields().putAll(_resultSummaryMap);
-      accessor.setProperty(
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
-              originalMessage.getMsgId()), new StatusUpdate(statusUpdate));
-
+      accessor.updateProperty(
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), originalMessage.getMsgId()), status -> {
+            status.getMapFields().putAll(_resultSummaryMap);
+            return status;
+          }, null);
     }
   }
 
@@ -169,7 +164,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
             _manager.getClusterName(), clusterName));
       }
 
-      Map<String, String> sendSummary = new HashMap<String, String>();
+      Map<String, String> sendSummary = new HashMap<>();
       sendSummary.put("MessageCount", "0");
       Map<InstanceType, List<Message>> messages =
           _manager.getMessagingService().generateMessage(recipientCriteria, messageTemplate);
@@ -225,7 +220,6 @@ public class DefaultSchedulerMessageHandlerFactory implements MultiTypeMessageHa
         }
       }
       // Record the number of messages sent into scheduler message status updates
-
       ZNRecord statusUpdate =
           accessor.getProperty(
               keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),

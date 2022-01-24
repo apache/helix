@@ -36,13 +36,20 @@ public abstract class ZkAsyncRetryCallContext extends ZkAsyncCallMonitorContext 
    * @param startTimeMilliSec Operation initialization time.
    * @param bytes             The data size in bytes that is involved in the operation.
    * @param isRead            True if the operation is readonly.
+   * @param isCompressed      True if the data is compressed.
    */
   public ZkAsyncRetryCallContext(final ZkAsyncRetryThread retryThread,
       final CancellableZkAsyncCallback callback, final ZkClientMonitor monitor,
-      long startTimeMilliSec, int bytes, boolean isRead) {
-    super(monitor, startTimeMilliSec, bytes, isRead);
+      long startTimeMilliSec, int bytes, boolean isRead, boolean isCompressed) {
+    super(monitor, startTimeMilliSec, bytes, isRead, isCompressed);
     _retryThread = retryThread;
     _cancellableCallback = callback;
+  }
+
+  public ZkAsyncRetryCallContext(final ZkAsyncRetryThread retryThread,
+      final CancellableZkAsyncCallback callback, final ZkClientMonitor monitor,
+      long startTimeMilliSec, int bytes, boolean isRead) {
+    this(retryThread, callback, monitor, startTimeMilliSec, bytes, isRead, false);
   }
 
   /**

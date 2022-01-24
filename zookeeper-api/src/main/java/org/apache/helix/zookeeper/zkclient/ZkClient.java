@@ -33,12 +33,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.JMException;
-
 import org.apache.helix.zookeeper.api.client.ChildrenSubscribeResult;
 import org.apache.helix.zookeeper.constant.ZkSystemPropertyKeys;
 import org.apache.helix.zookeeper.datamodel.SessionAwareZNRecord;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.exception.ZkClientException;
+import org.apache.helix.zookeeper.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.util.ZNRecordUtil;
 import org.apache.helix.zookeeper.zkclient.annotation.PreFetchChangedData;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallMonitorContext;
@@ -1907,12 +1907,8 @@ public class ZkClient implements Watcher {
     try {
       final byte[] data = serialize(datat, path);
       checkDataSizeLimit(path, data);
-      final Stat stat = (Stat) retryUntilConnected(new Callable<Object>() {
-        @Override
-        public Object call() throws Exception {
-          return getConnection().writeDataReturnStat(path, data, expectedVersion);
-        }
-      });
+      final Stat stat = (Stat) retryUntilConnected(
+          (Callable<Object>) () -> getConnection().writeDataReturnStat(path, data, expectedVersion));
       record(path, data, startT, ZkClientMonitor.AccessType.WRITE);
       return stat;
     } catch (Exception e) {
@@ -1945,19 +1941,17 @@ public class ZkClient implements Watcher {
   }
 
   private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
-      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb,
-      final String expectedSessionId) {
+      final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb, final String expectedSessionId) {
     try {
       retryUntilConnected(() -> {
-        getExpectedZookeeper(expectedSessionId)
-            .create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
-                new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false) {
-                  @Override
-                  protected void doRetry() {
-                    doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb,
-                        expectedSessionId);
-                  }
-                });
+        getExpectedZookeeper(expectedSessionId).create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, cb,
+            new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, 0, false,
+                GZipCompressionUtil.isCompressed(data)) {
+              @Override
+              protected void doRetry() {
+                doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb, expectedSessionId);
+              }
+            });
         return null;
       });
     } catch (RuntimeException e) {
@@ -1988,12 +1982,11 @@ public class ZkClient implements Watcher {
     try {
       retryUntilConnected(() -> {
         getExpectedZookeeper(expectedSessionId).setData(path, data, version, cb,
-            new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT,
-                data == null ? 0 : data.length, false) {
+            new ZkAsyncRetryCallContext(_asyncCallRetryThread, cb, _monitor, startT, data == null ? 0 : data.length,
+                false, GZipCompressionUtil.isCompressed(data)) {
               @Override
               protected void doRetry() {
-                doAsyncSetData(path, data, version, System.currentTimeMillis(), cb,
-                    expectedSessionId);
+                doAsyncSetData(path, data, version, System.currentTimeMillis(), cb, expectedSessionId);
               }
             });
         return null;
@@ -2447,6 +2440,10 @@ public class ZkClient implements Watcher {
     if (_monitor != null) {
       int dataSize = (data != null) ? data.length : 0;
       _monitor.record(path, dataSize, startTimeMilliSec, accessType);
+
+      if (GZipCompressionUtil.isCompressed(data)) {
+        _monitor.increaseZnodeCompressCounter();
+      }
     }
   }
 

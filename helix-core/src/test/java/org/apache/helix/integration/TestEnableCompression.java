@@ -19,12 +19,15 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -32,10 +35,13 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.monitoring.mbeans.MBeanRegistrar;
+import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
+import org.apache.helix.zookeeper.zkclient.metric.ZkClientMonitor;
 import org.apache.helix.zookeeper.zkclient.serialize.BytesPushThroughSerializer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -50,7 +56,7 @@ public class TestEnableCompression extends ZkTestBase {
   private static final int ENABLE_COMPRESSION_WAIT = 20 * 60 * 1000;
   private static final int ENABLE_COMPRESSION_POLL_INTERVAL = 2000;
 
-  @Test(timeOut = 10 * 10 * 1000L)
+  @Test//(timeOut = 10 * 10 * 1000L)
   public void testEnableCompressionResource() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -132,6 +138,18 @@ public class TestEnableCompression extends ZkTestBase {
     String externalViewPath = PropertyPathBuilder.externalView(clusterName, resourceName);
     Assert.assertTrue(compressedPaths.contains(idealstatePath));
     Assert.assertTrue(compressedPaths.contains(externalViewPath));
+
+    // Validate the compressed ZK nodes count == external view nodes
+    MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+    ObjectName name =
+        MBeanRegistrar.buildObjectName(MonitorDomainNames.HelixZkClient.name(), ZkClientMonitor.MONITOR_TYPE,
+            InstanceType.CONTROLLER.name(), ZkClientMonitor.MONITOR_KEY,
+            clusterName + "." + controller.getInstanceName());
+    // The controller ZkClient only writes one compressed node, which is the External View node.
+    long compressCount = (long) beanServer.getAttribute(name, "CompressedZnodeWriteCounter");
+    // Note since external view node is updated in every controller pipeline, there would be multiple compressed writes.
+    // However, the total count won't exceed the external view node version (starts from 0).
+    Assert.assertTrue(compressCount >= 1 && compressCount <= zkClient.getStat(externalViewPath).getVersion() + 1);
 
     // clean up
     controller.syncStop();

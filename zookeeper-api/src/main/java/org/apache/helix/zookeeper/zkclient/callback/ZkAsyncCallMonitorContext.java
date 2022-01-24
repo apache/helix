@@ -25,6 +25,7 @@ public class ZkAsyncCallMonitorContext {
   private final long _startTimeMilliSec;
   private final ZkClientMonitor _monitor;
   private final boolean _isRead;
+  private final boolean _isCompressed;
   private int _bytes;
 
   /**
@@ -32,14 +33,22 @@ public class ZkAsyncCallMonitorContext {
    * @param startTimeMilliSec Operation initialization time.
    * @param bytes             The data size in bytes that is involved in the operation.
    * @param isRead            True if the operation is readonly.
+   * @param isCompressed      True if the data is compressed.
    */
   public ZkAsyncCallMonitorContext(final ZkClientMonitor monitor, long startTimeMilliSec, int bytes,
-      boolean isRead) {
+      boolean isRead, boolean isCompressed) {
     _monitor = monitor;
     _startTimeMilliSec = startTimeMilliSec;
     _bytes = bytes;
     _isRead = isRead;
+    _isCompressed = isCompressed;
   }
+
+  public ZkAsyncCallMonitorContext(final ZkClientMonitor monitor, long startTimeMilliSec, int bytes,
+      boolean isRead) {
+    this(monitor, startTimeMilliSec, bytes, isRead, false);
+  }
+
 
   /**
    * Update the operated data size in bytes.
@@ -59,6 +68,9 @@ public class ZkAsyncCallMonitorContext {
         _monitor.recordAsync(path, _bytes, _startTimeMilliSec, ZkClientMonitor.AccessType.READ);
       } else {
         _monitor.recordAsync(path, _bytes, _startTimeMilliSec, ZkClientMonitor.AccessType.WRITE);
+        if (_isCompressed) {
+          _monitor.increaseZnodeCompressCounter();
+        }
       }
     }
   }

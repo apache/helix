@@ -200,9 +200,10 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         }
 
         for (Message staleMessage : staleMessages) {
-          if (System.currentTimeMillis() - currentStateOutput
+          if ((System.currentTimeMillis() - currentStateOutput
               .getEndTime(resourceName, partition, instanceName)
-              > DEFAULT_OBSELETE_MSG_PURGE_DELAY) {
+              > DEFAULT_OBSELETE_MSG_PURGE_DELAY)
+              && staleMessage.getResourceName().equals(resourceName)) {
             logAndAddToCleanUp(messagesToCleanUp, staleMessage, instanceName, resourceName,
                 partition, currentState, STALE_MESSAGE);
           }

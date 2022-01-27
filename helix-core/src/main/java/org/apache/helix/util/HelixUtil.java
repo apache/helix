@@ -580,4 +580,18 @@ public final class HelixUtil {
         || (instancesMessages.getOrDefault(instance, Collections.emptyList()).stream()
         .anyMatch(Message::isParticipantStatusChangeType));
   }
+
+  /**
+   * Sort zoneMapping for each virtual group and flatten to a list.
+   * @param zoneMapping virtual group mapping.
+   * @return a list of instances sorted and flattened.
+   */
+  public static List<String> sortAndFlattenZoneMapping(Map<String, Set<String>> zoneMapping) {
+    return zoneMapping
+        .entrySet()
+        .stream()
+        .sorted(Map.Entry.comparingByKey())
+        .flatMap(entry -> entry.getValue().stream().sorted())
+        .collect(Collectors.toList());
+  }
 }

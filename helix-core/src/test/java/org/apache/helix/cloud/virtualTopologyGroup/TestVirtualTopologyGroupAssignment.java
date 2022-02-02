@@ -35,7 +35,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-public class TestVirtualTopologyGroup {
+public class TestVirtualTopologyGroupAssignment {
 
   private static final String GROUP_NAME = "test_virtual_group";
   private final List<String> _flattenExpected = Arrays.asList(
@@ -78,8 +78,6 @@ public class TestVirtualTopologyGroup {
     testMapping2.get("zone_3").add("3_301");
     testMapping2.get("zone_3").add("3_302");
     compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping2, numGroups, VirtualTopologyGroupScheme.FIFO);
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping2, numGroups, VirtualTopologyGroupScheme.FIFO_COMBINED_ROUND_ROBIN);
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping2, numGroups, VirtualTopologyGroupScheme.ROUND_ROBIN);
 
     Map<String, Set<String>> testMapping3 = createZoneMapping(new int[] {40, 40, 40, 40, 40}, "zone");
     testMapping3.get("zone_2").remove("2_13");
@@ -87,8 +85,6 @@ public class TestVirtualTopologyGroup {
     testMapping3.get("zone_4").remove("4_8");
     testMapping3.get("zone_4").remove("4_17");
     compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping3, numGroups, VirtualTopologyGroupScheme.FIFO);
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping3, numGroups, VirtualTopologyGroupScheme.FIFO_COMBINED_ROUND_ROBIN);
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping3, numGroups, VirtualTopologyGroupScheme.ROUND_ROBIN);
   }
 
   private static void singleAssignmentBenchmark(Map<String, Set<String>> testMapping, int numGroups) {
@@ -96,8 +92,6 @@ public class TestVirtualTopologyGroup {
     System.out.println(testMapping);
     System.out.println("==========");
     validate(numGroups, testMapping, VirtualTopologyGroupScheme.FIFO);
-    validate(numGroups, testMapping, VirtualTopologyGroupScheme.FIFO_COMBINED_ROUND_ROBIN);
-    validate(numGroups, testMapping, VirtualTopologyGroupScheme.ROUND_ROBIN);
   }
 
   private static void compareAssignmentUnderDifferentZoneMapping(
@@ -105,10 +99,8 @@ public class TestVirtualTopologyGroup {
       Map<String, Set<String>> testMapping,
       int numGroups,
       VirtualGroupAssignmentAlgorithm algorithm) {
-    Map<String, Set<String>> baseAssignment =
-        algorithm.computeAssignment(numGroups, TestVirtualTopologyGroup.GROUP_NAME, baseMapping);
-    Map<String, Set<String>> testAssignment =
-        algorithm.computeAssignment(numGroups, TestVirtualTopologyGroup.GROUP_NAME, testMapping);
+    Map<String, Set<String>> baseAssignment = algorithm.computeAssignment(numGroups, GROUP_NAME, baseMapping);
+    Map<String, Set<String>> testAssignment = algorithm.computeAssignment(numGroups, GROUP_NAME, testMapping);
     AssignmentEvaluation base = new AssignmentEvaluation(baseAssignment, baseMapping);
     AssignmentEvaluation test = new AssignmentEvaluation(testAssignment, testMapping);
     System.out.println("Diff for " + algorithm + " : " + base.compareAssignments(test));
@@ -131,33 +123,9 @@ public class TestVirtualTopologyGroup {
     virtualMapping2.put(computeVirtualGroupId(5), Sets.newHashSet("b"));
     virtualMapping2.put(computeVirtualGroupId(6), Sets.newHashSet("c"));
     virtualMapping2.put(computeVirtualGroupId(7), Sets.newHashSet("d"));
-
-    Map<String, Set<String>> virtualMappingCombined = new HashMap<>();
-    virtualMappingCombined.put(computeVirtualGroupId(0), Sets.newHashSet("1", "2", "3", "4"));
-    virtualMappingCombined.put(computeVirtualGroupId(1), Sets.newHashSet("5", "6", "7", "8"));
-    virtualMappingCombined.put(computeVirtualGroupId(2), Sets.newHashSet("9", "a", "b", "c", "d"));
-
-    Map<String, Set<String>> virtualMappingCombined2 = new HashMap<>();
-    virtualMappingCombined2.put(computeVirtualGroupId(0), Sets.newHashSet("1", "9"));
-    virtualMappingCombined2.put(computeVirtualGroupId(1), Sets.newHashSet("2", "a"));
-    virtualMappingCombined2.put(computeVirtualGroupId(2), Sets.newHashSet("3", "b"));
-    virtualMappingCombined2.put(computeVirtualGroupId(3), Sets.newHashSet("4", "c"));
-    virtualMappingCombined2.put(computeVirtualGroupId(4), Sets.newHashSet("5", "d"));
-    virtualMappingCombined2.put(computeVirtualGroupId(5), Sets.newHashSet("6"));
-    virtualMappingCombined2.put(computeVirtualGroupId(6), Sets.newHashSet("7"));
-    virtualMappingCombined2.put(computeVirtualGroupId(7), Sets.newHashSet("8"));
-
-    Map<String, Set<String>> virtualMappingRoundRobin = new HashMap<>();
-    virtualMappingRoundRobin.put(computeVirtualGroupId(0), Sets.newHashSet("1", "4", "7", "a", "d"));
-    virtualMappingRoundRobin.put(computeVirtualGroupId(1), Sets.newHashSet("2", "5", "8", "b"));
-    virtualMappingRoundRobin.put(computeVirtualGroupId(2), Sets.newHashSet("3", "6", "9", "c"));
-
     return new Object[][] {
         {3, virtualMapping, VirtualTopologyGroupScheme.FIFO},
-        {8, virtualMapping2, VirtualTopologyGroupScheme.FIFO},
-        {3, virtualMappingCombined, VirtualTopologyGroupScheme.FIFO_COMBINED_ROUND_ROBIN},
-        {8, virtualMappingCombined2, VirtualTopologyGroupScheme.FIFO_COMBINED_ROUND_ROBIN},
-        {3, virtualMappingRoundRobin, VirtualTopologyGroupScheme.ROUND_ROBIN}
+        {8, virtualMapping2, VirtualTopologyGroupScheme.FIFO}
     };
   }
 
@@ -167,8 +135,7 @@ public class TestVirtualTopologyGroup {
 
   private static void validate(int numGroups, Map<String, Set<String>> zoneMapping,
       VirtualGroupAssignmentAlgorithm algorithm) {
-    Map<String, Set<String>> assignment =
-        algorithm.computeAssignment(numGroups, TestVirtualTopologyGroup.GROUP_NAME, zoneMapping);
+    Map<String, Set<String>> assignment = algorithm.computeAssignment(numGroups, GROUP_NAME, zoneMapping);
     System.out.println("Assignment using " + algorithm);
     System.out.println(assignment);
     AssignmentEvaluation evaluation = new AssignmentEvaluation(assignment, zoneMapping);

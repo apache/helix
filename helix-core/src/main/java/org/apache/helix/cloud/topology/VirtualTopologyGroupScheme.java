@@ -65,61 +65,6 @@ public enum VirtualTopologyGroupScheme implements VirtualGroupAssignmentAlgorith
       Preconditions.checkState(numInstances.stream().mapToInt(Integer::intValue).sum() == sortedInstances.size());
       return ImmutableMap.copyOf(assignment);
     }
-  },
-
-  /**
-   * A round-robin strategy that assigns virtual groups based on mod.
-   */
-  ROUND_ROBIN {
-    @Override
-    public Map<String, Set<String>> computeAssignment(int numGroups, String virtualGroupName,
-        Map<String, Set<String>> zoneMapping) {
-      List<String> sortedInstances = HelixUtil.sortAndFlattenZoneMapping(zoneMapping);
-      Map<String, Set<String>> assignment = new HashMap<>();
-      int ind = 0;
-      for (String instance : sortedInstances) {
-        String groupId = VirtualTopologyGroupScheme.computeVirtualGroupId(ind % numGroups, virtualGroupName);
-        assignment.putIfAbsent(groupId, new HashSet<>());
-        assignment.get(groupId).add(instance);
-        ind++;
-      }
-      return ImmutableMap.copyOf(assignment);
-    }
-  },
-
-  /**
-   * A strategy that combines FIFO and ROUND_ROBIN.
-   * Given that instances.size = instancesPerGroup * numGroups + residuals,
-   * we first densely assign [instancesPerGroup] instances per virtual group, then use round-robin to assign the
-   * residuals that span across all groups.
-   */
-  FIFO_COMBINED_ROUND_ROBIN {
-    @Override
-    public Map<String, Set<String>> computeAssignment(
-        int numGroups, String virtualGroupName, Map<String, Set<String>> zoneMapping) {
-      List<String> sortedInstances = HelixUtil.sortAndFlattenZoneMapping(zoneMapping);
-      Map<String, Set<String>> assignment = new HashMap<>();
-      int instancesPerGroup = sortedInstances.size() / numGroups;
-
-      // instances.size = instancePerGroup * numGroups + residual
-      // step 1, continuously assign following groupInd order until entering residual section
-      for (int instanceInd = 0; instanceInd < instancesPerGroup * numGroups; instanceInd++) {
-        int groupIndex = instanceInd / instancesPerGroup;
-        String groupId = computeVirtualGroupId(groupIndex, virtualGroupName);
-        assignment.putIfAbsent(groupId, new HashSet<>());
-        assignment.get(groupId).add(sortedInstances.get(instanceInd));
-      }
-      // step 2, assign the residuals, either stick to the last assigned group or round-robin to all groups.
-      for (int instanceInd = instancesPerGroup * numGroups; instanceInd < sortedInstances.size(); instanceInd++) {
-        int groupIndex = numGroups <= zoneMapping.keySet().size()
-            ? numGroups - 1
-            : instanceInd % numGroups;
-        String groupId = computeVirtualGroupId(groupIndex, virtualGroupName);
-        assignment.putIfAbsent(groupId, new HashSet<>());
-        assignment.get(groupId).add(sortedInstances.get(instanceInd));
-      }
-      return ImmutableMap.copyOf(assignment);
-    }
   };
 
   private static String computeVirtualGroupId(int groupIndex, String virtualGroupName) {

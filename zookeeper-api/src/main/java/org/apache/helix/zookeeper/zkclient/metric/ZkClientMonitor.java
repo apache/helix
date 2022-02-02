@@ -38,8 +38,6 @@ import org.apache.helix.monitoring.mbeans.dynamicMBeans.DynamicMetric;
 import org.apache.helix.monitoring.mbeans.dynamicMBeans.SimpleDynamicMetric;
 import org.apache.helix.monitoring.mbeans.exception.MetricException;
 import org.apache.helix.zookeeper.zkclient.ZkEventThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 public class ZkClientMonitor extends DynamicMBeanProvider {
@@ -62,6 +60,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   private SimpleDynamicMetric<Long> _expiredSessionCounter;
   private SimpleDynamicMetric<Long> _dataChangeEventCounter;
   private SimpleDynamicMetric<Long> _outstandingRequestGauge;
+  private SimpleDynamicMetric<Long> _znodeCompressCounter;
 
   private ZkThreadMetric _zkEventThreadMetric;
 
@@ -86,6 +85,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     _expiredSessionCounter = new SimpleDynamicMetric("ExpiredSessionCounter", 0l);
     _dataChangeEventCounter = new SimpleDynamicMetric("DataChangeEventCounter", 0l);
     _outstandingRequestGauge = new SimpleDynamicMetric("OutstandingRequestGauge", 0l);
+    _znodeCompressCounter = new SimpleDynamicMetric("CompressedZnodeWriteCounter", 0l);
 
     if (zkEventThread != null) {
       boolean result = setAndInitZkEventThreadMonitor(zkEventThread);
@@ -128,6 +128,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     attributeList.add(_outstandingRequestGauge);
     attributeList.add(_stateChangeEventCounter);
     attributeList.add(_expiredSessionCounter);
+    attributeList.add(_znodeCompressCounter);
     if (_zkEventThreadMetric != null) {
       attributeList.add(_zkEventThreadMetric);
     }
@@ -187,6 +188,12 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   public void decreaseOutstandingRequestGauge() {
     synchronized (_outstandingRequestGauge) {
       _outstandingRequestGauge.updateValue(_outstandingRequestGauge.getValue() - 1);
+    }
+  }
+
+  public void increaseZnodeCompressCounter() {
+    synchronized (_znodeCompressCounter) {
+      _znodeCompressCounter.updateValue(_znodeCompressCounter.getValue() + 1);
     }
   }
 

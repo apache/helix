@@ -22,13 +22,12 @@ package org.apache.helix.cloud.virtualTopologyGroup;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.helix.cloud.constants.VirtualTopologyGroupConstants;
+import org.apache.helix.cloud.topology.FifoVirtualGroupAssignmentAlgorithm;
 import org.apache.helix.cloud.topology.VirtualGroupAssignmentAlgorithm;
-import org.apache.helix.cloud.topology.VirtualTopologyGroupScheme;
 import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -65,54 +64,14 @@ public class TestVirtualTopologyGroupAssignment {
     Assert.assertEquals(algorithm.computeAssignment(numGroups, GROUP_NAME, _zoneMapping), expected);
   }
 
-  @Test
-  public void assignmentBenchmark() {
-    Map<String, Set<String>> testMapping = createZoneMapping(new int[] {40, 40, 40, 40, 40}, "zone");
-    singleAssignmentBenchmark(testMapping, 13);
-    singleAssignmentBenchmark(testMapping, 20);
-
-    int numGroups = 20;
-    Map<String, Set<String>> testMapping2 = createZoneMapping(new int[] {40, 40, 40, 40, 40}, "zone");
-    testMapping2.get("zone_2").add("2_201");
-    testMapping2.get("zone_2").add("2_202");
-    testMapping2.get("zone_3").add("3_301");
-    testMapping2.get("zone_3").add("3_302");
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping2, numGroups, VirtualTopologyGroupScheme.FIFO);
-
-    Map<String, Set<String>> testMapping3 = createZoneMapping(new int[] {40, 40, 40, 40, 40}, "zone");
-    testMapping3.get("zone_2").remove("2_13");
-    testMapping3.get("zone_2").remove("2_8");
-    testMapping3.get("zone_4").remove("4_8");
-    testMapping3.get("zone_4").remove("4_17");
-    compareAssignmentUnderDifferentZoneMapping(testMapping, testMapping3, numGroups, VirtualTopologyGroupScheme.FIFO);
-  }
-
-  private static void singleAssignmentBenchmark(Map<String, Set<String>> testMapping, int numGroups) {
-    System.out.println("Test mapping with numGroups: " + numGroups);
-    System.out.println(testMapping);
-    System.out.println("==========");
-    validate(numGroups, testMapping, VirtualTopologyGroupScheme.FIFO);
-  }
-
-  private static void compareAssignmentUnderDifferentZoneMapping(
-      Map<String, Set<String>> baseMapping,
-      Map<String, Set<String>> testMapping,
-      int numGroups,
-      VirtualGroupAssignmentAlgorithm algorithm) {
-    Map<String, Set<String>> baseAssignment = algorithm.computeAssignment(numGroups, GROUP_NAME, baseMapping);
-    Map<String, Set<String>> testAssignment = algorithm.computeAssignment(numGroups, GROUP_NAME, testMapping);
-    AssignmentEvaluation base = new AssignmentEvaluation(baseAssignment, baseMapping);
-    AssignmentEvaluation test = new AssignmentEvaluation(testAssignment, testMapping);
-    System.out.println("Diff for " + algorithm + " : " + base.compareAssignments(test));
-  }
-
   @DataProvider
   public Object[][] getMappingTests() {
     Map<String, Set<String>> virtualMapping = new HashMap<>();
+    VirtualGroupAssignmentAlgorithm algorithm = FifoVirtualGroupAssignmentAlgorithm.getInstance();
     virtualMapping.put(computeVirtualGroupId(0), Sets.newHashSet("1", "2", "3", "4", "5"));
     virtualMapping.put(computeVirtualGroupId(1), Sets.newHashSet("6", "7", "8", "9"));
     virtualMapping.put(computeVirtualGroupId(2), Sets.newHashSet("a", "b", "c", "d"));
-    Assert.assertEquals(VirtualTopologyGroupScheme.FIFO.computeAssignment(3, GROUP_NAME, _zoneMapping),
+    Assert.assertEquals(algorithm.computeAssignment(3, GROUP_NAME, _zoneMapping),
         virtualMapping);
     Map<String, Set<String>> virtualMapping2 = new HashMap<>();
     virtualMapping2.put(computeVirtualGroupId(0), Sets.newHashSet("1", "2"));
@@ -124,37 +83,12 @@ public class TestVirtualTopologyGroupAssignment {
     virtualMapping2.put(computeVirtualGroupId(6), Sets.newHashSet("c"));
     virtualMapping2.put(computeVirtualGroupId(7), Sets.newHashSet("d"));
     return new Object[][] {
-        {3, virtualMapping, VirtualTopologyGroupScheme.FIFO},
-        {8, virtualMapping2, VirtualTopologyGroupScheme.FIFO}
+        {3, virtualMapping, algorithm},
+        {8, virtualMapping2, algorithm}
     };
   }
 
   private static String computeVirtualGroupId(int groupIndex) {
     return GROUP_NAME + VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER + groupIndex;
-  }
-
-  private static void validate(int numGroups, Map<String, Set<String>> zoneMapping,
-      VirtualGroupAssignmentAlgorithm algorithm) {
-    Map<String, Set<String>> assignment = algorithm.computeAssignment(numGroups, GROUP_NAME, zoneMapping);
-    System.out.println("Assignment using " + algorithm);
-    System.out.println(assignment);
-    AssignmentEvaluation evaluation = new AssignmentEvaluation(assignment, zoneMapping);
-    evaluation.print();
-    System.out.println("==========");
-  }
-
-  private static Map<String, Set<String>> createZoneMapping(int[] zoneInstances, String namePrefix) {
-    Map<String, Set<String>> zoneMapping = new HashMap<>();
-    int zoneInd = 0;
-    for (int num : zoneInstances) {
-      Set<String> instances = new HashSet<>();
-      zoneMapping.put(namePrefix + VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER + zoneInd, instances);
-      for (int i = 0; i < num; i++) {
-        String id = zoneInd + VirtualTopologyGroupConstants.GROUP_NAME_SPLITTER + i;
-        instances.add(id);
-      }
-      zoneInd++;
-    }
-    return zoneMapping;
   }
 }

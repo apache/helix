@@ -904,8 +904,8 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
         pipeline.finish();
       } catch (Exception e) {
         logger.error(
-            "Exception while executing {} pipeline: {} for cluster {}. Will not continue to next pipeline",
-            dataProvider.getPipelineName(), _clusterName, Arrays.toString(e.getStackTrace()));
+            "Exception while executing {} pipeline for cluster {}. Will not continue to next pipeline",
+            dataProvider.getPipelineName(), _clusterName, e);
         if (e instanceof HelixMetaDataAccessException) {
           helixMetaDataAccessRebalanceFail = true;
           // If pipeline failed due to read/write fails to zookeeper, retry the pipeline.

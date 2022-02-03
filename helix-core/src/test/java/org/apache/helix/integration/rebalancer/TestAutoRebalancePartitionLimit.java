@@ -225,7 +225,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
             numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
             cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
       } catch (Exception e) {
-        LOG.debug("Verify failed due to {}", e.getStackTrace());
+        LOG.debug("Verify failed", e);
         return false;
       }
     }

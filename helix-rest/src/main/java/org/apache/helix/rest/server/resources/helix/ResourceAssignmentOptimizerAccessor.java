@@ -147,12 +147,11 @@ public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
     } catch (JsonProcessingException e) {
       return badRequest("Invalid input: Input can not be parsed into a KV map." + e.getMessage());
     } catch (OutOfMemoryError e) {
-      LOG.error("OutOfMemoryError while calling partitionAssignment" + Arrays
-          .toString(e.getStackTrace()));
+      LOG.error("OutOfMemoryError while calling partitionAssignment", e);
       return badRequest(
           "Response size is too large to serialize. Please query by resources or instance filter");
     } catch (Exception e) {
-      LOG.error("Failed to compute partition assignment:" + Arrays.toString(e.getStackTrace()));
+      LOG.error("Failed to compute partition assignment", e);
       return badRequest("Failed to compute partition assignment: " + e);
     }
   }

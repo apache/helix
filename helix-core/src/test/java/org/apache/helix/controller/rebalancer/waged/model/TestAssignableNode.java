@@ -257,6 +257,22 @@ public class TestAssignableNode extends AbstractTestClusterModel {
         testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
 
     Assert.assertEquals(assignableNode.getFaultZone(), "2/testInstance");
+
+    // test fault zone not in top of topology
+    testClusterConfig = new ClusterConfig("testClusterConfigId");
+    testClusterConfig.setFaultZoneType("zone");
+    testClusterConfig.setTopologyAwareEnabled(true);
+    testClusterConfig.setTopology("/rack/zone/instance");
+
+    testInstanceConfig = new InstanceConfig("testInstanceConfigId");
+    testInstanceConfig.setDomain("rack=3, zone=2, instance=testInstanceConfigId");
+    instanceConfigMap = new HashMap<>();
+    instanceConfigMap.put(_testInstanceId, testInstanceConfig);
+    when(testCache.getInstanceConfigMap()).thenReturn(instanceConfigMap);
+    when(testCache.getClusterConfig()).thenReturn(testClusterConfig);
+    assignableNode = new AssignableNode(testCache.getClusterConfig(),
+        testCache.getInstanceConfigMap().get(_testInstanceId), _testInstanceId);
+    Assert.assertEquals(assignableNode.getFaultZone(), "3/2");
   }
 
   @Test

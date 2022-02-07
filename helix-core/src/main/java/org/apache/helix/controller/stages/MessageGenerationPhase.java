@@ -193,7 +193,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           }
         }
 
-        if (pendingMessage != null && shouldCleanUpPendingMessage(pendingMessage, currentState,
+        if (shouldCleanUpPendingMessage(pendingMessage, sessionIdMap, instanceName, currentState,
             currentStateOutput.getEndTime(resourceName, partition, instanceName))) {
           logAndAddToCleanUp(messagesToCleanUp, pendingMessage, instanceName, resourceName,
               partition, currentState, PENDING_MESSAGE);
@@ -203,7 +203,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           // staleMessage can be simple or batch mode
           if ((System.currentTimeMillis() - currentStateOutput
               .getEndTime(resourceName, partition, instanceName) > DEFAULT_OBSELETE_MSG_PURGE_DELAY)
-              && staleMessage.getResourceName().equals(resourceName) && (
+              && staleMessage.getResourceName().equals(resourceName) && sessionIdMap
+              .containsKey(instanceName) && (
               staleMessage.getPartitionName().equals(partition.getPartitionName()) || (
                   staleMessage.getBatchMessageMode() && staleMessage.getPartitionNames()
                       .contains(partition.getPartitionName())))) {
@@ -404,9 +405,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     });
   }
 
-  private boolean shouldCleanUpPendingMessage(Message pendingMsg, String currentState,
-      Long currentStateTransitionEndTime) {
-    if (pendingMsg == null) {
+  private boolean shouldCleanUpPendingMessage(Message pendingMsg, Map<String, String> sessionIdMap,
+      String instanceName, String currentState, Long currentStateTransitionEndTime) {
+    if (pendingMsg == null || !sessionIdMap.containsKey(instanceName)) {
       return false;
     }
     if (currentState.equalsIgnoreCase(pendingMsg.getToState())) {

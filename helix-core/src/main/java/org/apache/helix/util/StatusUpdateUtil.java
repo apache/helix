@@ -555,7 +555,6 @@ public class StatusUpdateUtil {
    */
   void publishErrorRecord(ZNRecord record, String instanceName, String updateSubPath,
       String updateKey, String sessionId, HelixDataAccessor accessor, boolean isController) {
-    _logger.error("StatusUpdate Error record: {}", record);
     if (!ERROR_LOG_TO_ZK_ENABLED) {
       return;
     }

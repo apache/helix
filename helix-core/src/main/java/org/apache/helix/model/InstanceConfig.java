@@ -63,6 +63,8 @@ public class InstanceConfig extends HelixProperty {
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
+  private static final String DOMAIN_FIELD_SPLITTER = ",";
+  private static final String DOMAIN_VALUE_JOINER = "=";
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -156,10 +158,9 @@ public class InstanceConfig extends HelixProperty {
     if (domain == null || domain.isEmpty()) {
       return domainAsMap;
     }
-
-    String[] pathPairs = domain.trim().split(",");
+    String[] pathPairs = domain.trim().split(DOMAIN_FIELD_SPLITTER);
     for (String pair : pathPairs) {
-      String[] values = pair.split("=");
+      String[] values = pair.split(DOMAIN_VALUE_JOINER);
       if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
         throw new IllegalArgumentException(
             String.format("Domain-Value pair %s is not valid.", pair));
@@ -173,10 +174,22 @@ public class InstanceConfig extends HelixProperty {
   /**
    * Domain represents a hierarchy identifier for an instance.
    * Example:  "cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001".
-   * @return
    */
   public void setDomain(String domain) {
     _record.setSimpleField(InstanceConfigProperty.DOMAIN.name(), domain);
+  }
+
+  /**
+   * Set domain from its map representation.
+   * @param domainMap domain as a map
+   */
+  public void setDomain(Map<String, String> domainMap) {
+    String domain = domainMap
+        .entrySet()
+        .stream()
+        .map(entry -> entry.getKey() + DOMAIN_VALUE_JOINER + entry.getValue())
+        .collect(Collectors.joining(DOMAIN_FIELD_SPLITTER));
+    setDomain(domain);
   }
 
   public int getWeight() {

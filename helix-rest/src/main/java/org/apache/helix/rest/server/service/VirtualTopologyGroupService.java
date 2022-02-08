@@ -49,6 +49,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Service for virtual topology group.
+ * It's a virtualization layer on top of physical fault domain and topology in cloud environments.
+ * The service computes the mapping from virtual group to instances based on the current cluster topology and update the
+ * information to cluster and all instances in the cluster.
  */
 public class VirtualTopologyGroupService {
   private static final Logger LOG = LoggerFactory.getLogger(VirtualTopologyGroupService.class);

@@ -23,6 +23,7 @@ package org.apache.helix.cloud.constants;
 public class VirtualTopologyGroupConstants {
   public static final String GROUP_NAME = "virtualTopologyGroupName";
   public static final String GROUP_NUMBER = "virtualTopologyGroupNumber";
+  public static final String AUTO_MAINTENANCE_MODE_DISABLED = "autoMaintenanceModeDisabled";
   public static final String GROUP_NAME_SPLITTER = "_";
   public static final String PATH_NAME_SPLITTER = "/";
   public static final String VIRTUAL_FAULT_ZONE_TYPE = "virtualZone";

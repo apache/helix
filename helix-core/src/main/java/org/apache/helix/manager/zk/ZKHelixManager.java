@@ -38,6 +38,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -70,6 +71,9 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.cloud.event.CloudEventCallbackProperty;
+import org.apache.helix.cloud.event.CloudEventHandlerFactory;
+import org.apache.helix.cloud.event.CloudEventListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -104,7 +108,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZKHelixManager implements HelixManager, IZkStateListener {
+public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEventListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
 
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
@@ -173,6 +177,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private Set<Pipeline.Type> _enabledPipelineTypes;
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<>();
+
+  /**
+   * Cloud fields
+   */
+  private CloudEventCallbackProperty _cloudEventCallbackProperty;
 
   /**
    * status dump timer-task
@@ -305,6 +314,12 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       configuredMonitorLevel = MonitorLevel.DEFAULT;
     }
     _monitorLevel = configuredMonitorLevel;
+
+    HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
+    if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
+      CloudEventHandlerFactory.getInstance().registerCloudEventListener(this);
+      _cloudEventCallbackProperty = helixCloudProperty.getCloudEventCallbackProperty();
+    }
 
     /**
      * instance type specific init
@@ -677,6 +692,23 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public String getClusterName() {
     return _clusterName;
+  }
+
+  /**
+   * CloudEventListener
+   */
+  @Override
+  public void onPause(Object eventInfo) {
+    if (_cloudEventCallbackProperty != null) {
+      _cloudEventCallbackProperty.onPause(this, eventInfo);
+    }
+  }
+
+  @Override
+  public void onResume(Object eventInfo) {
+    if (_cloudEventCallbackProperty != null) {
+      _cloudEventCallbackProperty.onResume(this, eventInfo);
+    }
   }
 
   /**
@@ -1441,6 +1473,14 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public Long getSessionStartTime() {
     return _sessionStartTime;
+  }
+
+  private CloudEventCallbackProperty getCloudEventListenerCallbackProperty() {
+    HelixCloudProperty cloudProperty = _helixManagerProperty.getHelixCloudProperty();
+    if (cloudProperty == null || !cloudProperty.isCloudEventCallbackEnabled()) {
+      return null;
+    }
+    return cloudProperty.getCloudEventCallbackProperty();
   }
 
   /*

@@ -19,6 +19,7 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +46,7 @@ import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.cloud.azure.AzureConstants;
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.cloud.constants.VirtualTopologyGroupConstants;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -70,9 +72,13 @@ import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestClusterAccessor extends AbstractTestClass {
+
+  private static final String VG_CLUSTER = "vgCluster";
+  private HelixDataAccessor _helixDataAccessor;
 
   @BeforeClass
   public void beforeClass() {
@@ -80,6 +86,7 @@ public class TestClusterAccessor extends AbstractTestClass {
       ClusterConfig clusterConfig = createClusterConfig(cluster);
       _configAccessor.setClusterConfig(cluster, clusterConfig);
     }
+    _helixDataAccessor = new ZKHelixDataAccessor(VG_CLUSTER, _baseAccessor);
   }
 
   @Test
@@ -167,10 +174,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
     //get valid cluster topology map
-    String topologyMapDef = get(topologyMapUrlBase, null, Response.Status.OK.getStatusCode(), true);
-    Map<String, Object> topologyMap =
-        OBJECT_MAPPER.readValue(topologyMapDef, new TypeReference<HashMap<String, Object>>() {
-        });
+    Map<String, Object> topologyMap = getMapResponseFromRest(topologyMapUrlBase);
     Assert.assertEquals(topologyMap.size(), 2);
     Assert.assertTrue(topologyMap.get("/helixZoneId:zone0") instanceof List);
     List<String> instances = (List<String>) topologyMap.get("/helixZoneId:zone0");
@@ -197,10 +201,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     updateClusterConfigFromRest(cluster, configDelta, Command.update);
 
     //get valid cluster fault zone map
-    String faultZoneMapDef = get(faultZoneUrlBase, null, Response.Status.OK.getStatusCode(), true);
-    Map<String, Object> faultZoneMap =
-        OBJECT_MAPPER.readValue(faultZoneMapDef, new TypeReference<HashMap<String, Object>>() {
-        });
+    Map<String, Object> faultZoneMap = getMapResponseFromRest(faultZoneUrlBase);
     Assert.assertEquals(faultZoneMap.size(), 2);
     Assert.assertTrue(faultZoneMap.get("/helixZoneId:zone0") instanceof List);
     instances = (List<String>) faultZoneMap.get("/helixZoneId:zone0");
@@ -221,6 +222,77 @@ public class TestClusterAccessor extends AbstractTestClass {
             "/instance:TestCluster_1localhost_12925",
             "/instance:TestCluster_1localhost_12926",
             "/instance:TestCluster_1localhost_12927"))));
+  }
+
+  @Test(dataProvider = "prepareVirtualTopologyTests", dependsOnMethods = "testGetClusters")
+  public void testAddVirtualTopologyGroup(String requestParam, int numGroups,
+      Map<String, String> instanceToGroup) throws IOException {
+    post("clusters/" + VG_CLUSTER,
+        ImmutableMap.of("command", "addVirtualTopologyGroup"),
+        Entity.entity(requestParam, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    Map<String, Object> topology = getMapResponseFromRest(String.format("clusters/%s/topology", VG_CLUSTER));
+    Assert.assertTrue(topology.containsKey("zones"));
+    Assert.assertEquals(((List) topology.get("zones")).size(), numGroups);
+
+    ClusterConfig clusterConfig = getClusterConfigFromRest(VG_CLUSTER);
+    String expectedTopology = "/" + VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE + "/hostname";
+    Assert.assertEquals(clusterConfig.getTopology(), expectedTopology);
+    Assert.assertEquals(clusterConfig.getFaultZoneType(), VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE);
+    for (Map.Entry<String, String> entry : instanceToGroup.entrySet()) {
+      InstanceConfig instanceConfig =
+          _helixDataAccessor.getProperty(_helixDataAccessor.keyBuilder().instanceConfig(entry.getKey()));
+      String expectedGroup = entry.getValue();
+      Assert.assertEquals(instanceConfig.getDomainAsMap().get(VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE),
+          expectedGroup);
+    }
+  }
+
+  @DataProvider
+  public Object[][] prepareVirtualTopologyTests() {
+    setupClusterForVirtualTopology(VG_CLUSTER);
+    String test1 = "{\"virtualTopologyGroupNumber\":\"7\",\"virtualTopologyGroupName\":\"vgTest\"}";
+    String test2 = "{\"virtualTopologyGroupNumber\":\"9\",\"virtualTopologyGroupName\":\"vgTest\"}";
+    return new Object[][] {
+        {test1, 7, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_4",
+            "vgCluster_localhost_12927", "vgTest_6")},
+        {test2, 9, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_6",
+            "vgCluster_localhost_12927", "vgTest_8")},
+        // repeat test1 for deterministic and test for decreasing numGroups
+        {test1, 7, ImmutableMap.of(
+            "vgCluster_localhost_12918", "vgTest_0",
+            "vgCluster_localhost_12919", "vgTest_0",
+            "vgCluster_localhost_12925", "vgTest_4",
+            "vgCluster_localhost_12927", "vgTest_6")}
+    };
+  }
+
+  private void setupClusterForVirtualTopology(String clusterName) {
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    ZNRecord record = new ZNRecord("testZnode");
+    record.setBooleanField(CloudConfig.CloudConfigProperty.CLOUD_ENABLED.name(), true);
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_ID.name(), "TestCloudID");
+    record.setSimpleField(CloudConfig.CloudConfigProperty.CLOUD_PROVIDER.name(), CloudProvider.AZURE.name());
+    CloudConfig cloudConfig = new CloudConfig.Builder(record).build();
+    _gSetupTool.addCluster(clusterName, true, cloudConfig);
+
+    Set<String> instances = new HashSet<>();
+    for (int i = 0; i < 10; i++) {
+      String instanceName = clusterName + "_localhost_" + (12918 + i);
+      _gSetupTool.addInstanceToCluster(clusterName, instanceName);
+      InstanceConfig instanceConfig =
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(instanceName));
+      instanceConfig.setDomain("faultDomain=" + i / 2 + ",hostname=" + instanceName);
+      helixDataAccessor.setProperty(helixDataAccessor.keyBuilder().instanceConfig(instanceName), instanceConfig);
+      instances.add(instanceName);
+    }
+    startInstances(clusterName, instances, 10);
   }
 
   @Test(dependsOnMethods = "testGetClusterTopologyAndFaultZoneMap")
@@ -407,11 +479,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertTrue(maintenance);
 
     // Check that we could retrieve maintenance signal correctly
-    String signal = get("clusters/" + cluster + "/controller/maintenanceSignal", null,
-        Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceSignalMap =
-        OBJECT_MAPPER.readValue(signal, new TypeReference<HashMap<String, Object>>() {
-        });
+        getMapResponseFromRest("clusters/" + cluster + "/controller/maintenanceSignal");
     Assert.assertEquals(maintenanceSignalMap.get("TRIGGERED_BY"), "USER");
     Assert.assertEquals(maintenanceSignalMap.get("REASON"), reason);
     Assert.assertNotNull(maintenanceSignalMap.get("TIMESTAMP"));
@@ -448,11 +517,8 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertNotNull(leader, "Leader name cannot be null!");
 
     // Get the controller leadership history JSON's last entry
-    String leadershipHistory = get("clusters/" + cluster + "/controller/history", null,
-        Response.Status.OK.getStatusCode(), true);
-    Map<String, Object> leadershipHistoryMap =
-        OBJECT_MAPPER.readValue(leadershipHistory, new TypeReference<HashMap<String, Object>>() {
-        });
+    Map<String, Object> leadershipHistoryMap = getMapResponseFromRest("clusters/" + cluster + "/controller/history");
+
     Assert.assertNotNull(leadershipHistoryMap, "Leadership history cannot be null!");
     Object leadershipHistoryList =
         leadershipHistoryMap.get(AbstractResource.Properties.history.name());
@@ -477,11 +543,8 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // Get the maintenance history JSON's last entry
-    String maintenanceHistory = get("clusters/" + cluster + "/controller/maintenanceHistory", null,
-        Response.Status.OK.getStatusCode(), true);
     Map<String, Object> maintenanceHistoryMap =
-        OBJECT_MAPPER.readValue(maintenanceHistory, new TypeReference<HashMap<String, Object>>() {
-        });
+        getMapResponseFromRest("clusters/" + cluster + "/controller/maintenanceHistory");
     Object maintenanceHistoryList =
         maintenanceHistoryMap.get(ClusterAccessor.ClusterProperties.maintenanceHistory.name());
     Assert.assertNotNull(maintenanceHistoryList);
@@ -571,10 +634,7 @@ public class TestClusterAccessor extends AbstractTestClass {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String cluster = "TestCluster_1";
     String urlBase = "clusters/TestCluster_1/statemodeldefs/";
-    String stateModelDefs =
-        get(urlBase, null, Response.Status.OK.getStatusCode(), true);
-    Map<String, Object> defMap = OBJECT_MAPPER.readValue(stateModelDefs, new TypeReference<HashMap<String, Object>>() {
-    });
+    Map<String, Object> defMap = getMapResponseFromRest(urlBase);
 
     Assert.assertTrue(defMap.size() == 2);
     Assert.assertTrue(defMap.get("stateModelDefinitions") instanceof List);
@@ -1426,5 +1486,10 @@ public class TestClusterAccessor extends AbstractTestClass {
     Assert.assertEquals(auditLog.getRequestPath(), requestPath);
     Assert.assertEquals(auditLog.getResponseCode(), statusCode);
     Assert.assertEquals(auditLog.getResponseEntity(), responseEntity);
+  }
+
+  private Map<String, Object> getMapResponseFromRest(String uri) throws JsonProcessingException {
+    String response = get(uri, null, Response.Status.OK.getStatusCode(), true);
+    return OBJECT_MAPPER.readValue(response, new TypeReference<HashMap<String, Object>>() { });
   }
 }

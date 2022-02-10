@@ -78,7 +78,6 @@ import org.testng.annotations.Test;
 public class TestClusterAccessor extends AbstractTestClass {
 
   private static final String VG_CLUSTER = "vgCluster";
-  private HelixDataAccessor _helixDataAccessor;
 
   @BeforeClass
   public void beforeClass() {
@@ -86,7 +85,6 @@ public class TestClusterAccessor extends AbstractTestClass {
       ClusterConfig clusterConfig = createClusterConfig(cluster);
       _configAccessor.setClusterConfig(cluster, clusterConfig);
     }
-    _helixDataAccessor = new ZKHelixDataAccessor(VG_CLUSTER, _baseAccessor);
   }
 
   @Test
@@ -239,13 +237,44 @@ public class TestClusterAccessor extends AbstractTestClass {
     String expectedTopology = "/" + VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE + "/hostname";
     Assert.assertEquals(clusterConfig.getTopology(), expectedTopology);
     Assert.assertEquals(clusterConfig.getFaultZoneType(), VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE);
+
+    HelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(VG_CLUSTER, _baseAccessor);
     for (Map.Entry<String, String> entry : instanceToGroup.entrySet()) {
       InstanceConfig instanceConfig =
-          _helixDataAccessor.getProperty(_helixDataAccessor.keyBuilder().instanceConfig(entry.getKey()));
+          helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().instanceConfig(entry.getKey()));
       String expectedGroup = entry.getValue();
       Assert.assertEquals(instanceConfig.getDomainAsMap().get(VirtualTopologyGroupConstants.VIRTUAL_FAULT_ZONE_TYPE),
           expectedGroup);
     }
+  }
+
+  @Test(dependsOnMethods = "testGetClusters")
+  public void testVirtualTopologyGroupMaintenanceMode() throws JsonProcessingException {
+    setupClusterForVirtualTopology(VG_CLUSTER);
+    String requestParam = "{\"virtualTopologyGroupNumber\":\"7\",\"virtualTopologyGroupName\":\"vgTest\","
+        + "\"autoMaintenanceModeDisabled\":\"true\"}";
+    // expect failure as cluster is not in maintenance mode while autoMaintenanceModeDisabled=true
+    post("clusters/" + VG_CLUSTER,
+        ImmutableMap.of("command", "addVirtualTopologyGroup"),
+        Entity.entity(requestParam, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+    // enable maintenance mode and expect success
+    post("clusters/" + VG_CLUSTER,
+        ImmutableMap.of("command", "enableMaintenanceMode"),
+        Entity.entity("virtual group", MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+    post("clusters/" + VG_CLUSTER,
+        ImmutableMap.of("command", "addVirtualTopologyGroup"),
+        Entity.entity(requestParam, MediaType.APPLICATION_JSON_TYPE),
+        Response.Status.OK.getStatusCode());
+
+    Assert.assertTrue(isMaintenanceModeEnabled(VG_CLUSTER));
+  }
+
+  private boolean isMaintenanceModeEnabled(String clusterName) throws JsonProcessingException {
+    String body =
+        get("clusters/" + clusterName + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
+    return OBJECT_MAPPER.readTree(body).get(ClusterAccessor.ClusterProperties.maintenance.name()).booleanValue();
   }
 
   @DataProvider
@@ -471,12 +500,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity(reason, MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // verify is in maintenance mode
-    String body =
-        get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
-    JsonNode node = OBJECT_MAPPER.readTree(body);
-    boolean maintenance =
-        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).booleanValue();
-    Assert.assertTrue(maintenance);
+    Assert.assertTrue(isMaintenanceModeEnabled(cluster));
 
     // Check that we could retrieve maintenance signal correctly
     Map<String, Object> maintenanceSignalMap =
@@ -491,10 +515,7 @@ public class TestClusterAccessor extends AbstractTestClass {
         Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK.getStatusCode());
 
     // verify no longer in maintenance mode
-    body = get("clusters/" + cluster + "/maintenance", null, Response.Status.OK.getStatusCode(), true);
-    node = OBJECT_MAPPER.readTree(body);
-    Assert.assertFalse(
-        node.get(ClusterAccessor.ClusterProperties.maintenance.name()).booleanValue());
+    Assert.assertFalse(isMaintenanceModeEnabled(cluster));
 
     get("clusters/" + cluster + "/controller/maintenanceSignal", null,
         Response.Status.NOT_FOUND.getStatusCode(), false);

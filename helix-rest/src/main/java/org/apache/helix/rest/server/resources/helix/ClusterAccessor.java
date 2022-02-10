@@ -246,7 +246,7 @@ public class ClusterAccessor extends AbstractHelixResource {
           LOG.error("Illegal input {} for command {}.", content, command, ex);
           return badRequest(String.format("Illegal input %s for command %s", content, command));
         } catch (Exception ex) {
-          LOG.error("Failed to add virtual topology group to cluster {}", clusterId);
+          LOG.error("Failed to add virtual topology group to cluster {}", clusterId, ex);
           return serverError(ex);
         }
         break;

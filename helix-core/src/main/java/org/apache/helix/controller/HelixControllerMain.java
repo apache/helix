@@ -130,24 +130,6 @@ public class HelixControllerMain {
     return null;
   }
 
-  public static void addListenersToController(HelixManager manager,
-      GenericHelixController controller) {
-    try {
-      manager.addControllerListener(controller);
-      manager.addInstanceConfigChangeListener(controller);
-      manager.addResourceConfigChangeListener(controller);
-      manager.addClusterfigChangeListener(controller);
-      manager.addLiveInstanceChangeListener(controller);
-      manager.addIdealStateChangeListener(controller);
-    } catch (ZkInterruptedException e) {
-      logger
-          .warn("zk connection is interrupted during HelixManagerMain.addListenersToController(). "
-              + e);
-    } catch (Exception e) {
-      logger.error("Error when creating HelixManagerContollerMonitor", e);
-    }
-  }
-
   public static HelixManager startHelixController(final String zkConnectString,
       final String clusterName, final String controllerName, final String controllerMode) {
     HelixManager manager = null;

@@ -53,6 +53,8 @@ public class ClusterContext {
   private final Map<String, ResourceAssignment> _baselineAssignment;
   // <ResourceName, ResourceAssignment contains the best possible assignment>
   private final Map<String, ResourceAssignment> _bestPossibleAssignment;
+  // This estimation helps to compute score when sorting replicas.
+  private Map<String, Integer> _estimateUtilizationMap;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -99,9 +101,11 @@ public class ClusterContext {
       // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;
       _estimatedTopStateMaxUtilization = 1f;
+      _estimateUtilizationMap = new HashMap<>();
     } else {
       _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
       _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
+      _estimateUtilizationMap = estimateUtilization(totalCapacity, totalUsage);
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -140,6 +144,10 @@ public class ClusterContext {
 
   public float getEstimatedTopStateMaxUtilization() {
     return _estimatedTopStateMaxUtilization;
+  }
+
+  public Map<String, Integer> getEstimateUtilizationMap() {
+    return _estimateUtilizationMap;
   }
 
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {
@@ -189,4 +197,17 @@ public class ClusterContext {
 
     return estimatedMaxUsage;
   }
+
+  private Map<String, Integer> estimateUtilization(Map<String, Integer> totalCapacity,
+      Map<String, Integer> totalUsage) {
+    Map<String, Integer> estimateUtilization = new HashMap<>();
+    for (String capacityKey : totalCapacity.keySet()) {
+      int maxCapacity = totalCapacity.get(capacityKey);
+      int usage = totalUsage.getOrDefault(capacityKey, 0);
+      estimateUtilization.put(capacityKey, maxCapacity-usage) ;
+    }
+
+    return estimateUtilization;
+  }
+
 }

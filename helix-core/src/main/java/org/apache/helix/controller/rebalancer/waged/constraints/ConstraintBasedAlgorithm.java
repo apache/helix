@@ -72,7 +72,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
 
     // Compute overall utilization of the cluster. Capacity dimension -> total remaining capacity
     Map<String, Integer> overallClusterRemainingCapacityMap =
-        computeOverallClusterRemainingCapacity(nodes);
+        computeFinalClusterRemainingCapacity(clusterModel);
 
     // Create a wrapper for each AssignableReplica.
     List<AssignableReplicaWithScore> toBeAssignedReplicas =
@@ -139,7 +139,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
             int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
             return idleScore1 != idleScore2 ? (idleScore1 - idleScore2)
-                : - instanceName1.compareTo(instanceName2);
+                : -instanceName1.compareTo(instanceName2);
           } else {
             return scoreCompareResult;
           }
@@ -165,24 +165,12 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  private Map<String, Integer> computeOverallClusterRemainingCapacity(List<AssignableNode> nodes) {
-    Map<String, Integer> utilizationMap = new HashMap<>();
-    for (AssignableNode node : nodes) {
-      for (String capacityKey : node.getMaxCapacity().keySet()) {
-        utilizationMap.compute(capacityKey,
-            (k, v) -> v == null ? node.getRemainingCapacity().get(capacityKey)
-                : v + node.getRemainingCapacity().get(capacityKey));
-      }
-    }
-    return utilizationMap;
-  }
-
   private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
     private final AssignableReplica _replica;
     private float _score = 0;
     private final boolean _isInBestPossibleAssignment;
     private final boolean _isInBaselineAssignment;
-    private final Integer  _replicaHash;
+    private final Integer _replicaHash;
 
     AssignableReplicaWithScore(AssignableReplica replica, ClusterModel clusterModel,
         Map<String, Integer> overallClusterRemainingCapacityMap) {
@@ -218,7 +206,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     public AssignableReplica getAssignableReplica() {
       return _replica;
     }
-
 
     @Override
     public String toString() {
@@ -273,6 +260,42 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         return _replica.toString().compareTo(replica2.toString());
       }
     }
+  }
+
+  /**
+   * Update the overallClusterUtilMap with newly placed replica
+   */
+  private Map<String, Integer> computeFinalClusterRemainingCapacity(ClusterModel clusterModel)
+      throws HelixRebalanceException {
+
+    // compute current remaining capacity.
+    Map<String, Integer> utilizationMap = new HashMap<>();
+    for (AssignableNode node : clusterModel.getAssignableNodes().values()) {
+      for (String capacityKey : node.getMaxCapacity().keySet()) {
+        utilizationMap.compute(capacityKey,
+            (k, v) -> v == null ? node.getRemainingCapacity().get(capacityKey)
+                : v + node.getRemainingCapacity().get(capacityKey));
+      }
+    }
+    // compute final remaining capacity after all replicas are assigned.
+    for (Map.Entry<String, Set<AssignableReplica>> replicasByResource : clusterModel
+        .getAssignableReplicaMap().entrySet()) {
+      for (AssignableReplica replica : replicasByResource.getValue()) {
+        for (Map.Entry<String, Integer> resourceUsage : replica.getCapacity().entrySet()) {
+          int finalRemainCapacity =
+              utilizationMap.get(resourceUsage.getKey()) - resourceUsage.getValue();
+          if (finalRemainCapacity < 0) {
+            String errorMessage = String.format(
+                "Unable to find any available candidate node for partition %s; There is no enough capacity ",
+                replica.getPartitionName());
+            throw new HelixRebalanceException(errorMessage,
+                HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+          }
+          utilizationMap.put(resourceUsage.getKey(), finalRemainCapacity);
+        }
+      }
+    }
+    return utilizationMap;
   }
 
   /**

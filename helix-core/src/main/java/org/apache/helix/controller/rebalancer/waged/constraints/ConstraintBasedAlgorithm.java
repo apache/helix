@@ -285,9 +285,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
           int finalRemainCapacity =
               utilizationMap.get(resourceUsage.getKey()) - resourceUsage.getValue();
           if (finalRemainCapacity < 0) {
+            // all replicas' assignment will fail if there is one dimension's remain capacity <0.
             String errorMessage = String.format(
-                "Unable to find any available candidate node for partition %s; There is no enough capacity ",
-                replica.getPartitionName());
+                "The cluster does not have enough %s capacity for all partitions. ",
+                resourceUsage.getKey());
             throw new HelixRebalanceException(errorMessage,
                 HelixRebalanceException.Type.FAILED_TO_CALCULATE);
           }

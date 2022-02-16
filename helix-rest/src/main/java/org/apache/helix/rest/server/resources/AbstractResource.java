@@ -59,6 +59,7 @@ public class AbstractResource {
   public enum Command {
     activate,
     addInstanceTag,
+    addVirtualTopologyGroup,
     expand,
     enable,
     disable,

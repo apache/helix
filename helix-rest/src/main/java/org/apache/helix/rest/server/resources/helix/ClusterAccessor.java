@@ -70,6 +70,7 @@ import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
+import org.apache.helix.rest.server.service.VirtualTopologyGroupService;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -235,6 +236,21 @@ public class ClusterAccessor extends AbstractHelixResource {
         }
         break;
 
+      case addVirtualTopologyGroup:
+        try {
+          addVirtualTopologyGroup(clusterId, content);
+        } catch (JsonProcessingException ex) {
+          LOG.error("Failed to parse json string: {}", content, ex);
+          return badRequest("Invalid payload json body: " + content);
+        } catch (IllegalArgumentException ex) {
+          LOG.error("Illegal input {} for command {}.", content, command, ex);
+          return badRequest(String.format("Illegal input %s for command %s", content, command));
+        } catch (Exception ex) {
+          LOG.error("Failed to add virtual topology group to cluster {}", clusterId, ex);
+          return serverError(ex);
+        }
+        break;
+
       case expand:
         try {
           clusterSetup.expandCluster(clusterId);
@@ -303,6 +319,15 @@ public class ClusterAccessor extends AbstractHelixResource {
     }
 
     return OK();
+  }
+
+  private void addVirtualTopologyGroup(String clusterId, String content) throws JsonProcessingException {
+    ClusterService clusterService = new ClusterServiceImpl(getDataAccssor(clusterId), getConfigAccessor());
+    VirtualTopologyGroupService service = new VirtualTopologyGroupService(
+        getHelixAdmin(), clusterService, getConfigAccessor(), getDataAccssor(clusterId));
+    Map<String, String> customFieldsMap =
+        OBJECT_MAPPER.readValue(content, new TypeReference<HashMap<String, String>>() { });
+    service.addVirtualTopologyGroup(clusterId, customFieldsMap);
   }
 
   @ResponseMetered(name = HttpConstants.READ_REQUEST)

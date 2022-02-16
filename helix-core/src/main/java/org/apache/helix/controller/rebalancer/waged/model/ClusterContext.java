@@ -109,7 +109,7 @@ public class ClusterContext {
       _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
       _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
       _estimateUtilizationMap = estimateUtilization(totalCapacity, totalUsage);
-      _clusterRemainCapacityMap = totalCapacity;
+      _clusterRemainCapacityMap = Collections.unmodifiableMap(totalCapacity);
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -212,10 +212,9 @@ public class ClusterContext {
     for (String capacityKey : totalCapacity.keySet()) {
       int maxCapacity = totalCapacity.get(capacityKey);
       int usage = totalUsage.getOrDefault(capacityKey, 0);
-      estimateUtilization.put(capacityKey, maxCapacity-usage) ;
+      estimateUtilization.put(capacityKey, maxCapacity - usage);
     }
 
-    return estimateUtilization;
+    return Collections.unmodifiableMap(estimateUtilization);
   }
-
 }

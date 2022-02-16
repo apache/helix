@@ -56,7 +56,7 @@ public class ClusterContext {
   // Estimate remaining capacity after assignment. Used to compute score when sorting replicas.
   private final Map<String, Integer> _estimateUtilizationMap;
   // current cluster remaining capacity. Used to compute score when sorting replicas.
-  private final Map<String, Integer> _clusterRemainCapacityMap;
+  private final Map<String, Integer> _clusterCapacityMap;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -104,12 +104,12 @@ public class ClusterContext {
       _estimatedMaxUtilization = 1f;
       _estimatedTopStateMaxUtilization = 1f;
       _estimateUtilizationMap = Collections.emptyMap();
-      _clusterRemainCapacityMap = Collections.emptyMap();
+      _clusterCapacityMap = Collections.emptyMap();
     } else {
       _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
       _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
       _estimateUtilizationMap = estimateUtilization(totalCapacity, totalUsage);
-      _clusterRemainCapacityMap = Collections.unmodifiableMap(totalCapacity);
+      _clusterCapacityMap = Collections.unmodifiableMap(totalCapacity);
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -154,8 +154,8 @@ public class ClusterContext {
     return _estimateUtilizationMap;
   }
 
-  public Map<String, Integer> getClusterRemainCapacityMap() {
-    return _clusterRemainCapacityMap;
+  public Map<String, Integer> getClusterCapacityMap() {
+    return _clusterCapacityMap;
   }
 
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {

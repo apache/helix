@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
  * "hard constraints"
  */
 class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
+  private static final float DIV_GUARD = 0.01f;
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
@@ -81,10 +82,10 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             .format("The cluster does not have enough %s capacity for all partitions. ",
                 capacityKey), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
-      // estimate remain capacity after assignment + %1 of current cluster remain capacity before assignment
+      // estimate remain capacity after assignment + %1 of current cluster capacity before assignment
       positiveEstimateClusterRemainCap.put(capacityKey,
            clusterModel.getContext().getEstimateUtilizationMap().get(capacityKey) +
-          (clusterModel.getContext().getClusterRemainCapacityMap().get(capacityKey) * 0.01f));
+          (clusterModel.getContext().getClusterCapacityMap().get(capacityKey) * DIV_GUARD));
     }
 
     // Create a wrapper for each AssignableReplica.

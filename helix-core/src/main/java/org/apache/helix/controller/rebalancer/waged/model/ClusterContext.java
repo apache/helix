@@ -53,9 +53,9 @@ public class ClusterContext {
   private final Map<String, ResourceAssignment> _baselineAssignment;
   // <ResourceName, ResourceAssignment contains the best possible assignment>
   private final Map<String, ResourceAssignment> _bestPossibleAssignment;
-  // This estimation helps to compute score when sorting replicas.
+  // Estimate remaining capacity after assignment. Used to compute score when sorting replicas.
   private final Map<String, Integer> _estimateUtilizationMap;
-  // This estimation helps to compute score when sorting replicas.
+  // current cluster remaining capacity. Used to compute score when sorting replicas.
   private final Map<String, Integer> _clusterRemainCapacityMap;
 
   /**

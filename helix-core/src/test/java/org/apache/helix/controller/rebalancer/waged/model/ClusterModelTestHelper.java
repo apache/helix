@@ -48,7 +48,16 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
 
   public ClusterModel getMultiNodeClusterModel() throws IOException {
     initialize();
-    ResourceControllerDataProvider testCache = setupClusterDataCacheForNearFullUtil();
+    return getClusterHelper(setupClusterDataCacheForNearFullUtil());
+  }
+
+  public ClusterModel getMultiNodeClusterModelNegativeSetup() throws IOException {
+    initialize();
+    return getClusterHelper(setupClusterDataCacheForNoFitUtil());
+  }
+
+  private ClusterModel getClusterHelper(ResourceControllerDataProvider testCache)
+      throws IOException {
     InstanceConfig testInstanceConfig1 = createMockInstanceConfig(TEST_INSTANCE_ID_1);
     InstanceConfig testInstanceConfig2 = createMockInstanceConfig(TEST_INSTANCE_ID_2);
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
@@ -59,7 +68,8 @@ public class ClusterModelTestHelper extends AbstractTestClusterModel {
     Set<AssignableNode> assignableNodes = generateNodes(testCache);
 
     ClusterContext context =
-        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(), Collections.emptyMap());
+        new ClusterContext(assignableReplicas, assignableNodes, Collections.emptyMap(),
+            Collections.emptyMap());
     return new ClusterModel(context, assignableReplicas, assignableNodes);
   }
 }

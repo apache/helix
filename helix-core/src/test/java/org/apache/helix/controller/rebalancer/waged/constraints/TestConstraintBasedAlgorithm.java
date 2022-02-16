@@ -84,7 +84,7 @@ public class TestConstraintBasedAlgorithm {
         }));
   }
 
-  // Add capacity related hard/soft constrain to test sorting algorithm in ConstraintBasedAlgorithm.
+  // Add capacity related hard/soft constraint to test sorting algorithm in ConstraintBasedAlgorithm.
   @Test
   public void testSortingByResourceCapacity() throws IOException, HelixRebalanceException {
     HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
@@ -97,5 +97,25 @@ public class TestConstraintBasedAlgorithm {
     OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
 
     Assert.assertFalse(optimalAssignment.hasAnyFailure());
+  }
+
+  // Add neg test for error handling in ConstraintBasedAlgorithm replica sorting.
+  @Test
+  public void testSortingEarlyQuitLackCapacity() throws IOException, HelixRebalanceException {
+    HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
+    SoftConstraint soft1 = new MaxCapacityUsageInstanceConstraint();
+    SoftConstraint soft2 = new InstancePartitionsCountConstraint();
+    ConstraintBasedAlgorithm algorithm =
+        new ConstraintBasedAlgorithm(ImmutableList.of(nodeCapacityConstraint),
+            ImmutableMap.of(soft1, 1f, soft2, 1f));
+    ClusterModel clusterModel =
+        new ClusterModelTestHelper().getMultiNodeClusterModelNegativeSetup();
+    try {
+      OptimalAssignment optimalAssignment = algorithm.calculate(clusterModel);
+    } catch (HelixRebalanceException ex) {
+      Assert.assertEquals(ex.getFailureType(), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+      Assert.assertEquals(ex.getMessage(),
+          "The cluster does not have enough item1 capacity for all partitions.  Failure Type: FAILED_TO_CALCULATE");
+    }
   }
 }

@@ -223,7 +223,46 @@ public abstract class AbstractTestClusterModel {
     Map<String, ResourceConfig> configMap = testCache.getResourceConfigMap();
     configMap.put("Resource3", testResourceConfigResource3);
     when(testCache.getResourceConfigMap()).thenReturn(configMap);
-    return  testCache;
+    return testCache;
+  }
+
+  // Add another resource that has large capacity for negative test
+  // TODO: this function has a lot similar line as previous one. We should have a more
+  // generalized factory function instead.
+  protected ResourceControllerDataProvider setupClusterDataCacheForNoFitUtil() throws IOException {
+    _resourceNames.add("Resource4");
+    _partitionNames.add("Partition7");
+    _partitionNames.add("Partition8");
+    ResourceControllerDataProvider testCache = setupClusterDataCache();
+
+    CurrentState testCurrentStateResource4 = Mockito.mock(CurrentState.class);
+    Map<String, String> partitionStateMap4 = new HashMap<>();
+    partitionStateMap4.put(_partitionNames.get(4), "MASTER");
+    partitionStateMap4.put(_partitionNames.get(5), "SLAVE");
+    when(testCurrentStateResource4.getResourceName()).thenReturn(_resourceNames.get(2));
+    when(testCurrentStateResource4.getPartitionStateMap()).thenReturn(partitionStateMap4);
+    when(testCurrentStateResource4.getStateModelDefRef()).thenReturn("MasterSlave");
+    when(testCurrentStateResource4.getState(_partitionNames.get(4))).thenReturn("MASTER");
+    when(testCurrentStateResource4.getState(_partitionNames.get(5))).thenReturn("SLAVE");
+    when(testCurrentStateResource4.getSessionId()).thenReturn(_sessionId);
+
+    Map<String, CurrentState> currentStatemap =
+        testCache.getCurrentState(_testInstanceId, _sessionId);
+    currentStatemap.put(_resourceNames.get(2), testCurrentStateResource4);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId)).thenReturn(currentStatemap);
+    when(testCache.getCurrentState(_testInstanceId, _sessionId, false)).thenReturn(currentStatemap);
+
+    Map<String, Integer> capacityDataMapResource3 = new HashMap<>();
+    capacityDataMapResource3.put("item1", 90);
+    capacityDataMapResource3.put("item2", 9);
+    ResourceConfig testResourceConfigResource3 = new ResourceConfig("Resource4");
+    testResourceConfigResource3.setPartitionCapacityMap(
+        Collections.singletonMap(ResourceConfig.DEFAULT_PARTITION_KEY, capacityDataMapResource3));
+    when(testCache.getResourceConfig("Resource4")).thenReturn(testResourceConfigResource3);
+    Map<String, ResourceConfig> configMap = testCache.getResourceConfigMap();
+    configMap.put("Resource4", testResourceConfigResource3);
+    when(testCache.getResourceConfigMap()).thenReturn(configMap);
+    return testCache;
   }
 
   /**
@@ -237,8 +276,7 @@ public abstract class AbstractTestClusterModel {
     for (CurrentState cs : currentStatemap.values()) {
       ResourceConfig resourceConfig = dataProvider.getResourceConfig(cs.getResourceName());
       // Construct one AssignableReplica for each partition in the current state.
-      cs.getPartitionStateMap().entrySet().stream()
-          .forEach(entry -> assignmentSet
+      cs.getPartitionStateMap().entrySet().stream().forEach(entry -> assignmentSet
               .add(new AssignableReplica(dataProvider.getClusterConfig(), resourceConfig,
                   entry.getKey(), entry.getValue(), entry.getValue().equals("MASTER") ? 1 : 2)));
     }

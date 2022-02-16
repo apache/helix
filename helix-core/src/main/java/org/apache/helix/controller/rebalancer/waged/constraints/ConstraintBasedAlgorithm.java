@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
  * "hard constraints"
  */
 class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
+  private static final float DIV_GUARD = 0.01f;
   private static final Logger LOG = LoggerFactory.getLogger(ConstraintBasedAlgorithm.class);
   private final List<HardConstraint> _hardConstraints;
   private final Map<SoftConstraint, Float> _softConstraints;
@@ -70,15 +71,29 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Set<String> busyInstances =
         getBusyInstances(clusterModel.getContext().getBestPossibleAssignment().values());
 
-    // Compute overall utilization of the cluster. Capacity dimension -> total remaining capacity
-    Map<String, Integer> overallClusterRemainingCapacityMap =
-        computeOverallClusterRemainingCapacity(nodes);
+    // create a always >0 capacity map to avoid divide by 0.
+    Map<String, Float> positiveEstimateClusterRemainCap = new HashMap<>();
+    for (Map.Entry<String, Integer> clusterRemainingCap : clusterModel.getContext()
+        .getEstimateUtilizationMap().entrySet()) {
+      String capacityKey = clusterRemainingCap.getKey();
+      if (clusterRemainingCap.getValue() < 0) {
+        // all replicas' assignment will fail if there is one dimension's remain capacity <0.
+        throw new HelixRebalanceException(String
+            .format("The cluster does not have enough %s capacity for all partitions. ",
+                capacityKey), HelixRebalanceException.Type.FAILED_TO_CALCULATE);
+      }
+      // estimate remain capacity after assignment + %1 of current cluster capacity before assignment
+      positiveEstimateClusterRemainCap.put(capacityKey,
+           clusterModel.getContext().getEstimateUtilizationMap().get(capacityKey) +
+          (clusterModel.getContext().getClusterCapacityMap().get(capacityKey) * DIV_GUARD));
+    }
 
     // Create a wrapper for each AssignableReplica.
     List<AssignableReplicaWithScore> toBeAssignedReplicas =
         clusterModel.getAssignableReplicaMap().values().stream().flatMap(Collection::stream).map(
             replica -> new AssignableReplicaWithScore(replica, clusterModel,
-                overallClusterRemainingCapacityMap)).sorted().collect(Collectors.toList());
+                positiveEstimateClusterRemainCap)).sorted()
+            .collect(Collectors.toList());
 
     for (AssignableReplicaWithScore replicaWithScore : toBeAssignedReplicas) {
       AssignableReplica replica = replicaWithScore.getAssignableReplica();
@@ -139,7 +154,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
             int idleScore1 = busyInstances.contains(instanceName1) ? 0 : 1;
             int idleScore2 = busyInstances.contains(instanceName2) ? 0 : 1;
             return idleScore1 != idleScore2 ? (idleScore1 - idleScore2)
-                : - instanceName1.compareTo(instanceName2);
+                : -instanceName1.compareTo(instanceName2);
           } else {
             return scoreCompareResult;
           }
@@ -165,27 +180,15 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         .collect(Collectors.toList());
   }
 
-  private Map<String, Integer> computeOverallClusterRemainingCapacity(List<AssignableNode> nodes) {
-    Map<String, Integer> utilizationMap = new HashMap<>();
-    for (AssignableNode node : nodes) {
-      for (String capacityKey : node.getMaxCapacity().keySet()) {
-        utilizationMap.compute(capacityKey,
-            (k, v) -> v == null ? node.getRemainingCapacity().get(capacityKey)
-                : v + node.getRemainingCapacity().get(capacityKey));
-      }
-    }
-    return utilizationMap;
-  }
-
   private class AssignableReplicaWithScore implements Comparable<AssignableReplicaWithScore> {
     private final AssignableReplica _replica;
     private float _score = 0;
     private final boolean _isInBestPossibleAssignment;
     private final boolean _isInBaselineAssignment;
-    private final Integer  _replicaHash;
+    private final Integer _replicaHash;
 
     AssignableReplicaWithScore(AssignableReplica replica, ClusterModel clusterModel,
-        Map<String, Integer> overallClusterRemainingCapacityMap) {
+        Map<String, Float> overallClusterRemainingCapacityMap) {
       _replica = replica;
       _isInBestPossibleAssignment = clusterModel.getContext().getBestPossibleAssignment()
           .containsKey(replica.getResourceName());
@@ -195,22 +198,14 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       computeScore(overallClusterRemainingCapacityMap);
     }
 
-    public void computeScore(Map<String, Integer> overallClusterRemainingCapMap) {
+    public void computeScore(Map<String, Float> positiveEstimateClusterRemainCap) {
       float score = 0;
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
       for (Map.Entry<String, Integer> resourceCapacity : _replica.getCapacity().entrySet()) {
-        if (resourceCapacity.getValue() == 0) {
-          continue;
-        }
-        score = (overallClusterRemainingCapMap.get(resourceCapacity.getKey()) == 0
-            || resourceCapacity.getValue() > (overallClusterRemainingCapMap
-            .get(resourceCapacity.getKey()))) ? Float.MAX_VALUE
-            : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
-                .get(resourceCapacity.getKey()));
-        if (Float.compare(score, Float.MAX_VALUE) == 0) {
-          break;
-        }
+        String capacityKey = resourceCapacity.getKey();
+        score +=
+            (float) resourceCapacity.getValue() / positiveEstimateClusterRemainCap.get(capacityKey);
       }
       _score = score;
     }
@@ -218,7 +213,6 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     public AssignableReplica getAssignableReplica() {
       return _replica;
     }
-
 
     @Override
     public String toString() {
@@ -274,6 +268,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       }
     }
   }
+
 
   /**
    * @param assignments A collection of resource replicas assignment.

@@ -53,6 +53,10 @@ public class ClusterContext {
   private final Map<String, ResourceAssignment> _baselineAssignment;
   // <ResourceName, ResourceAssignment contains the best possible assignment>
   private final Map<String, ResourceAssignment> _bestPossibleAssignment;
+  // Estimate remaining capacity after assignment. Used to compute score when sorting replicas.
+  private final Map<String, Integer> _estimateUtilizationMap;
+  // Cluster total capacity. Used to compute score when sorting replicas.
+  private final Map<String, Integer> _clusterCapacityMap;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -99,9 +103,13 @@ public class ClusterContext {
       // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;
       _estimatedTopStateMaxUtilization = 1f;
+      _estimateUtilizationMap = Collections.emptyMap();
+      _clusterCapacityMap = Collections.emptyMap();
     } else {
       _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
       _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);
+      _estimateUtilizationMap = estimateUtilization(totalCapacity, totalUsage);
+      _clusterCapacityMap = Collections.unmodifiableMap(totalCapacity);
     }
     _estimatedMaxPartitionCount = estimateAvgReplicaCount(totalReplicas, instanceCount);
     _estimatedMaxTopStateCount = estimateAvgReplicaCount(totalTopStateReplicas, instanceCount);
@@ -142,6 +150,14 @@ public class ClusterContext {
     return _estimatedTopStateMaxUtilization;
   }
 
+  public Map<String, Integer> getEstimateUtilizationMap() {
+    return _estimateUtilizationMap;
+  }
+
+  public Map<String, Integer> getClusterCapacityMap() {
+    return _clusterCapacityMap;
+  }
+
   public Set<String> getPartitionsForResourceAndFaultZone(String resourceName, String faultZoneId) {
     return _assignmentForFaultZoneMap.getOrDefault(faultZoneId, Collections.emptyMap())
         .getOrDefault(resourceName, Collections.emptySet());
@@ -167,7 +183,7 @@ public class ClusterContext {
     _assignmentForFaultZoneMap = assignmentForFaultZoneMap;
   }
 
-  private int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
+  private static int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
     // Use the floor to ensure evenness.
     // Note if we calculate estimation based on ceil, we might have some low usage participants.
     // For example, if the evaluation is between 1 and 2. While we use 2, many participants will be
@@ -177,7 +193,7 @@ public class ClusterContext {
     return (int) Math.floor((float) replicaCount / instanceCount);
   }
 
-  private float estimateMaxUtilization(Map<String, Integer> totalCapacity,
+  private static float estimateMaxUtilization(Map<String, Integer> totalCapacity,
       Map<String, Integer> totalUsage) {
     float estimatedMaxUsage = 0;
     for (String capacityKey : totalCapacity.keySet()) {
@@ -188,5 +204,17 @@ public class ClusterContext {
     }
 
     return estimatedMaxUsage;
+  }
+
+  private static Map<String, Integer> estimateUtilization(Map<String, Integer> totalCapacity,
+      Map<String, Integer> totalUsage) {
+    Map<String, Integer> estimateUtilization = new HashMap<>();
+    for (String capacityKey : totalCapacity.keySet()) {
+      int maxCapacity = totalCapacity.get(capacityKey);
+      int usage = totalUsage.getOrDefault(capacityKey, 0);
+      estimateUtilization.put(capacityKey, maxCapacity - usage);
+    }
+
+    return Collections.unmodifiableMap(estimateUtilization);
   }
 }

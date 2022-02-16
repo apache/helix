@@ -183,7 +183,7 @@ public class ClusterContext {
     _assignmentForFaultZoneMap = assignmentForFaultZoneMap;
   }
 
-  private int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
+  private static int estimateAvgReplicaCount(int replicaCount, int instanceCount) {
     // Use the floor to ensure evenness.
     // Note if we calculate estimation based on ceil, we might have some low usage participants.
     // For example, if the evaluation is between 1 and 2. While we use 2, many participants will be
@@ -193,7 +193,7 @@ public class ClusterContext {
     return (int) Math.floor((float) replicaCount / instanceCount);
   }
 
-  private float estimateMaxUtilization(Map<String, Integer> totalCapacity,
+  private static float estimateMaxUtilization(Map<String, Integer> totalCapacity,
       Map<String, Integer> totalUsage) {
     float estimatedMaxUsage = 0;
     for (String capacityKey : totalCapacity.keySet()) {
@@ -206,7 +206,7 @@ public class ClusterContext {
     return estimatedMaxUsage;
   }
 
-  private Map<String, Integer> estimateUtilization(Map<String, Integer> totalCapacity,
+  private static Map<String, Integer> estimateUtilization(Map<String, Integer> totalCapacity,
       Map<String, Integer> totalUsage) {
     Map<String, Integer> estimateUtilization = new HashMap<>();
     for (String capacityKey : totalCapacity.keySet()) {

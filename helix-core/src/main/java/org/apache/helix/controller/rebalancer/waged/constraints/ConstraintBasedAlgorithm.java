@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer.waged.constraints;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,16 +70,23 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     Set<String> busyInstances =
         getBusyInstances(clusterModel.getContext().getBestPossibleAssignment().values());
 
-    // Create a wrapper for each AssignableReplica.
-    List<AssignableReplicaWithScore> toBeAssignedReplicas = new ArrayList<>();
-    for (Map.Entry<String, Set<AssignableReplica>> replicasByResource : clusterModel
-        .getAssignableReplicaMap().entrySet()) {
-      for (AssignableReplica replica : replicasByResource.getValue()) {
-        toBeAssignedReplicas.add(new AssignableReplicaWithScore(replica, clusterModel,
-            clusterModel.getContext().getEstimateUtilizationMap()));
+    for (Map.Entry<String, Integer> clusterRemainingCap : clusterModel.getContext()
+        .getEstimateUtilizationMap().entrySet()) {
+      if (clusterRemainingCap.getValue() < 0) {
+        // all replicas' assignment will fail if there is one dimension's remain capacity <0.
+        throw new HelixRebalanceException(String
+            .format("The cluster does not have enough %s capacity for all partitions. ",
+                clusterRemainingCap.getKey()),
+            HelixRebalanceException.Type.FAILED_TO_CALCULATE);
       }
     }
-    Collections.sort(toBeAssignedReplicas);
+
+    // Create a wrapper for each AssignableReplica.
+    List<AssignableReplicaWithScore> toBeAssignedReplicas =
+        clusterModel.getAssignableReplicaMap().values().stream().flatMap(Collection::stream).map(
+            replica -> new AssignableReplicaWithScore(replica, clusterModel,
+                clusterModel.getContext().getEstimateUtilizationMap())).sorted()
+            .collect(Collectors.toList());
 
     for (AssignableReplicaWithScore replicaWithScore : toBeAssignedReplicas) {
       AssignableReplica replica = replicaWithScore.getAssignableReplica();
@@ -175,7 +181,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
     private final Integer _replicaHash;
 
     AssignableReplicaWithScore(AssignableReplica replica, ClusterModel clusterModel,
-        Map<String, Integer> overallClusterRemainingCapacityMap) throws HelixRebalanceException {
+        Map<String, Integer> overallClusterRemainingCapacityMap) {
       _replica = replica;
       _isInBestPossibleAssignment = clusterModel.getContext().getBestPossibleAssignment()
           .containsKey(replica.getResourceName());
@@ -185,8 +191,7 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
       computeScore(overallClusterRemainingCapacityMap);
     }
 
-    public void computeScore(Map<String, Integer> overallClusterRemainingCapMap)
-        throws HelixRebalanceException {
+    public void computeScore(Map<String, Integer> overallClusterRemainingCapMap) {
       float score = 0;
       // score = SUM(weight * (resource_capacity/cluster_capacity) where weight = 1/(1-total_util%)
       // it could be be simplified to "resource_capacity/cluster_remainingCapacity".
@@ -195,19 +200,8 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         if (resourceCapacity.getValue() == 0) {
           continue;
         }
-        if (overallClusterRemainingCapMap.get(capacityKey) < 0) {
-          // all replicas' assignment will fail if there is one dimension's remain capacity <0.
-          String errorMessage = String.format(
-              "The cluster does not have enough %s capacity for all partitions. ",
-              capacityKey);
-          throw new HelixRebalanceException(errorMessage,
-              HelixRebalanceException.Type.FAILED_TO_CALCULATE);
-        }
-        score = (overallClusterRemainingCapMap.get(capacityKey) == 0
-            || resourceCapacity.getValue() > (overallClusterRemainingCapMap
-            .get(capacityKey))) ? Float.MAX_VALUE
-            : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
-                .get(capacityKey));
+        score = score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
+            .get(capacityKey));
         if (Float.compare(score, Float.MAX_VALUE) == 0) {
           break;
         }

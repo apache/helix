@@ -54,7 +54,7 @@ public class ClusterContext {
   // <ResourceName, ResourceAssignment contains the best possible assignment>
   private final Map<String, ResourceAssignment> _bestPossibleAssignment;
   // This estimation helps to compute score when sorting replicas.
-  private Map<String, Integer> _estimateUtilizationMap;
+  private final Map<String, Integer> _estimateUtilizationMap;
 
   /**
    * Construct the cluster context based on the current instance status.
@@ -101,7 +101,7 @@ public class ClusterContext {
       // If no capacity is configured, we treat the cluster as fully utilized.
       _estimatedMaxUtilization = 1f;
       _estimatedTopStateMaxUtilization = 1f;
-      _estimateUtilizationMap = new HashMap<>();
+      _estimateUtilizationMap = Collections.emptyMap();
     } else {
       _estimatedMaxUtilization = estimateMaxUtilization(totalCapacity, totalUsage);
       _estimatedTopStateMaxUtilization = estimateMaxUtilization(totalCapacity, totalTopStateUsage);

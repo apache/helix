@@ -84,7 +84,7 @@ public class TestConstraintBasedAlgorithm {
         }));
   }
 
-  // Add capacity related hard/soft constrain to test sorting algorithm in ConstraintBasedAlgorithm.
+  // Add capacity related hard/soft constraint to test sorting algorithm in ConstraintBasedAlgorithm.
   @Test
   public void testSortingByResourceCapacity() throws IOException, HelixRebalanceException {
     HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();
@@ -99,7 +99,7 @@ public class TestConstraintBasedAlgorithm {
     Assert.assertFalse(optimalAssignment.hasAnyFailure());
   }
 
-  // Add capacity related hard/soft constrain to test sorting algorithm in ConstraintBasedAlgorithm.
+  // Add neg test for error handling in ConstraintBasedAlgorithm replica sorting.
   @Test
   public void testSortingEarlyQuitLackCapacity() throws IOException, HelixRebalanceException {
     HardConstraint nodeCapacityConstraint = new NodeCapacityConstraint();

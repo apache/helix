@@ -200,8 +200,11 @@ class ConstraintBasedAlgorithm implements RebalanceAlgorithm {
         if (resourceCapacity.getValue() == 0) {
           continue;
         }
-        score = score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
-            .get(capacityKey));
+        score = (overallClusterRemainingCapMap.get(capacityKey) == 0
+            || resourceCapacity.getValue() > (overallClusterRemainingCapMap
+            .get(capacityKey))) ? Float.MAX_VALUE
+            : score + (float) resourceCapacity.getValue() / (overallClusterRemainingCapMap
+                .get(capacityKey));
         if (Float.compare(score, Float.MAX_VALUE) == 0) {
           break;
         }

@@ -19,23 +19,34 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixManager;
 
 public abstract class AbstractCloudEventCallbackImpl {
 
   public void onPauseDefaultHelixOperation(HelixManager manager, Object eventInfo) {
-    // To be implemented
+    manager.getClusterManagmentTool()
+        .enableInstance(manager.getClusterName(), manager.getInstanceName(), false);
   }
 
   public void onResumeDefaultHelixOperation(HelixManager manager, Object eventInfo) {
-    // To be implemented
+    manager.getClusterManagmentTool()
+        .enableInstance(manager.getClusterName(), manager.getInstanceName(), true);
   }
 
   public void onPauseMaintenanceMode(HelixManager manager, Object eventInfo) {
-    // To be implemented
+    HelixAdmin admin = manager.getClusterManagmentTool();
+    if (!admin.isInMaintenanceMode(manager.getClusterName())) {
+      admin.manuallyEnableMaintenanceMode(manager.getClusterName(), true,
+          "Cloud event is incoming: " + eventInfo.toString(), null);
+    }
   }
 
   public void onResumeMaintenanceMode(HelixManager manager, Object eventInfo) {
-    // To be implemented
+    HelixAdmin admin = manager.getClusterManagmentTool();
+    if (admin.isInMaintenanceMode(manager.getClusterName())) {
+      admin.manuallyEnableMaintenanceMode(manager.getClusterName(), false,
+          "Cloud event is completed: " + eventInfo.toString(), null);
+    }
   }
 }

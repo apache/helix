@@ -42,7 +42,7 @@ public class CloudEventCallbackProperty {
       "helix.cloud.event.cloudEventCallbackImplClassName";
   private AbstractCloudEventCallbackImpl _callbackImplClass;
 
-  private CloudEventCallbackProperty() {
+  public CloudEventCallbackProperty() {
     String cloudEventCallbackImplClassName =
         System.getProperty(CLOUD_EVENT_CALLBACK_IMPL_CLASS_NAME);
     if (cloudEventCallbackImplClassName == null || cloudEventCallbackImplClassName.isEmpty()) {

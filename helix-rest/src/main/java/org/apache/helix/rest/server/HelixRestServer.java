@@ -41,7 +41,7 @@ import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.ServletType;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
 import org.apache.helix.rest.server.authValidator.AuthValidator;
-import org.apache.helix.rest.server.authValidator.DefaultAuthValidator;
+import org.apache.helix.rest.server.authValidator.NoopAuthValidator;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
 import org.apache.helix.rest.server.filters.ClusterAuthFilter;
@@ -109,8 +109,8 @@ public class HelixRestServer {
 
   private void init(List<HelixRestNamespace> namespaces, int port, String urlPrefix,
       List<AuditLogger> auditLoggers) {
-    init(namespaces, port, urlPrefix, auditLoggers, new DefaultAuthValidator(),
-        new DefaultAuthValidator());
+    init(namespaces, port, urlPrefix, auditLoggers, new NoopAuthValidator(),
+        new NoopAuthValidator());
   }
 
   private void init(List<HelixRestNamespace> namespaces, int port, String urlPrefix,

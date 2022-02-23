@@ -61,6 +61,7 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.clusterMaintenanceService.HealthCheck;
 import org.apache.helix.rest.clusterMaintenanceService.MaintenanceManagementService;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.rest.server.json.instance.InstanceInfo;
 import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -68,6 +69,7 @@ import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ClusterAuth
 @Path("/clusters/{clusterId}/instances/{instanceName}")
 public class PerInstanceAccessor extends AbstractHelixResource {
   private final static Logger LOG = LoggerFactory.getLogger(PerInstanceAccessor.class);

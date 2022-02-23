@@ -54,11 +54,13 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+@ClusterAuth
 @Path("/clusters/{clusterId}/partitionAssignment")
 public class ResourceAssignmentOptimizerAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(

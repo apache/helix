@@ -40,8 +40,12 @@ import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.ServletType;
 import org.apache.helix.rest.server.auditlog.AuditLogger;
+import org.apache.helix.rest.server.authValidator.AuthValidator;
+import org.apache.helix.rest.server.authValidator.DefaultAuthValidator;
 import org.apache.helix.rest.server.filters.AuditLogFilter;
 import org.apache.helix.rest.server.filters.CORSFilter;
+import org.apache.helix.rest.server.filters.ClusterAuthFilter;
+import org.apache.helix.rest.server.filters.NamespaceAuthFilter;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -56,6 +60,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class HelixRestServer {
   private static Logger LOG = LoggerFactory.getLogger(HelixRestServer.class);
@@ -73,6 +78,8 @@ public class HelixRestServer {
   private List<HelixRestNamespace> _helixNamespaces;
   private ServletContextHandler _servletContextHandler;
   private List<AuditLogger> _auditLoggers;
+  private AuthValidator _clusterAuthValidator;
+  private AuthValidator _namespaceAuthValidator;
 
   // Key is name of namespace, value of the resource config of that namespace
   private Map<String, ResourceConfig> _resourceConfigMap;
@@ -94,8 +101,21 @@ public class HelixRestServer {
     init(namespaces, port, urlPrefix, auditLoggers);
   }
 
+  public HelixRestServer(List<HelixRestNamespace> namespaces, int port, String urlPrefix,
+      List<AuditLogger> auditLoggers, AuthValidator clusterAuthValidator,
+      AuthValidator namespaceAuthValidator) {
+    init(namespaces, port, urlPrefix, auditLoggers, clusterAuthValidator, namespaceAuthValidator);
+  }
+
   private void init(List<HelixRestNamespace> namespaces, int port, String urlPrefix,
       List<AuditLogger> auditLoggers) {
+    init(namespaces, port, urlPrefix, auditLoggers, new DefaultAuthValidator(),
+        new DefaultAuthValidator());
+  }
+
+  private void init(List<HelixRestNamespace> namespaces, int port, String urlPrefix,
+      List<AuditLogger> auditLoggers, AuthValidator clusterAuthValidator,
+      AuthValidator namespaceAuthValidator) {
     if (namespaces.size() == 0) {
       throw new IllegalArgumentException(
           "No namespace specified! Please provide ZOOKEEPER address or namespace manifest.");
@@ -108,6 +128,8 @@ public class HelixRestServer {
     _resourceConfigMap = new HashMap<>();
     _servletContextHandler = new ServletContextHandler(_server, _urlPrefix);
     _helixNamespaces = namespaces;
+    _clusterAuthValidator = clusterAuthValidator;
+    _namespaceAuthValidator = namespaceAuthValidator;
 
     // Initialize all namespaces.
     // If there is not a default namespace (namespace.isDefault() is false),
@@ -175,6 +197,8 @@ public class HelixRestServer {
       cfg.register(new CORSFilter());
     }
     cfg.register(new AuditLogFilter(_auditLoggers));
+    cfg.register(new ClusterAuthFilter(_clusterAuthValidator));
+    cfg.register(new NamespaceAuthFilter(_namespaceAuthValidator));
     return cfg;
   }
 

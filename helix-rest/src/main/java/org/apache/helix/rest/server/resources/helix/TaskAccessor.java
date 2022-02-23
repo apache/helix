@@ -33,11 +33,13 @@ import com.codahale.metrics.annotation.ResponseMetered;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ClusterAuth
 @Path("/clusters/{clusterId}/workflows/{workflowName}/jobs/{jobName}/tasks")
 public class TaskAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(TaskAccessor.class.getName());

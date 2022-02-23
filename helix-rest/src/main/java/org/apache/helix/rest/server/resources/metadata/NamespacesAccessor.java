@@ -31,9 +31,11 @@ import com.codahale.metrics.annotation.Timed;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.NamespaceAuth;
 import org.apache.helix.rest.server.resources.AbstractResource;
 
 
+@NamespaceAuth
 @Path("/namespaces")
 public class NamespacesAccessor extends AbstractResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)

@@ -29,8 +29,10 @@ import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HelixRestUtils;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.NamespaceAuth;
 import org.apache.helix.rest.server.resources.AbstractResource;
 
+@NamespaceAuth
 @Path("")
 public class MetadataAccessor extends AbstractResource {
   @ResponseMetered(name = HttpConstants.READ_REQUEST)

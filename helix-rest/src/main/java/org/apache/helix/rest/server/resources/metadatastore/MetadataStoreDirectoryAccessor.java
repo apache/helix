@@ -53,6 +53,7 @@ import org.apache.helix.rest.metadatastore.MetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.ZkMetadataStoreDirectory;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKey;
 import org.apache.helix.rest.metadatastore.datamodel.MetadataStoreShardingKeysByRealm;
+import org.apache.helix.rest.server.filters.NamespaceAuth;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ import org.slf4j.LoggerFactory;
  * Provides REST endpoints for accessing metadata store directory service,
  * which responds to read/write requests of metadata store realms, sharding keys, etc..
  */
+@NamespaceAuth
 @Path("")
 public class MetadataStoreDirectoryAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStoreDirectoryAccessor.class);

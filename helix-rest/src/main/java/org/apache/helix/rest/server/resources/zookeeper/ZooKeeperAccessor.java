@@ -40,6 +40,7 @@ import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.ServerContext;
+import org.apache.helix.rest.server.filters.NamespaceAuth;
 import org.apache.helix.rest.server.resources.AbstractResource;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
  * ZooKeeperAccessor provides methods for accessing ZooKeeper resources (ZNodes).
  * It provides basic ZooKeeper features supported by ZkClient.
  */
+@NamespaceAuth
 @Path("/zookeeper{path: /.+}")
 public class ZooKeeperAccessor extends AbstractResource {
   private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperAccessor.class.getName());

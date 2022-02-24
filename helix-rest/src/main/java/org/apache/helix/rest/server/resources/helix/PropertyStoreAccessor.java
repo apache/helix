@@ -38,12 +38,14 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.msdcommon.util.ZkValidationUtil;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.zookeeper.datamodel.serializer.ZNRecordSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+@ClusterAuth
 @Path("/clusters/{clusterId}/propertyStore")
 public class PropertyStoreAccessor extends AbstractHelixResource {
   private static Logger LOG = LoggerFactory.getLogger(PropertyStoreAccessor.class);

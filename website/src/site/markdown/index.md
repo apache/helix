@@ -37,7 +37,7 @@ To understand Helix, you first need to understand __cluster management__. A dist
 
 Each node performs one or more of the primary functions of the cluster, such as storing and serving data, producing and consuming data streams, and so on. __Once configured for your system, Helix acts as the global brain for the system__. It is designed to make decisions that cannot be made in isolation.  Examples of such decisions that require global knowledge and coordination:
 
-* scheduling of maintainence tasks, such as backups, garbage collection, file consolidation, index rebuilds
+* scheduling of maintenance tasks, such as backups, garbage collection, file consolidation, index rebuilds
 * repartitioning of data or resources across the cluster
 * informing dependent systems of changes so they can react appropriately to cluster changes
 * throttling system tasks and changes

@@ -21,12 +21,12 @@ package org.apache.helix.cloud.event;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,25 +38,16 @@ public class CloudEventCallbackProperty {
       _onPauseOperationMap;
   private ConcurrentHashMap<OnResumeOperations, BiConsumer<HelixManager, Object>>
       _onResumeOperationMap;
-  public static final String CLOUD_EVENT_CALLBACK_IMPL_CLASS_NAME =
-      "helix.cloud.event.cloudEventCallbackImplClassName";
-  private AbstractCloudEventCallbackImpl _callbackImplClass;
+  public static final String CALLBACK_IMPL_CLASS_NAME = "callbackImplClassName";
+  private String _callbackImplClassName;
 
-  public CloudEventCallbackProperty() {
-    String cloudEventCallbackImplClassName =
-        System.getProperty(CLOUD_EVENT_CALLBACK_IMPL_CLASS_NAME);
-    if (cloudEventCallbackImplClassName == null || cloudEventCallbackImplClassName.isEmpty()) {
+  public CloudEventCallbackProperty(Map<String, String> userArgs) {
+    _callbackImplClassName = userArgs.get(CALLBACK_IMPL_CLASS_NAME);
+    if (_callbackImplClassName == null || _callbackImplClassName.isEmpty()) {
       String errMsg = "No cloud event callback implementation class name is defined.";
       LOG.error(errMsg);
       throw new HelixException(errMsg);
     }
-
-    _callbackImplClass = loadCloudEventCallbackOperations(cloudEventCallbackImplClassName);
-
-    if (_callbackImplClass == null) {
-      throw new HelixException("No cloud event callback implementation class name is found.");
-    }
-
     _onPauseOperationMap = new ConcurrentHashMap<>();
     _onResumeOperationMap = new ConcurrentHashMap<>();
   }
@@ -77,28 +68,46 @@ public class CloudEventCallbackProperty {
     PRE_ON_RESUME, DEFAULT_HELIX_OPERATION, MAINTENANCE_MODE, POST_ON_RESUME,
   }
 
-  public void onPause(HelixManager helixManager, Object eventInfo) {
+  public void onPause(HelixManager helixManager, Object eventInfo, CloudEventCallbackImplInterface callbackImplClass) {
     Iterator<OnPauseOperations> iterator = Arrays.stream(OnPauseOperations.values()).iterator();
     while (iterator.hasNext()) {
-      _onPauseOperationMap.getOrDefault(iterator.next(), (manager, info) -> {
-      }).accept(helixManager, eventInfo);
+      OnPauseOperations operation = iterator.next();
+      switch (operation) {
+        case DEFAULT_HELIX_OPERATION:
+          callbackImplClass.onPauseDefaultHelixOperation(helixManager, eventInfo);
+          break;
+        case MAINTENANCE_MODE:
+          callbackImplClass.onPauseMaintenanceMode(helixManager, eventInfo);
+          break;
+        default: _onPauseOperationMap.getOrDefault(operation, (manager, info) -> {
+        }).accept(helixManager, eventInfo);
+      }
     }
   }
 
-  public void onResume(HelixManager helixManager, Object eventInfo) {
+  public void onResume(HelixManager helixManager, Object eventInfo, CloudEventCallbackImplInterface callbackImplClass) {
     Iterator<OnResumeOperations> iterator = Arrays.stream(OnResumeOperations.values()).iterator();
     while (iterator.hasNext()) {
-      _onResumeOperationMap.getOrDefault(iterator.next(), (manager, info) -> {
-      }).accept(helixManager, eventInfo);
+      OnResumeOperations operation = iterator.next();
+      switch (operation) {
+        case DEFAULT_HELIX_OPERATION:
+          callbackImplClass.onResumeDefaultHelixOperation(helixManager, eventInfo);
+          break;
+        case MAINTENANCE_MODE:
+          callbackImplClass.onResumeMaintenanceMode(helixManager, eventInfo);
+          break;
+        default: _onResumeOperationMap.getOrDefault(operation, (manager, info) -> {
+        }).accept(helixManager, eventInfo);
+      }
     }
   }
 
   public void enableOptionalHelixOperation(OptionalHelixOperation operation) {
     if (operation == OptionalHelixOperation.MAINTENANCE_MODE) {
       _onPauseOperationMap
-          .put(OnPauseOperations.MAINTENANCE_MODE, _callbackImplClass::onPauseMaintenanceMode);
+          .put(OnPauseOperations.MAINTENANCE_MODE, (manager, info)->{});
       _onResumeOperationMap
-          .put(OnResumeOperations.MAINTENANCE_MODE, _callbackImplClass::onResumeMaintenanceMode);
+          .put(OnResumeOperations.MAINTENANCE_MODE, (manager, info)->{});
     }
   }
 
@@ -148,19 +157,7 @@ public class CloudEventCallbackProperty {
     }
   }
 
-  private AbstractCloudEventCallbackImpl loadCloudEventCallbackOperations(String implClassName) {
-    AbstractCloudEventCallbackImpl implClass;
-    try {
-      LOG.info("Loading class: " + implClassName);
-      implClass = (AbstractCloudEventCallbackImpl) HelixUtil.loadClass(getClass(), implClassName)
-          .newInstance();
-    } catch (Exception e) {
-      String errMsg = String
-          .format("No cloud event callback implementation class found for: %s. message: ",
-              implClassName);
-      LOG.error(errMsg, e);
-      throw new HelixException(String.format(errMsg, e));
-    }
-    return implClass;
+  public String getCallbackImplClassName() {
+    return _callbackImplClassName;
   }
 }

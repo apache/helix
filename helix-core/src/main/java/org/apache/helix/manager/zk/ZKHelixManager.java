@@ -71,6 +71,7 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
+import org.apache.helix.cloud.event.CloudEventCallbackImplInterface;
 import org.apache.helix.cloud.event.CloudEventCallbackProperty;
 import org.apache.helix.cloud.event.CloudEventHandlerFactory;
 import org.apache.helix.cloud.event.CloudEventListener;
@@ -182,6 +183,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
    * Cloud fields
    */
   private CloudEventCallbackProperty _cloudEventCallbackProperty;
+  private CloudEventCallbackImplInterface _callbackImplClass;
 
   /**
    * status dump timer-task
@@ -319,6 +321,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
     if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
       CloudEventHandlerFactory.getInstance().registerCloudEventListener(this);
       _cloudEventCallbackProperty = helixCloudProperty.getCloudEventCallbackProperty();
+      _callbackImplClass = loadCloudEventCallbackOperations(_cloudEventCallbackProperty.getCallbackImplClassName());
+      if (_callbackImplClass == null) {
+        throw new HelixException("No cloud event callback implementation class name is found.");
+      }
     }
 
     /**
@@ -700,15 +706,31 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
   @Override
   public void onPause(Object eventInfo) {
     if (_cloudEventCallbackProperty != null) {
-      _cloudEventCallbackProperty.onPause(this, eventInfo);
+      _cloudEventCallbackProperty.onPause(this, eventInfo, _callbackImplClass);
     }
   }
 
   @Override
   public void onResume(Object eventInfo) {
     if (_cloudEventCallbackProperty != null) {
-      _cloudEventCallbackProperty.onResume(this, eventInfo);
+      _cloudEventCallbackProperty.onResume(this, eventInfo, _callbackImplClass);
     }
+  }
+
+  private CloudEventCallbackImplInterface loadCloudEventCallbackOperations(String implClassName) {
+    CloudEventCallbackImplInterface implClass;
+    try {
+      LOG.info("Loading class: " + implClassName);
+      implClass = (CloudEventCallbackImplInterface) HelixUtil.loadClass(getClass(), implClassName)
+          .newInstance();
+    } catch (Exception e) {
+      String errMsg = String
+          .format("No cloud event callback implementation class found for: %s. message: ",
+              implClassName);
+      LOG.error(errMsg, e);
+      throw new HelixException(String.format(errMsg, e));
+    }
+    return implClass;
   }
 
   /**

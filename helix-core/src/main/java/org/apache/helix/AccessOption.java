@@ -27,6 +27,9 @@ public class AccessOption {
   public static int PERSISTENT_SEQUENTIAL = 0x4;
   public static int EPHEMERAL_SEQUENTIAL = 0x8;
   public static int THROW_EXCEPTION_IFNOTEXIST = 0x10;
+  public static int CONTAINER = 0x20;
+  public static int PERSISTENT_WITH_TTL = 0x40;
+  public static int PERSISTENT_SEQUENTIAL_WITH_TTL = 0x80;
 
   /**
    * Helper method to get zookeeper create mode from options
@@ -42,6 +45,12 @@ public class AccessOption {
       return CreateMode.PERSISTENT_SEQUENTIAL;
     } else if ((options & EPHEMERAL_SEQUENTIAL) > 0) {
       return CreateMode.EPHEMERAL_SEQUENTIAL;
+    } else if ((options & CONTAINER) > 0) {
+      return CreateMode.CONTAINER;
+    } else if ((options & PERSISTENT_WITH_TTL) > 0) {
+      return CreateMode.PERSISTENT_WITH_TTL;
+    } else if ((options & PERSISTENT_SEQUENTIAL_WITH_TTL) > 0) {
+      return CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL;
     }
 
     return null;

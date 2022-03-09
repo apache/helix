@@ -22,69 +22,102 @@ package org.apache.helix.cloud.event;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class implements a wrapper around multiple {@link CloudEventListener}, and arrange them by
+ * 1. PreEventHandlerCallback -> only one allowed
+ * 2. Unordered CloudEventListener list -> multiple allowed
+ * 3. PostEventHandlerCallback -> only one allowed
+ * to enable an easy management of event listeners and callbacks.
+ */
 public class CloudEventHandler {
   private static final Logger LOG = LoggerFactory.getLogger(CloudEventHandler.class.getName());
-  @VisibleForTesting
-  protected List<CloudEventListener> _eventListeners = new ArrayList<>();
-  private PreEventHandlerCallback _preEventHandlerCallback = null;
-  private PostEventHandlerCallback _postEventHandlerCallback = null;
+  private List<CloudEventListener> _unorderedEventListenerList = new ArrayList<>();
+  private CloudEventListener _preEventHandlerCallback = null;
+  private CloudEventListener _postEventHandlerCallback = null;
 
+  /**
+   * Register an event listener to the event handler. The listeners will be triggered in parallel in events.
+   * @param listener
+   */
   public void registerCloudEventListener(CloudEventListener listener) {
-    _eventListeners.add(listener);
+    _unorderedEventListenerList.add(listener);
   }
 
+  /**
+   * Unregister an event listener to the event handler.
+   * @param listener
+   */
   public void unregisterCloudEventListener(CloudEventListener listener) {
-    _eventListeners.remove(listener);
+    _unorderedEventListenerList.remove(listener);
   }
 
-  public void registerPreEventHandlerCallback(PreEventHandlerCallback preEventHandlerCallback) {
+  /**
+   * Register a callback to be triggered before all the event listeners,
+   * only one instance is allowed
+   * @param preEventHandlerCallback
+   */
+  public void registerPreEventHandlerCallback(CloudEventListener preEventHandlerCallback) {
     _preEventHandlerCallback = preEventHandlerCallback;
   }
 
-  public void unregisterPreEventHandlerCallback(PreEventHandlerCallback preEventHandlerCallback) {
+  /**
+   * Unregister the registered preEventHandlerCallback
+   * @param preEventHandlerCallback
+   */
+  public void unregisterPreEventHandlerCallback(CloudEventListener preEventHandlerCallback) {
     _preEventHandlerCallback = null;
   }
 
-  public PreEventHandlerCallback getPreEventHandlerCallback() {
-    return _preEventHandlerCallback;
-  }
-
-  public PostEventHandlerCallback getPostEventHandlerCallback() {
-    return _postEventHandlerCallback;
-  }
-
-  public void registerPostEventHandlerCallback(PostEventHandlerCallback postEventHandlerCallback) {
+  /**
+   * Register a callback to be triggered after all the event listeners,
+   * only one instance is allowed
+   * @param postEventHandlerCallback
+   */
+  public void registerPostEventHandlerCallback(CloudEventListener postEventHandlerCallback) {
     _postEventHandlerCallback = postEventHandlerCallback;
   }
 
+  /**
+   * Unregister the registered postEventHandlerCallback
+   * @param postEventHandlerCallback
+   */
   public void unregisterPostEventHandlerCallback(
-      PostEventHandlerCallback postEventHandlerCallback) {
+      CloudEventListener postEventHandlerCallback) {
     _postEventHandlerCallback = null;
   }
 
+  /**
+   * Trigger the callback / listeners in order of
+   * 1. PreEventHandlerCallback
+   * 2. Unordered CloudEventListener list
+   * 3. PostEventHandlerCallback
+   * @param eventInfo the object contains any information about the incoming event
+   */
   public void onPause(Object eventInfo) {
     if (_preEventHandlerCallback != null) {
       _preEventHandlerCallback.onPause(eventInfo);
     }
-    for (CloudEventListener listener : _eventListeners) {
-      listener.onPause(eventInfo);
-    }
+    _unorderedEventListenerList.forEach(listener -> listener.onPause(eventInfo));
     if (_postEventHandlerCallback != null) {
       _postEventHandlerCallback.onPause(eventInfo);
     }
   }
 
+  /**
+   * Trigger the callback / listeners in order of
+   * 1. PreEventHandlerCallback
+   * 2. Unordered CloudEventListener list
+   * 3. PostEventHandlerCallback
+   * @param eventInfo the object contains any information about the incoming event
+   */
   public void onResume(Object eventInfo) {
     if (_preEventHandlerCallback != null) {
       _preEventHandlerCallback.onResume(eventInfo);
     }
-    for (CloudEventListener listener : _eventListeners) {
-      listener.onResume(eventInfo);
-    }
+    _unorderedEventListenerList.forEach(listener -> listener.onResume(eventInfo));
     if (_postEventHandlerCallback != null) {
       _postEventHandlerCallback.onResume(eventInfo);
     }

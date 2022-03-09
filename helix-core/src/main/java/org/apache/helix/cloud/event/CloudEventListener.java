@@ -19,7 +19,20 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+/**
+ * This class is a basic unit for callbacks to handle events.
+ * The listeners can be registered to {@link CloudEventHandler}.
+ */
 public interface CloudEventListener {
+  /**
+   * Callback for when a pause event is incoming
+   * @param eventInfo
+   */
   void onPause(Object eventInfo);
+
+  /**
+   * Callback for when a pause event finishes
+   * @param eventInfo
+   */
   void onResume(Object eventInfo);
 }

@@ -19,12 +19,19 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+/**
+ * This class is the factory for singleton class {@link CloudEventHandler}
+ */
 public class CloudEventHandlerFactory {
   private static CloudEventHandler INSTANCE = null;
 
   private CloudEventHandlerFactory() {
   }
 
+  /**
+   * Get a CloudEventHandler instance
+   * @return
+   */
   public static CloudEventHandler getInstance() {
     if (INSTANCE == null) {
       synchronized (CloudEventHandlerFactory.class) {

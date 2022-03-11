@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 public class CloudEventHandler {
   private static final Logger LOG = LoggerFactory.getLogger(CloudEventHandler.class.getName());
   private List<CloudEventListener> _unorderedEventListenerList = new ArrayList<>();
-  private Optional<CloudEventListener> _preEventHandlerCallback;
-  private Optional<CloudEventListener> _postEventHandlerCallback;
+  private Optional<CloudEventListener> _preEventHandlerCallback = Optional.empty();
+  private Optional<CloudEventListener> _postEventHandlerCallback = Optional.empty();
 
   /**
    * Register an event listener to the event handler.

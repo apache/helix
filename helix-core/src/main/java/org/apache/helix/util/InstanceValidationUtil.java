@@ -55,6 +55,7 @@ public class InstanceValidationUtil {
       ImmutableSet.of(HelixDefinedState.DROPPED.name(), HelixDefinedState.ERROR.name());
 
   static final String UNHEALTHY_PARTITION = "UNHEALTHY_PARTITION";
+  static final String HOST_NO_STATE_ERROR = "HOST_NO_STATE_ERROR:";
   // The message that will be shown if partition is in initial state of the state model and
   // partition health check has been skipped for that instance
   static final String PARTITION_INITIAL_STATE_FAIL = "PARTITION_INITIAL_STATE_FAIL";
@@ -257,11 +258,16 @@ public class InstanceValidationUtil {
               continue;
             }
 
-            // We are checking sibling partition healthy status. So if partition health does not
-            // exist or it is not healthy. We should mark this partition is unhealthy.
+            // If we failed to get partition assignment for one sibling instance, we add the
+            // nstance name in return error for debugability
             if (!globalPartitionHealthStatus.containsKey(siblingInstance)
-                || !globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
+                || globalPartitionHealthStatus.get(siblingInstance).isEmpty()) {
+              unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
+                  .add(HOST_NO_STATE_ERROR + siblingInstance);
+            } else if (!globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
                 || !globalPartitionHealthStatus.get(siblingInstance).get(partition)) {
+              // We are checking sibling partition healthy status. So if partition health does not
+              // exist or it is not healthy. We should mark this partition is unhealthy.
               unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
                   .add(UNHEALTHY_PARTITION);
             }

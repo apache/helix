@@ -242,12 +242,12 @@ public class TestMaintenanceManagementService {
             MaintenanceManagementService.getMapFromJsonPayload(jsonContent), Collections.singletonList("org.apache.helix.rest.server.TestOperationImpl"),
             Collections.EMPTY_MAP, true);
     Assert.assertFalse(instanceInfo.isSuccessful());
-    Assert.assertEquals(instanceInfo.getMessages().get(0), "CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION:PARTITION_0");
+    Assert.assertEquals(instanceInfo.getMessages().get(0), "CUSTOM_PARTITION_HEALTH_FAILURE:HOST_NO_STATE_ERROR:INSTANCE0.LINKEDIN.COM_1236:PARTITION_0");
 
     // Operation should finish even with check failed.
     MockMaintenanceManagementService instanceServiceSkipFailure =
         new MockMaintenanceManagementService(zkHelixDataAccessor, _configAccessor, _customRestClient, true,
-            ImmutableSet.of("CUSTOM_PARTITION_HEALTH_FAILURE:UNHEALTHY_PARTITION"), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
+            ImmutableSet.of("CUSTOM_PARTITION_HEALTH_FAILURE:HOST_NO_STATE_ERROR"), HelixRestNamespace.DEFAULT_NAMESPACE_NAME);
     MaintenanceManagementInstanceInfo instanceInfo2 =
         instanceServiceSkipFailure.takeInstance(TEST_CLUSTER, TEST_INSTANCE, Collections.singletonList("CustomInstanceStoppableCheck"),
             MaintenanceManagementService.getMapFromJsonPayload(jsonContent), Collections.singletonList("org.apache.helix.rest.server.TestOperationImpl"),

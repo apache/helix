@@ -190,7 +190,7 @@ public class HelixCloudProperty {
     return _isCloudEventCallbackEnabled;
   }
 
-  public void enableCloudEventCallback(boolean enabled) {
+  public void setCloudEventCallbackEnabled(boolean enabled) {
     _isCloudEventCallbackEnabled = enabled;
   }
 

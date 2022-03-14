@@ -48,7 +48,7 @@ public class TestCloudEventCallbackProperty {
     // Cloud property
     HelixCloudProperty cloudProperty =
         new HelixCloudProperty(new CloudConfig(new ZNRecord("test")));
-    cloudProperty.enableCloudEventCallback(true);
+    cloudProperty.setCloudEventCallbackEnabled(true);
     cloudProperty.setCloudEventCallbackProperty(property);
 
     // Helix manager property
@@ -103,7 +103,7 @@ public class TestCloudEventCallbackProperty {
     // Cloud property
     HelixCloudProperty cloudProperty =
         new HelixCloudProperty(new CloudConfig(new ZNRecord("test")));
-    cloudProperty.enableCloudEventCallback(true);
+    cloudProperty.setCloudEventCallbackEnabled(true);
     cloudProperty.setCloudEventCallbackProperty(property);
 
     // Helix manager property

@@ -19,8 +19,6 @@ package org.apache.helix.cloud.event.helix;
  * under the License.
  */
 
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -39,11 +37,11 @@ public class CloudEventCallbackProperty {
 
   // The key for user to pass in callback impl class name in the constructor
   public static final String CALLBACK_IMPL_CLASS_NAME = "callbackImplClassName";
-  private ConcurrentHashMap<OnPauseOperations, BiConsumer<HelixManager, Object>>
+  private Map<OnPauseOperations, BiConsumer<HelixManager, Object>>
       _onPauseOperationMap;
-  private ConcurrentHashMap<OnResumeOperations, BiConsumer<HelixManager, Object>>
+  private Map<OnResumeOperations, BiConsumer<HelixManager, Object>>
       _onResumeOperationMap;
-  private String _callbackImplClassName;
+  private final String _callbackImplClassName;
 
   /**
    * Constructor
@@ -90,9 +88,7 @@ public class CloudEventCallbackProperty {
    */
   public void onPause(HelixManager helixManager, Object eventInfo,
       AbstractCloudEventCallbackImpl callbackImplClass) {
-    Iterator<OnPauseOperations> iterator = Arrays.stream(OnPauseOperations.values()).iterator();
-    while (iterator.hasNext()) {
-      OnPauseOperations operation = iterator.next();
+    for (OnPauseOperations operation : OnPauseOperations.values()) {
       switch (operation) {
         case DEFAULT_HELIX_OPERATION:
           callbackImplClass.onPauseDefaultHelixOperation(helixManager, eventInfo);
@@ -120,9 +116,7 @@ public class CloudEventCallbackProperty {
    */
   public void onResume(HelixManager helixManager, Object eventInfo,
       AbstractCloudEventCallbackImpl callbackImplClass) {
-    Iterator<OnResumeOperations> iterator = Arrays.stream(OnResumeOperations.values()).iterator();
-    while (iterator.hasNext()) {
-      OnResumeOperations operation = iterator.next();
+    for (OnResumeOperations operation : OnResumeOperations.values()) {
       switch (operation) {
         case DEFAULT_HELIX_OPERATION:
           callbackImplClass.onResumeDefaultHelixOperation(helixManager, eventInfo);

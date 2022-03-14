@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
@@ -59,6 +60,7 @@ import org.apache.helix.zookeeper.zkclient.exception.ZkNoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ClusterAuth
 @Path("/clusters/{clusterId}/workflows")
 public class WorkflowAccessor extends AbstractHelixResource {
   private static Logger _logger = LoggerFactory.getLogger(WorkflowAccessor.class.getName());

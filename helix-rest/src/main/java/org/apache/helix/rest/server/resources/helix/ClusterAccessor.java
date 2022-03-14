@@ -67,6 +67,8 @@ import org.apache.helix.model.RESTConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.rest.common.HttpConstants;
+import org.apache.helix.rest.server.filters.ClusterAuth;
+import org.apache.helix.rest.server.filters.NamespaceAuth;
 import org.apache.helix.rest.server.json.cluster.ClusterTopology;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
@@ -98,6 +100,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     clusterName
   }
 
+  @NamespaceAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -111,6 +114,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(dataMap);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -149,6 +153,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(clusterInfo);
   }
 
+  @NamespaceAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
@@ -185,6 +190,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return created();
   }
 
+  @NamespaceAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
@@ -206,6 +212,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -330,6 +337,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     service.addVirtualTopologyGroup(clusterId, customFieldsMap);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -404,6 +412,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return details;
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -437,6 +446,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(ImmutableMap.of("acknowledged", true));
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -461,6 +471,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
@@ -492,6 +503,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
@@ -514,6 +526,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -534,6 +547,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -576,6 +590,7 @@ public class ClusterAccessor extends AbstractHelixResource {
   }
 
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -590,6 +605,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK(objectMapper.writeValueAsString(clusterTopology));
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -605,6 +621,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(topologyMap);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -620,6 +637,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(faultZoneMap);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -674,6 +692,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -694,6 +713,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(controllerInfo);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -703,6 +723,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         getControllerHistory(clusterId, ControllerHistory.HistoryType.CONTROLLER_LEADERSHIP));
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -712,6 +733,7 @@ public class ClusterAccessor extends AbstractHelixResource {
         getControllerHistory(clusterId, ControllerHistory.HistoryType.MAINTENANCE));
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -728,6 +750,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound(String.format("Cluster %s is not in maintenance mode!", clusterId));
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -746,6 +769,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(controllerMessages);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -758,6 +782,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(message.getRecord());
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -774,6 +799,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(clusterStateModelDefs);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -790,6 +816,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(stateModelDef.getRecord());
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
@@ -815,6 +842,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -844,6 +872,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
@@ -870,6 +899,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
@@ -902,6 +932,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST
@@ -951,6 +982,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -973,6 +1005,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return JSONRepresentation(config.getRecord());
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
@@ -991,6 +1024,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -1005,6 +1039,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return ZKUtil.isClusterSetup(cluster, zkClient);
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @PUT
@@ -1039,6 +1074,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.READ_REQUEST)
   @Timed(name = HttpConstants.READ_REQUEST)
   @GET
@@ -1060,6 +1096,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return notFound();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @DELETE
@@ -1070,6 +1107,7 @@ public class ClusterAccessor extends AbstractHelixResource {
     return OK();
   }
 
+  @ClusterAuth
   @ResponseMetered(name = HttpConstants.WRITE_REQUEST)
   @Timed(name = HttpConstants.WRITE_REQUEST)
   @POST

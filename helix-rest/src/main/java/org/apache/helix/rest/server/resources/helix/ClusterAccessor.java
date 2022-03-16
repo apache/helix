@@ -243,6 +243,18 @@ public class ClusterAccessor extends AbstractHelixResource {
         }
         break;
 
+      case deactivate:
+        if (superCluster == null) {
+          return badRequest("Super Cluster name is missing!");
+        }
+        try {
+          clusterSetup.activateCluster(clusterId, superCluster, false);
+        } catch (Exception ex) {
+          LOG.error("Failed to deactivate cluster {} from super cluster {}.", clusterId, superCluster);
+          return serverError(ex);
+        }
+        break;
+
       case addVirtualTopologyGroup:
         try {
           addVirtualTopologyGroup(clusterId, content);

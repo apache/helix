@@ -84,7 +84,7 @@ public final class HelixPropertyFactory {
    * @param clusterName
    * @return
    */
-  private CloudConfig getCloudConfig(String zkAddress, String clusterName) {
+  public static CloudConfig getCloudConfig(String zkAddress, String clusterName) {
     CloudConfig cloudConfig;
     RealmAwareZkClient dedicatedZkClient = null;
     try {

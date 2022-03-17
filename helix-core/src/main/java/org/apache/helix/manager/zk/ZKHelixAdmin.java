@@ -1255,6 +1255,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void dropResource(String clusterName, String resourceName) {
     logger.info("Drop resource {} from cluster {}", resourceName, clusterName);
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("Cluster " + clusterName + " is not setup yet");
+    }
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();

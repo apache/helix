@@ -22,24 +22,24 @@ package org.apache.helix.cloud.event.helix;
 import org.apache.helix.HelixManager;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-public abstract class AbstractCloudEventCallbackImpl {
+public class DefaultCloudEventCallbackImpl {
 
-  public void onPauseDefaultHelixOperation(HelixManager manager, Object eventInfo) {
+  public void disableInstance(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
-  public void onResumeDefaultHelixOperation(HelixManager manager, Object eventInfo) {
+  public void enableInstance(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
-  public void onPauseMaintenanceMode(HelixManager manager, Object eventInfo) {
+  public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
-  public void onResumeMaintenanceMode(HelixManager manager, Object eventInfo) {
+  public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }

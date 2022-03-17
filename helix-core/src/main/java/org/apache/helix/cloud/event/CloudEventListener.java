@@ -28,17 +28,7 @@ public interface CloudEventListener {
     PRE_EVENT_HANDLER, UNORDERED, POST_EVENT_HANDLER
   }
 
-  /**
-   * Callback for when a pause event is incoming
-   * @param eventInfo the info of the incoming event
-   */
-  void onPause(Object eventInfo);
-
-  /**
-   * Callback for when a pause event finishes
-   * @param eventInfo the info of the incoming event
-   */
-  void onResume(Object eventInfo);
+  void performAction(Object eventType, Object eventInfo);
 
   /**
    * Get the listener type of a listener

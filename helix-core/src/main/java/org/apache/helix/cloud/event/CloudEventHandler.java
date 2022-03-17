@@ -70,28 +70,12 @@ public class CloudEventHandler {
   }
 
   /**
-   * Trigger the callback / listeners in order of
-   * 1. PreEventHandlerCallback
-   * 2. Unordered CloudEventListener list
-   * 3. PostEventHandlerCallback
-   * @param eventInfo the object contains any information about the incoming event
+   * Trigger the registered listeners in order,
+   * and trigger the corresponding callback registered in the listeners for a certain type of event.
    */
-  public void onPause(Object eventInfo) {
-    _preEventHandlerCallback.ifPresent(callback -> callback.onPause(eventInfo));
-    _unorderedEventListenerList.parallelStream().forEach(listener -> listener.onPause(eventInfo));
-    _postEventHandlerCallback.ifPresent(callback -> callback.onPause(eventInfo));
-  }
-
-  /**
-   * Trigger the callback / listeners in order of
-   * 1. PreEventHandlerCallback
-   * 2. Unordered CloudEventListener list
-   * 3. PostEventHandlerCallback
-   * @param eventInfo the object contains any information about the incoming event
-   */
-  public void onResume(Object eventInfo) {
-    _preEventHandlerCallback.ifPresent(callback -> callback.onResume(eventInfo));
-    _unorderedEventListenerList.parallelStream().forEach(listener -> listener.onResume(eventInfo));
-    _postEventHandlerCallback.ifPresent(callback -> callback.onResume(eventInfo));
+  public void performAction(Object eventType, Object eventInfo) {
+    _preEventHandlerCallback.ifPresent(callback -> callback.performAction(eventType, eventInfo));
+    _unorderedEventListenerList.parallelStream().forEach(listener -> listener.performAction(eventType, eventInfo));
+    _postEventHandlerCallback.ifPresent(callback -> callback.performAction(eventType, eventInfo));
   }
 }

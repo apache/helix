@@ -23,12 +23,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.cloud.event.helix.AbstractCloudEventCallbackImpl;
+import org.apache.helix.cloud.event.helix.DefaultCloudEventCallbackImpl;
 
-public class MockCloudEventCallbackImpl extends AbstractCloudEventCallbackImpl {
+public class MockCloudEventCallbackImpl extends DefaultCloudEventCallbackImpl {
   public enum OperationType {
-    ON_PAUSE_DEFAULT_HELIX,
-    ON_RESUME_DEFAULT_HELIX,
+    ON_PAUSE_DISABLE_INSTANCE,
+    ON_RESUME_ENABLE_INSTANCE,
     ON_PAUSE_MAINTENANCE_MODE,
     ON_RESUME_MAINTENANCE_MODE,
     PRE_ON_PAUSE,
@@ -40,22 +40,22 @@ public class MockCloudEventCallbackImpl extends AbstractCloudEventCallbackImpl {
   public static Set<OperationType> triggeredOperation = new HashSet<>();
 
   @Override
-  public void onPauseDefaultHelixOperation(HelixManager manager, Object eventInfo) {
-    triggeredOperation.add(OperationType.ON_PAUSE_DEFAULT_HELIX);
+  public void disableInstance(HelixManager manager, Object eventInfo) {
+    triggeredOperation.add(OperationType.ON_PAUSE_DISABLE_INSTANCE);
   }
 
   @Override
-  public void onResumeDefaultHelixOperation(HelixManager manager, Object eventInfo) {
-    triggeredOperation.add(OperationType.ON_RESUME_DEFAULT_HELIX);
+  public void enableInstance(HelixManager manager, Object eventInfo) {
+    triggeredOperation.add(OperationType.ON_RESUME_ENABLE_INSTANCE);
   }
 
   @Override
-  public void onPauseMaintenanceMode(HelixManager manager, Object eventInfo) {
+  public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
     triggeredOperation.add(OperationType.ON_PAUSE_MAINTENANCE_MODE);
   }
 
   @Override
-  public void onResumeMaintenanceMode(HelixManager manager, Object eventInfo) {
+  public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
     triggeredOperation.add(OperationType.ON_RESUME_MAINTENANCE_MODE);
   }
 }

@@ -71,10 +71,10 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.cloud.event.helix.AbstractCloudEventCallbackImpl;
-import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
 import org.apache.helix.cloud.event.CloudEventHandlerFactory;
 import org.apache.helix.cloud.event.CloudEventListener;
+import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
+import org.apache.helix.cloud.event.helix.HelixCloudEventListener;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -109,7 +109,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEventListener {
+public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = LoggerFactory.getLogger(ZKHelixManager.class);
 
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
@@ -182,8 +182,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
   /**
    * Cloud fields
    */
-  private CloudEventCallbackProperty _cloudEventCallbackProperty;
-  private AbstractCloudEventCallbackImpl _callbackImplClass;
+  private CloudEventListener _cloudEventListener;
 
   /**
    * status dump timer-task
@@ -316,26 +315,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
       configuredMonitorLevel = MonitorLevel.DEFAULT;
     }
     _monitorLevel = configuredMonitorLevel;
-
-    if (helixManagerProperty != null) {
-      HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
-      if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
-        // Load callback implementation class
-        if ((_cloudEventCallbackProperty = helixCloudProperty.getCloudEventCallbackProperty())
-            != null) {
-          _callbackImplClass = loadCloudEventCallbackImplClass(
-              _cloudEventCallbackProperty.getCallbackImplClassName());
-          LOG.info("Using {} as cloud event callback impl class.",
-              _callbackImplClass.getClass().getCanonicalName());
-        }
-        if (_callbackImplClass == null) {
-          throw new HelixException("No implementation class is loaded for cloud event callback.");
-        }
-
-        // Register this helix manager as a listener
-        CloudEventHandlerFactory.getInstance().registerCloudEventListener(this);
-      }
-    }
 
     /**
      * instance type specific init
@@ -711,40 +690,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
   }
 
   /**
-   * CloudEventListener
-   */
-  @Override
-  public void onPause(Object eventInfo) {
-    _cloudEventCallbackProperty.onPause(this, eventInfo, _callbackImplClass);
-  }
-
-  @Override
-  public void onResume(Object eventInfo) {
-    _cloudEventCallbackProperty.onResume(this, eventInfo, _callbackImplClass);
-  }
-
-  @Override
-  public ListenerType getListenerType() {
-    return ListenerType.UNORDERED;
-  }
-
-  private AbstractCloudEventCallbackImpl loadCloudEventCallbackImplClass(String implClassName) {
-    AbstractCloudEventCallbackImpl implClass;
-    try {
-      LOG.info("Loading class: " + implClassName);
-      implClass = (AbstractCloudEventCallbackImpl) HelixUtil.loadClass(getClass(), implClassName)
-          .newInstance();
-    } catch (Exception e) {
-      String errMsg = String
-          .format("No cloud event callback implementation class found for: %s. message: ",
-              implClassName);
-      LOG.error(errMsg, e);
-      throw new HelixException(String.format(errMsg, e));
-    }
-    return implClass;
-  }
-
-  /**
    * Deprecated becuase ZKHelixManager shouldn't expose ZkAddress in realm-aware mode.
    *
    * Returns a string that can be used to connect to metadata store for this HelixManager instance
@@ -878,6 +823,15 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
       }
       throw e;
     }
+
+    if (_helixManagerProperty != null) {
+      HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
+      if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
+        _cloudEventListener =
+            new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
+        CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
+      }
+    }
   }
 
   @Override
@@ -922,6 +876,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener, CloudEven
       }
 
       _helixPropertyStore = null;
+
+      if (_cloudEventListener != null) {
+        CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
+        _cloudEventListener = null;
+      }
 
       synchronized (this) {
         if (_controller != null) {

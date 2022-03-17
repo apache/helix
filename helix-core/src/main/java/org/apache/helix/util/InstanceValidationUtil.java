@@ -259,13 +259,13 @@ public class InstanceValidationUtil {
             }
 
             // If we failed to get partition assignment for one sibling instance, we add the
-            // nstance name in return error for debugability
+            // instance name in return error for debuggability.
             if (!globalPartitionHealthStatus.containsKey(siblingInstance)
                 || globalPartitionHealthStatus.get(siblingInstance).isEmpty()) {
               unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())
                   .add(HOST_NO_STATE_ERROR + siblingInstance);
-            } else if (!globalPartitionHealthStatus.get(siblingInstance).containsKey(partition)
-                || !globalPartitionHealthStatus.get(siblingInstance).get(partition)) {
+            } else if (globalPartitionHealthStatus.get(siblingInstance)
+                .getOrDefault(partition, false)) {
               // We are checking sibling partition healthy status. So if partition health does not
               // exist or it is not healthy. We should mark this partition is unhealthy.
               unhealthyPartitions.computeIfAbsent(partition, list -> new ArrayList<>())

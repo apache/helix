@@ -38,7 +38,6 @@ import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
-import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
  * Cluster configurations
@@ -91,6 +90,8 @@ public class ClusterConfig extends HelixProperty {
     VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
     // ViewClusterSourceConfig JSON string
     VIEW_CLUSTER_REFRESH_PERIOD, // In second
+    // The disabled zones
+    DISABLED_ZONES,
     // Specifies job types and used for quota allocation
     QUOTA_TYPES,
 
@@ -853,6 +854,33 @@ public class ClusterConfig extends HelixProperty {
       return Collections.emptyList();
     }
     return capacityKeys;
+  }
+
+  public Map<String, String> getDisabledZones() {
+    Map<String, String> disabledZones = _record.getMapField(ClusterConfigProperty.DISABLED_ZONES.name());
+    return disabledZones == null ? Collections.emptyMap() : ImmutableMap.copyOf(disabledZones);
+  }
+
+  public void addDisabledZone(String zoneId) {
+    Map<String, String> disabledZones = new HashMap<>();
+    if (_record.getMapField(ClusterConfigProperty.DISABLED_ZONES.name()) != null) {
+      disabledZones.putAll(_record.getMapField(ClusterConfigProperty.DISABLED_ZONES.name()));
+    }
+    disabledZones.put(zoneId, String.valueOf(System.currentTimeMillis()));
+    setDisabledZones(disabledZones);
+  }
+
+  public void removeDisabledZone(String zoneId) {
+    Map<String, String> disabledZones = new HashMap<>();
+    if (_record.getMapField(ClusterConfigProperty.DISABLED_ZONES.name()) != null) {
+      disabledZones.putAll(_record.getMapField(ClusterConfigProperty.DISABLED_ZONES.name()));
+    }
+    disabledZones.remove(zoneId);
+    setDisabledZones(disabledZones);
+  }
+
+  public void setDisabledZones(Map<String, String> zones) {
+    _record.setMapField(ClusterConfigProperty.DISABLED_ZONES.name(), zones);
   }
 
   /**

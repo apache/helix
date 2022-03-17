@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Set;
 import org.apache.helix.controller.rebalancer.constraint.MockAbnormalStateResolver;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
@@ -395,6 +396,22 @@ public class TestClusterConfig {
     resolverMap.clear();
     resolverMap.put(MasterSlaveSMD.name, "");
     trySetInvalidAbnormalStatesResolverMap(testConfig, resolverMap);
+  }
+
+  @Test
+  public void testSetDisabledZones() {
+    ClusterConfig testConfig = new ClusterConfig("testConfig");
+    Assert.assertTrue(testConfig.getDisabledZones().isEmpty());
+    testConfig.addDisabledZone("zone1");
+    testConfig.addDisabledZone("zone2");
+    testConfig.addDisabledZone("zone1");
+    Assert.assertEquals(testConfig.getDisabledZones().size(), 2);
+    Assert.assertTrue(testConfig.getDisabledZones().containsKey("zone1"));
+    Assert.assertTrue(testConfig.getDisabledZones().containsKey("zone2"));
+
+    testConfig.removeDisabledZone("zone1");
+    Assert.assertEquals(testConfig.getDisabledZones().size(), 1);
+    Assert.assertTrue(testConfig.getDisabledZones().containsKey("zone2"));
   }
 
   private void trySetInvalidAbnormalStatesResolverMap(ClusterConfig testConfig,

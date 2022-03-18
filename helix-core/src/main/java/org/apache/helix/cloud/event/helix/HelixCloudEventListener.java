@@ -8,6 +8,9 @@ import org.apache.helix.util.HelixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A helix manager-based cloud event listener implementation
+ */
 public class HelixCloudEventListener implements CloudEventListener {
   private static Logger LOG = LoggerFactory.getLogger(HelixCloudEventListener.class);
 
@@ -24,12 +27,16 @@ public class HelixCloudEventListener implements CloudEventListener {
             DefaultCloudEventCallbackImpl.class.getCanonicalName()));
   }
 
+  /**
+   * The type of incoming event
+   */
   public enum EventType {
-    ON_PAUSE, ON_RESUME
+    ON_PAUSE,
+    ON_RESUME
   }
 
   /**
-   * Below are enums defining the sequence of callbacks for each type of events
+   * Below are enums defining the type and sequence of callbacks for each type of events
    */
   private enum OnPauseOperations {
     PRE_ON_PAUSE {
@@ -37,7 +44,10 @@ public class HelixCloudEventListener implements CloudEventListener {
       public CloudEventCallbackProperty.UserDefinedCallbackType toUserDefinedCallbackType() {
         return CloudEventCallbackProperty.UserDefinedCallbackType.PRE_ON_PAUSE;
       }
-    }, MAINTENANCE_MODE, ENABLE_DISABLE_INSTANCE, POST_ON_PAUSE {
+    },
+    MAINTENANCE_MODE,
+    ENABLE_DISABLE_INSTANCE,
+    POST_ON_PAUSE {
       @Override
       public CloudEventCallbackProperty.UserDefinedCallbackType toUserDefinedCallbackType() {
         return CloudEventCallbackProperty.UserDefinedCallbackType.POST_ON_PAUSE;
@@ -55,7 +65,10 @@ public class HelixCloudEventListener implements CloudEventListener {
       public CloudEventCallbackProperty.UserDefinedCallbackType toUserDefinedCallbackType() {
         return CloudEventCallbackProperty.UserDefinedCallbackType.PRE_ON_RESUME;
       }
-    }, ENABLE_DISABLE_INSTANCE, MAINTENANCE_MODE, POST_ON_RESUME {
+    },
+    ENABLE_DISABLE_INSTANCE,
+    MAINTENANCE_MODE,
+    POST_ON_RESUME {
       @Override
       public CloudEventCallbackProperty.UserDefinedCallbackType toUserDefinedCallbackType() {
         return CloudEventCallbackProperty.UserDefinedCallbackType.POST_ON_RESUME;
@@ -76,51 +89,34 @@ public class HelixCloudEventListener implements CloudEventListener {
     Set<CloudEventCallbackProperty.HelixOperation> enabledHelixOperationSet =
         _property.getEnabledHelixOperation();
 
-    if (eventType == EventType.ON_PAUSE) {
-      for (OnPauseOperations operation : OnPauseOperations.values()) {
-        switch (operation) {
-          case ENABLE_DISABLE_INSTANCE:
-            if (enabledHelixOperationSet
-                .contains(CloudEventCallbackProperty.HelixOperation.ENABLE_DISABLE_INSTANCE)) {
+    for (OnPauseOperations operation : OnPauseOperations.values()) {
+      switch (operation) {
+        case ENABLE_DISABLE_INSTANCE:
+          if (enabledHelixOperationSet
+              .contains(CloudEventCallbackProperty.HelixOperation.ENABLE_DISABLE_INSTANCE)) {
+            if (eventType == EventType.ON_PAUSE) {
               _callbackImplClass.disableInstance(_helixManager, eventInfo);
-            }
-            break;
-          case MAINTENANCE_MODE:
-            if (enabledHelixOperationSet
-                .contains(CloudEventCallbackProperty.HelixOperation.MAINTENANCE_MODE)) {
-              _callbackImplClass.enterMaintenanceMode(_helixManager, eventInfo);
-            }
-            break;
-          default:
-            if (operation.toUserDefinedCallbackType() != null) {
-              _property.getUserDefinedCallbackMap()
-                  .getOrDefault(operation.toUserDefinedCallbackType(), (manager, info) -> {
-                  }).accept(_helixManager, eventInfo);
-            }
-        }
-      }
-    } else if (eventType == EventType.ON_RESUME) {
-      for (OnResumeOperations operation : OnResumeOperations.values()) {
-        switch (operation) {
-          case ENABLE_DISABLE_INSTANCE:
-            if (enabledHelixOperationSet
-                .contains(CloudEventCallbackProperty.HelixOperation.ENABLE_DISABLE_INSTANCE)) {
+            } else {
               _callbackImplClass.enableInstance(_helixManager, eventInfo);
             }
-            break;
-          case MAINTENANCE_MODE:
-            if (enabledHelixOperationSet
-                .contains(CloudEventCallbackProperty.HelixOperation.MAINTENANCE_MODE)) {
+          }
+          break;
+        case MAINTENANCE_MODE:
+          if (enabledHelixOperationSet
+              .contains(CloudEventCallbackProperty.HelixOperation.MAINTENANCE_MODE)) {
+            if (eventType == EventType.ON_PAUSE) {
+              _callbackImplClass.enterMaintenanceMode(_helixManager, eventInfo);
+            } else {
               _callbackImplClass.exitMaintenanceMode(_helixManager, eventInfo);
             }
-            break;
-          default:
-            if (operation.toUserDefinedCallbackType() != null) {
-              _property.getUserDefinedCallbackMap()
-                  .getOrDefault(operation.toUserDefinedCallbackType(), (manager, info) -> {
-                  }).accept(_helixManager, eventInfo);
-            }
-        }
+          }
+          break;
+        default:
+          if (operation.toUserDefinedCallbackType() != null) {
+            _property.getUserDefinedCallbackMap()
+                .getOrDefault(operation.toUserDefinedCallbackType(), (manager, info) -> {
+                }).accept(_helixManager, eventInfo);
+          }
       }
     }
   }

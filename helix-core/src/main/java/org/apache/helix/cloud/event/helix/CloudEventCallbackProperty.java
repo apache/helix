@@ -19,6 +19,7 @@ package org.apache.helix.cloud.event.helix;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,6 +51,9 @@ public class CloudEventCallbackProperty {
     _userArgs = userArgs;
   }
 
+  /**
+   * Keys for retrieve information from the map users pass in
+   */
   public static class UserArgsInputKey {
     public static final String CALLBACK_IMPL_CLASS_NAME = "callbackImplClassName";
   }
@@ -58,14 +62,18 @@ public class CloudEventCallbackProperty {
    * A collection of types of Helix operations
    */
   public enum HelixOperation {
-    ENABLE_DISABLE_INSTANCE, MAINTENANCE_MODE
+    ENABLE_DISABLE_INSTANCE,
+    MAINTENANCE_MODE
   }
 
   /**
-   * A collection of types and positions for user to plugin customized callback
+   * A collection of types and positions for user to plug in customized callback
    */
   public enum UserDefinedCallbackType {
-    PRE_ON_PAUSE, POST_ON_PAUSE, PRE_ON_RESUME, POST_ON_RESUME,
+    PRE_ON_PAUSE,
+    POST_ON_PAUSE,
+    PRE_ON_RESUME,
+    POST_ON_RESUME,
   }
 
   /**
@@ -106,14 +114,24 @@ public class CloudEventCallbackProperty {
     _userDefinedCallbackMap.remove(callbackType);
   }
 
+  /**
+   * Get the user passed-in information
+   * @return Empty map if not defined; an unmodified map otherwise
+   */
   public Map<String, String> getUserArgs() {
-    return _userArgs;
+    return _userArgs == null ? Collections.emptyMap() : Collections.unmodifiableMap(_userArgs);
   }
 
+  /**
+   * Get the map where user defined callbacks are stored
+   */
   public Map<UserDefinedCallbackType, BiConsumer<HelixManager, Object>> getUserDefinedCallbackMap() {
     return _userDefinedCallbackMap;
   }
 
+  /**
+   * Get the set where enabled Helix operations are stored
+   */
   public Set<HelixOperation> getEnabledHelixOperation() {
     return _enabledHelixOperation;
   }

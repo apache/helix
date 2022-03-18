@@ -22,23 +22,46 @@ package org.apache.helix.cloud.event.helix;
 import org.apache.helix.HelixManager;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+/**
+ * A default callback implementation class to be used in {@link HelixCloudEventListener}
+ */
 public class DefaultCloudEventCallbackImpl {
 
+  /**
+   * Disable the instance
+   * @param manager The helix manager associated with the listener
+   * @param eventInfo Detailed information about the event
+   */
   public void disableInstance(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
+  /**
+   * Enable the instance
+   * @param manager The helix manager associated with the listener
+   * @param eventInfo Detailed information about the event
+   */
   public void enableInstance(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
+  /**
+   *
+   * @param manager The helix manager associated with the listener
+   * @param eventInfo Detailed information about the event
+   */
   public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();
   }
 
+  /**
+   *
+   * @param manager The helix manager associated with the listener
+   * @param eventInfo Detailed information about the event
+   */
   public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
     // To be implemented
     throw new NotImplementedException();

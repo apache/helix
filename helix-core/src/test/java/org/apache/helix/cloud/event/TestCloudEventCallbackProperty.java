@@ -63,6 +63,19 @@ public class TestCloudEventCallbackProperty {
   @AfterTest
   public void afterTest() {
     _helixManager.disconnect();
+    _cloudProperty.getCloudEventCallbackProperty()
+        .setHelixOperationEnabled(HelixOperation.ENABLE_DISABLE_INSTANCE, false);
+    _cloudProperty.getCloudEventCallbackProperty()
+        .setHelixOperationEnabled(HelixOperation.MAINTENANCE_MODE, false);
+    _cloudProperty.getCloudEventCallbackProperty()
+        .unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_PAUSE);
+    _cloudProperty.getCloudEventCallbackProperty()
+        .unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_PAUSE);
+    _cloudProperty.getCloudEventCallbackProperty()
+        .unregisterUserDefinedCallback(UserDefinedCallbackType.PRE_ON_RESUME);
+    _cloudProperty.getCloudEventCallbackProperty()
+        .unregisterUserDefinedCallback(UserDefinedCallbackType.POST_ON_RESUME);
+    MockCloudEventCallbackImpl.triggeredOperation.clear();
   }
 
   @Test
@@ -83,8 +96,14 @@ public class TestCloudEventCallbackProperty {
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));
     Assert.assertFalse(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_MAINTENANCE_MODE));
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_RESUME_MAINTENANCE_MODE));
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_RESUME_ENABLE_INSTANCE));
 
     property.setHelixOperationEnabled(HelixOperation.MAINTENANCE_MODE, true);
+
+    MockCloudEventCallbackImpl.triggeredOperation.clear();
 
     // Manually trigger event
     CloudEventHandlerFactory.getInstance()
@@ -93,10 +112,20 @@ public class TestCloudEventCallbackProperty {
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));
     Assert.assertTrue(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_MAINTENANCE_MODE));
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_RESUME_MAINTENANCE_MODE));
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_RESUME_ENABLE_INSTANCE));
+
+    MockCloudEventCallbackImpl.triggeredOperation.clear();
 
     // Manually trigger event
     CloudEventHandlerFactory.getInstance()
         .performAction(HelixCloudEventListener.EventType.ON_RESUME, null);
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));
+    Assert.assertFalse(
+        callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_MAINTENANCE_MODE));
     Assert.assertTrue(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_RESUME_ENABLE_INSTANCE));
     Assert.assertTrue(
@@ -105,6 +134,7 @@ public class TestCloudEventCallbackProperty {
 
   @Test
   public void testUserDefinedCallback() throws Exception {
+    afterTest();
     // Cloud event callback property
     CloudEventCallbackProperty property = new CloudEventCallbackProperty(Collections
         .singletonMap(CloudEventCallbackProperty.UserArgsInputKey.CALLBACK_IMPL_CLASS_NAME,
@@ -192,8 +222,7 @@ public class TestCloudEventCallbackProperty {
         HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
         if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
           _cloudEventListener =
-              new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(),
-                  this);
+              new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
           CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
         }
       }

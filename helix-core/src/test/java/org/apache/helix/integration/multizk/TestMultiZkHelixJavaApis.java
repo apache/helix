@@ -45,16 +45,19 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ThreadLeakageChecker;
 import org.apache.helix.api.config.RebalanceConfig;
-import org.apache.helix.common.ZkTestBase;
+import org.apache.helix.cloud.constants.CloudProvider;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.CrushEdRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -435,6 +438,66 @@ public class TestMultiZkHelixJavaApis {
     // Clean up
     managerParticipant.disconnect();
     managerAdministrator.disconnect();
+    _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
+  }
+
+  /**
+   * Test creation of HelixManager and makes sure it connects correctly.
+   */
+  @Test(dependsOnMethods = "testZKHelixManager")
+  public void testZKHelixManagerCloudConfig() throws Exception {
+    String clusterName = "CLUSTER_1";
+    String participantName = "HelixManager";
+    InstanceConfig instanceConfig = new InstanceConfig(participantName);
+    _zkHelixAdmin.addInstance(clusterName, instanceConfig);
+
+    RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder connectionConfigBuilder =
+        new RealmAwareZkClient.RealmAwareZkConnectionConfig.Builder();
+    // Try with a connection config without ZK realm sharding key set (should fail)
+    RealmAwareZkClient.RealmAwareZkConnectionConfig invalidZkConnectionConfig =
+        connectionConfigBuilder.build();
+    RealmAwareZkClient.RealmAwareZkConnectionConfig validZkConnectionConfig =
+        connectionConfigBuilder.setZkRealmShardingKey("/" + clusterName).build();
+    HelixManagerProperty.Builder propertyBuilder = new HelixManagerProperty.Builder();
+
+    // create a dummy cloud config and pass to ManagerFactory. It should be overwrite by
+    // a default config because there is no CloudConfig ZNode in ZK.
+    CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
+    cloudConfigBuilder.setCloudEnabled(true);
+    cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
+    cloudConfigBuilder.setCloudID("TestID");
+    List<String> infoURL = new ArrayList<String>();
+    infoURL.add("TestURL");
+    cloudConfigBuilder.setCloudInfoSources(infoURL);
+    cloudConfigBuilder.setCloudInfoProcessorName("TestProcessor");
+
+    CloudConfig cloudConfig = cloudConfigBuilder.build();
+    HelixManagerProperty helixManagerProperty =
+        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build();
+    helixManagerProperty.setHelixCloudProperty(cloudConfig);
+
+    class TestZKHelixManager extends ZKHelixManager {
+      public TestZKHelixManager(String clusterName, String participantName,
+          InstanceType instanceType, String zkAddress, HelixManagerStateListener stateListener,
+          HelixManagerProperty helixManagerProperty) {
+        super(clusterName, participantName, instanceType, zkAddress, stateListener,
+            helixManagerProperty);
+      }
+
+      public HelixManagerProperty getHelixManagerProperty() {
+        return _helixManagerProperty;
+      }
+    }
+    // Connect as a participant
+    TestZKHelixManager managerParticipant =
+        new TestZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null, null,
+            helixManagerProperty);
+    managerParticipant.connect();
+    Assert.assertFalse(
+        managerParticipant.getHelixManagerProperty().getHelixCloudProperty().getCloudEnabled());
+
+    // Clean up
+    managerParticipant.disconnect();
     _zkHelixAdmin.dropInstance(clusterName, instanceConfig);
   }
 

@@ -297,8 +297,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
   @Test
   public void testChangeIdealStateWithPendingMsg() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_pending";
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
 
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    admin.addCluster(clusterName);
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<>(_gZkClient));
     HelixManager manager =
@@ -356,7 +358,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // round2: drop resource, but keep the
     // message, make sure controller should not send O->DROPPED until O->S is done
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, resourceName);
     List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates(), true);
     cache.setIdealStates(idealStates);

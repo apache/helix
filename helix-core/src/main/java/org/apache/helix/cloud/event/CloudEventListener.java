@@ -24,25 +24,27 @@ package org.apache.helix.cloud.event;
  * The listeners can be registered to {@link CloudEventHandler}.
  */
 public interface CloudEventListener {
+  /**
+   * Defines different listener types
+   * It determines the position this listener being triggered in {@link CloudEventHandler}
+   * Order being: PRE_EVENT_HANDLER -> UNORDERED (in parallel) -> POST_EVENT_HANDLER
+   */
   enum ListenerType {
-    PRE_EVENT_HANDLER, UNORDERED, POST_EVENT_HANDLER
+    PRE_EVENT_HANDLER,
+    UNORDERED,
+    POST_EVENT_HANDLER
   }
 
   /**
-   * Callback for when a pause event is incoming
-   * @param eventInfo the info of the incoming event
+   * Perform action to react the the event
+   * @param eventType Type of the event
+   * @param eventInfo Detailed information about the event
    */
-  void onPause(Object eventInfo);
-
-  /**
-   * Callback for when a pause event finishes
-   * @param eventInfo the info of the incoming event
-   */
-  void onResume(Object eventInfo);
+  void performAction(Object eventType, Object eventInfo);
 
   /**
    * Get the listener type of a listener
-   * @return the type of the listener
+   * @return The type of the listener
    */
   ListenerType getListenerType();
 }

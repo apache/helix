@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
 import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,10 @@ public class HelixCloudProperty {
 
   // Other customized properties that may be used.
   private Properties _customizedCloudProperties = new Properties();
+
+  private boolean _isCloudEventCallbackEnabled;
+
+  private CloudEventCallbackProperty _cloudEventCallbackProperty;
 
   /**
    * Initialize Helix Cloud Property based on the provider
@@ -179,5 +184,21 @@ public class HelixCloudProperty {
 
   public void setCustomizedCloudProperties(Properties customizedCloudProperties) {
     _customizedCloudProperties.putAll(customizedCloudProperties);
+  }
+
+  public boolean isCloudEventCallbackEnabled() {
+    return _isCloudEventCallbackEnabled;
+  }
+
+  public void setCloudEventCallbackEnabled(boolean enabled) {
+    _isCloudEventCallbackEnabled = enabled;
+  }
+
+  public CloudEventCallbackProperty getCloudEventCallbackProperty() {
+    return _cloudEventCallbackProperty;
+  }
+
+  public void setCloudEventCallbackProperty(CloudEventCallbackProperty cloudEventCallbackProperty) {
+    _cloudEventCallbackProperty = cloudEventCallbackProperty;
   }
 }

@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -50,6 +51,8 @@ public class InstanceConfig extends HelixProperty {
     HELIX_ZONE_ID,
     HELIX_ENABLED,
     HELIX_ENABLED_TIMESTAMP,
+    HELIX_DISABLED_REASON,
+    HELIX_DISABLED_TYPE,
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
     INSTANCE_WEIGHT,
@@ -275,6 +278,7 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Set the enabled state of the instance
+   * If user enables the instance, HELIX_DISABLED_REASON filed will be removed.
    *
    * @param enabled true to enable, false to disable
    */
@@ -282,6 +286,47 @@ public class InstanceConfig extends HelixProperty {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
     _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(),
         System.currentTimeMillis());
+    if (enabled) {
+      _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.toString());
+      _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString());
+    }
+  }
+
+  /**
+   * Set the instance disabled reason when instance is disabled.
+   * It will be a no-op when instance is enabled.
+   */
+  public void setInstanceDisabledReason(String disabledReason) {
+     if (!getInstanceEnabled()) {
+     _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), disabledReason);
+     }
+  }
+
+  /**
+   * Set the instance disabled type when instance is disabled.
+   * It will be a no-op when instance is enabled.
+   */
+  public void setInstanceDisabledType(InstanceConstants.InstanceDisabledType disabledType) {
+    if (!getInstanceEnabled()) {
+      _record.setSimpleField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
+          disabledType.toString());
+    }
+  }
+
+  /**
+   * @return Return instance disabled reason. Default is am empty string.
+   */
+  public String getInstanceDisabledReason() {
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_REASON.toString(), "");
+  }
+
+  /**
+   *
+   * @return Return instance disabled type (org.apache.helix.constants.InstanceConstants.InstanceDisabledType)
+   *         Default is am empty string.
+   */
+  public String getInstanceDisabledType() {
+    return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(), "");
   }
 
   /**

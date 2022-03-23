@@ -47,8 +47,10 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.exceptions.HelixConflictException;
 import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
 import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -73,7 +75,6 @@ import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
@@ -175,6 +176,21 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException e) {
       // OK
     }
+
+    Assert.assertTrue(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
+    String disableReason = "Reason";
+    tool.enableInstance(clusterName, instanceName, false,
+        InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
+    Assert.assertTrue(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason()
+        .equals(disableReason));
+    tool.enableInstance(clusterName, instanceName, true,
+        InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
+    Assert.assertTrue(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
+    Assert.assertTrue(
+        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType().isEmpty());
+
 
     dummyList.remove("bar");
     dummyList.add("baz");

@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -357,16 +359,39 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     // Disable instance
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
 
+    new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}?command=disable&instanceDisabledType=USER_OPERATION&instanceDisabledReason=reason1")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+
+    Assert.assertFalse(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
+        "reason1");
+
+    // Enable instance
+    new JerseyUriRequestBuilder(
+        "clusters/{}/instances/{}?command=enable&instanceDisabledType=USER_OPERATION&instanceDisabledReason=reason1")
+        .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
+    Assert.assertTrue(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(), "");
+    Assert.assertEquals(
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(), "");
+
+    // disable instance with no reason input
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disable")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     Assert.assertFalse(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
 
-    // Enable instance
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=enable")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
-
     Assert.assertTrue(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
 

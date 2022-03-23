@@ -31,7 +31,9 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.status.ClusterManagementMode;
+import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
@@ -45,7 +47,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 public class MockHelixAdmin implements HelixAdmin {
@@ -267,6 +268,12 @@ public class MockHelixAdmin implements HelixAdmin {
 
   @Override
   public void enableInstance(String clusterName, String instanceName, boolean enabled) {
+    enableInstance(clusterName, instanceName, enabled, null, null);
+  }
+
+  @Override
+  public void enableInstance(String clusterName, String instanceName, boolean enabled,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
     String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     if (!_baseDataAccessor.exists(instanceConfigsPath, 0)) {
       _baseDataAccessor.create(instanceConfigsPath, new ZNRecord(instanceName), 0);
@@ -274,9 +281,17 @@ public class MockHelixAdmin implements HelixAdmin {
 
     String instanceConfigPath = instanceConfigsPath + "/" + instanceName;
 
-    ZNRecord  record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
+    ZNRecord record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabled(enabled);
+    if (!enabled ) {
+      if (reason!=null) {
+        instanceConfig.setInstanceDisabledReason(reason);
+      }
+      if (disabledType != null) {
+        instanceConfig.setInstanceDisabledType(disabledType);
+      }
+    }
     _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
 

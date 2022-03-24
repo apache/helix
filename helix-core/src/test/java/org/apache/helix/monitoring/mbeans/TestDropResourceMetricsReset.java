@@ -34,11 +34,15 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestDropResourceMetricsReset extends ZkUnitTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(TestDropResourceMetricsReset.class);
+
   private CountDownLatch _registerLatch;
   private CountDownLatch _unregisterLatch;
   private String _className = TestHelper.getTestClassName();
@@ -144,9 +148,11 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
 
     // stop the participant, so the resource does not exist in any current states.
     participant.syncStop();
+    LOG.info("Stopped participant node sync: " + _unregisterLatch);
 
     // Drop the resource
     setupTool.dropResourceFromCluster(clusterName, RESOURCE_NAME);
+    LOG.info("Drop Resource From Cluster: " + _unregisterLatch);
 
     // Verify that the bean was removed
     noTimeout = _unregisterLatch.await(30000, TimeUnit.MILLISECONDS);
@@ -157,6 +163,7 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     controller.syncStop();
 
     TestHelper.dropCluster(clusterName, _gZkClient);
+    LOG.info("Dropped cluster: " + _unregisterLatch);
   }
 
   private ObjectName getObjectName(String resourceName, String clusterName)
@@ -191,6 +198,8 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     @Override
     public void onMBeanUnRegistered(MBeanServerConnection server,
         MBeanServerNotification mbsNotification) {
+      LOG.info("onUnRegistered: " + _objectName + "\nmBeanName: " + mbsNotification.getMBeanName() +
+        "\nThreadId: " + Thread.currentThread().getId());
       if (mbsNotification.getMBeanName().equals(_objectName)) {
         _unregisterLatch.countDown();
       }

@@ -19,6 +19,7 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.cloud.event.helix.DefaultCloudEventCallbackImpl;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
@@ -32,6 +33,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
   private final DefaultCloudEventCallbackImpl _impl =
       DefaultCloudEventCallbackImpl.class.newInstance();
   private MockParticipantManager _instanceManager;
+  private HelixAdmin _admin;
 
   public TestDefaultCloudEventCallbackImpl() throws IllegalAccessException, InstantiationException {
   }
@@ -40,6 +42,7 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
   public void beforeClass() throws Exception {
     super.beforeClass();
     _instanceManager = _participants[0];
+    _admin = _instanceManager.getClusterManagmentTool();
   }
 
   @Test
@@ -65,28 +68,24 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
 
   @Test
   public void testEnterMaintenanceMode() {
-    Assert
-        .assertFalse(_instanceManager.getClusterManagmentTool().isInMaintenanceMode(CLUSTER_NAME));
+    Assert.assertFalse(_admin.isInMaintenanceMode(CLUSTER_NAME));
     _impl.enterMaintenanceMode(_instanceManager, null);
-    Assert.assertTrue(_instanceManager.getClusterManagmentTool().isInMaintenanceMode(CLUSTER_NAME));
+    Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
   }
 
   @Test(dependsOnMethods = "testEnterMaintenanceMode")
   public void testExitMaintenanceMode() {
-    Assert.assertTrue(_instanceManager.getClusterManagmentTool().isInMaintenanceMode(CLUSTER_NAME));
+    Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
     // Should not exit maintenance mode if there is remaining live instance that is disabled due to cloud event
-    _participants[1].getClusterManagmentTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
-            InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
+    _admin.enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
+        InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
     _impl.exitMaintenanceMode(_instanceManager, null);
-    Assert.assertTrue(_instanceManager.getClusterManagmentTool().isInMaintenanceMode(CLUSTER_NAME));
+    Assert.assertTrue(_admin.isInMaintenanceMode(CLUSTER_NAME));
 
     // Should exit maintenance mode if there is no remaining live instance that is disabled due to cloud event
-    _participants[1].getClusterManagmentTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
-            InstanceConstants.InstanceDisabledType.USER_OPERATION, null);
+    _admin.enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false,
+        InstanceConstants.InstanceDisabledType.USER_OPERATION, null);
     _impl.exitMaintenanceMode(_instanceManager, null);
-    Assert
-        .assertFalse(_instanceManager.getClusterManagmentTool().isInMaintenanceMode(CLUSTER_NAME));
+    Assert.assertFalse(_admin.isInMaintenanceMode(CLUSTER_NAME));
   }
 }

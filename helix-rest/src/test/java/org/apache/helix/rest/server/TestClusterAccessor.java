@@ -781,6 +781,22 @@ public class TestClusterAccessor extends AbstractTestClass {
     LiveInstance leader = normalAccessor.getProperty(normKeyBuilder.controllerLeader());
     Assert.assertEquals(leader.getId(), superClusterleader);
 
+    // deactivate cluster ACTIVATE_NORM_CLUSTER from super cluster ACTIVATE_SUPER_CLUSTER
+    post("clusters/" + ACTIVATE_NORM_CLUSTER,
+        ImmutableMap.of("command", "deactivate", "superCluster", ACTIVATE_SUPER_CLUSTER),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK .getStatusCode());
+    idealState = accessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
+    Assert.assertNull(idealState);
+
+    post("clusters/" + ACTIVATE_NORM_CLUSTER,
+        ImmutableMap.of("command", "activate", "superCluster", ACTIVATE_SUPER_CLUSTER),
+        Entity.entity("", MediaType.APPLICATION_JSON_TYPE), Response.Status.OK .getStatusCode());
+    idealState = accessor.getProperty(keyBuilder.idealStates(ACTIVATE_NORM_CLUSTER));
+    Assert.assertNotNull(idealState);
+    Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO);
+    Assert.assertEquals(idealState.getRebalancerClassName(), WagedRebalancer.class.getName());
+    Assert.assertEquals(idealState.getReplicas(), "3");
+
     // clean up by tearing down controllers and delete clusters
     for (ClusterDistributedController dc: clusterDistributedControllers) {
       if (dc != null && dc.isConnected()) {

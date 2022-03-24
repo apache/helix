@@ -19,13 +19,17 @@ package org.apache.helix.cloud.event.helix;
  * under the License.
  */
 
+import java.util.List;
+
 import org.apache.helix.HelixManager;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import org.apache.helix.constants.InstanceConstants;
+import org.apache.helix.util.InstanceValidationUtil;
 
 /**
  * A default callback implementation class to be used in {@link HelixCloudEventListener}
  */
 public class DefaultCloudEventCallbackImpl {
+  public static final String REASON = "CloudEvent";
 
   /**
    * Disable the instance
@@ -33,8 +37,9 @@ public class DefaultCloudEventCallbackImpl {
    * @param eventInfo Detailed information about the event
    */
   public void disableInstance(HelixManager manager, Object eventInfo) {
-    // To be implemented
-    throw new NotImplementedException();
+    manager.getClusterManagmentTool()
+        .enableInstance(manager.getClusterName(), manager.getInstanceName(), false,
+            InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
   }
 
   /**
@@ -43,27 +48,40 @@ public class DefaultCloudEventCallbackImpl {
    * @param eventInfo Detailed information about the event
    */
   public void enableInstance(HelixManager manager, Object eventInfo) {
-    // To be implemented
-    throw new NotImplementedException();
+    manager.getClusterManagmentTool()
+        .enableInstance(manager.getClusterName(), manager.getInstanceName(), true);
   }
 
   /**
-   *
+   * Put cluster into maintenance mode if the cluster is not currently in maintenance mode
    * @param manager The helix manager associated with the listener
    * @param eventInfo Detailed information about the event
    */
   public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
-    // To be implemented
-    throw new NotImplementedException();
+    if (!manager.getClusterManagmentTool().isInMaintenanceMode(manager.getClusterName())) {
+      manager.getClusterManagmentTool()
+          .manuallyEnableMaintenanceMode(manager.getClusterName(), true, REASON, null);
+    }
   }
 
   /**
-   *
+   * Exit maintenance mode for the cluster, if there is no more live instances disabled for cloud event
    * @param manager The helix manager associated with the listener
    * @param eventInfo Detailed information about the event
    */
   public void exitMaintenanceMode(HelixManager manager, Object eventInfo) {
-    // To be implemented
-    throw new NotImplementedException();
+    List<String> instances =
+        manager.getClusterManagmentTool().getInstancesInCluster(manager.getClusterName());
+    // Check if there is any disabled live instance that was disabled due to cloud event,
+    // if none left, exit maintenance mode
+    if (instances.stream().noneMatch(
+        instance -> !InstanceValidationUtil.isEnabled(manager.getHelixDataAccessor(), instance)
+            && manager.getConfigAccessor().getInstanceConfig(manager.getClusterName(), instance)
+            .getInstanceDisabledType()
+            .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name())
+            && InstanceValidationUtil.isAlive(manager.getHelixDataAccessor(), instance))) {
+      manager.getClusterManagmentTool()
+          .manuallyEnableMaintenanceMode(manager.getClusterName(), false, REASON, null);
+    }
   }
 }

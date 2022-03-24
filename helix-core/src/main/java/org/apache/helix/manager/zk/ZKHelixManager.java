@@ -122,7 +122,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final List<PreConnectCallback> _preConnectCallbacks;
   protected final List<CallbackHandler> _handlers;
   private final HelixManagerProperties _properties;
-  private final HelixManagerProperty _helixManagerProperty;
+  protected final HelixManagerProperty _helixManagerProperty;
   private final HelixManagerStateListener _stateListener;
 
   /**
@@ -269,7 +269,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
 
     _stateListener = stateListener;
+    // read cloud config from ZK and set cloudConfig in HelixManagerProperty
     _helixManagerProperty = helixManagerProperty;
+    _helixManagerProperty
+        .setHelixCloudProperty(HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName));
 
     /**
      * use system property if available

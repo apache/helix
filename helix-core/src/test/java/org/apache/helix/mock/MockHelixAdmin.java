@@ -284,8 +284,8 @@ public class MockHelixAdmin implements HelixAdmin {
     ZNRecord record = (ZNRecord) _baseDataAccessor.get(instanceConfigPath, null, 0);
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabled(enabled);
-    if (!enabled ) {
-      if (reason!=null) {
+    if (!enabled) {
+      if (reason != null) {
         instanceConfig.setInstanceDisabledReason(reason);
       }
       if (disabledType != null) {

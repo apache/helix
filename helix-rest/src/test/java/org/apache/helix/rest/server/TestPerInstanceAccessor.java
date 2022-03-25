@@ -360,14 +360,14 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Entity entity = Entity.entity("", MediaType.APPLICATION_JSON_TYPE);
 
     new JerseyUriRequestBuilder(
-        "clusters/{}/instances/{}?command=disable&instanceDisabledType=USER_OPERATION&instanceDisabledReason=reason1")
+        "clusters/{}/instances/{}?command=disable&instanceDisabledReason=reason1")
         .format(CLUSTER_NAME, INSTANCE_NAME).post(this, entity);
 
     Assert.assertFalse(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
     Assert.assertEquals(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
-        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_REASON.toString());
     Assert.assertEquals(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
         "reason1");
@@ -379,9 +379,11 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
     Assert.assertTrue(
         _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceEnabled());
     Assert.assertEquals(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(), "");
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED.toString());
     Assert.assertEquals(
-        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(), "");
+        _configAccessor.getInstanceConfig(CLUSTER_NAME, INSTANCE_NAME).getInstanceDisabledReason(),
+        "");
 
     // disable instance with no reason input
     new JerseyUriRequestBuilder("clusters/{}/instances/{}?command=disable")

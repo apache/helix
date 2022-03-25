@@ -188,9 +188,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         InstanceConstants.InstanceDisabledType.CLOUD_EVENT, disableReason);
     Assert.assertTrue(
         tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
-    Assert.assertTrue(
-        tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType().isEmpty());
-
+    Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED.toString());
 
     dummyList.remove("bar");
     dummyList.add("baz");

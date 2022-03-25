@@ -1886,7 +1886,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceEnabled(enabled);
         if (!enabled) {
-          if (reason!=null) {
+          if (reason != null) {
             config.setInstanceDisabledReason(reason);
           }
           if (disabledType != null) {

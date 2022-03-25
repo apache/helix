@@ -3,6 +3,8 @@ package org.apache.helix.constants;
 public class InstanceConstants {
   public enum InstanceDisabledType {
     CLOUD_EVENT,
-    USER_OPERATION
+    USER_OPERATION,
+    DEFAULT_INSTANCE_DISABLE_REASON,
+    INSTANCE_NOT_DISABLED
   }
 }

@@ -61,6 +61,7 @@ public class TestInstanceConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
         .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
 
+
     instanceConfig.setInstanceEnabled(false);
     String reasonCode = "ReasonCode";
     instanceConfig.setInstanceDisabledReason(reasonCode);

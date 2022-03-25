@@ -29,7 +29,9 @@ import org.apache.helix.util.InstanceValidationUtil;
  * A default callback implementation class to be used in {@link HelixCloudEventListener}
  */
 public class DefaultCloudEventCallbackImpl {
-  public static final String REASON = "CloudEvent";
+  private final String _reason =
+      "Cloud event callback %s in class %s triggered in listener HelixManager %s, at time %s .";
+  protected final String _className = this.getClass().getSimpleName();
 
   /**
    * Disable the instance
@@ -39,7 +41,9 @@ public class DefaultCloudEventCallbackImpl {
   public void disableInstance(HelixManager manager, Object eventInfo) {
     manager.getClusterManagmentTool()
         .enableInstance(manager.getClusterName(), manager.getInstanceName(), false,
-            InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
+            InstanceConstants.InstanceDisabledType.CLOUD_EVENT, String
+                .format(_reason, "disableInstance", _className, manager,
+                    System.currentTimeMillis()));
   }
 
   /**
@@ -60,7 +64,9 @@ public class DefaultCloudEventCallbackImpl {
   public void enterMaintenanceMode(HelixManager manager, Object eventInfo) {
     if (!manager.getClusterManagmentTool().isInMaintenanceMode(manager.getClusterName())) {
       manager.getClusterManagmentTool()
-          .manuallyEnableMaintenanceMode(manager.getClusterName(), true, REASON, null);
+          .manuallyEnableMaintenanceMode(manager.getClusterName(), true, String
+              .format(_reason, "enterMaintenanceMode", _className, manager,
+                  System.currentTimeMillis()), null);
     }
   }
 
@@ -81,7 +87,9 @@ public class DefaultCloudEventCallbackImpl {
             .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name())
             && InstanceValidationUtil.isAlive(manager.getHelixDataAccessor(), instance))) {
       manager.getClusterManagmentTool()
-          .manuallyEnableMaintenanceMode(manager.getClusterName(), false, REASON, null);
+          .manuallyEnableMaintenanceMode(manager.getClusterName(), false, String
+              .format(_reason, "exitMaintenanceMode", _className, manager,
+                  System.currentTimeMillis()), null);
     }
   }
 }

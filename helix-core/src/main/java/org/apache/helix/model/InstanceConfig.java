@@ -330,7 +330,7 @@ public class InstanceConfig extends HelixProperty {
       return InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED.toString();
     }
     return _record.getStringField(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString(),
-        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_REASON.toString());
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
   }
 
   /**

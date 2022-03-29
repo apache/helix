@@ -23,17 +23,11 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * Created with IntelliJ IDEA.
- * User: zzhang
- * Date: 3/19/13
- * Time: 5:28 PM
- * To change this template use File | Settings | File Templates.
- */
 public class TestInstanceConfig {
   @Test
   public void testNotCheckingHostPortExistence() {
@@ -45,11 +39,40 @@ public class TestInstanceConfig {
   @Test
   public void testGetParsedDomain() {
     InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
-    instanceConfig.setDomain("cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001");
+    instanceConfig
+        .setDomain("cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001");
 
     Map<String, String> parsedDomain = instanceConfig.getDomainAsMap();
     Assert.assertEquals(parsedDomain.size(), 5);
     Assert.assertEquals(parsedDomain.get("zone"), "myZone1");
+  }
+
+  @Test
+  public void testSetInstanceEnableWithReason() {
+    InstanceConfig instanceConfig = new InstanceConfig(new ZNRecord("id"));
+    instanceConfig.setInstanceEnabled(true);
+    instanceConfig.setInstanceDisabledReason("NoShowReason");
+    instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
+
+    Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "true");
+    Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), null);
+    Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_TYPE.toString()), null);
+
+
+    instanceConfig.setInstanceEnabled(false);
+    String reasonCode = "ReasonCode";
+    instanceConfig.setInstanceDisabledReason(reasonCode);
+    instanceConfig.setInstanceDisabledType(InstanceConstants.InstanceDisabledType.USER_OPERATION);
+    Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_ENABLED.toString()), "false");
+    Assert.assertEquals(instanceConfig.getRecord().getSimpleFields()
+        .get(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_REASON.toString()), reasonCode);
+    Assert.assertEquals(instanceConfig.getInstanceDisabledReason(), reasonCode);
+    Assert.assertEquals(instanceConfig.getInstanceDisabledType(),
+        InstanceConstants.InstanceDisabledType.USER_OPERATION.toString());
   }
 
   @Test

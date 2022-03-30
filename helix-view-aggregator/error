@@ -1,0 +1,103 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------< org.apache.helix:helix-view-aggregator >---------------
+[INFO] Building Apache Helix :: View Aggregator 1.0.3-SNAPSHOT
+[INFO] -------------------------------[ bundle ]-------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-maven-version) @ helix-view-aggregator ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-java-version) @ helix-view-aggregator ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-output-timestamp-property) @ helix-view-aggregator ---
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.6:prepare-agent (default) @ helix-view-aggregator ---
+[WARNING] The artifact xml-apis:xml-apis:jar:2.0.2 has been relocated to xml-apis:xml-apis:jar:1.0.b2
+[INFO] argLine set to -javaagent:/home/kdesai/.m2/repository/org/jacoco/org.jacoco.agent/0.8.6/org.jacoco.agent-0.8.6-runtime.jar=destfile=/home/kdesai/ambry/helix/helix-view-aggregator/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-remote-resources-plugin:1.7.0:process (process-resource-bundles) @ helix-view-aggregator ---
+[INFO] Preparing remote bundle org.apache:apache-jar-resource-bundle:1.4
+[INFO] Copying 3 resources from 1 bundle.
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ helix-view-aggregator ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 3 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:2.5.1:compile (default-compile) @ helix-view-aggregator ---
+[INFO] Compiling 9 source files to /home/kdesai/ambry/helix/helix-view-aggregator/target/classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[32,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: package org.apache.helix.api.config
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[58,12] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class SourceClusterDataProvider
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[62,35] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class SourceClusterDataProvider
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/HelixViewAggregator.java:[37,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: package org.apache.helix.api.config
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[29,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: package org.apache.helix.api.config
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/HelixViewAggregator.java:[430,51] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class HelixViewAggregator
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[42,15] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class SourceClusterConfigChangeAction
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[43,15] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class SourceClusterConfigChangeAction
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[121,14] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+  location: class SourceClusterConfigChangeAction
+/home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[125,14] error: cannot find symbol
+[INFO] 10 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.772 s
+[INFO] Finished at: 2022-03-29T14:54:07-07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:2.5.1:compile (default-compile) on project helix-view-aggregator: Compilation failure: Compilation failure: 
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[32,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: package org.apache.helix.api.config
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[58,12] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class SourceClusterDataProvider
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/dataprovider/SourceClusterDataProvider.java:[62,35] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class SourceClusterDataProvider
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/HelixViewAggregator.java:[37,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: package org.apache.helix.api.config
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[29,34] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: package org.apache.helix.api.config
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/HelixViewAggregator.java:[430,51] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class HelixViewAggregator
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[42,15] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class SourceClusterConfigChangeAction
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[43,15] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class SourceClusterConfigChangeAction
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[121,14] error: cannot find symbol
+[ERROR]   symbol:   class ViewClusterSourceConfig
+[ERROR]   location: class SourceClusterConfigChangeAction
+[ERROR] /home/kdesai/ambry/helix/helix-view-aggregator/src/main/java/org/apache/helix/view/aggregator/SourceClusterConfigChangeAction.java:[125,14] error: cannot find symbol
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

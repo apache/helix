@@ -19,6 +19,7 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.api.config.HelixConfigProperty;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 /**
@@ -82,6 +84,10 @@ public class ClusterConfig extends HelixProperty {
     // error exceeds this limitation
     DISABLED_INSTANCES,
 
+    VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
+    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
+    // ViewClusterSourceConfig JSON string
+    VIEW_CLUSTER_REFRESH_PERIOD, // In second
     // Specifies job types and used for quota allocation
     QUOTA_TYPES,
 
@@ -169,6 +175,7 @@ public class ClusterConfig extends HelixProperty {
   public final static boolean DEFAULT_GLOBAL_REBALANCE_ASYNC_MODE_ENABLED = true;
   private static final int GLOBAL_TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
   private static final int OFFLINE_NODE_TIME_OUT_FOR_MAINTENANCE_MODE_NOT_SET = -1;
+  private final static int DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD = 30;
 
   /**
    * Instantiate for a specific cluster
@@ -184,6 +191,36 @@ public class ClusterConfig extends HelixProperty {
    */
   public ClusterConfig(ZNRecord record) {
     super(record);
+  }
+
+  public void setViewCluster() {
+    _record.setBooleanField(ClusterConfigProperty.VIEW_CLUSTER.name(), true);
+  }
+
+  /**
+   * Whether this cluster is a ViewCluster
+   * @return
+   */
+  public boolean isViewCluster() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.VIEW_CLUSTER.name(), false);
+  }
+
+  /**
+   * Set a list of ViewClusterSourceConfig to ClusterConfig. Current source config will be
+   * overwritten
+   * @param sourceConfigList
+   */
+  public void setViewClusterSourceConfigs(List<ViewClusterSourceConfig> sourceConfigList) {
+    List<String> sourceConfigs = new ArrayList<>();
+    for (ViewClusterSourceConfig config : sourceConfigList) {
+      try {
+        sourceConfigs.add(config.toJson());
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Invalid source config. Error: " + e.toString());
+      }
+    }
+    _record.setListField(ClusterConfigProperty.VIEW_CLUSTER_SOURCES.name(), sourceConfigs);
   }
 
   /**
@@ -251,6 +288,30 @@ public class ClusterConfig extends HelixProperty {
     if (_record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()) != null) {
       _record.getMapField(ClusterConfigProperty.QUOTA_TYPES.name()).clear();
     }
+  }
+
+  /**
+   * Set view cluster max refresh period
+   * @param refreshPeriod refresh period in second
+   */
+  public void setViewClusterRefreshPeriod(int refreshPeriod) {
+    _record.setIntField(ClusterConfigProperty.VIEW_CLUSTER_REFRESH_PERIOD.name(),
+        refreshPeriod);
+  }
+
+  public List<ViewClusterSourceConfig> getViewClusterSourceConfigs() {
+    List<ViewClusterSourceConfig> sourceConfigList = new ArrayList<>();
+    for (String configJSON : _record
+        .getListField(ClusterConfigProperty.VIEW_CLUSTER_SOURCES.name())) {
+      ViewClusterSourceConfig config = ViewClusterSourceConfig.fromJson(configJSON);
+      sourceConfigList.add(config);
+    }
+    return sourceConfigList;
+  }
+
+  public int getViewClusterRefershPeriod() {
+    return _record.getIntField(ClusterConfigProperty.VIEW_CLUSTER_REFRESH_PERIOD.name(),
+        DEFAULT_VIEW_CLUSTER_REFRESH_PERIOD);
   }
 
   /**

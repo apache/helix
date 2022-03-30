@@ -278,6 +278,7 @@
     <module>helix-agent</module>
     <!--<module>helix-front</module>-->
     <module>recipes</module>
+    <module>helix-view-aggregator</module>
   </modules>
 
   <mailingLists>

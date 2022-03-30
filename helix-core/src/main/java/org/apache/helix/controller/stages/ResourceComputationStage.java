@@ -170,19 +170,22 @@ public class ResourceComputationStage extends AbstractBaseStage {
       LOG.info("Resource to rebalance : "+ resource);
     }
 
-    List<String> resourceList = new ArrayList<String>(Arrays.asList("HXIDMAP", "HXCONTEXTUALV2",
-            "HXDATA", "HXCATALOGFEED", "HXPROFILE"));
+    List<String> resourceList = new ArrayList<String>(Arrays.asList("HXIDMAP", "HXCONTEXTUALV2", "HXPROFILE"));
 
     Map<String, Resource> newResourceMap = new LinkedHashMap<String, Resource>();
     for (String resourceName : resourceList) {
       Resource resource = resourceMap.get(resourceName);
-      newResourceMap.put(resourceName, resource);
+
+      if (resource != null)
+        newResourceMap.put(resourceName, resource);
     }
 
     Map<String, Resource> newResourceToRebalance = new LinkedHashMap<String, Resource>();
     for (String resourceName : resourceList) {
       Resource resource = resourceToRebalance.get(resourceName);
-      newResourceToRebalance.put(resourceName, resource);
+
+      if (resource != null)
+        newResourceToRebalance.put(resourceName, resource);
     }
 
     for (String resource : newResourceMap.keySet()) {

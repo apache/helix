@@ -19,6 +19,8 @@ package org.apache.helix.controller;
  * under the License.
  */
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -393,6 +395,10 @@ public class GenericHelixController implements IdealStateChangeListener,
         logger.error(
             "Exception while executing " + getPipelineType(cache.isTaskCache()) + "pipeline: "
                 + pipeline + ". Will not continue to next pipeline", e);
+        e.printStackTrace();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        e.printStackTrace(new PrintStream(os));
+        logger.error(new String(os.toByteArray()));
         break;
       }
     }

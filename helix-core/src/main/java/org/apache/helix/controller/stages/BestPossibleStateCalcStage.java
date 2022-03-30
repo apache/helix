@@ -62,6 +62,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.clusterStatusMonitor.name());
     ClusterDataCache cache = event.getAttribute(AttributeName.ClusterDataCache.name());
 
+    logger.info("Got the required params");
+
     if (currentStateOutput == null || resourceMap == null || cache == null) {
       throw new StageException(
           "Missing attributes in event:" + event + ". Requires CURRENT_STATE|RESOURCES|DataCache");
@@ -74,6 +76,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     // if yes, pause the rebalancer.
     validateOfflineInstancesLimit(cache,
         (HelixManager) event.getAttribute(AttributeName.helixmanager.name()), clusterStatusMonitor);
+
+    logger.info("Calculating the best possible state");
 
     final BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
@@ -116,11 +120,21 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     if (helixManager != null) {
       taskDriver = new TaskDriver(helixManager);
     }
-    for (Resource resource : resourceMap.values()) {
-      resourcePriorityQueue.add(new ResourcePriority(resource, cache.getIdealState(resource.getResourceName()),
+
+    for(Map.Entry<String, Resource> entry : resourceMap.entrySet()) {
+      logger.info("Resource key: "+ entry.getKey());
+      if (entry.getValue() == null) {
+        logger.error("Value is null for key: "+ entry.getKey() + " for event "+ event.toString());
+        continue;
+      }
+      logger.info("Resource name: "+ entry.getValue().getResourceName());
+      //logger.info("Cache is: "+ cache);
+      //logger.info("Cache idealstate: "+ cache.getIdealState(entry.getValue().getResourceName()));
+      resourcePriorityQueue.add(new ResourcePriority(entry.getValue(), cache.getIdealState(entry.getValue().getResourceName()),
           taskDriver));
     }
 
+    logger.info("Resource priority queue "+ resourcePriorityQueue.size());
     final List<String> failureResources = new ArrayList<>();
     Iterator<ResourcePriority> itr = resourcePriorityQueue.iterator();
     while (itr.hasNext()) {
@@ -131,6 +145,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
     }
 
+    logger.info("Done calculating the best possible state");
+
     // Check and report if resource rebalance has failure
     if (!cache.isTaskCache()) {
       ClusterStatusMonitor clusterStatusMonitor =
@@ -139,6 +155,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           "Failed to calculate best possible states for " + failureResources.size()
               + " resources.");
     }
+
+    logger.info("Returning the output");
     return output;
   }
 

@@ -51,6 +51,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.StringProcessUtil;
 import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.api.exceptions.HelixConflictException;
 import org.apache.helix.api.status.ClusterManagementMode;
@@ -352,27 +353,28 @@ public class ZKHelixAdmin implements HelixAdmin {
         clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     enableSingleInstance(clusterName, instanceName, enabled, baseAccessor, disabledType, reason);
-    // TODO: Reenable this after storage node bug fixed.
-    // enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled, baseAccessor);
+    enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled,
+        baseAccessor, disabledType, reason);
 
   }
 
   @Override
-  public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
-    // TODO: Considering adding another batched API with  disabled type and reason.
-    // TODO: Reenable this after storage node bug fixed.
-    if (true) {
-      throw new HelixException("Current batch enable/disable instances are temporarily disabled!");
-    }
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
     logger.info("Batch {} instances {} in cluster {}.", enabled ? "enable" : "disable",
         HelixUtil.serializeByComma(instances), clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     if (enabled) {
       for (String instance : instances) {
-        enableSingleInstance(clusterName, instance, enabled, baseAccessor, null, null);
+        enableSingleInstance(clusterName, instance, enabled, baseAccessor, disabledType, reason);
       }
     }
-    enableBatchInstances(clusterName, instances, enabled, baseAccessor);
+    enableBatchInstances(clusterName, instances, enabled, baseAccessor, disabledType, reason);
+  }
+
+  @Override
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
+    enableInstance(clusterName, instances, enabled, null, null);
   }
 
   @Override
@@ -1886,10 +1888,17 @@ public class ZKHelixAdmin implements HelixAdmin {
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceEnabled(enabled);
         if (!enabled) {
+          // new disabled type and reason will over write existing ones.
+          config.resetInstanceDisabledTypeAndReason();
           if (reason != null) {
             config.setInstanceDisabledReason(reason);
           }
           if (disabledType != null) {
+            if (disabledType
+                .equals(InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED)) {
+              throw new HelixException(
+                  "Can not set INSTANCE_NOT_DISABLED as disabled type to an instance");
+            }
             config.setInstanceDisabledType(disabledType);
           }
         }
@@ -1898,13 +1907,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     }, AccessOption.PERSISTENT);
   }
 
+  // TODO: Add history ZNode for all batched enabling/disabling histories with metadata.
   private void enableBatchInstances(final String clusterName, final List<String> instances,
-      final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor) {
-    // TODO : Due to Espresso storage node depends on map field. Current disable the feature now
-    // include tests.
-    if (true) {
-      throw new HelixException("Current batch enable/disable instances are temporarily disabled!");
-    }
+      final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
 
     String path = PropertyPathBuilder.clusterConfig(clusterName);
 
@@ -1924,14 +1930,30 @@ public class ZKHelixAdmin implements HelixAdmin {
         if (clusterConfig.getDisabledInstances() != null) {
           disabledInstances.putAll(clusterConfig.getDisabledInstances());
         }
-
         if (enabled) {
           disabledInstances.keySet().removeAll(instances);
         } else {
           for (String disabledInstance : instances) {
-            if (!disabledInstances.containsKey(disabledInstance)) {
-              disabledInstances.put(disabledInstance, String.valueOf(System.currentTimeMillis()));
+            Map<String, String> disableInfo = new TreeMap<>();
+            disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_TIMESTAMP.toString(),
+                String.valueOf(System.currentTimeMillis()));
+            if (disabledType != null) {
+              if (disabledType
+                  .equals(InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED)) {
+                throw new HelixException(
+                    "Can not set INSTANCE_NOT_DISABLED as disabled type to an instance");
+              }
+              disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_TYPE.toString(),
+                  disabledType.toString());
             }
+            if (reason != null) {
+              disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_REASON.toString(),
+                  reason);
+            }
+            // We allow user to override disabledType and reason for an already disabled instance.
+            // TODO: update the history ZNode
+            disabledInstances
+                .put(disabledInstance, StringProcessUtil.concatenateMapIntoString(disableInfo));
           }
         }
         clusterConfig.setDisabledInstances(disabledInstances);

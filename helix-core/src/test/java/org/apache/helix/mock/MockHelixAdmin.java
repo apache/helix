@@ -23,13 +23,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.StringProcessUtil;
 import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
@@ -48,6 +52,8 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
+
 
 public class MockHelixAdmin implements HelixAdmin {
 
@@ -285,6 +291,7 @@ public class MockHelixAdmin implements HelixAdmin {
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabled(enabled);
     if (!enabled) {
+      instanceConfig.resetInstanceDisabledTypeAndReason();
       if (reason != null) {
         instanceConfig.setInstanceDisabledReason(reason);
       }
@@ -295,16 +302,75 @@ public class MockHelixAdmin implements HelixAdmin {
     _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
 
-  @Override public void enableInstance(String clusterName, List<String> instances,
-      boolean enabled) {
+  @Override
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
+    enableInstance(clusterName, instances, enabled, null, null);
+  }
+
+  @Override
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
+
+    String path = PropertyPathBuilder.clusterConfig(clusterName);
+
+    if (!_baseDataAccessor.exists(path, 0)) {
+      _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+    }
+
+    _baseDataAccessor.update(path, new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException("Cluster: " + clusterName + ": cluster config is null");
+        }
+
+        ClusterConfig clusterConfig = new ClusterConfig(currentData);
+        Map<String, String> disabledInstances = new TreeMap<>();
+        if (clusterConfig.getDisabledInstances() != null) {
+          disabledInstances.putAll(clusterConfig.getDisabledInstances());
+        }
+        if (enabled) {
+          disabledInstances.keySet().removeAll(instances);
+        } else {
+          for (String disabledInstance : instances) {
+            Map<String, String> disableInfo = new TreeMap<>();
+            disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_TIMESTAMP.toString(),
+                String.valueOf(System.currentTimeMillis()));
+            if (disabledType != null) {
+              if (disabledType
+                  .equals(InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED)) {
+                throw new HelixException(
+                    "Can not set INSTANCE_NOT_DISABLED as disabled type to an instance");
+              }
+              disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_TYPE.toString(),
+                  disabledType.toString());
+            }
+            if (reason != null) {
+              disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_REASON.toString(),
+                  reason);
+            }
+            // We allow user to override disabledType and reason for an already disabled instance.
+            // TODO: update the history ZNode
+            disabledInstances
+                .put(disabledInstance, StringProcessUtil.concatenateMapIntoString(disableInfo));
+          }
+        }
+        clusterConfig.setDisabledInstances(disabledInstances);
+
+        return clusterConfig.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
+
 
   }
 
-  @Override public void enableResource(String clusterName, String resourceName, boolean enabled) {
+  @Override
+  public void enableResource(String clusterName, String resourceName, boolean enabled) {
 
   }
 
-  @Override public void enablePartition(boolean enabled, String clusterName, String instanceName,
+  @Override
+  public void enablePartition(boolean enabled, String clusterName, String instanceName,
       String resourceName, List<String> partitionNames) {
 
   }

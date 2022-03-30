@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.StringProcessUtil;
 import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.util.HelixUtil;
@@ -66,8 +67,6 @@ public class InstanceConfig extends HelixProperty {
   public static final int WEIGHT_NOT_SET = -1;
   public static final int MAX_CONCURRENT_TASK_NOT_SET = -1;
   private static final int TARGET_TASK_THREAD_POOL_SIZE_NOT_SET = -1;
-  private static final String DOMAIN_FIELD_SPLITTER = ",";
-  private static final String DOMAIN_VALUE_JOINER = "=";
 
   private static final Logger _logger = LoggerFactory.getLogger(InstanceConfig.class.getName());
 
@@ -157,21 +156,7 @@ public class InstanceConfig extends HelixProperty {
    */
   public Map<String, String> getDomainAsMap() {
     String domain = getDomainAsString();
-    Map<String, String> domainAsMap = new HashMap<>();
-    if (domain == null || domain.isEmpty()) {
-      return domainAsMap;
-    }
-    String[] pathPairs = domain.trim().split(DOMAIN_FIELD_SPLITTER);
-    for (String pair : pathPairs) {
-      String[] values = pair.split(DOMAIN_VALUE_JOINER);
-      if (values.length != 2 || values[0].isEmpty() || values[1].isEmpty()) {
-        throw new IllegalArgumentException(
-            String.format("Domain-Value pair %s is not valid.", pair));
-      }
-      domainAsMap.put(values[0].trim(), values[1].trim());
-    }
-
-    return domainAsMap;
+    return StringProcessUtil.concatenateConfigParser(getDomainAsString());
   }
 
   /**
@@ -187,12 +172,7 @@ public class InstanceConfig extends HelixProperty {
    * @param domainMap domain as a map
    */
   public void setDomain(Map<String, String> domainMap) {
-    String domain = domainMap
-        .entrySet()
-        .stream()
-        .map(entry -> entry.getKey() + DOMAIN_VALUE_JOINER + entry.getValue())
-        .collect(Collectors.joining(DOMAIN_FIELD_SPLITTER));
-    setDomain(domain);
+    setDomain(StringProcessUtil.concatenateMapIntoString(domainMap));
   }
 
   public int getWeight() {
@@ -287,9 +267,16 @@ public class InstanceConfig extends HelixProperty {
     _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(),
         System.currentTimeMillis());
     if (enabled) {
-      _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.toString());
-      _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString());
+      resetInstanceDisabledTypeAndReason();
     }
+  }
+
+  /**
+   * Removes HELIX_DISABLED_REASON and HELIX_DISABLED_TYPE entry from simple field.
+   */
+  public void resetInstanceDisabledTypeAndReason() {
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_REASON.toString());
+    _record.getSimpleFields().remove(InstanceConfigProperty.HELIX_DISABLED_TYPE.toString());
   }
 
   /**

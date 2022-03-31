@@ -56,6 +56,7 @@ import org.apache.helix.api.exceptions.HelixConflictException;
 import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.WagedValidationUtil;
 import org.apache.helix.controller.rebalancer.waged.WagedRebalancer;
@@ -341,10 +342,16 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void enableInstance(final String clusterName, final String instanceName,
       final boolean enabled) {
+    enableInstance(clusterName, instanceName, enabled, null, null);
+  }
+
+  @Override
+  public void enableInstance(final String clusterName, final String instanceName,
+      final boolean enabled, InstanceConstants.InstanceDisabledType disabledType, String reason) {
     logger.info("{} instance {} in cluster {}.", enabled ? "Enable" : "Disable", instanceName,
         clusterName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
-    enableSingleInstance(clusterName, instanceName, enabled, baseAccessor);
+    enableSingleInstance(clusterName, instanceName, enabled, baseAccessor, disabledType, reason);
     // TODO: Reenable this after storage node bug fixed.
     // enableBatchInstances(clusterName, Collections.singletonList(instanceName), enabled, baseAccessor);
 
@@ -352,6 +359,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
+    // TODO: Considering adding another batched API with  disabled type and reason.
     // TODO: Reenable this after storage node bug fixed.
     if (true) {
       throw new HelixException("Current batch enable/disable instances are temporarily disabled!");
@@ -361,7 +369,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<>(_zkClient);
     if (enabled) {
       for (String instance : instances) {
-        enableSingleInstance(clusterName, instance, enabled, baseAccessor);
+        enableSingleInstance(clusterName, instance, enabled, baseAccessor, null, null);
       }
     }
     enableBatchInstances(clusterName, instances, enabled, baseAccessor);
@@ -1861,7 +1869,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   private void enableSingleInstance(final String clusterName, final String instanceName,
-      final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor) {
+      final boolean enabled, BaseDataAccessor<ZNRecord> baseAccessor,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
     String path = PropertyPathBuilder.instanceConfig(clusterName, instanceName);
 
     if (!baseAccessor.exists(path, 0)) {
@@ -1879,6 +1888,14 @@ public class ZKHelixAdmin implements HelixAdmin {
 
         InstanceConfig config = new InstanceConfig(currentData);
         config.setInstanceEnabled(enabled);
+        if (!enabled) {
+          if (reason != null) {
+            config.setInstanceDisabledReason(reason);
+          }
+          if (disabledType != null) {
+            config.setInstanceDisabledType(disabledType);
+          }
+        }
         return config.getRecord();
       }
     }, AccessOption.PERSISTENT);

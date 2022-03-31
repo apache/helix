@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.helix.api.status.ClusterManagementMode;
 import org.apache.helix.api.status.ClusterManagementModeRequest;
 import org.apache.helix.api.topology.ClusterTopology;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -279,6 +280,16 @@ public interface HelixAdmin {
    * @param enabled
    */
   void enableInstance(String clusterName, String instanceName, boolean enabled);
+
+  /**
+   * @param clusterName
+   * @param instanceName
+   * @param enabled
+   * @param reason set additional string description on why the instance is disabled when
+   *          <code>enabled</code> is false.
+   */
+  void enableInstance(String clusterName, String instanceName, boolean enabled,
+      InstanceConstants.InstanceDisabledType disabledType, String reason);
 
   /**
    * Batch enable/disable instances in a cluster

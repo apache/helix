@@ -474,7 +474,7 @@ public class TestMultiZkHelixJavaApis {
     CloudConfig cloudConfig = cloudConfigBuilder.build();
     HelixManagerProperty helixManagerProperty =
         propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build();
-    helixManagerProperty.setHelixCloudProperty(cloudConfig);
+    helixManagerProperty.getHelixCloudProperty().populateFieldsWithCloudConfig(cloudConfig);
 
     class TestZKHelixManager extends ZKHelixManager {
       public TestZKHelixManager(String clusterName, String participantName,

@@ -99,6 +99,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
     clusterConfig.setMaxOfflineInstancesAllowed(_maxOfflineInstancesAllowed);
+    clusterConfig.setNumOfflineInstancesForAutoExit(0);
     configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     for (int i = 0; i < 3; i++) {
@@ -190,7 +191,7 @@ public class TestClusterInMaintenanceModeWhenReachingOfflineInstancesLimit exten
       return ms != null && ms.getReason() != null;
     }, TestHelper.WAIT_DURATION);
     Assert.assertTrue(result);
-    
+
     // Verify there is rebalance error logged
     checkForRebalanceError(true);
   }

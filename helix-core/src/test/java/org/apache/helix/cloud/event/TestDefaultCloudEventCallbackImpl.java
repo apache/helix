@@ -55,15 +55,38 @@ public class TestDefaultCloudEventCallbackImpl extends ZkStandAloneCMTestBase {
     Assert.assertEquals(_manager.getConfigAccessor()
         .getInstanceConfig(CLUSTER_NAME, _instanceManager.getInstanceName())
         .getInstanceDisabledType(), InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name());
+
+    // Should not disable instance if it is already disabled due to other reasons
+    // And disabled type should remain unchanged
+    _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false);
+    _impl.disableInstance(_instanceManager, null);
+    Assert.assertFalse(InstanceValidationUtil
+        .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
+    Assert.assertEquals(InstanceValidationUtil
+            .getInstanceHelixDisabledType(_manager.getHelixDataAccessor(),
+                _instanceManager.getInstanceName()),
+        InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.name());
+
+    _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false,
+        InstanceConstants.InstanceDisabledType.CLOUD_EVENT, null);
   }
 
   @Test(dependsOnMethods = "testDisableInstance")
   public void testEnableInstance() {
     Assert.assertFalse(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
+    // Should enable instance if the instance is disabled due to cloud event
     _impl.enableInstance(_instanceManager, null);
     Assert.assertTrue(InstanceValidationUtil
         .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
+
+    // Should not enable instance if it is not disabled due to cloud event
+    _admin.enableInstance(CLUSTER_NAME, _instanceManager.getInstanceName(), false);
+    _impl.enableInstance(_instanceManager, null);
+    Assert.assertFalse(InstanceValidationUtil
+        .isEnabled(_manager.getHelixDataAccessor(), _instanceManager.getInstanceName()));
+    _admin.enableInstance(_instanceManager.getClusterName(), _instanceManager.getInstanceName(),
+        true);
   }
 
   @Test

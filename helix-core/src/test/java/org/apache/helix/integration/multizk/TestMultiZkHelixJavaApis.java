@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -36,6 +37,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -474,7 +476,12 @@ public class TestMultiZkHelixJavaApis {
     CloudConfig cloudConfig = cloudConfigBuilder.build();
     HelixManagerProperty helixManagerProperty =
         propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build();
-    helixManagerProperty.getHelixCloudProperty().populateFieldsWithCloudConfig(cloudConfig);
+    HelixCloudProperty oldCloudProperty = helixManagerProperty.getHelixCloudProperty();
+    // Cloud property populated with fields defined in cloud config
+    oldCloudProperty.populateFieldsWithCloudConfig(cloudConfig);
+    // Add some property fields to cloud property that are not in cloud config
+    Properties properties = new Properties();
+    oldCloudProperty.setCustomizedCloudProperties(properties);
 
     class TestZKHelixManager extends ZKHelixManager {
       public TestZKHelixManager(String clusterName, String participantName,
@@ -493,8 +500,21 @@ public class TestMultiZkHelixJavaApis {
         new TestZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null, null,
             helixManagerProperty);
     managerParticipant.connect();
-    Assert.assertFalse(
-        managerParticipant.getHelixManagerProperty().getHelixCloudProperty().getCloudEnabled());
+    HelixCloudProperty newCloudProperty =
+        managerParticipant.getHelixManagerProperty().getHelixCloudProperty();
+    Assert.assertFalse(newCloudProperty.getCloudEnabled());
+
+    // Test reading from zk cloud config overwrite all the property fields included in cloud config
+    Assert.assertEquals(0L, newCloudProperty.getCloudConnectionTimeout());
+    Assert.assertEquals(0, newCloudProperty.getCloudMaxRetry());
+    Assert.assertEquals(0L, newCloudProperty.getCloudRequestTimeout());
+    Assert.assertNull(newCloudProperty.getCloudId());
+    Assert.assertNull(newCloudProperty.getCloudProvider());
+    Assert.assertNull(newCloudProperty.getCloudInfoSources());
+    Assert.assertNull(newCloudProperty.getCloudInfoProcessorName());
+
+    // Test non-cloud config fields are not overwritten after reading cloud config from zk
+    Assert.assertEquals(properties, newCloudProperty.getCustomizedCloudProperties());
 
     // Clean up
     managerParticipant.disconnect();

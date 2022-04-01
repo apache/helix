@@ -1,0 +1,48 @@
+Date:   Thu May 23 18:00:38 2019 -0700
+    Remove cluster view aggregator from helixli
+    
+Date:   Fri Aug 10 13:26:36 2018 -0700
+    fix broken test in helix view aggregator module
+    
+Date:   Fri May 11 12:11:09 2018 -0700
+    Change RoutingDataCache to use zk version based selective update when reading the ExternalViews and TargetExternalView.
+    
+Date:   Tue May 8 12:27:44 2018 -0700
+    minor improvements
+    
+Date:   Fri Apr 27 14:19:19 2018 -0700
+    implement distributed state model for helix view aggregator
+    
+Date:   Thu Apr 19 17:54:18 2018 -0700
+
+    refactored helix view aggregator not to use deprecated components from helix-core
+    
+Date:   Thu Mar 1 18:46:54 2018 -0800
+    adding basic metrics to HelixViewAggregator
+    
+Date:   Tue Feb 27 11:34:25 2018 -0800
+    add mssing package def to helix-view-aggregator's pom and ivy files
+    
+Date:   Wed Feb 14 18:03:48 2018 -0800
+    finalized HelixViewAggregator main logic and added integration test
+    
+Date:   Tue Feb 13 10:15:55 2018 -0800
+    Change RoutingTableProvider to support direct aggregating routing information from CurrentStates in each liveinstance. When sourceDataType is set as CurrentState, RoutingTableProvider will listen on CurrentStateChanges and refresh routing table from CurrentStates upon changes.
+
+Date:   Mon Feb 5 20:30:39 2018 -0800
+    Implement ViewClusterRefresher logic and tests
+    
+Date:   Tue Feb 6 11:21:27 2018 -0800
+    implemented SourceClusterDataProvider's core logic and related tests
+    
+Date:   Mon Feb 5 17:26:24 2018 -0800
+    Refactor ClusterDataCache, break it into small cache components, including CurrentStateCache, InstanceMessageCache and TaskDataCache, and put the refresh logic into each cache component itself.
+
+Date:   Tue Jan 23 17:55:23 2018 -0800
+    implement view cluster config change related logics and tests
+    
+Date:   Tue Jan 23 17:55:23 2018 -0800
+    create interfaces and interactions among HelixViewAggregator components
+    
+Date:   Tue Jan 23 17:02:31 2018 -0800
+    created project infrastructure for helix-view-aggregator module

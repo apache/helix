@@ -98,7 +98,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
 /**
  * TestMultiZkHelixJavaApis spins up multiple in-memory ZooKeepers with a pre-configured
  * cluster-Zk realm routing information.
@@ -247,7 +246,8 @@ public class TestMultiZkHelixJavaApis {
     }
     // todo: We should fail test here once we achieved 0 leakage and remove the following System print
     if (!status) {
-      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
+      System.out.println(
+          "---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }
   }
 
@@ -466,7 +466,9 @@ public class TestMultiZkHelixJavaApis {
     // a default config because there is no CloudConfig ZNode in ZK.
     CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
     cloudConfigBuilder.setCloudEnabled(true);
-    cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
+    // Set to Customized so CloudInfoSources and CloudInfoProcessorName will be read from cloud config
+    // instead of properties
+    cloudConfigBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
     cloudConfigBuilder.setCloudID("TestID");
     List<String> infoURL = new ArrayList<String>();
     infoURL.add("TestURL");
@@ -474,9 +476,10 @@ public class TestMultiZkHelixJavaApis {
     cloudConfigBuilder.setCloudInfoProcessorName("TestProcessor");
 
     CloudConfig cloudConfig = cloudConfigBuilder.build();
+    HelixCloudProperty oldCloudProperty = new HelixCloudProperty(cloudConfig);
     HelixManagerProperty helixManagerProperty =
-        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build();
-    HelixCloudProperty oldCloudProperty = helixManagerProperty.getHelixCloudProperty();
+        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig)
+            .setHelixCloudProperty(oldCloudProperty).build();
     // Cloud property populated with fields defined in cloud config
     oldCloudProperty.populateFieldsWithCloudConfig(cloudConfig);
     // Add some property fields to cloud property that are not in cloud config
@@ -502,19 +505,16 @@ public class TestMultiZkHelixJavaApis {
     managerParticipant.connect();
     HelixCloudProperty newCloudProperty =
         managerParticipant.getHelixManagerProperty().getHelixCloudProperty();
-    Assert.assertFalse(newCloudProperty.getCloudEnabled());
 
-    // Test reading from zk cloud config overwrite all the property fields included in cloud config
-    Assert.assertEquals(0L, newCloudProperty.getCloudConnectionTimeout());
-    Assert.assertEquals(0, newCloudProperty.getCloudMaxRetry());
-    Assert.assertEquals(0L, newCloudProperty.getCloudRequestTimeout());
+    // Test reading from zk cloud config overwrite property fields included in cloud config
+    Assert.assertFalse(newCloudProperty.getCloudEnabled());
     Assert.assertNull(newCloudProperty.getCloudId());
     Assert.assertNull(newCloudProperty.getCloudProvider());
-    Assert.assertNull(newCloudProperty.getCloudInfoSources());
-    Assert.assertNull(newCloudProperty.getCloudInfoProcessorName());
 
     // Test non-cloud config fields are not overwritten after reading cloud config from zk
-    Assert.assertEquals(properties, newCloudProperty.getCustomizedCloudProperties());
+    Assert.assertEquals(newCloudProperty.getCustomizedCloudProperties(), properties);
+    Assert.assertEquals(newCloudProperty.getCloudInfoSources(), infoURL);
+    Assert.assertEquals(newCloudProperty.getCloudInfoProcessorName(), "TestProcessor");
 
     // Clean up
     managerParticipant.disconnect();
@@ -578,8 +578,7 @@ public class TestMultiZkHelixJavaApis {
       ZkHelixClusterVerifier verifier =
           new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
               .setExpectLiveInstances(liveInstancesNames)
-              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-              .build();
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
       try {
         Assert.assertTrue(verifier.verifyByPolling());
       } finally {

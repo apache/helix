@@ -66,7 +66,10 @@ public class HelixManagerProperty {
   }
 
   public HelixCloudProperty getHelixCloudProperty() {
-    return _helixCloudProperty == null ? new HelixCloudProperty() : _helixCloudProperty;
+    if (_helixCloudProperty == null) {
+      _helixCloudProperty = new HelixCloudProperty(CloudConfig.buildEmptyCloudConfig());
+    }
+    return _helixCloudProperty;
   }
 
   public String getVersion() {

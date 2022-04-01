@@ -94,6 +94,10 @@ public class CloudConfig extends HelixProperty {
     }
   }
 
+  public static CloudConfig buildEmptyCloudConfig() {
+    return new CloudConfig.Builder().setCloudEnabled(false).build();
+  }
+
   /**
    * Enable/Disable the CLOUD_ENABLED field.
    * @param enabled

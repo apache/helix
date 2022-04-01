@@ -69,54 +69,52 @@ public class HelixCloudProperty {
   // Other customized properties that may be used.
   private Properties _customizedCloudProperties = new Properties();
 
-  public HelixCloudProperty() {
-    setCloudEnabled(false);
-  }
-
   /**
    * Initialize Helix Cloud Property based on the provider
    * @param
    */
   public HelixCloudProperty(CloudConfig cloudConfig) {
-    this();
     populateFieldsWithCloudConfig(cloudConfig);
   }
 
   public void populateFieldsWithCloudConfig(CloudConfig cloudConfig) {
-    if (cloudConfig == null || !cloudConfig.isCloudEnabled()) {
-      reset();
-      return;
+    if (cloudConfig == null) {
+      cloudConfig = CloudConfig.buildEmptyCloudConfig();
     }
     setCloudEnabled(cloudConfig.isCloudEnabled());
     setCloudId(cloudConfig.getCloudID());
-    setCloudProvider(cloudConfig.getCloudProvider());
-    switch (CloudProvider.valueOf(cloudConfig.getCloudProvider())) {
-      case AZURE:
-        Properties azureProperties = new Properties();
-        try {
-          InputStream stream = Thread.currentThread().getContextClassLoader()
-              .getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
-          azureProperties.load(stream);
-        } catch (IOException e) {
-          String errMsg =
-              "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
-          throw new IllegalArgumentException(errMsg, e);
-        }
-        LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
-        setCloudInfoSources(
-            Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
-        setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME));
-        setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
-        setCloudConnectionTimeout(Long.valueOf(azureProperties.getProperty(CONNECTION_TIMEOUT_MS)));
-        setCloudRequestTimeout(Long.valueOf(azureProperties.getProperty(REQUEST_TIMEOUT_MS)));
-        break;
-      case CUSTOMIZED:
-        setCloudInfoSources(cloudConfig.getCloudInfoSources());
-        setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
-        break;
-      default:
-        throw new HelixException(
-            String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+    String cloudProviderStr = cloudConfig.getCloudProvider();
+    setCloudProvider(cloudProviderStr);
+    if (cloudProviderStr != null) {
+      switch (CloudProvider.valueOf(cloudProviderStr)) {
+        case AZURE:
+          Properties azureProperties = new Properties();
+          try {
+            InputStream stream = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(AZURE_CLOUD_PROPERTY_FILE);
+            azureProperties.load(stream);
+          } catch (IOException e) {
+            String errMsg =
+                "failed to open Helix Azure cloud properties file: " + AZURE_CLOUD_PROPERTY_FILE;
+            throw new IllegalArgumentException(errMsg, e);
+          }
+          LOG.info("Successfully loaded Helix Azure cloud properties: {}", azureProperties);
+          setCloudInfoSources(
+              Collections.singletonList(azureProperties.getProperty(CLOUD_INFO_SOURCE)));
+          setCloudInfoProcessorName(azureProperties.getProperty(CLOUD_INFO_PROCESSOR_NAME));
+          setCloudMaxRetry(Integer.valueOf(azureProperties.getProperty(CLOUD_MAX_RETRY)));
+          setCloudConnectionTimeout(
+              Long.valueOf(azureProperties.getProperty(CONNECTION_TIMEOUT_MS)));
+          setCloudRequestTimeout(Long.valueOf(azureProperties.getProperty(REQUEST_TIMEOUT_MS)));
+          break;
+        case CUSTOMIZED:
+          setCloudInfoSources(cloudConfig.getCloudInfoSources());
+          setCloudInfoProcessorName(cloudConfig.getCloudInfoProcessorName());
+          break;
+        default:
+          throw new HelixException(
+              String.format("Unsupported cloud provider: %s", cloudConfig.getCloudProvider()));
+      }
     }
   }
 
@@ -190,19 +188,5 @@ public class HelixCloudProperty {
 
   public void setCustomizedCloudProperties(Properties customizedCloudProperties) {
     _customizedCloudProperties.putAll(customizedCloudProperties);
-  }
-
-  /**
-   * This method will reset all the fields that are included in CloudConfig
-   */
-  private void reset() {
-    setCloudEnabled(false);
-    setCloudId(null);
-    setCloudProvider(null);
-    setCloudInfoSources(null);
-    setCloudInfoProcessorName(null);
-    setCloudMaxRetry(0);
-    setCloudConnectionTimeout(0L);
-    setCloudRequestTimeout(0L);
   }
 }

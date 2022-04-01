@@ -552,7 +552,7 @@ public class GenericHelixController implements IdealStateChangeListener, LiveIns
       autoExitMaintenancePipeline.addStage(new MaintenanceRecoveryStage());
 
       registry.register(ClusterEventType.IdealStateChange, dataRefresh, dataPreprocess,
-          rebalancePipeline);
+          externalViewPipeline, rebalancePipeline);
       registry.register(ClusterEventType.CurrentStateChange, dataRefresh, dataPreprocess,
           externalViewPipeline, rebalancePipeline);
       registry.register(ClusterEventType.InstanceConfigChange, dataRefresh, dataPreprocess,

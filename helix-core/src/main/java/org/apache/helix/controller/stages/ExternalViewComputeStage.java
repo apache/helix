@@ -96,7 +96,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
 
     // Keep MBeans for existing resources and unregister MBeans for dropped resources
     if (clusterStatusMonitor != null) {
-      clusterStatusMonitor.retainResourceMonitor(monitoringResources);
+      //clusterStatusMonitor.retainResourceMonitor(monitoringResources);
     }
 
     List<String> externalViewsToRemove = new ArrayList<>();
@@ -179,7 +179,7 @@ public class ExternalViewComputeStage extends AbstractAsyncBaseStage {
           .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
         clusterStatusMonitor
             .setResourcePendingMessages(resourceName ,totalPendingMessageCount);
-        monitoringResources.add(resourceName);
+        //monitoringResources.add(resourceName);
       }
     }
 

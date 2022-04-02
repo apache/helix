@@ -66,9 +66,7 @@
 
     <menu name="Documentation">
       <item name="1.0.2" href="./1.0.2-docs/index.html"/>
-      <item name="1.0.1" href="./1.0.1-docs/index.html"/>
-      <item name="0.9.9" href="./0.9.9-docs/index.html"/>
-      <item name="0.9.8" href="./0.9.8-docs/index.html"/>
+      <item name="0.9.10 (0.9.9)" href="./0.9.9-docs/index.html"/>
       <item name="trunk" href="./trunk-docs/index.html"/>
     </menu>
 
@@ -79,7 +77,7 @@
       <item name="Download" href="./1.0.2-docs/download.html"/>
     </menu>
 
-    <menu name="Helix 0.9.9">
+    <menu name="Helix 0.9.10 (0.9.9)">
       <item name="Documentation" href="./0.9.9-docs/index.html"/>
       <item name="Quick Start" href="./0.9.9-docs/Quickstart.html"/>
       <item name="Tutorial" href="./0.9.9-docs/Tutorial.html"/>
@@ -141,7 +139,7 @@
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>
         <column>Learn</column>
-        <column>Documentation|Helix 1.0.2|Helix 0.9.9</column>
+        <column>Documentation|Helix 1.0.2|Helix 0.9.10</column>
         <column>Get Involved</column>
         <column>ASF</column>
       </bottomNav>

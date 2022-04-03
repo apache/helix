@@ -621,7 +621,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.2.2</version>
           <executions>
             <execution>
               <goals>
@@ -697,7 +697,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>5.1.4</version>
         <inherited>true</inherited>
         <extensions>true</extensions>
         <configuration>

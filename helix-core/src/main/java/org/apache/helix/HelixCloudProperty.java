@@ -79,7 +79,7 @@ public class HelixCloudProperty {
 
   public void populateFieldsWithCloudConfig(CloudConfig cloudConfig) {
     if (cloudConfig == null) {
-      cloudConfig = CloudConfig.buildEmptyCloudConfig();
+      cloudConfig = new CloudConfig();
     }
     setCloudEnabled(cloudConfig.isCloudEnabled());
     setCloudId(cloudConfig.getCloudID());

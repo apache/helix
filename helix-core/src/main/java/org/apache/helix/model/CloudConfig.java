@@ -58,8 +58,9 @@ public class CloudConfig extends HelixProperty {
   /**
    * Instantiate the CloudConfig for the cloud
    */
-  private CloudConfig() {
+  public CloudConfig() {
     super(CLOUD_CONFIG_KW);
+    setCloudEnabled(false);
   }
 
   /**
@@ -92,10 +93,6 @@ public class CloudConfig extends HelixProperty {
         _record.setListField(CloudConfigProperty.CLOUD_INFO_SOURCE.name(), cloudInfoSource);
       }
     }
-  }
-
-  public static CloudConfig buildEmptyCloudConfig() {
-    return new CloudConfig.Builder().setCloudEnabled(false).build();
   }
 
   /**

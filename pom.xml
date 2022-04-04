@@ -335,16 +335,6 @@
       </snapshots>
     </repository>
     <repository>
-      <id>mvnrepository.com</id>
-      <url>https://mvnrepository.com</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    <repository>
       <id>central</id>
       <name>Central Repository</name>
       <url>https://repo.maven.apache.org/maven2</url>

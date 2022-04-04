@@ -148,6 +148,10 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     // Drop the resource
     setupTool.dropResourceFromCluster(clusterName, RESOURCE_NAME);
 
+    // TEMP WORKAROUND, trigger a CurrentStateChange to remove the resource monitor
+    // https://github.com/apache/helix/issues/1980
+    participant.syncStart();
+
     // Verify that the bean was removed
     noTimeout = _unregisterLatch.await(30000, TimeUnit.MILLISECONDS);
     Assert.assertTrue(noTimeout);

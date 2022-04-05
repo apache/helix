@@ -58,8 +58,7 @@ public class DefaultCloudEventCallbackImpl {
   public void enableInstance(HelixManager manager, Object eventInfo) {
     String instanceName = manager.getInstanceName();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    if (!InstanceValidationUtil.isEnabled(accessor, instanceName) && InstanceValidationUtil
-        .getInstanceHelixDisabledType(accessor, instanceName)
+    if (InstanceValidationUtil.getInstanceHelixDisabledType(accessor, instanceName)
         .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name())) {
       manager.getClusterManagmentTool()
           .enableInstance(manager.getClusterName(), instanceName, true);
@@ -91,9 +90,8 @@ public class DefaultCloudEventCallbackImpl {
     // Check if there is any disabled live instance that was disabled due to cloud event,
     // if none left, exit maintenance mode
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    if (instances.stream().noneMatch(
-        instance -> !InstanceValidationUtil.isEnabled(accessor, instance) && InstanceValidationUtil
-            .getInstanceHelixDisabledType(accessor, instance)
+    if (instances.stream().noneMatch(instance ->
+        InstanceValidationUtil.getInstanceHelixDisabledType(accessor, instance)
             .equals(InstanceConstants.InstanceDisabledType.CLOUD_EVENT.name())
             && InstanceValidationUtil.isAlive(accessor, instance))) {
       manager.getClusterManagmentTool()

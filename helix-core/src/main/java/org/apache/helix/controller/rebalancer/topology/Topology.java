@@ -93,7 +93,6 @@ public class Topology {
     }
     return Collections.emptyList();
   }
-
   /**
    * Returns all leaf nodes that belong in the tree. Returns itself if this node is a leaf.
    *

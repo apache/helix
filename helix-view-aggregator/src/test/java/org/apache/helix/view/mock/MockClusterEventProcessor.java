@@ -19,14 +19,15 @@ package org.apache.helix.view.mock;
  * under the License.
  */
 
-import org.apache.helix.common.ClusterEventProcessor;
-import org.apache.helix.controller.stages.ClusterEvent;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.view.common.ClusterViewEvent;
 
-public class MockClusterEventProcessor extends ClusterEventProcessor {
-  private int _handledClusterConfigChange;
-  private int _handledExternalViewChange;
-  private int _handledInstanceConfigChange;
-  private int _handledLiveInstancesChange;
+public class MockClusterEventProcessor extends DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent> {
+  private final AtomicInteger _handledClusterConfigChange = new AtomicInteger(0);
+  private final AtomicInteger _handledExternalViewChange = new AtomicInteger(0);
+  private final AtomicInteger _handledInstanceConfigChange = new AtomicInteger(0);
+  private final AtomicInteger _handledLiveInstancesChange = new AtomicInteger(0);
 
   public MockClusterEventProcessor(String clusterName) {
     super(clusterName);
@@ -34,45 +35,45 @@ public class MockClusterEventProcessor extends ClusterEventProcessor {
   }
 
   public int getHandledClusterConfigChangeCount() {
-    return _handledClusterConfigChange;
+    return _handledClusterConfigChange.get();
   }
 
   public int getHandledExternalViewChangeCount() {
-    return _handledExternalViewChange;
+    return _handledExternalViewChange.get();
   }
 
   public int getHandledInstanceConfigChangeCount() {
-    return _handledInstanceConfigChange;
+    return _handledInstanceConfigChange.get();
   }
 
   public int getHandledLiveInstancesChangeCount() {
-    return _handledLiveInstancesChange;
+    return _handledLiveInstancesChange.get();
   }
 
   public void resetHandledEventCount() {
-    _handledClusterConfigChange = 0;
-    _handledExternalViewChange = 0;
-    _handledInstanceConfigChange = 0;
-    _handledLiveInstancesChange = 0;
+    _handledClusterConfigChange.set(0);
+    _handledExternalViewChange.set(0);
+    _handledInstanceConfigChange.set(0);
+    _handledLiveInstancesChange.set(0);
   }
 
   @Override
-  public void handleEvent(ClusterEvent event) {
+  public void handleEvent(ClusterViewEvent event) {
     switch (event.getEventType()) {
-    case ClusterConfigChange:
-      _handledClusterConfigChange += 1;
-      break;
-    case LiveInstanceChange:
-      _handledLiveInstancesChange += 1;
-      break;
-    case InstanceConfigChange:
-      _handledInstanceConfigChange += 1;
-      break;
-    case ExternalViewChange:
-      _handledExternalViewChange += 1;
-      break;
-    default:
-      break;
+      case ConfigChange:
+        _handledClusterConfigChange.incrementAndGet();
+        break;
+      case LiveInstanceChange:
+        _handledLiveInstancesChange.incrementAndGet();
+        break;
+      case InstanceConfigChange:
+        _handledInstanceConfigChange.incrementAndGet();
+        break;
+      case ExternalViewChange:
+        _handledExternalViewChange.incrementAndGet();
+        break;
+      default:
+        break;
     }
   }
 }

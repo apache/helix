@@ -19,11 +19,13 @@ package org.apache.helix.common.caches;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.common.controllers.ControlContextProvider;
 import org.apache.helix.model.ExternalView;
@@ -46,10 +48,6 @@ public class BasicClusterDataCache implements ControlContextProvider {
   protected PropertyCache<LiveInstance> _liveInstancePropertyCache;
   protected PropertyCache<InstanceConfig> _instanceConfigPropertyCache;
   protected ExternalViewCache _externalViewCache;
-  protected Map<String, LiveInstance> _liveInstanceMap;
-  protected Map<String, InstanceConfig> _instanceConfigMap;
-  protected Map<String, ExternalView> _externalViewMap;
-  private final PropertyType _sourceDataType;
 
   protected String _clusterName;
 
@@ -110,12 +108,12 @@ public class BasicClusterDataCache implements ControlContextProvider {
     LOG.info("START: BasicClusterDataCache.refresh() for cluster " + _clusterName);
     long startTime = System.currentTimeMillis();
 
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.EXTERNAL_VIEW)) {
+    if (_propertyDataChangedMap.getOrDefault(HelixConstants.ChangeType.EXTERNAL_VIEW, false)) {
       _propertyDataChangedMap.put(HelixConstants.ChangeType.EXTERNAL_VIEW, false);
       _externalViewCache.refresh(accessor);
     }
 
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.LIVE_INSTANCE)) {
+    if (_propertyDataChangedMap.getOrDefault(HelixConstants.ChangeType.LIVE_INSTANCE, false)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.LIVE_INSTANCE, false);
       _propertyDataChangedMap.put(HelixConstants.ChangeType.CURRENT_STATE, true);
@@ -124,7 +122,7 @@ public class BasicClusterDataCache implements ControlContextProvider {
           + ". Takes " + (System.currentTimeMillis() - start) + " ms");
     }
 
-    if (_propertyDataChangedMap.get(HelixConstants.ChangeType.INSTANCE_CONFIG)) {
+    if (_propertyDataChangedMap.getOrDefault(HelixConstants.ChangeType.INSTANCE_CONFIG, false)) {
       long start = System.currentTimeMillis();
       _propertyDataChangedMap.put(HelixConstants.ChangeType.INSTANCE_CONFIG, false);
       _instanceConfigPropertyCache.refresh(accessor);
@@ -196,15 +194,17 @@ public class BasicClusterDataCache implements ControlContextProvider {
    */
   public synchronized void clearCache(HelixConstants.ChangeType changeType) {
     switch (changeType) {
-    case LIVE_INSTANCE:
-    case INSTANCE_CONFIG:
-      LOG.warn("clearCache is deprecated for changeType: {}.", changeType);
-      break;
-    case EXTERNAL_VIEW:
-      _externalViewCache.clear();
-      break;
-    default:
-      break;
+      case LIVE_INSTANCE:
+        _liveInstancePropertyCache.setPropertyMap(HelixProperty.convertListToMap(Collections.emptyList()));
+        break;
+      case INSTANCE_CONFIG:
+        _instanceConfigPropertyCache.setPropertyMap(HelixProperty.convertListToMap(Collections.emptyList()));
+        break;
+      case EXTERNAL_VIEW:
+        _externalViewCache.clear();
+        break;
+      default:
+        break;
     }
   }
 

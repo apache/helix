@@ -19,40 +19,37 @@ package org.apache.helix.api.config;
  * under the License.
  */
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.helix.PropertyType;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Represents source physical cluster information for view cluster
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ViewClusterSourceConfig {
+  private static final List<PropertyType> _validPropertyTypes = Collections.unmodifiableList(
+      Arrays.asList(PropertyType.INSTANCES, PropertyType.EXTERNALVIEW, PropertyType.LIVEINSTANCES));
+  private static final ObjectMapper _objectMapper = new ObjectMapper();
 
-  private static final List<PropertyType> _validPropertyTypes = Collections.unmodifiableList(Arrays
-      .asList(new PropertyType[] { PropertyType.INSTANCES, PropertyType.EXTERNALVIEW,
-          PropertyType.LIVEINSTANCES
-      }));
-
-  private static ObjectMapper _objectMapper = new ObjectMapper();
-
-  @JsonProperty("name")
-  private String _name;
-
-  @JsonProperty("zkAddress")
-  String _zkAddress;
-
-  @JsonProperty("properties")
+  private final String _name;
+  private final String _zkAddress;
   private List<PropertyType> _properties;
 
-  private ViewClusterSourceConfig() {
-  }
-
-  public ViewClusterSourceConfig(String name, String zkAddress, List<PropertyType> properties) {
+  @JsonCreator
+  public ViewClusterSourceConfig(
+      @JsonProperty("name") String name,
+      @JsonProperty("zkAddress") String zkAddress,
+      @JsonProperty("properties") List<PropertyType> properties
+  ) {
     _name = name;
     _zkAddress = zkAddress;
     _properties = properties;
@@ -60,14 +57,6 @@ public class ViewClusterSourceConfig {
 
   public ViewClusterSourceConfig(ViewClusterSourceConfig config) {
     this(config.getName(), config.getZkAddress(), new ArrayList<>(config.getProperties()));
-  }
-
-  public void setName(String name) {
-    _name = name;
-  }
-
-  public void setZkAddress(String zkAddress) {
-    _zkAddress = zkAddress;
   }
 
   public void setProperties(List<PropertyType> properties) {
@@ -92,8 +81,13 @@ public class ViewClusterSourceConfig {
     return _properties;
   }
 
+  @JsonIgnore
+  public static List<PropertyType> getValidPropertyTypes() {
+    return _validPropertyTypes;
+  }
+
   public String toJson() throws IOException {
-    return new ObjectMapper().writeValueAsString(this);
+    return _objectMapper.writeValueAsString(this);
   }
 
   public String toString() {

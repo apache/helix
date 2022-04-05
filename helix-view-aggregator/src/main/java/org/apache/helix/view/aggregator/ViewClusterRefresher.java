@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
@@ -45,7 +46,7 @@ public class ViewClusterRefresher {
   private static final Logger logger = LoggerFactory.getLogger(ViewClusterRefresher.class);
   private String _viewClusterName;
   private HelixDataAccessor _viewClusterDataAccessor;
-  private Map<String, SourceClusterDataProvider> _dataProviderMap;
+  private Set<SourceClusterDataProvider> _dataProviderView;
 
   // These 3 caches stores objects that are pushed to view cluster (write-through) cache,
   // thus we don't need to read from view cluster everytime we refresh it.
@@ -53,11 +54,9 @@ public class ViewClusterRefresher {
   private Map<String, HelixProperty> _viewClusterInstanceConfigCache;
   private Map<String, HelixProperty> _viewClusterExternalViewCache;
 
-  public ViewClusterRefresher(String viewClusterName, HelixDataAccessor viewClusterDataAccessor,
-      Map<String, SourceClusterDataProvider> dataProviderMap) {
+  public ViewClusterRefresher(String viewClusterName, HelixDataAccessor viewClusterDataAccessor) {
     _viewClusterName = viewClusterName;
     _viewClusterDataAccessor = viewClusterDataAccessor;
-    _dataProviderMap = dataProviderMap;
     _viewClusterLiveInstanceCache = new HashMap<>();
     _viewClusterInstanceConfigCache = new HashMap<>();
     _viewClusterExternalViewCache = new HashMap<>();
@@ -108,6 +107,10 @@ public class ViewClusterRefresher {
     }
   }
 
+  public void updateProviderView(Set<SourceClusterDataProvider> dataProviderView) {
+    _dataProviderView = dataProviderView;
+  }
+
   /**
    * Create / update / delete property of given type in view cluster, based on data change from
    * source clusters.
@@ -133,7 +136,7 @@ public class ViewClusterRefresher {
       listedNamesInView =
           new HashSet<>(_viewClusterDataAccessor.getChildNames(getPropertyKey(propertyType, null)));
       // Prepare data
-      for (SourceClusterDataProvider provider : _dataProviderMap.values()) {
+      for (SourceClusterDataProvider provider : _dataProviderView) {
         if (!provider.getPropertiesToAggregate().contains(propertyType)) {
           logger.info(String
               .format("SourceCluster %s does not need to aggregate %s, skip.", provider.getName(),
@@ -153,16 +156,10 @@ public class ViewClusterRefresher {
           listedNamesInSource.addAll(provider.getExternalViewNames());
           for (Map.Entry<String, ExternalView> entry : provider.getExternalViews().entrySet()) {
             String resourceName = entry.getKey();
-            ExternalView resourceEV = entry.getValue();
-            if (sourceProperties.containsKey(resourceName)) {
-              // Merge external views if we already have a record
-              mergeExternalViews((ExternalView) sourceProperties.get(resourceName), resourceEV);
-            } else {
-              // merging simple fields and list fields are meaningless and would cause confusion
-              resourceEV.getRecord().getSimpleFields().clear();
-              resourceEV.getRecord().getListFields().clear();
-              sourceProperties.put(resourceName, resourceEV);
+            if (!sourceProperties.containsKey(resourceName)) {
+              sourceProperties.put(resourceName, new ExternalView(resourceName));
             }
+            mergeExternalViews((ExternalView) sourceProperties.get(resourceName), entry.getValue());
           }
           break;
         default:
@@ -180,6 +177,8 @@ public class ViewClusterRefresher {
           .format("Caught exception during refreshing %s for view cluster %s", propertyType.name(),
               _viewClusterName), e);
     }
+    logRefreshResult(propertyType, ok);
+
     return ok;
   }
 
@@ -199,13 +198,11 @@ public class ViewClusterRefresher {
               source.getId(), toMerge.getId()));
     }
     for (String partitionName : toMerge.getPartitionSet()) {
+      // Deep copying state map to avoid modifying source cache
       if (!source.getPartitionSet().contains(partitionName)) {
-        source.setStateMap(partitionName, toMerge.getStateMap(partitionName));
-      } else {
-        Map<String, String> mergedPartitionState = source.getStateMap(partitionName);
-        mergedPartitionState.putAll(toMerge.getStateMap(partitionName));
-        source.setStateMap(partitionName, mergedPartitionState);
+        source.setStateMap(partitionName, new TreeMap<String, String>());
       }
+      source.getStateMap(partitionName).putAll(toMerge.getStateMap(partitionName));
     }
   }
 
@@ -273,7 +270,6 @@ public class ViewClusterRefresher {
       Set<String> viewPropertyNames, Set<String> sourcePropertyNames,
       Map<String, T> cachedSourceProperties, Map<String, T> viewClusterPropertyCache) {
     boolean ok = true;
-
     // Calculate diff
     ClusterPropertyDiff diff =
         calculatePropertyDiff(viewPropertyNames, sourcePropertyNames, cachedSourceProperties,
@@ -360,7 +356,8 @@ public class ViewClusterRefresher {
   private <T extends HelixProperty> boolean addOrUpdateProperties(
       List<PropertyKey> keysToAddOrUpdate, List<HelixProperty> objects, Map<String, T> cache) {
     boolean ok = true;
-    logger.info(String.format("AddOrUpdate objects: %s", keysToAddOrUpdate));
+    logger.info(
+        String.format("AddOrUpdate %s objects: %s", keysToAddOrUpdate.size(), keysToAddOrUpdate));
     boolean[] addOrUpdateResults = _viewClusterDataAccessor.setChildren(keysToAddOrUpdate, objects);
     for (int i = 0; i < addOrUpdateResults.length; i++) {
       if (!addOrUpdateResults[i]) {
@@ -389,7 +386,7 @@ public class ViewClusterRefresher {
   private <T extends HelixProperty> boolean deleteProperties(List<PropertyKey> keysToDelete,
       Map<String, T> cache) {
     boolean ok = true;
-    logger.info(String.format("Deleting objects: %s", keysToDelete));
+    logger.info(String.format("Deleting %s objects: %s", keysToDelete.size(), keysToDelete));
     for (PropertyKey key : keysToDelete) {
       if (!_viewClusterDataAccessor.removeProperty(key)) {
         // Don't remove item from cache yet - will retry during next refresh

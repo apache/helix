@@ -35,7 +35,6 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelParser;
-import org.apache.helix.view.ViewAggregatorIntegrationTestBase;
 import org.apache.helix.view.mock.MockViewClusterSpectator;
 import org.apache.helix.view.statemodel.DistViewAggregatorStateModel;
 import org.testng.Assert;
@@ -172,8 +171,7 @@ public class TestHelixViewAggregator extends ViewAggregatorIntegrationTestBase {
     // Wait for refresh and verify
     Thread.sleep((_viewClusterRefreshPeriodSec + 2) * 1000);
     verifyViewClusterEventChanges(false, false, true);
-    Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(),
-        0);
+    Assert.assertEquals(_monitor.getPropertyNamesFromViewCluster(PropertyType.LIVEINSTANCES).size(), 0);
     _monitor.reset();
 
     // Simulate view aggregator service crashed and got reset

@@ -26,13 +26,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.model.ClusterConfig;
 
-public class TestDataProviderUtil {
+public class DataProviderTestUtil {
   private static final int viewClusterRefreshPeriod = 10;
   private static final String testZkAddr = "localhost:1010";
-  private static final List<PropertyType> testProperties = Arrays.asList(
-      new PropertyType[] { PropertyType.LIVEINSTANCES, PropertyType.EXTERNALVIEW,
-          PropertyType.INSTANCES
-      });
+  private static final List<PropertyType> testProperties =
+      Arrays.asList(PropertyType.LIVEINSTANCES, PropertyType.EXTERNALVIEW, PropertyType.INSTANCES);
 
   public static ClusterConfig createDefaultViewClusterConfig(String viewClusterName,
       int numSourceCluster) {

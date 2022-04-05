@@ -189,7 +189,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertTrue(
         tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledReason().isEmpty());
     Assert.assertEquals(tool.getInstanceConfig(clusterName, instanceName).getInstanceDisabledType(),
-        InstanceConstants.InstanceDisabledType.INSTANCE_NOT_DISABLED.toString());
+        InstanceConstants.INSTANCE_NOT_DISABLED);
 
     dummyList.remove("bar");
     dummyList.add("baz");

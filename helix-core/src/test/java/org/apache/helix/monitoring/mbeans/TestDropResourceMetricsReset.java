@@ -148,11 +148,19 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     // Drop the resource
     setupTool.dropResourceFromCluster(clusterName, RESOURCE_NAME);
 
+    // TEMP WORKAROUND
+    // Adding a liveinstance has an effect of creating a CurrentStageChange event, which in turn triggers
+    // ExternalViewStage that includes the metric cleanup logic
+    // TODO: Fix and cleanup by refactoring mbean unregistration logic
+    // https://github.com/apache/helix/issues/1980
+    participant.syncStart();
+
     // Verify that the bean was removed
     noTimeout = _unregisterLatch.await(30000, TimeUnit.MILLISECONDS);
     Assert.assertTrue(noTimeout);
 
     // Clean up
+    participant.syncStop();
     listener.disconnect();
     controller.syncStop();
 

@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.constants.InstanceConstants;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
@@ -154,6 +155,8 @@ public class InstancesAccessor extends AbstractHelixResource {
       @QueryParam("command") String command,
       @QueryParam("continueOnFailures") boolean continueOnFailures,
       @QueryParam("skipZKRead") boolean skipZKRead,
+      @QueryParam("instanceDisabledType") String disabledType,
+      @QueryParam("instanceDisabledReason") String disabledReason,
       String content) {
     Command cmd;
     try {
@@ -179,7 +182,15 @@ public class InstancesAccessor extends AbstractHelixResource {
         admin.enableInstance(clusterId, enableInstances, true);
         break;
       case disable:
-        admin.enableInstance(clusterId, enableInstances, false);
+        InstanceConstants.InstanceDisabledType disabledTypeEnum = null;
+        if (disabledType != null) {
+          try {
+            disabledTypeEnum = InstanceConstants.InstanceDisabledType.valueOf(disabledType);
+          } catch (IllegalArgumentException ex) {
+            return badRequest("Invalid instanceDisabledType!");
+          }
+        }
+        admin.enableInstance(clusterId, enableInstances, false, disabledTypeEnum, disabledReason);
         break;
       case stoppable:
         return batchGetStoppableInstances(clusterId, node, skipZKRead, continueOnFailures);

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
@@ -48,6 +49,9 @@ import org.apache.helix.model.MaintenanceSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
+
+import static org.apache.helix.manager.zk.ZKHelixAdmin.assembleInstanceBatchedDisabledInfo;
+
 
 public class MockHelixAdmin implements HelixAdmin {
 
@@ -285,6 +289,7 @@ public class MockHelixAdmin implements HelixAdmin {
     InstanceConfig instanceConfig = new InstanceConfig(record);
     instanceConfig.setInstanceEnabled(enabled);
     if (!enabled) {
+      instanceConfig.resetInstanceDisabledTypeAndReason();
       if (reason != null) {
         instanceConfig.setInstanceDisabledReason(reason);
       }
@@ -295,16 +300,46 @@ public class MockHelixAdmin implements HelixAdmin {
     _baseDataAccessor.set(instanceConfigPath, instanceConfig.getRecord(), 0);
   }
 
-  @Override public void enableInstance(String clusterName, List<String> instances,
-      boolean enabled) {
+  @Override
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled) {
+    enableInstance(clusterName, instances, enabled, null, null);
+  }
+
+  @Override
+  public void enableInstance(String clusterName, List<String> instances, boolean enabled,
+      InstanceConstants.InstanceDisabledType disabledType, String reason) {
+
+    String path = PropertyPathBuilder.clusterConfig(clusterName);
+
+    if (!_baseDataAccessor.exists(path, 0)) {
+      _baseDataAccessor.create(path, new ZNRecord(clusterName), 0);
+    }
+
+    ZNRecord record = (ZNRecord) _baseDataAccessor.get(path, null, 0);
+    ClusterConfig clusterConfig = new ClusterConfig(record);
+
+    Map<String, String> disabledInstances = new TreeMap<>();
+    if (clusterConfig.getDisabledInstances() != null) {
+      disabledInstances.putAll(clusterConfig.getDisabledInstances());
+    }
+    if (enabled) {
+      disabledInstances.keySet().removeAll(instances);
+    } else {
+      for (String disabledInstance : instances) {
+        disabledInstances
+            .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason));
+      }
+    }
+    clusterConfig.setDisabledInstances(disabledInstances);
+  }
+
+  @Override
+  public void enableResource(String clusterName, String resourceName, boolean enabled) {
 
   }
 
-  @Override public void enableResource(String clusterName, String resourceName, boolean enabled) {
-
-  }
-
-  @Override public void enablePartition(boolean enabled, String clusterName, String instanceName,
+  @Override
+  public void enablePartition(boolean enabled, String clusterName, String instanceName,
       String resourceName, List<String> partitionNames) {
 
   }

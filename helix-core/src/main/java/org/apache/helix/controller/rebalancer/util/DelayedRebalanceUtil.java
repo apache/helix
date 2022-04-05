@@ -31,6 +31,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.util.ConfigStringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,9 @@ public class DelayedRebalanceUtil {
       if (clusterConfig.getDisabledInstances() != null && clusterConfig.getDisabledInstances()
           .containsKey(instance)) {
         // Update batch disable time
-        long batchDisableTime = Long.parseLong(clusterConfig.getDisabledInstances().get(instance));
+        long batchDisableTime = Long.parseLong(ConfigStringUtil
+            .parseConcatenatedConfig(clusterConfig.getDisabledInstances().get(instance))
+            .get(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString()));
         if (disabledTime == -1 || disabledTime > batchDisableTime) {
           disabledTime = batchDisableTime;
         }

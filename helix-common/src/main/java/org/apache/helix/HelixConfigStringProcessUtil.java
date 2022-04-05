@@ -23,9 +23,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class HelixConfigStringProcessUtil {
+public final class HelixConfigStringProcessUtil {
   private static final String CONCATENATE_CONFIG_SPLITTER = ",";
   private static final String CONCATENATE_CONFIG_JOINER = "=";
+
+  private HelixConfigStringProcessUtil() {
+    throw new java.lang.UnsupportedOperationException(
+        "Utility class HelixConfigStringProcessUtil and cannot be instantiated");
+  }
 
   /**
    * Parse a string represented map into a map.

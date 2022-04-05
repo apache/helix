@@ -20,12 +20,17 @@ package org.apache.helix.view.mock;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
-import org.apache.helix.common.ClusterEventProcessor;
+import org.apache.helix.common.DedupEventProcessor;
+import org.apache.helix.common.caches.ExternalViewCache;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.view.common.ClusterViewEvent;
 import org.apache.helix.view.dataprovider.SourceClusterDataProvider;
 
 public class MockSourceClusterDataProvider extends SourceClusterDataProvider {
@@ -48,7 +53,7 @@ public class MockSourceClusterDataProvider extends SourceClusterDataProvider {
   }
 
   public MockSourceClusterDataProvider(ViewClusterSourceConfig config,
-      ClusterEventProcessor processor) {
+      DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent> processor) {
     super(config, processor);
     _externalViewCache = new MockExternalViewCache("Test");
   }
@@ -83,21 +88,14 @@ public class MockSourceClusterDataProvider extends SourceClusterDataProvider {
   }
 
   public void setInstanceConfigs(List<InstanceConfig> instanceConfigList) {
-    for (InstanceConfig config : instanceConfigList) {
-      _instanceConfigMap.put(config.getInstanceName(), config);
-    }
+    _instanceConfigPropertyCache.setPropertyMap(HelixProperty.convertListToMap(instanceConfigList));
   }
 
   public void setLiveInstances(List<LiveInstance> liveInstanceList) {
-    for (LiveInstance instance : liveInstanceList) {
-      _liveInstanceMap.put(instance.getInstanceName(), instance);
-    }
+    _liveInstancePropertyCache.setPropertyMap(HelixProperty.convertListToMap(liveInstanceList));
   }
 
   public void setExternalViews(List<ExternalView> externalViewList) {
-    for (ExternalView ev : externalViewList) {
-      _externalViewMap.put(ev.getResourceName(), ev);
-    }
     ((MockExternalViewCache) _externalViewCache).setExternalView(externalViewList);
   }
 }

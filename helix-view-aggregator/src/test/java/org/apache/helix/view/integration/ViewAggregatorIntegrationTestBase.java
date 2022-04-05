@@ -1,4 +1,4 @@
-package org.apache.helix.view;
+package org.apache.helix.view.integration;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,15 +21,15 @@ package org.apache.helix.view;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.helix.integration.common.ZkIntegrationTestBase;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-public class ViewAggregatorIntegrationTestBase extends ZkIntegrationTestBase {
+public class ViewAggregatorIntegrationTestBase extends ZkTestBase {
   protected static final int numSourceCluster = 2;
-  protected static final int numPaticipantCount = 3;
+  protected static final int numParticipant = 3;
   protected static final String testSourceClusterNamePrefix = "testSourceCluster";
   protected static final String testParticipantNamePrefix = "testParticipant";
   protected static final String testControllerNamePrefix = "testController";
@@ -46,11 +46,11 @@ public class ViewAggregatorIntegrationTestBase extends ZkIntegrationTestBase {
           String.format("%s-%s-%s", testSourceClusterNamePrefix, this.hashCode(), i);
       _gSetupTool.addCluster(clusterName, false);
       // Setup participants
-      for (int j = 0; j < numPaticipantCount; j++) {
-        String instanceName =
-            String.format("%s-%s-%s", testParticipantNamePrefix, clusterName, j);
+      for (int j = 0; j < numParticipant; j++) {
+        String instanceName = String.format("%s-%s-%s", clusterName, testParticipantNamePrefix, j);
         _gSetupTool.addInstanceToCluster(clusterName, instanceName);
-        MockParticipantManager participant = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        MockParticipantManager participant =
+            new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
         participant.syncStart();
         _allParticipants.add(participant);
       }

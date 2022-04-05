@@ -19,28 +19,29 @@ package org.apache.helix.view.aggregator;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyType;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
 import org.apache.helix.api.listeners.ClusterConfigChangeListener;
 import org.apache.helix.api.listeners.PreFetch;
-import org.apache.helix.common.ClusterEventProcessor;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ClusterEventType;
+import org.apache.helix.common.DedupEventProcessor;
 import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.view.common.ViewAggregatorEventAttributes;
+import org.apache.helix.view.common.ClusterViewEvent;
 import org.apache.helix.view.dataprovider.SourceClusterDataProvider;
 import org.apache.helix.view.monitoring.ViewAggregatorMonitor;
+import org.apache.helix.zookeeper.zkclient.exception.ZkInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,56 +50,58 @@ import org.slf4j.LoggerFactory;
  */
 public class HelixViewAggregator implements ClusterConfigChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(HelixViewAggregator.class);
-  private static final int PROCESS_VIEW_CONFIG_CHANGE_BACKOFF_MS = 3 * 1000;
+  private static final long DEFAULT_INITIAL_EVENT_PROCESS_BACKOFF = 10;
+  private static final long DEFAULT_MAX_EVENT_PROCESS_BACKOFF = 5 * 1000;
   private final String _viewClusterName;
   private final HelixManager _viewClusterManager;
-  private HelixDataAccessor _dataAccessor;
+  private final Map<String, SourceClusterDataProvider> _dataProviderMap;
 
   // Worker that processes source cluster events and refresh view cluster
-  private ClusterEventProcessor _aggregator;
-  private boolean _refreshViewCluster;
+  private final DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent> _aggregator;
+  private final AtomicBoolean _refreshViewCluster;
 
   // Worker that processes view cluster config change
-  private ClusterEventProcessor _viewConfigProcessor;
+  private final DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent> _viewConfigProcessor;
+  private final ViewAggregatorMonitor _monitor;
 
-  private Map<String, SourceClusterDataProvider> _dataProviderMap;
   private ClusterConfig _curViewClusterConfig;
   private Timer _viewClusterRefreshTimer;
   private ViewClusterRefresher _viewClusterRefresher;
-  private ViewAggregatorMonitor _monitor;
+  private HelixDataAccessor _dataAccessor;
 
   public HelixViewAggregator(String viewClusterName, String zkAddr) {
     _viewClusterName = viewClusterName;
-    _dataProviderMap = new HashMap<>();
+    _dataProviderMap = new ConcurrentHashMap<>();
     _viewClusterManager = HelixManagerFactory
         .getZKHelixManager(_viewClusterName, generateHelixManagerInstanceName(_viewClusterName),
             InstanceType.SPECTATOR, zkAddr);
     _refreshViewCluster = new AtomicBoolean(false);
     _monitor = new ViewAggregatorMonitor(viewClusterName);
-    _aggregator = new ClusterEventProcessor(_viewClusterName, "Aggregator") {
+    _aggregator = new DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent>(_viewClusterName,
+        "Aggregator") {
       @Override
-      public void handleEvent(ClusterEvent event) {
+      public void handleEvent(ClusterViewEvent event) {
         handleSourceClusterEvent(event);
         _monitor.recordProcessedSourceEvent();
       }
     };
 
-    _viewConfigProcessor = new ClusterEventProcessor(_viewClusterName, "ViewConfigProcessor") {
+    _viewConfigProcessor = new DedupEventProcessor<ClusterViewEvent.Type, ClusterViewEvent>(_viewClusterName, "ViewConfigProcessor") {
       @Override
-      public void handleEvent(ClusterEvent event) {
+      public void handleEvent(ClusterViewEvent event) {
         handleViewClusterConfigChange(event);
       }
     };
   }
 
   public String getAggregatorInstanceName() {
-    return String
-        .format("%s::%s", _viewClusterManager.getInstanceName(), hashCode());
+    return String.format("%s::%s", _viewClusterManager.getInstanceName(), hashCode());
   }
 
   /**
    * Start controller main logic
-   * @throws Exception
+   * @throws Exception when HelixViewAggregator fails to start. Will try to shut it down before
+   *                   exception is thrown out
    */
   public void start() throws Exception {
     _monitor.register();
@@ -110,16 +113,15 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
     // Setup manager
     try {
       _viewClusterManager.connect();
-      _viewClusterManager.addClusterfigChangeListener(this);
       _dataAccessor = _viewClusterManager.getHelixDataAccessor();
+      _viewClusterManager.addClusterfigChangeListener(this);
     } catch (Exception e) {
+      shutdown();
       throw new HelixException("Failed to connect view cluster helix manager", e);
     }
 
     // Set up view cluster refresher
-    _viewClusterRefresher =
-        new ViewClusterRefresher(_viewClusterName, _viewClusterManager.getHelixDataAccessor(),
-            _dataProviderMap);
+    _viewClusterRefresher = new ViewClusterRefresher(_viewClusterName, _viewClusterManager.getHelixDataAccessor());
   }
 
   public void shutdown() {
@@ -144,22 +146,19 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
         logger.warn("ZK interrupted when disconnecting helix manager", zkintr);
       } catch (Exception e) {
         success = false;
-        logger.error(String
-            .format("Failed to disconnect helix manager for view cluster %s", _viewClusterName), e);
+        logger.error(String.format("Failed to disconnect helix manager for view cluster %s", _viewClusterName), e);
       }
     }
 
     // Clean up all data providers
     for (SourceClusterDataProvider provider : _dataProviderMap.values()) {
-      logger
-          .info(String.format("Shutting data provider for source cluster %s", provider.getName()));
+      logger.info(String.format("Shutting down data provider for source cluster %s", provider.getName()));
       try {
         provider.shutdown();
       } catch (Exception e) {
         success = false;
-        logger.error(String
-            .format("Failed to shutdown data provider %s for view cluster %s", provider.getName(),
-                _viewClusterName), e);
+        logger.error(String.format("Failed to shutdown data provider %s for view cluster %s", provider.getName(),
+            _viewClusterName), e);
       }
     }
 
@@ -173,79 +172,100 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
   @PreFetch(enabled = false)
   public void onClusterConfigChange(ClusterConfig clusterConfig, NotificationContext context) {
     if (context != null && context.getType() != NotificationContext.Type.FINALIZE) {
-      _viewConfigProcessor
-          .queueEvent(new ClusterEvent(_viewClusterName, ClusterEventType.ClusterConfigChange));
+      _viewConfigProcessor.queueEvent(ClusterViewEvent.Type.ConfigChange,
+          new ClusterViewEvent(_viewClusterName, ClusterViewEvent.Type.ConfigChange));
     } else {
-      logger.info(String
-          .format("Skip processing view cluster config change with notification context type %s",
-              context == null ? "NoContext" : context.getType().name()));
+      logger.info(String.format("Skip processing view cluster config change with notification context type %s",
+          context == null ? "NoContext" : context.getType().name()));
     }
   }
 
-  private void handleSourceClusterEvent(ClusterEvent event) {
-    logger.info("Processing event from source cluster " + event.getClusterName());
+  private void handleSourceClusterEvent(ClusterViewEvent event) {
+    logger.info(String
+        .format("Processing event %s from source cluster %s.", event.getEventType().name(),
+            event.getClusterName()));
     switch (event.getEventType()) {
-    case LiveInstanceChange:
-    case InstanceConfigChange:
-    case ExternalViewChange:
-      _refreshViewCluster = true;
-      break;
-    case ViewClusterPeriodicRefresh:
-      if (!_refreshViewCluster) {
-        logger.info("Skip refresh: No event happened since last refresh, and no force refresh.");
-        return;
-      }
-      // mark source cluster as changed to trigger next refresh as we failed to refresh at
-      // least some of the elements in view cluster
-      logger.info("Refreshing cluster based on event " + event.getEventType().name());
-      _refreshViewCluster = refreshViewCluster();
-      break;
-    default:
-      logger.error(String.format("Unrecognized event type: %s", event.getEventType()));
-    }
-  }
-
-  private synchronized void handleViewClusterConfigChange(ClusterEvent event) {
-    logger.info("Processing view cluster event " + event.getEventType().name());
-    switch (event.getEventType()) {
-    case ClusterConfigChange:
-      // TODO: when clusterEventProcessor supports delayed scheduling,
-      // we should not have this head-of-line blocking but to have ClusterEventProcessor do the work.
-      // Currently it's acceptable as we can endure delay in processing view cluster config change
-      if (event.getAttribute(ViewAggregatorEventAttributes.EventProcessBackoff.name()) != null) {
-        try {
-          Thread.sleep(PROCESS_VIEW_CONFIG_CHANGE_BACKOFF_MS);
-        } catch (InterruptedException e) {
-          logger.warn("Interrupted when backing off during process view config change retry", e);
+      case ExternalViewChange:
+      case InstanceConfigChange:
+      case LiveInstanceChange:
+        _refreshViewCluster.set(true);
+        break;
+      case PeriodicViewRefresh:
+        if (!_refreshViewCluster.get()) {
+          logger.info("Skip refresh: No event happened since last refresh, and no force refresh.");
+          return;
         }
+        // mark source cluster as changed to trigger next refresh as we failed to refresh at
+        // least some of the elements in view cluster
+        logger.info("Refreshing cluster based on event " + event.getEventType().name());
+        refreshViewCluster();
+        break;
+      default:
+        logger.error(String.format("Unrecognized event type: %s", event.getEventType()));
+    }
+  }
+
+  private void handleViewClusterConfigChange(ClusterViewEvent event) {
+    logger.info(String.format("Processing event %s for view cluster %s", event.getEventType().name(),
+        _viewClusterName));
+    if (event.getEventType() == ClusterViewEvent.Type.ConfigChange) {
+      // TODO: when DedupEventProcessor supports delayed scheduling,
+      // we should not have this head-of-line blocking but to have DedupEventProcessor do the work.
+      // Currently it's acceptable as we can endure delay in processing view cluster config change
+      try {
+        Thread.sleep(event.getEventProcessBackoff());
+      } catch (InterruptedException e) {
+        logger.warn("Interrupted when backing off during process view config change retry", e);
+        Thread.currentThread().interrupt();
       }
+
       // We always compare current cluster config with most up-to-date cluster config
+      boolean success;
       ClusterConfig newClusterConfig =
           _dataAccessor.getProperty(_dataAccessor.keyBuilder().clusterConfig());
-      SourceClusterConfigChangeAction action =
-          new SourceClusterConfigChangeAction(_curViewClusterConfig, newClusterConfig);
-      action.computeAction();
+
+      if (newClusterConfig == null) {
+        logger.warn("Failed to read view cluster config");
+        success = false;
+      } else {
+        SourceClusterConfigChangeAction action =
+            new SourceClusterConfigChangeAction(_curViewClusterConfig, newClusterConfig);
+        action.computeAction();
+        success = processViewClusterConfigUpdate(action);
+      }
 
       // If we fail to process action and should retry, re-queue event to retry
-      if (!processViewClusterConfigUpdate(action)) {
+      if (!success) {
         _monitor.recordViewConfigProcessFailure();
-        event.addAttribute(ViewAggregatorEventAttributes.EventProcessBackoff.name(), true);
-        _viewConfigProcessor.queueEvent(event);
+        long backoff = computeNextEventProcessBackoff(event.getEventProcessBackoff());
+        logger.info("Failed to process view cluster config change. Will retry in {} ms", backoff);
+        event.setEventProcessBackoff(backoff);
+        _viewConfigProcessor.queueEvent(event.getEventType(), event);
       } else {
         _curViewClusterConfig = newClusterConfig;
       }
-      break;
-    default:
+    } else {
       logger.error(String.format("Unrecognized event type: %s", event.getEventType()));
     }
+  }
+
+  private long computeNextEventProcessBackoff(long currentBackoff) {
+    if (currentBackoff <= 0) {
+      return DEFAULT_INITIAL_EVENT_PROCESS_BACKOFF;
+    }
+
+    // Exponential backoff with ceiling
+    return currentBackoff * 2 > DEFAULT_MAX_EVENT_PROCESS_BACKOFF
+        ? DEFAULT_MAX_EVENT_PROCESS_BACKOFF
+        : currentBackoff * 2;
   }
 
   private class RefreshViewClusterTask extends TimerTask {
     @Override
     public void run() {
       logger.info("Triggering view cluster refresh");
-      _aggregator.queueEvent(
-          new ClusterEvent(_viewClusterName, ClusterEventType.ViewClusterPeriodicRefresh));
+      _aggregator.queueEvent(ClusterViewEvent.Type.PeriodicViewRefresh,
+          new ClusterViewEvent(_viewClusterName, ClusterViewEvent.Type.PeriodicViewRefresh));
     }
   }
 
@@ -275,7 +295,13 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
       if (_dataProviderMap.containsKey(key)) {
         try {
           _dataProviderMap.get(key).shutdown();
-          _dataProviderMap.remove(key);
+          synchronized (_dataProviderMap) {
+            _dataProviderMap.remove(key);
+            // upon successful removal of data provider, set refresh view cluster to true
+            // or if no event from source cluster happened before next refresh cycle, this
+            // removal will be missed.
+            _refreshViewCluster.set(true);
+          }
         } catch (Exception e) {
           success = false;
           logger.warn(String.format("Failed to shutdown data provider %s, will retry", key));
@@ -302,6 +328,7 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
       }
     }
 
+
     if (action.shouldResetTimer()) {
       logger.info(
           "Resetting view cluster refresh timer at interval " + action.getCurrentRefreshPeriodMs());
@@ -312,7 +339,6 @@ public class HelixViewAggregator implements ClusterConfigChangeListener {
 
   /**
    * Use ViewClusterRefresher to refresh ViewCluster.
-   * @return true if needs retry, else false
    */
   private void refreshViewCluster() {
     long startRefreshMs = System.currentTimeMillis();

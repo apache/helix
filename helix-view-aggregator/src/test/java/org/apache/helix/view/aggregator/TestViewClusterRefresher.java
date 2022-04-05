@@ -21,11 +21,13 @@ package org.apache.helix.view.aggregator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
@@ -33,6 +35,7 @@ import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.api.config.ViewClusterSourceConfig;
+import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -41,20 +44,18 @@ import org.apache.helix.view.mock.MockSourceClusterDataProvider;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestViewClusterRefresher {
+public class TestViewClusterRefresher extends ZkTestBase {
   private static final String viewClusterName = "viewCluster";
   private static final int numSourceCluster = 3;
   private static final int numInstancePerSourceCluster = 2;
   private static final int numExternalViewPerSourceCluster = 3;
   private static final int numPartition = 3;
-  private static final List<PropertyType> defaultProperties = Arrays.asList(
-      new PropertyType[] { PropertyType.LIVEINSTANCES, PropertyType.INSTANCES,
-          PropertyType.EXTERNALVIEW
-      });
+  private static final List<PropertyType> defaultProperties =
+      Arrays.asList(PropertyType.LIVEINSTANCES, PropertyType.INSTANCES, PropertyType.EXTERNALVIEW);
 
-  private class CounterBasedMockAccessor extends MockAccessor {
-    private int _setCount;
-    private int _removeCount;
+  private static class CounterBasedMockAccessor extends MockAccessor {
+    private AtomicInteger _setCount = new AtomicInteger(0);
+    private AtomicInteger _removeCount = new AtomicInteger(0);
 
     public CounterBasedMockAccessor(String clusterName) {
       super(clusterName);
@@ -62,40 +63,40 @@ public class TestViewClusterRefresher {
     }
 
     public void resetCounters() {
-      _setCount = 0;
-      _removeCount = 0;
+      _setCount.set(0);
+      _removeCount.set(0);
     }
 
     @Override
     public boolean setProperty(PropertyKey key, HelixProperty value) {
-      _setCount += 1;
+      _setCount.incrementAndGet();
       return super.setProperty(key, value);
     }
 
     @Override
     public boolean removeProperty(PropertyKey key) {
-      _removeCount += 1;
+      _removeCount.incrementAndGet();
       return super.removeProperty(key);
     }
 
     public int getSetCount() {
-      return _setCount;
+      return _setCount.get();
     }
 
     public int getRemoveCount() {
-      return _removeCount;
+      return _removeCount.get();
     }
   }
 
   @Test
   public void testRefreshWithNoChange() {
-    CounterBasedMockAccessor viewClusterDataAccessor =
-        new CounterBasedMockAccessor(viewClusterName);
+    CounterBasedMockAccessor viewClusterDataAccessor = new CounterBasedMockAccessor(viewClusterName);
     Map<String, SourceClusterDataProvider> dataProviderMap = new HashMap<>();
     createMockDataProviders(dataProviderMap);
 
     ViewClusterRefresher refresher =
-        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor, dataProviderMap);
+        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor);
+    refresher.updateProviderView(new HashSet<>(dataProviderMap.values()));
 
     // Refresh an empty view cluster
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.LIVEINSTANCES));
@@ -111,14 +112,14 @@ public class TestViewClusterRefresher {
   }
 
   @Test
-  public void testRefreshWithInstanceChange() {
-    CounterBasedMockAccessor viewClusterDataAccessor =
-        new CounterBasedMockAccessor(viewClusterName);
+  public void testRefreshWithInstanceChange() throws InterruptedException {
+    CounterBasedMockAccessor viewClusterDataAccessor = new CounterBasedMockAccessor(viewClusterName);
     Map<String, SourceClusterDataProvider> dataProviderMap = new HashMap<>();
     createMockDataProviders(dataProviderMap);
 
     ViewClusterRefresher refresher =
-        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor, dataProviderMap);
+        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor);
+    refresher.updateProviderView(new HashSet<>(dataProviderMap.values()));
     MockSourceClusterDataProvider sampleProvider =
         (MockSourceClusterDataProvider) dataProviderMap.get("cluster0");
 
@@ -155,13 +156,13 @@ public class TestViewClusterRefresher {
 
   @Test
   public void testRefreshWithExternalViewChange() {
-    CounterBasedMockAccessor accessor =
-        new CounterBasedMockAccessor(viewClusterName);
+    CounterBasedMockAccessor accessor = new CounterBasedMockAccessor(viewClusterName);
     Map<String, SourceClusterDataProvider> dataProviderMap = new HashMap<>();
     createMockDataProviders(dataProviderMap);
 
     ViewClusterRefresher refresher =
-        new ViewClusterRefresher(viewClusterName, accessor, dataProviderMap);
+        new ViewClusterRefresher(viewClusterName, accessor);
+    refresher.updateProviderView(new HashSet<>(dataProviderMap.values()));
     MockSourceClusterDataProvider sampleProvider =
         (MockSourceClusterDataProvider) dataProviderMap.get("cluster0");
 
@@ -196,13 +197,13 @@ public class TestViewClusterRefresher {
 
   @Test
   public void testRefreshWithProviderChange() {
-    CounterBasedMockAccessor viewClusterDataAccessor =
-        new CounterBasedMockAccessor(viewClusterName);
+    CounterBasedMockAccessor viewClusterDataAccessor = new CounterBasedMockAccessor(viewClusterName);
     Map<String, SourceClusterDataProvider> dataProviderMap = new HashMap<>();
     createMockDataProviders(dataProviderMap);
 
     ViewClusterRefresher refresher =
-        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor, dataProviderMap);
+        new ViewClusterRefresher(viewClusterName, viewClusterDataAccessor);
+    refresher.updateProviderView(new HashSet<>(dataProviderMap.values()));
     MockSourceClusterDataProvider sampleProvider =
         (MockSourceClusterDataProvider) dataProviderMap.get("cluster0");
 
@@ -217,7 +218,7 @@ public class TestViewClusterRefresher {
 
     // remove InstanceConfig and ExternalView requirement from sample provider
     sampleProvider.getConfig()
-        .setProperties(Arrays.asList(new PropertyType[] { PropertyType.LIVEINSTANCES }));
+        .setProperties(Collections.singletonList(PropertyType.LIVEINSTANCES));
 
     // Refresh again
     Assert.assertTrue(refresher.refreshPropertiesInViewCluster(PropertyType.LIVEINSTANCES));
@@ -238,7 +239,7 @@ public class TestViewClusterRefresher {
       MockSourceClusterDataProvider mockProvider = (MockSourceClusterDataProvider) provider;
       if (mockProvider != sampleProvider) {
         mockProvider.getConfig().setProperties(Arrays
-            .asList(new PropertyType[] { PropertyType.LIVEINSTANCES, PropertyType.INSTANCES }));
+            .asList(PropertyType.LIVEINSTANCES, PropertyType.INSTANCES));
       }
     }
 
@@ -300,7 +301,7 @@ public class TestViewClusterRefresher {
     for (int i = 0; i < numSourceCluster; i++) {
       String sourceClusterName = "cluster" + i;
       ViewClusterSourceConfig sourceConfig =
-          new ViewClusterSourceConfig(sourceClusterName, "", defaultProperties);
+          new ViewClusterSourceConfig(sourceClusterName, ZK_ADDR, defaultProperties);
       MockSourceClusterDataProvider provider =
           new MockSourceClusterDataProvider(sourceConfig, null);
       List<LiveInstance> liveInstanceList = new ArrayList<>();

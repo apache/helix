@@ -19,6 +19,38 @@ package org.apache.helix.view.common;
  * under the License.
  */
 
-public enum ViewAggregatorEventAttributes {
-  EventProcessBackoff,
+public class ClusterViewEvent {
+  public enum Type {
+    LiveInstanceChange,
+    ExternalViewChange,
+    InstanceConfigChange,
+    ConfigChange,
+    PeriodicViewRefresh
+  }
+
+  private String _clusterName;
+  private Type _eventType;
+  private long _eventProcessBackoffMs;
+
+  public ClusterViewEvent(String clusterName, Type eventType) {
+    _clusterName = clusterName;
+    _eventType = eventType;
+    _eventProcessBackoffMs = 0;
+  }
+
+  public String getClusterName() {
+    return _clusterName;
+  }
+
+  public Type getEventType() {
+    return _eventType;
+  }
+
+  public void setEventProcessBackoff(long backoffMs) {
+    _eventProcessBackoffMs = backoffMs;
+  }
+
+  public long getEventProcessBackoff() {
+    return _eventProcessBackoffMs;
+  }
 }

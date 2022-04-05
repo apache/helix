@@ -35,7 +35,7 @@ public class TestSourceClusterConfigChangeAction {
 
   @Test
   public void testActionComputationOnStartup() {
-    ClusterConfig config = TestDataProviderUtil.createDefaultViewClusterConfig(viewClusterName, 2);
+    ClusterConfig config = DataProviderTestUtil.createDefaultViewClusterConfig(viewClusterName, 2);
     SourceClusterConfigChangeAction action = new SourceClusterConfigChangeAction(null, config);
     action.computeAction();
     Assert.assertEquals(action.getConfigsToAdd().size(),
@@ -50,7 +50,7 @@ public class TestSourceClusterConfigChangeAction {
 
   @Test
   public void testActionComputationOnConfigModified() {
-    ClusterConfig config = TestDataProviderUtil.createDefaultViewClusterConfig(viewClusterName, 2);
+    ClusterConfig config = DataProviderTestUtil.createDefaultViewClusterConfig(viewClusterName, 2);
     ClusterConfig newConfig = new ClusterConfig(viewClusterName);
     newConfig.setViewCluster();
 
@@ -91,7 +91,7 @@ public class TestSourceClusterConfigChangeAction {
 
   @Test
   public void testActionComputationNoChange() {
-    ClusterConfig config = TestDataProviderUtil.createDefaultViewClusterConfig(viewClusterName, 2);
+    ClusterConfig config = DataProviderTestUtil.createDefaultViewClusterConfig(viewClusterName, 2);
     SourceClusterConfigChangeAction action = new SourceClusterConfigChangeAction(config, config);
     Assert.assertEquals(action.getConfigsToAdd().size(), 0);
     Assert.assertEquals(action.getConfigsToDelete().size(), 0);
@@ -100,7 +100,7 @@ public class TestSourceClusterConfigChangeAction {
 
   @Test
   public void testActionComputationInvalidInitialization() {
-    ClusterConfig config = TestDataProviderUtil.createDefaultViewClusterConfig(viewClusterName, 2);
+    ClusterConfig config = DataProviderTestUtil.createDefaultViewClusterConfig(viewClusterName, 2);
     ClusterConfig badConfig = new ClusterConfig(viewClusterName);
     try {
       SourceClusterConfigChangeAction action = new SourceClusterConfigChangeAction(config, null);

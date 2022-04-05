@@ -35,12 +35,12 @@ import org.apache.helix.model.ClusterConfig;
  * be reset or not
  */
 public class SourceClusterConfigChangeAction {
-  private ClusterConfig _oldConfig;
-  private ClusterConfig _newConfig;
+  private final List<ViewClusterSourceConfig> _toAdd;
+  private final List<ViewClusterSourceConfig> _toDelete;
+  private final ClusterConfig _oldConfig;
+  private final ClusterConfig _newConfig;
 
   private boolean _shouldResetTimer;
-  private List<ViewClusterSourceConfig> _toAdd;
-  private List<ViewClusterSourceConfig> _toDelete;
 
   public SourceClusterConfigChangeAction(ClusterConfig oldConfig, ClusterConfig newConfig) {
     _oldConfig = oldConfig;
@@ -79,22 +79,19 @@ public class SourceClusterConfigChangeAction {
 
     if (_oldConfig != null) {
       for (ViewClusterSourceConfig oldConfig : _oldConfig.getViewClusterSourceConfigs()) {
-        oldConfigMap
-            .put(generateConfigMapKey(oldConfig.getName(), oldConfig.getZkAddress()), oldConfig);
+        oldConfigMap.put(generateConfigMapKey(oldConfig.getName(), oldConfig.getZkAddress()), oldConfig);
       }
     }
 
     for (ViewClusterSourceConfig currentConfig : _newConfig.getViewClusterSourceConfigs()) {
-      currentConfigMap
-          .put(generateConfigMapKey(currentConfig.getName(), currentConfig.getZkAddress()),
-              currentConfig);
+      currentConfigMap.put(
+          generateConfigMapKey(currentConfig.getName(), currentConfig.getZkAddress()), currentConfig);
     }
 
     // Configs whose properties-to-aggregate got modified should have its data provider recreated
     for (Map.Entry<String, ViewClusterSourceConfig> entry : currentConfigMap.entrySet()) {
       if (oldConfigMap.containsKey(entry.getKey())) {
-        Set<PropertyType> oldPropertySet =
-            new HashSet<>(oldConfigMap.get(entry.getKey()).getProperties());
+        Set<PropertyType> oldPropertySet = new HashSet<>(oldConfigMap.get(entry.getKey()).getProperties());
         Set<PropertyType> currentPropertySet = new HashSet<>(entry.getValue().getProperties());
         if (!oldPropertySet.equals(currentPropertySet)) {
           _toAdd.add(new ViewClusterSourceConfig(entry.getValue()));

@@ -39,7 +39,6 @@ public enum ClusterEventType {
   OnDemandRebalance,
   ControllerChange,
   RetryRebalance,
-  ViewClusterPeriodicRefresh,
   StateVerifier,
   Unknown
 }

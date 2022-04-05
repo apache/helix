@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.helix.HelixConfigStringProcessUtil;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.constants.InstanceConstants;
@@ -156,7 +156,7 @@ public class InstanceConfig extends HelixProperty {
    */
   public Map<String, String> getDomainAsMap() {
     String domain = getDomainAsString();
-    return HelixConfigStringProcessUtil.concatenatedConfigParser(getDomainAsString());
+    return ConfigStringUtil.parseConcatenatedConfig(getDomainAsString());
   }
 
   /**
@@ -172,7 +172,7 @@ public class InstanceConfig extends HelixProperty {
    * @param domainMap domain as a map
    */
   public void setDomain(Map<String, String> domainMap) {
-    setDomain(HelixConfigStringProcessUtil.concatenateMapIntoString(domainMap));
+    setDomain(ConfigStringUtil.concatenateMapping(domainMap));
   }
 
   public int getWeight() {

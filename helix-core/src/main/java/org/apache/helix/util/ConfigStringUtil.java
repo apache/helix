@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -23,13 +23,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public final class HelixConfigStringProcessUtil {
+public final class ConfigStringUtil {
   private static final String CONCATENATE_CONFIG_SPLITTER = ",";
   private static final String CONCATENATE_CONFIG_JOINER = "=";
 
-  private HelixConfigStringProcessUtil() {
+  private ConfigStringUtil() {
     throw new java.lang.UnsupportedOperationException(
-        "Utility class HelixConfigStringProcessUtil and cannot be instantiated");
+        "Utility class ConfigStringUtil and cannot be instantiated");
   }
 
   /**
@@ -37,7 +37,7 @@ public final class HelixConfigStringProcessUtil {
    * @param inputStr "propName0=propVal0,propName1=propVal1"
    * @return map {[propName0, propVal0], [propName1, propVal1]}"
    */
-  public static Map<String, String> concatenatedConfigParser(String inputStr) {
+  public static Map<String, String> parseConcatenatedConfig(String inputStr) {
     Map<String, String> resultMap = new HashMap<>();
     if (inputStr == null || inputStr.isEmpty()) {
       return resultMap;
@@ -59,7 +59,7 @@ public final class HelixConfigStringProcessUtil {
    * @param inputMap {[propName0, propVal0], [propName1, propVal1]}
    * @return String "propName0=propVal0,propName1=propVal1"
    */
-  public static String concatenateMapIntoString(Map<String, String> inputMap) {
+  public static String concatenateMapping(Map<String, String> inputMap) {
     return inputMap
         .entrySet()
         .stream()

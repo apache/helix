@@ -70,10 +70,6 @@ public final class HelixPropertyFactory {
     return new HelixManagerProperty(properties, cloudConfig);
   }
 
-  private static CloudConfig buildEmptyCloudConfig() {
-    return new CloudConfig.Builder().setCloudEnabled(false).build();
-  }
-
   /**
    * Retrieve the CloudConfig of the cluster if available.
    * Note: the reason we create a dedicated zk client here is because we need an isolated access to
@@ -113,10 +109,12 @@ public final class HelixPropertyFactory {
       // The try-catch logic is for backward compatibility reason only. Even if the cluster is not set
       // up yet, constructing a new ZKHelixManager should not throw an exception
       try {
-        cloudConfig = configAccessor.getCloudConfig(clusterName) == null ? buildEmptyCloudConfig()
-            : configAccessor.getCloudConfig(clusterName);
+        cloudConfig = configAccessor.getCloudConfig(clusterName);
+        if (cloudConfig == null) {
+          cloudConfig = new CloudConfig();
+        }
       } catch (HelixException e) {
-        cloudConfig = buildEmptyCloudConfig();
+        cloudConfig = new CloudConfig();
       }
     } finally {
       // Use a try-finally to make sure zkclient connection is closed properly

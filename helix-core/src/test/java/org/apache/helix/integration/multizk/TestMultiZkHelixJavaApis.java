@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -36,6 +37,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -95,7 +97,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 
 /**
  * TestMultiZkHelixJavaApis spins up multiple in-memory ZooKeepers with a pre-configured
@@ -245,7 +246,8 @@ public class TestMultiZkHelixJavaApis {
     }
     // todo: We should fail test here once we achieved 0 leakage and remove the following System print
     if (!status) {
-      System.out.println("---------- Test Class " + testClassName + " thread leakage detected! ---------------");
+      System.out.println(
+          "---------- Test Class " + testClassName + " thread leakage detected! ---------------");
     }
   }
 
@@ -464,7 +466,9 @@ public class TestMultiZkHelixJavaApis {
     // a default config because there is no CloudConfig ZNode in ZK.
     CloudConfig.Builder cloudConfigBuilder = new CloudConfig.Builder();
     cloudConfigBuilder.setCloudEnabled(true);
-    cloudConfigBuilder.setCloudProvider(CloudProvider.AZURE);
+    // Set to Customized so CloudInfoSources and CloudInfoProcessorName will be read from cloud config
+    // instead of properties
+    cloudConfigBuilder.setCloudProvider(CloudProvider.CUSTOMIZED);
     cloudConfigBuilder.setCloudID("TestID");
     List<String> infoURL = new ArrayList<String>();
     infoURL.add("TestURL");
@@ -472,9 +476,15 @@ public class TestMultiZkHelixJavaApis {
     cloudConfigBuilder.setCloudInfoProcessorName("TestProcessor");
 
     CloudConfig cloudConfig = cloudConfigBuilder.build();
+    HelixCloudProperty oldCloudProperty = new HelixCloudProperty(cloudConfig);
     HelixManagerProperty helixManagerProperty =
-        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig).build();
-    helixManagerProperty.setHelixCloudProperty(cloudConfig);
+        propertyBuilder.setRealmAWareZkConnectionConfig(validZkConnectionConfig)
+            .setHelixCloudProperty(oldCloudProperty).build();
+    // Cloud property populated with fields defined in cloud config
+    oldCloudProperty.populateFieldsWithCloudConfig(cloudConfig);
+    // Add some property fields to cloud property that are not in cloud config
+    Properties properties = new Properties();
+    oldCloudProperty.setCustomizedCloudProperties(properties);
 
     class TestZKHelixManager extends ZKHelixManager {
       public TestZKHelixManager(String clusterName, String participantName,
@@ -493,8 +503,18 @@ public class TestMultiZkHelixJavaApis {
         new TestZKHelixManager(clusterName, participantName, InstanceType.PARTICIPANT, null, null,
             helixManagerProperty);
     managerParticipant.connect();
-    Assert.assertFalse(
-        managerParticipant.getHelixManagerProperty().getHelixCloudProperty().getCloudEnabled());
+    HelixCloudProperty newCloudProperty =
+        managerParticipant.getHelixManagerProperty().getHelixCloudProperty();
+
+    // Test reading from zk cloud config overwrite property fields included in cloud config
+    Assert.assertFalse(newCloudProperty.getCloudEnabled());
+    Assert.assertNull(newCloudProperty.getCloudId());
+    Assert.assertNull(newCloudProperty.getCloudProvider());
+
+    // Test non-cloud config fields are not overwritten after reading cloud config from zk
+    Assert.assertEquals(newCloudProperty.getCustomizedCloudProperties(), properties);
+    Assert.assertEquals(newCloudProperty.getCloudInfoSources(), infoURL);
+    Assert.assertEquals(newCloudProperty.getCloudInfoProcessorName(), "TestProcessor");
 
     // Clean up
     managerParticipant.disconnect();
@@ -558,8 +578,7 @@ public class TestMultiZkHelixJavaApis {
       ZkHelixClusterVerifier verifier =
           new BestPossibleExternalViewVerifier.Builder(cluster).setResources(resourceNames)
               .setExpectLiveInstances(liveInstancesNames)
-              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
-              .build();
+              .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME).build();
       try {
         Assert.assertTrue(verifier.verifyByPolling());
       } finally {

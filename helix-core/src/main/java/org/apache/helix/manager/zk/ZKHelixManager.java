@@ -271,8 +271,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _stateListener = stateListener;
     // read cloud config from ZK and set cloudConfig in HelixManagerProperty
     _helixManagerProperty = helixManagerProperty;
-    _helixManagerProperty
-        .setHelixCloudProperty(HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName));
+    _helixManagerProperty.getHelixCloudProperty().populateFieldsWithCloudConfig(
+        HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName));
 
     /**
      * use system property if available

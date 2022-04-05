@@ -58,8 +58,9 @@ public class CloudConfig extends HelixProperty {
   /**
    * Instantiate the CloudConfig for the cloud
    */
-  private CloudConfig() {
+  public CloudConfig() {
     super(CLOUD_CONFIG_KW);
+    setCloudEnabled(false);
   }
 
   /**

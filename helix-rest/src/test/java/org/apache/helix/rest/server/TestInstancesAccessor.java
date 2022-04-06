@@ -137,37 +137,45 @@ public class TestInstancesAccessor extends AbstractTestClass {
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 
-  @Test(enabled = false)
+  @Test
   public void testUpdateInstances() throws IOException {
     // TODO: Reenable the test after storage node fix the problem
     // Batch disable instances
 
-    List<String> instancesToDisable = Arrays.asList(new String[] {
-        CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12919",
-        CLUSTER_NAME + "localhost_12920"
-    });
-    Entity entity = Entity.entity(
-        OBJECT_MAPPER.writeValueAsString(ImmutableMap
+    List<String> instancesToDisable = Arrays.asList(new String[]{
+        CLUSTER_NAME + "localhost_12918",
+        CLUSTER_NAME + "localhost_12919", CLUSTER_NAME + "localhost_12920"});
+    Entity entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
             .of(InstancesAccessor.InstancesProperties.instances.name(), instancesToDisable)),
         MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "disable"), entity,
-        Response.Status.OK.getStatusCode());
+    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap
+        .of("command", "disable", "instanceDisabledType", "USER_OPERATION",
+            "instanceDisabledReason", "reason_1"), entity, Response.Status.OK.getStatusCode());
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(instancesToDisable));
+    Assert
+        .assertEquals(clusterConfig.getInstanceHelixDisabledType(CLUSTER_NAME + "localhost_12918"),
+            "USER_OPERATION");
+    Assert.assertEquals(
+        clusterConfig.getInstanceHelixDisabledReason(CLUSTER_NAME + "localhost_12918"), "reason_1");
 
-    instancesToDisable = Arrays.asList(new String[] {
-        CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12920"
-    });
-    entity = Entity.entity(
-        OBJECT_MAPPER.writeValueAsString(ImmutableMap
+    instancesToDisable = Arrays
+        .asList(new String[]{CLUSTER_NAME + "localhost_12918", CLUSTER_NAME + "localhost_12920"});
+    entity = Entity.entity(OBJECT_MAPPER.writeValueAsString(ImmutableMap
             .of(InstancesAccessor.InstancesProperties.instances.name(), instancesToDisable)),
         MediaType.APPLICATION_JSON_TYPE);
-    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap.of("command", "enable"), entity,
-        Response.Status.OK.getStatusCode());
+    post("clusters/" + CLUSTER_NAME + "/instances", ImmutableMap
+        .of("command", "enable", "instanceDisabledType", "USER_OPERATION", "instanceDisabledReason",
+            "reason_1"), entity, Response.Status.OK.getStatusCode());
     clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
     Assert.assertEquals(clusterConfig.getDisabledInstances().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    Assert
+        .assertEquals(clusterConfig.getInstanceHelixDisabledType(CLUSTER_NAME + "localhost_12918"),
+            "INSTANCE_NOT_DISABLED");
+    Assert
+        .assertNull(clusterConfig.getInstanceHelixDisabledReason(CLUSTER_NAME + "localhost_12918"));
     System.out.println("End test :" + TestHelper.getTestMethodName());
   }
 

@@ -24,13 +24,10 @@ import java.util.Collections;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperty;
-import org.apache.helix.InstanceType;
 import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
 import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty.HelixOperation;
 import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty.UserDefinedCallbackType;
 import org.apache.helix.cloud.event.helix.HelixCloudEventListener;
-import org.apache.helix.manager.zk.HelixManagerStateListener;
-import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.CloudConfig;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.testng.Assert;
@@ -55,9 +52,7 @@ public class TestCloudEventCallbackProperty {
     HelixManagerProperty managerProperty = managerPropertyBuilder.build();
 
     // Create Helix Manager
-    _helixManager =
-        new MockEventAwareZKHelixManager(CLUSTER_NAME, "instanceName", InstanceType.PARTICIPANT,
-            null, null, managerProperty);
+    _helixManager = new MockCloudEventAwareHelixManager(managerProperty);
   }
 
   @AfterTest
@@ -199,41 +194,5 @@ public class TestCloudEventCallbackProperty {
 
   private boolean callbackTriggered(MockCloudEventCallbackImpl.OperationType type) {
     return MockCloudEventCallbackImpl.triggeredOperation.contains(type);
-  }
-
-  public static class MockEventAwareZKHelixManager extends ZKHelixManager {
-    private final HelixManagerProperty _helixManagerProperty;
-    private CloudEventListener _cloudEventListener;
-
-    /**
-     * Use a mock zk helix manager to avoid the need to connect to zk
-     */
-    public MockEventAwareZKHelixManager(String clusterName, String instanceName,
-        InstanceType instanceType, String zkAddress, HelixManagerStateListener stateListener,
-        HelixManagerProperty helixManagerProperty) {
-      super(clusterName, instanceName, instanceType, zkAddress, stateListener,
-          helixManagerProperty);
-      _helixManagerProperty = helixManagerProperty;
-    }
-
-    @Override
-    public void connect() throws IllegalAccessException, InstantiationException {
-      if (_helixManagerProperty != null) {
-        HelixCloudProperty helixCloudProperty = _helixManagerProperty.getHelixCloudProperty();
-        if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
-          _cloudEventListener =
-              new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-          CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
-        }
-      }
-    }
-
-    @Override
-    public void disconnect() {
-      if (_cloudEventListener != null) {
-        CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
-        _cloudEventListener = null;
-      }
-    }
   }
 }

@@ -20,12 +20,12 @@ package org.apache.helix.zookeeper.zkclient.metric;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import javax.management.JMException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MalformedObjectNameException;
@@ -81,11 +81,11 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
     _monitorInstanceName = monitorInstanceName;
     _monitorRootOnly = monitorRootOnly;
 
-    _stateChangeEventCounter = new SimpleDynamicMetric("StateChangeEventCounter", 0l);
-    _expiredSessionCounter = new SimpleDynamicMetric("ExpiredSessionCounter", 0l);
-    _dataChangeEventCounter = new SimpleDynamicMetric("DataChangeEventCounter", 0l);
-    _outstandingRequestGauge = new SimpleDynamicMetric("OutstandingRequestGauge", 0l);
-    _znodeCompressCounter = new SimpleDynamicMetric("CompressedZnodeWriteCounter", 0l);
+    _stateChangeEventCounter = new SimpleDynamicMetric<>("StateChangeEventCounter", 0L);
+    _expiredSessionCounter = new SimpleDynamicMetric<>("ExpiredSessionCounter", 0L);
+    _dataChangeEventCounter = new SimpleDynamicMetric<>("DataChangeEventCounter", 0L);
+    _outstandingRequestGauge = new SimpleDynamicMetric<>("OutstandingRequestGauge", 0L);
+    _znodeCompressCounter = new SimpleDynamicMetric<>("CompressedZnodeWriteCounter", 0L);
 
     if (zkEventThread != null) {
       boolean result = setAndInitZkEventThreadMonitor(zkEventThread);
@@ -198,32 +198,12 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
   }
 
   public void recordDataPropagationLatency(String path, long latencyMilliSec) {
-    if (null == path) {
-      return;
-    }
-    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
-        .filter(predefinedPath -> predefinedPath.match(path))
-        .forEach(predefinedPath -> {
-      ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
-      if (zkClientPathMonitor != null) {
-        zkClientPathMonitor.recordDataPropagationLatency(latencyMilliSec);
-      }
-    });
+    findZkClientPathMonitor(path, (m) -> m.recordDataPropagationLatency(latencyMilliSec));
   }
 
   private void record(String path, int bytes, long latencyMilliSec, boolean isFailure,
       boolean isRead) {
-    if (null == path) {
-      return;
-    }
-    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
-        .filter(predefinedPath -> predefinedPath.match(path))
-        .forEach(predefinedPath -> {
-      ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
-      if (zkClientPathMonitor != null) {
-        zkClientPathMonitor.record(bytes, latencyMilliSec, isFailure, isRead);
-      }
-    });
+    findZkClientPathMonitor(path, (m) -> m.record(bytes, latencyMilliSec, isFailure, isRead));
   }
 
   public void record(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {
@@ -257,17 +237,7 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
    */
   private void recordAsync(String path, int bytes, long latencyMilliSec, boolean isFailure,
       AccessType accessType) {
-    if (null == path) {
-      return;
-    }
-    Arrays.stream(ZkClientPathMonitor.PredefinedPath.values())
-        .filter(predefinedPath -> predefinedPath.match(path))
-        .forEach(predefinedPath -> {
-          ZkClientPathMonitor zkClientPathMonitor = _zkClientPathMonitorMap.get(predefinedPath);
-          if (zkClientPathMonitor != null) {
-            zkClientPathMonitor.recordAsync(bytes, latencyMilliSec, isFailure, accessType);
-          }
-        });
+    findZkClientPathMonitor(path, (m) -> m.recordAsync(bytes, latencyMilliSec, isFailure, accessType));
   }
 
   public void recordAsync(String path, int dataSize, long startTimeMilliSec, AccessType accessType) {
@@ -276,6 +246,17 @@ public class ZkClientMonitor extends DynamicMBeanProvider {
 
   public void recordAsyncFailure(String path, AccessType accessType) {
     recordAsync(path, 0, 0, true, accessType);
+  }
+
+  private void findZkClientPathMonitor(String path, Consumer<ZkClientPathMonitor> onMatch) {
+    if (path == null) {
+      return;
+    }
+    _zkClientPathMonitorMap.forEach((predefinedPath, zkClientPathMonitor) -> {
+      if (predefinedPath.match(path)) {
+        onMatch.accept(zkClientPathMonitor);
+      }
+    });
   }
 
   class ZkThreadMetric extends DynamicMetric<ZkEventThread, ZkEventThread> {

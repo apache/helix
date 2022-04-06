@@ -42,16 +42,16 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
   private final PredefinedPath _path;
 
   public enum PredefinedPath {
-    IdealStates(".*/IDEALSTATES/.*"),
-    Instances(".*/INSTANCES/.*"),
-    Configs(".*/CONFIGS/.*"),
-    Controller(".*/CONTROLLER/.*"),
-    ExternalView(".*/EXTERNALVIEW/.*"),
-    LiveInstances(".*/LIVEINSTANCES/.*"),
-    PropertyStore(".*/PROPERTYSTORE/.*"),
-    CurrentStates(".*/CURRENTSTATES/.*"),
-    Messages(".*/MESSAGES/.*"),
-    Root(".*");
+    IdealStates("/IDEALSTATES/"),
+    Instances("/INSTANCES/"),
+    Configs("/CONFIGS/"),
+    Controller("/CONTROLLER/"),
+    ExternalView("/EXTERNALVIEW/"),
+    LiveInstances("/LIVEINSTANCES/"),
+    PropertyStore("/PROPERTYSTORE/"),
+    CurrentStates("/CURRENTSTATES/"),
+    Messages("/MESSAGES/"),
+    Root("");
 
     private final String _matchString;
 
@@ -60,7 +60,7 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
     }
 
     public boolean match(String path) {
-      return path.matches(this._matchString);
+      return path.contains(this._matchString);
     }
   }
 
@@ -135,27 +135,27 @@ public class ZkClientPathMonitor extends DynamicMBeanProvider {
             path.name());
 
     _writeTotalLatencyCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.WriteTotalLatencyCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteTotalLatencyCounter.name(), 0L);
     _readTotalLatencyCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.ReadTotalLatencyCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadTotalLatencyCounter.name(), 0L);
     _writeFailureCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.WriteFailureCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteFailureCounter.name(), 0L);
     _readFailureCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.ReadFailureCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadFailureCounter.name(), 0L);
     _writeAsyncFailureCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.WriteAsyncFailureCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteAsyncFailureCounter.name(), 0L);
     _readAsyncFailureCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.ReadAsyncFailureCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadAsyncFailureCounter.name(), 0L);
     _writeBytesCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.WriteBytesCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteBytesCounter.name(), 0L);
     _readBytesCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.ReadBytesCounter.name(), 0l);
-    _writeCounter = new SimpleDynamicMetric(PredefinedMetricDomains.WriteCounter.name(), 0l);
-    _readCounter = new SimpleDynamicMetric(PredefinedMetricDomains.ReadCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadBytesCounter.name(), 0L);
+    _writeCounter = new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteCounter.name(), 0L);
+    _readCounter = new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadCounter.name(), 0L);
     _writeAsyncCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.WriteAsyncCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.WriteAsyncCounter.name(), 0L);
     _readAsyncCounter =
-        new SimpleDynamicMetric(PredefinedMetricDomains.ReadAsyncCounter.name(), 0l);
+        new SimpleDynamicMetric<>(PredefinedMetricDomains.ReadAsyncCounter.name(), 0L);
 
     _readLatencyGauge = new HistogramDynamicMetric(PredefinedMetricDomains.ReadLatencyGauge.name(),
         new Histogram(

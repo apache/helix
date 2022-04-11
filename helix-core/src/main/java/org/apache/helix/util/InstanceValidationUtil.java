@@ -114,11 +114,22 @@ public class InstanceValidationUtil {
         : instanceConfig.getInstanceDisabledType();
   }
 
-  private  static boolean isInstanceEnabled(InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
+  /**
+   * Check if the instance is enabled by configuration
+   * @param instanceConfig
+   * @param clusterConfig
+   * @return
+   */
+  public static boolean isInstanceEnabled(InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
+    if (instanceConfig == null) {
+      throw new HelixException("InstanceConfig is NULL");
+    }
     boolean enabledInInstanceConfig = instanceConfig.getInstanceEnabled();
-    Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
+    if (clusterConfig == null) {
+      return enabledInInstanceConfig;
+    }
     boolean enabledInClusterConfig =
-        disabledInstances == null || !disabledInstances.keySet().contains(instanceConfig.getInstanceName());
+        !clusterConfig.getDisabledInstances().containsKey(instanceConfig.getInstanceName());
     return enabledInClusterConfig && enabledInInstanceConfig;
   }
 
@@ -138,12 +149,10 @@ public class InstanceValidationUtil {
    * Method to check if the instance is assigned at least 1 resource, not in a idle state;
    * Independent of the instance alive/enabled status
    * @param dataAccessor
-   * @param clusterId
    * @param instanceName
    * @return
    */
-  public static boolean hasResourceAssigned(HelixDataAccessor dataAccessor, String clusterId,
-      String instanceName) {
+  public static boolean hasResourceAssigned(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     LiveInstance liveInstance = dataAccessor.getProperty(propertyKeyBuilder.liveInstance(instanceName));
     if (liveInstance != null) {

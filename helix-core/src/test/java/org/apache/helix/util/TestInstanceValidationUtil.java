@@ -136,7 +136,7 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.CURRENTSTATES)));
 
     Assert.assertTrue(
-        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE));
+        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_INSTANCE));
   }
 
   @Test
@@ -156,7 +156,7 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.CURRENTSTATES)));
 
     Assert.assertFalse(
-        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE));
+        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_INSTANCE));
   }
 
   @Test
@@ -166,7 +166,7 @@ public class TestInstanceValidationUtil {
         .getProperty(argThat(new PropertyKeyArgument(PropertyType.LIVEINSTANCES)));
 
     Assert.assertFalse(
-        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_CLUSTER, TEST_INSTANCE));
+        InstanceValidationUtil.hasResourceAssigned(mock.dataAccessor, TEST_INSTANCE));
   }
 
   @Test

@@ -146,13 +146,22 @@ public class InstanceValidationUtil {
   }
 
   /**
+   * Deprecated. Please use {@link #isResourceAssigned} instead.
+   */
+  @Deprecated
+  public static boolean hasResourceAssigned(HelixDataAccessor dataAccessor, String clusterId,
+      String instanceName) {
+    return isResourceAssigned(dataAccessor, instanceName);
+  }
+
+  /**
    * Method to check if the instance is assigned at least 1 resource, not in a idle state;
    * Independent of the instance alive/enabled status
    * @param dataAccessor
    * @param instanceName
    * @return
    */
-  public static boolean hasResourceAssigned(HelixDataAccessor dataAccessor, String instanceName) {
+  public static boolean isResourceAssigned(HelixDataAccessor dataAccessor, String instanceName) {
     PropertyKey.Builder propertyKeyBuilder = dataAccessor.keyBuilder();
     LiveInstance liveInstance = dataAccessor.getProperty(propertyKeyBuilder.liveInstance(instanceName));
     if (liveInstance != null) {

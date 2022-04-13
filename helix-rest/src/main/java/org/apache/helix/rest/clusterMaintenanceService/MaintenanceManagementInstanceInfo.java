@@ -71,6 +71,7 @@ public class MaintenanceManagementInstanceInfo {
   public void addMessages(List<String> msg) {
     messages.addAll(msg);
   }
+
   public void addMessage(String meg) {
     messages.add(meg);
   }
@@ -84,11 +85,12 @@ public class MaintenanceManagementInstanceInfo {
   }
 
   public void mergeResult(MaintenanceManagementInstanceInfo info, boolean nonBlockingFailure) {
-    messages.addAll(info.getMessages());
-    status =
-        (info.isSuccessful() || nonBlockingFailure) && isSuccessful() ? OperationalStatus.SUCCESS
-            : OperationalStatus.FAILURE;
-    if (info.hasOperationResult()) {
+    if (info != null) {
+      messages.addAll(info.getMessages());
+    }
+    status = ((info == null || info.isSuccessful() || nonBlockingFailure) && isSuccessful())
+        ? OperationalStatus.SUCCESS : OperationalStatus.FAILURE;
+    if (info != null && info.hasOperationResult()) {
       operationResult =
           this.hasOperationResult() ? operationResult + "," + info.getOperationResult()
               : info.getOperationResult();

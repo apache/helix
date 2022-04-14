@@ -58,7 +58,7 @@ public class WorkflowContext extends HelixProperty {
   private boolean isModified;
 
   // Have fixed size history of Scheduled Workflow Tasks
-  private final static int SCHEDULED_WORKFLOW_HISTORY_SIZE = 100;
+  private final static int SCHEDULED_WORKFLOW_HISTORY_SIZE = 20;
 
   public WorkflowContext(ZNRecord record) {
     super(record);

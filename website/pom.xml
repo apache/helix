@@ -32,9 +32,7 @@
   <url>http://helix.apache.org</url>
 
   <modules>
-    <module>0.9.8</module>
     <module>0.9.9</module>
-    <module>1.0.1</module>
     <module>1.0.2</module>
   </modules>
 

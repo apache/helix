@@ -100,6 +100,11 @@
           </configuration>
           <dependencies>
             <dependency>
+              <groupId>com.google.code.maven-scm-provider-svnjava</groupId>
+              <artifactId>maven-scm-provider-svnjava</artifactId>
+              <version>${maven-scm-provider-svnjava.version}</version>
+            </dependency>
+            <dependency>
               <groupId>org.tmatesoft.svnkit</groupId>
               <artifactId>svnkit</artifactId>
               <version>${svnkit.version}</version>

@@ -394,7 +394,6 @@
 
     <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
 
-    <maven-scm-provider-svnjava.version>2.0.6</maven-scm-provider-svnjava.version>
     <svnkit.version>1.7.11</svnkit.version>
 
     <helix.siteFilePath>${user.home}/helix-site/helix-site-deploy</helix.siteFilePath>
@@ -641,11 +640,6 @@
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>
           </configuration>
           <dependencies>
-            <dependency>
-              <groupId>com.google.code.maven-scm-provider-svnjava</groupId>
-              <artifactId>maven-scm-provider-svnjava</artifactId>
-              <version>${maven-scm-provider-svnjava.version}</version>
-            </dependency>
             <dependency>
               <groupId>org.tmatesoft.svnkit</groupId>
               <artifactId>svnkit</artifactId>

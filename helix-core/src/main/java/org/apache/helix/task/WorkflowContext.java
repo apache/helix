@@ -57,6 +57,9 @@ public class WorkflowContext extends HelixProperty {
   // Otherwise, the context will not be written to ZK by the controller.
   private boolean isModified;
 
+  // Have fixed size history of Scheduled Workflow Tasks
+  private final static int SCHEDULED_WORKFLOW_HISTORY_SIZE = 20;
+
   public WorkflowContext(ZNRecord record) {
     super(record);
     isModified = false;
@@ -234,6 +237,10 @@ public class WorkflowContext extends HelixProperty {
           scheduledWorkflows);
     }
     if (!scheduledWorkflows.contains(workflow)) {
+      // This while loop is to cleanup existing scheduled workflows
+      while (scheduledWorkflows.size() >= SCHEDULED_WORKFLOW_HISTORY_SIZE) {
+        scheduledWorkflows.remove(0);
+      }
       scheduledWorkflows.add(workflow);
       markWorkflowContextAsModified();
     }

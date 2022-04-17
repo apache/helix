@@ -137,7 +137,7 @@ cmd_direct_call={
    {
     "class_path":[
       "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      ,"IVY_DIR/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar"
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
@@ -157,7 +157,7 @@ cmd_direct_call={
   ,"dummy-process":
    {
     "class_path":[
-      "IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      "IVY_DIR/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar"
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
@@ -178,7 +178,7 @@ cmd_direct_call={
   ,"mock-health-report-process":
    {
     "class_path":[
-      "IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      "IVY_DIR/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar"
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.11.0/commons-lang-2.11.0.jar"
@@ -201,7 +201,7 @@ cmd_direct_call={
   ,"cluster-manager":
    {
     "class_path":[
-      "IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      "IVY_DIR/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar"
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
@@ -224,7 +224,7 @@ cmd_direct_call={
    {
     "class_path":[
       "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      ,"IVY_DIR/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar"
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar"
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"

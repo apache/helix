@@ -136,36 +136,36 @@ For example, in a search system, one might need more than one node serving the s
 
 The allowed states:
 
-* MASTER
-* SLAVE
+* LEADER
+* STANDBY
 * OFFLINE
 
 The allowed transitions:
 
-* OFFLINE to SLAVE
-* SLAVE to OFFLINE
-* SLAVE to MASTER
-* MASTER to SLAVE
+* OFFLINE to STANDBY
+* STANDBY to OFFLINE
+* STANDBY to LEADER
+* LEADER to STANDBY
 
 The constraints:
 
-* no more than 1 MASTER per partition
-* the rest of the replicas should be slaves
+* no more than 1 LEADER per partition
+* the rest of the replicas should be STANDBYs
 
-The following snippet shows how to declare the state model and constraints for the MASTER-SLAVE model.
+The following snippet shows how to declare the state model and constraints for the LEADER-STANDBY model.
 
 ```
-String STATE_MODEL_NAME = "MasterSlave";
+String STATE_MODEL_NAME = "LeaderStandby";
 StateModelDefinition.Builder builder = new StateModelDefinition.Builder(STATE_MODEL_NAME);
 // Define your own states: those are opaque strings to Helix
 // Only the topology of the state machine (initial state, transitions, priorities, final DROPPED state) is meaningful to Helix
-String MASTER = "MASTER";
-String SLAVE = "SLAVE";
+String LEADER = "LEADER";
+String STANDBY = "STANDBY";
 String OFFLINE = "OFFLINE";
 
 // Add states and their rank to indicate priority. A lower rank corresponds to a higher priority
-builder.addState(MASTER, 1);
-builder.addState(SLAVE, 2);
+builder.addState(LEADER, 1);
+builder.addState(STANDBY, 2);
 builder.addState(OFFLINE);
 // Note the special inclusion of the DROPPED state (REQUIRED)
 builder.addState(HelixDefinedState.DROPPED.name());
@@ -174,24 +174,24 @@ builder.addState(HelixDefinedState.DROPPED.name());
 builder.initialState(OFFLINE);
 
 // Add transitions between the states.
-builder.addTransition(OFFLINE, SLAVE);
-builder.addTransition(SLAVE, OFFLINE);
-builder.addTransition(SLAVE, MASTER);
-builder.addTransition(MASTER, SLAVE);
+builder.addTransition(OFFLINE, STANDBY);
+builder.addTransition(STANDBY, OFFLINE);
+builder.addTransition(STANDBY, LEADER);
+builder.addTransition(LEADER, STANDBY);
 
 // There must be a path to DROPPED from each state (REQUIRED)
 builder.addTransition(OFFLINE, HelixDefinedState.DROPPED.name());
 
 // set constraints on states
 
-// static constraint: upper bound of 1 MASTER
-builder.upperBound(MASTER, 1);
+// static constraint: upper bound of 1 LEADER
+builder.upperBound(LEADER, 1);
 
 // dynamic constraint: R means it should be derived based on the replication factor for the cluster
 // this allows a different replication factor for each resource without
 // having to define a new state model
 
-builder.dynamicUpperBound(SLAVE, "R");
+builder.dynamicUpperBound(STANDBY, "R");
 
 StateModelDefinition myStateModel = builder.build();
 admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
@@ -200,7 +200,7 @@ admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
 ##### Assigning Partitions to Nodes
 
 The final goal of Helix is to ensure that the constraints on the state model are satisfied.
-Helix does this by assigning a __state__ to a partition (such as MASTER, SLAVE), and placing it on a particular node.
+Helix does this by assigning a __state__ to a partition (such as LEADER, STANDBY), and placing it on a particular node.
 
 There are 3 assignment modes Helix can operate in:
 
@@ -213,7 +213,7 @@ For more information on the assignment modes, see the [Rebalancing Algorithms](.
 ```
 String RESOURCE_NAME = "MyDB";
 int NUM_PARTITIONS = 6;
-String STATE_MODEL_NAME = "MasterSlave";
+String STATE_MODEL_NAME = "LeaderStandby";
 String MODE = "SEMI_AUTO";
 int NUM_REPLICAS = 2;
 

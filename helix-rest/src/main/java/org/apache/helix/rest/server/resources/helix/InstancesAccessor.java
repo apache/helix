@@ -56,6 +56,7 @@ import org.apache.helix.rest.server.json.instance.StoppableCheck;
 import org.apache.helix.rest.server.resources.exceptions.HelixHealthException;
 import org.apache.helix.rest.server.service.ClusterService;
 import org.apache.helix.rest.server.service.ClusterServiceImpl;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,8 +121,7 @@ public class InstancesAccessor extends AbstractHelixResource {
         InstanceConfig instanceConfig =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(instanceName));
         if (instanceConfig != null) {
-          if (!instanceConfig.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
-              && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
+          if (!InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig)) {
             disabledNode.add(JsonNodeFactory.instance.textNode(instanceName));
           }
 

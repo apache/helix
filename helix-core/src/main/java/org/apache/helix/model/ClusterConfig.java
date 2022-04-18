@@ -774,10 +774,11 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Get current disabled instance map of <instance, disabledTimeStamp>
-   * @return
+   * @return a non-null map of disabled instances in cluster config
    */
   public Map<String, String> getDisabledInstances() {
-    return _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
+    Map<String, String> disabledInstances = _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES.name());
+    return disabledInstances == null ? Collections.emptyMap() : disabledInstances;
   }
 
   /**

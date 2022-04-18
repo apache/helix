@@ -31,7 +31,7 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceConfig;
-import org.apache.helix.util.ConfigStringUtil;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,15 +137,12 @@ public class DelayedRebalanceUtil {
     }
 
     // check the time instance got disabled.
-    if (!instanceConfig.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
-        && clusterConfig.getDisabledInstances().containsKey(instance))) {
+    if (!InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig)) {
       long disabledTime = instanceConfig.getInstanceEnabledTime();
-      if (clusterConfig.getDisabledInstances() != null && clusterConfig.getDisabledInstances()
-          .containsKey(instance)) {
+      Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
+      if (disabledInstances.containsKey(instance)) {
         // Update batch disable time
-        long batchDisableTime = Long.parseLong(ConfigStringUtil
-            .parseConcatenatedConfig(clusterConfig.getDisabledInstances().get(instance))
-            .get(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString()));
+        long batchDisableTime = Long.parseLong(clusterConfig.getInstanceHelixDisabledTimeStamp(instance));
         if (disabledTime == -1 || disabledTime > batchDisableTime) {
           disabledTime = batchDisableTime;
         }

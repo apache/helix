@@ -398,9 +398,10 @@ public final class HelixUtil {
         idealState.getMaxPartitionsPerInstance());
 
     // Remove all disabled instances so that Helix will not consider them live.
-    List<String> disabledInstance =
-        instanceConfigs.stream().filter(enabled -> !enabled.getInstanceEnabled())
-            .map(InstanceConfig::getInstanceName).collect(Collectors.toList());
+    List<String> disabledInstance = instanceConfigs.stream()
+        .filter(instanceConfig -> !InstanceValidationUtil.isInstanceEnabled(instanceConfig, clusterConfig))
+        .map(InstanceConfig::getInstanceName)
+        .collect(Collectors.toList());
     liveInstances.removeAll(disabledInstance);
 
     Map<String, List<String>> preferenceLists = strategy

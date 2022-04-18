@@ -68,6 +68,7 @@ import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.msdcommon.exception.InvalidRoutingDataException;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
@@ -308,8 +309,7 @@ public class ClusterSetup {
 
     ClusterConfig clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
     // ensure node is disabled, otherwise fail
-    if (config.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
-        || !clusterConfig.getDisabledInstances().containsKey(instanceId))) {
+    if (InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
       String error = "Node " + instanceId + " is enabled, cannot drop";
       _logger.warn(error);
       throw new HelixException(error);

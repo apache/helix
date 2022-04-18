@@ -42,27 +42,28 @@ import org.apache.helix.zookeeper.zkclient.ZkServer;
 
 public class Quickstart {
 
-  private static String ZK_ADDRESS = "localhost:2199";
-  private static String CLUSTER_NAME = "HELIX_QUICKSTART";
-  private static int NUM_NODES = 2;
+  private static final String ZK_ADDRESS = "localhost:2199";
+  private static final String CLUSTER_NAME = "HELIX_QUICKSTART";
   private static final String RESOURCE_NAME = "MyResource";
   private static final int NUM_PARTITIONS = 6;
   private static final int NUM_REPLICAS = 2;
-
   private static final String STATE_MODEL_NAME = "MyStateModel";
 
+  private static int NUM_NODES = 2;
+
   // states
-  private static final String SLAVE = "SLAVE";
+  private static final String STANDBY = "STANDBY";
   private static final String OFFLINE = "OFFLINE";
-  private static final String MASTER = "MASTER";
+  private static final String LEADER = "LEADER";
   private static final String DROPPED = "DROPPED";
 
-  private static List<InstanceConfig> INSTANCE_CONFIG_LIST;
-  private static List<MyProcess> PROCESS_LIST;
+  private static final List<InstanceConfig> INSTANCE_CONFIG_LIST;
+  private static final List<MyProcess> PROCESS_LIST;
   private static HelixAdmin admin;
+
   static {
-    INSTANCE_CONFIG_LIST = new ArrayList<InstanceConfig>();
-    PROCESS_LIST = new ArrayList<Quickstart.MyProcess>();
+    INSTANCE_CONFIG_LIST = new ArrayList<>();
+    PROCESS_LIST = new ArrayList<>();
     for (int i = 0; i < NUM_NODES; i++) {
       int port = 12000 + i;
       InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
@@ -89,7 +90,7 @@ public class Quickstart {
 
     // Add a state model
     StateModelDefinition myStateModel = defineStateModel();
-    echo("Configuring StateModel: " + "MyStateModel  with 1 Master and 1 Slave");
+    echo("Configuring StateModel: " + "MyStateModel  with 1 Leader and 1 Standby");
     admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
 
     // Add a resource with 6 partitions and 2 replicas
@@ -104,26 +105,26 @@ public class Quickstart {
     StateModelDefinition.Builder builder = new StateModelDefinition.Builder(STATE_MODEL_NAME);
     // Add states and their rank to indicate priority. Lower the rank higher the
     // priority
-    builder.addState(MASTER, 1);
-    builder.addState(SLAVE, 2);
+    builder.addState(LEADER, 1);
+    builder.addState(STANDBY, 2);
     builder.addState(OFFLINE);
     builder.addState(DROPPED);
     // Set the initial state when the node starts
     builder.initialState(OFFLINE);
 
     // Add transitions between the states.
-    builder.addTransition(OFFLINE, SLAVE);
-    builder.addTransition(SLAVE, OFFLINE);
-    builder.addTransition(SLAVE, MASTER);
-    builder.addTransition(MASTER, SLAVE);
+    builder.addTransition(OFFLINE, STANDBY);
+    builder.addTransition(STANDBY, OFFLINE);
+    builder.addTransition(STANDBY, LEADER);
+    builder.addTransition(LEADER, STANDBY);
     builder.addTransition(OFFLINE, DROPPED);
 
     // set constraints on states.
     // static constraint
-    builder.upperBound(MASTER, 1);
+    builder.upperBound(LEADER, 1);
     // dynamic constraint, R means it should be derived based on the replication
     // factor.
-    builder.dynamicUpperBound(SLAVE, "R");
+    builder.dynamicUpperBound(STANDBY, "R");
 
     StateModelDefinition statemodelDefinition = builder.build();
     return statemodelDefinition;
@@ -203,7 +204,7 @@ public class Quickstart {
   private static void stopNode() {
     int nodeId = NUM_NODES - 1;
     echo("STOPPING " + INSTANCE_CONFIG_LIST.get(nodeId).getInstanceName()
-        + ". Mastership will be transferred to the remaining nodes");
+        + ". Leadership will be transferred to the remaining nodes");
     PROCESS_LIST.get(nodeId).stop();
   }
 
@@ -246,8 +247,8 @@ public class Quickstart {
           HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, instanceName,
               InstanceType.PARTICIPANT, ZK_ADDRESS);
 
-      MasterSlaveStateModelFactory stateModelFactory =
-          new MasterSlaveStateModelFactory(instanceName);
+      LeaderStandbyStateModelFactory stateModelFactory =
+          new LeaderStandbyStateModelFactory(instanceName);
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
       stateMach.registerStateModelFactory(STATE_MODEL_NAME, stateModelFactory);

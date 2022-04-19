@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
 public class TestZoneAccessor extends AbstractTestClass  {
 
   private HelixDataAccessor _helixDataAccessor;
-  private static final String TEST_CLUSTER = "TestCluster_0";
+  private static final String TEST_CLUSTER = "TestCluster_zoneAccessor";
   private final String _instance1 = TEST_CLUSTER + "localhost_12918";
   private final String _instance2 = TEST_CLUSTER + "localhost_12922";
   private final String _instance3 = TEST_CLUSTER + "localhost_12923";
@@ -37,11 +37,15 @@ public class TestZoneAccessor extends AbstractTestClass  {
 
   @BeforeTest
   public void beforeTest() {
-    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(TEST_CLUSTER);
+    _gSetupTool.addCluster(TEST_CLUSTER, true);
+    _clusters.add(TEST_CLUSTER);
+    Set<String> instances = createInstances(TEST_CLUSTER, 10);
+    ClusterConfig clusterConfig = new ClusterConfig(TEST_CLUSTER);
     clusterConfig.setTopology("/zone/instance");
     clusterConfig.setFaultZoneType("zone");
     clusterConfig.setTopologyAwareEnabled(true);
-    _configAccessor.updateClusterConfig(TEST_CLUSTER, clusterConfig);
+    _configAccessor.setClusterConfig(TEST_CLUSTER, clusterConfig);
+    _clusterControllerManagers.add(startController(TEST_CLUSTER));
 
     _helixDataAccessor = new ZKHelixDataAccessor(TEST_CLUSTER, _baseAccessor);
     // setup up 10 instances across 5 zones
@@ -52,6 +56,7 @@ public class TestZoneAccessor extends AbstractTestClass  {
       instanceConfig.setDomain("zone=zone_" + i / 2 + ",instance=" + instanceName);
       _helixDataAccessor.setProperty(_helixDataAccessor.keyBuilder().instanceConfig(instanceName), instanceConfig);
     }
+    startInstances(TEST_CLUSTER, instances, 10);
   }
 
   @Test

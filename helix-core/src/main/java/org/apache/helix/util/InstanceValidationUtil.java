@@ -128,9 +128,28 @@ public class InstanceValidationUtil {
     if (clusterConfig == null) {
       return enabledInInstanceConfig;
     }
-    boolean enabledInClusterConfig =
-        !clusterConfig.getDisabledInstances().containsKey(instanceConfig.getInstanceName());
-    return enabledInClusterConfig && enabledInInstanceConfig;
+    Map<String, String> disabledInstancesFromClusterConfig = clusterConfig.getDisabledInstances();
+    boolean enabledInClusterConfig = disabledInstancesFromClusterConfig == null
+        || !disabledInstancesFromClusterConfig.containsKey(instanceConfig.getInstanceName());
+
+    boolean disabledInZone = isInstanceInDisabledZones(instanceConfig, clusterConfig);
+    return enabledInClusterConfig && enabledInInstanceConfig && !disabledInZone;
+  }
+
+  /**
+   * Check if an instance is in disabled zone of a cluster
+   * @param instanceConfig instance config
+   * @param clusterConfig cluster config
+   * @return True if the instance is in a disabled zone of the cluster
+   */
+  private static boolean isInstanceInDisabledZones(InstanceConfig instanceConfig, ClusterConfig clusterConfig) {
+    if (clusterConfig == null) {
+      return false;
+    }
+    Map<String, String> disabledZones = clusterConfig.getDisabledZones();
+    String faultZoneType = clusterConfig.getFaultZoneType();
+    return instanceConfig.getDomainAsMap().containsKey(faultZoneType)
+        && disabledZones.containsKey(instanceConfig.getDomainAsMap().get(faultZoneType));
   }
 
   /**

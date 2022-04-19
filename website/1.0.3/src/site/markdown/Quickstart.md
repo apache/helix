@@ -47,7 +47,7 @@ Download the 1.0.3 release package [here](./download.html)
 Overview
 --------
 
-In this Quickstart, we\'ll set up a master-slave replicated, partitioned system.  Then we\'ll demonstrate how to add a node, rebalance the partitions, and show how Helix manages failover.
+In this Quickstart, we\'ll set up a leader-standby replicated, partitioned system.  Then we\'ll demonstrate how to add a node, rebalance the partitions, and show how Helix manages failover.
 
 
 Let\'s Do It
@@ -72,12 +72,12 @@ You can observe the components working together in this demo, which does the fol
 
 * Create a cluster
 * Add 2 nodes (participants) to the cluster
-* Set up a resource with 6 partitions and 2 replicas: 1 Master, and 1 Slave per partition
+* Set up a resource with 6 partitions and 2 replicas: 1 Leader, and 1 Standby per partition
 * Show the cluster state after Helix balances the partitions
 * Add a third node
-* Show the cluster state.  Note that the third node has taken mastership of 2 partitions.
+* Show the cluster state.  Note that the third node has taken leadership of 2 partitions.
 * Kill the third node (Helix takes care of failover)
-* Show the cluster state.  Note that the two surviving nodes take over mastership of the partitions from the failed node
+* Show the cluster state.  Note that the two surviving nodes take over leadership of the partitions from the failed node
 
 ### Run the Demo
 
@@ -95,15 +95,15 @@ The cluster state is as follows:
 ```
 CLUSTER STATE: After starting 2 nodes
                 localhost_12000    localhost_12001
-MyResource_0           M                  S
-MyResource_1           S                  M
-MyResource_2           M                  S
-MyResource_3           M                  S
-MyResource_4           S                  M
-MyResource_5           S                  M
+MyResource_0           L                  S
+MyResource_1           S                  L
+MyResource_2           L                  S
+MyResource_3           L                  S
+MyResource_4           S                  L
+MyResource_5           S                  L
 ```
 
-Note there is one master and one slave per partition.
+Note there is one leader and one standby per partition.
 
 #### Add a Node
 
@@ -114,31 +114,31 @@ The cluster state changes to:
 ```
 CLUSTER STATE: After adding a third node
                localhost_12000    localhost_12001    localhost_12002
-MyResource_0          S                  M                  S
-MyResource_1          S                  S                  M
-MyResource_2          M                  S                  S
-MyResource_3          S                  S                  M
-MyResource_4          M                  S                  S
-MyResource_5          S                  M                  S
+MyResource_0          S                  L                  S
+MyResource_1          S                  S                  L
+MyResource_2          L                  S                  S
+MyResource_3          S                  S                  L
+MyResource_4          L                  S                  S
+MyResource_5          S                  L                  S
 ```
 
-Note there is one master and _two_ slaves per partition.  This is expected because there are three nodes.
+Note there is one leader and _two_ standbys per partition.  This is expected because there are three nodes.
 
 #### Kill a Node
 
 Finally, a node is killed to simulate a failure
 
-Helix makes sure each partition has a master.  The cluster state changes to:
+Helix makes sure each partition has a leader.  The cluster state changes to:
 
 ```
 CLUSTER STATE: After the 3rd node stops/crashes
                localhost_12000    localhost_12001    localhost_12002
-MyResource_0          S                  M                  -
-MyResource_1          S                  M                  -
-MyResource_2          M                  S                  -
-MyResource_3          M                  S                  -
-MyResource_4          M                  S                  -
-MyResource_5          S                  M                  -
+MyResource_0          S                  L                  -
+MyResource_1          S                  L                  -
+MyResource_2          L                  S                  -
+MyResource_3          L                  S                  -
+MyResource_4          L                  S                  -
+MyResource_5          S                  L                  -
 ```
 
 
@@ -148,10 +148,10 @@ Now you can run the same steps by hand.  In this detailed version, we\'ll do the
 
 * Define a cluster
 * Add two nodes to the cluster
-* Add a 6-partition resource with 1 master and 2 slave replicas per partition
+* Add a 6-partition resource with 1 leader and 2 standby replicas per partition
 * Verify that the cluster is healthy and inspect the Helix view
 * Expand the cluster: add a few nodes and rebalance the partitions
-* Failover: stop a node and verify the mastership transfer
+* Failover: stop a node and verify the leadership transfer
 
 ### Install and Start ZooKeeper
 
@@ -180,7 +180,7 @@ Next, we\'ll set up a cluster MYCLUSTER cluster with these attributes:
 
 * 3 instances running on localhost at ports 12913,12914,12915
 * One database named myDB with 6 partitions
-* Each partition will have 3 replicas with 1 master, 2 slaves
+* Each partition will have 3 replicas with 1 leader, 2 standbys
 * ZooKeeper running locally at localhost:2199
 
 #### Create the Cluster MYCLUSTER
@@ -205,13 +205,13 @@ In this case we\'ll add three nodes: localhost:12913, localhost:12914, localhost
 
 In this example, the resource is a database, partitioned 6 ways. Note that in a production system, it\'s common to over-partition for better load balancing.  Helix has been used in production to manage hundreds of databases each with 10s or 100s of partitions running on 10s of physical nodes.
 
-#### Create a Database with 6 Partitions using the MasterSlave State Model
+#### Create a Database with 6 Partitions using the LeaderStandby State Model
 
-Helix ensures there will be exactly one master for each partition.
+Helix ensures there will be exactly one leader for each partition.
 
 ```
 # helix-admin.sh --zkSvr <zk_address> --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
-./helix-admin.sh --zkSvr localhost:2199 --addResource MYCLUSTER myDB 6 MasterSlave
+./helix-admin.sh --zkSvr localhost:2199 --addResource MYCLUSTER myDB 6 LeaderStandby
 ```
 
 #### Let Helix Assign Partitions to Nodes
@@ -223,7 +223,7 @@ This command will distribute the partitions amongst all the nodes in the cluster
 ./helix-admin.sh --zkSvr localhost:2199 --rebalance MYCLUSTER myDB 3
 ```
 
-Now the cluster is defined in ZooKeeper.  The nodes (localhost:12913, localhost:12914, localhost:12915) and resource (myDB, with 6 partitions using the MasterSlave model) are all properly configured.  And the _IdealState_ has been calculated, assuming a replication factor of 3.
+Now the cluster is defined in ZooKeeper.  The nodes (localhost:12913, localhost:12914, localhost:12915) and resource (myDB, with 6 partitions using the LeaderStandby model) are all properly configured.  And the _IdealState_ has been calculated, assuming a replication factor of 3.
 
 ### Start the Helix Controller
 
@@ -240,9 +240,9 @@ We\'ve started up ZooKeeper, defined the cluster, the resources, the partitionin
 
 ```
 # start up each instance.  These are mock implementations that are actively managed by Helix
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12913 --stateModelType MasterSlave 2>&1 > /tmp/participant_12913.log
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12914 --stateModelType MasterSlave 2>&1 > /tmp/participant_12914.log
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12915 --stateModelType MasterSlave 2>&1 > /tmp/participant_12915.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12913 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12913.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12914 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12914.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12915 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12915.log
 ```
 
 ### Inspect the Cluster
@@ -311,34 +311,34 @@ IdealState for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_1" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "LEADER"
     },
     "myDB_4" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {
@@ -354,7 +354,7 @@ IdealState for myDB:
     "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
     "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
   }
 }
@@ -364,34 +364,34 @@ ExternalView for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_1" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "LEADER"
     },
     "myDB_4" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12914" : "SLAVE",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12914" : "STANDBY",
+      "localhost_12915" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {
@@ -411,7 +411,7 @@ Now, let\'s look at one of the partitions:
 
 ### Expand the Cluster
 
-Next, we\'ll show how Helix does the work that you\'d otherwise have to build into your system.  When you add capacity to your cluster, you want the work to be evenly distributed.  In this example, we started with 3 nodes, with 6 partitions.  The partitions were evenly balanced, 2 masters and 4 slaves per node. Let\'s add 3 more nodes: localhost:12916, localhost:12917, localhost:12918
+Next, we\'ll show how Helix does the work that you\'d otherwise have to build into your system.  When you add capacity to your cluster, you want the work to be evenly distributed.  In this example, we started with 3 nodes, with 6 partitions.  The partitions were evenly balanced, 2 leaders and 4 standbys per node. Let\'s add 3 more nodes: localhost:12916, localhost:12917, localhost:12918
 
 ```
 ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12916
@@ -423,13 +423,13 @@ And start up these instances:
 
 ```
 # start up each instance.  These are mock implementations that are actively managed by Helix
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12916 --stateModelType MasterSlave 2>&1 > /tmp/participant_12916.log
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12917 --stateModelType MasterSlave 2>&1 > /tmp/participant_12917.log
-./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12918 --stateModelType MasterSlave 2>&1 > /tmp/participant_12918.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12916 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12916.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12917 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12917.log
+./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12918 --stateModelType LeaderStandby 2>&1 > /tmp/participant_12918.log
 ```
 
 
-And now, let Helix do the work for you.  To shift the work, simply rebalance.  After the rebalance, each node will have one master and two slaves.
+And now, let Helix do the work for you.  To shift the work, simply rebalance.  After the rebalance, each node will have one leader and two standbys.
 
 ```
 ./helix-admin.sh --zkSvr localhost:2199 --rebalance MYCLUSTER myDB 3
@@ -448,34 +448,34 @@ IdealState for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12917" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12917" : "LEADER"
     },
     "myDB_1" : {
-      "localhost_12916" : "SLAVE",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "MASTER"
+      "localhost_12916" : "STANDBY",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12915" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12915" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_4" : {
-      "localhost_12916" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12916" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {
@@ -491,7 +491,7 @@ IdealState for myDB:
     "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
     "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
   }
 }
@@ -501,34 +501,34 @@ ExternalView for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12917" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12917" : "LEADER"
     },
     "myDB_1" : {
-      "localhost_12916" : "SLAVE",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "MASTER"
+      "localhost_12916" : "STANDBY",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12915" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12915" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_4" : {
-      "localhost_12916" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12916" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {
@@ -543,11 +543,11 @@ Mission accomplished.  The partitions are nicely balanced.
 
 ### How about Failover?
 
-Building a fault tolerant system isn\'t trivial, but with Helix, it\'s easy.  Helix detects a failed instance, and triggers mastership transfer automatically.
+Building a fault tolerant system isn\'t trivial, but with Helix, it\'s easy.  Helix detects a failed instance, and triggers leadership transfer automatically.
 
 First, let's fail an instance.  In this example, we\'ll kill localhost:12918 to simulate a failure.
 
-We lost localhost:12918, so myDB_1 lost its MASTER.  Helix can fix that, it will transfer mastership to a healthy node that is currently a SLAVE, say localhost:12197.  Helix balances the load as best as it can, given there are 6 partitions on 5 nodes.  Let\'s see:
+We lost localhost:12918, so myDB_1 lost its LEADER.  Helix can fix that, it will transfer leadership to a healthy node that is currently a STANDBY, say localhost:12197.  Helix balances the load as best as it can, given there are 6 partitions on 5 nodes.  Let\'s see:
 
 
 ```
@@ -558,34 +558,34 @@ IdealState for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12917" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12917" : "LEADER"
     },
     "myDB_1" : {
-      "localhost_12916" : "SLAVE",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "MASTER"
+      "localhost_12916" : "STANDBY",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12915" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12915" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_4" : {
-      "localhost_12916" : "MASTER",
-      "localhost_12917" : "SLAVE",
-      "localhost_12918" : "SLAVE"
+      "localhost_12916" : "LEADER",
+      "localhost_12917" : "STANDBY",
+      "localhost_12918" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {
@@ -601,7 +601,7 @@ IdealState for myDB:
     "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
     "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
   }
 }
@@ -611,30 +611,30 @@ ExternalView for myDB:
   "id" : "myDB",
   "mapFields" : {
     "myDB_0" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "SLAVE",
-      "localhost_12917" : "MASTER"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "STANDBY",
+      "localhost_12917" : "LEADER"
     },
     "myDB_1" : {
-      "localhost_12916" : "SLAVE",
-      "localhost_12917" : "MASTER"
+      "localhost_12916" : "STANDBY",
+      "localhost_12917" : "LEADER"
     },
     "myDB_2" : {
-      "localhost_12913" : "MASTER",
-      "localhost_12917" : "SLAVE"
+      "localhost_12913" : "LEADER",
+      "localhost_12917" : "STANDBY"
     },
     "myDB_3" : {
-      "localhost_12915" : "MASTER",
-      "localhost_12917" : "SLAVE"
+      "localhost_12915" : "LEADER",
+      "localhost_12917" : "STANDBY"
     },
     "myDB_4" : {
-      "localhost_12916" : "MASTER",
-      "localhost_12917" : "SLAVE"
+      "localhost_12916" : "LEADER",
+      "localhost_12917" : "STANDBY"
     },
     "myDB_5" : {
-      "localhost_12913" : "SLAVE",
-      "localhost_12914" : "MASTER",
-      "localhost_12915" : "SLAVE"
+      "localhost_12913" : "STANDBY",
+      "localhost_12914" : "LEADER",
+      "localhost_12915" : "STANDBY"
     }
   },
   "listFields" : {

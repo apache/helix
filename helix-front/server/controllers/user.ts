@@ -59,6 +59,8 @@ export class UserCtrl {
       } else {
         // login success
         let opts = {
+          // Property 'username' does not exist on type 'ReadableStream<Uint8Array>'.ts(2339)
+          // @ts-expect-error
           filter: '(&(sAMAccountName=' + credential.username + ')(objectcategory=person))',
           scope: 'sub'
         };

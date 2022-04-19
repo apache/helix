@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, ViewChild, ViewEncapsulation, EventEmitter } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 
 import * as _ from 'lodash';
 
@@ -19,9 +19,9 @@ import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.
 })
 export class NodeViewerComponent implements OnInit {
 
-  @ViewChild('simpleTable') simpleTable;
-  @ViewChild('listTable') listTable;
-  @ViewChild('mapTable') mapTable;
+  @ViewChild('simpleTable', {static: false}) simpleTable;
+  @ViewChild('listTable', {static: false}) listTable;
+  @ViewChild('mapTable', {static: false}) mapTable;
 
   @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();

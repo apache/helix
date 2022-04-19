@@ -3,12 +3,20 @@ import * as LdapClient from 'ldapjs';
 
 import {LDAP} from '../config';
 
+import { HelixRequest } from './d';
 export class UserCtrl {
 
   constructor(router: Router) {
     router.route('/user/authorize').get(this.authorize);
     router.route('/user/login').post(this.login.bind(this));
+    //   No overload matches this call.
+    // The last overload gave the following error.
+    //   Argument of type '(req: HelixRequest, res: Response<any, Record<string, any>>) =>
+    //   void' is not assignable to parameter of type
+    //   'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+    // @ts-expect-error
     router.route('/user/current').get(this.current);
+    // @ts-expect-error
     router.route('/user/can').get(this.can);
   }
 
@@ -18,22 +26,24 @@ export class UserCtrl {
     // by default, doing nothing but redirection
 
     if (req.query.url) {
-      res.redirect(req.query.url);
+      res.redirect(req.query.url as string);
     } else {
       res.redirect('/');
     }
   }
 
-  protected current(req: Request, res: Response) {
+  protected current(req: HelixRequest, res: Response) {
     res.json(req.session.username || 'Sign In');
   }
 
-  protected can(req: Request, res: Response) {
+  protected can(req: HelixRequest, res: Response) {
     res.json(req.session.isAdmin ? true : false);
   }
 
-  protected login(request: Request, response: Response) {
+  protected login(request: HelixRequest, response: Response) {
     const credential = request.body;
+    // Property 'username' does not exist on type 'ReadableStream<Uint8Array>'.ts(2339)
+    // @ts-expect-error
     if (!credential.username || !credential.password) {
       response.status(401).json(false);
       return;
@@ -41,6 +51,8 @@ export class UserCtrl {
 
     // check LDAP
     const ldap = LdapClient.createClient({ url: LDAP.uri });
+    // Property 'username' does not exist on type 'ReadableStream<Uint8Array>'.ts(2339)
+    // @ts-expect-error
     ldap.bind(credential.username + LDAP.principalSuffix, credential.password, err => {
       if (err) {
         response.status(401).json(false);
@@ -65,6 +77,8 @@ export class UserCtrl {
               }
             }
 
+            // Property 'username' does not exist on type 'ReadableStream<Uint8Array>'.ts(2339)
+            // @ts-expect-error
             request.session.username = credential.username;
             request.session.isAdmin = isInAdminGroup;
             response.json(isInAdminGroup);

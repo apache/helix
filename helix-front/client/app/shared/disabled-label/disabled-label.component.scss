@@ -1,4 +1,4 @@
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
 
 .status-disabled {
   margin-left: 10px;
@@ -6,7 +6,7 @@
   font-size: 12px;
   line-height: 40px;
   border-radius: 4px;
-  border: 1px solid mat-color(mat-palette($mat-red), 900);
-  background-color: mat-color(mat-palette($mat-red), darker);
+  border: 1px solid mat.get-color-from-palette(mat.$red-palette, 900);
+    background-color: mat.get-color-from-palette(mat.$red-palette, darker);
   color: rgb(255, 255, 255);
 }

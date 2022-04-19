@@ -45,11 +45,18 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     ConfirmDialogComponent,
     DisabledLabelComponent
   ],
-  entryComponents: [
-    InputDialogComponent,
-    AlertDialogComponent,
-    ConfirmDialogComponent
-  ],
+  // In your application projects, you can remove entryComponents
+  // NgModules and any uses of ANALYZE_FOR_ENTRY_COMPONENTS.
+  // They are no longer required with the Ivy compiler and runtime.
+  // You may need to keep these if building a library that will
+  // be consumed by a View Engine application.
+  //  https://update.angular.io/?l=3&v=9.1-10.2
+  //
+  // entryComponents: [
+  //   InputDialogComponent,
+  //   AlertDialogComponent,
+  //   ConfirmDialogComponent
+  // ],
   exports: [
     RouterModule,
     MaterialModule,

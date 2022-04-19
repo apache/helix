@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
 
@@ -18,7 +19,7 @@ import { HelperService } from '../../shared/helper.service';
 })
 export class ResourceListComponent implements OnInit {
 
-  @ViewChild('resourcesTable')
+  @ViewChild('resourcesTable', {static: false})
   table: any;
 
   isForInstance = false;
@@ -52,6 +53,10 @@ export class ResourceListComponent implements OnInit {
 
         this.service
           .getAllOnInstance(this.clusterName, this.instanceName)
+          // @deprecated — Instead of passing separate callback arguments,
+          // use an observer argument.
+          // Signatures taking separate callback arguments will be removed in v8.
+          // Details: https://rxjs.dev/deprecations/subscribe-arguments
           .subscribe(
             resources => this.resources = resources,
             error => console.log(error),
@@ -59,7 +64,7 @@ export class ResourceListComponent implements OnInit {
           );
       } else {
         this.route.parent.params
-          .map(p => p.name)
+          .pipe(map(p => p.name))
           .subscribe(name => {
             this.clusterName = name;
             this.fetchResources();
@@ -85,8 +90,13 @@ export class ResourceListComponent implements OnInit {
         workflows => {
           this.service
             .getAll(this.clusterName)
+            // @deprecated — Instead of passing separate callback arguments,
+            // use an observer argument.
+            // Signatures taking separate callback arguments will be removed in v8.
+            // Details: https://rxjs.dev/deprecations/subscribe-arguments
             .subscribe(
               result => {
+                // eslint-disable-next-line max-len
                 this.resources = _.differenceWith(result, workflows, (resource: Resource, prefix: string) => _.startsWith(resource.name, prefix));
               },
               error => this.helper.showError(error),
@@ -97,6 +107,7 @@ export class ResourceListComponent implements OnInit {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   onSelect({ selected }) {
     const row = selected[0];
 

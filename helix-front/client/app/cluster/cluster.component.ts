@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { MediaChange, ObservableMedia } from '@angular/flex-layout';
+import { MediaChange, MediaObserver } from '@angular/flex-layout';
 
 @Component({
   selector: 'hi-cluster',
@@ -8,24 +8,27 @@ import { MediaChange, ObservableMedia } from '@angular/flex-layout';
 })
 export class ClusterComponent implements OnInit {
 
-  @ViewChild('sidenav') sidenav;
+  @ViewChild('sidenav', {static: false}) sidenav;
 
   isNarrowView: boolean;
 
   constructor(
-    protected media: ObservableMedia
+    protected media: MediaObserver
   ) { }
 
   ngOnInit() {
     // auto adjust side nav only if not embed
     this.isNarrowView = (this.media.isActive('xs') || this.media.isActive('sm'));
 
-    this.media.subscribe((change: MediaChange) => {
-      this.isNarrowView = (change.mqAlias === 'xs' || change.mqAlias === 'sm');
+    this.media.asObservable().subscribe((change: MediaChange[]) => {
+      change.forEach((item) => {
+        this.isNarrowView = (item.mqAlias === 'xs' || item.mqAlias === 'sm');
+      })
     });
   }
 
   toggleSidenav() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.sidenav.opened ? this.sidenav.close() : this.sidenav.open();
   }
 

@@ -1,10 +1,10 @@
-@import 'client/theme.scss';
+@use '../../../theme.scss' as theme;
 
 .mat-icon {
   @include md-icon-size(20px);
 
   &:hover {
-    color: mat-color($hi-warn);
+    color: theme.$hi-warn;
   }
 }
 

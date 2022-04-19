@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators';
 
 import { Cluster } from './cluster.model';
 import { HelixService } from '../../core/helix.service';
@@ -9,20 +10,20 @@ export class ClusterService extends HelixService {
   public getAll() {
     return this
       .request('/clusters')
-      .map(data => {
+      .pipe(map(data => {
         return data
           .clusters
           .sort()
           .map(name => <Cluster>({name: name}));
-      });
+      }));
   }
 
   public get(name: string) {
     return this
       .request(`/clusters/${ name }`)
-      .map(data => {
+      .pipe(map(data => {
         return new Cluster(data);
-      });
+      }));
   }
 
   public create(name: string) {

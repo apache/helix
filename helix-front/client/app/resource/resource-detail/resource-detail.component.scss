@@ -1,9 +1,9 @@
-@import 'client/theme.scss';
+@use '../../../theme.scss' as theme;
 
 .offline {
   font-size: 14px;
   padding-left: 24px;
-  color: mat-color($hi-warn);
+  color: theme.$hi-warn;
 }
 
 .information {

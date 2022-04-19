@@ -22,10 +22,10 @@ export class WorkflowDagComponent implements OnInit, AfterViewInit {
   };
   jobNameToId = {};
 
-  @ViewChild('graph')
+  @ViewChild('graph', {static: false})
   graph;
 
-  constructor(protected el:ElementRef) { }
+  constructor(protected el: ElementRef) { }
 
   ngOnInit() {
     this.loadJobs();

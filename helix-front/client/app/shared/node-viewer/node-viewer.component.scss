@@ -1,12 +1,12 @@
-@import '~@angular/material/theming';
-@import 'client/theme.scss';
+@use '@angular/material' as mat;
+@use '../../../theme.scss' as theme;
 
 .node-viewer {
   padding: 10px;
 }
 
 .primary {
-  color: mat-color($hi-primary);
+  color: theme.$hi-primary;
 }
 
 .search-form-field {
@@ -36,7 +36,7 @@ ngx-datatable {
     @include md-icon-size(20px);
 
     &:hover {
-      color: mat-color($hi-warn);
+      color: theme.$hi-warn;
     }
   }
 }

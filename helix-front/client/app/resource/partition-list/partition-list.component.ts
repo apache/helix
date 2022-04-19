@@ -13,7 +13,7 @@ import { ResourceService } from '../shared/resource.service';
 })
 export class PartitionListComponent implements OnInit {
 
-  @ViewChild('partitionsTable')
+  @ViewChild('partitionsTable', {static: false})
   table: any;
 
   isLoading = true;

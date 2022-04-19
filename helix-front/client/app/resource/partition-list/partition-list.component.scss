@@ -1,15 +1,16 @@
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
 
 div.message {
   padding: 20px;
 }
 
 .status-ready {
-  color: mat-color(mat-palette($mat-blue));
+  color: mat.get-color-from-palette(mat.$blue-palette);
 }
 
 .status-not-ready {
-  color: mat-color(mat-palette($mat-grey, 900, 900, 900), darker);
+  // color: mat-color(mat-palette($mat-grey, 900, 900, 900), darker);
+  color: mat.get-color-from-palette(mat.$grey-palette, darker);
 }
 
 .footer {

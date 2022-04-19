@@ -1,14 +1,15 @@
+// ngx-vis styles (vis styles)
+@use 'node_modules/vis/dist/vis-network.min.css';
+
+// ngx-datatable styles
+@use 'node_modules/@swimlane/ngx-datatable/src/styles.scss';
+@use 'node_modules/@swimlane/ngx-datatable/projects/swimlane/ngx-datatable/src/lib/themes/material.scss';
+@use 'node_modules/@swimlane/ngx-datatable/src/assets/icons.css';
+
 // Material Icons & Fonts
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic');
 
-// ngx-vis styles (vis styles)
-@import '~vis/dist/vis-network.min.css';
-
-// ngx-datatable styles
-@import '~@swimlane/ngx-datatable/release/index.css';
-@import '~@swimlane/ngx-datatable/release/themes/material.css';
-@import '~@swimlane/ngx-datatable/release/assets/icons.css';
 // with overrides
 .ngx-datatable.material {
   &.single-selection,

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { NgxGraphModule } from 'ngx-dag';
+import { NgxGraphModule } from '@swimlane/ngx-graph';
 
 import { WorkflowListComponent } from './workflow-list/workflow-list.component';
 import { WorkflowService } from './shared/workflow.service';

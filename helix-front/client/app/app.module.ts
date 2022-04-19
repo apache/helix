@@ -1,11 +1,11 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 
-import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
+import { Angulartics2Module, Angulartics2Matomo } from 'angulartics2';
 
-import { AppRoutingModule } from './app-routing.module';
+import { appRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
 import { SharedModule } from './shared/shared.module';
 import { ClusterModule } from './cluster/cluster.module';
@@ -26,9 +26,12 @@ import { DashboardModule } from './dashboard/dashboard.module';
   imports: [
     BrowserModule,
     FormsModule,
-    HttpModule,
-    AppRoutingModule,
-    Angulartics2Module.forRoot([ Angulartics2Piwik ]),
+    HttpClientModule,
+    appRoutingModule,
+    // Type '(typeof Angulartics2Matomo)[]'
+    // has no properties in common with type 'Partial<Angulartics2Settings>'.ts(2559)
+    // @ts-expect-error
+    Angulartics2Module.forRoot([ Angulartics2Matomo ]),
     CoreModule,
     SharedModule,
     ClusterModule,

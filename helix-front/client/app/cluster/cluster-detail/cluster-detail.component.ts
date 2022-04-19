@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
+import { map } from 'rxjs/operators';
 
 import { Cluster } from '../shared/cluster.model';
 import { HelperService } from '../../shared/helper.service';
@@ -43,7 +44,7 @@ export class ClusterDetailComponent implements OnInit {
   ngOnInit() {
     this.clusterService.can().subscribe(data => this.can = data);
     this.route.params
-      .map(p => p.name)
+      .pipe(map(p => p.name))
       .subscribe(name => {
         this.clusterName = name;
         this.loadCluster();
@@ -61,6 +62,7 @@ export class ClusterDetailComponent implements OnInit {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   addInstance() {
     this.dialog
       .open(InputDialogComponent, {
@@ -103,6 +105,7 @@ export class ClusterDetailComponent implements OnInit {
       });
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   enableCluster() {
     this.clusterService
       .enable(this.clusterName)
@@ -112,6 +115,7 @@ export class ClusterDetailComponent implements OnInit {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   disableCluster() {
     this.clusterService
       .disable(this.clusterName)
@@ -121,6 +125,7 @@ export class ClusterDetailComponent implements OnInit {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   activateCluster() {
     this.dialog
       .open(InputDialogComponent, {
@@ -156,6 +161,7 @@ export class ClusterDetailComponent implements OnInit {
       });
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   enableMaintenanceMode() {
     this.dialog
       .open(InputDialogComponent, {
@@ -182,6 +188,7 @@ export class ClusterDetailComponent implements OnInit {
       });
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   disableMaintenanceMode() {
     this.clusterService
       .disableMaintenanceMode(this.clusterName)
@@ -191,6 +198,7 @@ export class ClusterDetailComponent implements OnInit {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   deleteCluster() {
     this.helperService
       .showConfirmation('Are you sure you want to delete this cluster?')

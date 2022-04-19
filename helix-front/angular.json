@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "projects": {
+    "helix-front": {
+      "prefix": "hi",
+      "sourceRoot": "client",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "aot": true,
+            "index": "client/index.html",
+            "main": "client/main.ts",
+            "tsConfig": "client/tsconfig.app.json",
+            "polyfills": "client/polyfills.ts",
+            "outputPath": "dist/public",
+            "assets": ["client/assets/", "client/favicon.ico"],
+            "scripts": [],
+            "styles": ["client/styles.scss", "client/theme.scss"]
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "client/environments/environment.ts",
+                  "with": "client/environments/environment.prod.ts"
+                }
+              ]
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "helix-front:build"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "helix-front:build:production"
+            },
+            "development": {
+              "browserTarget": "helix-front:build:development"
+            }
+          }
+        },
+        "e2e": {
+          "protractor": {
+            "config": "./protractor.conf.js"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "client/test.ts",
+            "tsconfig": "client/tsconfig.spec.json",
+            "karmaConfig": "./karma.conf.js",
+            "assets": ["client/assets", "client/favicon.ico"],
+            "scripts": [],
+            "styles": ["client/styles.scss", "client/theme.scss"],
+            "codeCoverageExclude": ["dist/**/*"]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["client/**/*.ts", "client/**/*.html"]
+          }
+        }
+      }
+    }
+  }
+}

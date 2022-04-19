@@ -8,6 +8,8 @@
 
 # dependencies
 /node_modules
+package-lock.json
+yarn-error.log
 
 # IDEs and editors
 /.idea
@@ -26,6 +28,7 @@
 !.vscode/extensions.json
 
 # misc
+/.angular/cache
 /.sass-cache
 /connect.lock
 /coverage

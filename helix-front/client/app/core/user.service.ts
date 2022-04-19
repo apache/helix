@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Headers, Http, Response } from '@angular/http';
+import { HttpHeaders, HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators'
 
 import { Settings } from './settings';
 
@@ -10,13 +11,17 @@ export class UserService {
 
   constructor(
     protected router: Router,
-    private http: Http
+    private http: HttpClient
   ) { }
 
   public getCurrentUser(): Observable<string> {
     return this.http
       .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() })
-      .map(response => response.json())
+      // Property 'json' does not exist on type 'Object'.ts(2339)
+      // @ts-expect-error
+      .pipe(map(response => response.json()))
+      // Property 'catch' does not exist on type 'Observable<any>'.ts(2339)
+      // @ts-expect-error
       .catch(_ => _);
   }
 
@@ -27,7 +32,9 @@ export class UserService {
         { username: username, password: password },
         { headers: this.getHeaders() }
       )
-      .map(response => response.json());
+      // Property 'json' does not exist on type 'Object'.ts(2339)
+      // @ts-expect-error
+      .pipe(map(response => response.json()));
   }
 
   protected getHeaders() {

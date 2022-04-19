@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 
 import { SharedModule } from '../shared/shared.module';
 import { ClusterService } from './shared/cluster.service';
@@ -12,7 +12,7 @@ import { ClusterComponent } from './cluster.component';
 @NgModule({
   imports: [
     CommonModule,
-    HttpModule,
+    HttpClientModule,
     SharedModule
   ],
   declarations: [

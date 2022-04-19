@@ -8,27 +8,27 @@ import { ControlValueAccessor } from '@angular/forms';
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
 
-  @ViewChild('inputControl') inputControl: ElementRef;
+  @ViewChild('inputControl', {static: false}) inputControl: ElementRef;
 
   @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
 
-  @Input() label: string = '';
-  @Input() min: number = -9999;
-  @Input() max: number = 99999999;
-  @Input() minlength: number = 0;
-  @Input() maxlength: number = 2555;
-  @Input() type: string = 'text';
-  @Input() required: boolean = false;
+  @Input() label = '';
+  @Input() min = -9999;
+  @Input() max = 99999999;
+  @Input() minlength = 0;
+  @Input() maxlength = 2555;
+  @Input() type = 'text';
+  @Input() required = false;
   @Input() focus: Function = _ => { };
   @Input() blur: Function = _ => { };
   @Input() pattern: string = null;
-  @Input() errorLabel: string = 'Invalid input value';
-  @Input() editLabel: string = 'Click to edit';
-  @Input() disabled: boolean = false;
+  @Input() errorLabel = 'Invalid input value';
+  @Input() editLabel = 'Click to edit';
+  @Input() disabled = false;
 
-  editing: boolean = false;
+  editing = false;
 
-  private _value: string = '';
+  private _value = '';
   @Input()
   get value(): any {
     return this._value;
@@ -40,13 +40,17 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
     }
   }
 
-  private lastValue: string = '';
+  private lastValue = '';
 
   // Required forControlValueAccessor interface
   public onChange: any = Function.prototype;
   public onTouched: any = Function.prototype;
-  public registerOnChange(fn: (_: any) => {}): void { this.onChange = fn; }
-  public registerOnTouched(fn: () => {}): void { this.onTouched = fn; };
+  public registerOnChange(fn: (_: any) => {}): void {
+ this.onChange = fn;
+}
+  public registerOnTouched(fn: () => {}): void {
+ this.onTouched = fn;
+};
   writeValue(value: any) {
     this._value = value;
   }

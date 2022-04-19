@@ -1,7 +1,7 @@
 import { TestBed, async } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
-import { Angulartics2, Angulartics2Piwik } from 'angulartics2';
+import { Angulartics2, Angulartics2Matomo } from 'angulartics2';
 
 import { TestingModule } from '../testing/testing.module';
 import { AppComponent } from './app.component';
@@ -22,7 +22,7 @@ describe('AppComponent', () => {
       // TODO vxu: I don't want to add the following two but ...
       providers: [
         Angulartics2,
-        Angulartics2Piwik
+        Angulartics2Matomo
       ]
     }).compileComponents();
   }));

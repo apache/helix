@@ -1,4 +1,4 @@
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
 
 .secondary {
   color: rgba(0, 0, 0, 0.54);
@@ -18,22 +18,22 @@
   }
 
   .cluster {
-    background-color: mat-color(mat-palette($mat-indigo));
+    background-color: mat.get-color-from-palette(mat.$indigo-palette);
   }
 
   .controller {
-    background-color: mat-color(mat-palette($mat-purple));
+    background-color: mat.get-color-from-palette(mat.$purple-palette);
   }
 
   .resource {
-    background-color: mat-color(mat-palette($mat-teal));
+    background-color: mat.get-color-from-palette(mat.$teal-palette);
   }
 
   .instance {
-    background-color: mat-color(mat-palette($mat-blue));
+    background-color: mat.get-color-from-palette(mat.$blue-palette);
   }
 
   .workflow {
-    background-color: mat-color(mat-palette($mat-deep-orange));
+    background-color: mat.get-color-from-palette(mat.$deep-orange-palette);
   }
 }

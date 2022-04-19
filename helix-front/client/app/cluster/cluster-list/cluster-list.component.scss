@@ -1,4 +1,5 @@
-@import 'client/theme.scss';
+@use '@angular/material' as mat;
+@use '../../../theme.scss' as theme;
 
 .mat-spinner {
   margin: 20px;
@@ -6,7 +7,7 @@
 
 .cluster-list-item-selected h4 {
   font-weight: 500;
-  color: mat-color($hi-primary);
+  color: theme.$hi-primary;
 }
 
 .error-message {

@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
 import { VisNode, VisNodes, VisEdges, VisNetworkService, VisNetworkData, VisNetworkOptions } from 'ngx-vis';
@@ -15,8 +16,14 @@ import { ResourceService } from '../resource/shared/resource.service';
 import { InstanceService } from '../instance/shared/instance.service';
 import { HelperService } from '../shared/helper.service';
 
+// Cannot use namespace 'VisNetworkData' as a type.ts(2709)
+// @ts-expect-error
 class DashboardNetworkData implements VisNetworkData {
+    // Cannot use namespace 'VisNodes' as a type.ts(2709)
+    // @ts-expect-error
     public nodes: VisNodes;
+    // Cannot use namespace 'VisEdges' as a type.ts(2709)
+    // @ts-expect-error
     public edges: VisEdges;
 }
 
@@ -30,6 +37,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   visNetwork = 'cluster-dashboard';
   visNetworkData: DashboardNetworkData;
+  // Cannot use namespace 'VisNetworkOptions' as a type.ts(2709)
+  // @ts-expect-error
   visNetworkOptions: VisNetworkOptions;
 
   clusterName: string;
@@ -42,8 +51,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   updateInterval = 3000;
 
   constructor(
-    private el:ElementRef,
+    private el: ElementRef,
     private route: ActivatedRoute,
+    // Cannot use namespace 'VisNetworkService' as a type.ts(2709)
+    // @ts-expect-error
     protected visService: VisNetworkService,
     protected resourceService: ResourceService,
     protected instanceService: InstanceService,
@@ -118,6 +129,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           shape: 'box',
           widthConstraint: { maximum: 140 }
         },
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         instance_bad: {
           color: '#CA7F86',
           shape: 'box',
@@ -142,7 +154,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // load data
     this.route.parent.params
-      .map(p => p.name)
+      .pipe(map(p => p.name))
       .subscribe(name => {
         this.clusterName = name;
         this.fetchResources();
@@ -151,6 +163,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     setTimeout(_ => this.initDashboard());
   }
 
@@ -209,6 +222,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       );
   }
 
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   updateResources() {
     /* disable auto-update for now
     this.updateSubscription = Observable
@@ -258,6 +272,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 .flatMap('replicas')
                 .unionBy('instanceName')
                 .map('instanceName')
+                // eslint-disable-next-line @typescript-eslint/no-shadow
                 .forEach((instanceName) => {
                   this.visNetworkData.edges.add({
                     from: this.instanceToId[instanceName],

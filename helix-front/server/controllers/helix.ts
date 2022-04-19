@@ -6,7 +6,7 @@ import { HELIX_ENDPOINTS } from '../config';
 
 export class HelixCtrl {
 
-  static readonly ROUTE_PREFIX = '/api/helix';
+  static readonly routePrefix = '/api/helix';
 
   constructor(router: Router) {
     router.route('/helix/list').get(this.list);
@@ -14,7 +14,7 @@ export class HelixCtrl {
   }
 
   protected proxy(req: Request, res: Response) {
-    const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
+    const url = req.originalUrl.replace(HelixCtrl.routePrefix, '');
     const helixKey = url.split('/')[1];
 
     const segments = helixKey.split('.');
@@ -23,8 +23,14 @@ export class HelixCtrl {
     segments.shift();
     const name = segments.join('.');
 
+    // Property 'session' does not exist on type
+    // 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+    // @ts-expect-error
     const user = req.session.username;
     const method = req.method.toLowerCase();
+    // Property 'session' does not exist on type
+    // 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+    // @ts-expect-error
     if (method != 'get' && !req.session.isAdmin) {
       res.status(403).send('Forbidden');
       return;
@@ -45,6 +51,7 @@ export class HelixCtrl {
         url: realUrl,
         json: req.body,
         headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'Helix-User': user
         }
       };

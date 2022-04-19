@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
 
@@ -12,7 +13,7 @@ export class ResourceService extends HelixService {
   public getAll(clusterName: string) {
     return this
       .request(`/clusters/${ clusterName }/resources`)
-      .map(data => {
+      .pipe(map(data => {
         let res: Resource[] = [];
         for (let name of data.idealStates) {
           res.push(<Resource>({
@@ -22,13 +23,13 @@ export class ResourceService extends HelixService {
           }));
         }
         return _.sortBy(res, 'name');
-      });
+      }));
   }
 
   public getAllOnInstance(clusterName: string, instanceName: string) {
     return this
       .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`)
-      .map(data => {
+      .pipe(map(data => {
         let res: any[] = [];
         if (data) {
           for (let resource of data.resources) {
@@ -38,13 +39,13 @@ export class ResourceService extends HelixService {
           }
         }
         return res;
-      });
+      }));
   }
 
   public get(clusterName: string, resourceName: string) {
     return this
       .request(`/clusters/${ clusterName }/resources/${ resourceName }`)
-      .map(data => {
+      .pipe(map(data => {
         return new Resource(
           clusterName,
           resourceName,
@@ -52,13 +53,13 @@ export class ResourceService extends HelixService {
           data.idealState,
           data.externalView
         );
-      });
+      }));
   }
 
   public getOnInstance(clusterName: string, instanceName: string, resourceName: string) {
     return this
       .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`)
-      .map(data => {
+      .pipe(map(data => {
         let ret = {
           bucketSize: data.simpleFields.BUCKET_SIZE,
           sessionId: data.simpleFields.SESSION_ID,
@@ -67,6 +68,7 @@ export class ResourceService extends HelixService {
           partitions: []
         };
 
+        // eslint-disable-next-line guard-for-in
         for (let partition in data.mapFields) {
           let par = data.mapFields[partition];
 
@@ -78,7 +80,7 @@ export class ResourceService extends HelixService {
         }
 
         return ret;
-      });
+      }));
   }
 
   public enable(clusterName: string, resourceName: string) {

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { MatDialog, MatSnackBar } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 
 import { ClusterService } from '../shared/cluster.service';
@@ -15,9 +16,9 @@ import { InputDialogComponent } from '../../shared/dialog/input-dialog/input-dia
 export class ClusterListComponent implements OnInit {
 
   clusters: Cluster[] = [];
-  errorMessage: string = '';
-  isLoading: boolean = true;
-  can: boolean = false;
+  errorMessage = '';
+  isLoading = true;
+  can = false;
   service = '';
 
   constructor(

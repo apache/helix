@@ -1928,10 +1928,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         }
 
         ClusterConfig clusterConfig = new ClusterConfig(currentData);
-        Map<String, String> disabledInstances = new TreeMap<>();
-        if (clusterConfig.getDisabledInstances() != null) {
-          disabledInstances.putAll(clusterConfig.getDisabledInstances());
-        }
+        Map<String, String> disabledInstances = new TreeMap<>(clusterConfig.getDisabledInstances());
         if (enabled) {
           disabledInstances.keySet().removeAll(instances);
         } else {

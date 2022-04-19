@@ -699,7 +699,7 @@ public class MaintenanceManagementService {
           break;
         case EMPTY_RESOURCE_ASSIGNMENT:
           healthStatus.put(HealthCheck.EMPTY_RESOURCE_ASSIGNMENT.name(),
-              InstanceValidationUtil.hasResourceAssigned(_dataAccessor, clusterId, instanceName));
+              InstanceValidationUtil.isResourceAssigned(_dataAccessor, instanceName));
           break;
         case MIN_ACTIVE_REPLICA_CHECK_FAILED:
           healthStatus.put(HealthCheck.MIN_ACTIVE_REPLICA_CHECK_FAILED.name(),

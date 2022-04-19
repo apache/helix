@@ -53,13 +53,13 @@ under the License.
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.13" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.11.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.11.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.12.6.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.12.6" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-io" name="commons-io" rev="2.11.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-cli" name="commons-cli" rev="1.2" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-math" name="commons-math" rev="2.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.apache.commons" name="commons-math3" rev="3.6.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="com.google.guava" name="guava" rev="15.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+    <dependency org="com.google.guava" name="guava" rev="31.1-jre" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.yaml" name="snakeyaml" rev="1.30" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="1.1" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="io.dropwizard.metrics" name="metrics-core" rev="4.1.14" conf="compile->compile(default);runtime->runtime(default);default->default"/>

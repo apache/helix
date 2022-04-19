@@ -32,6 +32,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterTopologyConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,7 +169,7 @@ public class Topology {
         }
         addEndNode(root, instanceName, instanceTopologyMap, weight, _liveInstances);
       } catch (IllegalArgumentException e) {
-        if (isInstanceEnabled(clusterConfig, instanceName, insConfig)) {
+        if (InstanceValidationUtil.isInstanceEnabled(insConfig, clusterConfig)) {
           throw e;
         } else {
           logger.warn("Topology setting {} for instance {} is unset or invalid, ignore the instance!",
@@ -177,12 +178,6 @@ public class Topology {
       }
     }
     return root;
-  }
-
-  private static boolean isInstanceEnabled(ClusterConfig clusterConfig, String instanceName,
-      InstanceConfig instanceConfig) {
-    return (instanceConfig.getInstanceEnabled() && (clusterConfig.getDisabledInstances() == null
-        || !clusterConfig.getDisabledInstances().containsKey(instanceName)));
   }
 
   /**

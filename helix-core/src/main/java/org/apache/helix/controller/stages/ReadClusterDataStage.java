@@ -41,6 +41,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.util.InstanceValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,8 +92,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
                 instanceMessageMap.put(instanceName,
                     Sets.newHashSet(dataProvider.getMessages(instanceName).values()));
               }
-              if (!config.getInstanceEnabled() || (clusterConfig.getDisabledInstances() != null
-                  && clusterConfig.getDisabledInstances().containsKey(instanceName))) {
+              if (!InstanceValidationUtil.isInstanceEnabled(config, clusterConfig)) {
                 disabledInstanceSet.add(instanceName);
               }
 

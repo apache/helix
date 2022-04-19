@@ -44,9 +44,8 @@ under the License.
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.13" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.11.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.9.13" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.12.6.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.12.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="commons-cli" name="commons-cli" rev="1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="org.apache.httpcomponents" name="httpclient" rev="4.5.8" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>

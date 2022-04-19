@@ -83,7 +83,7 @@
     "@angular/compiler-cli": "^13.3.1",
     "@types/hammerjs": "^2.0.34",
     "@types/jasmine": "2.5.38",
-    "@types/lodash": "^4.14.71",
+    "@types/lodash": "^4.14.182",
     "@types/node": "^17.0.23",
     "@types/request": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "5.11.0",

@@ -38,7 +38,7 @@ export class UserService {
   }
 
   protected getHeaders() {
-    let headers = new Headers();
+    let headers = new HttpHeaders();
     headers.append('Accept', 'application/json');
     headers.append('Content-Type', 'application/json');
     return headers;

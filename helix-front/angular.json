@@ -16,7 +16,12 @@
             "outputPath": "dist/public",
             "assets": ["client/assets/", "client/favicon.ico"],
             "scripts": [],
-            "styles": ["client/styles.scss", "client/theme.scss"]
+            "styles": ["client/styles.scss", "client/theme.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "client/"
+              ]
+            }
           },
           "configurations": {
             "production": {
@@ -40,7 +45,12 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "helix-front:build"
+            "browserTarget": "helix-front:build",
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "client/"
+              ]
+            }
           },
           "configurations": {
             "production": {

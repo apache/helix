@@ -4,6 +4,7 @@
     "helix-front": {
       "prefix": "hi",
       "sourceRoot": "client",
+      "projectType": "application",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",

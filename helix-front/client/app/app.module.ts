@@ -3,6 +3,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { MatListModule } from '@angular/material/list';
+import { MatSidenavModule } from '@angular/material/sidenav';
 
 import { Angulartics2Module, Angulartics2Matomo } from 'angulartics2';
 
@@ -44,7 +45,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     WorkflowModule,
     ChooserModule,
     DashboardModule,
-    MatListModule
+    MatListModule,
+    MatSidenavModule
   ],
   providers: [],
   bootstrap: [AppComponent]

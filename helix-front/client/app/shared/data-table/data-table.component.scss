@@ -1,4 +1,5 @@
 @use 'client/theme.scss' as theme;
+@use 'sass:map';
 
 .mat-icon {
   @include md-icon-size(20px);

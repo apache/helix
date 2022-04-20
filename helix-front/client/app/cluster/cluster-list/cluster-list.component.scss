@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use 'client/theme.scss' as theme;
+@use 'sass:map';
 
 .mat-spinner {
   margin: 20px;

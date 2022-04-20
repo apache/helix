@@ -245,9 +245,9 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     * **GET** - get the state model definition
 
     ```
-    $curl -X POST -H "Content-Type: application/json" http://localhost:1234/admin/v2/clusters/myCluster/statemodeldefs/MasterSlave
+    $curl -X POST -H "Content-Type: application/json" http://localhost:1234/admin/v2/clusters/myCluster/statemodeldefs/LeaderStandby
     {
-      "id" : "MasterSlave",
+      "id" : "STANDBY",
       "simpleFields" : {
         "INITIAL_STATE" : "OFFLINE"
       },
@@ -262,34 +262,34 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
           "DROPPED" : "DROPPED",
           "OFFLINE" : "OFFLINE"
         },
-        "MASTER.meta" : {
+        "LEADER.meta" : {
           "count" : "1"
         },
-        "MASTER.next" : {
-          "SLAVE" : "SLAVE",
-          "DROPPED" : "SLAVE",
-          "OFFLINE" : "SLAVE"
+        "LEADER.next" : {
+          "STANDBY" : "STANDBY",
+          "DROPPED" : "STANDBY",
+          "OFFLINE" : "STANDBY"
         },
         "OFFLINE.meta" : {
           "count" : "-1"
         },
         "OFFLINE.next" : {
-          "SLAVE" : "SLAVE",
-          "MASTER" : "SLAVE",
+          "STANDBY" : "STANDBY",
+          "LEADER" : "STANDBY",
           "DROPPED" : "DROPPED"
         },
-        "SLAVE.meta" : {
+        "STANDBY.meta" : {
           "count" : "R"
         },
-        "SLAVE.next" : {
-          "MASTER" : "MASTER",
+        "STANDBY.next" : {
+          "LEADER" : "LEADER",
           "DROPPED" : "OFFLINE",
           "OFFLINE" : "OFFLINE"
         }
       },
       "listFields" : {
-        "STATE_PRIORITY_LIST" : [ "MASTER", "SLAVE", "OFFLINE", "DROPPED", "ERROR" ],
-        "STATE_TRANSITION_PRIORITYLIST" : [ "MASTER-SLAVE", "SLAVE-MASTER", "OFFLINE-SLAVE", "SLAVE-OFFLINE", "OFFLINE-DROPPED" ]
+        "STATE_PRIORITY_LIST" : [ "LEADER", "STANDBY", "OFFLINE", "DROPPED", "ERROR" ],
+        "STATE_TRANSITION_PRIORITYLIST" : [ "LEADER-STANDBY", "STANDBY-LEADER", "OFFLINE-STANDBY", "STANDBY-OFFLINE", "OFFLINE-DROPPED" ]
       }
     }
     ```
@@ -364,7 +364,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         ,"NUM_PARTITIONS":"2"
         ,"REBALANCE_MODE":"SEMI_AUTO"
         ,"REPLICAS":"2"
-        ,"STATE_MODEL_DEF_REF":"MasterSlave"
+        ,"STATE_MODEL_DEF_REF":"STANDBY"
       }
       ,"listFields":{
         "myResource_0":["host1", "host2"]
@@ -372,12 +372,12 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
       }
       ,"mapFields":{
         "myResource_0":{
-          "host1":"MASTER"
-          ,"host2":"SLAVE"
+          "host1":"LEADER"
+          ,"host2":"STANDBY"
         }
         ,"myResource_1":{
-          "host1":"SLAVE"
-          ,"host2":"MASTER"
+          "host1":"STANDBY"
+          ,"host2":"LEADER"
         }
       }
     }
@@ -396,7 +396,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         ,"NUM_PARTITIONS":"2"
         ,"REBALANCE_MODE":"SEMI_AUTO"
         ,"REPLICAS":"2"
-        ,"STATE_MODEL_DEF_REF":"MasterSlave"
+        ,"STATE_MODEL_DEF_REF":"STANDBY"
       }
       ,"listFields":{
         "myResource_0":["host1", "host2"]
@@ -404,12 +404,12 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
       }
       ,"mapFields":{
         "myResource_0":{
-          "host1":"MASTER"
+          "host1":"LEADER"
           ,"host2":"OFFLINE"
         }
         ,"myResource_1":{
-          "host1":"SLAVE"
-          ,"host2":"MASTER"
+          "host1":"STANDBY"
+          ,"host2":"LEADER"
         }
       }
     }
@@ -539,7 +539,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     {
       "id":"myResource1"
       ,"simpleFields":{
-        "STATE_MODEL_DEF":"MasterSlave"
+        "STATE_MODEL_DEF":"STANDBY"
         ,"STATE_MODEL_FACTORY_NAME":"DEFAULT"
         ,"BUCKET_SIZE":"0"
         ,"SESSION_ID":"359619c2d7f109b"
@@ -548,19 +548,19 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
       }
       ,"mapFields":{
         "myResource1_2":{
-          "CURRENT_STATE":"SLAVE"
+          "CURRENT_STATE":"STANDBY"
           ,"INFO":""
         }
         ,"myResource1_3":{
-          "CURRENT_STATE":"MASTER"
+          "CURRENT_STATE":"LEADER"
           ,"INFO":""
         }
         ,"myResource1_0":{
-          "CURRENT_STATE":"MASTER"
+          "CURRENT_STATE":"LEADER"
           ,"INFO":""
         }
         ,"myResource1_1":{
-          "CURRENT_STATE":"SLAVE"
+          "CURRENT_STATE":"STANDBY"
           ,"INFO":""
         }
       }
@@ -657,7 +657,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         "{DATE=2017-03-30T00:05:08:321, SESSION=5590151804e2c78, TIME=1490832308321}",
         "{DATE=2017-03-30T01:17:34:339, SESSION=2591d53b0421864, TIME=1490836654339}",
         "{DATE=2017-03-30T17:31:09:880, SESSION=2591d53b0421b2a, TIME=1490895069880}",
-        "{DATE=2017-03-30T18:05:38:220, SESSION=359619c2d7f109b, TIME=1490.9.738220}"
+        "{DATE=2017-03-30T18:05:38:220, SESSION=359619c2d7f109b, TIME=1490897138220}"
       ]
     }
     ```
@@ -871,7 +871,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
         },
         "JobContext":{
     	"START_TIME":"1491005863291",
-            "FINISH_TIME":"149101.0.0612",
+            "FINISH_TIME":"1491005902612",
             "Tasks":[
                  {
                      "id":"0",
@@ -924,7 +924,7 @@ curl http://localhost:12345/admin/v2/clusters/myCluster/resources/myResource/Ide
     {
        "id":"JobContext":
        "START_TIME":"1491005863291",
-       "FINISH_TIME":"149101.0.0612",
+       "FINISH_TIME":"1491005902612",
        "Tasks":[
                  {
                      "id":"0",

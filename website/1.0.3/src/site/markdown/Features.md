@@ -72,7 +72,7 @@ When the idealstate mode is set to AUTO_REBALANCE, Helix controls both the locat
     "IDEAL_STATE_MODE" : "AUTO_REBALANCE",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   }
   "listFields" : {
     "MyResource_0" : [],
@@ -92,20 +92,20 @@ If there are 3 nodes in the cluster, then Helix will internally compute the idea
   "simpleFields" : {
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   },
   "mapFields" : {
     "MyResource_0" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     },
     "MyResource_1" : {
-      "N2" : "MASTER",
-      "N3" : "SLAVE",
+      "N2" : "LEADER",
+      "N3" : "STANDBY",
     },
     "MyResource_2" : {
-      "N3" : "MASTER",
-      "N1" : "SLAVE",
+      "N3" : "LEADER",
+      "N1" : "STANDBY",
     }
   }
 }
@@ -125,7 +125,7 @@ When the idealstate mode is set to AUTO, Helix only controls STATE of the replic
     "IDEAL_STATE_MODE" : "AUTO",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   }
   "listFields" : {
     "MyResource_0" : [node1, node2],
@@ -136,7 +136,7 @@ When the idealstate mode is set to AUTO, Helix only controls STATE of the replic
   }
 }
 ```
-In this mode when node1 fails, unlike in AUTO-REBALANCE mode the partition is not moved from node1 to others nodes in the cluster. Instead, Helix will decide to change the state of MyResource_0 in N2 based on the system constraints. For example, if a system constraint specified that there should be 1 Master and if the Master failed, then node2 will be made the new master. 
+In this mode when node1 fails, unlike in AUTO-REBALANCE mode the partition is not moved from node1 to others nodes in the cluster. Instead, Helix will decide to change the state of MyResource_0 in N2 based on the system constraints. For example, if a system constraint specified that there should be 1 Master and if the Master failed, then node2 will be made the new leader. 
 
 #### CUSTOM
 
@@ -150,27 +150,27 @@ Within this callback, the application can recompute the idealstate. Helix will t
       "IDEAL_STATE_MODE" : "CUSTOM",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   },
   "mapFields" : {
     "MyResource_0" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     },
     "MyResource_1" : {
-      "N2" : "MASTER",
-      "N3" : "SLAVE",
+      "N2" : "LEADER",
+      "N3" : "STANDBY",
     },
     "MyResource_2" : {
-      "N3" : "MASTER",
-      "N1" : "SLAVE",
+      "N3" : "LEADER",
+      "N1" : "STANDBY",
     }
   }
 }
 ```
 
-For example, the current state of the system might be 'MyResource_0' -> {N1:MASTER,N2:SLAVE} and the application changes the ideal state to 'MyResource_0' -> {N1:SLAVE,N2:MASTER}. Helix will not blindly issue MASTER-->SLAVE to N1 and SLAVE-->MASTER to N2 in parallel since it might result in a transient state where both N1 and N2 are masters.
-Helix will first issue MASTER-->SLAVE to N1 and after its completed it will issue SLAVE-->MASTER to N2. 
+For example, the current state of the system might be 'MyResource_0' -> {N1:LEADER,N2:STANDBY} and the application changes the ideal state to 'MyResource_0' -> {N1:STANDBY,N2:LEADER}. Helix will not blindly issue LEADER-->STANDBY to N1 and STANDBY-->LEADER to N2 in parallel since it might result in a transient state where both N1 and N2 are leaders.
+Helix will first issue LEADER-->STANDBY to N1 and after its completed it will issue STANDBY-->LEADER to N2. 
  
 
 ### State Machine Configuration
@@ -186,10 +186,10 @@ Apart from providing the state machine configuration, one can specify the constr
 
 For example one can say
 Master:1. Max number of replicas in Master state at any time is 1.
-OFFLINE-SLAVE:5 Max number of Offline-Slave transitions that can happen concurrently in the system
+OFFLINE-STANDBY:5 Max number of Offline-Slave transitions that can happen concurrently in the system
 
 STATE PRIORITY
-Helix uses greedy approach to satisfy the state constraints. For example if the state machine configuration says it needs 1 master and 2 slaves but only 1 node is active, Helix must promote it to master. This behavior is achieved by providing the state priority list as MASTER,SLAVE.
+Helix uses greedy approach to satisfy the state constraints. For example if the state machine configuration says it needs 1 leader and 2 standbys but only 1 node is active, Helix must promote it to leader. This behavior is achieved by providing the state priority list as LEADER,STANDBY.
 
 STATE TRANSITION PRIORITY
 Helix tries to fire as many transitions as possible in parallel to reach the stable state without violating constraints. By default Helix simply sorts the transitions alphabetically and fires as many as it can without violating the constraints. 
@@ -262,7 +262,7 @@ Since all state changes in the system are triggered through transitions, Helix c
 Helix allows applications to set threshold on transitions. The threshold can be set at the multiple scopes.
 
 * MessageType e.g STATE_TRANSITION
-* TransitionType e.g SLAVE-MASTER
+* TransitionType e.g STANDBY-LEADER
 * Resource e.g database
 * Node i.e per node max transitions in parallel.
 

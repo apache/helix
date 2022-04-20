@@ -57,7 +57,7 @@ Helix has four options for rebalancing, in increasing order of customization by 
 
 When the rebalance mode is set to FULL_AUTO, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive.
 
-For example, consider this system that uses a MasterSlave state model, with 3 partitions and 2 replicas in the ideal state.
+For example, consider this system that uses a LeaderStandby state model, with 3 partitions and 2 replicas in the ideal state.
 
 ```
 {
@@ -66,7 +66,7 @@ For example, consider this system that uses a MasterSlave state model, with 3 pa
     "REBALANCE_MODE" : "FULL_AUTO",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   }
   "listFields" : {
     "MyResource_0" : [],
@@ -78,7 +78,7 @@ For example, consider this system that uses a MasterSlave state model, with 3 pa
 }
 ```
 
-If there are 3 nodes in the cluster, then Helix will balance the masters and slaves equally.  The ideal state is therefore:
+If there are 3 nodes in the cluster, then Helix will balance the leaders and standbys equally.  The ideal state is therefore:
 
 ```
 {
@@ -86,20 +86,20 @@ If there are 3 nodes in the cluster, then Helix will balance the masters and sla
   "simpleFields" : {
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   },
   "mapFields" : {
     "MyResource_0" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     },
     "MyResource_1" : {
-      "N2" : "MASTER",
-      "N3" : "SLAVE",
+      "N2" : "LEADER",
+      "N3" : "STANDBY",
     },
     "MyResource_2" : {
-      "N3" : "MASTER",
-      "N1" : "SLAVE",
+      "N3" : "LEADER",
+      "N1" : "STANDBY",
     }
   }
 }
@@ -112,7 +112,7 @@ When one node fails, Helix redistributes its 15 tasks to the remaining 3 nodes, 
 
 When the application needs to control the placement of the replicas, use the SEMI_AUTO rebalance mode.
 
-Example: In the ideal state below, the partition \'MyResource_0\' is constrained to be placed only on node1 or node2.  The choice of _state_ is still controlled by Helix.  That means MyResource_0.MASTER could be on node1 and MyResource_0.SLAVE on node2, or vice-versa but neither would be placed on node3.
+Example: In the ideal state below, the partition \'MyResource_0\' is constrained to be placed only on node1 or node2.  The choice of _state_ is still controlled by Helix.  That means MyResource_0.LEADER could be on node1 and MyResource_0.STANDBY on node2, or vice-versa but neither would be placed on node3.
 
 ```
 {
@@ -121,7 +121,7 @@ Example: In the ideal state below, the partition \'MyResource_0\' is constrained
     "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   }
   "listFields" : {
     "MyResource_0" : [node1, node2],
@@ -133,16 +133,16 @@ Example: In the ideal state below, the partition \'MyResource_0\' is constrained
 }
 ```
 
-The MasterSlave state model requires that a partition has exactly one MASTER at all times, and the other replicas should be SLAVEs.  In this simple example with 2 replicas per partition, there would be one MASTER and one SLAVE.  Upon failover, a SLAVE has to assume mastership, and a new SLAVE will be generated.
+The LeaderStandby state model requires that a partition has exactly one LEADER at all times, and the other replicas should be STANDBYs.  In this simple example with 2 replicas per partition, there would be one LEADER and one STANDBY.  Upon failover, a STANDBY has to assume leadership, and a new STANDBY will be generated.
 
-In this mode when node1 fails, unlike in FULL_AUTO mode the partition is _not_ moved from node1 to node3. Instead, Helix will decide to change the state of MyResource_0 on node2 from SLAVE to MASTER, based on the system constraints.
+In this mode when node1 fails, unlike in FULL_AUTO mode the partition is _not_ moved from node1 to node3. Instead, Helix will decide to change the state of MyResource_0 on node2 from STANDBY to LEADER, based on the system constraints.
 
 ### CUSTOMIZED
 
 Helix offers a third mode called CUSTOMIZED, in which the application controls the placement _and_ state of each replica. The application needs to implement a callback interface that Helix invokes when the cluster state changes.
 Within this callback, the application can recompute the idealstate. Helix will then issue appropriate transitions such that _Idealstate_ and _Currentstate_ converges.
 
-Here\'s an example, again with 3 partitions, 2 replicas per partition, and the MasterSlave state model:
+Here\'s an example, again with 3 partitions, 2 replicas per partition, and the LeaderStandby state model:
 
 ```
 {
@@ -151,26 +151,26 @@ Here\'s an example, again with 3 partitions, 2 replicas per partition, and the M
     "REBALANCE_MODE" : "CUSTOMIZED",
     "NUM_PARTITIONS" : "3",
     "REPLICAS" : "2",
-    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_DEF_REF" : "LeaderStandby",
   },
   "mapFields" : {
     "MyResource_0" : {
-      "N1" : "MASTER",
-      "N2" : "SLAVE",
+      "N1" : "LEADER",
+      "N2" : "STANDBY",
     },
     "MyResource_1" : {
-      "N2" : "MASTER",
-      "N3" : "SLAVE",
+      "N2" : "LEADER",
+      "N3" : "STANDBY",
     },
     "MyResource_2" : {
-      "N3" : "MASTER",
-      "N1" : "SLAVE",
+      "N3" : "LEADER",
+      "N1" : "STANDBY",
     }
   }
 }
 ```
 
-Suppose the current state of the system is 'MyResource_0' \-\> {N1:MASTER, N2:SLAVE} and the application changes the ideal state to 'MyResource_0' \-\> {N1:SLAVE,N2:MASTER}. While the application decides which node is MASTER and which is SLAVE, Helix will not blindly issue MASTER\-\-\>SLAVE to N1 and SLAVE\-\-\>MASTER to N2 in parallel, since that might result in a transient state where both N1 and N2 are masters, which violates the MasterSlave constraint that there is exactly one MASTER at a time.  Helix will first issue MASTER\-\-\>SLAVE to N1 and after it is completed, it will issue SLAVE\-\-\>MASTER to N2.
+Suppose the current state of the system is 'MyResource_0' \-\> {N1:LEADER, N2:STANDBY} and the application changes the ideal state to 'MyResource_0' \-\> {N1:STANDBY,N2:LEADER}. While the application decides which node is LEADER and which is STANDBY, Helix will not blindly issue LEADER\-\-\>STANDBY to N1 and STANDBY\-\-\>LEADER to N2 in parallel, since that might result in a transient state where both N1 and N2 are leaders, which violates the LeaderStandby constraint that there is exactly one LEADER at a time.  Helix will first issue LEADER\-\-\>STANDBY to N1 and after it is completed, it will issue STANDBY\-\-\>LEADER to N2.
 
 ### USER_DEFINED
 

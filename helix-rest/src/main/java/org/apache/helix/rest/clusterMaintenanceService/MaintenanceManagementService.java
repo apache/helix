@@ -377,7 +377,7 @@ public class MaintenanceManagementService {
                 ? Collections.emptyMap()
                 : getMapFromJsonPayload(operationConfig.get(operationClassName));
         commonOperationConfig
-            .forEach((key, value) -> singleOperationConfig.merge(key, value, (v1, v2) -> v1));
+            .forEach(singleOperationConfig::putIfAbsent);
         operationConfigSet.put(operationClassName, singleOperationConfig);
         boolean continueOnFailures =
             singleOperationConfig.containsKey(continueOnFailuresName) && getBooleanFromJsonPayload(

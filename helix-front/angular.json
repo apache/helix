@@ -28,7 +28,7 @@
             "inlineStyleLanguage": "scss",
             "optimization": {
               "styles": {
-                "minify": true,
+                "minify": false,
                 "inlineCritical": true
               }
             },

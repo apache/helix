@@ -7,7 +7,7 @@
 
 .cluster-list-item-selected h4 {
   font-weight: 500;
-  color: theme.$hi-primary;
+  color: map.get(theme.$hi-primary, 500);
 }
 
 .error-message {

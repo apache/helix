@@ -6,7 +6,7 @@
 
 hi-history-list {
   .current {
-    color: theme.$hi-primary;
+    color: map.get(theme.$hi-primary, 700);
   }
 
   .mat-icon {

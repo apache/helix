@@ -3,7 +3,7 @@
 .offline {
   font-size: 14px;
   padding-left: 24px;
-  color: theme.$hi-warn;
+  color: map.get(theme.$hi-warn, 700);
 }
 
 .information {

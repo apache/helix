@@ -6,7 +6,7 @@
 }
 
 .primary {
-  color: theme.$hi-primary;
+  color: map.get(theme.$hi-primary, 700);
 }
 
 .search-form-field {
@@ -36,7 +36,7 @@ ngx-datatable {
     @include md-icon-size(20px);
 
     &:hover {
-      color: theme.$hi-warn;
+      color: map.get(theme.$hi-warn, 700);
     }
   }
 }

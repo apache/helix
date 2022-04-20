@@ -28,7 +28,10 @@
             "polyfills": "client/polyfills.ts",
             "outputPath": "dist/public",
             "assets": ["client/assets", "client/favicon.ico"],
-            "styles": ["client/styles.scss", "client/theme.scss"],
+            "styles": [
+              "client/styles.scss",
+              "client/theme.scss"
+            ],
             "scripts": [],
             "stylePreprocessorOptions": {
               "includePaths": [
@@ -106,9 +109,8 @@
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
-            "protractorConfig":  "./protractor.conf.js",
+            "protractorConfig": "./protractor.conf.js"
           }
-
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",

@@ -5,6 +5,9 @@
       "prefix": "hi",
       "sourceRoot": "client",
       "projectType": "application",
+      "@schematics/angular:component": {
+        "style": "scss"
+      },
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
@@ -13,6 +16,7 @@
             "index": "client/index.html",
             "main": "client/main.ts",
             "tsConfig": "client/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
             "polyfills": "client/polyfills.ts",
             "outputPath": "dist/public",
             "assets": ["client/assets/", "client/favicon.ico"],

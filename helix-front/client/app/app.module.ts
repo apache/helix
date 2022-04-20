@@ -39,11 +39,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ResourceModule,
     ControllerModule,
     HistoryModule,
-    WorkflowModule,
     ChooserModule,
     DashboardModule,
   ],
-  providers: [SharedModule],
+  providers: [SharedModule, WorkflowModule],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

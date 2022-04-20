@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { Injectable, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
@@ -34,4 +34,5 @@ import { JobDetailComponent } from './job-detail/job-detail.component';
     JobDetailComponent
   ]
 })
+@Injectable()
 export class WorkflowModule { }

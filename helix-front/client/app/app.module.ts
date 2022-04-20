@@ -33,7 +33,6 @@ import { DashboardModule } from './dashboard/dashboard.module';
     // @ts-expect-error
     Angulartics2Module.forRoot([ Angulartics2Matomo ]),
     CoreModule,
-    SharedModule,
     ClusterModule,
     ConfigurationModule,
     InstanceModule,
@@ -44,7 +43,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ChooserModule,
     DashboardModule,
   ],
-  providers: [],
+  providers: [SharedModule],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

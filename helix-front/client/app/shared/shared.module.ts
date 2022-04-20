@@ -75,4 +75,5 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     HelperService
   ]
 })
+@Injectable()
 export class SharedModule { }

@@ -18,6 +18,7 @@ import { AppComponent } from './app.component';
 import { WorkflowModule } from './workflow/workflow.module';
 import { ChooserModule } from './chooser/chooser.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 @NgModule({
   declarations: [
@@ -41,6 +42,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HistoryModule,
     ChooserModule,
     DashboardModule,
+    BrowserAnimationsModule,
   ],
   providers: [SharedModule, WorkflowModule],
   bootstrap: [AppComponent]

@@ -193,6 +193,24 @@ public class TestPerInstanceAccessor extends AbstractTestClass {
   }
 
   @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailure")
+  public void testTakeInstanceOperationCheckFailureCommonInput() throws IOException {
+    System.out.println("Start test :" + TestHelper.getTestMethodName());
+    String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"
+        + "\"operation_config\": { \"OperationConfigSharedInput\" :"
+        + " {\"instance0\": true, \"instance2\": true, "
+        + "\"instance3\": true, \"instance4\": true, \"instance5\": true, "
+        + " \"value\" : \"i001\", \"list_value\" : [\"list1\"]}}} ";
+    Response response = new JerseyUriRequestBuilder("clusters/{}/instances/{}/takeInstance")
+        .format(STOPPABLE_CLUSTER, "instance0")
+        .post(this, Entity.entity(payload, MediaType.APPLICATION_JSON_TYPE));
+    String takeInstanceResult = response.readEntity(String.class);
+
+    Map<String, Object> actualMap = OBJECT_MAPPER.readValue(takeInstanceResult, Map.class);
+    Assert.assertFalse((boolean)actualMap.get("successful"));
+    System.out.println("End test :" + TestHelper.getTestMethodName());
+  }
+
+  @Test(dependsOnMethods = "testTakeInstanceOperationCheckFailureCommonInput")
   public void testTakeInstanceOperationCheckFailureNonBlocking() throws IOException {
     System.out.println("Start test :" + TestHelper.getTestMethodName());
     String payload = "{ \"operation_list\" : [\"org.apache.helix.rest.server.TestOperationImpl\"],"

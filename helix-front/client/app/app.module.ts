@@ -2,6 +2,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+import { MatListModule } from '@angular/material/list';
 
 import { Angulartics2Module, Angulartics2Matomo } from 'angulartics2';
 
@@ -42,7 +43,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HistoryModule,
     WorkflowModule,
     ChooserModule,
-    DashboardModule
+    DashboardModule,
+    MatListModule
   ],
   providers: [],
   bootstrap: [AppComponent]

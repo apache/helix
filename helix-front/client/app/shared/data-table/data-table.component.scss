@@ -1,4 +1,4 @@
-@use '../../../theme.scss' as theme;
+@use 'client/theme.scss' as theme;
 
 .mat-icon {
   @include md-icon-size(20px);

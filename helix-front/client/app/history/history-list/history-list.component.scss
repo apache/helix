@@ -2,7 +2,7 @@
 @use '@angular/material' as mat;
 
 // Import custom theme
-@use '../../../theme.scss' as theme;
+@use 'client/theme.scss' as theme;
 
 hi-history-list {
   .current {

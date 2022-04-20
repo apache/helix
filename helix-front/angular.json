@@ -19,7 +19,7 @@
             "inlineStyleLanguage": "scss",
             "polyfills": "client/polyfills.ts",
             "outputPath": "dist/public",
-            "assets": ["client/assets/", "client/favicon.ico"],
+            "assets": ["client/assets", "client/favicon.ico"],
             "scripts": [],
             "styles": ["client/styles.scss", "client/theme.scss"],
             "stylePreprocessorOptions": {

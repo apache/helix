@@ -5,6 +5,7 @@
     "module": "commonjs",
     "target": "es5",
     "baseUrl": "",
+    "skipLibCheck": true,
     "types": [
       "jasmine",
       "node"

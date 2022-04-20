@@ -24,8 +24,14 @@
             "index": "client/index.html",
             "main": "client/main.ts",
             "tsConfig": "client/tsconfig.app.json",
-            "inlineStyleLanguage": "scss",
             "polyfills": "client/polyfills.ts",
+            "inlineStyleLanguage": "scss",
+            "optimization": {
+              "styles": {
+                "minify": true,
+                "inlineCritical": true
+              }
+            },
             "outputPath": "dist/public",
             "assets": ["client/assets", "client/favicon.ico"],
             "styles": [

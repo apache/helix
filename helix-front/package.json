@@ -61,7 +61,7 @@
     "ngx-vis": "micahstubbs/ngx-vis#micahstubbs/424/ivy-distribution",
     "propagating-hammerjs": "2",
     "request": "^2.81.0",
-    "rxjs": "^7.5.5",
+    "rxjs": "^7.4.0",
     "timsort": "0.3.0",
     "tslib": "^2.3.1",
     "uuid": "8",

@@ -34,6 +34,7 @@
   <modules>
     <module>0.9.9</module>
     <module>1.0.2</module>
+    <module>1.0.3</module>
   </modules>
 
   <properties>

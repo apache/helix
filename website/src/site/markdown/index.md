@@ -77,9 +77,9 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 Apache Helix has a new release:
 
-* [1.0.2](./1.0.2-docs/index.html) - A release containing multiple major features such as ZooScalability, Cloud Support, Customized View, WAGED Rebalancer and Distributed Lock
+* [1.0.3](./1.0.3-docs/index.html) - A release containing major feature of replica level throttling and native cloud support
 
-    [\[Quick Start\]](./1.0.2-docs/Quickstart.html) [\[Release Notes\]](./1.0.2-docs/releasenotes/release-1.0.2.html)
+    [\[Quick Start\]](./1.0.3-docs/Quickstart.html) [\[Release Notes\]](./1.0.3-docs/releasenotes/release-1.0.3.html)
 
 * [0.9.9](./0.9.9-docs/index.html) - A release with several critical bug fixing for 0.9 series release
 
@@ -87,7 +87,7 @@ Apache Helix has a new release:
 
 ### Download
 
-<a href="./1.0.2-docs/download.html" class="btn btn-primary btn-small">1.0.2</a>
+<a href="./1.0.3-docs/download.html" class="btn btn-primary btn-small">1.0.3</a>
 
 <a href="./0.9.9-docs/download.html" class="btn btn-primary btn-small">0.9.9</a>
 
@@ -97,7 +97,7 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
 </dependency>
 ```
 
@@ -108,6 +108,6 @@ Requirements: JDK 1.8+, Maven 3.5.0+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-1.0.2
+git checkout helix-1.0.3
 mvn install package -DskipTests
 ```

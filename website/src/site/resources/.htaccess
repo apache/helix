@@ -20,3 +20,4 @@
 Redirect /download.html /download.cgi
 Redirect /0.9.9-docs/download.html /0.9.9-docs/download.cgi
 Redirect /1.0.2-docs/download.html /1.0.2-docs/download.cgi
+Redirect /1.0.3-docs/download.html /1.0.3-docs/download.cgi

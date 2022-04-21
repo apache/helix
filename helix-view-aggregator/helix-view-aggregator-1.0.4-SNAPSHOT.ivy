@@ -7,9 +7,7 @@ regarding copyright ownership.  The ASF licenses this file
 to you under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance
 with the License.  You may obtain a copy of the License at
-
   http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -19,8 +17,8 @@ under the License.
 -->
 <ivy-module version="1.0">
 	<info organisation="org.apache.helix"
-		module="helix-common"
-		revision="1.0.3-SNAPSHOT"
+		module="helix-view-aggregator"
+		revision="1.0.4-SNAPSHOT"
 		status="integration"
 		publication="20170128141623"
 	/>
@@ -34,7 +32,7 @@ under the License.
 		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
 	</configurations>
 	<publications>
-		<artifact name="helix-common" type="jar" ext="jar" conf="master"/>
+		<artifact name="helix-view-aggregator" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
 	  <dependency org="org.slf4j" name="slf4j-api" rev="1.7.32" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
@@ -43,9 +41,13 @@ under the License.
     <dependency org="org.apache.logging.log4j" name="log4j-slf4j-impl" rev="2.17.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
         <artifact name="log4j-slf4j-impl" ext="jar"/>
     </dependency>
-    <dependency org="org.yaml" name="snakeyaml" rev="1.30" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.12.6.1" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.12.6" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <--dependency org="org.slf4j" name="slf4j-log4j12" rev="1.7.14" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)">
+        <artifact name="slf4j-log4j12" ext="jar"/>
+    </dependency-->
+		<dependency org="org.apache.helix" name="helix-core" rev="1.0.4-SNAPSHOT" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="1.8.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 		<dependency org="commons-cli" name="commons-cli" rev="1.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="io.dropwizard.metrics" name="metrics-core" rev="3.2.3" conf="compile->compile(default);runtime->runtime(default);default->default"/>
 	</dependencies>
 </ivy-module>

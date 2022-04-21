@@ -43,8 +43,10 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     ChooserModule,
     DashboardModule,
     BrowserAnimationsModule,
+    SharedModule,
+    WorkflowModule
   ],
-  providers: [SharedModule, WorkflowModule],
+  providers: [],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

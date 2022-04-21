@@ -26,7 +26,8 @@
     "type:check:stats": "yarn type:check --diagnostics true",
     "type:check:watch": "yarn type:check --watch",
     "type:check:watch:stats": "sh scripts/type:check:watch:stats.sh",
-    "type:check:watch:stats:verbose": "yarn type:check --watch --diagnostics true"
+    "type:check:watch:stats:verbose": "yarn type:check --watch --diagnostics true",
+    "postinstall": "ngcc --source ./node_modules --properties es2015 browser module main --first-only --create-ivy-entry-points"
   },
   "dependencies": {
     "@angular/animations": "13.3.3",

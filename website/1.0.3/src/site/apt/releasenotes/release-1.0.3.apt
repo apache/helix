@@ -54,7 +54,7 @@ Release Notes for Apache Helix 1.0.3
 
 ** Bug Fixes
 
-    * Upgrade Log4j to 2.16.0 to address CVE-2021-44228 (#1922)
+    * Upgrade Log4j to 2.17.1 to address CVE-2021-44228 (#1922)
 
     * fix Broken Logic in perPartitionHealthCheck (#2012)
 

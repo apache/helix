@@ -44,11 +44,6 @@
 
   <body>
 
-
-
-    <googleAnalyticsAccountId>UA-3211522-12</googleAnalyticsAccountId>
-
-
     <breadcrumbs position="left">
       <item name="Apache Helix" href="http://helix.apache.org/"/>
     </breadcrumbs>
@@ -125,6 +120,15 @@
       </twitter>
       <sideBarEnabled>true</sideBarEnabled>
     </fluidoSkin>
+    <matomo>
+      <siteId>15</siteId>
+      <url>https://analytics.apache.org</url>
+      <options>
+        <disableCookies/>
+        <trackPageView/>
+        <enableLinkTracking/>
+      </options>
+    </matomo>
     <reflowSkin>
       <theme>site</theme>
       <localResources>true</localResources>

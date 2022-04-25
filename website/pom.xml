@@ -29,7 +29,7 @@
   <artifactId>website</artifactId>
   <name>Apache Helix :: Website</name>
 
-  <url>http://helix.apache.org</url>
+  <url>https://helix.apache.org</url>
 
   <modules>
     <module>0.9.9</module>
@@ -38,10 +38,16 @@
   </modules>
 
   <properties>
+
+    <!-- for svnpubsub site deployment -->
+    <!-- you can use javasvn too -->
+    <svnImpl>svn</svnImpl>
     <helix.siteFilePath>${user.home}/helix-site/helix-site-deploy</helix.siteFilePath>
-    <helix.siteUrlDeployment>file://${helix.siteFilePath}</helix.siteUrlDeployment>
+    <helix.siteUrlDeployment>scm:svn:https://svn.apache.org/repos/asf/helix/site-content/</helix.siteUrlDeployment>
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
+    <maven-scm-provider-svnjava.version>2.1.2</maven-scm-provider-svnjava.version>
+    <svnkit.version>1.7.11</svnkit.version>
   </properties>
 
   <distributionManagement>
@@ -69,11 +75,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
+        <version>3.11.0</version>
         <dependencies>
           <dependency>
-            <groupId>lt.velykis.maven.skins</groupId>
+            <groupId>io.github.olamy.maven.skins</groupId>
             <artifactId>reflow-velocity-tools</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -83,13 +90,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-scm-publish-plugin</artifactId>
+          <version>3.1.0</version>
           <configuration>
             <tryUpdate>true</tryUpdate>
             <providerImplementations>
               <svn>${svnImpl}</svn>
             </providerImplementations>
-            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/helix/site-content/</pubScmUrl>
-            <content>${helix.siteFilePath}</content>
             <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>
             <ignorePathsToDelete>
@@ -100,6 +106,11 @@
             </ignorePathsToDelete>
           </configuration>
           <dependencies>
+<!--            <dependency>-->
+<!--              <groupId>com.google.code.maven-scm-provider-svnjava</groupId>-->
+<!--              <artifactId>maven-scm-provider-svnjava</artifactId>-->
+<!--              <version>${maven-scm-provider-svnjava.version}</version>-->
+<!--            </dependency>-->
             <dependency>
               <groupId>org.tmatesoft.svnkit</groupId>
               <artifactId>svnkit</artifactId>

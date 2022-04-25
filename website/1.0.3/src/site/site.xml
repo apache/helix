@@ -30,33 +30,18 @@
 
   <publishDate position="right"/>
 
-  <skin>
-    <groupId>lt.velykis.maven.skins</groupId>
-    <artifactId>reflow-maven-skin</artifactId>
-    <version>1.0.0</version>
-  </skin>
+<!--  <skin>-->
+<!--    <groupId>lt.velykis.maven.skins</groupId>-->
+<!--    <artifactId>reflow-maven-skin</artifactId>-->
+<!--    <version>1.0.0</version>-->
+<!--  </skin>-->
 
   <body>
 
-    <head><![CDATA[
-      <script type="text/javascript">
-
-        var _gaq = _gaq || [];
-        _gaq.push(['_setAccount', 'UA-3211522-12']);
-        _gaq.push(['_trackPageview']);
-
-        (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-        })();
-
-      </script>
-    ]]></head>
 
     <breadcrumbs position="left">
-      <item name="Apache Helix" href="http://helix.apache.org/"/>
-      <item name="Release 1.0.3" href="http://helix.apache.org/1.0.3-docs/"/>
+      <item name="Apache Helix" href="https://helix.apache.org/"/>
+      <item name="Release 1.0.3" href="https://helix.apache.org/1.0.3-docs/"/>
     </breadcrumbs>
 
     <links>
@@ -72,7 +57,7 @@
     <menu name="Hands-On">
       <item name="Quick Start" href="./Quickstart.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
-      <item name="Javadocs" href="http://helix.apache.org/javadocs/1.0.3"/>
+      <item name="Javadocs" href="https://helix.apache.org/javadocs/1.0.3"/>
     </menu>
 
     <menu name="Recipes">
@@ -127,7 +112,7 @@
         </index>
       </pages>
     </reflowSkin>
-    <!--fluidoSkin>
+    <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
       <sideBarEnabled>true</sideBarEnabled>
       <googleSearch></googleSearch>
@@ -136,7 +121,7 @@
         <showUser>true</showUser>
         <showFollowers>false</showFollowers>
       </twitter>
-    </fluidoSkin-->
+    </fluidoSkin>
   </custom>
 
 </project>

@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
@@ -32,6 +32,9 @@ import { JobDetailComponent } from './job-detail/job-detail.component';
     WorkflowDagComponent,
     JobListComponent,
     JobDetailComponent
+  ],
+  schemas: [
+    CUSTOM_ELEMENTS_SCHEMA
   ]
 })
 export class WorkflowModule { }

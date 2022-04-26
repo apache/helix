@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
+import { MaterialModule } from './material.module';
 import { HelperService } from './helper.service';
 import { InputDialogComponent } from './dialog/input-dialog/input-dialog.component';
 import { DetailHeaderComponent } from './detail-header/detail-header.component';
@@ -24,6 +25,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
   imports: [
     CommonModule,
     RouterModule,
+    MaterialModule,
     FlexLayoutModule,
     FormsModule,
     NgxDatatableModule,
@@ -57,6 +59,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
   // ],
   exports: [
     RouterModule,
+    MaterialModule,
     FlexLayoutModule,
     FormsModule,
     NgxJsonViewerModule,

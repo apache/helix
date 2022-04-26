@@ -3,7 +3,7 @@
 @use 'sass:map';
 
 // Import custom theme
-@use 'client/theme.scss' as theme;
+@use 'client/theme.scss';
 
 hi-history-list {
   .current {

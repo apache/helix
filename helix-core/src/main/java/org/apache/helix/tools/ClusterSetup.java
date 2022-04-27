@@ -223,7 +223,11 @@ public class ClusterSetup {
 
   public void addCluster(String clusterName, boolean overwritePrevious, CloudConfig cloudConfig)
       throws HelixException {
-    _admin.addCluster(clusterName, overwritePrevious);
+    if (!_admin.addCluster(clusterName, overwritePrevious)) {
+      String error = "Cluster creation failed for " + clusterName;
+      _logger.error(error);
+      throw new HelixException(error);
+    }
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
       addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
           def.getStateModelDefinition(), overwritePrevious);

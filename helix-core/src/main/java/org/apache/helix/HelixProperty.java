@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.
  */
 public class HelixProperty {
-  private static Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HelixProperty.class);
 
   public enum HelixPropertyAttribute {
     BUCKET_SIZE, BATCH_MESSAGE_MODE
@@ -156,25 +156,50 @@ public class HelixProperty {
    * @param id
    */
   public HelixProperty(String id) {
-    this(new ZNRecord(id), id);
+    this(new ZNRecord(id), id, false);
+  }
+
+  /**
+   * Initialize the property with an existing ZNRecord
+   * @param record a deep copy of the record is made, updates to this record will not be reflected
+   *               by the HelixProperty
+   */
+  public HelixProperty(ZNRecord record) {
+    this(record, true);
   }
 
   /**
    * Initialize the property with an existing ZNRecord
    * @param record
+   * @param deepCopyRecord set to true to make a copy of the ZNRecord, false otherwise
    */
-  public HelixProperty(ZNRecord record) {
-    this(record, record.getId());
+  public HelixProperty(ZNRecord record, boolean deepCopyRecord) {
+    this(record, record.getId(), deepCopyRecord);
+  }
+
+  /**
+   * Initialize the property with an existing ZNRecord with new record id
+   * @param record a deep copy of the record is made, updates to this record will not be reflected by the HelixProperty
+   * @param id
+   */
+  public HelixProperty(ZNRecord record, String id) {
+    this(record, id, true);
   }
 
   /**
    * Initialize the property with an existing ZNRecord with new record id
    * @param record
    * @param id
+   * @param deepCopyRecord whether to deep copy the ZNRecord, set to true if subsequent changes to
+   *                       the ZNRecord should not affect this HelixProperty and vice versa, or false
    */
-  public HelixProperty(ZNRecord record, String id) {
-    _record = (record instanceof SessionAwareZNRecord) ? new SessionAwareZNRecord(record, id)
-        : new ZNRecord(record, id);
+  public HelixProperty(ZNRecord record, String id, boolean deepCopyRecord) {
+    if (deepCopyRecord) {
+      _record = record instanceof SessionAwareZNRecord ? new SessionAwareZNRecord(record, id)
+          : new ZNRecord(record, id);
+    } else {
+      _record = record;
+    }
     _stat = new Stat(_record.getVersion(), _record.getCreationTime(), _record.getModifiedTime(),
         _record.getEphemeralOwner());
   }

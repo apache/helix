@@ -24,11 +24,25 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.helix.task.JobDag;
 import org.apache.helix.task.RuntimeJobDag;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRuntimeJobDag {
+
+  @Test
+  public void testBuildJobQueueWithParallelismExceedingJobCount() {
+    JobDag jobDag = new JobDag();
+    jobDag.addNode("parent");
+    jobDag.addParentToChild("parent", "child");
+    jobDag.addParentToChild("child", "grandchild");
+    RuntimeJobDag runtimeJobDag = new RuntimeJobDag(jobDag, true, Integer.MAX_VALUE, 1);
+    Assert.assertEquals(runtimeJobDag.getNextJob(), "parent");
+    Assert.assertEquals(runtimeJobDag.getNextJob(), "child");
+    Assert.assertEquals(runtimeJobDag.getNextJob(), "grandchild");
+  }
+
   private Set<String> actualJobs;
   private Set<String> expectedJobs;
 

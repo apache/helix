@@ -777,12 +777,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       PropertyKey propertyKey = keyBuilder.participantHistory(instance);
       ParticipantHistory history = accessor.getProperty(propertyKey);
       if (history == null) {
-        history = new ParticipantHistory(instance);
+        // this means the instance has been removed, skip history update
+        continue;
       }
       if (history.getLastOfflineTime() == ParticipantHistory.ONLINE) {
         history.reportOffline();
-        // persist history back to ZK.
-        if (!accessor.setProperty(propertyKey, history)) {
+        // persist history back to ZK only if the node still exists
+        boolean succeed = accessor.updateProperty(propertyKey,
+            currentData -> (currentData == null) ? null : history.getRecord(), history);
+        if (!succeed) {
           LogUtil.logError(logger, getClusterEventId(),
               "Fails to persist participant online history back to ZK!");
         }

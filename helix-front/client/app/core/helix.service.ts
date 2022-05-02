@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Headers, Http, Response } from '@angular/http';
+import { HttpHeaders, HttpClient, HttpResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs/Rx';
 
@@ -10,12 +10,14 @@ export class HelixService {
 
   constructor(
     protected router: Router,
-    private http: Http
+    private http: HttpClient
   ) { }
 
   public can(): Observable<boolean> {
     return this.http
       .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() })
+      // @ts-expect-error
+      // Property 'json' does not exist on type 'Object'.ts(2339)
       .map(response => response.json())
       .catch(this.errorHandler);
   }
@@ -31,6 +33,8 @@ export class HelixService {
         `${Settings.helixAPI}${helix}${path}`,
         { headers: this.getHeaders() }
       )
+      // @ts-expect-error
+      // Property 'json' does not exist on type 'Object'.ts(2339)
       .map(response => response.json())
       .catch(this.errorHandler);
   }
@@ -42,6 +46,8 @@ export class HelixService {
         data,
         { headers: this.getHeaders() }
       )
+      // @ts-expect-error
+      // Property 'text' does not exist on type 'Object'.ts(2339)
       .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
@@ -53,6 +59,8 @@ export class HelixService {
         data,
         { headers: this.getHeaders() }
       )
+      // @ts-expect-error
+      // Property 'text' does not exist on type 'Object'.ts(2339)
       .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
@@ -63,6 +71,8 @@ export class HelixService {
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         { headers: this.getHeaders() }
       )
+      // @ts-expect-error
+      // Property 'text' does not exist on type 'Object'.ts(2339)
       .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
@@ -73,7 +83,7 @@ export class HelixService {
   }
 
   protected getHeaders() {
-    let headers = new Headers();
+    let headers = new HttpHeaders();
     headers.append('Accept', 'application/json');
     headers.append('Content-Type', 'application/json');
     return headers;
@@ -84,11 +94,13 @@ export class HelixService {
 
     let message = error.message || 'Cannot reach Helix restful service.';
 
-    if (error instanceof Response) {
+    if (error instanceof HttpResponse) {
       if (error.status == 404) {
         // rest api throws 404 directly to app without any wrapper
         message = 'Not Found';
       } else {
+        // @ts-expect-error
+        // Property 'text' does not exist on type 'HttpResponse<any>'.ts(2339)
         message = error.text();
         try {
           message = JSON.parse(message).error;

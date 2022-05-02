@@ -16,9 +16,6 @@ export class HelixService {
   public can(): Observable<boolean> {
     return this.http
       .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() })
-      // @ts-expect-error
-      // Property 'json' does not exist on type 'Object'.ts(2339)
-      .map(response => response.json())
       .catch(this.errorHandler);
   }
 
@@ -33,9 +30,6 @@ export class HelixService {
         `${Settings.helixAPI}${helix}${path}`,
         { headers: this.getHeaders() }
       )
-      // @ts-expect-error
-      // Property 'json' does not exist on type 'Object'.ts(2339)
-      .map(response => response.json())
       .catch(this.errorHandler);
   }
 
@@ -46,9 +40,6 @@ export class HelixService {
         data,
         { headers: this.getHeaders() }
       )
-      // @ts-expect-error
-      // Property 'text' does not exist on type 'Object'.ts(2339)
-      .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
 
@@ -59,9 +50,6 @@ export class HelixService {
         data,
         { headers: this.getHeaders() }
       )
-      // @ts-expect-error
-      // Property 'text' does not exist on type 'Object'.ts(2339)
-      .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
 
@@ -71,9 +59,6 @@ export class HelixService {
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         { headers: this.getHeaders() }
       )
-      // @ts-expect-error
-      // Property 'text' does not exist on type 'Object'.ts(2339)
-      .map(response => response.text().trim() ? response.json() : '{}')
       .catch(this.errorHandler);
   }
 
@@ -99,9 +84,7 @@ export class HelixService {
         // rest api throws 404 directly to app without any wrapper
         message = 'Not Found';
       } else {
-        // @ts-expect-error
-        // Property 'text' does not exist on type 'HttpResponse<any>'.ts(2339)
-        message = error.text();
+        message = error;
         try {
           message = JSON.parse(message).error;
         } catch (e) {}

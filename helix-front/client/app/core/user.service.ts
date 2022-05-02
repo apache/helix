@@ -13,25 +13,19 @@ export class UserService {
     private http: HttpClient
   ) { }
 
-  public getCurrentUser(): Observable<string> {
+  public getCurrentUser(): Observable<string | object> {
     return this.http
       .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() })
-      // @ts-expect-error
-      // Property 'json' does not exist on type 'Object'.ts(2339)
-      .map(response => response.json())
       .catch(_ => _);
   }
 
-  public login(username: string, password: string): Observable<boolean> {
+  public login(username: string, password: string): Observable<object> {
     return this.http
       .post(
         `${ Settings.userAPI }/login`,
         { username: username, password: password },
         { headers: this.getHeaders() }
-      )
-      // @ts-expect-error
-      // Property 'json' does not exist on type 'Object'.ts(2339)
-      .map(response => response.json());
+      );
   }
 
   protected getHeaders() {

@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { HttpModule } from '@angular/http';
+import { HttpClientModule } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { ResourceService } from '../shared/resource.service';
@@ -12,7 +12,7 @@ describe('ResourceDetailForInstanceComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ HttpModule, RouterTestingModule ],
+      imports: [ HttpClientModule, RouterTestingModule ],
       declarations: [ ResourceDetailForInstanceComponent ],
       schemas: [
         /* avoid importing modules */

@@ -22,18 +22,19 @@
     "smoke": "ng lint && ng test -sr && npm run build"
   },
   "dependencies": {
-    "@angular/animations": "^5.1.1",
-    "@angular/cdk": "^5.0.1",
-    "@angular/common": "^5.1.1",
-    "@angular/compiler": "^5.1.1",
-    "@angular/core": "^5.1.1",
-    "@angular/flex-layout": "2.0.0-beta.12",
-    "@angular/forms": "^5.1.1",
-    "@angular/http": "^5.1.1",
-    "@angular/material": "^5.0.1",
-    "@angular/platform-browser": "^5.1.1",
-    "@angular/platform-browser-dynamic": "^5.1.1",
-    "@angular/router": "^5.1.1",
+    "@angular/animations": "^5.2.11",
+    "@angular/cdk": "^5.2.5",
+    "@angular/common": "^5.2.11",
+    "@angular/compiler": "^5.2.11",
+    "@angular/core": "^5.2.11",
+    "@angular/flex-layout": "^5.0.0-beta.14",
+    "@angular/forms": "^5.2.11",
+    "@angular/http": "^5.2.11",
+    "@angular/material": "^5.2.5",
+    "@angular/platform-browser": "^5.2.11",
+    "@angular/platform-browser-dynamic": "^5.2.11",
+    "@angular/platform-server": "^5.2.11",
+    "@angular/router": "^5.2.11",
     "@swimlane/ngx-charts": "^7.0.1",
     "@swimlane/ngx-datatable": "^11.1.7",
     "angulartics2": "^2.2.1",
@@ -54,13 +55,13 @@
     "ngx-vis": "^0.1.0",
     "node-sass": "4.5.3",
     "request": "^2.81.0",
-    "rxjs": "^5.5.5",
+    "rxjs": "^5.5.12",
     "vis": "^4.21.0",
     "zone.js": "^0.8.4"
   },
   "devDependencies": {
     "@angular/cli": "^1.6.1",
-    "@angular/compiler-cli": "^5.1.1",
+    "@angular/compiler-cli": "^5.2.11",
     "@types/hammerjs": "^2.0.34",
     "@types/jasmine": "2.5.38",
     "@types/lodash": "4.14.120",
@@ -81,7 +82,7 @@
     "protractor": "~5.1.0",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
-    "typescript": "2.4.2"
+    "typescript": "^2.4.2"
   },
   "volta": {
     "node": "8.9.4"

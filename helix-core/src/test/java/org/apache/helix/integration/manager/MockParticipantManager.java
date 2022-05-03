@@ -25,8 +25,6 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.zookeeper.api.client.HelixZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.MockMSModelFactory;
@@ -39,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockParticipantManager extends ClusterManager {
-  private static Logger LOG = LoggerFactory.getLogger(MockParticipantManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MockParticipantManager.class);
 
   protected int _transDelay = 10;
 

@@ -24,6 +24,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.MBeanServer;
@@ -31,6 +34,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
@@ -41,6 +45,7 @@ import org.apache.helix.SystemPropertyKeys;
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.common.ZkTestBase;
@@ -65,15 +70,17 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 public class TestParticipantManager extends ZkTestBase {
-  private MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
-  private String clusterName = TestHelper.getTestClassName();
+  private final MBeanServer _server = ManagementFactory.getPlatformMBeanServer();
+  private final String _clusterName = TestHelper.getTestClassName();
+  private final ExecutorService _executor = Executors.newFixedThreadPool(1);
+
   static {
     System.setProperty(SystemPropertyKeys.STATEUPDATEUTIL_ERROR_PERSISTENCY_ENABLED, "true");
   }
 
   @AfterMethod
   public void afterMethod(Method testMethod, ITestContext testContext) {
-    deleteCluster(clusterName);
+    deleteCluster(_clusterName);
     super.endTest(testMethod, testContext);
   }
 
@@ -84,25 +91,24 @@ public class TestParticipantManager extends ZkTestBase {
 
   @Test
   public void simpleIntegrationTest() throws Exception {
-    int n = 1;
-
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
         4, // partitions per resource
-        n, // number of nodes
+        1, // number of nodes
         1, // replicas
         "MasterSlave", true); // do rebalance
 
+    String instanceName = "localhost_12918";
     HelixManager participant =
-        new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, ZK_ADDR);
+        new ZKHelixManager(_clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
     participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
         new MockMSModelFactory());
     participant.connect();
 
     HelixManager controller =
-        new ZKHelixManager(clusterName, "controller_0", InstanceType.CONTROLLER, ZK_ADDR);
+        new ZKHelixManager(_clusterName, "controller_0", InstanceType.CONTROLLER, ZK_ADDR);
     controller.connect();
 
     verifyHelixManagerMetrics(InstanceType.PARTICIPANT, MonitorLevel.DEFAULT,
@@ -111,27 +117,86 @@ public class TestParticipantManager extends ZkTestBase {
         controller.getInstanceName());
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(verifier.verifyByPolling());
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    ParticipantHistory history = accessor.getProperty(keyBuilder.participantHistory(instanceName));
+    Assert.assertNotNull(history);
+    long historyModifiedTime = history.getRecord().getModifiedTime();
 
     // cleanup
     controller.disconnect();
     participant.disconnect();
 
     // verify all live-instances and leader nodes are gone
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
+    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(instanceName)));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
+    Assert.assertTrue(
+        historyModifiedTime <
+            accessor.getProperty(keyBuilder.participantHistory(instanceName)).getRecord().getModifiedTime());
+  }
+
+  @Test(invocationCount = 5)
+  public void testParticipantHistoryWithInstanceDrop() throws Exception {
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        1, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
+
+    String instanceName = "localhost_12918";
+    HelixManager participant =
+        new ZKHelixManager(_clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+    participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
+        new MockMSModelFactory());
+    participant.connect();
+
+    HelixManager controller =
+        new ZKHelixManager(_clusterName, "controller_0", InstanceType.CONTROLLER, ZK_ADDR);
+    controller.connect();
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(verifier.verifyByPolling());
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    ParticipantHistory history = accessor.getProperty(keyBuilder.participantHistory(instanceName));
+    Assert.assertNotNull(history);
+
+    Future instanceDrop = _executor.submit(() -> {
+      boolean succeed = false;
+      while (!succeed) {
+        try {
+          // simulate instance drop
+          succeed = _baseAccessor.remove(keyBuilder.instance(instanceName).toString(), AccessOption.PERSISTENT);
+        } catch (Exception e) {
+          try {
+            Thread.sleep(100);
+          } catch (Exception ex) { }
+        }
+      }
+    });
+    // cleanup
+    controller.disconnect();
+    participant.disconnect();
+    instanceDrop.get(1000, TimeUnit.MILLISECONDS);
+    // ensure the history node is never created after instance drop
+    Assert.assertNull(accessor.getProperty(keyBuilder.participantHistory(instanceName)));
   }
 
   @Test
   public void simpleIntegrationTestNeg() throws Exception {
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -141,19 +206,19 @@ public class TestParticipantManager extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(_clusterName);
     clusterConfig.getRecord()
         .setListField(ClusterConfig.ClusterConfigProperty.INSTANCE_CAPACITY_KEYS.name(),
             new ArrayList<>());
     clusterConfig.setTopologyAwareEnabled(true);
     clusterConfig.setTopology("/Rack/Sub-Rack/Host/Instance");
     clusterConfig.setFaultZoneType("Host");
-    configAccessor.setClusterConfig(clusterName, clusterConfig);
+    configAccessor.setClusterConfig(_clusterName, clusterConfig);
 
 
     String instanceName = "localhost_12918";
     HelixManager participant =
-        new ZKHelixManager(clusterName, instanceName , InstanceType.PARTICIPANT, ZK_ADDR);
+        new ZKHelixManager(_clusterName, instanceName , InstanceType.PARTICIPANT, ZK_ADDR);
     participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
         new MockMSModelFactory());
     // We are expecting an IllegalArgumentException since the domain is not set.
@@ -167,16 +232,16 @@ public class TestParticipantManager extends ZkTestBase {
 
     // verify there is no live-instances created
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
+    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(instanceName)));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
   }
 
   @Test // (dependsOnMethods = "simpleIntegrationTest")
   public void testMonitoringLevel() throws Exception {
     int n = 1;
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -189,7 +254,7 @@ public class TestParticipantManager extends ZkTestBase {
     HelixManager participant;
     try {
       participant =
-          new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, ZK_ADDR);
+          new ZKHelixManager(_clusterName, "localhost_12918", InstanceType.PARTICIPANT, ZK_ADDR);
     } finally {
       System.clearProperty(SystemPropertyKeys.MONITOR_LEVEL);
     }
@@ -209,15 +274,15 @@ public class TestParticipantManager extends ZkTestBase {
       String instanceName) throws MalformedObjectNameException {
     // check HelixCallback Monitor
     Set<ObjectInstance> objs =
-        _server.queryMBeans(buildCallbackMonitorObjectName(type, clusterName, instanceName), null);
+        _server.queryMBeans(buildCallbackMonitorObjectName(type, _clusterName, instanceName), null);
     Assert.assertEquals(objs.size(), 19);
 
     // check HelixZkClient Monitors
     objs =
-        _server.queryMBeans(buildZkClientMonitorObjectName(type, clusterName, instanceName), null);
+        _server.queryMBeans(buildZkClientMonitorObjectName(type, _clusterName, instanceName), null);
     Assert.assertEquals(objs.size(), 1);
 
-    objs = _server.queryMBeans(buildZkClientPathMonitorObjectName(type, clusterName, instanceName),
+    objs = _server.queryMBeans(buildZkClientPathMonitorObjectName(type, _clusterName, instanceName),
         null);
 
     int expectedZkPathMonitor;
@@ -262,7 +327,7 @@ public class TestParticipantManager extends ZkTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -273,18 +338,18 @@ public class TestParticipantManager extends ZkTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
       participants[i].syncStart();
     }
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(verifier.verifyByPolling());
@@ -339,7 +404,7 @@ public class TestParticipantManager extends ZkTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -350,13 +415,13 @@ public class TestParticipantManager extends ZkTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
       participants[i].setTransition(new SessionExpiryTransition(startCountdown, endCountdown));
       participants[i].syncStart();
     }
@@ -367,7 +432,7 @@ public class TestParticipantManager extends ZkTestBase {
     ZkTestHelper.expireSession(participants[0].getZkClient());
 
     BestPossibleExternalViewVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(clusterName).setZkClient(_gZkClient)
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
             .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
             .build();
     Assert.assertTrue(verifier.verifyByPolling());
@@ -376,7 +441,7 @@ public class TestParticipantManager extends ZkTestBase {
     Assert.assertNotSame(newSessionId, oldSessionId);
 
     // assert interrupt exception error in old session
-    String errPath = PropertyPathBuilder.instanceError(clusterName, "localhost_12918", oldSessionId,
+    String errPath = PropertyPathBuilder.instanceError(_clusterName, "localhost_12918", oldSessionId,
         "TestDB0", "TestDB0_0");
     ZNRecord error = _gZkClient.readData(errPath);
     Assert.assertNotNull(error,

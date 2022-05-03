@@ -82,8 +82,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       .asList(HelixConstants.ChangeType.EXTERNAL_VIEW,
           HelixConstants.ChangeType.TARGET_EXTERNAL_VIEW);
 
-  private String _clusterName = AbstractDataCache.UNKNOWN_CLUSTER;
-  private String _pipelineName = AbstractDataCache.UNKNOWN_PIPELINE;
+  private final String _clusterName;
+  private final String _pipelineName;
   private String _clusterEventId = AbstractDataCache.UNKNOWN_EVENT_ID;
   private ClusterConfig _clusterConfig;
 
@@ -106,17 +106,17 @@ public class BaseControllerDataProvider implements ControlContextProvider {
   private final PropertyCache<StateModelDefinition> _stateModelDefinitionCache;
 
   // Special caches
-  private CurrentStateCache _currentStateCache;
+  private final CurrentStateCache _currentStateCache;
   protected TaskCurrentStateCache _taskCurrentStateCache;
-  private InstanceMessagesCache _instanceMessagesCache;
+  private final InstanceMessagesCache _instanceMessagesCache;
 
   // Other miscellaneous caches
   private Map<String, Long> _instanceOfflineTimeMap;
   private Map<String, Map<String, String>> _idealStateRuleMap;
-  private Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
-  private Set<String> _disabledInstanceSet = new HashSet<>();
+  private final Map<String, Map<String, Set<String>>> _disabledInstanceForPartitionMap = new HashMap<>();
+  private final Set<String> _disabledInstanceSet = new HashSet<>();
   private final Map<String, MonitoredAbnormalResolver> _abnormalStateResolverMap = new HashMap<>();
-  private Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
+  private final Set<String> _timedOutInstanceDuringMaintenance = new HashSet<>();
   private Map<String, LiveInstance> _liveInstanceExcludeTimedOutForMaintenance = new HashMap<>();
 
   public BaseControllerDataProvider() {
@@ -777,12 +777,15 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       PropertyKey propertyKey = keyBuilder.participantHistory(instance);
       ParticipantHistory history = accessor.getProperty(propertyKey);
       if (history == null) {
-        history = new ParticipantHistory(instance);
+        // this means the instance has been removed, skip history update
+        continue;
       }
       if (history.getLastOfflineTime() == ParticipantHistory.ONLINE) {
         history.reportOffline();
-        // persist history back to ZK.
-        if (!accessor.setProperty(propertyKey, history)) {
+        // persist history back to ZK only if the node still exists
+        boolean succeed = accessor.updateProperty(propertyKey,
+            currentData -> (currentData == null) ? null : history.getRecord(), history);
+        if (!succeed) {
           LogUtil.logError(logger, getClusterEventId(),
               "Fails to persist participant online history back to ZK!");
         }
@@ -822,6 +825,10 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       long timeOutWindow) {
     ParticipantHistory history =
         accessor.getProperty(accessor.keyBuilder().participantHistory(instance));
+    if (history == null) {
+      LogUtil.logWarn(logger, getClusterEventId(), "Participant history is null for instance " + instance);
+      return false;
+    }
     List<Long> onlineTimestamps = history.getOnlineTimestampsAsMilliseconds();
     List<Long> offlineTimestamps = history.getOfflineTimestampsAsMilliseconds();
 

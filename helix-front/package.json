@@ -88,8 +88,5 @@
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
     "typescript": "^2.4.2"
-  },
-  "volta": {
-    "node": "8.9.4"
   }
 }

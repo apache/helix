@@ -128,4 +128,8 @@
       "prefix": "hi"
     }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 8295e9a2a (ng update @angular/cli --from=5.2.11 --to=6 --migrate-only)

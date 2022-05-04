@@ -1,7 +1,9 @@
+
+import {catchError} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { HttpHeaders, HttpClient, HttpResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 
 import { Settings } from './settings';
 
@@ -15,8 +17,8 @@ export class UserService {
 
   public getCurrentUser(): Observable<string | object> {
     return this.http
-      .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() })
-      .catch(_ => _);
+      .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() }).pipe(
+      catchError(_ => _));
   }
 
   public login(username: string, password: string): Observable<object> {

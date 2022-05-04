@@ -59,7 +59,7 @@
     "lodash": "^4.17.12",
     "moment": "^2.29.2",
     "morgan": "^1.8.2",
-    "ngx-clipboard": "^11.1.5",
+    "ngx-clipboard": "^9.0.0",
     "ngx-json-viewer": "^2.3.0",
     "ngx-vis": "^0.1.0",
     "node-sass": "4.5.3",

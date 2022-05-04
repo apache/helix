@@ -1,7 +1,10 @@
+
+import {throwError as observableThrowError,  Observable } from 'rxjs';
+
+import {catchError} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { HttpHeaders, HttpClient, HttpResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs/Rx';
 
 import { Settings } from './settings';
 
@@ -15,8 +18,8 @@ export class HelixService {
 
   public can(): Observable<boolean> {
     return this.http
-      .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() })
-      .catch(this.errorHandler);
+      .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() }).pipe(
+      catchError(this.errorHandler));
   }
 
   protected request(path: string, helix?: string): Observable<any> {
@@ -29,8 +32,8 @@ export class HelixService {
       .get(
         `${Settings.helixAPI}${helix}${path}`,
         { headers: this.getHeaders() }
-      )
-      .catch(this.errorHandler);
+      ).pipe(
+      catchError(this.errorHandler));
   }
 
   protected post(path: string, data: string): Observable<any> {
@@ -39,8 +42,8 @@ export class HelixService {
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         data,
         { headers: this.getHeaders() }
-      )
-      .catch(this.errorHandler);
+      ).pipe(
+      catchError(this.errorHandler));
   }
 
   protected put(path: string, data: string): Observable<any> {
@@ -49,8 +52,8 @@ export class HelixService {
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         data,
         { headers: this.getHeaders() }
-      )
-      .catch(this.errorHandler);
+      ).pipe(
+      catchError(this.errorHandler));
   }
 
   protected delete(path: string): Observable<any> {
@@ -58,8 +61,8 @@ export class HelixService {
       .delete(
         `${Settings.helixAPI}${this.getHelixKey()}${path}`,
         { headers: this.getHeaders() }
-      )
-      .catch(this.errorHandler);
+      ).pipe(
+      catchError(this.errorHandler));
   }
 
   protected getHelixKey(): string {
@@ -91,6 +94,6 @@ export class HelixService {
       }
     }
 
-    return Observable.throw(message);
+    return observableThrowError(message);
   }
 }

@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material';
@@ -42,8 +44,8 @@ export class ClusterDetailComponent implements OnInit {
 
   ngOnInit() {
     this.clusterService.can().subscribe(data => this.can = data);
-    this.route.params
-      .map(p => p.name)
+    this.route.params.pipe(
+      map(p => p.name))
       .subscribe(name => {
         this.clusterName = name;
         this.loadCluster();

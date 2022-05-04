@@ -18,6 +18,7 @@
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
     "lint": "ng lint",
+    "lint:tslint": "./node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && npm run build"
   },
@@ -65,6 +66,7 @@
     "karma-phantomjs-launcher": "^1.0.4",
     "nodemon": "1.11.0",
     "protractor": "~5.1.0",
+    "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
     "typescript": "^2.9.2"

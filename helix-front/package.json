@@ -94,6 +94,10 @@
     "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
+<<<<<<< HEAD
     "typescript": "^2.9.2"
+=======
+    "typescript": "^2.4.2"
+>>>>>>> 49eda2a0c (add engines, remove volta since it conflicts with necessary global angular-cli)
   }
 }

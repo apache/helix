@@ -49,12 +49,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-<<<<<<< HEAD
             "browserTarget": "helix-front:build",
             "proxyConfig": "./proxy.conf.json"
-=======
-            "browserTarget": "helix-front:build"
->>>>>>> fbcad99bf (ng update @angular/cli --from=5.2.11 --to=6 --migrate-only)
           },
           "configurations": {
             "production": {

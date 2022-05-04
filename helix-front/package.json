@@ -14,16 +14,24 @@
   "scripts": {
     "ng": "ng",
     "build": "rm -rf dist && mkdir dist && ng build --aot --prod && tsc -p server",
+<<<<<<< HEAD
     "start": "tsc -p server && concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
+=======
+    "start": "tsc -p server && concurrently -r \"ng serve --pc proxy.conf.json\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
+>>>>>>> 04d462401 (update scripts in package.json to use two dashes for flags to be POSIX compliant)
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
     "lint": "ng lint",
     "lint:tslint": "./node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "e2e": "ng e2e",
+<<<<<<< HEAD
     "smoke": "ng lint && ng test --sr && npm run build",
     "type:check": "tsc --project tsconfig.json --noEmit",
     "type:check:stats": "npm run type:check -- --diagnostics true",
     "type:check:watch": "npm run type:check -- --watch"
+=======
+    "smoke": "ng lint && ng test --sr && npm run build"
+>>>>>>> 04d462401 (update scripts in package.json to use two dashes for flags to be POSIX compliant)
   },
   "engines": {
     "node": "8.9.4",
@@ -94,10 +102,6 @@
     "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
-<<<<<<< HEAD
     "typescript": "^2.9.2"
-=======
-    "typescript": "^2.4.2"
->>>>>>> 49eda2a0c (add engines, remove volta since it conflicts with necessary global angular-cli)
   }
 }

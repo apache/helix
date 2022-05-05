@@ -89,6 +89,135 @@ public class TestRawZkClient extends ZkTestBase {
     _zkClient.close();
   }
 
+  @Test
+  void testUnimplementedTypes() {
+    // Make sure extended types are disabled
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/unimplemented";
+    _zkClient.deleteRecursively(parentPath);
+
+    try {
+      long ttl = 1L;
+      _zkClient.createPersistentWithTTL(path, true, ttl);
+    } catch (ZkException e) {
+      AssertJUnit.assertTrue(e.getCause() instanceof KeeperException.UnimplementedException);
+      return;
+    }
+
+    // Clean up
+    _zkClient.deleteRecursively(parentPath);
+    AssertJUnit.fail();
+  }
+
+  @Test
+  void testCreatePersistentWithTTL() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createTTL";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path));
+
+    long ttl = 1L;
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createPersistentWithTTL(parentPath, record, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(parentPath));
+    ZNRecord retrievedRecord = zkClient.readData(parentPath);
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clear the path and test with createParents = true
+    AssertJUnit.assertTrue(zkClient.delete(parentPath));
+    zkClient.createPersistentWithTTL(path, true, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(path));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
+  @Test
+  void testCreatePersistentSequentialWithTTL() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createSequentialTTL";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path + "0000000000"));
+
+    long ttl = 1L;
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createPersistent(parentPath);
+    zkClient.createPersistentSequentialWithTTL(path, record, ttl);
+    AssertJUnit.assertTrue(zkClient.exists(path + "0000000000"));
+    ZNRecord retrievedRecord = zkClient.readData(path + "0000000000");
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
+  @Test
+  void testCreateContainer() {
+    // Enable extended types and create a ZkClient
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    ZkClient zkClient = new ZkClient(ZkTestBase.ZK_ADDR);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Make sure the test path is clear
+    String parentPath = "/tmp";
+    String path = "/tmp/createContainer";
+    zkClient.deleteRecursively(parentPath);
+    AssertJUnit.assertFalse(zkClient.exists(parentPath));
+    AssertJUnit.assertFalse(zkClient.exists(path));
+
+    ZNRecord record = new ZNRecord("record");
+    String key = "key";
+    String value = "value";
+    record.setSimpleField(key, value);
+
+    // Create a ZNode with the above ZNRecord and read back its data
+    zkClient.createContainer(parentPath, record);
+    AssertJUnit.assertTrue(zkClient.exists(parentPath));
+    ZNRecord retrievedRecord = zkClient.readData(parentPath);
+    AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
+
+    // Clear the path and test with createParents = true
+    AssertJUnit.assertTrue(zkClient.delete(parentPath));
+    zkClient.createContainer(path, true);
+    AssertJUnit.assertTrue(zkClient.exists(path));
+
+    // Clean up
+    zkClient.deleteRecursively(parentPath);
+    zkClient.close();
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
   @Test()
   void testGetStat() {
     String path = "/tmp/getStatTest";

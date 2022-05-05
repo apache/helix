@@ -39,7 +39,7 @@
     "@angular/platform-browser-dynamic": "^6.1.0",
     "@angular/platform-server": "^6.1.0",
     "@angular/router": "^6.1.0",
-    "@swimlane/ngx-charts": "^9.1.1",
+    "@swimlane/ngx-charts": "^8.0.0",
     "@swimlane/ngx-datatable": "^13.0.0",
     "@swimlane/ngx-graph": "6.0.0",
     "angulartics2": "^2.2.1",

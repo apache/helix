@@ -20,7 +20,10 @@
     "lint": "ng lint",
     "lint:tslint": "./node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "e2e": "ng e2e",
-    "smoke": "ng lint && ng test --sr && npm run build"
+    "smoke": "ng lint && ng test --sr && npm run build",
+    "type:check": "tsc --project tsconfig.json --noEmit",
+    "type:check:stats": "npm run type:check -- --diagnostics true",
+    "type:check:watch": "npm run type:check -- --watch"
   },
   "engines": {
     "node": "8.9.4",

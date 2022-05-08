@@ -16,7 +16,7 @@ export class HelixService {
     private http: HttpClient
   ) { }
 
-  public can(): Observable<boolean> {
+  public can(): Observable<any> {
     return this.http
       .get(`${ Settings.userAPI }/can`, { headers: this.getHeaders() }).pipe(
       catchError(this.errorHandler));

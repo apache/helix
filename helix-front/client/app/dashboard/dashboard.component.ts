@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
 import { VisNode, VisNodes, VisEdges, VisNetworkService, VisNetworkData, VisNetworkOptions } from 'ngx-vis';
@@ -142,7 +143,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // load data
     this.route.parent.params
-      .map(p => p.name)
+      .pipe(map(p => p.name))
       .subscribe(name => {
         this.clusterName = name;
         this.fetchResources();

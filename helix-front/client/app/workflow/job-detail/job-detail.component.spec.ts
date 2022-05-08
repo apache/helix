@@ -1,4 +1,5 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
@@ -18,7 +19,7 @@ describe('JobDetailComponent', () => {
         {
           provide: JobService,
           useValue: {
-            get: job => Observable.of()
+            get: job => of()
           }
         }
       ],

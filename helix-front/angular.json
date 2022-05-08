@@ -49,7 +49,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "helix-front:build"
+            "browserTarget": "helix-front:build",
+            "proxyConfig": "./proxy.conf.json"
           },
           "configurations": {
             "production": {

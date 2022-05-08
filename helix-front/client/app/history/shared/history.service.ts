@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { map } from 'rxjs/operators';
 import * as _ from 'lodash';
 
 import { HelixService } from '../../core/helix.service';
@@ -10,13 +11,13 @@ export class HistoryService extends HelixService {
   getControllerHistory(clusterName: string) {
     return this
       .request(`/clusters/${ clusterName }/controller/history`)
-      .map(data => this.parseHistory(data.history));
+      .pipe(map(data => this.parseHistory(data.history)));
   }
 
   getInstanceHistory(clusterName: string, instanceName: string) {
     return this
       .request(`/clusters/${ clusterName }/instances/${ instanceName }/history`)
-      .map(data => this.parseHistory(data.listFields.HISTORY));
+      .pipe(map(data => this.parseHistory(data.listFields.HISTORY)));
     // TODO: implement data.simpleFields.LAST_OFFLINE_TIME
   }
 

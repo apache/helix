@@ -63,7 +63,8 @@
     "rxjs": "^6.6.7",
     "tsickle": "^0.32.1",
     "vis": "^4.21.0",
-    "zone.js": "^0.8.29"
+    "zone.js": "^0.8.29",
+    "rxjs-compat": "^6.0.0-rc.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.8.0",

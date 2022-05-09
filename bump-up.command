@@ -26,7 +26,10 @@ update_pom_version() {
   pom=$1
   echo "bump up $pom"
   sed -i "s/${version}/${new_version}/g" $pom
-  grep -C 1 "$new_version" $pom
+  if ! grep -C 1 "$new_version" $pom; then
+    echo "Failed to update new version $new_version in $pom"
+    exit 1
+  fi
 }
 
 update_ivy() {
@@ -37,7 +40,10 @@ update_ivy() {
     echo "bump up $module/$ivy_file"
     git mv "$module/$ivy_file" "$module/$new_ivy_file"
     sed -i "s/${version}/${new_version}/g" "$module/$new_ivy_file"
-    grep -C 1 "$new_version" "$module/$new_ivy_file"
+    if ! grep -C 1 "$new_version" "$module/$new_ivy_file"; then
+      echo "Failed to update new version $new_version in $module/$new_ivy_file"
+      exit 1
+    fi
   else
     echo "$module/$ivy_file not exist"
   fi
@@ -54,7 +60,6 @@ else
   submajor_version=`echo $version | cut -d'.' -f2`
 
   new_minor_version=`expr $minor_version + 1`
-#  new_version=`echo $version | sed -e "s/${minor_version}/${new_minor_version}/g"`
   new_version="$major_version.$submajor_version.$new_minor_version"
 fi
 echo "bump up: $version -> $new_version"

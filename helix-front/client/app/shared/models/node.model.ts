@@ -73,7 +73,7 @@ export class Node {
   }
 
   public json(id: string): string {
-    let obj = {
+    const obj = {
       id: id,
       simpleFields: {},
       listFields: {},

@@ -67,13 +67,13 @@ export class Resource {
 
     // fetch partition names from externalView.mapFields is (relatively) more stable
     this.partitions = [];
-    for (let partitionName in externalView.mapFields) {
-      let partition = new Partition(partitionName);
+    for (const partitionName in externalView.mapFields) {
+      const partition = new Partition(partitionName);
 
       // in FULL_ATUO mode, externalView is more important
       // if preferences list exists, fetch instances from it, else whatever
       if (this.rebalanceMode != 'FULL_AUTO' && idealState.listFields[partitionName]) {
-        for (let replicaName of idealState.listFields[partitionName]) {
+        for (const replicaName of idealState.listFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
@@ -81,7 +81,7 @@ export class Resource {
           });
         }
       } else if (this.rebalanceMode != 'FULL_AUTO' && idealState.mapFields[partitionName]) {
-        for (let replicaName in idealState.mapFields[partitionName]) {
+        for (const replicaName in idealState.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),
@@ -89,7 +89,7 @@ export class Resource {
           });
         }
       } else {
-        for (let replicaName in externalView.mapFields[partitionName]) {
+        for (const replicaName in externalView.mapFields[partitionName]) {
           partition.replicas.push(<IReplica>{
             instanceName: replicaName,
             externalView: _.get(externalView, ['mapFields', partitionName, replicaName]),

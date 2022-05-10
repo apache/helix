@@ -93,8 +93,8 @@
           "builder": "@angular-devkit/build-angular:tslint",
           "options": {
             "tsConfig": [
-              "src/tsconfig.app.json",
-              "src/tsconfig.spec.json"
+              "client/tsconfig.app.json",
+              "client/tsconfig.spec.json"
             ],
             "exclude": []
           }
@@ -129,7 +129,7 @@
   "schematics": {
     "@schematics/angular:component": {
       "prefix": "hi",
-      "styleext": "scss"
+      "style": "scss"
     },
     "@schematics/angular:directive": {
       "prefix": "hi"

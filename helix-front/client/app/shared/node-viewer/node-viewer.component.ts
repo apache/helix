@@ -180,7 +180,7 @@ export class NodeViewerComponent implements OnInit {
             value: []
           }];
 
-          let newNode: Node = new Node(null);
+          const newNode: Node = new Node(null);
           if (type === 'list') {
             newNode.listFields = entry;
           } else if (type === 'map') {
@@ -209,7 +209,7 @@ export class NodeViewerComponent implements OnInit {
   }
 
   onDelete(type, row) {
-    let newNode: Node = new Node(null);
+    const newNode: Node = new Node(null);
 
     if (type === 'simple') {
       newNode.appendSimpleField(row.name, '');
@@ -223,9 +223,9 @@ export class NodeViewerComponent implements OnInit {
   }
 
   created(type, data, key) {
-    let newNode: Node = new Node(null);
+    const newNode: Node = new Node(null);
 
-    switch(type) {
+    switch (type) {
       case 'simple':
         newNode.appendSimpleField(data.name.value, data.value.value);
         break;
@@ -269,9 +269,9 @@ export class NodeViewerComponent implements OnInit {
       return;
     }
 
-    let newNode: Node = new Node(null);
+    const newNode: Node = new Node(null);
 
-    switch(type) {
+    switch (type) {
       case 'simple':
         newNode.appendSimpleField(row.name, value);
         break;

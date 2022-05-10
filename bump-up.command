@@ -25,7 +25,7 @@ MODULES=("metrics-common" "metadata-store-directory-common" "zookeeper-api" "hel
 update_pom_version() {
   pom=$1
   echo "bump up $pom"
-  sed -i "s/${version}/${new_version}/g" $pom
+  sed -i'' -e "s/${version}/${new_version}/g" $pom
   if ! grep -C 1 "$new_version" $pom; then
     echo "Failed to update new version $new_version in $pom"
     exit 1
@@ -39,7 +39,7 @@ update_ivy() {
   if [ -f $module/$ivy_file ]; then
     echo "bump up $module/$ivy_file"
     git mv "$module/$ivy_file" "$module/$new_ivy_file"
-    sed -i "s/${version}/${new_version}/g" "$module/$new_ivy_file"
+    sed -i'' -e "s/${version}/${new_version}/g" "$module/$new_ivy_file"
     if ! grep -C 1 "$new_version" "$module/$new_ivy_file"; then
       echo "Failed to update new version $new_version in $module/$new_ivy_file"
       exit 1

@@ -15,7 +15,7 @@ export class UserService {
     private http: HttpClient
   ) { }
 
-  public getCurrentUser(): Observable<string | object> {
+  public getCurrentUser(): Observable<unknown> {
     return this.http
       .get(`${ Settings.userAPI }/current`, { headers: this.getHeaders() }).pipe(
       catchError(_ => _));

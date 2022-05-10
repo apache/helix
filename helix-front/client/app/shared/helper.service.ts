@@ -17,7 +17,7 @@ export class HelperService {
     this.dialog.open(AlertDialogComponent, {
       data: {
         title: 'Error',
-        message: message
+        message
       }
     });
   }
@@ -33,7 +33,7 @@ export class HelperService {
       .open(ConfirmDialogComponent, {
         data: {
           title: 'Confirmation',
-          message: message
+          message
         }
       })
       .afterClosed()

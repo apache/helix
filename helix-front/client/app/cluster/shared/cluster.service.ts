@@ -11,20 +11,16 @@ export class ClusterService extends HelixService {
   public getAll() {
     return this
       .request('/clusters').pipe(
-      map(data => {
-        return data
+      map(data => data
           .clusters
           .sort()
-          .map(name => <Cluster>({name: name}));
-      }));
+          .map(name => <Cluster>({name}))));
   }
 
   public get(name: string) {
     return this
       .request(`/clusters/${ name }`).pipe(
-      map(data => {
-        return new Cluster(data);
-      }));
+      map(data => new Cluster(data)));
   }
 
   public create(name: string) {
@@ -55,7 +51,7 @@ export class ClusterService extends HelixService {
   public enableMaintenanceMode(name: string, reason: string) {
     return this
       .post(`/clusters/${ name }?command=enableMaintenanceMode`, JSON.stringify({
-        reason: reason
+        reason
       }));
   }
 

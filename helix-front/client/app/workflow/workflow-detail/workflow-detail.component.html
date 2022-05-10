@@ -20,7 +20,7 @@
 <mat-toolbar class="mat-elevation-z1">
   <mat-toolbar-row>
     <hi-detail-header [cluster]="clusterName" [workflow]="workflow?.name"></hi-detail-header>
-    <hi-disabled-label *ngIf="!isLoading && workflow.state != 'IN_PROGRESS'" [text]="workflow.state"></hi-disabled-label>
+    <hi-disabled-label *ngIf="!isLoading && workflow.state !== 'IN_PROGRESS'" [text]="workflow.state"></hi-disabled-label>
   </mat-toolbar-row>
   <mat-toolbar-row class="information">
     <a mat-mini-fab routerLink="../"><mat-icon>arrow_back</mat-icon></a>

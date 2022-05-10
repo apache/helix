@@ -15,6 +15,6 @@ export default function setRoutes(app) {
 
   /* GET /admin to check app health. */
   app.get('/admin', (req, res, next) => {
-      res.status(200).send("GOOD");
+      res.status(200).send('GOOD');
   });
 }

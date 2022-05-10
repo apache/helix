@@ -25,7 +25,7 @@ export class UserService {
     return this.http
       .post(
         `${ Settings.userAPI }/login`,
-        { username: username, password: password },
+        { username, password },
         { headers: this.getHeaders() }
       );
   }

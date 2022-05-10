@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { MediaChange, ObservableMedia } from '@angular/flex-layout';
+import { MediaChange, MediaObserver } from '@angular/flex-layout';
 
 @Component({
   selector: 'hi-cluster',
@@ -13,15 +13,18 @@ export class ClusterComponent implements OnInit {
   isNarrowView: boolean;
 
   constructor(
-    protected media: ObservableMedia
+    protected media: MediaObserver
   ) { }
 
   ngOnInit() {
     // auto adjust side nav only if not embed
     this.isNarrowView = (this.media.isActive('xs') || this.media.isActive('sm'));
 
-    this.media.subscribe((change: MediaChange) => {
-      this.isNarrowView = (change.mqAlias === 'xs' || change.mqAlias === 'sm');
+    this.media.asObservable().subscribe((change: MediaChange[]) => {
+      change.forEach((item) => {
+        this.isNarrowView = (item.mqAlias === 'xs' || item.mqAlias === 'sm');
+      })
+      
     });
   }
 

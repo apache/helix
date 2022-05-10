@@ -17,7 +17,7 @@
   ~ under the License.
   -->
 
-<form (ngSubmit)="onSubmit()" #inputForm="ngForm">
+<form [formGroup]="myForm" (ngSubmit)="onSubmit(myForm)">
   <h1 mat-dialog-title>{{ title }}</h1>
   <div mat-dialog-content>
     <section>
@@ -25,26 +25,26 @@
     </section>
     <section *ngFor="let name of getKeys(values)" [ngSwitch]="values[name].type">
       <section *ngSwitchCase="'boolean'">
-        {{ values[name].label }}:
+        {{ value.values[name].label }}:
         <mat-slide-toggle
           [name]="name"
-          [(ngModel)]="values[name].value">
-          {{ values[name].value ? 'True' : 'False' }}
+          formControlName="values[name].value">
+          {{ value.values[name].value ? 'True' : 'False' }}
         </mat-slide-toggle>
       </section>
       <mat-form-field *ngSwitchCase="'password'">
         <input matInput
           type="password"
           [name]="name"
-          [(ngModel)]="values[name].value"
-          [placeholder]="values[name].label"
+          formControlName="values[name].value"
+          placeholder="value.values[name].label"
           required>
       </mat-form-field>
       <mat-form-field *ngSwitchDefault>
         <input matInput
           [name]="name"
-          [(ngModel)]="values[name].value"
-          [placeholder]="values[name].label"
+          formControlName="values[name].value"
+          placeholder="values[name].label"
           required>
       </mat-form-field>
     </section>

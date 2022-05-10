@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @import 'client/theme.scss';
 
 .mat-spinner {
@@ -6,7 +7,7 @@
 
 .cluster-list-item-selected h4 {
   font-weight: 500;
-  color: mat-color($hi-primary);
+  color: mat.get-color-from-palette($hi-primary);
 }
 
 .error-message {

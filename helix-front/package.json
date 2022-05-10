@@ -35,9 +35,9 @@
     "@angular/common": "^7.2.16",
     "@angular/compiler": "^7.2.16",
     "@angular/core": "^7.2.16",
-    "@angular/http": "7.2.16",
-    "@angular/flex-layout": "^6.0.0-beta.18",
+    "@angular/flex-layout": "^7.0.0-beta.24",
     "@angular/forms": "^7.2.16",
+    "@angular/http": "7.2.16",
     "@angular/material": "^7.2.16",
     "@angular/platform-browser": "^7.2.16",
     "@angular/platform-browser-dynamic": "^7.2.16",
@@ -45,10 +45,10 @@
     "@angular/router": "^7.2.16",
     "ajv": "^6.9.1",
     "rxjs": "^6.6.7",
+    "rxjs-compat": "^6.0.0-rc.0",
     "tsickle": "^0.32.1",
     "tslib": "^1.9.0",
-    "zone.js": "^0.8.29",
-    "rxjs-compat": "^6.0.0-rc.0"
+    "zone.js": "^0.8.29"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.13.0",

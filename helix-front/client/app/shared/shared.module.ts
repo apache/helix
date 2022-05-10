@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FlexLayoutModule } from '@angular/flex-layout';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
@@ -28,6 +28,7 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     MaterialModule,
     FlexLayoutModule,
     FormsModule,
+    ReactiveFormsModule,
     NgxDatatableModule,
     NgxJsonViewerModule
   ],

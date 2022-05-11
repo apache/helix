@@ -43,7 +43,7 @@
     "@angular/platform-server": "8.2.14",
     "@angular/router": "8.2.14",
     "@swimlane/ngx-charts": "^13.0.4",
-    "@swimlane/ngx-datatable": "^16.0.3",
+    "@swimlane/ngx-datatable": "^16.1.0",
     "@swimlane/ngx-graph": "^7.0.0",
     "ajv": "^6.9.1",
     "angulartics2": "^2.2.1",

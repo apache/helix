@@ -8,7 +8,7 @@ import { ControlValueAccessor } from '@angular/forms';
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
 
-  @ViewChild('inputControl', null) inputControl: ElementRef;
+  @ViewChild('inputControl', {static: true}) inputControl: ElementRef;
 
   @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
 

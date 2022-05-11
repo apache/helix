@@ -8,7 +8,7 @@ import { MediaChange, MediaObserver } from '@angular/flex-layout';
 })
 export class ClusterComponent implements OnInit {
 
-  @ViewChild('sidenav', null) sidenav;
+  @ViewChild('sidenav', {static: true}) sidenav;
 
   isNarrowView: boolean;
 

@@ -6,9 +6,9 @@
 @import '~vis/dist/vis-network.min.css';
 
 // ngx-datatable styles
-@import '~@swimlane/ngx-datatable/release/index.css';
-@import '~@swimlane/ngx-datatable/release/themes/material.css';
-@import '~@swimlane/ngx-datatable/release/assets/icons.css';
+@import '~@swimlane/ngx-datatable/index.css';
+@import '~@swimlane/ngx-datatable/themes/material.css';
+@import '~@swimlane/ngx-datatable/assets/icons.css';
 // with overrides
 .ngx-datatable.material {
   &.single-selection,

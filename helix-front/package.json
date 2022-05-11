@@ -42,7 +42,7 @@
     "@angular/platform-browser-dynamic": "8.2.14",
     "@angular/platform-server": "8.2.14",
     "@angular/router": "8.2.14",
-    "@swimlane/ngx-charts": "11.2.0",
+    "@swimlane/ngx-charts": "^13.0.4",
     "@swimlane/ngx-datatable": "^16.0.2",
     "@swimlane/ngx-graph": "^7.0.0-rc.1",
     "ajv": "^6.9.1",

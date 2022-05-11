@@ -19,9 +19,9 @@ import { ConfirmDialogComponent } from '../dialog/confirm-dialog/confirm-dialog.
 })
 export class NodeViewerComponent implements OnInit {
 
-  @ViewChild('simpleTable', null) simpleTable;
-  @ViewChild('listTable', null) listTable;
-  @ViewChild('mapTable', null) mapTable;
+  @ViewChild('simpleTable', {static: true}) simpleTable;
+  @ViewChild('listTable', {static: true}) listTable;
+  @ViewChild('mapTable', {static: true}) mapTable;
 
   @Output('update')
   change: EventEmitter<Node> = new EventEmitter<Node>();

@@ -19,7 +19,7 @@ import { HelperService } from '../../shared/helper.service';
 })
 export class ResourceListComponent implements OnInit {
 
-  @ViewChild('resourcesTable')
+  @ViewChild('resourcesTable', null)
   table: any;
 
   isForInstance = false;

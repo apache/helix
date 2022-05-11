@@ -44,7 +44,7 @@
     "@angular/router": "8.2.14",
     "@swimlane/ngx-charts": "^13.0.4",
     "@swimlane/ngx-datatable": "^16.0.2",
-    "@swimlane/ngx-graph": "^7.0.0-rc.1",
+    "@swimlane/ngx-graph": "^7.0.0",
     "ajv": "^6.9.1",
     "angulartics2": "^2.2.1",
     "body-parser": "^1.17.2",

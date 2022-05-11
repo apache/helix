@@ -26,15 +26,15 @@
     "type:check:watch": "npm run type:check -- --watch"
   },
   "engines": {
-    "node": "8.9.4",
-    "npm": "5.5.1"
+    "node": "10.9.0",
+    "npm": "6.2.0"
   },
   "dependencies": {
     "@angular/animations": "^7.2.16",
     "@angular/cdk": "^7.2.16",
     "@angular/common": "^7.2.16",
     "@angular/compiler": "^7.2.16",
-    "@angular/core": "^7.2.16",
+    "@angular/core": "8.2.14",
     "@angular/flex-layout": "^7.0.0-beta.24",
     "@angular/forms": "^7.2.16",
     "@angular/http": "7.2.16",
@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.13.0",
-    "@angular/cli": "^7.3.10",
+    "@angular/cli": "8.3.29",
     "@angular/compiler-cli": "^7.2.16",
     "@types/hammerjs": "^2.0.34",
     "@types/jasmine": "2.5.38",
@@ -96,6 +96,6 @@
     "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
-    "typescript": "3.2.4"
+    "typescript": "3.5.3"
   }
 }

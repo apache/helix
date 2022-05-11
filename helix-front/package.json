@@ -95,6 +95,6 @@
     "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "tslint": "^5.8.0",
-    "typescript": "3.8.3"
+    "typescript": "3.5.3"
   }
 }

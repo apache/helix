@@ -22,7 +22,7 @@ export class WorkflowDagComponent implements OnInit, AfterViewInit {
   };
   jobNameToId = {};
 
-  @ViewChild('graph')
+  @ViewChild('graph', null)
   graph;
 
   constructor(protected el:ElementRef) { }

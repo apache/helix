@@ -85,6 +85,7 @@ import org.slf4j.LoggerFactory;
 public class ZkClient implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ZkClient.class);
 
+  public static final long TTL_NOT_SET = -1L;
   private static final long MAX_RECONNECT_INTERVAL_MS = 30000; // 30 seconds
 
   // If number of children exceeds this limit, getChildren() should not retry on connection loss.
@@ -1937,10 +1938,10 @@ public class ZkClient implements Watcher {
           new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
       return;
     }
-    doAsyncCreate(path, data, mode, startT, cb, parseExpectedSessionId(datat));
+    doAsyncCreate(path, data, mode, TTL_NOT_SET, startT, cb, parseExpectedSessionId(datat));
   }
 
-  private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode,
+  private void doAsyncCreate(final String path, final byte[] data, final CreateMode mode, long ttl,
       final long startT, final ZkAsyncCallbacks.CreateCallbackHandler cb, final String expectedSessionId) {
     try {
       retryUntilConnected(() -> {
@@ -1949,17 +1950,31 @@ public class ZkClient implements Watcher {
                 GZipCompressionUtil.isCompressed(data)) {
               @Override
               protected void doRetry() {
-                doAsyncCreate(path, data, mode, System.currentTimeMillis(), cb, expectedSessionId);
+                doAsyncCreate(path, data, mode, ttl, System.currentTimeMillis(), cb, expectedSessionId);
               }
-            });
+            }, ttl);
         return null;
       });
     } catch (RuntimeException e) {
       // Process callback to release caller from waiting
       cb.processResult(KeeperException.Code.APIERROR.intValue(), path,
-          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null);
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null, null);
       throw e;
     }
+  }
+
+  public void asyncCreate(final String path, Object datat, final CreateMode mode, long ttl,
+      final ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    final long startT = System.currentTimeMillis();
+    final byte[] data;
+    try {
+      data = (datat == null ? null : serialize(datat, path));
+    } catch (ZkMarshallingError e) {
+      cb.processResult(KeeperException.Code.MARSHALLINGERROR.intValue(), path,
+          new ZkAsyncCallMonitorContext(_monitor, startT, 0, false), null, null);
+      return;
+    }
+    doAsyncCreate(path, data, mode, ttl, startT, cb, parseExpectedSessionId(datat));
   }
 
   // Async Data Accessors

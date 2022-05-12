@@ -145,4 +145,4 @@ const HELIX_ROUTES: Routes = [
   }
 ];
 
-export const AppRoutingModule: ModuleWithProviders = RouterModule.forRoot(HELIX_ROUTES);
+export const AppRoutingModule: ModuleWithProviders<RouterModule> = RouterModule.forRoot(HELIX_ROUTES);

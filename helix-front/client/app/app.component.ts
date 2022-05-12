@@ -7,7 +7,7 @@ import {
   NavigationCancel,
   NavigationError
 } from '@angular/router';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Angulartics2Piwik } from 'angulartics2';
 

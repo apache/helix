@@ -276,7 +276,7 @@
     <module>helix-rest</module>
     <module>helix-lock</module>
     <module>helix-agent</module>
-    <!--<module>helix-front</module>-->
+    <module>helix-front</module>
     <module>recipes</module>
     <module>helix-view-aggregator</module>
   </modules>

@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 
-import { Angulartics2Module, Angulartics2Piwik } from 'angulartics2';
+import { Angulartics2Module, Angulartics2Matomo } from 'angulartics2';
 
 import { AppRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
@@ -28,7 +28,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
     FormsModule,
     HttpClientModule,
     AppRoutingModule,
-    Angulartics2Module.forRoot([ Angulartics2Piwik ]),
+    // Type '(typeof Angulartics2Matomo)[]'
+    // has no properties in common with type 'Partial<Angulartics2Settings>'.ts(2559)
+    // @ts-ignore
+    Angulartics2Module.forRoot([ Angulartics2Matomo ]),
     CoreModule,
     SharedModule,
     ClusterModule,

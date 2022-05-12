@@ -9,7 +9,7 @@ import {
 } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
-import { Angulartics2Piwik } from 'angulartics2';
+import { Angulartics2Piwik } from 'angulartics2/piwik';
 
 import { UserService } from './core/user.service';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';

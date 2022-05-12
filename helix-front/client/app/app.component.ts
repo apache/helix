@@ -9,7 +9,7 @@ import {
 } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
-import { Angulartics2Matomo } from 'angulartics2';
+import { Angulartics2Piwik } from 'angulartics2';
 
 import { UserService } from './core/user.service';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
@@ -31,7 +31,7 @@ export class AppComponent implements OnInit {
   constructor(
     protected route: ActivatedRoute,
     protected router: Router,
-    protected angulartics: Angulartics2Matomo,
+    protected angulartics: Angulartics2Piwik,
     protected dialog: MatDialog,
     protected service: UserService,
     protected helper: HelperService

@@ -17,17 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<head>
-  <title>Development Process</title>
-</head>
-
-Development Process
 ---
 
+# Development Process
 
-# Project Based  Development
-## Project Proposal & Review
-### Overall Steps
+## Project Based  Development
+
+### Project Proposal & Review
+
+#### Overall Steps
+
 The developer for Apache Helix should use following steps for project based development:
 * Write a Wiki to describe your proposal for the project.
 * Send the proposal to [dev@helix.apache.org](dev@helix.apache.org) for reviewing
@@ -36,7 +35,8 @@ The developer for Apache Helix should use following steps for project based deve
 * Create your project branch and start the implementation.
 * Make sure all tests passed before merging to the main branch.
 
-### Proposal Guidance
+#### Proposal Guidance
+
 Before the implementation, a project proposal must required for following items documented:
 * Problem Statement
 * Proposed Solutions
@@ -51,7 +51,8 @@ For all the list components must be covered in the proposal documentation. This 
 * **\[In Review\]**: document is ready to be reviewed and people are reviewing it.
 * **\[Done\]**: document is reviewed and signed off by Apache Helix PMC members.
 
-### Definition of Project 
+#### Definition of Project 
+
 To define a project, you need to understand the complexity of the feature you implement, improve or fixing bugs.
 Here're the minimum requirements for a project based development. Any one of the item qualified, you must start a project based development:
  * The work need to be done is a new feature that either :
@@ -67,12 +68,16 @@ Here're the minimum requirements for a project based development. Any one of the
 
 Feelfree to add more items and give suggestions to [dev mailing list](dev@helix.apache.org).
 
-# Regular Bug Fixing
-## Bug Fixing Steps
+## Regular Bug Fixing
+
+### Bug Fixing Steps
+
 For all developers who are willing to contributing to Apache Helix for fixing bugs, please following the steps we decribed below.
 * If there is a github issue, assign that ticket to you if you are committer. For contributors, you can leave a comment to let other committers to assign that issue to you. If there is no issue in github, create an issue for that.
 * Working on the bug fixing in your forked repo.
 * Submit PR based on our [template](https://github.com/apache/helix/wiki/Pull-Request-Description-Template)
 * Address all review comments and follow [merge steps](https://github.com/apache/helix/wiki/Pull-Request-Merge-Steps)
-## Relevant Work
+
+### Relevant Work
+
 When you work on bug fixing and you found other things need to be done, feel free to create issues and leave **TODO** comments in the code to avoid make the PR larger and larger. 

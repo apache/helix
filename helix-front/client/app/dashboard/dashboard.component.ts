@@ -10,7 +10,7 @@ import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import * as _ from 'lodash';
-import {Data, DataSet, Edge, Node, Options, VisNetworkService } from 'ngx-vis';
+import {Data, Edge, Node, Options, VisNetworkService } from 'ngx-vis';
 
 import { ResourceService } from '../resource/shared/resource.service';
 import { InstanceService } from '../instance/shared/instance.service';
@@ -26,8 +26,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   public visNetwork = 'cluster-dashboard';
   public visNetworkData: Data;
   public visNetworkOptions: Options;
-  public nodes: DataSet<Node>;
-  public edges: DataSet<Edge>; 
+  public nodes: Node[];
+  public edges: Edge[]; 
 
   public clusterName: string;
   public isLoading = false;
@@ -47,14 +47,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     protected helper: HelperService
   ) { }
 
-  public addNode(): void {
-    const lastId = this.nodes.length;
-    const newId = this.nodes.length + 1;
-    this.nodes.add({ id: newId, label: 'New Node' });
-    this.edges.add({ from: lastId, to: newId });
-    this.visNetworkService.fit(this.visNetwork);
-  }
-
   networkInitialized() {
     this.visNetworkService.on(this.visNetwork, 'click');
     this.visNetworkService.on(this.visNetwork, 'zoom');
@@ -64,7 +56,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         if (eventData[0] === this.visNetwork) {
 
           // clear the edges
-          this.visNetworkData.edges = new DataSet<Edge>([])
+          this.visNetworkData.edges = []
           this.selectedResource = null;
           this.selectedInstance = null;
 
@@ -90,8 +82,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.nodes = new DataSet<Node>([]);
-    this.edges = new DataSet<Edge>([]);
+    this.nodes = 
+    this.edges = [];
     this.visNetworkData = { nodes: this.nodes, edges: this.edges }
     this.visNetworkOptions = {
       interaction: {

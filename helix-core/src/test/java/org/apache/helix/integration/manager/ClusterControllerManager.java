@@ -19,6 +19,7 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,10 @@ public class ClusterControllerManager extends ClusterManager {
 
   public ClusterControllerManager(String zkAddr, String clusterName, String controllerName) {
     super(zkAddr, clusterName, controllerName, InstanceType.CONTROLLER);
+  }
+
+  public ClusterControllerManager(String clusterName, HelixManagerProperty helixManagerProperty) {
+    super(clusterName, "controller", InstanceType.CONTROLLER, null, null, helixManagerProperty);
   }
 
   @Override

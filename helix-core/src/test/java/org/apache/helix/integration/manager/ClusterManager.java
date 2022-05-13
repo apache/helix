@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.helix.HelixManagerProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
 import org.slf4j.Logger;
@@ -55,6 +57,15 @@ public class ClusterManager extends ZKHelixManager implements Runnable, ZkTestMa
     _clusterName = clusterName;
     _instanceName = instanceName;
     _type = type;
+    _uid = UID.getAndIncrement();
+  }
+  protected ClusterManager(String clusterName, String instanceName, InstanceType instanceType,
+      String zkAddress, HelixManagerStateListener stateListener,
+      HelixManagerProperty helixManagerProperty) {
+    super(clusterName, instanceName, instanceType, zkAddress, stateListener, helixManagerProperty);
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _type = instanceType;
     _uid = UID.getAndIncrement();
   }
 

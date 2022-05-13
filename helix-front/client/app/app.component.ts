@@ -9,7 +9,7 @@ import {
 } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 
-import { Angulartics2Piwik } from 'angulartics2/piwik';
+// import { Angulartics2Piwik } from 'angulartics2/piwik';
 
 import { UserService } from './core/user.service';
 import { InputDialogComponent } from './shared/dialog/input-dialog/input-dialog.component';
@@ -19,7 +19,7 @@ import { HelperService } from './shared/helper.service';
   selector: 'hi-root',
   templateUrl: './app.component.html',
   styleUrls: [ './app.component.scss' ],
-  providers: [ UserService ]
+  providers: [ UserService/*, Angulartics2Piwik */ ]
 })
 export class AppComponent implements OnInit {
 
@@ -29,9 +29,9 @@ export class AppComponent implements OnInit {
   currentUser: any;
 
   constructor(
+    // protected angulartics2Piwik: Angulartics2Piwik,
     protected route: ActivatedRoute,
     protected router: Router,
-    protected angulartics: Angulartics2Piwik,
     protected dialog: MatDialog,
     protected service: UserService,
     protected helper: HelperService
@@ -50,6 +50,7 @@ export class AppComponent implements OnInit {
         this.isLoading = false;
       }
     });
+    // angulartics2Piwik.startTracking();
   }
 
   ngOnInit() {

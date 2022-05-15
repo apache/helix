@@ -44,6 +44,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.mockito.Mockito;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -54,9 +55,18 @@ public class TestAuthValidator extends AbstractTestClass {
   private String _mockBaseUri;
   private CloseableHttpClient _httpClient;
 
+  private static String CLASSNAME_TEST_DEFAULT_AUTH = "testDefaultAuthValidator";
+  private static String CLASSNAME_TEST_CST_AUTH = "testCustomAuthValidator";
+
+  @AfterClass
+  public void afterClass() {
+    _gZkClient.deleteRecursively("/" + CLASSNAME_TEST_DEFAULT_AUTH);
+    _gZkClient.deleteRecursively("/" + CLASSNAME_TEST_CST_AUTH);
+  }
+
   @Test
   public void testDefaultAuthValidator() throws JsonProcessingException {
-    String testClusterName = "testDefaultAuthValidator";
+    String testClusterName = CLASSNAME_TEST_DEFAULT_AUTH;
     put("clusters/" + testClusterName, null, Entity.entity("", MediaType.APPLICATION_JSON_TYPE),
         Response.Status.CREATED.getStatusCode());
     String body = get("clusters/", null, Response.Status.OK.getStatusCode(), true);
@@ -67,7 +77,7 @@ public class TestAuthValidator extends AbstractTestClass {
 
   @Test(dependsOnMethods = "testDefaultAuthValidator")
   public void testCustomAuthValidator() throws IOException, InterruptedException {
-    String testClusterName = "testCustomAuthValidator";
+    String testClusterName = CLASSNAME_TEST_CST_AUTH;
     int newPort = getBaseUri().getPort() + 1;
 
     // Start a second server for testing Distributed Leader Election for writes

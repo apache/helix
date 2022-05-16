@@ -45,11 +45,6 @@ import { DisabledLabelComponent } from './disabled-label/disabled-label.componen
     ConfirmDialogComponent,
     DisabledLabelComponent
   ],
-  entryComponents: [
-    InputDialogComponent,
-    AlertDialogComponent,
-    ConfirmDialogComponent
-  ],
   exports: [
     RouterModule,
     MaterialModule,

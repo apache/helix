@@ -86,7 +86,7 @@
     "@types/lodash": "4.14.120",
     "@types/node": "^12.11.1",
     "@types/request": "^2.0.0",
-    "codelyzer": "^5.1.2",
+    "codelyzer": "^6.0.2",
     "concurrently": "^3.5.0",
     "jasmine-core": "^3.8.0",
     "jasmine-spec-reporter": "~5.0.0",

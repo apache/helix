@@ -46,7 +46,7 @@
     "@egjs/hammerjs": "^2.0.17",
     "@swimlane/ngx-charts": "^13.0.4",
     "@swimlane/ngx-datatable": "^17.1.0",
-    "@swimlane/ngx-graph": "^7.0.0",
+    "@swimlane/ngx-graph": "^7.2.0",
     "ajv": "^6.9.1",
     "angulartics2": "^10.1.0",
     "body-parser": "^1.17.2",

@@ -68,7 +68,7 @@
     "rxjs": "^6.5.5",
     "rxjs-compat": "^6.0.0-rc.0",
     "sass": "^1.51.0",
-    "tsickle": "^0.38.1",
+    "tsickle": "github:angular/tsickle#fdf6e86717648f1b9603752cb83486fa6dcac38f",
     "tslib": "^2.0.0",
     "uuid": "^7.0.3",
     "vis": "^4.21.0",
@@ -88,7 +88,7 @@
     "@types/request": "^2.0.0",
     "codelyzer": "^5.1.2",
     "concurrently": "^3.5.0",
-    "jasmine-core": "~3.5.0",
+    "jasmine-core": "^3.8.0",
     "jasmine-spec-reporter": "~5.0.0",
     "karma": "~5.0.0",
     "karma-chrome-launcher": "~3.1.0",
@@ -101,7 +101,7 @@
     "protractor": "~7.0.0",
     "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
-    "tslint": "~6.1.0",
+    "tslint": "^5.20.1",
     "typescript": "4.0.8"
   }
 }

@@ -1940,6 +1940,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         } else {
           for (String disabledInstance : instances) {
             // We allow user to override disabledType and reason for an already disabled instance.
+            // TODO: we are updating both DISABLED_INSTANCES and DISABLED_INSTANCES_W_INFO for
+            // backward compatible. Deprecate DISABLED_INSTANCES in the future.
             // TODO: update the history ZNode
             String timeStamp = String.valueOf(System.currentTimeMillis());
             disabledInstances.put(disabledInstance, timeStamp);

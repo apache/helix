@@ -61,6 +61,12 @@ public class TestBatchEnableInstances extends TaskTestBase {
     for (Map<String, String> stateMap : externalView.getRecord().getMapFields().values()) {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
     }
+    HelixDataAccessor dataAccessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
+    ClusterConfig clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+    Assert.assertEquals(Long.parseLong(
+        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName())),
+        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[0].getInstanceName())));
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         _participants[0].getInstanceName(), true);
   }
@@ -79,9 +85,18 @@ public class TestBatchEnableInstances extends TaskTestBase {
       Assert.assertTrue(!stateMap.keySet().contains(_participants[0].getInstanceName()));
       Assert.assertTrue(!stateMap.keySet().contains(_participants[1].getInstanceName()));
     }
+    HelixDataAccessor dataAccessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<>(_gZkClient));
+    ClusterConfig clusterConfig = dataAccessor.getProperty(dataAccessor.keyBuilder().clusterConfig());
+    Assert.assertEquals(Long.parseLong(
+        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[1].getInstanceName())),
+        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[1].getInstanceName())));
     _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME,
         Arrays.asList(_participants[0].getInstanceName(), _participants[1].getInstanceName()),
         true);
+    Assert.assertEquals(Long.parseLong(
+        clusterConfig.getInstanceHelixDisabledTimeStamp(_participants[0].getInstanceName())),
+        Long.parseLong(clusterConfig.getDisabledInstances().get(_participants[0].getInstanceName())));
   }
 
   @Test

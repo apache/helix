@@ -76,8 +76,8 @@ public class ClusterConfig extends HelixProperty {
 
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
-        // precedence if it is set
-        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+    // precedence if it is set
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
     // transition if the number of partitons that need
     // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
@@ -87,6 +87,7 @@ public class ClusterConfig extends HelixProperty {
     DISABLED_INSTANCES,
     DISABLED_INSTANCES_W_INFO,
     // disabled instances and disabled instances with info are for storing batch disabled instances.
+    // disabled instances will write into both 2 fields for backward compatibility.
 
     VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
     VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
@@ -774,8 +775,8 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
-   * Set the disabled instance list
-   disabledInstancesWithInfo   */
+   * Set the disabled instance list with concatenated Info
+   */
   public void setDisabledInstancesWithInfo(Map<String, String> disabledInstancesWithInfo) {
     _record.setMapField(ClusterConfigProperty.DISABLED_INSTANCES_W_INFO.name(), disabledInstancesWithInfo);
   }
@@ -792,7 +793,7 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Get current disabled instance map of
-   * <instance, disabledReason = res, disabledType = typ, disabledTimeStamp = time>
+   * <instance, disabledReason = "res, disabledType = typ, disabledTimeStamp = time">
    * @return a non-null map of disabled instances in cluster config
    */
   public Map<String, String> getDisabledInstancesWithInfo() {
@@ -1142,7 +1143,8 @@ public class ClusterConfig extends HelixProperty {
   }
 
   public String getInstanceHelixDisabledType(String instanceName) {
-    if (!getDisabledInstancesWithInfo().containsKey(instanceName) && !getDisabledInstances().containsKey(instanceName)) {
+    if (!getDisabledInstancesWithInfo().containsKey(instanceName) &&
+        !getDisabledInstances().containsKey(instanceName)) {
       return InstanceConstants.INSTANCE_NOT_DISABLED;
     }
     return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
@@ -1150,13 +1152,20 @@ public class ClusterConfig extends HelixProperty {
             InstanceConstants.InstanceDisabledType.DEFAULT_INSTANCE_DISABLE_TYPE.toString());
   }
 
-  // return null if instance is not disabled in batch mode or do not have disabled reason
+  /**
+   * @return a String representing reason.
+   * null if instance is not disabled in batch mode or do not have disabled reason
+   */
   public String getInstanceHelixDisabledReason(String instanceName) {
     return ConfigStringUtil.parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
         .get(ClusterConfigProperty.HELIX_DISABLED_REASON.toString());
   }
 
-  // return null if instance is not disabled in batch mode
+  /**
+   * @param instanceName
+   * @return a String representation of unix time
+   * null if the instance is not disabled in batch mode.
+   */
   public String getInstanceHelixDisabledTimeStamp(String instanceName) {
     if (getDisabledInstancesWithInfo().containsKey(instanceName)) {
       return ConfigStringUtil.parseConcatenatedConfig(

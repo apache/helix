@@ -175,6 +175,9 @@ public class TestInstancesAccessor extends AbstractTestClass {
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
     Assert.assertEquals(clusterConfig.getDisabledInstancesWithInfo().keySet(),
         new HashSet<>(Arrays.asList(CLUSTER_NAME + "localhost_12919")));
+    Assert.assertEquals(Long.parseLong(
+        clusterConfig.getInstanceHelixDisabledTimeStamp(CLUSTER_NAME + "localhost_12919")),
+        Long.parseLong(clusterConfig.getDisabledInstances().get(CLUSTER_NAME + "localhost_12919")));
     Assert
         .assertEquals(clusterConfig.getInstanceHelixDisabledType(CLUSTER_NAME + "localhost_12918"),
             "INSTANCE_NOT_DISABLED");

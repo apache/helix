@@ -129,7 +129,8 @@ public class InstanceValidationUtil {
       return enabledInInstanceConfig;
     }
     boolean enabledInClusterConfig =
-        !clusterConfig.getDisabledInstances().containsKey(instanceConfig.getInstanceName());
+        !clusterConfig.getDisabledInstances().containsKey(instanceConfig.getInstanceName())
+        && !clusterConfig.getDisabledInstancesWithInfo().containsKey(instanceConfig.getInstanceName());
     return enabledInClusterConfig && enabledInInstanceConfig;
   }
 

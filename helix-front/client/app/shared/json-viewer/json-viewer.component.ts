@@ -18,7 +18,7 @@ export class JsonViewerComponent implements OnInit {
   ngOnInit() {
     // MODE 2: use in router
     if (this.route.snapshot.data.path) {
-      let path = this.route.snapshot.data.path;
+      const path = this.route.snapshot.data.path;
 
       // try parent data first
       this.obj = _.get(this.route.parent, `snapshot.data.${ path }`);

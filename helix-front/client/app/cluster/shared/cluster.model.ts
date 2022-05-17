@@ -23,8 +23,8 @@ export class Cluster {
     this.resources = obj.resources;
     this.inMaintenance = obj.maintenance;
 
-    let ins: Instance[] = [];
-    for (let instance of obj.instances) {
+    const ins: Instance[] = [];
+    for (const instance of obj.instances) {
       ins.push(new Instance(
         instance,
         this.name,

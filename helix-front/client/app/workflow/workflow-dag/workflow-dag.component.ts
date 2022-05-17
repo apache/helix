@@ -25,7 +25,7 @@ export class WorkflowDagComponent implements OnInit, AfterViewInit {
   @ViewChild('graph', {static: true})
   graph;
 
-  constructor(protected el:ElementRef) { }
+  constructor(protected el: ElementRef) { }
 
   ngOnInit() {
     this.loadJobs();

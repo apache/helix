@@ -43,7 +43,7 @@ export class InstanceListComponent implements OnInit {
   }
 
   onSelect({ selected }) {
-    let row = selected[0];
+    const row = selected[0];
     this.router.navigate([row.name], { relativeTo: this.route });
   }
 

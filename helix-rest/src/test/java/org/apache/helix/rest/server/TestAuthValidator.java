@@ -29,6 +29,7 @@ import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.helix.TestHelper;
 import org.apache.helix.rest.common.HelixRestNamespace;
 import org.apache.helix.rest.common.HttpConstants;
 import org.apache.helix.rest.server.authValidator.AuthValidator;
@@ -60,8 +61,8 @@ public class TestAuthValidator extends AbstractTestClass {
 
   @AfterClass
   public void afterClass() {
-    _gZkClient.deleteRecursively("/" + CLASSNAME_TEST_DEFAULT_AUTH);
-    _gZkClient.deleteRecursively("/" + CLASSNAME_TEST_CST_AUTH);
+    TestHelper.dropCluster(CLASSNAME_TEST_DEFAULT_AUTH, _gZkClient);
+    TestHelper.dropCluster(CLASSNAME_TEST_CST_AUTH, _gZkClient);
   }
 
   @Test

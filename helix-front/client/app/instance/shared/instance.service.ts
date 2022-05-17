@@ -52,7 +52,7 @@ export class InstanceService extends HelixService {
   public create(clusterName: string, host: string, port: string, enabled: boolean) {
     const name = `${ host }_${ port }`;
 
-    let node = new Node(null);
+    const node = new Node(null);
     node.appendSimpleField('HELIX_ENABLED', enabled ? 'true' : 'false');
     node.appendSimpleField('HELIX_HOST', host);
     node.appendSimpleField('HELIX_PORT', port);

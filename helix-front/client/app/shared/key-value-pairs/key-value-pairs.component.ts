@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 // good doc: https://angular.io/docs/ts/latest/api/core/index/ContentChildren-decorator.html
 
 @Directive({ selector: 'hi-key-value-pair' })
-export class KeyValuePairDirective{
+export class KeyValuePairDirective {
   @Input() name: string;
   @Input() prop: string;
 }

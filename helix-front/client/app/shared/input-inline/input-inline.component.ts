@@ -7,28 +7,6 @@ import { ControlValueAccessor } from '@angular/forms';
   styleUrls: ['./input-inline.component.scss']
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
-
-  @ViewChild('inputControl', {static: true}) inputControl: ElementRef;
-
-  @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
-
-  @Input() label: string = '';
-  @Input() min: number = -9999;
-  @Input() max: number = 99999999;
-  @Input() minlength: number = 0;
-  @Input() maxlength: number = 2555;
-  @Input() type: string = 'text';
-  @Input() required: boolean = false;
-  @Input() focus: Function = _ => { };
-  @Input() blur: Function = _ => { };
-  @Input() pattern: string = null;
-  @Input() errorLabel: string = 'Invalid input value';
-  @Input() editLabel: string = 'Click to edit';
-  @Input() disabled: boolean = false;
-
-  editing: boolean = false;
-
-  private _value: string = '';
   @Input()
   get value(): any {
     return this._value;
@@ -39,15 +17,37 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
       this.onChange(v);
     }
   }
+;
 
-  private lastValue: string = '';
+  @ViewChild('inputControl', {static: true}) inputControl: ElementRef;
+
+  @Output('update') change: EventEmitter<string> = new EventEmitter<string>();
+
+  @Input() label = '';
+  @Input() min = -9999;
+  @Input() max = 99999999;
+  @Input() minlength = 0;
+  @Input() maxlength = 2555;
+  @Input() type = 'text';
+  @Input() required = false;
+  @Input() pattern: string = null;
+  @Input() errorLabel = 'Invalid input value';
+  @Input() editLabel = 'Click to edit';
+  @Input() disabled = false;
+
+  editing = false;
+
+  private _value = '';
+
+  private lastValue = '';
 
   // Required forControlValueAccessor interface
   public onChange: any = Function.prototype;
   public onTouched: any = Function.prototype;
+  @Input() focus: Function = _ => { };
+  @Input() blur: Function = _ => { };
   public registerOnChange(fn: (_: any) => {}): void { this.onChange = fn; }
-  public registerOnTouched(fn: () => {}): void { this.onTouched = fn; };
-  writeValue(value: any) {
+  public registerOnTouched(fn: () => {}): void { this.onTouched = fn; }  writeValue(value: any) {
     this._value = value;
   }
 

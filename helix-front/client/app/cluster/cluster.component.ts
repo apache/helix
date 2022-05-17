@@ -24,7 +24,7 @@ export class ClusterComponent implements OnInit {
       change.forEach((item) => {
         this.isNarrowView = (item.mqAlias === 'xs' || item.mqAlias === 'sm');
       })
-      
+
     });
   }
 

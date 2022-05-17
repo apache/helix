@@ -76,8 +76,8 @@ public class ClusterConfig extends HelixProperty {
 
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
-    // precedence if it is set
-    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+        // precedence if it is set
+        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
     // transition if the number of partitons that need
     // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
@@ -85,12 +85,13 @@ public class ClusterConfig extends HelixProperty {
     // partitons that need recovery or in
     // error exceeds this limitation
     DISABLED_INSTANCES,
-    DISABLED_INSTANCES_W_INFO,
+    DISABLED_INSTANCES_WITH_INFO,
     // disabled instances and disabled instances with info are for storing batch disabled instances.
     // disabled instances will write into both 2 fields for backward compatibility.
 
     VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
-    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
+    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source clust:1175
+    // er, value is
     // ViewClusterSourceConfig JSON string
     VIEW_CLUSTER_REFRESH_PERIOD, // In second
     // Specifies job types and used for quota allocation
@@ -778,7 +779,8 @@ public class ClusterConfig extends HelixProperty {
    * Set the disabled instance list with concatenated Info
    */
   public void setDisabledInstancesWithInfo(Map<String, String> disabledInstancesWithInfo) {
-    _record.setMapField(ClusterConfigProperty.DISABLED_INSTANCES_W_INFO.name(), disabledInstancesWithInfo);
+    _record.setMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name(),
+        disabledInstancesWithInfo);
   }
 
   /**
@@ -798,7 +800,7 @@ public class ClusterConfig extends HelixProperty {
    */
   public Map<String, String> getDisabledInstancesWithInfo() {
     Map<String, String> disabledInstances =
-        _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES_W_INFO.name());
+        _record.getMapField(ClusterConfigProperty.DISABLED_INSTANCES_WITH_INFO.name());
     return disabledInstances == null ? Collections.emptyMap() : disabledInstances;
   }
 
@@ -1168,11 +1170,10 @@ public class ClusterConfig extends HelixProperty {
    */
   public String getInstanceHelixDisabledTimeStamp(String instanceName) {
     if (getDisabledInstancesWithInfo().containsKey(instanceName)) {
-      return ConfigStringUtil.parseConcatenatedConfig(
-          getDisabledInstancesWithInfo().get(instanceName))
+      return ConfigStringUtil
+          .parseConcatenatedConfig(getDisabledInstancesWithInfo().get(instanceName))
           .get(ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString());
-    } else {
-      return getDisabledInstances().get(instanceName);
     }
+    return getDisabledInstances().get(instanceName);
   }
 }

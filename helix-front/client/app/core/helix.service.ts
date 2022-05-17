@@ -71,7 +71,7 @@ export class HelixService {
   }
 
   protected getHeaders() {
-    let headers = new HttpHeaders();
+    const headers = new HttpHeaders();
     headers.append('Accept', 'application/json');
     headers.append('Content-Type', 'application/json');
     return headers;

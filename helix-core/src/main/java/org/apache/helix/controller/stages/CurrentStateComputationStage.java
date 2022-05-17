@@ -138,7 +138,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
       if (resource == null) {
-        LogUtil.logInfo(LOG, _eventId, String.format(
+        LogUtil.logDebug(LOG, _eventId, String.format(
             "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
             message.getMsgId(), resourceName, message.getPartitionName()));
         continue;
@@ -156,7 +156,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
             cache.addStaleMessage(instanceName, message);
           }
         } else {
-          LogUtil.logInfo(LOG, _eventId, String
+          LogUtil.logDebug(LOG, _eventId, String
               .format("Ignore a pending message %s for a non-exist resource %s and partition %s",
                   message.getMsgId(), resourceName, message.getPartitionName()));
         }
@@ -168,7 +168,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
             if (partition != null) {
               setMessageState(currentStateOutput, resourceName, partition, instanceName, message);
             } else {
-              LogUtil.logInfo(LOG, _eventId, String.format(
+              LogUtil.logDebug(LOG, _eventId, String.format(
                   "Ignore a pending message %s for a non-exist resource %s and partition %s",
                   message.getMsgId(), resourceName, message.getPartitionName()));
             }
@@ -193,7 +193,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
       if (resource == null) {
-        LogUtil.logInfo(LOG, _eventId, String.format(
+        LogUtil.logDebug(LOG, _eventId, String.format(
             "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
             message.getMsgId(), resourceName, message.getPartitionName()));
         continue;
@@ -205,7 +205,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (partition != null) {
           currentStateOutput.setPendingRelayMessage(resourceName, partition, instanceName, message);
         } else {
-          LogUtil.logInfo(LOG, _eventId, String.format(
+          LogUtil.logDebug(LOG, _eventId, String.format(
               "Ignore a pending relay message %s for a non-exist resource %s and partition %s",
               message.getMsgId(), resourceName, message.getPartitionName()));
         }

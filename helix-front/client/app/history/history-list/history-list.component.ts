@@ -36,9 +36,9 @@ export class HistoryListComponent implements OnInit {
 
   ngOnInit() {
     if (this.route.parent) {
-      let clusterName = this.route.parent.snapshot.params['cluster_name'];
-      let instanceName = this.route.parent.snapshot.params['instance_name'];
-      let observable = instanceName
+      const clusterName = this.route.parent.snapshot.params['cluster_name'];
+      const instanceName = this.route.parent.snapshot.params['instance_name'];
+      const observable = instanceName
         ? this.service.getInstanceHistory(clusterName, instanceName)
         : this.service.getControllerHistory(clusterName);
 

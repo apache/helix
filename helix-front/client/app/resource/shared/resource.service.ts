@@ -15,8 +15,8 @@ export class ResourceService extends HelixService {
     return this
       .request(`/clusters/${ clusterName }/resources`).pipe(
       map(data => {
-        let res: Resource[] = [];
-        for (let name of data.idealStates) {
+        const res: Resource[] = [];
+        for (const name of data.idealStates) {
           res.push(<Resource>({
             cluster: clusterName,
             name: name,
@@ -31,9 +31,9 @@ export class ResourceService extends HelixService {
     return this
       .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`).pipe(
       map(data => {
-        let res: any[] = [];
+        const res: any[] = [];
         if (data) {
-          for (let resource of data.resources) {
+          for (const resource of data.resources) {
             res.push({
               name: resource
             });
@@ -61,7 +61,7 @@ export class ResourceService extends HelixService {
     return this
       .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`).pipe(
       map(data => {
-        let ret = {
+        const ret = {
           bucketSize: data.simpleFields.BUCKET_SIZE,
           sessionId: data.simpleFields.SESSION_ID,
           stateModelDef: data.simpleFields.STATE_MODEL_DEF,
@@ -69,8 +69,8 @@ export class ResourceService extends HelixService {
           partitions: []
         };
 
-        for (let partition in data.mapFields) {
-          let par = data.mapFields[partition];
+        for (const partition in data.mapFields) {
+          const par = data.mapFields[partition];
 
           ret.partitions.push({
             name: partition,

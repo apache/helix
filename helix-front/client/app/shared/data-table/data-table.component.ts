@@ -45,7 +45,7 @@ export class DataTableComponent implements OnInit {
   }
 
   onCreate() {
-    let data = {
+    const data = {
       title: 'Create a new item',
       message: 'Please enter the following information to continue:',
       values: {}

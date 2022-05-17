@@ -5,7 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { HelperService } from '../app/shared/helper.service';
-import { HelperServiceStub } from './stubs';;
+import { HelperServiceStub } from './stubs'; ;
 
 @NgModule({
   imports: [

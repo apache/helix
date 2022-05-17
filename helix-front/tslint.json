@@ -12,7 +12,7 @@
     ],
     "curly": true,
     "eofline": true,
-    "forin": "off",
+    "forin": { "severity": "off" },
     "import-blacklist": [true],
     "import-spacing": true,
     "indent": [
@@ -48,7 +48,7 @@
     "no-empty-interface": true,
     "no-eval": true,
     "no-inferrable-types": [true, "ignore-params"],
-    "no-shadowed-variable": "off",
+    "no-shadowed-variable": { "severity": "off" },
     "no-string-literal": false,
     "no-string-throw": true,
     "no-switch-case-fall-through": true,
@@ -68,7 +68,7 @@
       true,
       "single"
     ],
-    "radix": "off",
+    "radix": { "severity": "off" },
     "semicolon": [
       "always"
     ],
@@ -100,7 +100,7 @@
     "directive-selector": ["off", "attribute", "hi", "camelCase"],
     "component-selector": [true, "element", "hi", "kebab-case"],
     "no-input-rename": true,
-    "no-output-rename": "off",
+    "no-output-rename": { "severity": "off" },
     "use-life-cycle-interface": true,
     "use-pipe-transform-interface": true,
     "component-class-suffix": true,

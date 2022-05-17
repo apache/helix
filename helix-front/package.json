@@ -18,6 +18,7 @@
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
     "lint": "ng lint",
+    "lint:fix": "ng lint -- --fix",
     "lint:tslint": "./node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && npm run build",

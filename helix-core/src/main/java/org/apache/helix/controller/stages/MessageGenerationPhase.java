@@ -320,7 +320,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     if (pendingMessage != null) {
       String pendingState = pendingMessage.getToState();
       if (nextState.equalsIgnoreCase(pendingState)) {
-        LogUtil.logDebug(logger, _eventId,
+        LogUtil.logInfo(logger, _eventId,
             "Message already exists for " + instanceName + " to transit " + resource
                 .getResourceName() + "." + partition.getPartitionName() + " from " + currentState
                 + " to " + nextState + ", isRelay: " + pendingMessage.isRelayMessage());

@@ -178,6 +178,9 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager built AssignableInstances from scratch based on contexts in TaskDataCache due to Controller switch or ClusterConfig change.");
+    if (_assignableInstanceMap.isEmpty()) {
+      LOG.warn("No assignable instance!");
+    }
     computeGlobalThreadBasedCapacity();
   }
 
@@ -273,6 +276,9 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager built AssignableInstances from scratch based on CurrentState.");
+    if (_assignableInstanceMap.isEmpty()) {
+      LOG.warn("No assignable instance!");
+    }
     computeGlobalThreadBasedCapacity();
   }
 
@@ -419,7 +425,9 @@ public class AssignableInstanceManager {
     }
     LOG.info(
         "AssignableInstanceManager updated AssignableInstances due to LiveInstance/InstanceConfig change.");
-
+    if (_assignableInstanceMap.isEmpty()) {
+      LOG.warn("No assignable instance!");
+    }
     computeGlobalThreadBasedCapacity();
   }
 

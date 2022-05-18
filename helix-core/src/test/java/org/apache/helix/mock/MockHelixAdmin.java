@@ -319,18 +319,23 @@ public class MockHelixAdmin implements HelixAdmin {
     ClusterConfig clusterConfig = new ClusterConfig(record);
 
     Map<String, String> disabledInstances = new TreeMap<>();
+    Map<String, String> disabledInstancesWithInfo = new TreeMap<>();
     if (clusterConfig.getDisabledInstances() != null) {
       disabledInstances.putAll(clusterConfig.getDisabledInstances());
+      disabledInstancesWithInfo.putAll(clusterConfig.getDisabledInstancesWithInfo());
     }
     if (enabled) {
       disabledInstances.keySet().removeAll(instances);
     } else {
       for (String disabledInstance : instances) {
+        String timeStamp = String.valueOf(System.currentTimeMillis());
+        disabledInstances.put(disabledInstance, timeStamp);
         disabledInstances
-            .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason));
+            .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason, timeStamp));
       }
     }
     clusterConfig.setDisabledInstances(disabledInstances);
+    clusterConfig.setDisabledInstancesWithInfo(disabledInstancesWithInfo);
   }
 
   @Override

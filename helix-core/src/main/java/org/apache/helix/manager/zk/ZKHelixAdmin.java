@@ -1933,17 +1933,24 @@ public class ZKHelixAdmin implements HelixAdmin {
 
         ClusterConfig clusterConfig = new ClusterConfig(currentData);
         Map<String, String> disabledInstances = new TreeMap<>(clusterConfig.getDisabledInstances());
+        Map<String, String> disabledInstancesWithInfo = new TreeMap<>(clusterConfig.getDisabledInstancesWithInfo());
         if (enabled) {
           disabledInstances.keySet().removeAll(instances);
+          disabledInstancesWithInfo.keySet().removeAll(instances);
         } else {
           for (String disabledInstance : instances) {
             // We allow user to override disabledType and reason for an already disabled instance.
+            // TODO: we are updating both DISABLED_INSTANCES and DISABLED_INSTANCES_W_INFO for
+            // backward compatible. Deprecate DISABLED_INSTANCES in the future.
             // TODO: update the history ZNode
-            disabledInstances
-                .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason));
+            String timeStamp = String.valueOf(System.currentTimeMillis());
+            disabledInstances.put(disabledInstance, timeStamp);
+            disabledInstancesWithInfo
+                .put(disabledInstance, assembleInstanceBatchedDisabledInfo(disabledType, reason, timeStamp));
           }
         }
         clusterConfig.setDisabledInstances(disabledInstances);
+        clusterConfig.setDisabledInstancesWithInfo(disabledInstancesWithInfo);
 
         return clusterConfig.getRecord();
       }
@@ -1951,10 +1958,10 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   public static String assembleInstanceBatchedDisabledInfo(
-      InstanceConstants.InstanceDisabledType disabledType, String reason) {
+      InstanceConstants.InstanceDisabledType disabledType, String reason, String timeStamp) {
     Map<String, String> disableInfo = new TreeMap<>();
     disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.toString(),
-        String.valueOf(System.currentTimeMillis()));
+        timeStamp);
     if (disabledType != null) {
       disableInfo.put(ClusterConfig.ClusterConfigProperty.HELIX_DISABLED_TYPE.toString(),
           disabledType.toString());

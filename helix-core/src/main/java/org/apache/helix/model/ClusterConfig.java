@@ -76,8 +76,8 @@ public class ClusterConfig extends HelixProperty {
 
     TARGET_EXTERNALVIEW_ENABLED,
     @Deprecated // ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE will take
-        // precedence if it is set
-        ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
+    // precedence if it is set
+    ERROR_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance state
     // transition if the number of partitons that need
     // recovery exceeds this limitation
     ERROR_OR_RECOVERY_PARTITION_THRESHOLD_FOR_LOAD_BALANCE, // Controller won't execute load balance
@@ -90,8 +90,7 @@ public class ClusterConfig extends HelixProperty {
     // disabled instances will write into both 2 fields for backward compatibility.
 
     VIEW_CLUSTER, // Set to "true" to indicate this is a view cluster
-    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source clust:1175
-    // er, value is
+    VIEW_CLUSTER_SOURCES, // Map field, key is the name of source cluster, value is
     // ViewClusterSourceConfig JSON string
     VIEW_CLUSTER_REFRESH_PERIOD, // In second
     // Specifies job types and used for quota allocation

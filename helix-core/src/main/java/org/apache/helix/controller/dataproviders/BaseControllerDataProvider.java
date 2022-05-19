@@ -246,7 +246,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       refreshedType.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
       // TODO: This is a temp function to clean up incompatible batched disabled instances format.
       // Remove in later version.
-      if (checkBatchedDisabledInstanceFormat(_clusterConfig) && updateBatchDisableFormat(
+      if (needReformatBatchedDIsabledInstance(_clusterConfig) && updateBatchDisableFormat(
           accessor)) {
         // read from zkz one more time
         LogUtil.logInfo(logger, getClusterEventId(), String
@@ -256,7 +256,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
       }
       refreshAbnormalStateResolverMap(_clusterConfig);
     } else {
-      LogUtil.logInfo(logger, getClusterEventId(), String
+      LogUtil.logDebug(logger, getClusterEventId(), String
           .format("No ClusterConfig change for cluster %s, pipeline %s", _clusterName,
               getPipelineName()));
     }
@@ -277,7 +277,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
 
             ClusterConfig clusterConfig = new ClusterConfig(currentData);
             Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
-            Map<String, String> DisabledInstancesWithInfo =
+            Map<String, String> disabledInstancesWithInfo =
                 clusterConfig.getDisabledInstancesWithInfo();
 
             ClusterConfig newClusterConfig = new ClusterConfig(currentData);
@@ -293,14 +293,14 @@ public class BaseControllerDataProvider implements ControlContextProvider {
                 newDisabledInstances.put(instanceName,
                     ConfigStringUtil.parseConcatenatedConfig(instanceInfo.getValue()).get(
                         ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
-                            .toString()));
+                            .name()));
                 newDisabledInstancesWithInfo.put(instanceName, instanceInfo.getValue());
               } else {
-                if (!DisabledInstancesWithInfo.containsKey(instanceName)) {
+                if (!disabledInstancesWithInfo.containsKey(instanceName)) {
                   newDisabledInstancesWithInfo.put(instanceName, ConfigStringUtil
                       .concatenateMapping(Collections.singletonMap(
                           ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
-                              .toString(), instanceInfo.getValue())));
+                              .name(), instanceInfo.getValue())));
                 }
               }
             }
@@ -311,7 +311,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         }, null);
   }
 
-  private boolean checkBatchedDisabledInstanceFormat(ClusterConfig clusterConfig) {
+  private boolean needReformatBatchedDIsabledInstance(ClusterConfig clusterConfig) {
     Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
     Map<String, String> DisabledInstancesWithInfo = clusterConfig.getDisabledInstancesWithInfo();
 
@@ -633,7 +633,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
     Set<String> disabledInstancesForPartition = new HashSet<>(_disabledInstanceSet);
-    if (_disabledInstanceForPartitionMap.containsKey(resource) && _disabledInstanceForPartitionMap
+    if (_disabledInstanceForPartitionMap.containsKey(resource)
+        && _disabledInstanceForPartitionMap
         .get(resource).containsKey(partition)) {
       disabledInstancesForPartition
           .addAll(_disabledInstanceForPartitionMap.get(resource).get(partition));

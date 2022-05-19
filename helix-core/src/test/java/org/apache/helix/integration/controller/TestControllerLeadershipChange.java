@@ -21,11 +21,14 @@ package org.apache.helix.integration.controller;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -35,12 +38,17 @@ import org.apache.helix.common.ZkTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.MonitorDomainNames;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ZkHelixClusterVerifier;
 import org.apache.helix.zookeeper.api.client.RealmAwareZkClient;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -74,6 +82,51 @@ public class TestControllerLeadershipChange extends ZkTestBase {
   }
 
   @Test
+  public void testControllerCleanUpClusterConfig() {
+    ZkBaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor(_gZkClient);
+    _gSetupTool.addInstanceToCluster(CLUSTER_NAME, "DISABLED_Instance");
+    _gSetupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, "DISABLED_Instance", false);
+
+    baseDataAccessor.update(PropertyPathBuilder.clusterConfig(CLUSTER_NAME),new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          throw new HelixException("Cluster: " + CLUSTER_NAME + ": cluster config is null");
+        }
+
+        ClusterConfig clusterConfig = new ClusterConfig(currentData);
+        Map<String, String> disabledInstances = new TreeMap<>(clusterConfig.getDisabledInstances());
+        disabledInstances.put("DISABLED_Instance", "HELIX_ENABLED_DISABLE_TIMESTAMP=1652338376608");
+        clusterConfig.setDisabledInstances(disabledInstances);
+
+        return clusterConfig.getRecord();
+      }
+    }, AccessOption.PERSISTENT);
+
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
+    controller.syncStart();
+    verifyControllerIsLeader(controller);
+
+    // Create cluster verifier
+    ZkHelixClusterVerifier clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+
+    // Wait for rebalance
+    Assert.assertTrue(clusterVerifier.verifyByPolling());
+    ZKHelixDataAccessor helixDataAccessor = new ZKHelixDataAccessor(CLUSTER_NAME, baseDataAccessor);
+    ClusterConfig cls = helixDataAccessor.getProperty(helixDataAccessor.keyBuilder().clusterConfig());
+    // Now the format of value in DISABLED_Instance should be parseble.
+    Long.parseLong(cls.getDisabledInstances().get("DISABLED_Instance"));
+
+    controller.syncStop();
+    verifyControllerIsNotLeader(controller);
+    verifyZKDisconnected(controller);
+  }
+
+    @Test
   public void testControllerConnectThenDisconnect() {
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, "TestController");
@@ -181,6 +234,7 @@ public class TestControllerLeadershipChange extends ZkTestBase {
     // will be deleted on ZK servers
     Assert.assertTrue(controller.getZkClient().isClosed());
   }
+
 
   @Test
   public void testMissingTopStateDurationMonitoring() throws Exception {

@@ -28,12 +28,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -61,8 +63,11 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.util.ConfigStringUtil;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.InstanceValidationUtil;
+import org.apache.helix.zookeeper.datamodel.ZNRecord;
+import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +79,7 @@ import org.slf4j.LoggerFactory;
  * This class will be moved to helix-common module in the future
  */
 public class BaseControllerDataProvider implements ControlContextProvider {
-  private static final Logger logger =
-      LoggerFactory.getLogger(BaseControllerDataProvider.class);
+  private static final Logger logger = LoggerFactory.getLogger(BaseControllerDataProvider.class);
 
   // We only refresh EV and TEV the very first time the cluster data cache is initialized
   private static final List<HelixConstants.ChangeType> _noFullRefreshProperty = Arrays
@@ -129,8 +133,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     _propertyDataChangedMap = new ConcurrentHashMap<>();
     for (HelixConstants.ChangeType type : HelixConstants.ChangeType.values()) {
       // refresh every type when it is initialized
-      _propertyDataChangedMap
-          .put(type, new AtomicBoolean(true));
+      _propertyDataChangedMap.put(type, new AtomicBoolean(true));
     }
 
     // initialize caches
@@ -241,11 +244,85 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     if (_propertyDataChangedMap.get(HelixConstants.ChangeType.CLUSTER_CONFIG).getAndSet(false)) {
       _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
       refreshedType.add(HelixConstants.ChangeType.CLUSTER_CONFIG);
+      // TODO: This is a temp function to clean up incompatible batched disabled instances format.
+      // Remove in later version.
+      if (checkBatchedDisabledInstanceFormat(_clusterConfig) && updateBatchDisableFormat(
+          accessor)) {
+        // read from zkz one more time
+        LogUtil.logInfo(logger, getClusterEventId(), String
+            .format("Clean ClusterConfig change for cluster %s, pipeline %s", _clusterName,
+                getPipelineName()));
+        _clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+      }
       refreshAbnormalStateResolverMap(_clusterConfig);
     } else {
-      LogUtil.logInfo(logger, getClusterEventId(), String.format(
-          "No ClusterConfig change for cluster %s, pipeline %s", _clusterName, getPipelineName()));
+      LogUtil.logInfo(logger, getClusterEventId(), String
+          .format("No ClusterConfig change for cluster %s, pipeline %s", _clusterName,
+              getPipelineName()));
     }
+  }
+
+  // TODO: This function is used to clean up incompatible batched disabled instances format for
+  // "DISABLED_INSTANCES" introduced in 1.0.3.0. This temp change shoul dbe reverted after 1.0.5.0 \
+  // or later version.
+  private boolean updateBatchDisableFormat(final HelixDataAccessor accessor) {
+    return accessor
+        .updateProperty(accessor.keyBuilder().clusterConfig(), new DataUpdater<ZNRecord>() {
+          @Override
+          public ZNRecord update(ZNRecord currentData) {
+            if (currentData == null) {
+              throw new HelixException(
+                  "Cluster: " + _clusterConfig.getClusterName() + ": cluster config is null");
+            }
+
+            ClusterConfig clusterConfig = new ClusterConfig(currentData);
+            Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
+            Map<String, String> DisabledInstancesWithInfo =
+                clusterConfig.getDisabledInstancesWithInfo();
+
+            ClusterConfig newClusterConfig = new ClusterConfig(currentData);
+            Map<String, String> newDisabledInstances =
+                new TreeMap<>(newClusterConfig.getDisabledInstances());
+            Map<String, String> newDisabledInstancesWithInfo =
+                new TreeMap<>(newClusterConfig.getDisabledInstancesWithInfo());
+
+            // iterate through all k,v pairs and check for string format.
+            for (Map.Entry<String, String> instanceInfo : disabledInstances.entrySet()) {
+              String instanceName = instanceInfo.getKey();
+              if (!StringUtils.isNumeric(instanceInfo.getValue())) {
+                newDisabledInstances.put(instanceName,
+                    ConfigStringUtil.parseConcatenatedConfig(instanceInfo.getValue()).get(
+                        ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
+                            .toString()));
+                newDisabledInstancesWithInfo.put(instanceName, instanceInfo.getValue());
+              } else {
+                if (!DisabledInstancesWithInfo.containsKey(instanceName)) {
+                  newDisabledInstancesWithInfo.put(instanceName, ConfigStringUtil
+                      .concatenateMapping(Collections.singletonMap(
+                          ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
+                              .toString(), instanceInfo.getValue())));
+                }
+              }
+            }
+            newClusterConfig.setDisabledInstances(newDisabledInstances);
+            newClusterConfig.setDisabledInstancesWithInfo(newDisabledInstancesWithInfo);
+            return newClusterConfig.getRecord();
+          }
+        }, null);
+  }
+
+  private boolean checkBatchedDisabledInstanceFormat(ClusterConfig clusterConfig) {
+    Map<String, String> disabledInstances = clusterConfig.getDisabledInstances();
+    Map<String, String> DisabledInstancesWithInfo = clusterConfig.getDisabledInstancesWithInfo();
+
+    // interate through all k,v pairs and check for string format.
+    for (Map.Entry<String, String> instanceInfo : disabledInstances.entrySet()) {
+      if (!StringUtils.isNumeric(instanceInfo.getValue()) || !DisabledInstancesWithInfo
+          .containsKey(instanceInfo.getKey())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void refreshIdealState(final HelixDataAccessor accessor,
@@ -556,8 +633,8 @@ public class BaseControllerDataProvider implements ControlContextProvider {
    */
   public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
     Set<String> disabledInstancesForPartition = new HashSet<>(_disabledInstanceSet);
-    if (_disabledInstanceForPartitionMap.containsKey(resource)
-        && _disabledInstanceForPartitionMap.get(resource).containsKey(partition)) {
+    if (_disabledInstanceForPartitionMap.containsKey(resource) && _disabledInstanceForPartitionMap
+        .get(resource).containsKey(partition)) {
       disabledInstancesForPartition
           .addAll(_disabledInstanceForPartitionMap.get(resource).get(partition));
     }
@@ -767,8 +844,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
     if (!_updateInstanceOfflineTime) {
       return;
     }
-    List<String> offlineNodes =
-        new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
+    List<String> offlineNodes = new ArrayList<>(_instanceConfigCache.getPropertyMap().keySet());
     offlineNodes.removeAll(_liveInstanceCache.getPropertyMap().keySet());
     _instanceOfflineTimeMap = new HashMap<>();
 
@@ -809,8 +885,7 @@ public class BaseControllerDataProvider implements ControlContextProvider {
         _disabledInstanceForPartitionMap.putIfAbsent(resource, new HashMap<>());
         for (String partition : disabledPartitionMap.get(resource)) {
           _disabledInstanceForPartitionMap.get(resource)
-              .computeIfAbsent(partition, key -> new HashSet<>())
-              .add(config.getInstanceName());
+              .computeIfAbsent(partition, key -> new HashSet<>()).add(config.getInstanceName());
         }
       }
     }

@@ -182,6 +182,32 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public void createPersistentWithTTL(String path, long ttl) {
+    createPersistentWithTTL(path, false, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, long ttl) {
+    createPersistentWithTTL(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, boolean createParents, List<ACL> acl, long ttl) {
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.createPersistentWithTTL(path, createParents, acl, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, long ttl) {
+    create(path, data, CreateMode.PERSISTENT_WITH_TTL, ttl);
+  }
+
+  @Override
+  public void createPersistentWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    create(path, data, acl, CreateMode.PERSISTENT_WITH_TTL, ttl);
+  }
+
+  @Override
   public String createPersistentSequential(String path, Object data) {
     return create(path, data, CreateMode.PERSISTENT_SEQUENTIAL);
   }
@@ -189,6 +215,42 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public String createPersistentSequential(String path, Object data, List<ACL> acl) {
     return create(path, data, acl, CreateMode.PERSISTENT_SEQUENTIAL);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, long ttl) {
+    return create(path, data, CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL, ttl);
+  }
+
+  @Override
+  public String createPersistentSequentialWithTTL(String path, Object data, List<ACL> acl, long ttl) {
+    return create(path, data, acl, CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL, ttl);
+  }
+
+  @Override
+  public void createContainer(String path) {
+    createContainer(path, false);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents) {
+    createContainer(path, createParents, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+  }
+
+  @Override
+  public void createContainer(String path, boolean createParents, List<ACL> acl) {
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.createContainer(path, createParents, acl);
+  }
+
+  @Override
+  public void createContainer(String path, Object data) {
+    create(path, data, CreateMode.CONTAINER);
+  }
+
+  @Override
+  public void createContainer(String path, Object data, List<ACL> acl) {
+    create(path, data, acl, CreateMode.CONTAINER);
   }
 
   @Override
@@ -218,9 +280,20 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   }
 
   @Override
+  public String create(String path, Object data, CreateMode mode, long ttl) {
+    return create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, mode, ttl);
+  }
+
+  @Override
   public String create(String path, Object datat, List<ACL> acl, CreateMode mode) {
     checkIfPathContainsShardingKey(path);
     return _rawZkClient.create(path, datat, acl, mode);
+  }
+
+  @Override
+  public String create(String path, Object datat, List<ACL> acl, CreateMode mode, long ttl) {
+    checkIfPathContainsShardingKey(path);
+    return _rawZkClient.create(path, datat, acl, mode, ttl);
   }
 
   @Override
@@ -364,6 +437,13 @@ public class DedicatedZkClient implements RealmAwareZkClient {
   @Override
   public Stat writeDataGetStat(String path, Object datat, int expectedVersion) {
     return writeDataReturnStat(path, datat, expectedVersion);
+  }
+
+  @Override
+  public void asyncCreate(String path, Object datat, CreateMode mode, long ttl,
+      ZkAsyncCallbacks.CreateCallbackHandler cb) {
+    checkIfPathContainsShardingKey(path);
+    _rawZkClient.asyncCreate(path, datat, mode, ttl, cb);
   }
 
   @Override

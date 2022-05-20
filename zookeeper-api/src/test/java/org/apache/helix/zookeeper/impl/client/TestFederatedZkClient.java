@@ -167,15 +167,88 @@ public class TestFederatedZkClient extends RealmAwareZkClientTestBase {
     }
   }
 
+  /**
+   * Test creating a container node.
+   */
+  @Test(dependsOnMethods = "testUnsupportedOperations")
+  public void testRealmAwareZkClientCreateContainer() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
+    _realmAwareZkClient.setZkSerializer(new ZNRecordSerializer());
+
+    // Create a dummy ZNRecord
+    ZNRecord znRecord = new ZNRecord("DummyRecord");
+    znRecord.setSimpleField("Dummy", "Value");
+
+    // Test with createParents = true
+    _realmAwareZkClient.createContainer(TEST_VALID_PATH, true);
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_VALID_PATH));
+
+    // Test writing and reading data
+    String childPath = TEST_VALID_PATH + "/child";
+    _realmAwareZkClient.createContainer(childPath, znRecord);
+    ZNRecord retrievedRecord = _realmAwareZkClient.readData(childPath);
+    Assert.assertEquals(znRecord.getSimpleField("Dummy"),
+        retrievedRecord.getSimpleField("Dummy"));
+
+    // Clean up
+    _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+  }
+
+  /**
+   * Test creating a sequential TTL node.
+   */
+  @Test(dependsOnMethods = "testRealmAwareZkClientCreateContainer")
+  public void testRealmAwareZkClientCreateSequentialWithTTL() {
+    // Create a dummy ZNRecord
+    ZNRecord znRecord = new ZNRecord("DummyRecord");
+    znRecord.setSimpleField("Dummy", "Value");
+
+    // Test writing and reading data
+    _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
+    long ttl = 1L;
+    String childPath = TEST_VALID_PATH + "/child";
+    _realmAwareZkClient.createPersistentSequentialWithTTL(childPath, znRecord, ttl);
+    ZNRecord retrievedRecord = _realmAwareZkClient.readData(childPath + "0000000000");
+    Assert.assertEquals(znRecord.getSimpleField("Dummy"),
+        retrievedRecord.getSimpleField("Dummy"));
+
+    // Clean up
+    _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+  }
+
+  /**
+   * Test creating a TTL node.
+   */
+  @Test(dependsOnMethods = "testRealmAwareZkClientCreateSequentialWithTTL")
+  public void testRealmAwareZkClientCreateWithTTL() {
+    // Create a dummy ZNRecord
+    ZNRecord znRecord = new ZNRecord("DummyRecord");
+    znRecord.setSimpleField("Dummy", "Value");
+
+    // Test with createParents = true
+    long ttl = 1L;
+    _realmAwareZkClient.createPersistentWithTTL(TEST_VALID_PATH, true, ttl);
+    Assert.assertTrue(_realmAwareZkClient.exists(TEST_VALID_PATH));
+
+    // Test writing and reading data
+    String childPath = TEST_VALID_PATH + "/child";
+    _realmAwareZkClient.createPersistentWithTTL(childPath, znRecord, ttl);
+    ZNRecord retrievedRecord = _realmAwareZkClient.readData(childPath);
+    Assert.assertEquals(znRecord.getSimpleField("Dummy"),
+        retrievedRecord.getSimpleField("Dummy"));
+
+    // Clean up
+    _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    System.clearProperty("zookeeper.extendedTypesEnabled");
+  }
+
   /*
    * Tests the persistent create() call against a valid path and an invalid path.
    * Valid path is one that belongs to the realm designated by the sharding key.
    * Invalid path is one that does not belong to the realm designated by the sharding key.
    */
-  @Test(dependsOnMethods = "testUnsupportedOperations")
+  @Test(dependsOnMethods = "testRealmAwareZkClientCreateWithTTL")
   public void testCreatePersistent() {
-    _realmAwareZkClient.setZkSerializer(new ZNRecordSerializer());
-
     // Create a dummy ZNRecord
     ZNRecord znRecord = new ZNRecord("DummyRecord");
     znRecord.setSimpleField("Dummy", "Value");

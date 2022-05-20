@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 import javax.management.JMException;
 
 import com.google.common.collect.Sets;
@@ -117,7 +118,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public static final int DEFAULT_MAX_DISCONNECT_THRESHOLD = 600; // Default to be a large number
   private static final int DEFAULT_WAIT_CONNECTED_TIMEOUT = 10 * 1000;  // wait until connected for up to 10 seconds.
 
-  protected final String _zkAddress;
+  protected String _zkAddress;
   private final String _clusterName;
   private final String _instanceName;
   private final InstanceType _instanceType;
@@ -238,7 +239,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       HelixManagerProperty helixManagerProperty) {
     validateZkConnectionSettings(zkAddress, helixManagerProperty);
 
-    _zkAddress = zkAddress;
     _clusterName = clusterName;
     _instanceType = instanceType;
     LOG.info("Create a zk-based cluster manager. ZK connection: " + getZkConnectionInfo()
@@ -283,7 +283,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _helixManagerProperty = helixManagerProperty;
     _helixManagerProperty.getHelixCloudProperty().populateFieldsWithCloudConfig(
         HelixPropertyFactory.getCloudConfig(_zkAddress, _clusterName,
-            helixManagerProperty.getZkConnectionConfig()));
+            helixManagerProperty.getRealmAwareZkConnectionConfig()));
 
     /**
      * use system property if available
@@ -1560,21 +1560,29 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   /**
-   * Check that not both zkAddress and ZkConnectionConfig are set.
-   * If zkAddress is not given and ZkConnectionConfig is given, check that ZkConnectionConfig has
-   * a ZK path sharding key set because HelixManager must work on single-realm mode.
+   * Check that one and only one among zkAddress, ZkConnectionConfig and RealmAwareZkConnectionConfig are set.
+   * If zkAddress is not given directly or through ZkConnectionConfig and RealmAwareZkConnectionConfig
+   * is given, check that RealmAwareZkConnectionConfig has a ZK path sharding key set because
+   * HelixManager must work on single-realm mode.
    * @param zkAddress
    * @param helixManagerProperty
    */
   private void validateZkConnectionSettings(String zkAddress,
       HelixManagerProperty helixManagerProperty) {
-    if (helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null) {
-      if (zkAddress != null) {
-        throw new HelixException(
-            "ZKHelixManager: cannot have both ZkAddress and ZkConnectionConfig set!");
-      }
+    boolean hasRealmAwareZkConnectionConfig = helixManagerProperty != null
+        && helixManagerProperty.getRealmAwareZkConnectionConfig() != null;
+    boolean hasZkConnectionConfig =
+        helixManagerProperty != null && helixManagerProperty.getZkConnectionConfig() != null;
+    if (Stream.of(zkAddress != null, hasRealmAwareZkConnectionConfig, hasZkConnectionConfig)
+        .filter(condition -> condition).count() != 1) {
+      throw new HelixException(
+          "ZKHelixManager: One and only one of ZkAddress, RealmAwareZkConnectionConfig and "
+              + "ZkConnectionConfig should be set!");
+    }
+
+    if (hasRealmAwareZkConnectionConfig) {
       RealmAwareZkClient.RealmAwareZkConnectionConfig connectionConfig =
-          helixManagerProperty.getZkConnectionConfig();
+          helixManagerProperty.getRealmAwareZkConnectionConfig();
       if (connectionConfig.getZkRealmShardingKey() == null || connectionConfig
           .getZkRealmShardingKey().isEmpty()) {
         throw new HelixException(
@@ -1582,8 +1590,17 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
                 + "is only available on single-realm mode.");
       }
       _realmAwareZkConnectionConfig = connectionConfig;
+    } else if (hasZkConnectionConfig) {
+      String zkConnectionStr = helixManagerProperty.getZkConnectionConfig().getZkServers();
+      if (zkConnectionStr == null || zkConnectionStr.isEmpty()) {
+        throw new HelixException(
+            "ZKHelixManager::ZK connection string is not set in Zk connection config.");
+      }
+      _zkAddress = zkConnectionStr;
+    } else {
+      _zkAddress = zkAddress;
     }
-  }
+}
 
   /**
    * Resolve ZK connection info for logging purposes.

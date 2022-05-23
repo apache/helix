@@ -1,4 +1,5 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { StateLabelComponent } from './state-label.component';
 
@@ -8,7 +9,8 @@ describe('StateLabelComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ StateLabelComponent ]
+      declarations: [ StateLabelComponent ],
+      imports: [HttpClientTestingModule]
     })
     .compileComponents();
   }));

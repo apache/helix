@@ -138,13 +138,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     dashboardDom.style.height = `${ height }px`;
 
     // load data
-    this.route.parent.params
-      .pipe(map(p => p.name))
-      .subscribe(name => {
-        this.clusterName = name;
-        this.fetchResources();
-        // this.updateResources();
+    if (this.route && this.route.parent) {
+      this.route.parent.params
+        .pipe(map(p => p.name))
+        .subscribe(name => {
+          this.clusterName = name;
+          this.fetchResources();
+          // this.updateResources();
       });
+    }
   }
 
   ngAfterViewInit() {

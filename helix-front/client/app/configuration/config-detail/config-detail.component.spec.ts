@@ -1,5 +1,6 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 import { TestingModule } from '../../../testing/testing.module';
 import { ConfigDetailComponent } from './config-detail.component';
@@ -11,7 +12,7 @@ describe('ConfigDetailComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
-        TestingModule
+        TestingModule, HttpClientTestingModule
       ],
       declarations: [
         ConfigDetailComponent

@@ -295,13 +295,11 @@ public class BaseControllerDataProvider implements ControlContextProvider {
                         ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
                             .name()));
                 newDisabledInstancesWithInfo.put(instanceName, instanceInfo.getValue());
-              } else {
-                if (!disabledInstancesWithInfo.containsKey(instanceName)) {
-                  newDisabledInstancesWithInfo.put(instanceName, ConfigStringUtil
-                      .concatenateMapping(Collections.singletonMap(
-                          ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP
-                              .name(), instanceInfo.getValue())));
-                }
+              } else if (!disabledInstancesWithInfo.containsKey(instanceName)) {
+                newDisabledInstancesWithInfo.put(instanceName, ConfigStringUtil.concatenateMapping(
+                    Collections.singletonMap(
+                        ClusterConfig.ClusterConfigProperty.HELIX_ENABLED_DISABLE_TIMESTAMP.name(),
+                        instanceInfo.getValue())));
               }
             }
             newClusterConfig.setDisabledInstances(newDisabledInstances);

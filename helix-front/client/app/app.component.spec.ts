@@ -1,4 +1,4 @@
-import { TestBed, async } from '@angular/core/testing';
+import { TestBed, waitForAsync } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 // import { Angulartics2 } from 'angulartics2';
@@ -8,7 +8,7 @@ import { TestingModule } from '../testing/testing.module';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
         TestingModule,
@@ -28,19 +28,19 @@ describe('AppComponent', () => {
     }).compileComponents();
   }));
 
-  it('should create the app', async(() => {
+  it('should create the app', waitForAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.debugElement.componentInstance;
     expect(app).toBeTruthy();
   }));
 
-  it(`should have a variable controlling footer`, async(() => {
+  it(`should have a variable controlling footer`, waitForAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.debugElement.componentInstance;
     expect(app.footerEnabled).toBeDefined();
   }));
 
-  xit('should render title in a mat-toolbar', async(() => {
+  xit('should render title in a mat-toolbar', waitForAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.debugElement.nativeElement;

@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { TestingModule } from '../../../testing/testing.module';
@@ -9,7 +9,7 @@ describe('HelixListComponent', () => {
   let component: HelixListComponent;
   let fixture: ComponentFixture<HelixListComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
         TestingModule

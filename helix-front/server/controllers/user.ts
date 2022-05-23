@@ -29,7 +29,12 @@ export class UserCtrl {
   }
 
   protected can(req: Request, res: Response) {
-    res.json(req.session.isAdmin ? true : false);
+    try {
+      return res.json(req.session.isAdmin ? true : false);
+    } catch (err) {
+      console.log('error from can', err)
+      return false
+    }
   }
 
   protected login(request: Request, response: Response) {

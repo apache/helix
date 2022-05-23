@@ -4,7 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { WorkflowListComponent } from './workflow-list.component';
 import { WorkflowService } from '../shared/workflow.service';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('WorkflowListComponent', () => {
   let component: WorkflowListComponent;
@@ -12,7 +12,7 @@ describe('WorkflowListComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ HttpClientModule, RouterTestingModule ],
+      imports: [ HttpClientTestingModule, RouterTestingModule ],
       declarations: [ WorkflowListComponent ],
       providers: [ WorkflowService ],
       schemas: [

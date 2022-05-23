@@ -1,5 +1,6 @@
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { DetailHeaderComponent } from './detail-header.component';
 
@@ -10,6 +11,7 @@ describe('DetailHeaderComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ DetailHeaderComponent ],
+      imports: [HttpClientTestingModule],
       schemas: [
         /* avoid importing modules */
         NO_ERRORS_SCHEMA

@@ -17,8 +17,8 @@
     "start": "tsc -p server && concurrently -r \"ng serve\" \"tsc -w -p server\" \"nodemon dist/server/app.js\"",
     "prod": "npm run build && node dist/server/app.js",
     "test": "ng test",
-    "lint": "ng lint",
-    "lint:fix": "ng lint -- --fix",
+    "lint": "eslint --ext .ts,.html .",
+    "lint:fix": "eslint --fix --ext .ts,.html .",
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && npm run build",
     "type:check": "tsc --project tsconfig.json --noEmit",
@@ -26,7 +26,7 @@
     "type:check:watch": "npm run type:check -- --watch"
   },
   "engines": {
-    "node": "14.15.5",
+    "node": "14.17.6",
     "yarn": "1.22.1"
   },
   "dependencies": {

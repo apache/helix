@@ -96,16 +96,6 @@
               "client/favicon.ico"
             ]
           }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "client/tsconfig.app.json",
-              "client/tsconfig.spec.json"
-            ],
-            "exclude": []
-          }
         }
       }
     },
@@ -121,15 +111,6 @@
             "devServerTarget": "helix-front:serve"
           },
           "configurations": {}
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "e2e/tsconfig.e2e.json"
-            ],
-            "exclude": []
-          }
         }
       }
     }

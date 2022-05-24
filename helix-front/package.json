@@ -22,8 +22,8 @@
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && npm run build",
     "type:check": "tsc --project tsconfig.json --noEmit",
-    "type:check:stats": "npm run type:check -- --diagnostics true",
-    "type:check:watch": "npm run type:check -- --watch"
+    "type:check:stats": "yarn type:check -- --diagnostics true",
+    "type:check:watch": "yarn type:check -- --watch"
   },
   "engines": {
     "node": "14.17.6",

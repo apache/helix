@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 
-import { WorkflowService } from '../shared/workflow.service'; 
+import { WorkflowService } from '../shared/workflow.service';
 
 @Component({
   selector: 'hi-workflow-list',

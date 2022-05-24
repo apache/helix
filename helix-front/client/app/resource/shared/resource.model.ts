@@ -39,6 +39,8 @@ export class Resource {
   readonly idealState: any;
   readonly externalView: any;
 
+  readonly partitions: Partition[];
+
   get enabled(): boolean {
     // there are two cases meaning enabled both:
     //   HELIX_ENABLED: true or no such item in idealState
@@ -48,8 +50,6 @@ export class Resource {
   get online(): boolean {
      return !_.isEmpty(this.externalView);
   }
-
-  readonly partitions: Partition[];
 
   constructor(cluster: string, name: string, config: any, idealState: any, externalView: any) {
     this.cluster = cluster;

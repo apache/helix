@@ -7,16 +7,6 @@ import { ControlValueAccessor } from '@angular/forms';
   styleUrls: ['./input-inline.component.scss']
 })
 export class InputInlineComponent implements ControlValueAccessor, OnInit {
-  @Input()
-  get value(): any {
-    return this._value;
-  }
-  set value(v: any) {
-    if (v !== this._value) {
-      this._value = v;
-      this.onChange(v);
-    }
-  }
 ;
 
   @ViewChild('inputControl', {static: true}) inputControl: ElementRef;
@@ -44,6 +34,16 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
   // Required forControlValueAccessor interface
   public onChange: any = Function.prototype;
   public onTouched: any = Function.prototype;
+  @Input()
+  get value(): any {
+    return this._value;
+  }
+  set value(v: any) {
+    if (v !== this._value) {
+      this._value = v;
+      this.onChange(v);
+    }
+  }
   @Input() focus: Function = _ => { };
   @Input() blur: Function = _ => { };
   public registerOnChange(fn: (_: any) => {}): void { this.onChange = fn; }

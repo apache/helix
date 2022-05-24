@@ -65,7 +65,7 @@
     "ngx-json-viewer": "^2.3.0",
     "ngx-vis": "^3.1.0",
     "request": "^2.81.0",
-    "rxjs": "^6.5.5",
+    "rxjs": "^6.6.3",
     "rxjs-compat": "^6.0.0-rc.0",
     "sass": "^1.51.0",
     "tsickle": "github:angular/tsickle#fdf6e86717648f1b9603752cb83486fa6dcac38f",

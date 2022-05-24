@@ -69,7 +69,7 @@
     "rxjs-compat": "^6.0.0-rc.0",
     "sass": "^1.51.0",
     "timsort": "^0.3.0",
-    "tsickle": "github:angular/tsickle#fdf6e86717648f1b9603752cb83486fa6dcac38f",
+    "tsickle": "^0.43.0",
     "tslib": "^2.0.0",
     "uuid": "^7.0.3",
     "vis": "^4.21.0",

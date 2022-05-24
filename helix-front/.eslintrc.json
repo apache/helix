@@ -88,7 +88,14 @@
         ],
         "no-redeclare": "error",
         "no-underscore-dangle": "off",
-        "radix": "off"
+        "radix": "off",
+        "prefer-arrow/prefer-arrow-functions": "off",
+        "@typescript-eslint/naming-convention": "off",
+        "@typescript-eslint/member-ordering": "off",
+        "@typescript-eslint/consistent-type-assertions": "off",
+        "@typescript-eslint/ban-types": "off",
+        "@angular-eslint/no-output-native": "off",
+        "@typescript-eslint/no-unused-expressions": "off"
       }
     },
     {
@@ -98,7 +105,9 @@
       "extends": [
         "plugin:@angular-eslint/template/recommended"
       ],
-      "rules": {}
+      "rules": {
+        "@angular-eslint/template/eqeqeq": "off"
+      }
     }
   ]
 }

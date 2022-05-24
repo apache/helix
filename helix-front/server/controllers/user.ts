@@ -32,7 +32,7 @@ export class UserCtrl {
     try {
       return res.json(req.session.isAdmin ? true : false);
     } catch (err) {
-      console.log('error from can', err)
+      // console.log('error from can', err)
       return false
     }
   }

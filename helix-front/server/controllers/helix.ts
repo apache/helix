@@ -62,6 +62,12 @@ export class HelixCtrl {
   }
 
   protected list(req: Request, res: Response) {
-    res.json(HELIX_ENDPOINTS);
+    try {
+      res.json(HELIX_ENDPOINTS);
+    } catch(err) {
+      console.log('error from helix/list/')
+      console.log(err)
+    }
+    
   }
 }

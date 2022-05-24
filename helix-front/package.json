@@ -27,8 +27,8 @@
     "type:check:watch": "npm run type:check -- --watch"
   },
   "engines": {
-    "node": "12.20.2",
-    "npm": "6.14.11"
+    "node": "12.22.12",
+    "npm": "6.14.16"
   },
   "dependencies": {
     "@angular/animations": "13.3.9",

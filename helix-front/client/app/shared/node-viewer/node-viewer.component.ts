@@ -32,18 +32,6 @@ export class NodeViewerComponent implements OnInit {
   @Output('delete')
   delete: EventEmitter<Node> = new EventEmitter<Node>();
 
-  // MODE 1: use directly in components
-  @Input()
-  set obj(value: any) {
-    if (value != null) {
-      this._obj = value;
-      this.node = new Node(value);
-    }
-  }
-  get obj(): any {
-    return this._obj;
-  }
-
   @Input()
   unlockable = false;
 
@@ -51,14 +39,6 @@ export class NodeViewerComponent implements OnInit {
   loadingIndicator = false;
 
   private _editable = false;
-  set editable(value: boolean) {
-    this._editable = value;
-    this.columns.simpleConfigs[1].editable = this._editable;
-    this.columns.listConfigs[0].editable = this._editable;
-  }
-  get editable() {
-    return this._editable;
-  }
 
   protected _obj: any;
   protected node: Node;
@@ -89,14 +69,36 @@ export class NodeViewerComponent implements OnInit {
   };
 
   _simpleConfigs: any[];
+
+  _listConfigs: any[];
+
+  _mapConfigs: any[];
+
+  // MODE 1: use directly in components
+  @Input()
+  set obj(value: any) {
+    if (value != null) {
+      this._obj = value;
+      this.node = new Node(value);
+    }
+  }
+  get obj(): any {
+    return this._obj;
+  }
+  set editable(value: boolean) {
+    this._editable = value;
+    this.columns.simpleConfigs[1].editable = this._editable;
+    this.columns.listConfigs[0].editable = this._editable;
+  }
+  get editable() {
+    return this._editable;
+  }
   get simpleConfigs(): any[] {
     return this.node ? _.filter(this.node.simpleFields, config => {
       return config.name.toLowerCase().indexOf(this.keyword) >= 0
         || config.value.toLowerCase().indexOf(this.keyword) >= 0;
     }) : [];
   }
-
-  _listConfigs: any[];
   get listConfigs(): any[] {
     return this.node ?  _.filter(this.node.listFields, config => {
       return config.name.toLowerCase().indexOf(this.keyword) >= 0
@@ -105,8 +107,6 @@ export class NodeViewerComponent implements OnInit {
         });
     }) : [];
   }
-
-  _mapConfigs: any[];
   get mapConfigs(): any[] {
     return this.node ?  _.filter(this.node.mapFields, config => {
       return config.name.toLowerCase().indexOf(this.keyword) >= 0

@@ -94,27 +94,17 @@ export class NodeViewerComponent implements OnInit {
     return this._editable;
   }
   get simpleConfigs(): any[] {
-    return this.node ? _.filter(this.node.simpleFields, config => {
-      return config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || config.value.toLowerCase().indexOf(this.keyword) >= 0;
-    }) : [];
+    return this.node ? _.filter(this.node.simpleFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
+        || config.value.toLowerCase().indexOf(this.keyword) >= 0) : [];
   }
   get listConfigs(): any[] {
-    return this.node ?  _.filter(this.node.listFields, config => {
-      return config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || _.some(config.value as any[], subconfig => {
-          return subconfig.value.toLowerCase().indexOf(this.keyword) >= 0;
-        });
-    }) : [];
+    return this.node ?  _.filter(this.node.listFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
+        || _.some(config.value as any[], subconfig => subconfig.value.toLowerCase().indexOf(this.keyword) >= 0)) : [];
   }
   get mapConfigs(): any[] {
-    return this.node ?  _.filter(this.node.mapFields, config => {
-      return config.name.toLowerCase().indexOf(this.keyword) >= 0
-        || _.some(config.value as any[], subconfig => {
-          return subconfig.name.toLowerCase().indexOf(this.keyword) >= 0
-            || subconfig.value.toLowerCase().indexOf(this.keyword) >= 0;
-        });
-    }) : [];
+    return this.node ?  _.filter(this.node.mapFields, config => config.name.toLowerCase().indexOf(this.keyword) >= 0
+        || _.some(config.value as any[], subconfig => subconfig.name.toLowerCase().indexOf(this.keyword) >= 0
+            || subconfig.value.toLowerCase().indexOf(this.keyword) >= 0)) : [];
   }
 
   constructor(
@@ -155,7 +145,7 @@ export class NodeViewerComponent implements OnInit {
   getNameCellClass({ value }): any {
     return {
       // highlight HELIX own configs
-      'primary': _.snakeCase(value).toUpperCase() === value
+      primary: _.snakeCase(value).toUpperCase() === value
     };
   }
 
@@ -232,7 +222,7 @@ export class NodeViewerComponent implements OnInit {
 
       case 'list':
         if (key) {
-          const entry = _.find(this.node.listFields, {'name': key});
+          const entry = _.find(this.node.listFields, {name: key});
   //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
   // Property 'value' does not exist on type 'number'.ts(2339)
   // @ts-ignore
@@ -249,7 +239,7 @@ export class NodeViewerComponent implements OnInit {
 
       case 'map':
         if (key) {
-          const entry = _.find(this.node.mapFields, {'name': key});
+          const entry = _.find(this.node.mapFields, {name: key});
   //         Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.
   // Property 'value' does not exist on type 'number'.ts(2339)
   // @ts-ignore
@@ -278,11 +268,11 @@ export class NodeViewerComponent implements OnInit {
 
       case 'list':
         if (key) {
-          const entry = _.find(this.node.listFields, {'name': key});
+          const entry = _.find(this.node.listFields, {name: key});
   //         Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
   // Property 'value' does not exist on type 'number'.ts(2339)
   // @ts-ignore
-          const index = _.findIndex(entry.value, {'value': row.value});
+          const index = _.findIndex(entry.value, {value: row.value});
           if (isDeleting) {
   //           Property 'value' does not exist on type 'number | ListFieldObject | ((searchElement: ListFieldObject, fromIndex?: number) => boolean) | ((...'.
   // Property 'value' does not exist on type 'number'.ts(2339)
@@ -304,7 +294,7 @@ export class NodeViewerComponent implements OnInit {
       case 'map':
         if (key) {
           // have to fetch all other configs under this key
-          const entry = _.find(this.node.mapFields, {'name': key});
+          const entry = _.find(this.node.mapFields, {name: key});
           newNode.mapFields =  [{ name: key, value: [] }];
 
           // Property 'value' does not exist on type 'number | MapFieldObject | ((searchElement: MapFieldObject, fromIndex?: number) => boolean) | (() ...'.

@@ -46,8 +46,12 @@ export class InputInlineComponent implements ControlValueAccessor, OnInit {
   }
   @Input() focus: Function = _ => { };
   @Input() blur: Function = _ => { };
-  public registerOnChange(fn: (_: any) => {}): void { this.onChange = fn; }
-  public registerOnTouched(fn: () => {}): void { this.onTouched = fn; }  writeValue(value: any) {
+  public registerOnChange(fn: (_: any) => {}): void {
+ this.onChange = fn;
+}
+  public registerOnTouched(fn: () => {}): void {
+ this.onTouched = fn;
+}  writeValue(value: any) {
     this._value = value;
   }
 

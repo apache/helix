@@ -30,11 +30,9 @@ export class Node {
       _.forOwn(obj['listFields'], (v, k) => {
         this.listFields.push(<ListFieldObject>{
           name: k,
-          value: _.map(v, item => {
-            return <SimpleFieldObject>{
+          value: _.map(v, item => <SimpleFieldObject>{
               value: item
-            };
-          })
+            })
         });
       });
 
@@ -49,24 +47,24 @@ export class Node {
 
   public appendSimpleField(name: string, value: string) {
     this.simpleFields.push(<SimpleFieldObject>{
-      name: name,
-      value: value
+      name,
+      value
     });
   }
 
   public appendMapField(key: string, name: string, value: string) {
-    const index = _.findIndex(this.mapFields, {'name': key});
+    const index = _.findIndex(this.mapFields, {name: key});
     if (index >= 0) {
       this.mapFields[index].value.push(<SimpleFieldObject>{
-        name: name,
-        value: value
+        name,
+        value
       });
     } else {
       this.mapFields.push(<MapFieldObject>{
         name: key,
         value: [<SimpleFieldObject>{
-          name: name,
-          value: value
+          name,
+          value
         }]
       });
     }
@@ -74,7 +72,7 @@ export class Node {
 
   public json(id: string): string {
     const obj = {
-      id: id,
+      id,
       simpleFields: {},
       listFields: {},
       mapFields: {}

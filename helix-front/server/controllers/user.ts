@@ -51,18 +51,18 @@ export class UserCtrl {
         response.status(401).json(false);
       } else {
         // login success
-        let opts = {
+        const opts = {
           filter: '(&(sAMAccountName=' + credential.username + ')(objectcategory=person))',
           scope: 'sub'
         };
 
         ldap.search(LDAP.base, opts, function(err, result) {
-          var isInAdminGroup = false;
-          result.on('searchEntry', function (entry) {
+          let isInAdminGroup = false;
+          result.on('searchEntry', function(entry) {
             if (entry.object && !err) {
-              let groups = entry.object["memberOf"];
-              for (var group of groups) {
-                const groupName = group.split(",", 1)[0].split("=")[1];
+              const groups = entry.object['memberOf'];
+              for (const group of groups) {
+                const groupName = group.split(',', 1)[0].split('=')[1];
                 if (groupName == LDAP.adminGroup) {
                   isInAdminGroup = true;
                   break;

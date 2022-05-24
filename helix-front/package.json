@@ -45,7 +45,7 @@
     "@angular/router": "12.2.16",
     "@egjs/hammerjs": "^2.0.17",
     "@swimlane/ngx-charts": "^16.0.0",
-    "@swimlane/ngx-datatable": "^19.0.0",
+    "@swimlane/ngx-datatable": "^20.0.0",
     "@swimlane/ngx-graph": "^8.0.0-rc.2",
     "ajv": "^6.9.1",
     "angulartics2": "^10.1.0",

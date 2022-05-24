@@ -1,10 +1,11 @@
+@use '~@angular/material' as mat;
 @import 'client/theme.scss';
 
 .mat-icon {
   @include md-icon-size(20px);
 
   &:hover {
-    color: mat-color($hi-warn);
+    color: mat.get-color-from-palette($hi-warn);
   }
 }
 

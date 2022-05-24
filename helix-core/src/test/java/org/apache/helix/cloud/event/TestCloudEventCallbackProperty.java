@@ -20,6 +20,8 @@ package org.apache.helix.cloud.event;
  */
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.helix.HelixCloudProperty;
 import org.apache.helix.HelixManager;
@@ -76,16 +78,19 @@ public class TestCloudEventCallbackProperty {
   @Test
   public void testOptionalHelixOperation() throws Exception {
     // Cloud event callback property
-    CloudEventCallbackProperty property = new CloudEventCallbackProperty(Collections
-        .singletonMap(CloudEventCallbackProperty.UserArgsInputKey.CALLBACK_IMPL_CLASS_NAME,
-            MockCloudEventCallbackImpl.class.getCanonicalName()));
+    Map<String, String> paramMap = new HashMap<>();
+    paramMap.put(CloudEventCallbackProperty.UserArgsInputKey.CALLBACK_IMPL_CLASS_NAME,
+        MockCloudEventCallbackImpl.class.getCanonicalName());
+    paramMap.put(CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME,
+        HelixTestCloudEventHandlerFactory.class.getCanonicalName());
+    CloudEventCallbackProperty property = new CloudEventCallbackProperty(paramMap);
     property.setHelixOperationEnabled(HelixOperation.ENABLE_DISABLE_INSTANCE, true);
     _cloudProperty.setCloudEventCallbackProperty(property);
 
     _helixManager.connect();
 
     // Manually trigger event
-    CloudEventHandlerFactory.getInstance()
+    HelixTestCloudEventHandlerFactory.getInstance()
         .performAction(HelixCloudEventListener.EventType.ON_PAUSE, null);
     Assert.assertTrue(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));
@@ -101,7 +106,7 @@ public class TestCloudEventCallbackProperty {
     MockCloudEventCallbackImpl.triggeredOperation.clear();
 
     // Manually trigger event
-    CloudEventHandlerFactory.getInstance()
+    HelixTestCloudEventHandlerFactory.getInstance()
         .performAction(HelixCloudEventListener.EventType.ON_PAUSE, null);
     Assert.assertTrue(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));
@@ -115,7 +120,7 @@ public class TestCloudEventCallbackProperty {
     MockCloudEventCallbackImpl.triggeredOperation.clear();
 
     // Manually trigger event
-    CloudEventHandlerFactory.getInstance()
+    HelixTestCloudEventHandlerFactory.getInstance()
         .performAction(HelixCloudEventListener.EventType.ON_RESUME, null);
     Assert.assertFalse(
         callbackTriggered(MockCloudEventCallbackImpl.OperationType.ON_PAUSE_DISABLE_INSTANCE));

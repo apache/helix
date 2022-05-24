@@ -22,16 +22,30 @@ package org.apache.helix.cloud.event;
 /**
  * This class is the factory for singleton class {@link CloudEventHandler}
  */
-public class CloudEventHandlerFactory {
+public class CloudEventHandlerFactory implements AbstractEventHandlerFactory{
   private static CloudEventHandler INSTANCE = null;
 
   private CloudEventHandlerFactory() {
   }
 
   /**
-   * Get a CloudEventHandler instance
+   * Get a CloudEventHandler instance.
+   * This is a hacky way of doing this. Because user may implement their own handler and we need
+   * to dymanic load. So we need a both class method and static method.
    * @return
    */
+  @Override
+  public CloudEventHandler getInstanceObjectFunction() {
+    if (INSTANCE == null) {
+      synchronized (CloudEventHandlerFactory.class) {
+        if (INSTANCE == null) {
+          INSTANCE = new CloudEventHandler();
+        }
+      }
+    }
+    return INSTANCE;
+  }
+
   public static CloudEventHandler getInstance() {
     if (INSTANCE == null) {
       synchronized (CloudEventHandlerFactory.class) {

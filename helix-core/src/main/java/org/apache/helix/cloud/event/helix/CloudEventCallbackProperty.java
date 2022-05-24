@@ -56,6 +56,7 @@ public class CloudEventCallbackProperty {
    */
   public static class UserArgsInputKey {
     public static final String CALLBACK_IMPL_CLASS_NAME = "callbackImplClassName";
+    public static final String CLOUD_EVENT_HANDLER_CLASS_NAME = "cloudEventHandlerClassName";
   }
 
   /**

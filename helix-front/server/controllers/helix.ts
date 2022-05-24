@@ -3,6 +3,7 @@ import { Request, Response, Router } from 'express';
 import * as request from 'request';
 
 import { HELIX_ENDPOINTS } from '../config';
+import { HelixUserRequest } from './d';
 
 export class HelixCtrl {
 
@@ -13,7 +14,7 @@ export class HelixCtrl {
     router.route('/helix/*').all(this.proxy);
   }
 
-  protected proxy(req: Request, res: Response) {
+  protected proxy(req: HelixUserRequest, res: Response) {
     const url = req.originalUrl.replace(HelixCtrl.ROUTE_PREFIX, '');
     const helixKey = url.split('/')[1];
 
@@ -23,12 +24,8 @@ export class HelixCtrl {
     segments.shift();
     const name = segments.join('.');
 
-    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-    // @ts-expect-error
     const user = req.session.username;
     const method = req.method.toLowerCase();
-    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-    // @ts-expect-error
     if (method != 'get' && !req.session.isAdmin) {
       res.status(403).send('Forbidden');
       return;

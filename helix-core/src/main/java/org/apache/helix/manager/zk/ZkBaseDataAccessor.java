@@ -47,6 +47,7 @@ import org.apache.helix.zookeeper.impl.factory.SharedZkClientFactory;
 import org.apache.helix.zookeeper.zkclient.DataUpdater;
 import org.apache.helix.zookeeper.zkclient.IZkChildListener;
 import org.apache.helix.zookeeper.zkclient.IZkDataListener;
+import org.apache.helix.zookeeper.zkclient.ZkClient;
 import org.apache.helix.zookeeper.zkclient.callback.ZkAsyncCallbacks;
 import org.apache.helix.zookeeper.zkclient.exception.ZkBadVersionException;
 import org.apache.helix.zookeeper.zkclient.exception.ZkException;
@@ -249,7 +250,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean create(String path, T record, int options) {
-    AccessResult result = doCreate(path, record, options);
+    return create(path, record, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * sync create with TTL
+   */
+  @Override
+  public boolean create(String path, T record, int options, long ttl) {
+    AccessResult result = doCreate(path, record, options, ttl);
     return result._retCode == RetCode.OK;
   }
 
@@ -257,6 +266,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    * sync create
    */
   public AccessResult doCreate(String path, T record, int options) {
+    return doCreate(path, record, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * sync create with TTL
+   */
+  public AccessResult doCreate(String path, T record, int options, long ttl) {
     AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
@@ -269,7 +285,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     do {
       retry = false;
       try {
-        _zkClient.create(path, record, mode);
+        _zkClient.create(path, record, mode, ttl);
         result._pathCreated.add(path);
 
         result._retCode = RetCode.OK;
@@ -278,7 +294,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // this will happen if parent node does not exist
         String parentPath = HelixUtil.getZkParentPath(path);
         try {
-          AccessResult res = doCreate(parentPath, null, AccessOption.PERSISTENT);
+          AccessResult res;
+          if (mode.isTTL()) {
+            res = doCreate(parentPath, null, options, ttl);
+          }  else if (mode.isContainer()) {
+            res = doCreate(parentPath, null, AccessOption.CONTAINER);
+          } else {
+            res = doCreate(parentPath, null, AccessOption.PERSISTENT);
+          }
           result._pathCreated.addAll(res._pathCreated);
           RetCode rc = res._retCode;
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS) {
@@ -720,6 +743,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records,
       boolean[] needCreate, List<List<String>> pathsCreated, int options) {
+    return create(paths, records, needCreate, pathsCreated, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * async create with TTL. give up on error other than NONODE
+   */
+  ZkAsyncCallbacks.CreateCallbackHandler[] create(List<String> paths, List<T> records,
+      boolean[] needCreate, List<List<String>> pathsCreated, int options, long ttl) {
     if ((records != null && records.size() != paths.size()) || needCreate.length != paths.size()
         || (pathsCreated != null && pathsCreated.size() != paths.size())) {
       throw new IllegalArgumentException(
@@ -747,7 +778,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         String path = paths.get(i);
         T record = records == null ? null : records.get(i);
         cbList[i] = new ZkAsyncCallbacks.CreateCallbackHandler();
-        _zkClient.asyncCreate(path, record, mode, cbList[i]);
+        if (mode.isTTL()) {
+          _zkClient.asyncCreate(path, record, mode, ttl, cbList[i]);
+        } else {
+          _zkClient.asyncCreate(path, record, mode, cbList[i]);
+        }
       }
 
       List<String> parentPaths = new ArrayList<>(Collections.<String>nCopies(paths.size(), null));
@@ -784,8 +819,16 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       if (failOnNoNode) {
         boolean[] needCreateParent = Arrays.copyOf(needCreate, needCreate.length);
 
-        ZkAsyncCallbacks.CreateCallbackHandler[] parentCbList =
-            create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.PERSISTENT);
+        ZkAsyncCallbacks.CreateCallbackHandler[] parentCbList;
+        if (mode.isTTL()) {
+          parentCbList = create(parentPaths, null, needCreateParent, pathsCreated, options, ttl);
+        } else if (mode.isContainer()) {
+          parentCbList =
+              create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.CONTAINER);
+        } else {
+          parentCbList =
+              create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.PERSISTENT);
+        }
         for (int i = 0; i < parentCbList.length; i++) {
           ZkAsyncCallbacks.CreateCallbackHandler parentCb = parentCbList[i];
           if (parentCb == null) {
@@ -812,6 +855,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean[] createChildren(List<String> paths, List<T> records, int options) {
+    return createChildren(paths, records, options, ZkClient.TTL_NOT_SET);
+  }
+
+  /**
+   * async create with TTL
+   * TODO: rename to create
+   */
+  @Override
+  public boolean[] createChildren(List<String> paths, List<T> records, int options, long ttl) {
     boolean[] success = new boolean[paths.size()];
 
     CreateMode mode = AccessOption.getMode(options);
@@ -829,7 +881,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     try {
 
       ZkAsyncCallbacks.CreateCallbackHandler[] cbList =
-          create(paths, records, needCreate, pathsCreated, options);
+          create(paths, records, needCreate, pathsCreated, options, ttl);
 
       for (int i = 0; i < cbList.length; i++) {
         ZkAsyncCallbacks.CreateCallbackHandler cb = cbList[i];

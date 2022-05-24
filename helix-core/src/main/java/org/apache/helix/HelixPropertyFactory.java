@@ -80,6 +80,10 @@ public final class HelixPropertyFactory {
    * @param clusterName
    * @return
    */
+
+  public static CloudConfig getCloudConfig(String zkAddress, String clusterName) {
+    return getCloudConfig(zkAddress, clusterName, null);
+  }
   public static CloudConfig getCloudConfig(String zkAddress, String clusterName,
       RealmAwareZkClient.RealmAwareZkConnectionConfig realmAwareZkConnectionConfig) {
     CloudConfig cloudConfig;

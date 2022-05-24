@@ -23,8 +23,12 @@ export class HelixCtrl {
     segments.shift();
     const name = segments.join('.');
 
+    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+    // @ts-expect-error
     const user = req.session.username;
     const method = req.method.toLowerCase();
+    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+    // @ts-expect-error
     if (method != 'get' && !req.session.isAdmin) {
       res.status(403).send('Forbidden');
       return;

@@ -18,6 +18,9 @@ export class UserCtrl {
     // by default, doing nothing but redirection
 
     if (req.query.url) {
+      // Argument of type 'string | ParsedQs | string[] | ParsedQs[]' is not assignable to parameter of type 'string'.
+      // Type 'ParsedQs' is not assignable to type 'string'.ts(2345)
+      // @ts-expect-error
       res.redirect(req.query.url);
     } else {
       res.redirect('/');
@@ -25,11 +28,15 @@ export class UserCtrl {
   }
 
   protected current(req: Request, res: Response) {
+    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+    // @ts-expect-error
     res.json(req.session.username || 'Sign In');
   }
 
   protected can(req: Request, res: Response) {
     try {
+      // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+      // @ts-expect-error
       return res.json(req.session.isAdmin ? true : false);
     } catch (err) {
       console.log('error from can', err)
@@ -70,7 +77,11 @@ export class UserCtrl {
               }
             }
 
+            // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+            // @ts-expect-error
             request.session.username = credential.username;
+            // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
+            // @ts-expect-error
             request.session.isAdmin = isInAdminGroup;
             response.json(isInAdminGroup);
           });

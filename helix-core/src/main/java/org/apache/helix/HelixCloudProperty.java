@@ -24,7 +24,9 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
 import org.apache.helix.cloud.constants.CloudProvider;
+import org.apache.helix.cloud.event.CloudEventHandler;
 import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
 import org.apache.helix.model.CloudConfig;
 import org.slf4j.Logger;
@@ -157,6 +159,14 @@ public class HelixCloudProperty {
 
   public Properties getCustomizedCloudProperties() {
     return _customizedCloudProperties;
+  }
+
+  public String getCloudEventHandlerClassName() {
+    String defaultHandler = CloudEventHandler.class.getName();
+    return getCloudEventCallbackProperty() == null ? defaultHandler
+        : getCloudEventCallbackProperty().getUserArgs().getOrDefault(
+            CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME,
+            defaultHandler);
   }
 
   public void setCloudEnabled(boolean isCloudEnabled) {

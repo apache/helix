@@ -71,8 +71,6 @@ import org.apache.helix.api.listeners.LiveInstanceChangeListener;
 import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
-import org.apache.helix.cloud.event.AbstractEventHandlerFactory;
-import org.apache.helix.cloud.event.CloudEventHandler;
 import org.apache.helix.cloud.event.CloudEventHandlerFactory;
 import org.apache.helix.cloud.event.CloudEventListener;
 import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
@@ -834,21 +832,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        String customizedCloudEventHandlerClassName =
-            helixCloudProperty.getCloudEventCallbackProperty().getUserArgs()
-                .get(CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME);
-        if (customizedCloudEventHandlerClassName!=null && !customizedCloudEventHandlerClassName.isEmpty()){
-          LOG.info("Using factory class: " + customizedCloudEventHandlerClassName);
-          AbstractEventHandlerFactory eventHandlerFactory =
-              (AbstractEventHandlerFactory) (HelixUtil.loadClass(getClass(), customizedCloudEventHandlerClassName))
-              .newInstance();
-          CloudEventHandler eventHandler =
-              (CloudEventHandler) eventHandlerFactory.getInstanceObjectFunction();
-          eventHandler.registerCloudEventListener(_cloudEventListener);
-        } else {
-          LOG.info("Using default factory class.");
-          CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
-        }
+        LOG.info("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .registerCloudEventListener(_cloudEventListener);
       }
     }
   }
@@ -897,7 +884,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _helixPropertyStore = null;
 
       if (_cloudEventListener != null) {
-        CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
+        try {
+          CloudEventHandlerFactory.getInstance(
+              _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+              .unregisterCloudEventListener(_cloudEventListener);
+        } catch (Exception e) {
+          LOG.error("Failed to unregister cloudEventListener.", e);
+        }
         _cloudEventListener = null;
       }
 

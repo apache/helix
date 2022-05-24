@@ -51,7 +51,6 @@ import org.apache.helix.api.listeners.MessageListener;
 import org.apache.helix.api.listeners.ResourceConfigChangeListener;
 import org.apache.helix.api.listeners.ScopedConfigChangeListener;
 import org.apache.helix.cloud.constants.CloudProvider;
-import org.apache.helix.cloud.event.helix.CloudEventCallbackProperty;
 import org.apache.helix.cloud.event.helix.HelixCloudEventListener;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -59,7 +58,6 @@ import org.apache.helix.model.CloudConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.zookeeper.datamodel.ZNRecord;
 
 public class MockCloudEventAwareHelixManager implements HelixManager {
@@ -85,19 +83,10 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
       if (helixCloudProperty != null && helixCloudProperty.isCloudEventCallbackEnabled()) {
         _cloudEventListener =
             new HelixCloudEventListener(helixCloudProperty.getCloudEventCallbackProperty(), this);
-        String customizedCloudEventHandlerClassName =
-            helixCloudProperty.getCloudEventCallbackProperty().getUserArgs()
-                .get(CloudEventCallbackProperty.UserArgsInputKey.CLOUD_EVENT_HANDLER_CLASS_NAME);
-        if (customizedCloudEventHandlerClassName!=null && !customizedCloudEventHandlerClassName.isEmpty()){
-          AbstractEventHandlerFactory eventHandlerFactory =
-              (AbstractEventHandlerFactory) (HelixUtil.loadClass(getClass(), customizedCloudEventHandlerClassName))
-                  .newInstance();
-          CloudEventHandler eventHandler =
-              (CloudEventHandler) eventHandlerFactory.getInstanceObjectFunction();
-          eventHandler.registerCloudEventListener(_cloudEventListener);
-        } else {
-          CloudEventHandlerFactory.getInstance().registerCloudEventListener(_cloudEventListener);
-        }
+        System.out.println("Using handler: " + helixCloudProperty.getCloudEventHandlerClassName());
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .registerCloudEventListener(_cloudEventListener);
       }
     }
   }
@@ -105,8 +94,13 @@ public class MockCloudEventAwareHelixManager implements HelixManager {
   @Override
   public void disconnect() {
     if (_cloudEventListener != null) {
-      CloudEventHandlerFactory.getInstance().unregisterCloudEventListener(_cloudEventListener);
-      _cloudEventListener = null;
+      try {
+        CloudEventHandlerFactory.getInstance(
+            _helixManagerProperty.getHelixCloudProperty().getCloudEventHandlerClassName())
+            .unregisterCloudEventListener(_cloudEventListener);
+      } catch (Exception e) {
+        System.out.println("Failed to unregister cloudEventListener.");
+      }
     }
   }
 

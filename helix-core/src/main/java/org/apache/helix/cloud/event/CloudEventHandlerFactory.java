@@ -19,11 +19,17 @@ package org.apache.helix.cloud.event;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.helix.util.HelixUtil;
+
+
 /**
  * This class is the factory for singleton class {@link CloudEventHandler}
  */
-public class CloudEventHandlerFactory implements AbstractEventHandlerFactory{
-  private static CloudEventHandler INSTANCE = null;
+public class CloudEventHandlerFactory {
+  private static Map<String, AbstractEventHandler> INSTANCE_MAP = new HashMap();
 
   private CloudEventHandlerFactory() {
   }
@@ -34,26 +40,16 @@ public class CloudEventHandlerFactory implements AbstractEventHandlerFactory{
    * to dymanic load. So we need a both class method and static method.
    * @return
    */
-  @Override
-  public CloudEventHandler getInstanceObjectFunction() {
-    if (INSTANCE == null) {
-      synchronized (CloudEventHandlerFactory.class) {
-        if (INSTANCE == null) {
-          INSTANCE = new CloudEventHandler();
-        }
+  public static AbstractEventHandler getInstance(String eventHandlerClassName)
+      throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    synchronized (CloudEventHandlerFactory.class) {
+      if (INSTANCE_MAP.get(eventHandlerClassName) == null) {
+        AbstractEventHandler eventHandlerObject = (AbstractEventHandler) (HelixUtil
+            .loadClass(AbstractEventHandler.class, eventHandlerClassName)).newInstance();
+        INSTANCE_MAP.put(eventHandlerClassName, eventHandlerObject);
+        return eventHandlerObject;
       }
+      return INSTANCE_MAP.get(eventHandlerClassName);
     }
-    return INSTANCE;
-  }
-
-  public static CloudEventHandler getInstance() {
-    if (INSTANCE == null) {
-      synchronized (CloudEventHandlerFactory.class) {
-        if (INSTANCE == null) {
-          INSTANCE = new CloudEventHandler();
-        }
-      }
-    }
-    return INSTANCE;
   }
 }

@@ -53,21 +53,25 @@
                   "with": "client/environments/environment.prod.ts"
                 }
               ]
-            }
+            },
+            "development": {}
           },
-          "defaultConfiguration": ""
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "helix-front:build",
             "proxyConfig": "./proxy.conf.json"
           },
           "configurations": {
             "production": {
               "browserTarget": "helix-front:build:production"
+            },
+            "development": {
+              "browserTarget": "helix-front:build:development"
             }
-          }
+          },
+          "defaultConfiguration": "development"
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
@@ -115,7 +119,8 @@
           "options": {
             "protractorConfig": "./protractor.conf.js",
             "devServerTarget": "helix-front:serve"
-          }
+          },
+          "configurations": {}
         },
         "lint": {
           "builder": "@angular-devkit/build-angular:tslint",

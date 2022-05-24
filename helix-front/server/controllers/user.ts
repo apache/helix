@@ -2,6 +2,7 @@ import {Request, Response, Router} from 'express';
 import * as LdapClient from 'ldapjs';
 
 import {LDAP} from '../config';
+import { HelixUserRequest } from './d';
 
 export class UserCtrl {
 
@@ -12,31 +13,23 @@ export class UserCtrl {
     router.route('/user/can').get(this.can);
   }
 
-  protected authorize(req: Request, res: Response) {
+  protected authorize(req: HelixUserRequest, res: Response) {
 
     // you can rewrite this function to support your own authorization logic
     // by default, doing nothing but redirection
-
     if (req.query.url) {
-      // Argument of type 'string | ParsedQs | string[] | ParsedQs[]' is not assignable to parameter of type 'string'.
-      // Type 'ParsedQs' is not assignable to type 'string'.ts(2345)
-      // @ts-expect-error
-      res.redirect(req.query.url);
+      res.redirect(req.query.url as string);
     } else {
       res.redirect('/');
     }
   }
 
-  protected current(req: Request, res: Response) {
-    // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-    // @ts-expect-error
+  protected current(req: HelixUserRequest, res: Response) {
     res.json(req.session.username || 'Sign In');
   }
 
-  protected can(req: Request, res: Response) {
+  protected can(req: HelixUserRequest, res: Response) {
     try {
-      // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-      // @ts-expect-error
       return res.json(req.session.isAdmin ? true : false);
     } catch (err) {
       console.log('error from can', err)
@@ -44,7 +37,7 @@ export class UserCtrl {
     }
   }
 
-  protected login(request: Request, response: Response) {
+  protected login(request: HelixUserRequest, response: Response) {
     const credential = request.body;
     if (!credential.username || !credential.password) {
       response.status(401).json(false);
@@ -77,11 +70,7 @@ export class UserCtrl {
               }
             }
 
-            // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-            // @ts-expect-error
             request.session.username = credential.username;
-            // Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.ts(2339)
-            // @ts-expect-error
             request.session.isAdmin = isInAdminGroup;
             response.json(isInAdminGroup);
           });

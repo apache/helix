@@ -19,7 +19,6 @@
     "test": "ng test",
     "lint": "ng lint",
     "lint:fix": "ng lint -- --fix",
-    "lint:tslint": "./node_modules/.bin/tslint -c tslint.json -p tsconfig.json",
     "e2e": "ng e2e",
     "smoke": "ng lint && ng test --sr && npm run build",
     "type:check": "tsc --project tsconfig.json --noEmit",
@@ -27,8 +26,8 @@
     "type:check:watch": "npm run type:check -- --watch"
   },
   "engines": {
-    "node": "12.22.12",
-    "npm": "6.14.16"
+    "node": "14.15.5",
+    "yarn": "1.22.1"
   },
   "dependencies": {
     "@angular/animations": "13.3.9",
@@ -111,7 +110,6 @@
     "karma-phantomjs-launcher": "^1.0.4",
     "nodemon": "^2.0.16",
     "protractor": "~7.0.0",
-    "rxjs-tslint": "^0.1.8",
     "ts-node": "~2.0.0",
     "typescript": "4.6.4"
   }

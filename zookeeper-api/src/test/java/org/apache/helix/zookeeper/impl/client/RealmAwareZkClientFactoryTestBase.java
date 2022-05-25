@@ -134,6 +134,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
 
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    System.clearProperty("zookeeper.extendedTypesEnabled");
   }
 
   /**
@@ -141,6 +142,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateContainer")
   public void testRealmAwareZkClientCreateSequentialWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Test writing and reading data
     _realmAwareZkClient.createPersistent(TEST_VALID_PATH, true);
     long ttl = 1L;
@@ -152,6 +154,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
 
     // Clean up
     _realmAwareZkClient.deleteRecursively(TEST_VALID_PATH);
+    System.clearProperty("zookeeper.extendedTypesEnabled");
   }
 
   /**
@@ -159,6 +162,7 @@ public abstract class RealmAwareZkClientFactoryTestBase extends RealmAwareZkClie
    */
   @Test(dependsOnMethods = "testRealmAwareZkClientCreateSequentialWithTTL")
   public void testRealmAwareZkClientCreateWithTTL() {
+    System.setProperty("zookeeper.extendedTypesEnabled", "true");
     // Test with createParents = true
     long ttl = 1L;
     _realmAwareZkClient.createPersistentWithTTL(TEST_VALID_PATH, true, ttl);

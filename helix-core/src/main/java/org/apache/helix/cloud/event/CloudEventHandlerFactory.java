@@ -26,7 +26,7 @@ import org.apache.helix.util.HelixUtil;
 
 
 /**
- * This class is the factory for singleton class {@link CloudEventHandler}
+ * This class is the factory for singleton class {@link AbstractEventHandler}
  */
 public class CloudEventHandlerFactory {
   private static Map<String, AbstractEventHandler> INSTANCE_MAP = new HashMap();
@@ -35,9 +35,7 @@ public class CloudEventHandlerFactory {
   }
 
   /**
-   * Get a CloudEventHandler instance.
-   * This is a hacky way of doing this. Because user may implement their own handler and we need
-   * to dymanic load. So we need a both class method and static method.
+   * Get an instance of AbstractEventHandler implementation.
    * @return
    */
   public static AbstractEventHandler getInstance(String eventHandlerClassName)

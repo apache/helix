@@ -70,8 +70,7 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
 
     public ObjectName objectName() {
       try {
-        return new ObjectName(String.format("%s:%s", MonitorDomainNames.ClusterStatus.name(),
-            new BeanName(_clusterName, _instanceName, _resourceName).toString()));
+        return new ObjectName(MonitorDomainNames.ClusterStatus.name() + ":" + this);
       } catch (MalformedObjectNameException e) {
         LOG.error("Failed to create object name for cluster: {}, instance: {}, resource: {}.",
             _clusterName, _instanceName, _resourceName);
@@ -81,7 +80,7 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof BeanName)) {
+      if (!(obj instanceof BeanName)) {
         return false;
       }
 
@@ -92,14 +91,16 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
 
     @Override
     public int hashCode() {
-      return toString().hashCode();
+      return 31 * 31 * _clusterName.hashCode()
+          + 31 * _instanceName.hashCode()
+          + _resourceName.hashCode();
     }
 
     @Override
     public String toString() {
-      return String.format("%s=%s,%s=%s,%s=%s", ClusterStatusMonitor.CLUSTER_DN_KEY, _clusterName,
-          ClusterStatusMonitor.INSTANCE_DN_KEY, _instanceName, ClusterStatusMonitor.RESOURCE_DN_KEY,
-          _resourceName);
+      return ClusterStatusMonitor.CLUSTER_DN_KEY + "=" + _clusterName + ","
+          + ClusterStatusMonitor.INSTANCE_DN_KEY + "=" + _instanceName + ","
+          + ClusterStatusMonitor.RESOURCE_DN_KEY + "=" + _resourceName;
     }
   }
 
@@ -115,18 +116,18 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     _participantName = participantName;
     _resourceName = resourceName;
-    _partitions = new SimpleDynamicMetric("PartitionGauge", 0L);
+    _partitions = new SimpleDynamicMetric<>("PartitionGauge", 0L);
   }
 
   @Override
   public String getSensorName() {
     return Joiner.on('.').join(ImmutableList
         .of(ClusterStatusMonitor.PARTICIPANT_STATUS_KEY, _clusterName, serializedTags(),
-            _participantName, _resourceName)).toString();
+            _participantName, _resourceName));
   }
 
   private String serializedTags() {
-    return Joiner.on('|').skipNulls().join(_tags).toString();
+    return Joiner.on('|').skipNulls().join(_tags);
   }
 
   public String getInstanceName() {
@@ -161,7 +162,7 @@ public class PerInstanceResourceMonitor extends DynamicMBeanProvider {
       }
       cnt++;
     }
-    _partitions.updateValue(Long.valueOf(cnt));
+    _partitions.updateValue((long) cnt);
   }
 
   @Override
